@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WebriQ Central Hub — Design System</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ── Reset & Base ─────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --navy-950: #070E1F; --navy-900: #0A1628; --navy-800: #0F1E3C;
+  --navy-700: #112040; --navy-600: #1A2F5A;
+  --blue-600: #2244D8; --blue-500: #3358F4; --blue-400: #4B6EFF;
+  --blue-300: #7B9DFF; --blue-100: #EEF2FF;
+  --orange-600: #D96210; --orange-500: #F97316; --orange-100: #FFF4EC;
+  --gray-950: #0F172A; --gray-900: #1E293B; --gray-800: #334155;
+  --gray-700: #475569; --gray-600: #64748B; --gray-500: #94A3B8;
+  --gray-400: #CBD5E1; --gray-300: #E2E8F0; --gray-200: #F1F5F9;
+  --gray-100: #F7F8FA; --white: #FFFFFF;
+  --success: #22C55E; --warning: #F59E0B; --error: #EF4444;
+  --font: 'Sora', system-ui, sans-serif;
+  --mono: ui-monospace, 'Cascadia Code', monospace;
+}
+body {
+  font-family: var(--font);
+  background: var(--gray-100);
+  color: var(--gray-900);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Layout ──────────────────────────────────────────── */
+.ds-shell { display: flex; min-height: 100vh; }
+.ds-nav {
+  width: 220px; flex-shrink: 0; position: sticky; top: 0; height: 100vh;
+  overflow-y: auto; background: var(--navy-950);
+  border-right: 1px solid rgba(255,255,255,0.07);
+  padding: 20px 0 20px;
+}
+.ds-nav-logo {
+  display: flex; align-items: center; gap: 10px;
+  padding: 0 14px 16px; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 10px;
+}
+.ds-nav-mark {
+  width: 28px; height: 28px; border-radius: 50% ;
+  background: linear-gradient(135deg, #1a4ccc 0%, #3358F4 60%, #6B8FFF 100%);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 0 0 2px rgba(51,88,244,0.3); flex-shrink: 0;
+}
+.ds-nav-wordmark { font-size: 14px; font-weight: 700; color: #fff; letter-spacing: -0.01em; }
+.ds-nav-section {
+  font-size: 9px; font-weight: 700; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--gray-800);
+  padding: 12px 14px 4px;
+}
+.ds-nav a {
+  display: block; padding: 7px 14px; font-size: 12.5px;
+  color: var(--gray-500); text-decoration: none; border-left: 2px solid transparent;
+  transition: color 100ms, background 100ms;
+}
+.ds-nav a:hover { color: #fff; background: rgba(255,255,255,0.04); }
+.ds-nav a.active { color: #fff; background: rgba(51,88,244,0.15); border-left-color: var(--blue-500); font-weight: 600; }
+.ds-content { flex: 1; padding: 40px 48px; max-width: 980px; }
+section { margin-bottom: 64px; }
+.section-title {
+  font-size: 22px; font-weight: 800; color: var(--gray-950);
+  margin-bottom: 6px; letter-spacing: -0.01em;
+}
+.section-sub { font-size: 14px; color: var(--gray-600); margin-bottom: 28px; }
+.divider { height: 1px; background: var(--gray-300); margin: 32px 0; }
+.group-label {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--gray-500); margin-bottom: 12px;
+}
+.row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-start; margin-bottom: 20px; }
+
+/* ── Color Swatches ──────────────────────────────────── */
+.swatch-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; margin-bottom: 20px; }
+.swatch { border-radius: 8px; overflow: hidden; border: 1px solid var(--gray-300); }
+.swatch-color { height: 52px; }
+.swatch-info { padding: 7px 10px; background: #fff; }
+.swatch-name { font-size: 11px; font-weight: 600; color: var(--gray-800); }
+.swatch-hex { font-size: 10px; color: var(--gray-500); font-family: var(--mono); }
+
+/* ── Type Specimens ──────────────────────────────────── */
+.type-row { padding: 16px 0; border-bottom: 1px solid var(--gray-200); display: flex; align-items: baseline; gap: 20px; }
+.type-meta { font-size: 11px; color: var(--gray-500); font-family: var(--mono); min-width: 120px; flex-shrink: 0; line-height: 1.4; }
+.type-sample { color: var(--gray-950); }
+
+/* ── Buttons ─────────────────────────────────────────── */
+.btn { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font); font-size: 13px; font-weight: 600; border-radius: 9999px; border: 2px solid transparent; cursor: pointer; line-height: 1; white-space: nowrap; padding: 10px 22px; transition: background 150ms, border-color 150ms; }
+.btn-primary-orange { background: var(--orange-500); color: #fff; border-color: var(--orange-500); }
+.btn-primary-orange:hover { background: var(--orange-600); border-color: var(--orange-600); }
+.btn-primary-blue { background: var(--blue-500); color: #fff; border-color: var(--blue-500); }
+.btn-secondary { background: transparent; color: var(--gray-600); border: 1.5px solid var(--gray-300); }
+.btn-secondary-dark { background: transparent; color: #fff; border: 1.5px solid rgba(255,255,255,0.35); }
+.btn-sm { padding: 7px 14px; font-size: 12px; }
+.btn-inline { padding: 8px 12px; background: var(--blue-100); color: var(--blue-500); border: none; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; }
+.dark-row { background: var(--navy-900); padding: 16px; border-radius: 10px; display: flex; gap: 12px; align-items: center; }
+
+/* ── Badges ──────────────────────────────────────────── */
+.badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; }
+.badge-blue   { background: #EEF2FF; color: #3358F4; }
+.badge-orange { background: #FFF4EC; color: #F97316; }
+.badge-green  { background: #F0FDF4; color: #16A34A; }
+.badge-gray   { background: #F1F5F9; color: #64748B; }
+.badge-purple { background: #FDF4FF; color: #7C3AED; }
+.badge-red    { background: #FEF2F2; color: #DC2626; }
+.pill { display: inline-block; padding: 3px 12px; border-radius: 9999px; font-size: 12px; font-weight: 600; }
+
+/* ── Cards ───────────────────────────────────────────── */
+.card { background: #fff; border: 1px solid var(--gray-300); border-radius: 12px; padding: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
+.card-dark { background: var(--navy-700); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 20px; }
+.card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
+.card-title { font-size: 14px; font-weight: 700; color: var(--gray-950); margin-bottom: 6px; }
+.card-body { font-size: 13px; color: var(--gray-600); line-height: 1.5; }
+.stat-val { font-size: 32px; font-weight: 800; letter-spacing: -0.02em; line-height: 1; }
+.stat-label { font-size: 11px; font-weight: 600; color: var(--gray-500); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 8px; }
+.stat-delta { font-size: 12px; color: var(--gray-600); margin-top: 4px; }
+
+/* ── Forms ───────────────────────────────────────────── */
+.form-label { display: block; font-size: 12px; font-weight: 600; color: var(--gray-800); margin-bottom: 5px; }
+.form-input { font-family: var(--font); width: 100%; font-size: 13px; padding: 9px 12px; border: 1px solid var(--gray-300); border-radius: 8px; color: var(--gray-950); background: #fff; outline: none; }
+.form-input:focus { border-color: var(--blue-400); box-shadow: 0 0 0 3px rgba(51,88,244,0.1); }
+.form-select { font-family: var(--font); font-size: 13px; padding: 9px 12px; border: 1px solid var(--gray-300); border-radius: 8px; color: var(--gray-950); background: #fff; outline: none; width: 100%; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+.form-field { display: flex; flex-direction: column; }
+
+/* ── Table ───────────────────────────────────────────── */
+.ds-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.ds-table th { font-size: 10px; font-weight: 700; color: var(--gray-500); letter-spacing: 0.06em; text-transform: uppercase; padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--gray-200); }
+.ds-table td { padding: 11px 10px; color: var(--gray-700); border-bottom: 1px solid var(--gray-200); vertical-align: middle; }
+.ds-table tr:last-child td { border-bottom: none; }
+.progress-track { height: 5px; background: var(--gray-200); border-radius: 9999px; overflow: hidden; min-width: 64px; }
+.progress-fill { height: 100%; background: var(--blue-500); border-radius: 9999px; }
+.avatar-sm { width: 26px; height: 26px; border-radius: 50%; background: var(--blue-500); color: #fff; font-size: 10px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
+
+/* ── Nav ─────────────────────────────────────────────── */
+.demo-header { height: 60px; background: #fff; border: 1px solid var(--gray-300); border-radius: 10px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; }
+.demo-header-title { font-size: 15px; font-weight: 700; color: var(--gray-950); }
+.demo-header-sub { font-size: 12px; color: var(--gray-500); }
+.search-wrap { position: relative; }
+.search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--gray-500); }
+.search-input { font-family: var(--font); font-size: 13px; padding: 7px 12px 7px 30px; border: 1px solid var(--gray-300); border-radius: 8px; background: var(--gray-100); color: var(--gray-950); outline: none; width: 200px; }
+.icon-btn { width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--gray-300); background: transparent; display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative; }
+.notif-dot { position: absolute; top: 6px; right: 6px; width: 7px; height: 7px; border-radius: 50%; background: var(--orange-500); border: 1.5px solid #fff; }
+.avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--blue-500); color: #fff; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+
+/* ── Icons ───────────────────────────────────────────── */
+.icon-container { width: 40px; height: 40px; border-radius: 10px; background: var(--blue-500); display: flex; align-items: center; justify-content: center; }
+.icon-grid { display: flex; flex-wrap: wrap; gap: 12px; }
+.icon-item { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.icon-label { font-size: 10px; color: var(--gray-500); text-align: center; }
+
+/* ── Spacing ─────────────────────────────────────────── */
+.spacing-row { display: flex; align-items: center; gap: 14px; padding: 6px 0; border-bottom: 1px solid var(--gray-200); }
+.spacing-bar { background: var(--blue-400); height: 16px; border-radius: 3px; flex-shrink: 0; }
+.spacing-meta { font-size: 12px; color: var(--gray-600); font-family: var(--mono); }
+
+/* ── Shadow ──────────────────────────────────────────── */
+.shadow-demo { width: 140px; height: 80px; background: #fff; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; }
+.shadow-name { font-size: 11px; font-weight: 600; color: var(--gray-700); }
+.shadow-value { font-size: 9px; color: var(--gray-500); font-family: var(--mono); text-align: center; line-height: 1.4; padding: 0 8px; }
+
+/* ── Radius ──────────────────────────────────────────── */
+.radius-demo { display: flex; gap: 16px; flex-wrap: wrap; }
+.radius-item { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.radius-box { width: 60px; height: 60px; background: var(--blue-100); border: 2px solid var(--blue-300); }
+.radius-label { font-size: 10px; color: var(--gray-500); font-family: var(--mono); text-align: center; }
+</style>
+</head>
+<body>
+<div class="ds-shell">
+
+<!-- Sidebar nav -->
+<nav class="ds-nav">
+  <div class="ds-nav-logo">
+    <div class="ds-nav-mark">
+      <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
+        <path d="M3.5 14 L7 6 L10 12 L13 8 L16.5 14" stroke="white" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <span class="ds-nav-wordmark">Design System</span>
+  </div>
+  <div class="ds-nav-section">Foundations</div>
+  <a href="#colors" class="active">Colors</a>
+  <a href="#typography">Typography</a>
+  <a href="#spacing">Spacing</a>
+  <a href="#radius">Border Radius</a>
+  <a href="#shadows">Shadows</a>
+  <div class="ds-nav-section">Components</div>
+  <a href="#buttons">Buttons</a>
+  <a href="#badges">Badges & Chips</a>
+  <a href="#cards">Cards</a>
+  <a href="#forms">Forms</a>
+  <a href="#tables">Tables</a>
+  <a href="#navigation">Navigation</a>
+  <a href="#icons">Icons</a>
+  <div class="ds-nav-section">Reference</div>
+  <a href="#status">Status Colors</a>
+  <a href="#voicetone">Voice & Tone</a>
+</nav>
+
+<!-- Content -->
+<main class="ds-content">
+
+  <h1 style="font-size:28px;font-weight:800;color:#0F172A;letter-spacing:-0.02em;margin-bottom:4px;">WebriQ Central Hub</h1>
+  <p style="font-size:15px;color:#64748B;margin-bottom:48px;">Design System · May 2026 · Source: claude.ai/design handoff</p>
+
+  <!-- ── COLORS ── -->
+  <section id="colors">
+    <div class="section-title">Colors</div>
+    <div class="section-sub">All brand, interactive, and semantic color tokens.</div>
+
+    <div class="group-label">Navy / Dark Backgrounds</div>
+    <div class="swatch-grid">
+      <div class="swatch"><div class="swatch-color" style="background:#070E1F"></div><div class="swatch-info"><div class="swatch-name">Navy 950</div><div class="swatch-hex">#070E1F · Sidebar</div></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#0A1628"></div><div class="swatch-info"><div class="swatch-name">Navy 900</div><div class="swatch-hex">#0A1628 · Hero/Footer</div></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#0F1E3C"></div><div class="swatch-info"><div class="swatch-name">Navy 800</div><div class="swatch-hex">#0F1E3C · Dark sections</div></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#112040"></div><div class="swatch-info"><div class="swatch-name">Navy 700</div><div class="swatch-hex">#112040 · Card on dark</div></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#1A2F5A"></div><div class="swatch-info"><div class="swatch-name">Navy 600</div><div class="swatch-hex">#1A2F5A · Hover dark</div></div></div>
+    </div>
+
+    <div class="group-label">Brand Blue</div>
+    <div class="swatch-grid">
+      <div class="swatch"><div class="swatch-color" style="background:#2244D8"></div><div class="swatch-info"><div class="swatch-name">Blue 600</div><div class="swatch-hex">#2244D8 · Pressed</div></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#3358F4"></div><div class="swatch-info"><div class="swatch-name">Blue 500 ★</div><div class="swatch-hex">#3358F4 · Primary</div></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#4B6EFF"></div><div class="swatch-info"><div class="swatch-name">Blue 400</div><div class="swatch-hex">#4B6EFF · Icon bg</div></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#7B9DFF"></div><div class="swatch-info"><div class="swatch-name">Blue 300</div><div class="swatch-hex">#7B9DFF · Muted</div></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#EEF2FF;border:1px solid #d0d8ff"></div><div class="swatch-info"><div class="swatch-name">Blue 100</div><div class="swatch-hex">#EEF2FF · Badge bg</div></div></div>
+    </div>
+
+    <div class="group-label">Orange — CTA Only</div>
+    <div class="swatch-grid">
+      <div class="swatch"><div class="swatch-color" style="background:#D96210"></div><div class="swatch-info"><div class="swatch-name">Orange 600</div><div class="swatch-hex">#D96210 · Pressed</div></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#F97316"></div><div class="swatch-info"><div class="swatch-name">Orange 500 ★</div><div class="swatch-hex">#F97316 · CTA primary</div></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#FA9446"></div><div class="swatch-info"><div class="swatch-name">Orange 400</div><div class="swatch-hex">#FA9446 · Hover</div></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#FFF4EC;border:1px solid #fde2c5"></div><div class="swatch-info"><div class="swatch-name">Orange 100</div><div class="swatch-hex">#FFF4EC · Badge bg</div></div></div>
+    </div>
+
+    <div class="group-label">Neutral Grays</div>
+    <div class="swatch-grid">
+      <div class="swatch"><div class="swatch-color" style="background:#0F172A"></div><div class="swatch-info"><div class="swatch-name">Gray 950</div><div class="swatch-hex">#0F172A · Headings</div></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#334155"></div><div class="swatch-info"><div class="swatch-name">Gray 800</div><div class="swatch-hex">#334155 · Labels</div></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#475569"></div><div class="swatch-info"><div class="swatch-name">Gray 700</div><div class="swatch-hex">#475569 · Body</div></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#64748B"></div><div class="swatch-info"><div class="swatch-name">Gray 600</div><div class="swatch-hex">#64748B · Secondary</div></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#94A3B8"></div><div class="swatch-info"><div class="swatch-name">Gray 500</div><div class="swatch-hex">#94A3B8 · Tertiary</div></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#E2E8F0"></div><div class="swatch-info"><div class="swatch-name">Gray 300</div><div class="swatch-hex">#E2E8F0 · Borders</div></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#F1F5F9;border:1px solid #e2e8f0"></div><div class="swatch-info"><div class="swatch-name">Gray 200</div><div class="swatch-hex">#F1F5F9 · Dividers</div></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#F7F8FA;border:1px solid #e2e8f0"></div><div class="swatch-info"><div class="swatch-name">Gray 100</div><div class="swatch-hex">#F7F8FA · Page bg</div></div></div>
+    </div>
+
+    <div class="group-label">Semantic States</div>
+    <div class="swatch-grid">
+      <div class="swatch"><div class="swatch-color" style="background:#22C55E"></div><div class="swatch-info"><div class="swatch-name">Success</div><div class="swatch-hex">#22C55E</div></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#F59E0B"></div><div class="swatch-info"><div class="swatch-name">Warning</div><div class="swatch-hex">#F59E0B</div></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#EF4444"></div><div class="swatch-info"><div class="swatch-name">Error</div><div class="swatch-hex">#EF4444</div></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#7C3AED"></div><div class="swatch-info"><div class="swatch-name">Purple</div><div class="swatch-hex">#7C3AED · Review</div></div></div>
+    </div>
+  </section>
+
+  <!-- ── TYPOGRAPHY ── -->
+  <section id="typography">
+    <div class="section-title">Typography</div>
+    <div class="section-sub">Font: <strong>Sora</strong> (Google Fonts) · Mono: Geist Mono / system monospace</div>
+
+    <div class="type-row">
+      <div class="type-meta">Display<br>72px / 800</div>
+      <div class="type-sample" style="font-size:40px;font-weight:800;letter-spacing:-0.02em;line-height:1.1;color:#0F172A">Central Hub</div>
+    </div>
+    <div class="type-row">
+      <div class="type-meta">H1<br>48px / 700</div>
+      <div class="type-sample" style="font-size:36px;font-weight:700;letter-spacing:-0.02em;color:#0F172A">PM Dashboard</div>
+    </div>
+    <div class="type-row">
+      <div class="type-meta">H2<br>36px / 700</div>
+      <div class="type-sample" style="font-size:28px;font-weight:700;color:#0F172A">Recent Projects</div>
+    </div>
+    <div class="type-row">
+      <div class="type-meta">H3 · Card title<br>20px / 600</div>
+      <div class="type-sample" style="font-size:18px;font-weight:600;color:#0F172A">Active Projects</div>
+    </div>
+    <div class="type-row">
+      <div class="type-meta">Body large<br>16px / 400</div>
+      <div class="type-sample" style="font-size:16px;color:#475569">Unified operational platform for PMs and developers — classify, plan, and execute.</div>
+    </div>
+    <div class="type-row">
+      <div class="type-meta">Body / UI<br>13px / 400–600</div>
+      <div class="type-sample" style="font-size:13px;color:#475569">Acme Corp Website Rebuild · Due May 15 · WRQ-001</div>
+    </div>
+    <div class="type-row">
+      <div class="type-meta">Eyebrow<br>10–11px / 700<br>ALL CAPS</div>
+      <div class="type-sample" style="font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#94A3B8">Active Projects</div>
+    </div>
+    <div class="type-row">
+      <div class="type-meta">Stat display<br>32px / 800</div>
+      <div class="type-sample" style="font-size:32px;font-weight:800;letter-spacing:-0.02em;color:#3358F4">24</div>
+    </div>
+    <div class="type-row">
+      <div class="type-meta">Mono / ID<br>11–15px</div>
+      <div class="type-sample" style="font-family:monospace;font-size:14px;font-weight:700;color:#0F172A;letter-spacing:0.06em">WRQ-CLIENT-1234</div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="group-label">On Dark</div>
+    <div style="background:#0A1628;padding:24px;border-radius:12px;display:flex;flex-direction:column;gap:14px;">
+      <div style="font-size:28px;font-weight:700;color:#fff;letter-spacing:-0.01em">Dashboard Overview</div>
+      <div style="font-size:14px;color:#CBD5E1;line-height:1.6">5 open tasks · 2 overdue · 3h 45m logged today</div>
+      <div style="font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#475569">Developer Section</div>
+    </div>
+  </section>
+
+  <!-- ── SPACING ── -->
+  <section id="spacing">
+    <div class="section-title">Spacing</div>
+    <div class="section-sub">4px base unit. Used for padding, gap, and margin.</div>
+    <div style="display:flex;flex-direction:column;gap:2px;">
+      <div class="spacing-row"><div class="spacing-bar" style="width:4px"></div><div class="spacing-meta">4px — space-1 · icon internal, tight gaps</div></div>
+      <div class="spacing-row"><div class="spacing-bar" style="width:8px"></div><div class="spacing-meta">8px — space-2 · button icon gap, chip padding</div></div>
+      <div class="spacing-row"><div class="spacing-bar" style="width:12px"></div><div class="spacing-meta">12px — space-3 · compact card sections</div></div>
+      <div class="spacing-row"><div class="spacing-bar" style="width:16px"></div><div class="spacing-meta">16px — space-4 · standard gap, field spacing</div></div>
+      <div class="spacing-row"><div class="spacing-bar" style="width:20px"></div><div class="spacing-meta">20px — space-5 · compact card padding</div></div>
+      <div class="spacing-row"><div class="spacing-bar" style="width:24px"></div><div class="spacing-meta">24px — space-6 · <strong>default page padding</strong>, card padding</div></div>
+      <div class="spacing-row"><div class="spacing-bar" style="width:32px"></div><div class="spacing-meta">32px — space-8 · large card padding, section gap</div></div>
+      <div class="spacing-row"><div class="spacing-bar" style="width:48px"></div><div class="spacing-meta">48px — space-12 · component vertical margin</div></div>
+      <div class="spacing-row"><div class="spacing-bar" style="width:64px"></div><div class="spacing-meta">64px — space-16 · section separation</div></div>
+      <div class="spacing-row"><div class="spacing-bar" style="width:80px"></div><div class="spacing-meta">80px — space-20 · page section vertical padding</div></div>
+    </div>
+  </section>
+
+  <!-- ── RADIUS ── -->
+  <section id="radius">
+    <div class="section-title">Border Radius</div>
+    <div class="section-sub">Consistent rounding system across all surfaces.</div>
+    <div class="radius-demo">
+      <div class="radius-item"><div class="radius-box" style="border-radius:4px"></div><div class="radius-label">4px<br>Badges, chips</div></div>
+      <div class="radius-item"><div class="radius-box" style="border-radius:8px"></div><div class="radius-label">8px<br>Inputs, icon-btns</div></div>
+      <div class="radius-item"><div class="radius-box" style="border-radius:12px"></div><div class="radius-label">12px<br><strong>Cards</strong></div></div>
+      <div class="radius-item"><div class="radius-box" style="border-radius:16px"></div><div class="radius-label">16px<br>Large panels</div></div>
+      <div class="radius-item"><div class="radius-box" style="border-radius:9999px;width:60px;height:60px"></div><div class="radius-label">9999px<br>Pills, avatars</div></div>
+    </div>
+  </section>
+
+  <!-- ── SHADOWS ── -->
+  <section id="shadows">
+    <div class="section-title">Shadows & Elevation</div>
+    <div class="section-sub">Minimal shadow usage — borders define most edges. Shadows add depth at key surfaces.</div>
+    <div class="row" style="gap:20px;">
+      <div class="shadow-demo" style="box-shadow:0 1px 4px rgba(0,0,0,0.05);border:1px solid #E2E8F0">
+        <div class="shadow-name">sm</div>
+        <div class="shadow-value">0 1px 4px rgba(0,0,0,0.05)<br>Default card</div>
+      </div>
+      <div class="shadow-demo" style="box-shadow:0 4px 16px rgba(0,0,0,0.10)">
+        <div class="shadow-name">md</div>
+        <div class="shadow-value">0 4px 16px rgba(0,0,0,0.10)<br>Dropdown, modal</div>
+      </div>
+      <div class="shadow-demo" style="background:#112040;box-shadow:0 4px 24px rgba(0,0,0,0.30)">
+        <div class="shadow-name" style="color:#fff">dark</div>
+        <div class="shadow-value" style="color:#7B9DFF">0 4px 24px rgba(0,0,0,0.30)<br>On navy surface</div>
+      </div>
+      <div class="shadow-demo" style="box-shadow:0 0 0 2px rgba(51,88,244,0.3);border:1px solid #E2E8F0">
+        <div class="shadow-name">ring</div>
+        <div class="shadow-value">0 0 0 2px rgba(51,88,244,0.3)<br>Logo mark, focus</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── BUTTONS ── -->
+  <section id="buttons">
+    <div class="section-title">Buttons</div>
+    <div class="section-sub">All buttons use pill radius (9999px). Orange = primary CTA. Blue = confirm/navigate. Ghost = cancel/back.</div>
+
+    <div class="group-label">Primary — Orange (CTA)</div>
+    <div class="row">
+      <button class="btn btn-primary-orange">New Project →</button>
+      <button class="btn btn-primary-orange">Submit Onboarding ✓</button>
+      <button class="btn btn-primary-orange btn-sm">+ Add Client</button>
+    </div>
+
+    <div class="group-label">Primary — Blue (Navigate/Confirm)</div>
+    <div class="row">
+      <button class="btn btn-primary-blue">Continue →</button>
+      <button class="btn btn-primary-blue btn-sm">Save Changes</button>
+    </div>
+
+    <div class="group-label">Secondary / Ghost</div>
+    <div class="row">
+      <button class="btn btn-secondary">← Back</button>
+      <button class="btn btn-secondary">Cancel</button>
+    </div>
+
+    <div class="group-label">On Dark Background</div>
+    <div class="dark-row">
+      <button class="btn btn-primary-orange">Request Audit →</button>
+      <button class="btn btn-secondary-dark">See How It Works →</button>
+    </div>
+
+    <div class="group-label">Inline Action (small)</div>
+    <div class="row">
+      <button class="btn-inline">+ Log Time</button>
+      <button class="btn-inline">View all →</button>
+    </div>
+  </section>
+
+  <!-- ── BADGES ── -->
+  <section id="badges">
+    <div class="section-title">Badges & Status Chips</div>
+    <div class="section-sub">Status uses 4px radius, font-size 11px, font-weight 700. Pills use 9999px radius.</div>
+
+    <div class="group-label">Project Status</div>
+    <div class="row">
+      <span class="badge badge-blue">In Progress</span>
+      <span class="badge badge-orange">Onboarding</span>
+      <span class="badge badge-purple">Review</span>
+      <span class="badge badge-gray">Planning</span>
+      <span class="badge badge-green">Completed</span>
+    </div>
+
+    <div class="group-label">Task Priority</div>
+    <div class="row">
+      <span class="badge badge-red">HIGH</span>
+      <span class="badge" style="background:#FFF7ED;color:#C2410C">NORMAL</span>
+      <span class="badge badge-green" style="color:#166534">LOW</span>
+    </div>
+
+    <div class="group-label">Pill Filters</div>
+    <div class="row">
+      <span class="pill" style="background:#3358F4;color:#fff;font-size:12px;font-weight:600;border:1px solid #3358F4">All</span>
+      <span class="pill" style="background:#fff;color:#64748B;font-size:12px;border:1px solid #E2E8F0">Planning</span>
+      <span class="pill" style="background:#fff;color:#64748B;font-size:12px;border:1px solid #E2E8F0">In Progress</span>
+      <span class="pill" style="background:#fff;color:#64748B;font-size:12px;border:1px solid #E2E8F0">Completed</span>
+    </div>
+
+    <div class="group-label">Sprint / Info Pill</div>
+    <div class="row">
+      <span class="pill" style="background:#F1F5F9;color:#64748B;font-size:11px;font-weight:600">Sprint 12</span>
+      <span class="pill" style="background:#EEF2FF;color:#3358F4;font-size:11px;font-weight:600">Zoho Synced</span>
+    </div>
+  </section>
+
+  <!-- ── CARDS ── -->
+  <section id="cards">
+    <div class="section-title">Cards</div>
+    <div class="section-sub">White surface on #F7F8FA page background. 12px radius, 1px #E2E8F0 border, minimal shadow.</div>
+
+    <div class="card-grid" style="margin-bottom:20px;">
+      <div class="card">
+        <div class="stat-label">Active Projects</div>
+        <div class="stat-val" style="color:#3358F4">24</div>
+        <div class="stat-delta">+3 this week</div>
+      </div>
+      <div class="card">
+        <div class="stat-label">Open Tickets</div>
+        <div class="stat-val" style="color:#F97316">18</div>
+        <div class="stat-delta">5 overdue</div>
+      </div>
+      <div class="card">
+        <div class="stat-label">Clients Onboarded</div>
+        <div class="stat-val" style="color:#22C55E">142</div>
+        <div class="stat-delta">+12 this month</div>
+      </div>
+      <div class="card">
+        <div class="stat-label">Tasks Completed</div>
+        <div class="stat-val" style="color:#7C3AED">87%</div>
+        <div class="stat-delta">This sprint</div>
+      </div>
+    </div>
+
+    <div class="group-label">Feature Card (with icon)</div>
+    <div class="card-grid">
+      <div class="card" style="display:flex;flex-direction:column;gap:12px;">
+        <div class="icon-container">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+          </svg>
+        </div>
+        <div class="card-title">PM Dashboard</div>
+        <div class="card-body">Tasks, tickets, daily digest, Zoho sync. Full project overview for managers.</div>
+      </div>
+      <div class="card" style="display:flex;flex-direction:column;gap:12px;">
+        <div class="icon-container" style="background:#7C3AED">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 6v6l4 2"/>
+          </svg>
+        </div>
+        <div class="card-title">AI Orchestration</div>
+        <div class="card-body">Assessment → Plan → Execute → Reply pipeline with 7 configurable AI layers.</div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="group-label">Dark Card (on navy)</div>
+    <div style="background:#0A1628;padding:24px;border-radius:12px;">
+      <div class="card-grid">
+        <div class="card-dark" style="display:flex;flex-direction:column;gap:10px;">
+          <div style="font-size:14px;font-weight:700;color:#fff">Active Projects</div>
+          <div style="font-size:30px;font-weight:800;color:#4B6EFF;letter-spacing:-0.02em">24</div>
+          <div style="font-size:12px;color:#7B9DFF">+3 this week</div>
+        </div>
+        <div class="card-dark" style="display:flex;flex-direction:column;gap:10px;">
+          <div style="font-size:14px;font-weight:700;color:#fff">Tasks Completed</div>
+          <div style="font-size:30px;font-weight:800;color:#22C55E;letter-spacing:-0.02em">87%</div>
+          <div style="font-size:12px;color:#7B9DFF">This sprint</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── FORMS ── -->
+  <section id="forms">
+    <div class="section-title">Forms & Inputs</div>
+    <div class="section-sub">13px text, 9px 12px padding, 8px radius, 1px #E2E8F0 border. Focus ring: blue-400 + 3px shadow.</div>
+
+    <div class="card" style="max-width:660px;">
+      <div style="font-size:15px;font-weight:700;color:#0F172A;margin-bottom:16px;">Client Information</div>
+      <div class="form-row">
+        <div class="form-field">
+          <label class="form-label">Company Name *</label>
+          <input class="form-input" placeholder="Acme Corp" />
+        </div>
+        <div class="form-field">
+          <label class="form-label">Primary Contact *</label>
+          <input class="form-input" placeholder="Jane Smith" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-field">
+          <label class="form-label">Email Address *</label>
+          <input class="form-input" type="email" placeholder="jane@acme.com" />
+        </div>
+        <div class="form-field">
+          <label class="form-label">Industry</label>
+          <select class="form-select">
+            <option>Select...</option>
+            <option>Manufacturing</option>
+            <option>Construction & Roofing</option>
+            <option>Technology</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-field" style="margin-bottom:14px;">
+        <label class="form-label">Additional Notes</label>
+        <textarea class="form-input" style="height:72px;resize:vertical;" placeholder="Special requirements or context..."></textarea>
+      </div>
+      <div style="background:#F7F8FF;border:1px dashed rgba(51,88,244,0.3);border-radius:8px;padding:12px 16px;">
+        <div style="font-size:11px;font-weight:700;color:#3358F4;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:4px;">Client ID (auto-assigned)</div>
+        <div style="font-family:monospace;font-size:15px;font-weight:700;color:#0F172A;letter-spacing:0.08em">WRQ-CLIENT-1234</div>
+        <div style="font-size:11px;color:#94A3B8;margin-top:2px;">Unique identifier used across all WebriQ products</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── TABLES ── -->
+  <section id="tables">
+    <div class="section-title">Tables</div>
+    <div class="section-sub">10px uppercase headers, 13px body cells, 1px #F1F5F9 row dividers. Progress bars: 5px height, #3358F4 fill.</div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <span class="card-title">Recent Projects</span>
+        <span style="font-size:12px;color:#3358F4;cursor:pointer;font-weight:500">View all →</span>
+      </div>
+      <table class="ds-table">
+        <thead>
+          <tr>
+            <th>ID</th><th>Project</th><th>Status</th><th>PM</th><th>Progress</th><th>Due</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span style="font-family:monospace;font-size:11px;color:#94A3B8">WRQ-001</span></td>
+            <td style="font-weight:500;color:#0F172A">Acme Corp Website Rebuild</td>
+            <td><span class="badge badge-blue">In Progress</span></td>
+            <td><div class="avatar-sm" style="background:#3358F4">JM</div></td>
+            <td><div style="display:flex;align-items:center;gap:6px"><div class="progress-track" style="width:72px"><div class="progress-fill" style="width:65%"></div></div><span style="font-size:11px;color:#94A3B8">65%</span></div></td>
+            <td style="font-size:12px;color:#64748B">May 15</td>
+          </tr>
+          <tr>
+            <td><span style="font-family:monospace;font-size:11px;color:#94A3B8">WRQ-002</span></td>
+            <td style="font-weight:500;color:#0F172A">Trident Roof — Onboarding</td>
+            <td><span class="badge badge-orange">Onboarding</span></td>
+            <td><div class="avatar-sm" style="background:#F97316">AS</div></td>
+            <td><div style="display:flex;align-items:center;gap:6px"><div class="progress-track" style="width:72px"><div class="progress-fill" style="width:20%"></div></div><span style="font-size:11px;color:#94A3B8">20%</span></div></td>
+            <td style="font-size:12px;color:#64748B">May 20</td>
+          </tr>
+          <tr>
+            <td><span style="font-family:monospace;font-size:11px;color:#94A3B8">WRQ-003</span></td>
+            <td style="font-weight:500;color:#0F172A">Hickory Hardware Store</td>
+            <td><span class="badge badge-green" style="background:#F0FDF4;color:#16A34A">Review</span></td>
+            <td><div class="avatar-sm" style="background:#3358F4">JM</div></td>
+            <td><div style="display:flex;align-items:center;gap:6px"><div class="progress-track" style="width:72px"><div class="progress-fill" style="width:88%"></div></div><span style="font-size:11px;color:#94A3B8">88%</span></div></td>
+            <td style="font-size:12px;color:#64748B">May 10</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ── NAVIGATION ── -->
+  <section id="navigation">
+    <div class="section-title">Navigation</div>
+    <div class="section-sub">Sidebar: 220px, #070E1F. Header: 60px, white. Active state: blue left border + rgba(51,88,244,0.15) bg.</div>
+
+    <div class="group-label">Header Bar</div>
+    <div class="demo-header" style="margin-bottom:20px;">
+      <div>
+        <div class="demo-header-title">Dashboard</div>
+        <div class="demo-header-sub">Welcome back, Brandon</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="search-wrap">
+          <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input class="search-input" placeholder="Search projects, clients, tasks..." />
+        </div>
+        <div class="icon-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <div class="notif-dot"></div>
+        </div>
+        <div class="avatar">BD</div>
+      </div>
+    </div>
+
+    <div class="group-label">Sidebar Nav Items</div>
+    <div style="background:#070E1F;border-radius:12px;padding:12px 0;width:220px;">
+      <div style="font-size:9px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#334155;padding:10px 14px 4px;">Main</div>
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 14px;background:rgba(51,88,244,0.15);border-left:2px solid #3358F4;border-radius:0 8px 8px 0;margin-right:8px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4B6EFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        <span style="font-size:13px;font-weight:600;color:#fff">Dashboard</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 14px;border-left:2px solid transparent;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+        <span style="font-size:13px;font-weight:400;color:#94A3B8">Projects</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 14px;border-left:2px solid transparent;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+        <span style="font-size:13px;font-weight:400;color:#94A3B8">Onboarding</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── ICONS ── -->
+  <section id="icons">
+    <div class="section-title">Icons & Icon Containers</div>
+    <div class="section-sub">Lucide React — stroke style, 16px in nav/tables, 20px in icon containers. No emoji used as icons.</div>
+
+    <div class="group-label">Icon Containers (40×40, 10px radius)</div>
+    <div class="row">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+        <div class="icon-container">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        </div><div style="font-size:10px;color:#94A3B8">#3358F4</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+        <div class="icon-container" style="background:#7C3AED">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 6v6l4 2"/></svg>
+        </div><div style="font-size:10px;color:#94A3B8">#7C3AED</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+        <div class="icon-container" style="background:#F97316">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+        </div><div style="font-size:10px;color:#94A3B8">#F97316</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+        <div class="icon-container" style="background:#22C55E">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        </div><div style="font-size:10px;color:#94A3B8">#22C55E</div>
+      </div>
+    </div>
+
+    <div class="group-label" style="margin-top:16px;">Avatars</div>
+    <div class="row" style="align-items:center;">
+      <div style="width:32px;height:32px;border-radius:50%;background:#3358F4;color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;">JM</div>
+      <div style="width:32px;height:32px;border-radius:50%;background:#7C3AED;color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;">KR</div>
+      <div style="width:32px;height:32px;border-radius:50%;background:#F97316;color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;">AS</div>
+      <div style="width:32px;height:32px;border-radius:50%;background:#22C55E;color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;">TN</div>
+      <!-- Stacked -->
+      <div style="display:flex;margin-left:16px;">
+        <div style="width:26px;height:26px;border-radius:50%;background:#3358F4;color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid #fff;z-index:3">JM</div>
+        <div style="width:26px;height:26px;border-radius:50%;background:#7C3AED;color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid #fff;margin-left:-6px;z-index:2">KR</div>
+        <div style="width:26px;height:26px;border-radius:50%;background:#F97316;color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid #fff;margin-left:-6px;z-index:1">AS</div>
+      </div>
+      <span style="font-size:11px;color:#94A3B8;margin-left:4px;">Stacked team avatars (margin-left: -6px)</span>
+    </div>
+  </section>
+
+  <!-- ── STATUS ── -->
+  <section id="status">
+    <div class="section-title">Status Color Reference</div>
+    <div class="section-sub">Quick lookup for all status, priority, and state badge colors.</div>
+    <table class="ds-table" style="background:#fff;border-radius:12px;overflow:hidden;border:1px solid #E2E8F0;">
+      <thead><tr><th>Status</th><th>Background</th><th>Text Color</th><th>Preview</th></tr></thead>
+      <tbody>
+        <tr><td>In Progress</td><td style="font-family:monospace;font-size:11px">#EEF2FF</td><td style="font-family:monospace;font-size:11px">#3358F4</td><td><span class="badge badge-blue">In Progress</span></td></tr>
+        <tr><td>Onboarding</td><td style="font-family:monospace;font-size:11px">#FFF4EC</td><td style="font-family:monospace;font-size:11px">#F97316</td><td><span class="badge badge-orange">Onboarding</span></td></tr>
+        <tr><td>Review</td><td style="font-family:monospace;font-size:11px">#FDF4FF</td><td style="font-family:monospace;font-size:11px">#7C3AED</td><td><span class="badge badge-purple">Review</span></td></tr>
+        <tr><td>Planning</td><td style="font-family:monospace;font-size:11px">#F1F5F9</td><td style="font-family:monospace;font-size:11px">#64748B</td><td><span class="badge badge-gray">Planning</span></td></tr>
+        <tr><td>Completed</td><td style="font-family:monospace;font-size:11px">#F0FDF4</td><td style="font-family:monospace;font-size:11px">#16A34A</td><td><span class="badge badge-green">Completed</span></td></tr>
+        <tr><td>HIGH priority</td><td style="font-family:monospace;font-size:11px">#FEF2F2</td><td style="font-family:monospace;font-size:11px">#DC2626</td><td><span class="badge badge-red">HIGH</span></td></tr>
+        <tr><td>NORMAL priority</td><td style="font-family:monospace;font-size:11px">#FFF7ED</td><td style="font-family:monospace;font-size:11px">#C2410C</td><td><span class="badge" style="background:#FFF7ED;color:#C2410C">NORMAL</span></td></tr>
+        <tr><td>LOW priority</td><td style="font-family:monospace;font-size:11px">#F0FDF4</td><td style="font-family:monospace;font-size:11px">#166534</td><td><span class="badge" style="background:#F0FDF4;color:#166534">LOW</span></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ── VOICE & TONE ── -->
+  <section id="voicetone">
+    <div class="section-title">Voice & Tone</div>
+    <div class="section-sub">Rules for all UI copy written in this app.</div>
+    <div class="card" style="display:flex;flex-direction:column;gap:14px;">
+      <div><div class="group-label" style="margin-bottom:4px;">Casing</div>
+        <div style="font-size:13px;color:#475569;line-height:1.7;">
+          <strong style="color:#0F172A">Title Case</strong> — page headings, card titles, section names<br>
+          <strong style="color:#0F172A">Sentence case</strong> — body copy, descriptions, placeholder text<br>
+          <strong style="color:#0F172A">ALL CAPS</strong> — eyebrow labels, sidebar group headers (MAIN, DEVELOPER, ADMIN)<br>
+          <strong style="color:#0F172A">monospace</strong> — all IDs and codes: WRQ-001, WRQ-CLIENT-1234, ZP-10293
+        </div>
+      </div>
+      <div class="divider" style="margin:4px 0"></div>
+      <div><div class="group-label" style="margin-bottom:4px;">Numbers & Time</div>
+        <div style="font-size:13px;color:#475569;line-height:1.7;">
+          Always use numerals: "5 overdue", "24 active", "87%", "3h 45m"<br>
+          Relative timestamps: "2m ago", "1h ago", "1d ago"<br>
+          Due dates: "May 15", "Jun 1" (no year unless different year)
+        </div>
+      </div>
+      <div class="divider" style="margin:4px 0"></div>
+      <div><div class="group-label" style="margin-bottom:4px;">Button / CTA Copy</div>
+        <div style="font-size:13px;color:#475569;line-height:1.7;">
+          Use inline arrow: "Continue →", "View all →", "New Project →"<br>
+          Use inline checkmark for submit: "Submit Onboarding ✓"<br>
+          Never use exclamation points in primary copy<br>
+          Back/cancel buttons: "← Back", "Cancel" (no arrow)
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <p style="font-size:11px;color:#94A3B8;text-align:center;padding:24px 0;">WebriQ Central Hub Design System · May 2026 · claude.ai/design</p>
+</main>
+</div>
+
+<script>
+// Highlight active nav link on scroll
+const sections = document.querySelectorAll('section[id]');
+const links = document.querySelectorAll('.ds-nav a');
+window.addEventListener('scroll', () => {
+  let current = '';
+  sections.forEach(s => { if (window.scrollY >= s.offsetTop - 80) current = s.id; });
+  links.forEach(l => {
+    l.classList.toggle('active', l.getAttribute('href') === '#' + current);
+  });
+}, { passive: true });
+</script>
+</body>
+</html>
