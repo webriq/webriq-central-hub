@@ -46,6 +46,21 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* ─── Brand tokens ──────────────────────────────────────────────────────── */
+  --color-brand: #3358F4;
+  --color-brand-orange: #F97316;
+  --color-sidebar-dark: #070E1F;
+  --color-page-bg: #F7F8FA;
+  --color-nav-active-bg: rgba(51, 88, 244, 0.15);
+  --color-toggle-bg: #1a2f5a;
+
+  /* ─── Animation durations ───────────────────────────────────────────────── */
+  --animate-aurora-1: aurora-drift-1 22s ease-in-out infinite;
+  --animate-aurora-2: aurora-drift-2 28s ease-in-out infinite;
+  --animate-aurora-3: aurora-drift-3 34s ease-in-out infinite;
+  --animate-aurora-4: aurora-drift-4 26s ease-in-out infinite;
+  --animate-upload-progress: uploadProgress 1.5s infinite;
 }
 
 /* ─── Light (fallback — Hub is dark-first) ────────────────────────────────── */
@@ -171,6 +186,13 @@
   0%, 100% { transform: translate(0px, 0px) scale(1); }
   40%       { transform: translate(-40px, -60px) scale(1.12); }
   80%       { transform: translate(60px, 40px) scale(0.94); }
+}
+
+/* ─── Upload progress animation ─────────────────────────────────────────── */
+@keyframes uploadProgress {
+  0%   { width: 0%; }
+  50%  { width: 70%; }
+  100% { width: 90%; }
 }
 
 /* ─── Noise texture overlay ──────────────────────────────────────────────── */

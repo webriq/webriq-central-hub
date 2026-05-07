@@ -18,31 +18,33 @@ import {
   BookOpen,
 } from "lucide-react";
 import { ROUTES } from "@/config/constants";
+import { cn } from "@/lib/utils";
+import Image from "next/image";
 
 const navGroups = [
   {
     section: "Main",
     items: [
-      { href: ROUTES.PM,             label: "Dashboard",    icon: LayoutDashboard },
-      { href: "/projects",           label: "Projects",     icon: FolderOpen },
-      { href: ROUTES.ONBOARDING,     label: "Onboarding",   icon: UserPlus },
+      { href: ROUTES.PM, label: "Dashboard", icon: LayoutDashboard },
+      { href: "/projects", label: "Projects", icon: FolderOpen },
+      { href: ROUTES.ONBOARDING, label: "Onboarding", icon: UserPlus },
       { href: ROUTES.CLASSIFICATION, label: "Classification", icon: ScanSearch },
-      { href: ROUTES.ORCHESTRATION,  label: "Orchestration", icon: Bot },
+      { href: ROUTES.ORCHESTRATION, label: "Orchestration", icon: Bot },
     ],
   },
   {
     section: "Developer",
     items: [
-      { href: ROUTES.DEV,   label: "My Dashboard",  icon: Layout },
-      { href: "/timetrack", label: "Time Tracking",  icon: Clock },
+      { href: ROUTES.DEV, label: "My Dashboard", icon: Layout },
+      { href: "/timetrack", label: "Time Tracking", icon: Clock },
     ],
   },
   {
     section: "Admin",
     items: [
-      { href: ROUTES.KB,    label: "Knowledge Base", icon: BookOpen },
-      { href: "/reports",   label: "Reports",        icon: BarChart2 },
-      { href: "/settings",  label: "Settings",       icon: Settings },
+      { href: ROUTES.KB, label: "Knowledge Base", icon: BookOpen },
+      { href: "/reports", label: "Reports", icon: BarChart2 },
+      { href: "/settings", label: "Settings", icon: Settings },
     ],
   },
 ];
@@ -53,77 +55,37 @@ export default function HubSidebar() {
 
   return (
     <aside
-      style={{
-        width: collapsed ? 56 : 220,
-        minHeight: "100vh",
-        background: "#070E1F",
-        borderRight: "1px solid rgba(255,255,255,0.07)",
-        display: "flex",
-        flexDirection: "column",
-        flexShrink: 0,
-        transition: "width 200ms ease",
-        overflow: "hidden",
-        position: "relative",
-      }}
+      className={cn(
+        "min-h-screen bg-sidebar-dark border-r border-white/[0.07] flex flex-col flex-shrink-0 overflow-hidden relative transition-[width] duration-200 ease-in-out",
+        collapsed ? "w-14" : "w-[220px]"
+      )}
     >
       {/* Logo */}
       <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-          padding: collapsed ? "18px 13px 14px" : "18px 14px 14px",
-          borderBottom: "1px solid rgba(255,255,255,0.06)",
-          justifyContent: collapsed ? "center" : "flex-start",
-        }}
+        className={cn(
+          "flex items-center gap-2.5 border-b border-white/[0.06]",
+          collapsed ? "px-[13px] pt-[18px] pb-3.5 justify-center" : "px-3.5 pt-[18px] pb-3.5 justify-start"
+        )}
       >
-        <div
-          style={{
-            width: 30,
-            height: 30,
-            borderRadius: "50%",
-            background: "linear-gradient(135deg, #1a4ccc 0%, #3358F4 60%, #6B8FFF 100%)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
-            boxShadow: "0 0 0 2px rgba(51,88,244,0.3)",
-          }}
-        >
-          <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
-            <path d="M3.5 14 L7 6 L10 12 L13 8 L16.5 14" stroke="white" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+        <div className="flex items-center justify-center flex-shrink-0">
+          <Image src="/logo.png" alt="Logo" width={48} height={48} />
         </div>
         {!collapsed && (
-          <span
-            style={{
-              fontSize: 15,
-              fontWeight: 700,
-              color: "#fff",
-              letterSpacing: "-0.01em",
-              whiteSpace: "nowrap",
-            }}
-          >
-            WebriQ Hub
-          </span>
+          <div className="flex flex-col justify-center flex-shrink-0">
+            <span className="text-[15px] font-bold text-white tracking-[-0.01em] whitespace-nowrap">
+              WebriQ
+            </span>
+            <span className="text-xs">Central Hub</span>
+          </div>
         )}
       </div>
 
       {/* Nav */}
-      <nav style={{ flex: 1, overflowY: "auto", padding: "8px 0" }}>
+      <nav className="flex-1 overflow-y-auto py-2">
         {navGroups.map((group) => (
-          <div key={group.section} style={{ marginBottom: 4 }}>
+          <div key={group.section} className="mb-1">
             {!collapsed && (
-              <div
-                style={{
-                  fontSize: 9,
-                  fontWeight: 700,
-                  letterSpacing: "0.1em",
-                  textTransform: "uppercase",
-                  color: "#334155",
-                  padding: "10px 14px 4px",
-                }}
-              >
+              <div className="text-[9px] font-bold tracking-[0.1em] uppercase text-slate-700 px-3.5 pt-2.5 pb-1">
                 {group.section}
               </div>
             )}
@@ -133,33 +95,26 @@ export default function HubSidebar() {
               return (
                 <Link key={item.href} href={item.href}>
                   <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 10,
-                      width: "100%",
-                      padding: collapsed ? "9px 0" : "8px 14px",
-                      justifyContent: collapsed ? "center" : "flex-start",
-                      background: active ? "rgba(51,88,244,0.15)" : "transparent",
-                      borderLeft: active ? "2px solid #3358F4" : "2px solid transparent",
-                      borderRadius: collapsed ? 0 : "0 8px 8px 0",
-                      marginRight: collapsed ? 0 : 8,
-                      cursor: "pointer",
-                      transition: "background 150ms",
-                    }}
+                    className={cn(
+                      "flex items-center gap-2.5 w-full border-l-2 cursor-pointer transition-colors duration-150",
+                      collapsed
+                        ? "py-[9px] px-0 justify-center rounded-none mr-0"
+                        : "py-2 px-3.5 justify-start rounded-r-lg mr-2",
+                      active
+                        ? "border-brand-blue bg-brand-blue/15"
+                        : "border-transparent bg-transparent"
+                    )}
                   >
                     <Icon
                       size={16}
-                      style={{ color: active ? "#4B6EFF" : "#475569", flexShrink: 0 }}
+                      className={cn("flex-shrink-0", active ? "text-[#4B6EFF]" : "text-slate-600")}
                     />
                     {!collapsed && (
                       <span
-                        style={{
-                          fontSize: 13,
-                          fontWeight: active ? 600 : 400,
-                          color: active ? "#fff" : "#94A3B8",
-                          whiteSpace: "nowrap",
-                        }}
+                        className={cn(
+                          "text-[13px] whitespace-nowrap",
+                          active ? "font-semibold text-white" : "font-normal text-slate-400"
+                        )}
                       >
                         {item.label}
                       </span>
@@ -174,36 +129,18 @@ export default function HubSidebar() {
 
       {/* User area */}
       <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-          padding: collapsed ? "12px 0" : "12px 14px",
-          justifyContent: collapsed ? "center" : "flex-start",
-          borderTop: "1px solid rgba(255,255,255,0.06)",
-        }}
+        className={cn(
+          "flex items-center gap-2.5 border-t border-white/[0.06]",
+          collapsed ? "py-3 px-0 justify-center" : "py-3 px-3.5 justify-start"
+        )}
       >
-        <div
-          style={{
-            width: 30,
-            height: 30,
-            borderRadius: "50%",
-            background: "#3358F4",
-            color: "#fff",
-            fontSize: 11,
-            fontWeight: 700,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
-          }}
-        >
+        <div className="w-[30px] h-[30px] rounded-full bg-brand text-white text-[11px] font-bold flex items-center justify-center flex-shrink-0">
           BD
         </div>
         {!collapsed && (
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: "#fff", lineHeight: 1.3 }}>Brandon Dwite</div>
-            <div style={{ fontSize: 11, color: "#64748B" }}>Project Manager</div>
+          <div className="flex-1 min-w-0">
+            <div className="text-[13px] font-semibold text-white leading-[1.3]">Brandon Dwite</div>
+            <div className="text-[11px] text-slate-500">Project Manager</div>
           </div>
         )}
       </div>
@@ -211,24 +148,10 @@ export default function HubSidebar() {
       {/* Collapse toggle */}
       <button
         onClick={() => setCollapsed((c) => !c)}
-        style={{
-          position: "absolute",
-          top: 20,
-          right: collapsed ? "50%" : -12,
-          transform: collapsed ? "translateX(50%)" : "none",
-          width: 22,
-          height: 22,
-          borderRadius: "50%",
-          background: "#1a2f5a",
-          border: "1px solid rgba(255,255,255,0.1)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          cursor: "pointer",
-          color: "#64748B",
-          zIndex: 10,
-          ...(collapsed ? {} : { right: -11 }),
-        }}
+        className={cn(
+          "absolute top-5 w-[22px] h-[22px] rounded-full bg-toggle-bg border border-white/10 flex items-center justify-center cursor-pointer text-slate-500 z-10",
+          collapsed ? "right-1/2 translate-x-1/2" : "-right-[11px]"
+        )}
         aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
       >
         {collapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}

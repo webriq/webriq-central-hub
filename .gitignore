@@ -42,3 +42,13 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+.vexp/index.db-shm
+.vexp/index.db-wal
+
+_backup (DO NOT READ)/
+
+_design/
+appstore-images/
+
+supabase/.temp/

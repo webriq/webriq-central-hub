@@ -4,7 +4,13 @@
 
 ## In Progress
 
+
 ## Testing
+
+- [005] Per-Product Progress Bars (Real-Time) on PM Dashboard → `_docs/task/005-per-product-progress-realtime.md`
+- [004] Fix: Public Onboarding Route Auth Wall → `_docs/task/004-fix-public-onboarding-route.md`
+
+- [003] Sprint 1: Customer Creation & Onboarding (M1) → `_docs/task/003-sprint-1-customer-onboarding.md`
 
 ## Completed
 

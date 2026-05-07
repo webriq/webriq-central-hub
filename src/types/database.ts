@@ -65,6 +65,7 @@ export interface Database {
           status: string;
           onboarding_complete: boolean;
           onboarding_data: Json;
+          completed_percentage: number;
           dedicated_developers: string[];
           created_at: string;
           updated_at: string;
@@ -80,6 +81,7 @@ export interface Database {
           status?: string;
           onboarding_complete?: boolean;
           onboarding_data?: Json;
+          completed_percentage?: number;
           dedicated_developers?: string[];
           created_at?: string;
           updated_at?: string;
@@ -95,6 +97,7 @@ export interface Database {
           status?: string;
           onboarding_complete?: boolean;
           onboarding_data?: Json;
+          completed_percentage?: number;
           dedicated_developers?: string[];
           updated_at?: string;
         };

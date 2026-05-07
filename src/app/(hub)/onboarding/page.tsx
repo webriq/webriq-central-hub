@@ -1,220 +1,295 @@
 "use client";
 
-import { useState, useId } from "react";
-import HubHeader from "@/components/hub/hub-header";
+import React, { useState } from "react";
+import { cn } from "@/lib/utils";
+import type { ProductName } from "@/types/hub";
+import ProductSelector from "@/components/onboarding/product-selector";
 
-type FormData = {
-  companyName: string; contactName: string; email: string; phone: string;
-  website: string; industry: string; projectType: string; budget: string;
-  timeline: string; zohoId: string; notes: string;
-};
+type Step = "info" | "products" | "review";
 
-const steps = ["Client Info", "Project Details", "Review & Submit"];
-
-function Field({ label, placeholder, value, onChange, type = "text" }: { label: string; placeholder: string; value: string; onChange: (v: string) => void; type?: string }) {
-  return (
-    <div style={{ flex: 1 }}>
-      <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#334155", marginBottom: 5 }}>{label}</label>
-      <input
-        type={type}
-        placeholder={placeholder}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        style={{ fontFamily: "inherit", width: "100%", fontSize: 13, padding: "9px 12px", border: "1px solid #E2E8F0", borderRadius: 8, color: "#0F172A", background: "#fff", outline: "none", boxSizing: "border-box" }}
-      />
-    </div>
-  );
-}
-
-function SelectField({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: string[] }) {
-  return (
-    <div style={{ flex: 1 }}>
-      <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#334155", marginBottom: 5 }}>{label}</label>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        style={{ fontFamily: "inherit", width: "100%", fontSize: 13, padding: "9px 12px", border: "1px solid #E2E8F0", borderRadius: 8, color: "#0F172A", background: "#fff", outline: "none" }}
-      >
-        <option value="">Select...</option>
-        {options.map((o) => <option key={o}>{o}</option>)}
-      </select>
-    </div>
-  );
-}
+const inputCls = "font-[inherit] w-full text-[13px] py-[9px] px-3 border border-slate-200 rounded-lg text-slate-900 bg-white outline-none box-border";
+const labelCls = "block text-xs font-semibold text-slate-700 mb-[5px]";
 
 export default function OnboardingPage() {
-  const [step, setStep] = useState(1);
-  const [form, setForm] = useState<FormData>({
-    companyName: "", contactName: "", email: "", phone: "",
-    website: "", industry: "", projectType: "", budget: "",
-    timeline: "", zohoId: "", notes: "",
-  });
+  const [step, setStep] = useState<Step>("info");
+  const [companyName, setCompanyName] = useState("");
+  const [contactName, setContactName] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
+  const [selectedProducts, setSelectedProducts] = useState<ProductName[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [createdCustomer, setCreatedCustomer] = useState<{ customer_id: string; company_name: string } | null>(null);
 
-  const uid = useId().replace(/:/g, "").slice(0, 4).toUpperCase().padEnd(4, "0");
-  const clientId = `WRQ-CLIENT-${uid}`;
+  const handleCreate = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const customerRes = await fetch("/api/customers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          company_name: companyName.trim(),
+          contact_name: contactName.trim() || undefined,
+          contact_email: contactEmail.trim() || undefined,
+        }),
+      });
+      if (!customerRes.ok) {
+        const body = await customerRes.json().catch(() => ({}));
+        throw new Error(body.error || body.details?.company_name || "Failed to create customer");
+      }
+      const customer = await customerRes.json();
+      for (const product of selectedProducts) {
+        await fetch(`/api/customers/${customer.customer_id}/products`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ product_name: product }),
+        });
+      }
+      setCreatedCustomer(customer);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const update = (key: keyof FormData, val: string) => setForm((f) => ({ ...f, [key]: val }));
+  const handleCopyLink = () => {
+    if (!createdCustomer) return;
+    const url = `${window.location.origin}/onboarding/${createdCustomer.customer_id}`;
+    navigator.clipboard.writeText(url);
+  };
 
-  return (
-    <>
-      <HubHeader title="New Client Onboarding" subtitle="Complete the form to create a client profile" />
+  // Success state
+  if (createdCustomer) {
+    const onboardingUrl = `${window.location.origin}/onboarding/${createdCustomer.customer_id}`;
+    return (
+      <div className="p-6 max-w-[600px] mx-auto">
+        <div className="bg-white border border-slate-200 rounded-xl p-8 shadow-[0_1px_4px_rgba(0,0,0,0.05)] text-center">
+          <div className="w-14 h-14 rounded-full bg-green-50 text-green-500 text-[28px] flex items-center justify-center mx-auto mb-4">
+            ✓
+          </div>
+          <h1 className="text-xl font-bold text-slate-900 mb-2">Customer Created Successfully</h1>
+          <p className="text-[13px] text-slate-500 mb-5">
+            {createdCustomer.company_name} has been created with {selectedProducts.length} product(s).
+          </p>
 
-      <div style={{ padding: 24, overflowY: "auto", flex: 1 }}>
-        <div style={{ maxWidth: 740, margin: "0 auto" }}>
-          {/* Step indicator */}
-          <div style={{ display: "flex", alignItems: "center", marginBottom: 24 }}>
-            {steps.map((s, i) => {
-              const num = i + 1;
-              const active = step === num;
-              const done = step > num;
-              return (
-                <div key={s} style={{ display: "contents" }}>
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-                    <div
-                      style={{
-                        width: 32, height: 32, borderRadius: "50%",
-                        background: done || active ? "#3358F4" : "#E2E8F0",
-                        color: done || active ? "#fff" : "#94A3B8",
-                        fontSize: 13, fontWeight: 700,
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        transition: "background 200ms",
-                      }}
-                    >
-                      {done ? "✓" : num}
-                    </div>
-                    <span style={{ fontSize: 11, fontWeight: active ? 700 : 500, color: active ? "#3358F4" : "#94A3B8", whiteSpace: "nowrap" }}>{s}</span>
-                  </div>
-                  {i < steps.length - 1 && (
-                    <div style={{ flex: 1, height: 2, background: done ? "#3358F4" : "#E2E8F0", margin: "0 8px", marginBottom: 22, transition: "background 200ms" }} />
-                  )}
-                </div>
-              );
-            })}
+          {/* Customer ID */}
+          <div className="bg-indigo-50 border border-brand/15 rounded-lg px-4 py-3 mb-4 text-left">
+            <div className="text-[10px] font-bold text-brand tracking-[0.06em] uppercase mb-1">Customer ID</div>
+            <div className="font-mono text-base font-bold text-slate-900 tracking-[0.08em]">
+              {createdCustomer.customer_id}
+            </div>
           </div>
 
-          {/* Card */}
-          <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 12, padding: 24, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
-            {step === 1 && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                <div style={{ fontSize: 15, fontWeight: 700, color: "#0F172A", marginBottom: 4 }}>Client Information</div>
-                <div style={{ display: "flex", gap: 14 }}>
-                  <Field label="Company Name *" placeholder="Acme Corp" value={form.companyName} onChange={(v) => update("companyName", v)} />
-                  <Field label="Primary Contact *" placeholder="Jane Smith" value={form.contactName} onChange={(v) => update("contactName", v)} />
-                </div>
-                <div style={{ display: "flex", gap: 14 }}>
-                  <Field label="Email Address *" placeholder="jane@acme.com" type="email" value={form.email} onChange={(v) => update("email", v)} />
-                  <Field label="Phone Number" placeholder="+1 (555) 000-0000" value={form.phone} onChange={(v) => update("phone", v)} />
-                </div>
-                <div style={{ display: "flex", gap: 14 }}>
-                  <Field label="Website URL" placeholder="https://acme.com" value={form.website} onChange={(v) => update("website", v)} />
-                  <SelectField
-                    label="Industry"
-                    value={form.industry}
-                    onChange={(v) => update("industry", v)}
-                    options={["Manufacturing", "Construction & Roofing", "Hardware & Distribution", "Technology", "Professional Services", "eCommerce", "Other"]}
-                  />
-                </div>
-                <div style={{ background: "#F7F8FF", border: "1px dashed rgba(51,88,244,0.3)", borderRadius: 8, padding: "12px 16px" }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "#3358F4", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 4 }}>Client ID (auto-assigned)</div>
-                  <div style={{ fontFamily: "monospace", fontSize: 15, fontWeight: 700, color: "#0F172A", letterSpacing: "0.08em" }}>{clientId}</div>
-                  <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 2 }}>Unique identifier used across all WebriQ products</div>
-                </div>
-              </div>
-            )}
-
-            {step === 2 && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                <div style={{ fontSize: 15, fontWeight: 700, color: "#0F172A", marginBottom: 4 }}>Project Details</div>
-                <div style={{ display: "flex", gap: 14 }}>
-                  <SelectField
-                    label="Project Type *"
-                    value={form.projectType}
-                    onChange={(v) => update("projectType", v)}
-                    options={["New Website Build", "Website Redesign", "eCommerce Store", "Web Application", "Headless CMS Migration", "Ongoing Support"]}
-                  />
-                  <SelectField
-                    label="Budget Range"
-                    value={form.budget}
-                    onChange={(v) => update("budget", v)}
-                    options={["Under $10k", "$10k – $25k", "$25k – $50k", "$50k – $100k", "$100k+"]}
-                  />
-                </div>
-                <div style={{ display: "flex", gap: 14 }}>
-                  <SelectField
-                    label="Timeline"
-                    value={form.timeline}
-                    onChange={(v) => update("timeline", v)}
-                    options={["ASAP (within 2 weeks)", "1 month", "2–3 months", "3–6 months", "Flexible"]}
-                  />
-                  <Field label="Zoho Project ID" placeholder="e.g. ZP-102938" value={form.zohoId} onChange={(v) => update("zohoId", v)} />
-                </div>
-                <div>
-                  <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#334155", marginBottom: 5 }}>Additional Notes</label>
-                  <textarea
-                    style={{ fontFamily: "inherit", width: "100%", fontSize: 13, padding: "9px 12px", border: "1px solid #E2E8F0", borderRadius: 8, color: "#0F172A", background: "#fff", outline: "none", height: 80, resize: "vertical", boxSizing: "border-box" }}
-                    placeholder="Any special requirements, integrations, or context..."
-                    value={form.notes}
-                    onChange={(e) => update("notes", e.target.value)}
-                  />
-                </div>
-              </div>
-            )}
-
-            {step === 3 && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                <div style={{ fontSize: 15, fontWeight: 700, color: "#0F172A", marginBottom: 4 }}>Review & Submit</div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px 20px" }}>
-                  {([
-                    ["Company",      form.companyName  || "—"],
-                    ["Contact",      form.contactName  || "—"],
-                    ["Email",        form.email        || "—"],
-                    ["Phone",        form.phone        || "—"],
-                    ["Website",      form.website      || "—"],
-                    ["Industry",     form.industry     || "—"],
-                    ["Project Type", form.projectType  || "—"],
-                    ["Budget",       form.budget       || "—"],
-                    ["Timeline",     form.timeline     || "—"],
-                    ["Zoho ID",      form.zohoId       || "Auto-assign"],
-                  ] as [string, string][]).map(([k, v]) => (
-                    <div key={k} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", borderBottom: "1px solid #F1F5F9", fontSize: 13 }}>
-                      <span style={{ color: "#94A3B8", fontWeight: 500 }}>{k}</span>
-                      <span style={{ color: "#0F172A", fontWeight: 600 }}>{v}</span>
-                    </div>
-                  ))}
-                </div>
-                <div style={{ background: "#EEF2FF", border: "1px solid rgba(51,88,244,0.15)", borderRadius: 8, padding: "12px 16px", fontSize: 13, color: "#3358F4" }}>
-                  <strong>Next steps:</strong> Submitting will create the client profile, assign a Client ID, and trigger automated project setup in Zoho Projects.
-                </div>
-              </div>
-            )}
-
-            {/* Navigation */}
-            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 24, paddingTop: 16, borderTop: "1px solid #F1F5F9" }}>
-              <button
-                style={{ fontFamily: "inherit", padding: "10px 22px", background: "transparent", color: "#64748B", fontSize: 13, fontWeight: 500, border: "1.5px solid #E2E8F0", borderRadius: 9999, cursor: step === 1 ? "not-allowed" : "pointer", opacity: step === 1 ? 0.5 : 1 }}
-                onClick={() => setStep((s) => Math.max(1, s - 1))}
-                disabled={step === 1}
-              >
-                ← Back
-              </button>
-              {step < steps.length ? (
-                <button
-                  style={{ fontFamily: "inherit", padding: "10px 22px", background: "#3358F4", color: "#fff", fontSize: 13, fontWeight: 600, border: "2px solid #3358F4", borderRadius: 9999, cursor: "pointer" }}
-                  onClick={() => setStep((s) => s + 1)}
-                >
-                  Continue →
-                </button>
-              ) : (
-                <button
-                  style={{ fontFamily: "inherit", padding: "10px 22px", background: "#22C55E", color: "#fff", fontSize: 13, fontWeight: 600, border: "2px solid #22C55E", borderRadius: 9999, cursor: "pointer" }}
-                >
-                  Submit Onboarding ✓
-                </button>
-              )}
+          {/* Onboarding URL */}
+          <div className="bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 mb-6 text-left">
+            <div className="text-[10px] font-bold text-slate-500 tracking-[0.06em] uppercase mb-1">
+              Onboarding URL (Login-Free)
             </div>
+            <div className="text-xs text-slate-600 break-all mb-2">{onboardingUrl}</div>
+            <button
+              onClick={handleCopyLink}
+              className="font-[inherit] text-xs font-semibold py-1.5 px-3.5 bg-brand text-white border-none rounded-full cursor-pointer"
+            >
+              Copy Link
+            </button>
+          </div>
+
+          <div className="flex gap-3 justify-center">
+            <a
+              href={`/customers/${createdCustomer.customer_id}`}
+              className="font-[inherit] py-2.5 px-[22px] bg-brand-orange text-white text-[13px] font-semibold rounded-full no-underline inline-block"
+            >
+              View Customer Profile
+            </a>
+            <a
+              href="/pm"
+              className="font-[inherit] py-2.5 px-[22px] bg-transparent text-slate-500 text-[13px] font-medium rounded-full no-underline border-[1.5px] border-slate-200 inline-block"
+            >
+              Go to PM Dashboard
+            </a>
           </div>
         </div>
       </div>
-    </>
+    );
+  }
+
+  const steps = [
+    { key: "info" as Step, label: "Company Info" },
+    { key: "products" as Step, label: "Products" },
+    { key: "review" as Step, label: "Review & Create" },
+  ];
+
+  const canProceedFromInfo = companyName.trim().length > 0;
+  const canProceedFromProducts = selectedProducts.length > 0;
+
+  return (
+    <div className="p-6 overflow-y-auto flex-1">
+      <div className="max-w-[660px] mx-auto">
+        {/* Step indicator */}
+        <div className="flex items-center mb-6">
+          {steps.map((s, i) => {
+            const currentIdx = steps.findIndex((s2) => s2.key === step);
+            const active = i === currentIdx;
+            const done = i < currentIdx;
+            return (
+              <React.Fragment key={s.key}>
+                <div className="flex flex-col items-center gap-1.5">
+                  <div
+                    className={cn(
+                      "w-8 h-8 rounded-full text-[13px] font-bold flex items-center justify-center",
+                      done || active ? "bg-brand text-white" : "bg-slate-200 text-slate-400"
+                    )}
+                  >
+                    {done ? "✓" : i + 1}
+                  </div>
+                  <span
+                    className={cn(
+                      "text-[11px] whitespace-nowrap",
+                      active ? "font-bold text-brand" : "font-medium text-slate-400"
+                    )}
+                  >
+                    {s.label}
+                  </span>
+                </div>
+                {i < steps.length - 1 && (
+                  <div
+                    className={cn("flex-1 h-0.5 mx-2 mb-[22px]", done ? "bg-brand" : "bg-slate-200")}
+                  />
+                )}
+              </React.Fragment>
+            );
+          })}
+        </div>
+
+        {/* Card */}
+        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-[0_1px_4px_rgba(0,0,0,0.05)]">
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-lg px-3.5 py-2.5 mb-4 text-[13px] text-red-600">
+              {error}
+            </div>
+          )}
+
+          {step === "info" && (
+            <div className="flex flex-col gap-4">
+              <h2 className="text-[15px] font-bold text-slate-900 mb-1">Company Information</h2>
+              <div className="flex gap-3.5">
+                <div className="flex-1">
+                  <label className={labelCls}>
+                    Company Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Acme Corp"
+                    value={companyName}
+                    onChange={(e) => setCompanyName(e.target.value)}
+                    className={inputCls}
+                    autoFocus
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className={labelCls}>Primary Contact</label>
+                  <input
+                    type="text"
+                    placeholder="Jane Smith"
+                    value={contactName}
+                    onChange={(e) => setContactName(e.target.value)}
+                    className={inputCls}
+                  />
+                </div>
+              </div>
+              <div>
+                <label className={labelCls}>Contact Email</label>
+                <input
+                  type="email"
+                  placeholder="jane@acme.com"
+                  value={contactEmail}
+                  onChange={(e) => setContactEmail(e.target.value)}
+                  className={inputCls}
+                />
+              </div>
+            </div>
+          )}
+
+          {step === "products" && (
+            <div className="flex flex-col gap-4">
+              <h2 className="text-[15px] font-bold text-slate-900 mb-1">Product Selection</h2>
+              <ProductSelector selected={selectedProducts} onChange={setSelectedProducts} />
+            </div>
+          )}
+
+          {step === "review" && (
+            <div className="flex flex-col gap-4">
+              <h2 className="text-[15px] font-bold text-slate-900 mb-1">Review & Create</h2>
+              <div className="flex flex-col gap-2">
+                {[
+                  ["Company", companyName],
+                  ["Contact", contactName || "—"],
+                  ["Email", contactEmail || "—"],
+                  ["Products", selectedProducts.join(", ") || "—"],
+                ].map(([label, value]) => (
+                  <div
+                    key={label}
+                    className="flex justify-between py-2 border-b border-slate-100 text-[13px]"
+                  >
+                    <span className="text-slate-400 font-medium">{label}</span>
+                    <span className="text-slate-900 font-semibold">{value}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="bg-indigo-50 border border-brand/15 rounded-lg px-4 py-3 text-[13px] text-brand">
+                A unique <strong>WRQ-CLIENT-XXXX</strong> ID and login-free onboarding URL will be generated. You can share this with the customer immediately.
+              </div>
+            </div>
+          )}
+
+          {/* Navigation */}
+          <div className="flex justify-between mt-6 pt-4 border-t border-slate-100">
+            <button
+              onClick={() => setStep(steps[steps.findIndex((s) => s.key === step) - 1]?.key ?? "info")}
+              disabled={step === "info"}
+              className={cn(
+                "font-[inherit] py-2.5 px-[22px] bg-transparent text-[13px] font-medium border-[1.5px] border-slate-200 rounded-full",
+                step === "info" ? "text-slate-300 cursor-not-allowed" : "text-slate-500 cursor-pointer"
+              )}
+            >
+              ← Back
+            </button>
+
+            {step !== "review" ? (
+              <button
+                onClick={() => {
+                  if (step === "info") setStep("products");
+                  if (step === "products") setStep("review");
+                }}
+                disabled={
+                  (step === "info" && !canProceedFromInfo) ||
+                  (step === "products" && !canProceedFromProducts)
+                }
+                className={cn(
+                  "font-[inherit] py-2.5 px-[22px] bg-brand text-white text-[13px] font-semibold border-none rounded-full cursor-pointer transition-opacity",
+                  ((step === "info" && !canProceedFromInfo) || (step === "products" && !canProceedFromProducts))
+                    ? "opacity-50"
+                    : "opacity-100"
+                )}
+              >
+                Continue →
+              </button>
+            ) : (
+              <button
+                onClick={handleCreate}
+                disabled={loading}
+                className={cn(
+                  "font-[inherit] py-2.5 px-[22px] text-white text-[13px] font-semibold border-none rounded-full",
+                  loading ? "bg-orange-300 cursor-not-allowed" : "bg-brand-orange cursor-pointer"
+                )}
+              >
+                {loading ? "Creating..." : "Create Customer ✓"}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
