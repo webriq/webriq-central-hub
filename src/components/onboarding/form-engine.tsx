@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 import type { FormSchema, OnboardingData } from "@/types/onboarding";
 import { getOnboardingSchema } from "@/config/onboarding-schemas";
@@ -115,13 +116,12 @@ function FormEngineInner({
     <div className="min-h-screen flex flex-col">
       {/* Sticky header */}
       <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-200 px-8 h-[60px] flex items-center justify-between flex-shrink-0">
-        <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-brand flex items-center justify-center flex-shrink-0">
-            <span className="text-white font-bold text-xs leading-none">W</span>
+        <div className="flex items-center gap-3">
+          <Image src="/logo.png" alt="WebriQ" width={44} height={44} className="flex-shrink-0" />
+          <div className="flex items-center gap-1.5">
+            <span className="text-[15px] font-bold text-slate-900 tracking-[-0.01em]">{schema.productName}</span>
+            <span className="text-[15px] text-slate-400 font-normal">/ Client Onboarding</span>
           </div>
-          <span className="text-sm font-bold text-brand">WebriQ</span>
-          <span className="text-slate-300 text-sm mx-0.5">·</span>
-          <span className="text-sm text-slate-500 font-medium">{schema.productName} Onboarding</span>
         </div>
         <SaveIndicator status={saveStatus} lastSavedAt={lastSavedAt} error={saveError} />
       </header>
@@ -149,46 +149,56 @@ function FormEngineInner({
       </main>
 
       {/* Fixed bottom nav — left-0 (no sidebar in public routes) */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200 py-4 px-8 flex justify-between items-center z-50">
-        <button
-          onClick={handleBack}
-          disabled={isFirstSection}
-          className={cn(
-            "font-[inherit] py-2.5 px-5 bg-transparent text-[13px] font-medium border-[1.5px] rounded-full transition-colors",
-            isFirstSection
-              ? "text-slate-300 border-slate-200 cursor-not-allowed"
-              : "text-slate-500 border-slate-300 cursor-pointer hover:border-slate-400 hover:text-slate-700"
-          )}
-        >
-          ← Back
-        </button>
-
-        <div className="flex items-center gap-2.5">
-          <div className="relative w-9 h-9">
-            <svg className="w-9 h-9 -rotate-90" viewBox="0 0 36 36">
-              <circle cx="18" cy="18" r="15" fill="none" stroke="#e2e8f0" strokeWidth="3" />
+      <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200 py-3 px-8 flex justify-between items-center z-50">
+        {/* Left: ring + section label */}
+        <div className="flex items-center gap-3">
+          <div className="relative w-10 h-10 flex-shrink-0">
+            <svg className="w-10 h-10 -rotate-90" viewBox="0 0 40 40">
+              <circle cx="20" cy="20" r="17" fill="none" stroke="#e2e8f0" strokeWidth="3" />
               <circle
-                cx="18" cy="18" r="15"
+                cx="20" cy="20" r="17"
                 fill="none"
                 stroke={completionPercentage >= 100 ? "#22C55E" : "#3358F4"}
                 strokeWidth="3"
                 strokeLinecap="round"
-                strokeDasharray={`${(completionPercentage / 100) * 94.2} 94.2`}
+                strokeDasharray={`${(completionPercentage / 100) * 106.8} 106.8`}
               />
             </svg>
+            <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-slate-700 tabular-nums">
+              {Math.round(completionPercentage)}%
+            </span>
           </div>
-          <span className="text-[13px] text-slate-500 font-semibold tabular-nums">{Math.round(completionPercentage)}%</span>
+          <span className="text-[13px] text-slate-500 font-medium">
+            Section {currentSectionIndex + 1} of {totalSections}
+            <span className="text-slate-300 mx-1.5">—</span>
+            <span className="text-slate-700 font-semibold">{currentSection.title}</span>
+          </span>
         </div>
 
-        <button
-          onClick={handleNext}
-          className={cn(
-            "font-[inherit] py-2.5 px-5 text-white text-[13px] font-semibold border-none rounded-full cursor-pointer transition-opacity hover:opacity-90",
-            isLastSection ? "bg-brand-orange" : "bg-brand"
-          )}
-        >
-          {isLastSection ? "Complete Onboarding ✓" : "Continue →"}
-        </button>
+        {/* Right: Back + Continue */}
+        <div className="flex items-center gap-2.5">
+          <button
+            onClick={handleBack}
+            disabled={isFirstSection}
+            className={cn(
+              "font-[inherit] py-2.5 px-5 bg-transparent text-[13px] font-medium border-[1.5px] rounded-full transition-colors",
+              isFirstSection
+                ? "text-slate-300 border-slate-200 cursor-not-allowed"
+                : "text-slate-500 border-slate-300 cursor-pointer hover:border-slate-400 hover:text-slate-700"
+            )}
+          >
+            ← Back
+          </button>
+          <button
+            onClick={handleNext}
+            className={cn(
+              "font-[inherit] py-2.5 px-5 text-white text-[13px] font-semibold border-none rounded-full cursor-pointer transition-opacity hover:opacity-90",
+              isLastSection ? "bg-brand-orange" : "bg-brand"
+            )}
+          >
+            {isLastSection ? "Complete Onboarding ✓" : "Continue →"}
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -28,10 +28,31 @@ const PRODUCT_COLORS: Record<string, string> = {
 
 const sectionCls = "bg-white border border-slate-200 rounded-xl p-5 shadow-[0_1px_4px_rgba(0,0,0,0.05)] mb-4";
 const sectionTitleCls = "text-[10px] font-bold text-slate-400 tracking-[0.06em] uppercase mb-3.5";
+const inputCls = "font-[inherit] w-full text-sm py-2.5 px-3.5 border border-slate-200 rounded-lg text-slate-900 bg-white outline-none transition-[border-color,box-shadow] duration-200 focus:border-brand focus:shadow-[0_0_0_3px_rgba(51,88,244,0.1)]";
+const labelCls = "block text-xs font-semibold text-slate-600 mb-1.5";
+
+interface EditForm {
+  company_name: string;
+  contact_name: string;
+  contact_email: string;
+  communication_tone: string;
+  status: string;
+}
 
 export default function CustomerProfileClient({ customer }: CustomerProfileClientProps) {
   const router = useRouter();
   const [copied, setCopied] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  const [form, setForm] = useState<EditForm>({
+    company_name: customer.company_name ?? "",
+    contact_name: customer.contact_name ?? "",
+    contact_email: customer.contact_email ?? "",
+    communication_tone: customer.communication_tone ?? "",
+    status: customer.status ?? "onboarding",
+  });
 
   const handleCopyLink = () => {
     const onboardingUrl = `${window.location.origin}/onboarding/${customer.customer_id}`;
@@ -40,11 +61,170 @@ export default function CustomerProfileClient({ customer }: CustomerProfileClien
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleOpenEdit = () => {
+    setForm({
+      company_name: customer.company_name ?? "",
+      contact_name: customer.contact_name ?? "",
+      contact_email: customer.contact_email ?? "",
+      communication_tone: customer.communication_tone ?? "",
+      status: customer.status ?? "onboarding",
+    });
+    setSaveError(null);
+    setEditOpen(true);
+  };
+
+  const handleSave = async () => {
+    if (!form.company_name.trim()) {
+      setSaveError("Company name is required.");
+      return;
+    }
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const res = await fetch(`/api/customers/${customer.customer_id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          company_name: form.company_name,
+          contact_name: form.contact_name || null,
+          contact_email: form.contact_email || null,
+          communication_tone: form.communication_tone || null,
+          status: form.status,
+        }),
+      });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        throw new Error(json.error ?? "Save failed");
+      }
+      setEditOpen(false);
+      router.refresh();
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : "Save failed");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const status = customer.status ?? "onboarding";
   const products = customer.customer_products ?? [];
 
   return (
     <>
+      {/* Edit Modal */}
+      {editOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)" }}
+        >
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-[520px] overflow-hidden">
+            {/* Modal header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+              <div>
+                <h2 className="text-base font-bold text-slate-900">Edit Customer</h2>
+                <p className="text-xs text-slate-400 mt-0.5 font-mono">{customer.customer_id}</p>
+              </div>
+              <button
+                onClick={() => setEditOpen(false)}
+                className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors font-[inherit] border-none bg-transparent cursor-pointer text-lg leading-none"
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Modal body */}
+            <div className="px-6 py-5 space-y-4">
+              <div>
+                <label className={labelCls}>
+                  Company Name <span className="text-brand">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={form.company_name}
+                  onChange={(e) => setForm((f) => ({ ...f, company_name: e.target.value }))}
+                  className={inputCls}
+                  placeholder="Acme Corp"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className={labelCls}>Contact Name</label>
+                  <input
+                    type="text"
+                    value={form.contact_name}
+                    onChange={(e) => setForm((f) => ({ ...f, contact_name: e.target.value }))}
+                    className={inputCls}
+                    placeholder="Jane Smith"
+                  />
+                </div>
+                <div>
+                  <label className={labelCls}>Contact Email</label>
+                  <input
+                    type="email"
+                    value={form.contact_email}
+                    onChange={(e) => setForm((f) => ({ ...f, contact_email: e.target.value }))}
+                    className={inputCls}
+                    placeholder="jane@acme.com"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className={labelCls}>Communication Tone</label>
+                  <select
+                    value={form.communication_tone}
+                    onChange={(e) => setForm((f) => ({ ...f, communication_tone: e.target.value }))}
+                    className={inputCls}
+                  >
+                    <option value="">Select...</option>
+                    <option value="formal">Formal</option>
+                    <option value="friendly">Friendly</option>
+                    <option value="technical">Technical</option>
+                    <option value="casual">Casual</option>
+                  </select>
+                </div>
+                <div>
+                  <label className={labelCls}>Status</label>
+                  <select
+                    value={form.status}
+                    onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
+                    className={inputCls}
+                  >
+                    <option value="onboarding">Onboarding</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                </div>
+              </div>
+
+              {saveError && (
+                <p className="text-xs text-red-500 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+                  {saveError}
+                </p>
+              )}
+            </div>
+
+            {/* Modal footer */}
+            <div className="flex justify-end gap-2.5 px-6 py-4 border-t border-slate-100 bg-slate-50/50">
+              <button
+                onClick={() => setEditOpen(false)}
+                className="font-[inherit] py-2 px-4 bg-transparent text-slate-600 text-sm font-medium border border-slate-200 rounded-full cursor-pointer hover:border-slate-300 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="font-[inherit] py-2 px-5 bg-brand text-white text-sm font-semibold border-none rounded-full cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-60"
+              >
+                {saving ? "Saving…" : "Save Changes"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className={cn(sectionCls, "px-6")}>
         <div className="flex justify-between items-start flex-wrap gap-4">
@@ -61,8 +241,8 @@ export default function CustomerProfileClient({ customer }: CustomerProfileClien
           </div>
           <div className="flex gap-2.5 flex-wrap">
             <button
-              onClick={() => router.push("/onboarding")}
-              className="font-[inherit] py-2 px-4 bg-transparent text-brand text-xs font-semibold border-[1.5px] border-brand rounded-full cursor-pointer"
+              onClick={handleOpenEdit}
+              className="font-[inherit] py-2 px-4 bg-transparent text-brand text-xs font-semibold border-[1.5px] border-brand rounded-full cursor-pointer hover:bg-brand/5 transition-colors"
             >
               Edit
             </button>
@@ -145,7 +325,6 @@ export default function CustomerProfileClient({ customer }: CustomerProfileClien
                     </span>
                   </div>
 
-                  {/* Progress bar */}
                   <div className="flex items-center gap-2 mb-3">
                     <div className="flex-1 h-[5px] bg-slate-100 rounded-full overflow-hidden">
                       <div
@@ -161,7 +340,6 @@ export default function CustomerProfileClient({ customer }: CustomerProfileClien
                     </span>
                   </div>
 
-                  {/* Links */}
                   <div className="flex flex-col gap-1.5 text-xs">
                     {product.product_instance_id && (
                       <div className="text-slate-500">

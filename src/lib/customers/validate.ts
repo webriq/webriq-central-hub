@@ -50,6 +50,7 @@ export function validateCustomerUpdate(body: {
   contact_name?: string;
   contact_email?: string;
   zoho_account_id?: string;
+  communication_tone?: string;
   status?: string;
 }): ValidationResult {
   const errors: Record<string, string> = {};
