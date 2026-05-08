@@ -7,6 +7,7 @@
 
 ## Testing
 
+- [006] Sprint 1.1: Zoho OAuth + Email/Password Auth → `_docs/task/006-sprint-1-1-zoho-auth.md`
 - [005] Per-Product Progress Bars (Real-Time) on PM Dashboard → `_docs/task/005-per-product-progress-realtime.md`
 - [004] Fix: Public Onboarding Route Auth Wall → `_docs/task/004-fix-public-onboarding-route.md`
 

@@ -67,6 +67,7 @@ src/
       onboarding/[customerId]/   Login-free onboarding form
       layout.tsx
     api/
+      auth/callback/    OAuth PKCE code exchange → Supabase session (Sprint 1.1)
       customers/        CRUD for customer records + onboarding PATCH
       upload/           File upload endpoint (brand assets, etc.)
       webhooks/         Sprint 2 — Zoho webhook listener
@@ -114,7 +115,7 @@ src/
     use-file-upload.ts  Upload to Supabase Storage via /api/upload
   proxy.ts              Supabase session refresh — Next.js 16 "proxy" convention
 supabase/
-  migrations/           Applied in order; 005 adds onboarding storage bucket + policies
+  migrations/           Applied in order; 005 adds onboarding storage bucket + policies; 007 adds hub_users table + auto-insert trigger
 _docs/
   plan/                 Sprint plan + COO/CTO spec docs
   task/                 Task documents (001–NNN format)
@@ -165,6 +166,7 @@ When adding a new product form: add a section array in `onboarding-schemas.ts`, 
 Phase 0 (done): Infrastructure
 Phase 1: MVP — 6 sprints, ~12 weeks
   Sprint 1 (done): Customer creation + onboarding (M1) — PM dashboard, customer profiles, login-free onboarding form
+  Sprint 1.1 (done): Zoho OAuth — "Sign in with Zoho" via Supabase custom OIDC provider (`custom:zoho`); `hub_users` table with role assignment; `/api/auth/callback` PKCE handler
   Sprint 2: Classification engine + Zoho webhook (M2, M7 partial) + Cliq notifications
   Sprint 3: Requirements assessment + daily digest (M3, M4)
   Sprint 4: Plan generation + full Zoho sync (M5, M7 complete)
