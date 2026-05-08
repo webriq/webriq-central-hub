@@ -75,12 +75,12 @@ const modules = [
 ];
 
 const accentMap: Record<string, { bg: string; border: string; text: string; glow: string }> = {
-  sky:    { bg: "bg-sky-400/10",    border: "border-sky-400/20",    text: "text-sky-400",    glow: "group-hover:shadow-sky-500/10" },
-  violet: { bg: "bg-violet-400/10", border: "border-violet-400/20", text: "text-violet-400", glow: "group-hover:shadow-violet-500/10" },
-  teal:   { bg: "bg-teal-400/10",   border: "border-teal-400/20",   text: "text-teal-400",   glow: "group-hover:shadow-teal-500/10" },
-  amber:  { bg: "bg-amber-400/10",  border: "border-amber-400/20",  text: "text-amber-400",  glow: "group-hover:shadow-amber-500/10" },
-  indigo: { bg: "bg-indigo-400/10", border: "border-indigo-400/20", text: "text-indigo-400", glow: "group-hover:shadow-indigo-500/10" },
-  rose:   { bg: "bg-rose-400/10",   border: "border-rose-400/20",   text: "text-rose-400",   glow: "group-hover:shadow-rose-500/10" },
+  sky:    { bg: "bg-brand/10",         border: "border-brand/25",         text: "text-brand",         glow: "group-hover:shadow-brand/10" },
+  violet: { bg: "bg-brand-orange/10",  border: "border-brand-orange/25",  text: "text-brand-orange",  glow: "group-hover:shadow-brand-orange/10" },
+  teal:   { bg: "bg-teal-400/10",      border: "border-teal-400/20",      text: "text-teal-400",      glow: "group-hover:shadow-teal-500/10" },
+  amber:  { bg: "bg-brand-orange/10",  border: "border-brand-orange/20",  text: "text-brand-orange",  glow: "group-hover:shadow-brand-orange/10" },
+  indigo: { bg: "bg-brand/10",         border: "border-brand/20",         text: "text-brand",         glow: "group-hover:shadow-brand/10" },
+  rose:   { bg: "bg-rose-400/10",      border: "border-rose-400/20",      text: "text-rose-400",      glow: "group-hover:shadow-rose-500/10" },
 };
 
 const container: Variants = {
@@ -110,20 +110,20 @@ export default function HomePage() {
       >
         {/* Badge */}
         <motion.div
-          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-sky-400/25 bg-sky-400/10 mb-6"
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-brand-orange/30 bg-brand-orange/10 mb-6"
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.2, duration: 0.5 }}
         >
-          <Zap className="w-3 h-3 text-sky-400" />
-          <span className="text-xs text-sky-400 font-medium tracking-wide">Sprint 0 · Infrastructure</span>
+          <Zap className="w-3 h-3 text-brand-orange" />
+          <span className="text-xs text-brand-orange font-medium tracking-wide">Sprint 0 · Infrastructure</span>
         </motion.div>
 
         <h1 className="text-5xl sm:text-6xl font-bold tracking-tight mb-4">
           <span className="bg-gradient-to-b from-white to-white/60 bg-clip-text text-transparent">
             WebriQ
           </span>{" "}
-          <span className="bg-gradient-to-r from-sky-400 via-sky-300 to-violet-400 bg-clip-text text-transparent">
+          <span className="text-brand-orange">
             Central Hub
           </span>
         </h1>

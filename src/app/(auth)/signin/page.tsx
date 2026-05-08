@@ -1,32 +1,28 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 
+const fieldCls = "w-full font-[inherit] text-sm px-4 py-3 rounded-lg text-white placeholder:text-white/30 outline-none transition-[border-color,box-shadow] duration-200 focus:border-brand focus:shadow-[0_0_0_3px_rgba(51,88,244,0.2)]";
+const fieldStyle = { background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" };
+const labelCls = "block text-sm font-medium text-white/70 mb-1.5";
+
 export default function SignInPage() {
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(
+    searchParams.get("error") === "oauth_failed" ? "Zoho sign-in failed. Please try again." : null
+  );
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("error") === "oauth_failed") {
-      setError("Zoho sign-in failed. Please try again.");
-    }
-  }, []);
-
   function handleZohoSignIn() {
-    // /callback is a client page — required because Supabase uses implicit flow for
-    // custom OIDC providers, returning tokens in the URL fragment (#access_token=...)
-    // which server-side API routes never receive.
     const redirectTo = `${window.location.origin}/callback`;
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    // Provider identifier confirmed in Supabase Dashboard as "custom:zoho"
     window.location.href = `${supabaseUrl}/auth/v1/authorize?provider=custom%3Azoho&redirect_to=${encodeURIComponent(redirectTo)}`;
   }
 
@@ -42,10 +38,7 @@ export default function SignInPage() {
     }
 
     const supabase = createClient();
-    const { error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
 
     if (authError) {
       setError(authError.message);
@@ -58,86 +51,88 @@ export default function SignInPage() {
   }
 
   return (
-    <div className="rounded-xl border border-border bg-card p-8 shadow-sm">
-      <div className="space-y-2 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Sign In</h1>
-        <p className="text-sm text-muted-foreground">
-          Access the hub with your Zoho account or email.
-        </p>
+    <div
+      className="rounded-2xl p-8 overflow-hidden relative"
+      style={{ background: "#0F1829", border: "1px solid rgba(255,255,255,0.08)" }}
+    >
+      {/* Orange top accent line */}
+      <div className="absolute top-0 left-0 right-0 h-[2px] rounded-t-2xl" style={{ background: "linear-gradient(90deg, transparent, #F97316 40%, #F97316 60%, transparent)" }} />
+      <div className="text-center mb-7">
+        <h1 className="text-2xl font-bold text-white mb-1.5">Sign In</h1>
+        <p className="text-sm text-white/50">Access the hub with your Zoho account or email.</p>
       </div>
 
-      <div className="mt-6 space-y-4">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={handleZohoSignIn}
-          className="w-full"
-        >
-          Sign in with Zoho
-        </Button>
+      {/* Zoho SSO */}
+      <button
+        type="button"
+        onClick={handleZohoSignIn}
+        className="w-full font-[inherit] py-3 px-4 text-sm font-semibold text-white rounded-lg cursor-pointer transition-opacity hover:opacity-80 mb-5 flex items-center justify-center gap-2.5"
+        style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)" }}
+      >
+        <Image src="/zoho-logo-512.png" alt="Zoho" width={60} height={60} className="flex-shrink-0" />
+        Sign in with Zoho
+      </button>
 
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t border-border" />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-card px-2 text-muted-foreground">or</span>
-          </div>
+      {/* Divider */}
+      <div className="flex items-center gap-3 mb-5">
+        <div className="flex-1 h-px" style={{ background: "rgba(255,255,255,0.08)" }} />
+        <span className="text-xs text-white/30 font-semibold tracking-widest uppercase">or</span>
+        <div className="flex-1 h-px" style={{ background: "rgba(255,255,255,0.08)" }} />
+      </div>
+
+      {/* Email/password form */}
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label htmlFor="email" className={labelCls}>Email</label>
+          <input
+            id="email"
+            type="email"
+            autoComplete="email"
+            required
+            placeholder="you@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className={fieldCls}
+            style={fieldStyle}
+          />
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <label htmlFor="email" className="text-sm font-medium text-foreground">
-              Email
-            </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              required
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-            />
+        <div>
+          <label htmlFor="password" className={labelCls}>Password</label>
+          <input
+            id="password"
+            type="password"
+            autoComplete="current-password"
+            required
+            placeholder="••••••••"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className={fieldCls}
+            style={fieldStyle}
+          />
+        </div>
+
+        {error && (
+          <div className="rounded-lg px-4 py-2.5 text-sm text-red-400" style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)" }}>
+            {error}
           </div>
+        )}
 
-          <div className="space-y-2">
-            <label htmlFor="password" className="text-sm font-medium text-foreground">
-              Password
-            </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              required
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-            />
-          </div>
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full font-[inherit] py-3 px-4 bg-brand-orange text-white text-sm font-bold rounded-lg cursor-pointer transition-opacity hover:opacity-90 disabled:opacity-60 border-none mt-1"
+        >
+          {loading ? "Signing in…" : "Sign In"}
+        </button>
 
-          {error && (
-            <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              {error}
-            </div>
-          )}
-
-          <Button type="submit" disabled={loading} className="w-full">
-            {loading ? "Signing in…" : "Sign In"}
-          </Button>
-
-          <p className="text-center text-sm text-muted-foreground">
-            Don&apos;t have an account?{" "}
-            <Link href="/signup" className="font-medium text-primary hover:underline">
-              Sign up
-            </Link>
-          </p>
-        </form>
-      </div>
+        <p className="text-center text-sm text-white/40 pt-1">
+          Don&apos;t have an account?{" "}
+          <Link href="/signup" className="font-semibold text-brand-orange hover:opacity-80">
+            Sign up
+          </Link>
+        </p>
+      </form>
     </div>
   );
 }
