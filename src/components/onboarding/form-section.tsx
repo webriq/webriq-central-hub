@@ -26,15 +26,19 @@ export default function FormSection({
   });
 
   return (
-    <div>
-      <div className="mb-5">
-        <h3 className="text-base font-bold text-slate-900 mb-1">{section.title}</h3>
+    <div className="p-7">
+      {/* Section header */}
+      <div className="mb-7 pb-5 border-b border-slate-100">
+        <p className="text-[0.7rem] font-semibold uppercase tracking-[2px] text-brand font-mono mb-1.5">
+          Section
+        </p>
+        <h3 className="text-[1.5rem] font-bold text-slate-900 leading-tight mb-2">{section.title}</h3>
         {section.description && (
-          <p className="text-[13px] text-slate-500 m-0">{section.description}</p>
+          <p className="text-sm text-slate-500 m-0">{section.description}</p>
         )}
       </div>
 
-      <div className="flex flex-wrap gap-[14px]">
+      <div className="flex flex-wrap gap-4">
         {visibleFields.map((field) => (
           <FormField
             key={field.name}
@@ -48,7 +52,7 @@ export default function FormSection({
       </div>
 
       {visibleFields.length === 0 && (
-        <p className="text-[13px] text-slate-400 text-center py-5">
+        <p className="text-[13px] text-slate-400 text-center py-8">
           No fields available in this section based on your previous answers.
         </p>
       )}

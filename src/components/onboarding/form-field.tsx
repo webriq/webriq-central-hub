@@ -13,8 +13,8 @@ interface FormFieldProps {
   productName: string;
 }
 
-const inputCls = "font-[inherit] w-full text-[13px] py-[9px] px-3 border border-slate-200 rounded-lg text-slate-900 bg-white outline-none box-border";
-const labelCls = "block text-xs font-semibold text-slate-700 mb-[5px]";
+const inputCls = "font-[inherit] w-full text-[0.875rem] py-[10px] px-[14px] border border-slate-200 rounded-[10px] text-slate-900 bg-white outline-none box-border transition-[border-color,box-shadow] duration-200 focus:border-brand focus:shadow-[0_0_0_3px_rgba(51,88,244,0.12)] placeholder:text-slate-400 placeholder:italic";
+const labelCls = "block text-[0.78rem] font-semibold text-slate-600 mb-1.5 tracking-[0.2px]";
 
 export default function FormField({ field, value, onChange, customerId, productName }: FormFieldProps) {
   const fieldId = `field-${field.name}`;
@@ -166,7 +166,7 @@ export default function FormField({ field, value, onChange, customerId, productN
     <div className={cn("min-w-[200px]", field.span === "half" ? "flex-[0_0_calc(50%-7px)]" : "flex-[1_1_100%]")}>
       <label htmlFor={fieldId} className={labelCls}>
         {field.label}
-        {field.required && <span className="text-red-500 ml-0.5">*</span>}
+        {field.required && <span className="text-brand ml-0.5">*</span>}
       </label>
       {renderInput()}
       {field.hint && (

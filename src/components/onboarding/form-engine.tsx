@@ -22,8 +22,8 @@ export default function FormEngine({ productName, customerId, initialData }: For
   if (!schema) {
     return (
       <div className="p-8 text-center">
-        <h2 className="text-lg text-slate-900 mb-2">Product Not Found</h2>
-        <p className="text-[13px] text-slate-500">
+        <h2 className="text-lg text-foreground mb-2">Product Not Found</h2>
+        <p className="text-[13px] text-muted-foreground">
           No onboarding form found for &ldquo;{productName}&rdquo;.
         </p>
       </div>
@@ -97,12 +97,14 @@ function FormEngineInner({
 
   if (isCompleted) {
     return (
-      <div className="max-w-[600px] mx-auto mt-20 px-12 py-12 text-center">
-        <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-6 text-2xl text-green-600 font-bold">
-          ✓
+      <div className="min-h-screen flex flex-col items-center justify-center px-6 py-20">
+        <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-6">
+          <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
         </div>
-        <h2 className="text-[22px] font-bold text-slate-900 mb-3">Onboarding Complete</h2>
-        <p className="text-sm text-slate-500 leading-relaxed">
+        <h2 className="text-2xl font-bold text-slate-900 mb-3 text-center">Onboarding Complete</h2>
+        <p className="text-sm text-slate-500 leading-relaxed text-center max-w-[440px]">
           Thank you for completing the {schema.productName} onboarding form. Your project manager will review your submission and be in touch shortly.
         </p>
       </div>
@@ -110,61 +112,78 @@ function FormEngineInner({
   }
 
   return (
-    <div className="max-w-[860px] mx-auto px-6 pt-6 pb-[100px]">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-xl font-bold text-slate-900 m-0">{schema.productName} Onboarding</h1>
-          <p className="text-[13px] text-slate-500 mt-1 mb-0">
-            Complete the form to help us configure your {schema.productName} experience
-          </p>
+    <div className="min-h-screen flex flex-col">
+      {/* Sticky header */}
+      <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-200 px-8 h-[60px] flex items-center justify-between flex-shrink-0">
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-lg bg-brand flex items-center justify-center flex-shrink-0">
+            <span className="text-white font-bold text-xs leading-none">W</span>
+          </div>
+          <span className="text-sm font-bold text-brand">WebriQ</span>
+          <span className="text-slate-300 text-sm mx-0.5">·</span>
+          <span className="text-sm text-slate-500 font-medium">{schema.productName} Onboarding</span>
         </div>
         <SaveIndicator status={saveStatus} lastSavedAt={lastSavedAt} error={saveError} />
-      </div>
+      </header>
 
-      {/* Progress Steps */}
-      <ProgressBar sections={schema.sections} currentIndex={currentSectionIndex} onSectionClick={handleSectionClick} />
-
-      {/* Current Section */}
-      <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-[0_1px_4px_rgba(0,0,0,0.05)]">
-        <FormSection
-          section={currentSection}
-          getFieldValue={getFieldValue}
-          setFieldValue={setFieldValue}
-          customerId={customerId}
-          productName={schema.productName}
+      {/* Sticky progress steps */}
+      <div className="sticky top-[60px] z-40 bg-white/90 backdrop-blur-md border-b border-slate-100 px-8 py-3 overflow-x-auto flex-shrink-0">
+        <ProgressBar
+          sections={schema.sections}
+          currentIndex={currentSectionIndex}
+          onSectionClick={handleSectionClick}
         />
       </div>
 
-      {/* Bottom Navigation — fixed bar, offset by sidebar width */}
-      <div className="fixed bottom-0 left-[280px] right-0 bg-white border-t border-slate-200 py-4 px-6 flex justify-between items-center z-10">
+      {/* Main content */}
+      <main className="flex-1 max-w-[860px] mx-auto w-full px-6 pt-10 pb-[100px]">
+        <div className="bg-white border border-slate-200 rounded-xl shadow-[0_1px_6px_rgba(0,0,0,0.06)]">
+          <FormSection
+            section={currentSection}
+            getFieldValue={getFieldValue}
+            setFieldValue={setFieldValue}
+            customerId={customerId}
+            productName={schema.productName}
+          />
+        </div>
+      </main>
+
+      {/* Fixed bottom nav — left-0 (no sidebar in public routes) */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200 py-4 px-8 flex justify-between items-center z-50">
         <button
           onClick={handleBack}
           disabled={isFirstSection}
           className={cn(
-            "font-[inherit] py-2.5 px-[22px] bg-transparent text-[13px] font-medium border-[1.5px] border-slate-200 rounded-full",
-            isFirstSection ? "text-slate-300 cursor-not-allowed" : "text-slate-500 cursor-pointer"
+            "font-[inherit] py-2.5 px-5 bg-transparent text-[13px] font-medium border-[1.5px] rounded-full transition-colors",
+            isFirstSection
+              ? "text-slate-300 border-slate-200 cursor-not-allowed"
+              : "text-slate-500 border-slate-300 cursor-pointer hover:border-slate-400 hover:text-slate-700"
           )}
         >
           ← Back
         </button>
 
-        <div className="flex items-center gap-3">
-          {/* Completion ring */}
-          <div
-            className="w-9 h-9 rounded-full border-[3px] border-slate-200"
-            style={{
-              borderTopColor: completionPercentage >= 100 ? "#22C55E" : "#3358F4",
-              transform: `rotate(${completionPercentage * 3.6}deg)`,
-            }}
-          />
-          <span className="text-[13px] text-slate-500 font-semibold">{Math.round(completionPercentage)}%</span>
+        <div className="flex items-center gap-2.5">
+          <div className="relative w-9 h-9">
+            <svg className="w-9 h-9 -rotate-90" viewBox="0 0 36 36">
+              <circle cx="18" cy="18" r="15" fill="none" stroke="#e2e8f0" strokeWidth="3" />
+              <circle
+                cx="18" cy="18" r="15"
+                fill="none"
+                stroke={completionPercentage >= 100 ? "#22C55E" : "#3358F4"}
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeDasharray={`${(completionPercentage / 100) * 94.2} 94.2`}
+              />
+            </svg>
+          </div>
+          <span className="text-[13px] text-slate-500 font-semibold tabular-nums">{Math.round(completionPercentage)}%</span>
         </div>
 
         <button
           onClick={handleNext}
           className={cn(
-            "font-[inherit] py-2.5 px-[22px] text-white text-[13px] font-semibold border-none rounded-full cursor-pointer",
+            "font-[inherit] py-2.5 px-5 text-white text-[13px] font-semibold border-none rounded-full cursor-pointer transition-opacity hover:opacity-90",
             isLastSection ? "bg-brand-orange" : "bg-brand"
           )}
         >

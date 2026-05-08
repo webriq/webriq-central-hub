@@ -14,37 +14,36 @@ export default function SaveIndicator({ status, lastSavedAt, error }: SaveIndica
   const getStatusDisplay = () => {
     switch (status) {
       case "saving":
-        return { dotClass: "bg-amber-400", text: "Saving...", textClass: "text-amber-400" };
+        return { dotCls: "bg-amber-400", text: "Saving...", textCls: "text-amber-500", pulse: true };
       case "saved":
         return {
-          dotClass: "bg-green-500",
+          dotCls: "bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.6)]",
           text: lastSavedAt
             ? `Draft auto-saved at ${lastSavedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
             : "Draft auto-saved",
-          textClass: "text-green-500",
+          textCls: "text-green-600",
+          pulse: true,
         };
       case "error":
-        return { dotClass: "bg-red-500", text: error ?? "Save failed", textClass: "text-red-500" };
+        return { dotCls: "bg-red-500", text: error ?? "Save failed", textCls: "text-red-500", pulse: false };
       case "idle":
       default:
-        return { dotClass: "bg-slate-400", text: "Waiting to save...", textClass: "text-slate-400" };
+        return { dotCls: "bg-slate-300", text: "Waiting to save...", textCls: "text-slate-400", pulse: false };
     }
   };
 
-  const display = getStatusDisplay();
+  const { dotCls, text, textCls, pulse } = getStatusDisplay();
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-1.5">
       <span
         className={cn(
-          "w-2 h-2 rounded-full inline-block flex-shrink-0",
-          display.dotClass,
-          status === "saving" && "animate-pulse"
+          "w-1.5 h-1.5 rounded-full inline-block flex-shrink-0",
+          dotCls,
+          pulse && "animate-pulse"
         )}
       />
-      <span className={cn("text-xs font-medium", display.textClass)}>
-        {display.text}
-      </span>
+      <span className={cn("text-xs font-medium font-mono", textCls)}>{text}</span>
     </div>
   );
 }

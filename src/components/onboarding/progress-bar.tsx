@@ -12,7 +12,7 @@ interface ProgressBarProps {
 
 export default function ProgressBar({ sections, currentIndex, onSectionClick }: ProgressBarProps) {
   return (
-    <div className="flex items-center flex-wrap mb-6">
+    <div className="flex items-center min-w-max">
       {sections.map((section, i) => {
         const isActive = i === currentIndex;
         const isDone = i < currentIndex;
@@ -21,31 +21,42 @@ export default function ProgressBar({ sections, currentIndex, onSectionClick }: 
           <React.Fragment key={section.id}>
             <button
               onClick={() => onSectionClick(i)}
-              className="flex flex-col items-center gap-1.5 bg-none border-none cursor-pointer px-2 py-1 font-[inherit]"
               title={section.title}
+              className={cn(
+                "flex items-center gap-2 px-3 py-1.5 rounded-full text-[0.78rem] font-medium whitespace-nowrap cursor-pointer border transition-all duration-200 font-[inherit]",
+                isActive
+                  ? "bg-brand/10 border-brand/25 text-brand"
+                  : isDone
+                  ? "bg-transparent border-transparent text-green-600"
+                  : "bg-transparent border-transparent text-slate-400 hover:text-slate-600"
+              )}
             >
               <span
                 className={cn(
-                  "w-8 h-8 rounded-full text-[13px] font-bold flex items-center justify-center transition-colors duration-200",
-                  isActive || isDone ? "bg-brand text-white" : "bg-slate-200 text-slate-400"
+                  "w-5 h-5 rounded-full flex items-center justify-center text-[0.65rem] font-bold font-mono flex-shrink-0 border transition-all duration-200",
+                  isActive
+                    ? "bg-brand border-brand text-white"
+                    : isDone
+                    ? "bg-green-500 border-green-500 text-white"
+                    : "bg-transparent border-slate-300 text-slate-400"
                 )}
               >
-                {isDone ? "✓" : i + 1}
-              </span>
-              <span
-                className={cn(
-                  "text-[11px] whitespace-nowrap max-w-[100px] overflow-hidden text-ellipsis text-center transition-colors duration-200",
-                  isActive ? "font-bold text-brand" : isDone ? "font-medium text-slate-500" : "font-medium text-slate-400"
+                {isDone ? (
+                  <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                ) : (
+                  i + 1
                 )}
-              >
-                {section.title}
               </span>
+              <span className="hidden sm:inline">{section.title}</span>
             </button>
+
             {i < sections.length - 1 && (
               <div
                 className={cn(
-                  "flex-[0_0_24px] h-0.5 mb-[22px] transition-colors duration-200",
-                  isDone ? "bg-brand" : "bg-slate-200"
+                  "flex-shrink-0 w-5 h-px mx-0.5",
+                  isDone ? "bg-green-300" : "bg-slate-200"
                 )}
               />
             )}
