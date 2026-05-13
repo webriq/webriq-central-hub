@@ -602,6 +602,35 @@ export interface Database {
         };
         Relationships: [];
       };
+      hub_users: {
+        Row: {
+          id: string;
+          email: string;
+          display_name: string | null;
+          role: string;
+          zoho_user_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id: string;
+          email: string;
+          display_name?: string | null;
+          role?: string;
+          zoho_user_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          email?: string;
+          display_name?: string | null;
+          role?: string;
+          zoho_user_id?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

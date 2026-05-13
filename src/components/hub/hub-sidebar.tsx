@@ -49,9 +49,36 @@ const navGroups = [
   },
 ];
 
-export default function HubSidebar() {
+const ROLE_LABELS: Record<string, string> = {
+  admin: "Administrator",
+  pm: "Project Manager",
+  developer: "Developer",
+  client: "Client",
+};
+
+function getInitials(email: string | null): string {
+  if (!email) return "??";
+  const [local] = email.split("@");
+  if (!local) return "??";
+  const parts = local.split(/[._-]/);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+  return local.slice(0, 2).toUpperCase();
+}
+
+interface HubSidebarProps {
+  userEmail: string | null;
+  userRole: string | null;
+}
+
+export default function HubSidebar({ userEmail, userRole }: HubSidebarProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+
+  const initials = getInitials(userEmail);
+  const displayEmail = userEmail ?? "Unknown";
+  const roleLabel = ROLE_LABELS[userRole ?? ""] ?? "User";
 
   return (
     <aside
@@ -135,12 +162,14 @@ export default function HubSidebar() {
         )}
       >
         <div className="w-[30px] h-[30px] rounded-full bg-brand text-white text-[11px] font-bold flex items-center justify-center flex-shrink-0">
-          BD
+          {initials}
         </div>
         {!collapsed && (
           <div className="flex-1 min-w-0">
-            <div className="text-[13px] font-semibold text-white leading-[1.3]">Brandon Dwite</div>
-            <div className="text-[11px] text-slate-500">Project Manager</div>
+            <div className="text-[13px] font-semibold text-white leading-[1.3]" title={displayEmail}>
+              {displayEmail}
+            </div>
+            <div className="text-[11px] text-slate-500">{roleLabel}</div>
           </div>
         )}
       </div>

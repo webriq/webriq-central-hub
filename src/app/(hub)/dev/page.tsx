@@ -1,4 +1,3 @@
-import HubHeader from "@/components/hub/hub-header";
 import { cn } from "@/lib/utils";
 
 const tasks = [
@@ -43,10 +42,7 @@ const cardCls = "bg-white border border-slate-200 rounded-xl shadow-[0_1px_4px_r
 
 export default function DevDashboardPage() {
   return (
-    <>
-      <HubHeader title="My Dashboard" subtitle="Developer daily view" />
-
-      <div className="p-6 flex flex-col gap-4 overflow-y-auto flex-1">
+    <div className="p-6 flex flex-col gap-4 overflow-y-auto flex-1">
         {/* Summary strip */}
         <div className={cn(cardCls, "px-6 py-3.5 flex items-center")}>
           {[
@@ -154,7 +150,6 @@ export default function DevDashboardPage() {
             </div>
           </div>
         </div>
-      </div>
-    </>
+    </div>
   );
 }

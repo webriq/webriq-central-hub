@@ -146,11 +146,10 @@ export default function PMDashboardPage() {
 
   return (
     <div className="p-6 overflow-y-auto flex-1">
-      {/* Header */}
+      {/* New Customer button */}
       <div className="flex justify-between items-center mb-5">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 m-0">Customers</h1>
-          <p className="text-[13px] text-slate-500 mt-1 mb-0">
+          <p className="text-[13px] text-slate-500 my-0">
             {customers.length} customer{customers.length !== 1 ? "s" : ""}
           </p>
         </div>

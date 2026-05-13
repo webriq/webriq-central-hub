@@ -1,18 +1,48 @@
 "use client";
 
-import { Bell } from "lucide-react";
+import { Bell, LogOut } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { signOut } from "@/app/(auth)/actions";
 
 interface HubHeaderProps {
-  title: string;
+  title?: string;
   subtitle?: string;
 }
 
-export default function HubHeader({ title, subtitle }: HubHeaderProps) {
+const PATH_TITLES: Record<string, { title: string; subtitle?: string }> = {
+  "/pm": { title: "Customers", subtitle: "Project Manager Dashboard" },
+  "/dev": { title: "My Dashboard", subtitle: "Developer daily view" },
+  "/classification": { title: "Classification", subtitle: "Task classification engine — Sprint 2 (M2)" },
+  "/orchestration": { title: "AI Orchestration", subtitle: "Requirements assessment, plan generation, execution — Sprints 3–5" },
+  "/kb": { title: "Knowledge Base", subtitle: "LLM Wiki — playbooks, internal KB, customer context — Sprint 6" },
+  "/onboarding": { title: "Onboarding", subtitle: "Create a new customer" },
+  "/customers": { title: "Customer Profile" },
+};
+
+function getTitleOverride(pathname: string): { title: string; subtitle?: string } | null {
+  // Check exact match first
+  if (PATH_TITLES[pathname]) return PATH_TITLES[pathname];
+
+  // Check prefix match for dynamic routes like /customers/[customerId]
+  for (const [prefix, info] of Object.entries(PATH_TITLES)) {
+    if (pathname.startsWith(prefix + "/")) return info;
+  }
+
+  return null;
+}
+
+export default function HubHeader({ title, subtitle }: HubHeaderProps = {}) {
+  const pathname = usePathname();
+  const override = getTitleOverride(pathname);
+
+  const displayTitle = title ?? override?.title ?? "";
+  const displaySubtitle = subtitle ?? override?.subtitle;
+
   return (
     <header className="h-[60px] bg-white border-b border-slate-200 flex items-center justify-between px-6 flex-shrink-0">
       <div className="flex flex-col gap-px">
-        <div className="text-base font-bold text-slate-900 leading-tight">{title}</div>
-        {subtitle && <div className="text-xs text-slate-400">{subtitle}</div>}
+        {displayTitle && <div className="text-base font-bold text-slate-900 leading-tight">{displayTitle}</div>}
+        {displaySubtitle && <div className="text-xs text-slate-400">{displaySubtitle}</div>}
       </div>
 
       <div className="flex items-center gap-2.5">
@@ -46,6 +76,15 @@ export default function HubHeader({ title, subtitle }: HubHeaderProps) {
             <span className="absolute top-1.5 right-1.5 w-[7px] h-[7px] rounded-full bg-orange-500 border-[1.5px] border-white" />
           </button>
         </div>
+
+        {/* Sign Out */}
+        <button
+          onClick={() => signOut()}
+          className="flex items-center gap-1.5 text-[13px] text-slate-500 hover:text-red-600 transition-colors cursor-pointer ml-1"
+          title="Sign out"
+        >
+          <LogOut size={16} />
+        </button>
 
         {/* Avatar */}
         <div className="w-8 h-8 rounded-full bg-brand text-white text-[11px] font-bold flex items-center justify-center cursor-pointer">

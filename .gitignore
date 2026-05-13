@@ -52,3 +52,5 @@ _design/
 appstore-images/
 
 supabase/.temp/
+
+.claude/worktrees/

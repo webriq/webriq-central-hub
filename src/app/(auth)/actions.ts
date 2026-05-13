@@ -55,3 +55,9 @@ export async function signUp(formData: FormData) {
 
   redirect("/hub");
 }
+
+export async function signOut() {
+  const supabase = await createClient();
+  await supabase.auth.signOut();
+  redirect("/signin");
+}
