@@ -633,7 +633,17 @@ export interface Database {
       };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      force_logout_all_except: {
+        Args: {
+          exclude_user_id: string;
+        };
+        Returns: {
+          action: string;
+          count: number;
+        }[];
+      };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };

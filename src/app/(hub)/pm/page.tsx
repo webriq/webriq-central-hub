@@ -97,7 +97,7 @@ export default function PMDashboardPage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, []);
 
   const handleSort = (column: string) => {
@@ -118,9 +118,11 @@ export default function PMDashboardPage() {
     return 0;
   });
 
+  const [now] = useState(() => Date.now());
+
   const getRelativeTime = (dateStr: string) => {
     const date = new Date(dateStr);
-    const diffDays = Math.floor((Date.now() - date.getTime()) / (1000 * 60 * 60 * 24));
+    const diffDays = Math.floor((now - date.getTime()) / (1000 * 60 * 60 * 24));
     if (diffDays === 0) return "Today";
     if (diffDays === 1) return "Yesterday";
     if (diffDays < 7) return `${diffDays}d ago`;

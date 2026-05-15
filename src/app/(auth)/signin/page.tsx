@@ -50,7 +50,7 @@ export default function SignInPage() {
   }
 
   return (
-    <div className="min-h-[100dvh] w-full lg:grid lg:grid-cols-2 bg-background">
+    <div className="min-h-dvh w-full lg:grid lg:grid-cols-2 bg-background">
       <ThemeToggle />
 
       {/* ── Left: Hero panel (desktop only) ──────────────────────────────── */}
@@ -59,13 +59,14 @@ export default function SignInPage() {
           src="/auth-hero-BN2J7r2Q.jpg"
           alt=""
           fill
+          sizes="(min-width: 1024px) 50vw, 0vw"
           className="object-cover opacity-70"
           priority
         />
         {/* Hardcoded-dark overlays — hero always stays dark regardless of theme */}
         <div className="absolute inset-0 bg-black/85" />
-        <div className="absolute inset-0 bg-gradient-to-tr from-brand-orange/40 via-transparent to-brand-orange/10 mix-blend-screen" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-linear-to-tr from-brand-orange/40 via-transparent to-brand-orange/10 mix-blend-screen" />
+        <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent" />
 
         {/* Logo */}
         <Link href="/" className="relative z-10 inline-flex items-center gap-2.5 font-semibold tracking-tight">
@@ -80,7 +81,7 @@ export default function SignInPage() {
           </p>
           <div className="flex items-center gap-3">
             <div
-              className="h-10 w-10 rounded-full flex-shrink-0 ring-1 ring-white/20"
+              className="h-10 w-10 rounded-full shrink-0 ring-1 ring-white/20"
               style={{ background: "#F97316" }}
             />
             <div className="text-sm">
@@ -92,7 +93,7 @@ export default function SignInPage() {
       </div>
 
       {/* ── Right: Form panel ─────────────────────────────────────────────── */}
-      <div className="relative flex min-h-[100dvh] flex-col lg:items-center lg:justify-center lg:px-10 lg:py-12">
+      <div className="relative flex min-h-dvh flex-col lg:items-center lg:justify-center lg:px-10 lg:py-12">
 
         {/* Mobile: gradient header */}
         <div
@@ -133,9 +134,9 @@ export default function SignInPage() {
               <Image
                 src="/zoho-logo-512.png"
                 alt=""
-                width={24}
-                height={24}
-                className="h-6 w-6 object-contain flex-shrink-0"
+                width={40}
+                height={40}
+                className="h-10 w-10 object-contain shrink-0"
               />
               Continue with Zoho
             </button>

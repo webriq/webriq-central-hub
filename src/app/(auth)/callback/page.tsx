@@ -9,8 +9,6 @@ export default function AuthCallbackPage() {
   const called = useRef(false);
 
   useEffect(() => {
-    // React StrictMode runs effects twice in dev — guard against double execution
-    // which would burn the refresh token on the second call.
     if (called.current) return;
     called.current = true;
 
@@ -23,34 +21,56 @@ export default function AuthCallbackPage() {
       return;
     }
 
-    // Supabase custom OIDC uses implicit flow — tokens land in the URL fragment.
-    // The JS client defaults to PKCE and ignores the fragment, so we parse and
-    // call setSession() directly.
     const hash = window.location.hash.slice(1);
     const hashParams = new URLSearchParams(hash);
     const accessToken = hashParams.get("access_token");
     const refreshToken = hashParams.get("refresh_token");
+    const providerToken = hashParams.get("provider_token");
 
     if (!accessToken || !refreshToken) {
-      console.error("[auth/callback] no tokens in URL fragment — hash:", window.location.hash);
+      console.error("[auth/callback] no tokens in URL fragment");
       router.push("/signin?error=oauth_failed");
       return;
     }
 
     supabase.auth
       .setSession({ access_token: accessToken, refresh_token: refreshToken })
-      .then(({ data, error }) => {
-        if (error) {
-          console.error("[auth/callback] setSession error:", error.message, error);
+      .then(async ({ data, error }) => {
+        if (error || !data.session) {
+          console.error("[auth/callback] setSession failed:", error?.message);
           router.push("/signin?error=oauth_failed");
           return;
         }
-        if (!data.session) {
-          console.error("[auth/callback] setSession returned no session, data:", data);
-          router.push("/signin?error=oauth_failed");
-          return;
-        }
+
+        const userId = data.session.user.id;
         console.log("[auth/callback] session established for:", data.session.user.email);
+
+        // Fire-and-forget: fetch Zoho profile in background so redirect isn't blocked
+        if (providerToken) {
+          void (async () => {
+            try {
+              const zohoRes = await fetch("/api/zoho/user-info", {
+                headers: { Authorization: `Bearer ${providerToken}` },
+              });
+              if (zohoRes.ok) {
+                const profile = await zohoRes.json();
+                const displayName = profile.Display_Name ?? "";
+                const zuid = String(profile.ZUID ?? "");
+                if (displayName) {
+                  const { updateZohoProfile } = await import(
+                    "@/app/(auth)/update-zoho-profile"
+                  );
+                  await updateZohoProfile(userId, displayName, zuid);
+                }
+              } else {
+                console.warn("[auth/callback] Zoho user/info failed:", zohoRes.status);
+              }
+            } catch (err) {
+              console.warn("[auth/callback] Zoho fetch error:", err);
+            }
+          })();
+        }
+
         router.push("/");
         router.refresh();
       });

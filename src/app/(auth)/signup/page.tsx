@@ -114,7 +114,7 @@ export default function SignUpPage() {
     const { error: authError } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { display_name: name.trim() } },
+      options: { data: { full_name: name.trim(), display_name: name.trim() } },
     });
 
     if (authError) {
@@ -133,7 +133,7 @@ export default function SignUpPage() {
 
       {/* ── Left: Hero panel (desktop only) ──────────────────────────────── */}
       <div className="relative hidden lg:flex flex-col justify-between overflow-hidden p-10 text-white">
-        <Image src="/auth-hero-BN2J7r2Q.jpg" alt="" fill className="object-cover opacity-70" priority />
+        <Image src="/auth-hero-BN2J7r2Q.jpg" alt="" fill sizes="(min-width: 1024px) 50vw, 0vw" className="object-cover opacity-70" priority />
         {/* Hardcoded-dark overlays — hero always stays dark regardless of theme */}
         <div className="absolute inset-0 bg-black/85" />
         <div className="absolute inset-0 bg-gradient-to-tr from-brand-orange/40 via-transparent to-brand-orange/10 mix-blend-screen" />
