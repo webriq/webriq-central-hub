@@ -14,25 +14,29 @@ export default async function HubLayout({ children }: { children: React.ReactNod
   const userId = data.claims.sub;
   let userEmail: string | null = null;
   let userRole: string | null = null;
+  let userDisplayName: string | null = null;
+  let userZohoId: string | null = null;
 
   if (userId) {
     const { data: profile } = await supabase
       .from("hub_users")
-      .select("email, role")
+      .select("email, role, display_name, zoho_user_id")
       .eq("id", userId)
       .single();
 
     if (profile) {
       userEmail = profile.email;
       userRole = profile.role;
+      userDisplayName = profile.display_name;
+      userZohoId = profile.zoho_user_id;
     }
   }
 
   return (
     <div className="flex min-h-screen bg-page-bg">
-      <HubSidebar userEmail={userEmail} userRole={userRole} />
+      <HubSidebar userEmail={userEmail} userRole={userRole} userDisplayName={userDisplayName} userZohoId={userZohoId} />
       <div className="flex-1 flex flex-col min-w-0 bg-page-bg">
-        <HubHeader />
+        <HubHeader displayName={userDisplayName} email={userEmail} zohoUserId={userZohoId} />
         {children}
       </div>
     </div>
