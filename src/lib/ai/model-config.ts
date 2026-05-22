@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { adminClient } from "@/lib/supabase/admin";
 import { getLanguageModel } from "@/lib/ai/providers";
 import type { OrchestrationLayer } from "@/types/hub";
 import type { LLMConfigRow } from "@/types/database";
@@ -14,8 +14,9 @@ export async function getModelConfig(layer: OrchestrationLayer): Promise<LLMConf
     return cached.value;
   }
 
-  const supabase = await createClient();
-  const { data, error } = await supabase
+  // adminClient used — llm_config is internal config, not user data; also required for
+  // server-to-server contexts (webhooks) where no user session exists.
+  const { data, error } = await adminClient
     .from("llm_config")
     .select("*")
     .eq("orchestration_layer", layer)
