@@ -14,6 +14,7 @@ type ZohoPayload = {
   projectId?: string;
   // Shared
   description?: string;
+  webhookToken?: string;
 };
 
 async function resolveCustomerId(
@@ -39,14 +40,7 @@ async function resolveCustomerId(
   return null;
 }
 
-async function parseBody(req: NextRequest): Promise<ZohoPayload> {
-  const contentType = req.headers.get("content-type") ?? "";
-  if (contentType.includes("application/json")) {
-    return req.json().catch(() => ({}));
-  }
-  // Zoho Projects sends form-encoded parameters when using the "Append Task Parameters" UI
-  const text = await req.text().catch(() => "");
-  const params = new URLSearchParams(text);
+function parseParams(params: URLSearchParams): ZohoPayload {
   return {
     taskId: params.get("taskId") ?? undefined,
     taskName: params.get("taskName") ?? undefined,
@@ -55,11 +49,37 @@ async function parseBody(req: NextRequest): Promise<ZohoPayload> {
     ticketId: params.get("ticketId") ?? undefined,
     subject: params.get("subject") ?? undefined,
     accountId: params.get("accountId") ?? undefined,
+    webhookToken: params.get("x-webhook-token") ?? undefined,
   };
 }
 
+function parsePayload(contentType: string, rawText: string, url: string): ZohoPayload {
+  if (contentType.includes("application/json")) {
+    try { return JSON.parse(rawText); } catch { return {}; }
+  }
+  // Zoho may append params to the query string even for POST requests (visible in Preview URL)
+  const queryParams = new URL(url).searchParams;
+  if (queryParams.has("taskId") || queryParams.has("projectId")) {
+    return parseParams(queryParams);
+  }
+  // Otherwise params are in the POST body as form-encoded
+  return parseParams(new URLSearchParams(rawText));
+}
+
 export async function POST(req: NextRequest) {
-  const body: ZohoPayload = await parseBody(req);
+  const contentType = req.headers.get("content-type") ?? "";
+  const rawText = await req.text().catch(() => "");
+  console.log("[webhook] incoming request", { contentType, rawText });
+  const body: ZohoPayload = parsePayload(contentType, rawText, req.url);
+
+  const expectedToken = process.env.ZOHO_WEBHOOK_TOKEN;
+  if (expectedToken) {
+    const receivedToken = req.headers.get("x-webhook-token") ?? body.webhookToken;
+    if (receivedToken !== expectedToken) {
+      console.warn("[webhook] unauthorized — token mismatch");
+      return NextResponse.json({ received: true }); // 200 so Zoho doesn't retry
+    }
+  }
 
   const source: WebhookSource = body.ticketId ? "zoho_desk" : "zoho_projects";
   const title = body.subject ?? body.taskName ?? "(no title)";
