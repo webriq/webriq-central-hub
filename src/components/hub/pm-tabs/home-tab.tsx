@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { CustomerWithProducts } from "./clients-tab";
 import type { PMSettings } from "@/hooks/use-pm-settings";
+import { formatRelativeTime } from "@/lib/utils";
 import {
   getTokens, DARK, StatCard, ProgressBar, StatusBadge,
   PriorityDot, SectionHeader, ClientAvatar, getClientColor,
@@ -96,14 +97,13 @@ function DigestCard({ attentionCount, activeCount, onboardingCount }: DigestCard
 }
 
 interface StatsRowProps {
-  stats: Array<{ v: string; l: string; c: string }>;
-  tokens: Tokens;
+  stats: Array<{ v: string; l: string; colorVar: string }>;
 }
 
-function StatsRow({ stats, tokens }: StatsRowProps) {
+function StatsRow({ stats }: StatsRowProps) {
   return (
     <div className="grid grid-cols-4 gap-3 mb-[22px]">
-      {stats.map(s => <StatCard key={s.l} value={s.v} label={s.l} color={s.c} tokens={tokens} />)}
+      {stats.map(s => <StatCard key={s.l} value={s.v} label={s.l} colorVar={s.colorVar} />)}
     </div>
   );
 }
@@ -112,18 +112,30 @@ function StatsRow({ stats, tokens }: StatsRowProps) {
 
 interface AttentionItem {
   id: string; title: string; customer: string;
-  priority: "NORMAL"; type: string; t: string;
+  priority: string; type: string; t: string;
+}
+
+export interface ClassificationAttentionItem {
+  id: string;
+  title: string;
+  customer_id: string;
+  priority: string;
+  created_at: string;
 }
 
 interface HomeTabProps {
   customers: CustomerWithProducts[];
   settings: PMSettings;
   displayName?: string | null;
+  pendingReviewCount?: number;
+  classificationAttentionItems?: ClassificationAttentionItem[];
+  openTasksCount?: number;
+  inPipelineCount?: number;
 }
 
 /* ── HomeTab ─────────────────────────────────────────────────────────────── */
 
-export default function HomeTab({ customers, settings, displayName }: HomeTabProps) {
+export default function HomeTab({ customers, settings, displayName, pendingReviewCount = 0, classificationAttentionItems = [], openTasksCount = 0, inPipelineCount = 0 }: HomeTabProps) {
   const C = getTokens(settings);
   const digestFirst = settings.homeLayout !== "stats";
   const firstName = displayName?.split(" ")[0] ?? "there";
@@ -156,25 +168,36 @@ export default function HomeTab({ customers, settings, displayName }: HomeTabPro
   const onboardingCount = customers.filter(c => c.status === "onboarding").length;
 
   const stats = [
-    { v: String(activeCount), l: "Active Clients", c: C.sky },
-    { v: "8", l: "Open Tasks", c: C.orange },
-    { v: "3", l: "In Pipeline", c: C.violet },
-    { v: "2", l: "Pending Review", c: C.amber },
+    { v: String(activeCount),       l: "Active Clients",  colorVar: "--c-sky"    },
+    { v: String(openTasksCount),    l: "Open Tasks",       colorVar: "--c-orange" },
+    { v: String(inPipelineCount),   l: "In Pipeline",      colorVar: "--c-violet" },
+    { v: String(pendingReviewCount),l: "Pending Review",   colorVar: "--c-amber"  },
   ];
 
-  const attention: AttentionItem[] = customers.filter(c => c.status === "onboarding")
+  const onboardingAttention: AttentionItem[] = customers.filter(c => c.status === "onboarding")
     .map((c, i) => ({
       id: `T-${String(90 - i).padStart(4, "0")}`,
       title: `${c.company_name} — onboarding in progress`,
-      customer: c.company_name, priority: "NORMAL" as const, type: "Onboarding", t: "today",
+      customer: c.company_name, priority: "NORMAL", type: "Onboarding", t: "today",
     }));
 
+  const classificationAttention: AttentionItem[] = classificationAttentionItems.map(item => ({
+    id: item.id.slice(0, 8),
+    title: item.title,
+    customer: item.customer_id,
+    priority: item.priority,
+    type: "Classification Review",
+    t: formatRelativeTime(item.created_at),
+  }));
+
+  const attention: AttentionItem[] = [...classificationAttention, ...onboardingAttention];
+
   const pipeline = [
-    { l: "Classify", n: 5, ck: "violet" },
-    { l: "Assess",   n: 3, ck: "sky" },
-    { l: "Plan",     n: 2, ck: "blue" },
-    { l: "Execute",  n: 1, ck: "orange" },
-    { l: "Reply",    n: 2, ck: "green" },
+    { l: "Classify", n: pendingReviewCount, ck: "violet" },
+    { l: "Assess",   n: 0, ck: "sky" },
+    { l: "Plan",     n: 0, ck: "blue" },
+    { l: "Execute",  n: 0, ck: "orange" },
+    { l: "Reply",    n: 0, ck: "green" },
   ];
 
   return (
@@ -218,7 +241,8 @@ export default function HomeTab({ customers, settings, displayName }: HomeTabPro
         <DigestCard attentionCount={attention.length} activeCount={activeCount} onboardingCount={onboardingCount} />
       )}
 
-      <StatsRow stats={stats} tokens={C} />
+      <StatsRow stats={stats} />
+
 
       <div className="grid grid-cols-[3fr_2fr] gap-4">
         {/* Left column */}
@@ -226,7 +250,7 @@ export default function HomeTab({ customers, settings, displayName }: HomeTabPro
           {!digestFirst && (
             <DigestCard attentionCount={attention.length} activeCount={activeCount} onboardingCount={onboardingCount} />
           )}
-          <SectionHeader title="Needs Attention" sub={`${attention.length} items`} action="View all →" tokens={C} />
+          <SectionHeader title="Needs Attention" sub={`${attention.length} item${attention.length !== 1 ? "s" : ""}`} action="View all →" />
           <div className="flex flex-col gap-2">
             {attention.slice(0, 4).map(t => (
               <div key={t.id} className={`${CARD} py-3 px-4 flex gap-3 items-start cursor-pointer`}>
@@ -286,9 +310,9 @@ export default function HomeTab({ customers, settings, displayName }: HomeTabPro
                   <ClientAvatar name={cl.company_name} color={getClientColor(cl.company_name)} size={28} />
                   <div className="flex-1 min-w-0">
                     <div className="text-xs font-medium text-[var(--c-text)] mb-1">{cl.company_name}</div>
-                    <ProgressBar pct={Math.round(avg)} color={getClientColor(cl.company_name)} tokens={C} />
+                    <ProgressBar pct={Math.round(avg)} color={getClientColor(cl.company_name)} />
                   </div>
-                  <StatusBadge status={cl.status ?? "onboarding"} tokens={C} />
+                  <StatusBadge status={cl.status ?? "onboarding"} />
                 </div>
               );
             })}

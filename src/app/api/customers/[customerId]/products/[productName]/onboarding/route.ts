@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { adminClient } from "@/lib/supabase/admin";
 import type { ProductName } from "@/types/hub";
 
-const VALID_PRODUCTS: ProductName[] = ["StackShift", "PublishForge", "CiteForge", "PipelineForge"];
+const VALID_PRODUCTS: ProductName[] = ["StackShift", "PublishForge", "PipelineForge"];
 
 export async function PATCH(
   request: NextRequest,
@@ -42,6 +42,41 @@ export async function PATCH(
       }
       console.error("PATCH onboarding error:", error);
       return NextResponse.json({ error: "Failed to save onboarding data" }, { status: 500 });
+    }
+
+    // When this product reaches 100%, check if all products for this customer are complete.
+    // If so: transition customer to "completed_onboarding" and notify PM via Cliq.
+    // Zoho project creation is now a deliberate PM action from the customer profile page.
+    if (isComplete) {
+      try {
+        const { data: allProducts } = await adminClient
+          .from("customer_products")
+          .select("onboarding_complete")
+          .eq("customer_id", customerId);
+
+        const allDone = allProducts?.every(p => p.onboarding_complete) ?? false;
+
+        if (allDone) {
+          const { data: customer } = await adminClient
+            .from("customers")
+            .select("company_name")
+            .eq("customer_id", customerId)
+            .single();
+
+          await adminClient
+            .from("customers")
+            .update({ status: "completed_onboarding" })
+            .eq("customer_id", customerId);
+
+          const { sendCliqNotification } = await import("@/lib/zoho");
+          await sendCliqNotification(
+            `✅ ${customer?.company_name ?? customerId} has completed all onboarding forms. Ready for Zoho project creation.`
+          );
+        }
+      } catch (completionErr) {
+        // Non-fatal — log but don't fail the save response
+        console.error("PATCH onboarding completion trigger error:", completionErr);
+      }
     }
 
     return NextResponse.json(data);

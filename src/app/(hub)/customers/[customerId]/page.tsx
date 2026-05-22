@@ -40,8 +40,8 @@ export default async function CustomerProfilePage({ params }: CustomerProfilePag
   }
 
   return (
-    <div className="p-6 overflow-y-auto flex-1 max-w-[960px] mx-auto">
-      <CustomerProfileClient customer={customer} />
+    <div className="p-6 overflow-y-auto flex-1 max-w-240 mx-auto">
+      <CustomerProfileClient customer={customer} zohoPortalId={process.env.ZOHO_PORTAL_ID ?? "" } zohoPortalName={process.env.ZOHO_PORTAL_NAME ?? "" } />
     </div>
   );
 }

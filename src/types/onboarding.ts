@@ -33,6 +33,10 @@ export interface FormSection {
   title: string;
   description?: string;
   fields: FormField[];
+  condition?: {
+    field: string;
+    value: string | boolean;
+  };
 }
 
 export interface FormSchema {

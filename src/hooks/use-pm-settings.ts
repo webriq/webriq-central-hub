@@ -31,7 +31,7 @@ function writeSettings(settings: PMSettings) {
 }
 
 export function usePMSettings() {
-  const [settings, setSettings] = useState<PMSettings>(readSettings);
+  const [settings, setSettings] = useState<PMSettings>(DEFAULTS);
 
   useEffect(() => {
     setSettings(readSettings());

@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminClient } from "@/lib/supabase/admin";
+import { createZohoProject } from "@/lib/zoho";
 import type { ProductName } from "@/types/hub";
 
-const VALID_PRODUCTS: ProductName[] = ["StackShift", "PublishForge", "CiteForge", "PipelineForge"];
+const VALID_PRODUCTS: ProductName[] = ["StackShift", "PublishForge", "PipelineForge"];
 
 export async function POST(
   request: NextRequest,
@@ -15,7 +16,7 @@ export async function POST(
 
     if (!productName || !VALID_PRODUCTS.includes(productName as ProductName)) {
       return NextResponse.json(
-        { error: "Invalid product_name. Must be one of: StackShift, PublishForge, CiteForge, PipelineForge" },
+        { error: "Invalid product_name. Must be one of: StackShift, PublishForge, PipelineForge" },
         { status: 400 }
       );
     }
@@ -62,6 +63,16 @@ export async function POST(
     if (error) {
       console.error("POST /api/customers/[customerId]/products error:", error);
       return NextResponse.json({ error: "Failed to add product" }, { status: 500 });
+    }
+
+    // Attempt Zoho Project creation — no-op if env vars absent (blocked on O3)
+    const zohoProjectId = await createZohoProject(customerId, `${productName} — ${customerId}`);
+    if (zohoProjectId) {
+      await adminClient
+        .from("customer_products")
+        .update({ zoho_project_id: zohoProjectId })
+        .eq("id", data.id);
+      data.zoho_project_id = zohoProjectId;
     }
 
     return NextResponse.json(data, { status: 201 });

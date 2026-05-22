@@ -33,9 +33,14 @@ export function useOnboardingForm(
   }, []);
 
   const getCompletionPercentage = useCallback((): number => {
-    // Collect all required fields across all sections
+    // Collect all required fields across all visible sections
     const requiredFields: FormField[] = [];
     for (const section of schema.sections) {
+      // Skip sections whose condition is not met
+      if (section.condition) {
+        const conditionValue = data[section.condition.field];
+        if (String(conditionValue) !== String(section.condition.value)) continue;
+      }
       for (const field of section.fields) {
         if (field.required) {
           // Don't count conditionally hidden fields

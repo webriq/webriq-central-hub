@@ -83,10 +83,9 @@ export type DigestFeedback = "useful" | "partial" | "not_useful";
 export type ProductName =
   | "StackShift"
   | "PublishForge"
-  | "CiteForge"
   | "PipelineForge";
 
-export type CustomerStatus = "active" | "inactive" | "onboarding";
+export type CustomerStatus = "active" | "inactive" | "onboarding" | "completed_onboarding";
 
 // Tech spec §7A: formal | casual | technical
 export type CommunicationTone = "formal" | "casual" | "technical";

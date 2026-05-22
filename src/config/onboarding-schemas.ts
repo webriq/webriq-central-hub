@@ -177,6 +177,134 @@ const stackShiftSections: FormSection[] = [
       },
     ],
   },
+  {
+    id: "addons",
+    title: "Add-ons",
+    description: "Optional WebriQ products bundled with StackShift",
+    fields: [
+      {
+        name: "includeCiteForge",
+        label: "Include CiteForge?",
+        type: "radio-group",
+        required: true,
+        options: ["Yes", "No"],
+        hint: "CiteForge adds citation & bibliography management to your StackShift site.",
+      },
+    ],
+  },
+  {
+    id: "citeforge-content-inventory",
+    title: "CiteForge — Content Inventory",
+    description: "Tell us about the content you want to migrate and restructure",
+    condition: { field: "includeCiteForge", value: "Yes" },
+    fields: [
+      {
+        name: "cfCurrentPlatform",
+        label: "Current Content Platform",
+        type: "select",
+        required: true,
+        options: ["WordPress", "Webflow", "Squarespace", "Wix", "Drupal", "Custom CMS", "Static HTML", "Other"],
+        hint: "Where does your existing content live?",
+      },
+      {
+        name: "cfPageCount",
+        label: "Estimated Pages to Migrate",
+        type: "select",
+        required: true,
+        options: ["Under 50", "50–100", "101–250", "251–500", "500+"],
+      },
+      {
+        name: "cfContentFormats",
+        label: "Content Formats",
+        type: "checkbox-group",
+        required: true,
+        options: ["Blog Posts / Articles", "Product / Service Pages", "Landing Pages", "Documentation", "PDFs", "News / Press Releases"],
+      },
+      {
+        name: "cfPriorityContent",
+        label: "Highest-Priority Content Areas",
+        type: "textarea",
+        placeholder: "e.g., Our blog (300 posts), product pages, technical docs — these need AI-readiness first...",
+        hint: "We start with your most important pages in week one.",
+      },
+    ],
+  },
+  {
+    id: "citeforge-ai-goals",
+    title: "CiteForge — AI Readiness Goals",
+    description: "What do you want your content to achieve in the AI era?",
+    condition: { field: "includeCiteForge", value: "Yes" },
+    fields: [
+      {
+        name: "cfPrimaryGoal",
+        label: "Primary Goal",
+        type: "checkbox-group",
+        required: true,
+        options: [
+          "Be cited by AI tools (ChatGPT, Perplexity, Gemini)",
+          "Improve AI search visibility",
+          "Add Schema.org / structured data",
+          "Modernize content structure",
+          "Migrate away from legacy CMS",
+        ],
+      },
+      {
+        name: "cfHasStructuredData",
+        label: "Do you have existing Schema.org / structured data markup?",
+        type: "radio-group",
+        required: true,
+        options: ["Yes", "No", "Not sure"],
+      },
+      {
+        name: "cfContentQualityConcerns",
+        label: "Content Quality Concerns",
+        type: "checkbox-group",
+        options: ["Outdated content", "Thin / low-quality pages", "Duplicate content", "Poor readability", "Missing metadata", "No internal linking strategy"],
+      },
+      {
+        name: "cfAdditionalContext",
+        label: "Additional Context",
+        type: "textarea",
+        placeholder: "Anything else we should know about your content or AI goals...",
+      },
+    ],
+  },
+  {
+    id: "citeforge-launch",
+    title: "CiteForge — Launch & Support",
+    description: "Timeline, scope, and how we'll work together",
+    condition: { field: "includeCiteForge", value: "Yes" },
+    fields: [
+      {
+        name: "cfTimeline",
+        label: "Desired Launch Timeline",
+        type: "select",
+        required: true,
+        options: ["ASAP (start immediately)", "Within 2 weeks (standard)", "1 month", "2–3 months", "Flexible"],
+      },
+      {
+        name: "cfSlackWorkspace",
+        label: "Slack Workspace for DFY Support",
+        type: "radio-group",
+        required: true,
+        options: ["We have Slack — invite us", "We don't use Slack — other channel preferred"],
+        hint: "CiteForge runs on a Do-It-For-You model with Slack-based collaboration.",
+      },
+      {
+        name: "cfSlackAlternative",
+        label: "Preferred Alternative Communication Channel",
+        type: "select",
+        options: ["Email", "Microsoft Teams", "Google Chat", "Zoom / Meetings only"],
+        condition: { field: "cfSlackWorkspace", value: "We don't use Slack — other channel preferred" },
+      },
+      {
+        name: "cfScopeNotes",
+        label: "Scope Notes / Special Requirements",
+        type: "textarea",
+        placeholder: "Any content that must stay unchanged, compliance requirements, staging environment details...",
+      },
+    ],
+  },
 ];
 
 // ============================================================================
@@ -304,105 +432,6 @@ const publishForgeSections: FormSection[] = [
 ];
 
 // ============================================================================
-// CiteForge Onboarding Form
-// ============================================================================
-
-const citeForgeSections: FormSection[] = [
-  {
-    id: "citation-style",
-    title: "Citation Style & Format",
-    description: "Academic and professional citation requirements",
-    fields: [
-      {
-        name: "citationStyle",
-        label: "Primary Citation Style",
-        type: "select",
-        required: true,
-        options: ["APA 7th", "MLA 9th", "Chicago (Notes-Bibliography)", "Chicago (Author-Date)", "Harvard", "IEEE", "Vancouver", "Custom"],
-      },
-      {
-        name: "additionalStyles",
-        label: "Additional Styles Needed",
-        type: "checkbox-group",
-        options: ["APA", "MLA", "Chicago", "Harvard", "IEEE", "Vancouver", "Bluebook", "OSCOLA"],
-      },
-      {
-        name: "customStyleNotes",
-        label: "Custom Style Requirements",
-        type: "textarea",
-        placeholder: "Describe any custom citation formatting rules...",
-      },
-    ],
-  },
-  {
-    id: "source-types",
-    title: "Source Types",
-    description: "What kinds of sources do you cite?",
-    fields: [
-      {
-        name: "sourceTypes",
-        label: "Common Source Types",
-        type: "checkbox-group",
-        required: true,
-        options: [
-          "Academic Papers / Journals",
-          "Books",
-          "Book Chapters",
-          "Web Pages",
-          "Interviews",
-          "Legal Documents",
-          "Government Publications",
-          "Conference Proceedings",
-          "Theses / Dissertations",
-          "Media (Video, Audio, Podcasts)",
-        ],
-      },
-      {
-        name: "otherSources",
-        label: "Other Source Types",
-        type: "text",
-        placeholder: "e.g., datasets, archival materials, social media...",
-      },
-    ],
-  },
-  {
-    id: "output-formats",
-    title: "Output & Integration",
-    description: "How do you want to use your citations?",
-    fields: [
-      {
-        name: "outputFormats",
-        label: "Bibliography Output Formats",
-        type: "checkbox-group",
-        required: true,
-        options: ["HTML", "PDF", "Microsoft Word (.docx)", "BibTeX", "RIS", "Plain Text"],
-      },
-      {
-        name: "writingToolIntegration",
-        label: "Writing Tool Integration",
-        type: "checkbox-group",
-        required: true,
-        options: ["Google Docs", "Microsoft Word", "Overleaf / LaTeX", "Zotero", "Mendeley", "EndNote"],
-      },
-      {
-        name: "collaborationNeeds",
-        label: "Collaboration Requirements",
-        type: "select",
-        required: true,
-        options: ["Single User", "Multi-User with Shared Library", "Review/Approval Workflow", "Team with Role-based Access"],
-      },
-      {
-        name: "plagiarismCheck",
-        label: "Plagiarism Checking Integration",
-        type: "radio-group",
-        required: true,
-        options: ["Yes - Required", "No - Not needed"],
-      },
-    ],
-  },
-];
-
-// ============================================================================
 // PipelineForge Onboarding Form (Reference: _design/forms/PipelineForge_Onboarding_Form.html)
 // ============================================================================
 
@@ -518,10 +547,6 @@ const schemas: Record<ProductName, FormSchema> = {
   PublishForge: {
     productName: "PublishForge",
     sections: publishForgeSections,
-  },
-  CiteForge: {
-    productName: "CiteForge",
-    sections: citeForgeSections,
   },
   PipelineForge: {
     productName: "PipelineForge",

@@ -11,7 +11,6 @@ interface ProductSelectorProps {
 const PRODUCTS: { name: ProductName; label: string; description: string; color: string }[] = [
   { name: "StackShift", label: "StackShift", description: "Headless CMS & website platform", color: "#3358F4" },
   { name: "PublishForge", label: "PublishForge", description: "Content publishing & blog management", color: "#7C3AED" },
-  { name: "CiteForge", label: "CiteForge", description: "Citation & bibliography management", color: "#22C55E" },
   { name: "PipelineForge", label: "PipelineForge", description: "Sales pipeline & outreach automation", color: "#F97316" },
 ];
 

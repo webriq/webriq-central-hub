@@ -29,75 +29,129 @@ export const DARK: Tokens = {
 export function getTokens(settings: PMSettings): Tokens { return settings.theme === "dark" ? DARK : LIGHT; }
 
 export const PRODUCT_ABBREV: Record<string, string> = {
-  StackShift: "SS", PublishForge: "PF", CiteForge: "CF", PipelineForge: "PpF",
+  StackShift: "SS", PublishForge: "PF", PipelineForge: "PpF", CiteForge: "Ci",
 };
 export const PRODUCT_COLORS: Record<string, string> = {
-  StackShift: "#3358F4", PublishForge: "#7C3AED", CiteForge: "#22C55E", PipelineForge: "#F97316",
+  StackShift: "#3358F4", PublishForge: "#7C3AED", PipelineForge: "#F97316", CiteForge: "#0EA5E9",
 };
 
 /* ── Components ────────────────────────────────────────────────────────── */
 
-export function ThemeCard({ children, tokens, style }: {
-  children: React.ReactNode; tokens: Tokens; style?: React.CSSProperties;
+// Dynamic fill bar — only width (data %) and per-row color need inline style
+export function ProgressBar({ pct, color }: { pct: number; color?: string }) {
+  return (
+    <div className="flex items-center gap-2">
+      <div className="flex-1 h-[5px] bg-[var(--c-track)] rounded-full overflow-hidden">
+        <div
+          className="h-full rounded-full transition-[width] duration-300"
+          style={{ width: `${Math.min(100, pct)}%`, background: color ?? "var(--c-blue)" }}
+        />
+      </div>
+      <span className="text-[11px] text-[var(--c-sub)] w-8 text-right font-mono">
+        {Math.round(pct)}%
+      </span>
+    </div>
+  );
+}
+
+// Status badge — theme-aware via parent CSS vars, pure Tailwind structure
+const STATUS_COLOR_VAR: Record<string, string> = {
+  onboarding: "--c-orange",
+  active:     "--c-green",
+  inactive:   "--c-muted",
+};
+
+export function StatusBadge({ status }: { status: string }) {
+  const v = STATUS_COLOR_VAR[status] ?? STATUS_COLOR_VAR.inactive;
+  return (
+    <span
+      className={`text-[11px] font-semibold rounded-[6px] px-2 py-px border whitespace-nowrap
+        text-[var(${v})] bg-[var(${v})]/10 border-[var(${v})]/20`}
+    >
+      {status.charAt(0).toUpperCase() + status.slice(1)}
+    </span>
+  );
+}
+
+// Product badge — uses fixed brand colors (not theme-dependent); minimal inline for dynamic color
+export function ProductBadge({ name }: { name: string }) {
+  const ab = PRODUCT_ABBREV[name] ?? name.slice(0, 2);
+  const co = PRODUCT_COLORS[name] ?? "#64748b";
+  return (
+    <span
+      className="text-[11px] font-semibold rounded-[5px] px-[7px] py-px whitespace-nowrap border"
+      style={{ color: co, background: `${co}12`, borderColor: `${co}1e` }}
+    >
+      {ab}
+    </span>
+  );
+}
+
+// Priority dot — pure Tailwind, no token dependency
+const PRIORITY_DOT_CLASS: Record<string, string> = {
+  CRITICAL: "bg-red-700",
+  HIGH:     "bg-orange-700",
+  NORMAL:   "bg-blue-600",
+  LOW:      "bg-slate-400",
+};
+
+export function PriorityDot({ priority }: { priority: string }) {
+  return (
+    <div
+      className={`w-[7px] h-[7px] rounded-full flex-shrink-0 ${PRIORITY_DOT_CLASS[priority] ?? PRIORITY_DOT_CLASS.NORMAL}`}
+    />
+  );
+}
+
+// Section header — references parent CSS vars via Tailwind arbitrary values
+export function SectionHeader({ title, sub, action }: {
+  title: string; sub?: string; action?: string;
 }) {
-  return <div style={{ background:tokens.card, borderRadius:14, border:`1px solid ${tokens.border}`, boxShadow:"0 1px 4px rgba(0,0,0,0.05)", ...style }}>{children}</div>;
-}
-
-export function ProgressBar({ pct, color, tokens }: { pct:number; color?:string; tokens:Tokens }) {
-  const c = pct>=100?tokens.green:color??tokens.blue;
-  return <div style={{display:"flex",alignItems:"center",gap:8}}>
-    <div style={{flex:1,height:5,background:tokens===DARK?"rgba(255,255,255,0.07)":"rgba(0,0,0,0.07)",borderRadius:9999,overflow:"hidden"}}>
-      <div style={{width:`${pct}%`,height:"100%",background:c,borderRadius:9999,transition:"width 0.3s"}}/>
+  return (
+    <div className="flex items-end justify-between mb-[14px]">
+      <div>
+        <div className="text-[15px] font-bold text-[var(--c-text)] tracking-[-0.01em]">{title}</div>
+        {sub && <div className="text-[11px] text-[var(--c-sub)] mt-[2px]">{sub}</div>}
+      </div>
+      {action && (
+        <button className="text-xs font-semibold text-[var(--c-sky)] bg-transparent border-none cursor-pointer p-0 font-[inherit]">
+          {action}
+        </button>
+      )}
     </div>
-    <span style={{fontSize:11,color:tokens.sub,width:32,textAlign:"right",fontFamily:"var(--font-mono), monospace"}}>{Math.round(pct)}%</span>
-  </div>;
+  );
 }
 
-export function StatusBadge({ status, tokens }: { status:string; tokens:Tokens }) {
-  const m:Record<string,{c:string;bg:string}> = {
-    onboarding:{c:tokens.orange,bg:`${tokens.orange}17`},
-    active:{c:tokens.green,bg:`${tokens.green}17`},
-    inactive:{c:"#64748b",bg:"rgba(100,116,139,0.09)"},
-  };
-  const s=m[status]??m.inactive;
-  return <span style={{fontSize:11,fontWeight:600,color:s.c,background:s.bg,borderRadius:6,padding:"2px 8px",border:`1px solid ${s.c}28`,whiteSpace:"nowrap"}}>{status.charAt(0).toUpperCase()+status.slice(1)}</span>;
-}
-
-export function ProductBadge({ name }: { name:string }) {
-  const ab=PRODUCT_ABBREV[name]??name.slice(0,2);
-  const co=PRODUCT_COLORS[name]??"#64748b";
-  return <span style={{fontSize:11,fontWeight:600,color:co,background:`${co}12`,borderRadius:5,padding:"2px 7px",border:`1px solid ${co}1e`,whiteSpace:"nowrap"}}>{ab}</span>;
-}
-
-export function PriorityDot({ priority }: { priority:string }) {
-  const m:Record<string,string>={CRITICAL:"#b91c1c",HIGH:"#d45e09",NORMAL:"#3358F4",LOW:"#94a3b8"};
-  return <div style={{width:7,height:7,borderRadius:9999,background:m[priority]??m.NORMAL,flexShrink:0}}/>;
-}
-
-export function SectionHeader({ title, sub, action, tokens }: { title:string; sub?:string; action?:string; tokens:Tokens }) {
-  return <div style={{display:"flex",alignItems:"flex-end",justifyContent:"space-between",marginBottom:14}}>
-    <div>
-      <div style={{fontSize:15,fontWeight:700,color:tokens.text,letterSpacing:"-0.01em"}}>{title}</div>
-      {sub && <div style={{fontSize:11,color:tokens.sub,marginTop:2}}>{sub}</div>}
+// Stat card — colorVar is a CSS var name e.g. "--c-sky"; value color comes from parent container vars
+export function StatCard({ value, label, colorVar }: {
+  value: string; label: string; colorVar: string;
+}) {
+  return (
+    <div className="rounded-[14px] border border-[var(--c-border)] shadow-[0_1px_4px_rgba(0,0,0,0.05)] bg-[var(--c-card)] px-5 py-[18px]">
+      <div className={`text-[30px] font-bold leading-none tracking-[-0.02em] text-[var(${colorVar})]`}>
+        {value}
+      </div>
+      <div className="text-xs text-[var(--c-sub)] mt-[5px]">{label}</div>
     </div>
-    {action && <button style={{fontSize:12,color:tokens.sky,background:"none",border:"none",cursor:"pointer",fontFamily:"inherit",fontWeight:600,padding:0}}>{action}</button>}
-  </div>;
+  );
 }
 
-export function StatCard({ value, label, color, tokens }: { value:string; label:string; color:string; tokens:Tokens }) {
-  return <ThemeCard tokens={tokens} style={{padding:"18px 20px"}}>
-    <div style={{fontSize:30,fontWeight:700,color,lineHeight:1,letterSpacing:"-0.02em"}}>{value}</div>
-    <div style={{fontSize:12,color:tokens.sub,marginTop:5}}>{label}</div>
-  </ThemeCard>;
+// Client avatar — inline only for data-driven dimensions and dynamic brand color
+export function ClientAvatar({ name, color, size = 34 }: {
+  name: string; color: string; size?: number;
+}) {
+  const ini = name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
+  return (
+    <div
+      className="rounded-[9px] flex items-center justify-center font-bold text-white flex-shrink-0"
+      style={{ width: size, height: size, background: color, fontSize: Math.round(size * 0.35) }}
+    >
+      {ini}
+    </div>
+  );
 }
 
-export function ClientAvatar({ name, color, size }: { name:string; color:string; size?:number }) {
-  const s=size??34;
-  const ini=name.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
-  return <div style={{width:s,height:s,borderRadius:9,background:color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:s*0.35,fontWeight:700,color:"#fff",flexShrink:0}}>{ini}</div>;
-}
-
-export function getClientColor(name:string):string {
-  const c=["#3358F4","#d45e09","#7C3AED","#22C55E","#0ea5e9"];
-  return c[name.charCodeAt(0)%c.length];
+export function getClientColor(name: string): string {
+  const c = ["#3358F4", "#d45e09", "#7C3AED", "#22C55E", "#0ea5e9"];
+  return c[name.charCodeAt(0) % c.length];
 }

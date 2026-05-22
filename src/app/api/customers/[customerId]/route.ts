@@ -53,7 +53,6 @@ export async function PATCH(
     if (body.company_name !== undefined) updateData.company_name = body.company_name.trim();
     if (body.contact_name !== undefined) updateData.contact_name = body.contact_name?.trim() ?? null;
     if (body.contact_email !== undefined) updateData.contact_email = body.contact_email?.trim() ?? null;
-    if (body.zoho_account_id !== undefined) updateData.zoho_account_id = body.zoho_account_id?.trim() ?? null;
     if (body.communication_tone !== undefined) updateData.communication_tone = body.communication_tone?.trim() ?? "";
     if (body.status !== undefined) updateData.status = body.status as CustomerUpdate["status"];
 

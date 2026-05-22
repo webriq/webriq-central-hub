@@ -59,7 +59,6 @@ export async function POST(request: NextRequest) {
       company_name: body.company_name.trim(),
       contact_name: body.contact_name?.trim() ?? null,
       contact_email: body.contact_email?.trim() ?? null,
-      zoho_account_id: body.zoho_account_id?.trim() ?? null,
       status: "onboarding",
     };
 

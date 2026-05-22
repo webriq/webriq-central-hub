@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { adminClient } from "@/lib/supabase/admin";
 import OnboardingFormClient from "./client";
 
@@ -52,11 +53,19 @@ export default async function OnboardingPage({ params }: OnboardingPageProps) {
     );
   }
 
-  const products = (customer.customer_products as Array<{
+  // Filter out CiteForge — it is an add-on to StackShift, not a standalone product.
+  // Customers may have legacy CiteForge rows in customer_products from before task 017.
+  const products = ((customer.customer_products as Array<{
     id: string;
     product_name: string;
     onboarding_data: Record<string, unknown>;
-  }>) ?? [];
+  }>) ?? []).filter((p) => p.product_name !== "CiteForge");
+
+  // Single-product: redirect directly to the product form (no picker needed)
+  if (products.length === 1) {
+    const slug = products[0].product_name.toLowerCase().replace(/\s+/g, "");
+    redirect(`/onboarding/${customerId}/${slug}`);
+  }
 
   return (
     <OnboardingFormClient

@@ -2,10 +2,32 @@
 
 import React from "react";
 import { useRouter } from "next/navigation";
+import { Search } from "lucide-react";
 import type { CustomerRow, CustomerProductRow } from "@/types/database";
 import type { PMSettings } from "@/hooks/use-pm-settings";
 import { getTokens, DARK, ProgressBar, StatusBadge, ProductBadge, ClientAvatar, getClientColor } from "./shared";
 import type { Tokens } from "./shared";
+import { getOnboardingSchema } from "@/config/onboarding-schemas";
+
+function getMissingFields(productName: string, onboardingData: Record<string, unknown>) {
+  const schema = getOnboardingSchema(productName);
+  if (!schema) return [];
+  const missing: { section: string; field: string }[] = [];
+  for (const section of schema.sections) {
+    for (const field of section.fields) {
+      if (!field.required) continue;
+      if (field.condition) {
+        const cv = onboardingData[field.condition.field];
+        if (String(cv) !== String(field.condition.value)) continue;
+      }
+      const v = onboardingData[field.name];
+      if (v === undefined || v === null || v === "" || (Array.isArray(v) && v.length === 0)) {
+        missing.push({ section: section.title, field: field.label });
+      }
+    }
+  }
+  return missing;
+}
 
 export interface CustomerWithProducts extends CustomerRow {
   customer_products: CustomerProductRow[];
@@ -49,9 +71,7 @@ function Filters({ search, onSearchChange, filter, onFilterChange }: FiltersProp
           onChange={e => onSearchChange(e.target.value)}
           className="w-full text-[13px] py-2 pr-3 pl-[34px] bg-[var(--c-card)] border border-[var(--c-border)] rounded-[9px] text-[var(--c-text)] outline-none box-border"
         />
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" strokeWidth="2" className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none stroke-[var(--c-muted)]">
-          <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
-        </svg>
+        <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--c-muted)]" />
       </div>
       {(["all", "onboarding", "active", "inactive"] as const).map(f => {
         const active = (f === "all" && !filter) || filter === f;
@@ -101,6 +121,15 @@ function ClientTable({ data, tokens: C, sortArrow, onSort, router }: ClientTable
             const avgPct = prods.length > 0
               ? Math.round(prods.reduce((sum, p) => sum + (p.completed_percentage ?? 0), 0) / prods.length)
               : 0;
+            const allMissing = prods.flatMap(p =>
+              getMissingFields(p.product_name, (p.onboarding_data as unknown as Record<string, unknown>) ?? {})
+            );
+            const displayMissing = allMissing.slice(0, 8);
+            const overflow = Math.max(0, allMissing.length - 8);
+            const hasCiteForge = prods.some(
+              p => p.product_name === "StackShift" &&
+                (p.onboarding_data as Record<string, unknown>)?.includeCiteForge === "Yes"
+            );
             return (
               <tr key={c.id} className={i < data.length - 1 ? "border-b border-[var(--c-border)]" : ""}>
                 <td className="py-[13px] px-5">
@@ -112,16 +141,38 @@ function ClientTable({ data, tokens: C, sortArrow, onSort, router }: ClientTable
                     </div>
                   </div>
                 </td>
-                <td className="py-[13px] px-4"><StatusBadge status={c.status ?? "onboarding"} tokens={C} /></td>
+                <td className="py-[13px] px-4"><StatusBadge status={c.status ?? "onboarding"} /></td>
                 <td className="py-[13px] px-4">
                   <div className="flex gap-1 flex-wrap">
                     {prods.map(p => <ProductBadge key={p.id} name={p.product_name} />)}
+                    {hasCiteForge && <ProductBadge key="citeforge-addon" name="CiteForge" />}
                   </div>
                 </td>
-                <td className="py-[13px] px-4 min-w-[160px]">
-                  {prods.length === 0
-                    ? <span className="text-[11px] text-[var(--c-muted)]">—</span>
-                    : <ProgressBar pct={avgPct} tokens={C} color={avgPct >= 100 ? C.green : C.blue} />}
+                <td className="py-[13px] px-4 min-w-[180px]">
+                  {prods.length === 0 ? (
+                    <span className="text-[11px] text-[var(--c-muted)]">—</span>
+                  ) : (
+                    <div className="flex flex-col gap-1">
+                      <ProgressBar pct={avgPct} color={avgPct >= 100 ? "var(--c-green)" : "var(--c-blue)"} />
+                      {allMissing.length > 0 && (
+                        <details className="cursor-pointer">
+                          <summary className="text-[10px] text-[var(--c-orange)] select-none">
+                            ⚠ {allMissing.length} field{allMissing.length !== 1 ? "s" : ""} missing
+                          </summary>
+                          <div className="mt-1 flex flex-col gap-px">
+                            {displayMissing.map((m, idx) => (
+                              <div key={idx} className="text-[10px] text-[var(--c-sub)] leading-snug">
+                                <span className="text-[var(--c-muted)]">{m.section}: </span>{m.field}
+                              </div>
+                            ))}
+                            {overflow > 0 && (
+                              <div className="text-[10px] text-[var(--c-muted)] mt-0.5">…and {overflow} more</div>
+                            )}
+                          </div>
+                        </details>
+                      )}
+                    </div>
+                  )}
                 </td>
                 <td className="py-[13px] px-5">
                   <button

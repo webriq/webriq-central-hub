@@ -10,7 +10,6 @@ export interface Database {
           company_name: string;
           contact_name: string | null;
           contact_email: string | null;
-          zoho_account_id: string | null;
           status: string;
           automation_toggle: boolean;
           llm_excluded: boolean;
@@ -26,7 +25,6 @@ export interface Database {
           company_name: string;
           contact_name?: string | null;
           contact_email?: string | null;
-          zoho_account_id?: string | null;
           status?: string;
           automation_toggle?: boolean;
           llm_excluded?: boolean;
@@ -42,7 +40,6 @@ export interface Database {
           company_name?: string;
           contact_name?: string | null;
           contact_email?: string | null;
-          zoho_account_id?: string | null;
           status?: string;
           automation_toggle?: boolean;
           llm_excluded?: boolean;

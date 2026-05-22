@@ -55,12 +55,18 @@ function FormEngineInner({
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
   const [isCompleted, setIsCompleted] = useState(false);
 
-  const totalSections = schema.sections.length;
-  const currentSection = schema.sections[currentSectionIndex];
+  const visibleSections = schema.sections.filter((s) => {
+    if (!s.condition) return true;
+    return String(getFieldValue(s.condition.field)) === String(s.condition.value);
+  });
+  const totalSections = visibleSections.length;
+  // Clamp during render to avoid setState-in-effect cascading renders
+  const safeIndex = Math.min(currentSectionIndex, Math.max(0, totalSections - 1));
+  const currentSection = visibleSections[safeIndex];
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [currentSectionIndex]);
+  }, [safeIndex]);
 
   const handleComplete = useCallback(async () => {
     try {
@@ -76,25 +82,25 @@ function FormEngineInner({
   }, [customerId, schema.productName, data]);
 
   const handleNext = useCallback(() => {
-    if (currentSectionIndex < totalSections - 1) {
-      setCurrentSectionIndex((i) => i + 1);
+    if (safeIndex < totalSections - 1) {
+      setCurrentSectionIndex(safeIndex + 1);
     } else {
       handleComplete();
     }
-  }, [currentSectionIndex, totalSections, handleComplete]);
+  }, [safeIndex, totalSections, handleComplete]);
 
   const handleBack = useCallback(() => {
-    if (currentSectionIndex > 0) {
-      setCurrentSectionIndex((i) => i - 1);
+    if (safeIndex > 0) {
+      setCurrentSectionIndex(safeIndex - 1);
     }
-  }, [currentSectionIndex]);
+  }, [safeIndex]);
 
   const handleSectionClick = useCallback((index: number) => {
     setCurrentSectionIndex(index);
   }, []);
 
-  const isLastSection = currentSectionIndex === totalSections - 1;
-  const isFirstSection = currentSectionIndex === 0;
+  const isLastSection = safeIndex === totalSections - 1;
+  const isFirstSection = safeIndex === 0;
 
   if (isCompleted) {
     return (
@@ -104,7 +110,7 @@ function FormEngineInner({
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <h2 className="text-2xl font-bold text-slate-900 mb-3 text-center">Onboarding Complete</h2>
+        <h2 className="text-2xl font-bold text-slate-900 mb-3 text-center">Form Submitted</h2>
         <p className="text-sm text-slate-500 leading-relaxed text-center max-w-[440px]">
           Thank you for completing the {schema.productName} onboarding form. Your project manager will review your submission and be in touch shortly.
         </p>
@@ -129,7 +135,7 @@ function FormEngineInner({
       {/* Sticky progress steps */}
       <div className="sticky top-[60px] z-40 bg-white/90 backdrop-blur-md border-b border-slate-100 px-8 py-3 overflow-x-auto flex-shrink-0">
         <ProgressBar
-          sections={schema.sections}
+          sections={visibleSections}
           currentIndex={currentSectionIndex}
           onSectionClick={handleSectionClick}
         />
@@ -169,7 +175,7 @@ function FormEngineInner({
             </span>
           </div>
           <span className="text-[13px] text-slate-500 font-medium">
-            Section {currentSectionIndex + 1} of {totalSections}
+            Section {safeIndex + 1} of {totalSections}
             <span className="text-slate-300 mx-1.5">—</span>
             <span className="text-slate-700 font-semibold">{currentSection.title}</span>
           </span>
@@ -196,7 +202,7 @@ function FormEngineInner({
               isLastSection ? "bg-brand-orange" : "bg-brand"
             )}
           >
-            {isLastSection ? "Complete Onboarding ✓" : "Continue →"}
+            {isLastSection ? "Submit ✓" : "Continue →"}
           </button>
         </div>
       </div>
