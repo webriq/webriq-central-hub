@@ -213,3 +213,33 @@
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: oklch(1 0 0 / 12%); border-radius: 99px; }
 ::-webkit-scrollbar-thumb:hover { background: oklch(1 0 0 / 20%); }
+
+/* ─── PM Dashboard theme tokens ─────────────────────────────────────────── */
+/* Applied as a class on each pm-tab root div; children reference var(--c-xxx) */
+.pm-light {
+  --c-text: rgba(10,12,30,0.90); --c-sub: rgba(10,12,30,0.50); --c-muted: rgba(10,12,30,0.28);
+  --c-card: #ffffff; --c-border: rgba(0,0,0,0.08);
+  --c-blue: #3358F4; --c-orange: #d45e09; --c-sky: #1565c0;
+  --c-violet: #4f46e5; --c-green: #15803d; --c-amber: #a16207; --c-red: #b91c1c;
+  --c-track: rgba(0,0,0,0.06); --c-seg-bg: rgba(0,0,0,0.05);
+  --c-blue-tint: #3358F412; --c-blue-tint-border: #3358F430; --c-blue-border: #3358F430; --c-blue-bd: #3358F420;
+  --c-sky-tint: #1565c00d; --c-sky-tint2: #1565c00e; --c-sky-border: #1565c020;
+  --c-sky-border2: #1565c022; --c-sky-border3: #1565c025; --c-sky-bd: #1565c020;
+  --c-violet-tint: #4f46e512; --c-violet-bd: #4f46e520;
+  --c-orange-tint: #d45e0912; --c-orange-bd: #d45e0920;
+  --c-green-tint: #15803d12; --c-green-bd: #15803d20;
+}
+
+.pm-dark {
+  --c-text: rgba(255,255,255,0.92); --c-sub: rgba(255,255,255,0.50); --c-muted: rgba(255,255,255,0.28);
+  --c-card: #121726; --c-border: rgba(255,255,255,0.08);
+  --c-blue: #5b7fff; --c-orange: #f97316; --c-sky: #60a5fa;
+  --c-violet: #818cf8; --c-green: #4ade80; --c-amber: #fbbf24; --c-red: #f87171;
+  --c-track: rgba(255,255,255,0.06); --c-seg-bg: rgba(255,255,255,0.05);
+  --c-blue-tint: #5b7fff12; --c-blue-tint-border: #5b7fff30; --c-blue-border: #5b7fff30; --c-blue-bd: #5b7fff20;
+  --c-sky-tint: #60a5fa0d; --c-sky-tint2: #60a5fa0e; --c-sky-border: #60a5fa20;
+  --c-sky-border2: #60a5fa22; --c-sky-border3: #60a5fa25; --c-sky-bd: #60a5fa20;
+  --c-violet-tint: #818cf812; --c-violet-bd: #818cf820;
+  --c-orange-tint: #f9731612; --c-orange-bd: #f9731620;
+  --c-green-tint: #4ade8012; --c-green-bd: #4ade8020;
+}

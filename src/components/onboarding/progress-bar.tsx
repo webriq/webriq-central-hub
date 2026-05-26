@@ -33,7 +33,7 @@ export default function ProgressBar({ sections, currentIndex, onSectionClick }: 
             >
               <span
                 className={cn(
-                  "w-5 h-5 rounded-full flex items-center justify-center text-[0.65rem] font-bold font-mono flex-shrink-0 border transition-all duration-200",
+                  "w-5 h-5 rounded-full flex items-center justify-center text-[0.65rem] font-bold font-mono shrink-0 border transition-all duration-200",
                   isActive
                     ? "bg-brand border-brand text-white"
                     : isDone
@@ -55,7 +55,7 @@ export default function ProgressBar({ sections, currentIndex, onSectionClick }: 
             {i < sections.length - 1 && (
               <div
                 className={cn(
-                  "flex-shrink-0 w-5 h-px mx-0.5",
+                  "shrink-0 w-5 h-px mx-0.5",
                   isDone ? "bg-green-300" : "bg-slate-200"
                 )}
               />

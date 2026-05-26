@@ -36,7 +36,7 @@ export default function OnboardingFormClient({ customerId, companyName, products
       <p className="text-sm text-slate-500 mb-10 text-center">
         You have multiple products to onboard. Select one to get started:
       </p>
-      <div className="flex flex-col gap-3 w-full max-w-[520px]">
+      <div className="flex flex-col gap-3 w-full max-w-130">
         {products.map((product) => {
           const slug = product.product_name.toLowerCase().replace(/\s+/g, "");
           return (

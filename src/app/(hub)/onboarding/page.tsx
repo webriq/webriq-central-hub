@@ -63,7 +63,7 @@ export default function OnboardingPage() {
   if (createdCustomer) {
     const onboardingUrl = `${window.location.origin}/onboarding/${createdCustomer.customer_id}`;
     return (
-      <div className="p-6 max-w-[600px] mx-auto">
+      <div className="p-6 max-w-150 mx-auto">
         <div className="bg-white border border-slate-200 rounded-xl p-8 shadow-[0_1px_4px_rgba(0,0,0,0.05)] text-center">
           <div className="w-14 h-14 rounded-full bg-green-50 text-green-500 text-[28px] flex items-center justify-center mx-auto mb-4">
             ✓
@@ -98,13 +98,13 @@ export default function OnboardingPage() {
           <div className="flex gap-3 justify-center">
             <a
               href={`/customers/${createdCustomer.customer_id}`}
-              className="font-[inherit] py-2.5 px-[22px] bg-brand-orange text-white text-[13px] font-semibold rounded-full no-underline inline-block"
+              className="font-[inherit] py-2.5 px-5.5 bg-brand-orange text-white text-[13px] font-semibold rounded-full no-underline inline-block"
             >
               View Customer Profile
             </a>
             <a
               href="/pm"
-              className="font-[inherit] py-2.5 px-[22px] bg-transparent text-slate-500 text-[13px] font-medium rounded-full no-underline border-[1.5px] border-slate-200 inline-block"
+              className="font-[inherit] py-2.5 px-5.5 bg-transparent text-slate-500 text-[13px] font-medium rounded-full no-underline border-[1.5px] border-slate-200 inline-block"
             >
               Go to PM Dashboard
             </a>
@@ -125,7 +125,7 @@ export default function OnboardingPage() {
 
   return (
     <div className="p-6 overflow-y-auto flex-1">
-      <div className="max-w-[660px] mx-auto">
+      <div className="max-w-165 mx-auto">
         {/* Step indicator */}
         <div className="flex items-center mb-6">
           {steps.map((s, i) => {
@@ -154,7 +154,7 @@ export default function OnboardingPage() {
                 </div>
                 {i < steps.length - 1 && (
                   <div
-                    className={cn("flex-1 h-0.5 mx-2 mb-[22px]", done ? "bg-brand" : "bg-slate-200")}
+                    className={cn("flex-1 h-0.5 mx-2 mb-5.5", done ? "bg-brand" : "bg-slate-200")}
                   />
                 )}
               </React.Fragment>
@@ -249,7 +249,7 @@ export default function OnboardingPage() {
               onClick={() => setStep(steps[steps.findIndex((s) => s.key === step) - 1]?.key ?? "info")}
               disabled={step === "info"}
               className={cn(
-                "font-[inherit] py-2.5 px-[22px] bg-transparent text-[13px] font-medium border-[1.5px] border-slate-200 rounded-full",
+                "font-[inherit] py-2.5 px-5.5 bg-transparent text-[13px] font-medium border-[1.5px] border-slate-200 rounded-full",
                 step === "info" ? "text-slate-300 cursor-not-allowed" : "text-slate-500 cursor-pointer"
               )}
             >
@@ -267,7 +267,7 @@ export default function OnboardingPage() {
                   (step === "products" && !canProceedFromProducts)
                 }
                 className={cn(
-                  "font-[inherit] py-2.5 px-[22px] bg-brand text-white text-[13px] font-semibold border-none rounded-full cursor-pointer transition-opacity",
+                  "font-[inherit] py-2.5 px-5.5 bg-brand text-white text-[13px] font-semibold border-none rounded-full cursor-pointer transition-opacity",
                   ((step === "info" && !canProceedFromInfo) || (step === "products" && !canProceedFromProducts))
                     ? "opacity-50"
                     : "opacity-100"
@@ -280,7 +280,7 @@ export default function OnboardingPage() {
                 onClick={handleCreate}
                 disabled={loading}
                 className={cn(
-                  "font-[inherit] py-2.5 px-[22px] text-white text-[13px] font-semibold border-none rounded-full",
+                  "font-[inherit] py-2.5 px-5.5 text-white text-[13px] font-semibold border-none rounded-full",
                   loading ? "bg-orange-300 cursor-not-allowed" : "bg-brand-orange cursor-pointer"
                 )}
               >

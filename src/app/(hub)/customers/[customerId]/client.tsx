@@ -42,11 +42,18 @@ const ZOHO_PROJECT_DEFAULTS: Record<string, string> = {
   PipelineForge: "Pipeline",
 };
 
-const PRODUCT_COLORS: Record<string, string> = {
-  StackShift: "#3358F4",
-  PublishForge: "#7C3AED",
-  PipelineForge: "#F97316",
-  CiteForge: "#0EA5E9",
+const PRODUCT_ICON_CLASSES: Record<string, string> = {
+  StackShift:    "text-[#3358F4] bg-[#3358F418]",
+  PublishForge:  "text-[#7C3AED] bg-[#7C3AED18]",
+  PipelineForge: "text-[#F97316] bg-[#F9731618]",
+  CiteForge:     "text-[#0EA5E9] bg-[#0EA5E918]",
+};
+
+const PRODUCT_BAR_CLASSES: Record<string, string> = {
+  StackShift:    "bg-[#3358F4]",
+  PublishForge:  "bg-[#7C3AED]",
+  PipelineForge: "bg-[#F97316]",
+  CiteForge:     "bg-[#0EA5E9]",
 };
 
 const ALL_PRODUCTS: ProductName[] = ["StackShift", "PublishForge", "PipelineForge"];
@@ -752,7 +759,6 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
         ) : (
           <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-3.5">
             {products.map((product) => {
-              const color = PRODUCT_COLORS[product.product_name] ?? "#94A3B8";
               const isComplete = product.onboarding_complete;
               const productSlug = product.product_name.toLowerCase().replace(/\s+/g, "");
               return (
@@ -766,8 +772,7 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
                   <div className="flex justify-between items-center mb-3">
                     <div className="flex items-center gap-2">
                       <div
-                        className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold"
-                        style={{ background: `${color}18`, color: color }}
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${PRODUCT_ICON_CLASSES[product.product_name] ?? "text-slate-400 bg-slate-100"}`}
                       >
                         {product.product_name[0]}
                       </div>
@@ -804,12 +809,9 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
                       <div
                         className={cn(
                           "h-full rounded-full transition-[width] duration-300",
-                          isComplete && "bg-green-500"
+                          isComplete ? "bg-green-500" : (PRODUCT_BAR_CLASSES[product.product_name] ?? "bg-slate-400")
                         )}
-                        style={{
-                          width: `${product.completed_percentage ?? 0}%`,
-                          ...(!isComplete && { background: color }),
-                        }}
+                        style={{ width: `${product.completed_percentage ?? 0}%` }}
                       />
                     </div>
                     <span className="text-[11px] text-slate-400">
@@ -878,15 +880,11 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
               const hasCiteForge =
                 (stackshift?.onboarding_data as Record<string, unknown>)?.includeCiteForge === "Yes";
               if (!hasCiteForge) return null;
-              const cfColor = "#0EA5E9";
               return (
                 <div className="rounded-[10px] p-4 border border-sky-100 bg-sky-50/20">
                   <div className="flex justify-between items-center mb-3">
                     <div className="flex items-center gap-2">
-                      <div
-                        className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold"
-                        style={{ background: `${cfColor}18`, color: cfColor }}
-                      >
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold bg-[#0EA5E918] text-[#0EA5E9]">
                         Ci
                       </div>
                       <div>
@@ -896,8 +894,8 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="flex-1 h-[5px] bg-slate-100 rounded-full overflow-hidden">
-                      <div className="h-full rounded-full bg-green-500" style={{ width: "100%" }} />
+                    <div className="flex-1 h-1.25 bg-slate-100 rounded-full overflow-hidden">
+                      <div className="h-full rounded-full bg-green-500 w-full" />
                     </div>
                     <span className="text-[11px] text-slate-400">100%</span>
                   </div>

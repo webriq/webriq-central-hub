@@ -55,7 +55,7 @@ export default function DevDashboardPage() {
             { val: "3h 45m", label: "Logged Today", highlight: false },
           ].map((item, i) =>
             item === null ? (
-              <div key={i} className="w-px h-9 bg-slate-100 flex-shrink-0" />
+              <div key={i} className="w-px h-9 bg-slate-100 shrink-0" />
             ) : (
               <div key={i} className="flex flex-col items-center gap-0.5 flex-1">
                 <span className={cn("text-[22px] font-extrabold tracking-[-0.02em]", item.highlight ? "text-red-500" : "text-slate-900")}>
@@ -86,7 +86,7 @@ export default function DevDashboardPage() {
                 >
                   <div
                     className={cn(
-                      "w-[18px] h-[18px] rounded flex-shrink-0 border-2 border-slate-200",
+                      "w-4.5 h-4.5 rounded shrink-0 border-2 border-slate-200",
                       t.status === "Done" ? "bg-brand" : "bg-white"
                     )}
                   />
@@ -94,10 +94,10 @@ export default function DevDashboardPage() {
                     <div className="text-[13px] font-medium text-slate-900 leading-tight">{t.title}</div>
                     <div className="text-[11px] text-slate-400 mt-0.5">{t.project} · Due {t.due}</div>
                   </div>
-                  <span className={cn("text-[10px] font-bold px-[7px] py-px rounded flex-shrink-0", priorityClass(t.priority))}>
+                  <span className={cn("text-[10px] font-bold px-1.75 py-px rounded shrink-0", priorityClass(t.priority))}>
                     {t.priority}
                   </span>
-                  <span className={cn("text-[10px] font-semibold px-[7px] py-px rounded flex-shrink-0", statusClass(t.status))}>
+                  <span className={cn("text-[10px] font-semibold px-1.75 py-px rounded shrink-0", statusClass(t.status))}>
                     {t.status}
                   </span>
                 </div>
@@ -106,7 +106,7 @@ export default function DevDashboardPage() {
           </div>
 
           {/* Right column */}
-          <div className="flex flex-col gap-3.5 min-w-[240px] max-w-[280px]">
+          <div className="flex flex-col gap-3.5 min-w-60 max-w-70">
             {/* Tickets */}
             <div className={cn(cardCls, "p-[16px_18px]")}>
               <div className="flex justify-between items-center mb-3">
@@ -120,7 +120,7 @@ export default function DevDashboardPage() {
                       <div className="text-[13px] font-medium text-slate-900 mt-px">{t.title}</div>
                       <div className="text-[11px] text-slate-400 mt-0.5">{t.project} · {t.opened}</div>
                     </div>
-                    <span className={cn("text-[10px] font-bold px-[7px] py-px rounded flex-shrink-0", priorityClass(t.priority))}>
+                    <span className={cn("text-[10px] font-bold px-1.75 py-px rounded shrink-0", priorityClass(t.priority))}>
                       {t.priority}
                     </span>
                   </div>
@@ -134,7 +134,7 @@ export default function DevDashboardPage() {
                 <span className="text-sm font-bold text-slate-900">Time Logged Today</span>
               </div>
               {timeToday.map((e, i) => (
-                <div key={i} className={cn("py-[7px]", i < timeToday.length - 1 && "border-b border-slate-100")}>
+                <div key={i} className={cn("py-1.75", i < timeToday.length - 1 && "border-b border-slate-100")}>
                   <div className="flex justify-between items-center">
                     <div>
                       <div className="text-xs font-medium text-slate-900">{e.task}</div>

@@ -70,8 +70,14 @@ export async function syncTaskToZoho(_taskId: string): Promise<void> {
   throw new Error("Zoho task sync not yet implemented — Sprint 4");
 }
 
-export async function sendCliqNotification(message: string): Promise<void> {
-  const webhookUrl = process.env.ZOHO_CLIQ_WEBHOOK_URL;
+export async function sendCliqNotification(
+  message: string,
+  channel: "pm" | "dev" = "pm"
+): Promise<void> {
+  const webhookUrl =
+    channel === "dev"
+      ? process.env.ZOHO_CLIQ_DEV_WEBHOOK_URL
+      : process.env.ZOHO_CLIQ_WEBHOOK_URL;
   const token = process.env.ZOHO_CLIQ_WEBHOOK_TOKEN;
   if (!webhookUrl || !token) return;
 

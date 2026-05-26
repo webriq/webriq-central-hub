@@ -15,6 +15,12 @@ const eslintConfig = defineConfig([
     "public/workbox-*.js",
     "public/swe-worker-*.js",
     "public/fallback-*.js",
+    "_backup (DO NOT READ)/**",
+    "_design/**",
+    "_docs/**",
+    "_WebriQ_Central_Hub_SCRUM_Tracker/**",
+    ".claude/**",
+    ".vexp/**",
   ]),
   {
     rules: {

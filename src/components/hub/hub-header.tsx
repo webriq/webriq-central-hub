@@ -70,7 +70,7 @@ export default function HubHeader({ title, subtitle, displayName, email, zohoUse
   const shownZoho = zohoUserId ?? null;
 
   return (
-    <header className="h-[60px] bg-white border-b border-slate-200 flex items-center justify-between px-6 flex-shrink-0">
+    <header className="h-15 bg-white border-b border-slate-200 flex items-center justify-between px-6 shrink-0">
       <div className="flex flex-col gap-px">
         {displayTitle && <div className="text-base font-bold text-slate-900 leading-tight">{displayTitle}</div>}
         {displaySubtitle && <div className="text-xs text-slate-400">{displaySubtitle}</div>}
@@ -83,14 +83,14 @@ export default function HubHeader({ title, subtitle, displayName, email, zohoUse
             <circle cx="11" cy="11" r="8" />
             <path d="m21 21-4.35-4.35" />
           </svg>
-          <input type="text" placeholder="Search projects, clients, tasks..." className="text-[13px] py-[7px] pr-3 pl-[30px] border border-slate-200 rounded-lg text-slate-900 bg-page-bg outline-none w-60 font-[inherit]" />
+          <input type="text" placeholder="Search projects, clients, tasks..." className="text-[13px] py-1.75 pr-3 pl-7.5 border border-slate-200 rounded-lg text-slate-900 bg-page-bg outline-none w-60 font-[inherit]" />
         </div>
 
         {/* Notification bell */}
         <div className="relative">
-          <button className="w-[34px] h-[34px] rounded-lg bg-transparent border border-slate-200 flex items-center justify-center cursor-pointer relative">
+          <button className="w-8.5 h-8.5 rounded-lg bg-transparent border border-slate-200 flex items-center justify-center cursor-pointer relative">
             <Bell size={18} color="#64748B" />
-            <span className="absolute top-1.5 right-1.5 w-[7px] h-[7px] rounded-full bg-orange-500 border-[1.5px] border-white" />
+            <span className="absolute top-1.5 right-1.5 w-1.75 h-1.75 rounded-full bg-orange-500 border-[1.5px] border-white" />
           </button>
         </div>
 
@@ -106,7 +106,7 @@ export default function HubHeader({ title, subtitle, displayName, email, zohoUse
             <div className="absolute right-0 top-full mt-2 w-64 bg-white border border-slate-200 rounded-xl shadow-[0_8px_30px_rgba(0,0,0,0.12)] z-50 overflow-hidden">
               <div className="px-4 pt-4 pb-3 border-b border-slate-100">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-full bg-brand text-white text-[13px] font-bold flex items-center justify-center flex-shrink-0">
+                  <div className="w-10 h-10 rounded-full bg-brand text-white text-[13px] font-bold flex items-center justify-center shrink-0">
                     {initials}
                   </div>
                   <div className="min-w-0">

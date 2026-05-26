@@ -38,7 +38,7 @@ export default function SaveIndicator({ status, lastSavedAt, error }: SaveIndica
     <div className="flex items-center gap-1.5">
       <span
         className={cn(
-          "w-1.5 h-1.5 rounded-full inline-block flex-shrink-0",
+          "w-1.5 h-1.5 rounded-full inline-block shrink-0",
           dotCls,
           pulse && "animate-pulse"
         )}

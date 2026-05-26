@@ -42,7 +42,7 @@ export default function FormField({ field, value, onChange, customerId, productN
             placeholder={field.placeholder}
             value={(value as string) ?? ""}
             onChange={(e) => onChange(field.name, e.target.value)}
-            className={cn(inputCls, "h-[100px] resize-y min-h-[80px]")}
+            className={cn(inputCls, "h-25 resize-y min-h-20")}
           />
         );
 
@@ -144,7 +144,7 @@ export default function FormField({ field, value, onChange, customerId, productN
             placeholder={field.placeholder ?? "Enter data... (one entry per line)"}
             value={(value as string) ?? ""}
             onChange={(e) => onChange(field.name, e.target.value)}
-            className={cn(inputCls, "h-[120px] resize-y font-mono text-xs")}
+            className={cn(inputCls, "h-30 resize-y font-mono text-xs")}
           />
         );
 
@@ -163,7 +163,7 @@ export default function FormField({ field, value, onChange, customerId, productN
   };
 
   return (
-    <div className={cn("min-w-[200px]", field.span === "half" ? "flex-[0_0_calc(50%-7px)]" : "flex-[1_1_100%]")}>
+    <div className={cn("min-w-50", field.span === "half" ? "flex-[0_0_calc(50%-7px)]" : "flex-[1_1_100%]")}>
       <label htmlFor={fieldId} className={labelCls}>
         {field.label}
         {field.required && <span className="text-brand ml-0.5">*</span>}

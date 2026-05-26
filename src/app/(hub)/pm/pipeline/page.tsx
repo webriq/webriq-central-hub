@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from "react";
 import { usePMSettings } from "@/hooks/use-pm-settings";
-import { getTokens } from "@/components/hub/pm-tabs/shared";
 import PipelineTab from "@/components/hub/pm-tabs/pipeline-tab";
 import { createClient } from "@/lib/supabase/client";
 
@@ -19,7 +18,6 @@ function formatAge(dateStr: string): string {
 
 export default function PMPipelinePage() {
   const { settings } = usePMSettings();
-  const C = getTokens(settings);
   const [classifyItems, setClassifyItems] = useState<ClassifyItem[]>([]);
 
   useEffect(() => {
@@ -50,8 +48,7 @@ export default function PMPipelinePage() {
 
   return (
     <div
-      className="flex-1 overflow-y-auto py-[26px] px-8 bg-[var(--c-page-bg)]"
-      style={{ "--c-page-bg": C.bg } as React.CSSProperties}
+      className={`flex-1 overflow-y-auto py-6.5 px-8 ${settings.theme === "dark" ? "bg-[#090c18]" : "bg-[#f5f4f1]"}`}
     >
       <PipelineTab
         settings={settings}

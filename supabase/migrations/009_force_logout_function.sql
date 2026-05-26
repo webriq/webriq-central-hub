@@ -13,7 +13,7 @@ returns table(
 language plpgsql
 security definer
 set search_path = 'auth', 'public'
-as $
+as $$
 declare
   session_count bigint;
   refresh_count bigint;
@@ -40,6 +40,6 @@ begin
     union all
     select 'refresh_tokens_deleted'::text, refresh_count;
 end;
-$;
+$$;
 
 

@@ -51,22 +51,22 @@ export default function HubSidebar({ userEmail: _userEmail, userRole: _userRole 
   return (
     <aside
       className={cn(
-        "min-h-screen bg-sidebar-dark border-r border-white/[0.07] flex flex-col flex-shrink-0 overflow-hidden relative transition-[width] duration-200 ease-in-out",
-        collapsed ? "w-14" : "w-[220px]"
+        "min-h-screen bg-sidebar-dark border-r border-white/[0.07] flex flex-col shrink-0 overflow-hidden relative transition-[width] duration-200 ease-in-out",
+        collapsed ? "w-14" : "w-55"
       )}
     >
       {/* Logo */}
       <div
         className={cn(
-          "flex items-center gap-2.5 border-b border-white/[0.06]",
-          collapsed ? "px-[13px] pt-[18px] pb-3.5 justify-center" : "px-3.5 pt-[18px] pb-3.5 justify-start"
+          "flex items-center gap-2.5 border-b border-white/6",
+          collapsed ? "px-3.25 pt-4.5 pb-3.5 justify-center" : "px-3.5 pt-4.5 pb-3.5 justify-start"
         )}
       >
-        <div className="flex items-center justify-center flex-shrink-0">
+        <div className="flex items-center justify-center shrink-0">
           <Image src="/logo.png" alt="Logo" width={48} height={48} />
         </div>
         {!collapsed && (
-          <div className="flex flex-col justify-center flex-shrink-0">
+          <div className="flex flex-col justify-center shrink-0">
             <span className="text-[15px] font-bold text-white tracking-[-0.01em] whitespace-nowrap">
               WebriQ
             </span>
@@ -80,7 +80,7 @@ export default function HubSidebar({ userEmail: _userEmail, userRole: _userRole 
         {navGroups.map((group) => (
           <div key={group.section} className="mb-1">
             {!collapsed && (
-              <div className="text-[9px] font-bold tracking-[0.1em] uppercase text-slate-700 px-3.5 pt-2.5 pb-1">
+              <div className="text-[9px] font-bold tracking-widest uppercase text-slate-700 px-3.5 pt-2.5 pb-1">
                 {group.section}
               </div>
             )}
@@ -95,7 +95,7 @@ export default function HubSidebar({ userEmail: _userEmail, userRole: _userRole 
                     className={cn(
                       "flex items-center gap-2.5 w-full border-l-2 cursor-pointer transition-colors duration-150",
                       collapsed
-                        ? "py-[9px] px-0 justify-center rounded-none mr-0"
+                        ? "py-2.25 px-0 justify-center rounded-none mr-0"
                         : "py-2 px-3.5 justify-start rounded-r-lg mr-2",
                       active
                         ? "border-brand-blue bg-brand-blue/15"
@@ -104,7 +104,7 @@ export default function HubSidebar({ userEmail: _userEmail, userRole: _userRole 
                   >
                     <Icon
                       size={16}
-                      className={cn("flex-shrink-0", active ? "text-[#4B6EFF]" : "text-slate-600")}
+                      className={cn("shrink-0", active ? "text-[#4B6EFF]" : "text-slate-600")}
                     />
                     {!collapsed && (
                       <span
@@ -128,7 +128,7 @@ export default function HubSidebar({ userEmail: _userEmail, userRole: _userRole 
       <button
         onClick={() => setCollapsed((c) => !c)}
         className={cn(
-          "flex items-center gap-2 border-t border-white/[0.06] text-slate-500 hover:text-white transition-colors cursor-pointer",
+          "flex items-center gap-2 border-t border-white/6 text-slate-500 hover:text-white transition-colors cursor-pointer",
           collapsed ? "py-3 px-0 justify-center" : "py-3 px-3.5 justify-start"
         )}
         aria-label={collapsed ? "Expand sidebar" : "Minimize sidebar"}

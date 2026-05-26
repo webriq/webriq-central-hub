@@ -5,8 +5,7 @@ import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import type { CustomerRow, CustomerProductRow } from "@/types/database";
 import type { PMSettings } from "@/hooks/use-pm-settings";
-import { getTokens, DARK, ProgressBar, StatusBadge, ProductBadge, ClientAvatar, getClientColor } from "./shared";
-import type { Tokens } from "./shared";
+import { ProgressBar, StatusBadge, ProductBadge, ClientAvatar, getClientColor } from "./shared";
 import { getOnboardingSchema } from "@/config/onboarding-schemas";
 
 function getMissingFields(productName: string, onboardingData: Record<string, unknown>) {
@@ -41,20 +40,7 @@ interface ClientsTabProps {
   onRetry: () => void; settings: PMSettings;
 }
 
-const CARD = "rounded-[14px] border border-[var(--c-border)] shadow-[0_1px_4px_rgba(0,0,0,0.05)] bg-[var(--c-card)]";
-
-function buildVars(C: Tokens): React.CSSProperties {
-  return {
-    "--c-text": C.text, "--c-sub": C.sub, "--c-muted": C.muted,
-    "--c-card": C.card, "--c-border": C.border,
-    "--c-blue": C.blue, "--c-orange": C.orange, "--c-sky": C.sky,
-    "--c-green": C.green, "--c-red": C.red,
-    "--c-sky-tint": `${C.sky}0d`,
-    "--c-sky-border3": `${C.sky}25`,
-    "--c-blue-border": `${C.blue}30`,
-    "--c-track": C === DARK ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)",
-  } as React.CSSProperties;
-}
+const CARD = "rounded-[14px] border border-(--c-border) shadow-[0_1px_4px_rgba(0,0,0,0.05)] bg-(--c-card)";
 
 interface FiltersProps {
   search: string; onSearchChange: (v: string) => void;
@@ -63,15 +49,15 @@ interface FiltersProps {
 
 function Filters({ search, onSearchChange, filter, onFilterChange }: FiltersProps) {
   return (
-    <div className="flex gap-[10px] mb-4 items-center">
-      <div className="relative flex-1 max-w-[300px]">
+    <div className="flex gap-2.5 mb-4 items-center">
+      <div className="relative flex-1 max-w-75">
         <input
           placeholder="Search clients…"
           value={search}
           onChange={e => onSearchChange(e.target.value)}
-          className="w-full text-[13px] py-2 pr-3 pl-[34px] bg-[var(--c-card)] border border-[var(--c-border)] rounded-[9px] text-[var(--c-text)] outline-none box-border"
+          className="w-full text-[13px] py-2 pr-3 pl-8.5 bg-(--c-card) border border-(--c-border) rounded-[9px] text-(--c-text) outline-none box-border"
         />
-        <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--c-muted)]" />
+        <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-(--c-muted)" />
       </div>
       {(["all", "onboarding", "active", "inactive"] as const).map(f => {
         const active = (f === "all" && !filter) || filter === f;
@@ -79,10 +65,10 @@ function Filters({ search, onSearchChange, filter, onFilterChange }: FiltersProp
           <button
             key={f}
             onClick={() => onFilterChange(f === "all" ? "" : f)}
-            className={`text-xs font-semibold rounded-lg px-[14px] py-[7px] cursor-pointer border transition-colors ${
+            className={`text-xs font-semibold rounded-lg px-3.5 py-1.75 cursor-pointer border transition-colors ${
               active
-                ? "text-white bg-[var(--c-blue)] border-[var(--c-blue)]"
-                : "text-[var(--c-sub)] bg-[var(--c-card)] border-[var(--c-border)]"
+                ? "text-white bg-(--c-blue) border-(--c-blue)"
+                : "text-(--c-sub) bg-(--c-card) border-(--c-border)"
             }`}
           >
             {f.charAt(0).toUpperCase() + f.slice(1)}
@@ -95,14 +81,13 @@ function Filters({ search, onSearchChange, filter, onFilterChange }: FiltersProp
 
 interface ClientTableProps {
   data: CustomerWithProducts[];
-  tokens: Tokens;
   sortArrow: (col: string) => string;
   onSort: (col: string) => void;
   router: ReturnType<typeof useRouter>;
 }
 
-function ClientTable({ data, tokens: C, sortArrow, onSort, router }: ClientTableProps) {
-  const thBase = "py-[9px] px-4 text-left text-[10px] font-bold text-[var(--c-muted)] tracking-[0.06em] uppercase border-b border-[var(--c-border)] whitespace-nowrap";
+function ClientTable({ data, sortArrow, onSort, router }: ClientTableProps) {
+  const thBase = "py-[9px] px-4 text-left text-[10px] font-bold text-(--c-muted) tracking-[0.06em] uppercase border-b border-(--c-border) whitespace-nowrap";
   return (
     <div className={`${CARD} overflow-hidden`}>
       <table className="w-full border-collapse">
@@ -131,42 +116,42 @@ function ClientTable({ data, tokens: C, sortArrow, onSort, router }: ClientTable
                 (p.onboarding_data as Record<string, unknown>)?.includeCiteForge === "Yes"
             );
             return (
-              <tr key={c.id} className={i < data.length - 1 ? "border-b border-[var(--c-border)]" : ""}>
-                <td className="py-[13px] px-5">
-                  <div className="flex items-center gap-[10px]">
+              <tr key={c.id} className={i < data.length - 1 ? "border-b border-(--c-border)" : ""}>
+                <td className="py-3.25 px-5">
+                  <div className="flex items-center gap-2.5">
                     <ClientAvatar name={c.company_name} color={getClientColor(c.company_name)} />
                     <div>
-                      <div className="text-[13px] font-semibold text-[var(--c-text)]">{c.company_name}</div>
-                      <code className="text-[10px] text-[var(--c-muted)] font-mono">{c.customer_id}</code>
+                      <div className="text-[13px] font-semibold text-(--c-text)">{c.company_name}</div>
+                      <code className="text-[10px] text-(--c-muted) font-mono">{c.customer_id}</code>
                     </div>
                   </div>
                 </td>
-                <td className="py-[13px] px-4"><StatusBadge status={c.status ?? "onboarding"} /></td>
-                <td className="py-[13px] px-4">
+                <td className="py-3.25 px-4"><StatusBadge status={c.status ?? "onboarding"} /></td>
+                <td className="py-3.25 px-4">
                   <div className="flex gap-1 flex-wrap">
                     {prods.map(p => <ProductBadge key={p.id} name={p.product_name} />)}
                     {hasCiteForge && <ProductBadge key="citeforge-addon" name="CiteForge" />}
                   </div>
                 </td>
-                <td className="py-[13px] px-4 min-w-[180px]">
+                <td className="py-3.25 px-4 min-w-45">
                   {prods.length === 0 ? (
-                    <span className="text-[11px] text-[var(--c-muted)]">—</span>
+                    <span className="text-[11px] text-(--c-muted)">—</span>
                   ) : (
                     <div className="flex flex-col gap-1">
-                      <ProgressBar pct={avgPct} color={avgPct >= 100 ? "var(--c-green)" : "var(--c-blue)"} />
+                      <ProgressBar pct={avgPct} colorClass={avgPct >= 100 ? "bg-(--c-green)" : "bg-(--c-blue)"} />
                       {allMissing.length > 0 && (
                         <details className="cursor-pointer">
-                          <summary className="text-[10px] text-[var(--c-orange)] select-none">
+                          <summary className="text-[10px] text-(--c-orange) select-none">
                             ⚠ {allMissing.length} field{allMissing.length !== 1 ? "s" : ""} missing
                           </summary>
                           <div className="mt-1 flex flex-col gap-px">
                             {displayMissing.map((m, idx) => (
-                              <div key={idx} className="text-[10px] text-[var(--c-sub)] leading-snug">
-                                <span className="text-[var(--c-muted)]">{m.section}: </span>{m.field}
+                              <div key={idx} className="text-[10px] text-(--c-sub) leading-snug">
+                                <span className="text-(--c-muted)">{m.section}: </span>{m.field}
                               </div>
                             ))}
                             {overflow > 0 && (
-                              <div className="text-[10px] text-[var(--c-muted)] mt-0.5">…and {overflow} more</div>
+                              <div className="text-[10px] text-(--c-muted) mt-0.5">…and {overflow} more</div>
                             )}
                           </div>
                         </details>
@@ -174,10 +159,10 @@ function ClientTable({ data, tokens: C, sortArrow, onSort, router }: ClientTable
                     </div>
                   )}
                 </td>
-                <td className="py-[13px] px-5">
+                <td className="py-3.25 px-5">
                   <button
                     onClick={e => { e.stopPropagation(); router.push(`/customers/${c.customer_id}`); }}
-                    className="text-xs font-semibold text-[var(--c-sky)] bg-[var(--c-sky-tint)] border border-[var(--c-sky-border3)] rounded-[7px] px-3 py-[6px] cursor-pointer"
+                    className="text-xs font-semibold text-(--c-sky) bg-(--c-sky-tint) border border-(--c-sky-border3) rounded-[7px] px-3 py-1.5 cursor-pointer"
                   >
                     View →
                   </button>
@@ -195,7 +180,6 @@ export default function ClientsTab(props: ClientsTabProps) {
   const { customers, loading, error, search, onSearchChange,
     statusFilter, onStatusFilterChange, sortBy, sortDir, onSort, onRetry, settings } = props;
   const router = useRouter();
-  const C = getTokens(settings);
 
   const sorted = [...customers].sort((a, b) => {
     const dir = sortDir === "asc" ? 1 : -1;
@@ -210,12 +194,12 @@ export default function ClientsTab(props: ClientsTabProps) {
 
   if (error) {
     return (
-      <div style={buildVars(C)}>
-        <div className={`${CARD} py-4 px-[18px]`}>
-          <div className="text-[13px] text-[var(--c-red)] mb-2">{error}</div>
+      <div className={settings.theme === "dark" ? "pm-dark" : "pm-light"}>
+        <div className={`${CARD} py-4 px-4.5`}>
+          <div className="text-[13px] text-(--c-red) mb-2">{error}</div>
           <button
             onClick={onRetry}
-            className="text-xs font-semibold text-[var(--c-blue)] bg-transparent border border-[var(--c-blue-border)] rounded-[6px] px-3 py-[5px] cursor-pointer"
+            className="text-xs font-semibold text-(--c-blue) bg-transparent border border-(--c-blue-border) rounded-[6px] px-3 py-1.25 cursor-pointer"
           >
             Retry
           </button>
@@ -225,15 +209,15 @@ export default function ClientsTab(props: ClientsTabProps) {
   }
 
   return (
-    <div style={buildVars(C)}>
+    <div className={settings.theme === "dark" ? "pm-dark" : "pm-light"}>
       <div className="flex items-center justify-between mb-5">
         <div>
-          <div className="text-[22px] font-bold text-[var(--c-text)] tracking-[-0.02em]">Customers</div>
-          <div className="text-xs text-[var(--c-sub)] mt-[2px]">{customers.length} total clients</div>
+          <div className="text-[22px] font-bold text-(--c-text) tracking-[-0.02em]">Customers</div>
+          <div className="text-xs text-(--c-sub) mt-0.5">{customers.length} total clients</div>
         </div>
         <button
           onClick={() => router.push("/onboarding")}
-          className="text-xs font-semibold text-white bg-[var(--c-orange)] rounded-[9px] px-[18px] py-[9px] cursor-pointer border-0"
+          className="text-xs font-semibold text-white bg-(--c-orange) rounded-[9px] px-4.5 py-2.25 cursor-pointer border-0"
         >
           + New Client
         </button>
@@ -241,14 +225,14 @@ export default function ClientsTab(props: ClientsTabProps) {
       <Filters search={search} onSearchChange={onSearchChange} filter={statusFilter} onFilterChange={onStatusFilterChange} />
       {loading ? (
         <div className={`${CARD} p-6 text-center`}>
-          <div className="text-[13px] text-[var(--c-sub)]">Loading customers…</div>
+          <div className="text-[13px] text-(--c-sub)">Loading customers…</div>
         </div>
       ) : sorted.length === 0 ? (
         <div className={`${CARD} p-6 text-center`}>
-          <div className="text-[13px] text-[var(--c-sub)]">No customers found.</div>
+          <div className="text-[13px] text-(--c-sub)">No customers found.</div>
         </div>
       ) : (
-        <ClientTable data={sorted} tokens={C} sortArrow={sortArrow} onSort={onSort} router={router} />
+        <ClientTable data={sorted} sortArrow={sortArrow} onSort={onSort} router={router} />
       )}
     </div>
   );

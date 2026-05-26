@@ -111,7 +111,7 @@ function FormEngineInner({
           </svg>
         </div>
         <h2 className="text-2xl font-bold text-slate-900 mb-3 text-center">Form Submitted</h2>
-        <p className="text-sm text-slate-500 leading-relaxed text-center max-w-[440px]">
+        <p className="text-sm text-slate-500 leading-relaxed text-center max-w-110">
           Thank you for completing the {schema.productName} onboarding form. Your project manager will review your submission and be in touch shortly.
         </p>
       </div>
@@ -121,9 +121,9 @@ function FormEngineInner({
   return (
     <div className="min-h-screen flex flex-col">
       {/* Sticky header */}
-      <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-200 px-8 h-[60px] flex items-center justify-between flex-shrink-0">
+      <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-200 px-8 h-15 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
-          <Image src="/logo.png" alt="WebriQ" width={44} height={44} className="flex-shrink-0" />
+          <Image src="/logo.png" alt="WebriQ" width={44} height={44} className="shrink-0" />
           <div className="flex items-center gap-1.5">
             <span className="text-[15px] font-bold text-slate-900 tracking-[-0.01em]">{schema.productName}</span>
             <span className="text-[15px] text-slate-400 font-normal">/ Client Onboarding</span>
@@ -133,7 +133,7 @@ function FormEngineInner({
       </header>
 
       {/* Sticky progress steps */}
-      <div className="sticky top-[60px] z-40 bg-white/90 backdrop-blur-md border-b border-slate-100 px-8 py-3 overflow-x-auto flex-shrink-0">
+      <div className="sticky top-15 z-40 bg-white/90 backdrop-blur-md border-b border-slate-100 px-8 py-3 overflow-x-auto shrink-0">
         <ProgressBar
           sections={visibleSections}
           currentIndex={currentSectionIndex}
@@ -142,7 +142,7 @@ function FormEngineInner({
       </div>
 
       {/* Main content */}
-      <main className="flex-1 max-w-[860px] mx-auto w-full px-6 pt-10 pb-[100px]">
+      <main className="flex-1 max-w-215 mx-auto w-full px-6 pt-10 pb-25">
         <div className="bg-white border border-slate-200 rounded-xl shadow-[0_1px_6px_rgba(0,0,0,0.06)]">
           <FormSection
             section={currentSection}
@@ -158,7 +158,7 @@ function FormEngineInner({
       <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200 py-3 px-8 flex justify-between items-center z-50">
         {/* Left: ring + section label */}
         <div className="flex items-center gap-3">
-          <div className="relative w-10 h-10 flex-shrink-0">
+          <div className="relative w-10 h-10 shrink-0">
             <svg className="w-10 h-10 -rotate-90" viewBox="0 0 40 40">
               <circle cx="20" cy="20" r="17" fill="none" stroke="#e2e8f0" strokeWidth="3" />
               <circle

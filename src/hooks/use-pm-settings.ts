@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useSyncExternalStore, useCallback } from "react";
 
 export interface PMSettings {
   homeLayout: "digest" | "stats";
@@ -11,7 +11,6 @@ const STORAGE_KEY = "hub_pm_settings";
 const DEFAULTS: PMSettings = { homeLayout: "digest", theme: "light" };
 
 function readSettings(): PMSettings {
-  if (typeof window === "undefined") return DEFAULTS;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return DEFAULTS;
@@ -25,28 +24,37 @@ function readSettings(): PMSettings {
   }
 }
 
-function writeSettings(settings: PMSettings) {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+function writeSettings(s: PMSettings) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+}
+
+// Module-level store — browser-only (this file is "use client")
+let _cache: PMSettings | null = null;
+let _listeners: (() => void)[] = [];
+
+function getSnapshot(): PMSettings {
+  if (_cache === null) _cache = readSettings();
+  return _cache;
+}
+
+function getServerSnapshot(): PMSettings {
+  return DEFAULTS;
+}
+
+function subscribe(listener: () => void): () => void {
+  _listeners = [..._listeners, listener];
+  return () => { _listeners = _listeners.filter(l => l !== listener); };
 }
 
 export function usePMSettings() {
-  const [settings, setSettings] = useState<PMSettings>(DEFAULTS);
+  const settings = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
-  useEffect(() => {
-    setSettings(readSettings());
+  const updateSetting = useCallback(<K extends keyof PMSettings>(key: K, value: PMSettings[K]) => {
+    const next = { ...getSnapshot(), [key]: value };
+    _cache = next;
+    writeSettings(next);
+    _listeners.forEach(l => l());
   }, []);
-
-  const updateSetting = useCallback(
-    <K extends keyof PMSettings>(key: K, value: PMSettings[K]) => {
-      setSettings((prev) => {
-        const next = { ...prev, [key]: value };
-        writeSettings(next);
-        return next;
-      });
-    },
-    []
-  );
 
   return { settings, updateSetting };
 }

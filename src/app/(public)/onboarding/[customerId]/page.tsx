@@ -45,7 +45,7 @@ export default async function OnboardingPage({ params }: OnboardingPageProps) {
         </p>
         <a
           href="/pm"
-          className="inline-block py-2.5 px-[22px] bg-brand text-white text-[13px] font-semibold rounded-full no-underline font-[inherit]"
+          className="inline-block py-2.5 px-5.5 bg-brand text-white text-[13px] font-semibold rounded-full no-underline font-[inherit]"
         >
           Go to PM Dashboard
         </a>

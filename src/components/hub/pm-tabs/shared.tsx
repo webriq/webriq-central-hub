@@ -1,6 +1,5 @@
 "use client";
 
-import React from "react";
 import type { PMSettings } from "@/hooks/use-pm-settings";
 
 /* ── Design Tokens ─────────────────────────────────────────────────────── */
@@ -37,17 +36,17 @@ export const PRODUCT_COLORS: Record<string, string> = {
 
 /* ── Components ────────────────────────────────────────────────────────── */
 
-// Dynamic fill bar — only width (data %) and per-row color need inline style
-export function ProgressBar({ pct, color }: { pct: number; color?: string }) {
+// Dynamic fill bar — width is a runtime %, unavoidable inline style; color uses a class string
+export function ProgressBar({ pct, colorClass }: { pct: number; colorClass?: string }) {
   return (
     <div className="flex items-center gap-2">
-      <div className="flex-1 h-[5px] bg-[var(--c-track)] rounded-full overflow-hidden">
+      <div className="flex-1 h-1.25 bg-(--c-track) rounded-full overflow-hidden">
         <div
-          className="h-full rounded-full transition-[width] duration-300"
-          style={{ width: `${Math.min(100, pct)}%`, background: color ?? "var(--c-blue)" }}
+          className={`h-full rounded-full transition-[width] duration-300 ${colorClass ?? "bg-(--c-blue)"}`}
+          style={{ width: `${Math.min(100, pct)}%` }}
         />
       </div>
-      <span className="text-[11px] text-[var(--c-sub)] w-8 text-right font-mono">
+      <span className="text-[11px] text-(--c-sub) w-8 text-right font-mono">
         {Math.round(pct)}%
       </span>
     </div>
@@ -73,15 +72,19 @@ export function StatusBadge({ status }: { status: string }) {
   );
 }
 
-// Product badge — uses fixed brand colors (not theme-dependent); minimal inline for dynamic color
+const BADGE_CLASSES: Record<string, string> = {
+  StackShift:    "text-[#3358F4] bg-[#3358F412] border-[#3358F41e]",
+  PublishForge:  "text-[#7C3AED] bg-[#7C3AED12] border-[#7C3AED1e]",
+  PipelineForge: "text-[#F97316] bg-[#F9731612] border-[#F973161e]",
+  CiteForge:     "text-[#0EA5E9] bg-[#0EA5E912] border-[#0EA5E91e]",
+};
+
+// Product badge — fixed brand colors via static class lookup
 export function ProductBadge({ name }: { name: string }) {
   const ab = PRODUCT_ABBREV[name] ?? name.slice(0, 2);
-  const co = PRODUCT_COLORS[name] ?? "#64748b";
+  const cls = BADGE_CLASSES[name] ?? "text-[#64748b] bg-[#64748b12] border-[#64748b1e]";
   return (
-    <span
-      className="text-[11px] font-semibold rounded-[5px] px-[7px] py-px whitespace-nowrap border"
-      style={{ color: co, background: `${co}12`, borderColor: `${co}1e` }}
-    >
+    <span className={`text-[11px] font-semibold rounded-[5px] px-1.75 py-px whitespace-nowrap border ${cls}`}>
       {ab}
     </span>
   );
@@ -98,7 +101,7 @@ const PRIORITY_DOT_CLASS: Record<string, string> = {
 export function PriorityDot({ priority }: { priority: string }) {
   return (
     <div
-      className={`w-[7px] h-[7px] rounded-full flex-shrink-0 ${PRIORITY_DOT_CLASS[priority] ?? PRIORITY_DOT_CLASS.NORMAL}`}
+      className={`w-1.75 h-1.75 rounded-full shrink-0 ${PRIORITY_DOT_CLASS[priority] ?? PRIORITY_DOT_CLASS.NORMAL}`}
     />
   );
 }
@@ -108,13 +111,13 @@ export function SectionHeader({ title, sub, action }: {
   title: string; sub?: string; action?: string;
 }) {
   return (
-    <div className="flex items-end justify-between mb-[14px]">
+    <div className="flex items-end justify-between mb-3.5">
       <div>
-        <div className="text-[15px] font-bold text-[var(--c-text)] tracking-[-0.01em]">{title}</div>
-        {sub && <div className="text-[11px] text-[var(--c-sub)] mt-[2px]">{sub}</div>}
+        <div className="text-[15px] font-bold text-(--c-text) tracking-[-0.01em]">{title}</div>
+        {sub && <div className="text-[11px] text-(--c-sub) mt-0.5">{sub}</div>}
       </div>
       {action && (
-        <button className="text-xs font-semibold text-[var(--c-sky)] bg-transparent border-none cursor-pointer p-0 font-[inherit]">
+        <button className="text-xs font-semibold text-(--c-sky) bg-transparent border-none cursor-pointer p-0 font-[inherit]">
           {action}
         </button>
       )}
@@ -127,25 +130,37 @@ export function StatCard({ value, label, colorVar }: {
   value: string; label: string; colorVar: string;
 }) {
   return (
-    <div className="rounded-[14px] border border-[var(--c-border)] shadow-[0_1px_4px_rgba(0,0,0,0.05)] bg-[var(--c-card)] px-5 py-[18px]">
+    <div className="rounded-[14px] border border-(--c-border) shadow-[0_1px_4px_rgba(0,0,0,0.05)] bg-(--c-card) px-5 py-4.5">
       <div className={`text-[30px] font-bold leading-none tracking-[-0.02em] text-[var(${colorVar})]`}>
         {value}
       </div>
-      <div className="text-xs text-[var(--c-sub)] mt-[5px]">{label}</div>
+      <div className="text-xs text-(--c-sub) mt-1.25">{label}</div>
     </div>
   );
 }
 
-// Client avatar — inline only for data-driven dimensions and dynamic brand color
+const AVATAR_SIZE_CLASS: Record<number, string> = {
+  28: "w-7 h-7 text-[9.8px]",
+  34: "w-[34px] h-[34px] text-[11.9px]",
+};
+
+const AVATAR_BG_CLASS: Record<string, string> = {
+  "#3358F4": "bg-[#3358F4]",
+  "#d45e09": "bg-[#d45e09]",
+  "#7C3AED": "bg-[#7C3AED]",
+  "#22C55E": "bg-[#22C55E]",
+  "#0ea5e9": "bg-[#0ea5e9]",
+};
+
+// Client avatar — static size/color lookups replace dynamic inline style
 export function ClientAvatar({ name, color, size = 34 }: {
   name: string; color: string; size?: number;
 }) {
   const ini = name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
+  const sizeClass = AVATAR_SIZE_CLASS[size] ?? "w-[34px] h-[34px] text-[11.9px]";
+  const bgClass = AVATAR_BG_CLASS[color] ?? "bg-slate-400";
   return (
-    <div
-      className="rounded-[9px] flex items-center justify-center font-bold text-white flex-shrink-0"
-      style={{ width: size, height: size, background: color, fontSize: Math.round(size * 0.35) }}
-    >
+    <div className={`rounded-[9px] flex items-center justify-center font-bold text-white shrink-0 ${sizeClass} ${bgClass}`}>
       {ini}
     </div>
   );
@@ -154,4 +169,16 @@ export function ClientAvatar({ name, color, size = 34 }: {
 export function getClientColor(name: string): string {
   const c = ["#3358F4", "#d45e09", "#7C3AED", "#22C55E", "#0ea5e9"];
   return c[name.charCodeAt(0) % c.length];
+}
+
+const CLIENT_COLOR_CLASS: Record<string, string> = {
+  "#3358F4": "bg-[#3358F4]",
+  "#d45e09": "bg-[#d45e09]",
+  "#7C3AED": "bg-[#7C3AED]",
+  "#22C55E": "bg-[#22C55E]",
+  "#0ea5e9": "bg-[#0ea5e9]",
+};
+
+export function getClientColorClass(name: string): string {
+  return CLIENT_COLOR_CLASS[getClientColor(name)] ?? "bg-slate-400";
 }

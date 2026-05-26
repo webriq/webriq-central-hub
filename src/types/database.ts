@@ -190,6 +190,7 @@ export interface Database {
           overall_status: string;
           clarification_draft: Json | null;
           confidence_to_proceed: number | null;
+          raw_response: Json | null;
           model_used: string | null;
           input_tokens: number | null;
           output_tokens: number | null;
@@ -204,6 +205,7 @@ export interface Database {
           overall_status: string;
           clarification_draft?: Json | null;
           confidence_to_proceed?: number | null;
+          raw_response?: Json | null;
           model_used?: string | null;
           input_tokens?: number | null;
           output_tokens?: number | null;
@@ -218,6 +220,7 @@ export interface Database {
           overall_status?: string;
           clarification_draft?: Json | null;
           confidence_to_proceed?: number | null;
+          raw_response?: Json | null;
           model_used?: string | null;
           input_tokens?: number | null;
           output_tokens?: number | null;

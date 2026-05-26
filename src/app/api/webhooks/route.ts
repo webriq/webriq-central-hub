@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createHmac, timingSafeEqual } from "crypto";
 import { adminClient } from "@/lib/supabase/admin";
 import { classifyTask } from "@/lib/ai/classify";
 import type { WebhookSource } from "@/types/hub";
@@ -72,11 +73,15 @@ export async function POST(req: NextRequest) {
   console.log("[webhook] incoming request", { contentType, rawText });
   const body: ZohoPayload = parsePayload(contentType, rawText, req.url);
 
-  const expectedToken = process.env.ZOHO_WEBHOOK_TOKEN;
-  if (expectedToken) {
-    const receivedToken = req.headers.get("x-webhook-token") ?? body.webhookToken;
-    if (receivedToken !== expectedToken) {
-      console.warn("[webhook] unauthorized — token mismatch");
+  const hmacSecret = process.env.ZOHO_WEBHOOK_SECRET;
+  if (hmacSecret) {
+    const signature = req.headers.get("x-zp-webhook-signature") ?? "";
+    const expected = createHmac("sha256", hmacSecret).update(rawText).digest("base64");
+    const sigBuf = Buffer.from(signature);
+    const expBuf = Buffer.from(expected);
+    const valid = sigBuf.length === expBuf.length && timingSafeEqual(sigBuf, expBuf);
+    if (!valid) {
+      console.warn("[webhook] unauthorized — HMAC mismatch");
       return NextResponse.json({ received: true }); // 200 so Zoho doesn't retry
     }
   }

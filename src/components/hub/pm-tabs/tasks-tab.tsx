@@ -2,27 +2,14 @@
 
 import React, { useState } from "react";
 import type { PMSettings } from "@/hooks/use-pm-settings";
-import { getTokens, DARK, PriorityDot } from "./shared";
-import type { Tokens } from "./shared";
+import { PriorityDot } from "./shared";
 import type { Database } from "@/types/database";
 
 type ClassificationRow = Database["public"]["Tables"]["classification_records"]["Row"] & {
   customers?: { company_name: string } | null;
 };
 
-const CARD = "rounded-[14px] border border-[var(--c-border)] shadow-[0_1px_4px_rgba(0,0,0,0.05)] bg-[var(--c-card)]";
-
-function buildVars(C: Tokens): React.CSSProperties {
-  return {
-    "--c-text": C.text, "--c-sub": C.sub, "--c-muted": C.muted,
-    "--c-card": C.card, "--c-border": C.border,
-    "--c-blue": C.blue, "--c-sky": C.sky, "--c-green": C.green,
-    "--c-amber": C.amber, "--c-red": C.red,
-    "--c-sky-tint2": `${C.sky}0e`,
-    "--c-sky-border": `${C.sky}20`,
-    "--c-track": C === DARK ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)",
-  } as React.CSSProperties;
-}
+const CARD = "rounded-[14px] border border-(--c-border) shadow-[0_1px_4px_rgba(0,0,0,0.05)] bg-(--c-card)";
 
 function confClass(score: number | null): string {
   const v = score ?? 0;
@@ -155,7 +142,6 @@ interface Props {
 type FilterTab = "all" | "review" | "classified";
 
 export default function TasksTab({ settings, tasks }: Props) {
-  const C = getTokens(settings);
   const [tab, setTab] = useState<FilterTab>("all");
   const [reclassifyTarget, setReclassifyTarget] = useState<ClassificationRow | null>(null);
   // Optimistic overrides: applied on top of the tasks prop until realtime re-fetch arrives
@@ -176,13 +162,13 @@ export default function TasksTab({ settings, tasks }: Props) {
   }
 
   return (
-    <div style={buildVars(C)}>
+    <div className={settings.theme === "dark" ? "pm-dark" : "pm-light"}>
       <div className="flex items-center justify-between mb-5">
         <div>
-          <div className="text-[22px] font-bold text-[var(--c-text)] tracking-[-0.02em]">Task Queue</div>
-          <div className="text-xs text-[var(--c-sub)] mt-[2px]">{displayTasks.length} items</div>
+          <div className="text-[22px] font-bold text-(--c-text) tracking-[-0.02em]">Task Queue</div>
+          <div className="text-xs text-(--c-sub) mt-0.5">{displayTasks.length} items</div>
         </div>
-        <div className="flex gap-[6px]">
+        <div className="flex gap-1.5">
           {([
             ["all", "All", displayTasks.length],
             ["review", "Needs Review", reviewCount],
@@ -191,10 +177,10 @@ export default function TasksTab({ settings, tasks }: Props) {
             <button
               key={k}
               onClick={() => setTab(k)}
-              className={`text-xs font-semibold rounded-lg px-[14px] py-[7px] cursor-pointer border transition-colors ${
+              className={`text-xs font-semibold rounded-lg px-3.5 py-1.75 cursor-pointer border transition-colors ${
                 tab === k
-                  ? "text-white bg-[var(--c-blue)] border-[var(--c-blue)]"
-                  : "text-[var(--c-sub)] bg-[var(--c-card)] border-[var(--c-border)]"
+                  ? "text-white bg-(--c-blue) border-(--c-blue)"
+                  : "text-(--c-sub) bg-(--c-card) border-(--c-border)"
               }`}
             >
               {l}{count > 0 ? ` (${count})` : ""}
@@ -205,15 +191,15 @@ export default function TasksTab({ settings, tasks }: Props) {
 
       <div className={`${CARD} overflow-hidden`}>
         {shown.length === 0 ? (
-          <div className="py-12 text-center text-[var(--c-muted)] text-sm">
+          <div className="py-12 text-center text-(--c-muted) text-sm">
             {displayTasks.length === 0 ? "No tasks yet — waiting for Zoho webhook events." : "No tasks match this filter."}
           </div>
         ) : (
           <table className="w-full border-collapse">
             <thead>
-              <tr className="border-b border-[var(--c-border)]">
+              <tr className="border-b border-(--c-border)">
                 {["Pri", "Task", "Customer", "Type", "AI Confidence", "Status", "Age"].map(h => (
-                  <th key={h} className="py-[9px] px-4 text-left text-[10px] font-bold text-[var(--c-muted)] tracking-[0.06em] uppercase whitespace-nowrap">
+                  <th key={h} className="py-2.25 px-4 text-left text-[10px] font-bold text-(--c-muted) tracking-[0.06em] uppercase whitespace-nowrap">
                     {h}
                   </th>
                 ))}
@@ -221,51 +207,51 @@ export default function TasksTab({ settings, tasks }: Props) {
             </thead>
             <tbody>
               {shown.map((t, i) => (
-                <tr key={t.id} className={`${i < shown.length - 1 ? "border-b border-[var(--c-border)]" : ""}`}>
-                  <td className="py-[13px] px-4">
+                <tr key={t.id} className={`${i < shown.length - 1 ? "border-b border-(--c-border)" : ""}`}>
+                  <td className="py-3.25 px-4">
                     <PriorityDot priority={t.priority ?? "NORMAL"} />
                   </td>
-                  <td className="py-[13px] px-4 min-w-[260px]">
-                    <div className="text-[13px] font-medium text-[var(--c-text)] leading-[1.35]">{t.title}</div>
-                    <code className="text-[10px] text-[var(--c-muted)] font-mono">{t.id.slice(0, 8)}</code>
+                  <td className="py-3.25 px-4 min-w-65">
+                    <div className="text-[13px] font-medium text-(--c-text) leading-[1.35]">{t.title}</div>
+                    <code className="text-[10px] text-(--c-muted) font-mono">{t.id.slice(0, 8)}</code>
                   </td>
-                  <td className="py-[13px] px-4">
-                    <span className="text-xs text-[var(--c-sub)]">
+                  <td className="py-3.25 px-4">
+                    <span className="text-xs text-(--c-sub)">
                       {t.customers?.company_name ?? t.customer_id}
                     </span>
                   </td>
-                  <td className="py-[13px] px-4">
+                  <td className="py-3.25 px-4">
                     {t.task_type ? (
-                      <span className="text-[11px] text-[var(--c-sky)] bg-[var(--c-sky-tint2)] rounded-[5px] px-2 py-px border border-[var(--c-sky-border)]">
+                      <span className="text-[11px] text-(--c-sky) bg-(--c-sky-tint2) rounded-[5px] px-2 py-px border border-(--c-sky-border)">
                         {t.task_type.replace(/_/g, " ")}
                       </span>
                     ) : (
-                      <span className="text-[11px] text-[var(--c-muted)]">—</span>
+                      <span className="text-[11px] text-(--c-muted)">—</span>
                     )}
                   </td>
-                  <td className="py-[13px] px-4">
+                  <td className="py-3.25 px-4">
                     {t.confidence_score !== null ? (
                       <span className={`text-[11px] font-semibold rounded-[6px] px-2 py-px font-mono border ${confClass(t.confidence_score)}`}>
                         {Math.round(t.confidence_score)}%
                       </span>
                     ) : (
-                      <span className="text-[11px] text-[var(--c-muted)]">—</span>
+                      <span className="text-[11px] text-(--c-muted)">—</span>
                     )}
                   </td>
-                  <td className="py-[13px] px-4">
+                  <td className="py-3.25 px-4">
                     {t.status === "pending" ? (
                       <button
                         onClick={() => setReclassifyTarget(t)}
-                        className="text-[11px] font-semibold text-white bg-[var(--c-blue)] rounded-[6px] px-3 py-[5px] cursor-pointer border-0"
+                        className="text-[11px] font-semibold text-white bg-(--c-blue) rounded-[6px] px-3 py-1.25 cursor-pointer border-0"
                       >
                         Classify
                       </button>
                     ) : (
-                      <span className="text-[11px] font-semibold text-[var(--c-green)]">✓ Classified</span>
+                      <span className="text-[11px] font-semibold text-(--c-green)">✓ Classified</span>
                     )}
                   </td>
-                  <td className="py-[13px] px-4">
-                    <span className="text-[11px] text-[var(--c-muted)]">{formatAge(t.created_at)}</span>
+                  <td className="py-3.25 px-4">
+                    <span className="text-[11px] text-(--c-muted)">{formatAge(t.created_at)}</span>
                   </td>
                 </tr>
               ))}

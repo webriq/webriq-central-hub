@@ -4,6 +4,7 @@ import React, { useState, useRef, useCallback } from "react";
 import type { UploadedFile } from "@/types/onboarding";
 import { cn } from "@/lib/utils";
 import { useFileUpload } from "@/hooks/use-file-upload";
+import Image from "next/image";
 
 interface FileUploadProps {
   fieldName: string;
@@ -100,9 +101,11 @@ export default function FileUpload({
     return (
       <div className="border border-slate-200 rounded-lg p-3 bg-slate-50 flex items-center gap-3">
         {isImage ? (
-          <img
+          <Image
             src={uploadedFile.url}
             alt={uploadedFile.filename}
+            width={48}
+            height={48}
             className="w-12 h-12 rounded object-cover"
           />
         ) : (

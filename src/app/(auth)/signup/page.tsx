@@ -128,7 +128,7 @@ export default function SignUpPage() {
   }
 
   return (
-    <div className="min-h-[100dvh] w-full lg:grid lg:grid-cols-2 bg-background">
+    <div className="min-h-dvh w-full lg:grid lg:grid-cols-2 bg-background">
       <ThemeToggle />
 
       {/* ── Left: Hero panel (desktop only) ──────────────────────────────── */}
@@ -136,8 +136,8 @@ export default function SignUpPage() {
         <Image src="/auth-hero-BN2J7r2Q.jpg" alt="" fill sizes="(min-width: 1024px) 50vw, 0vw" className="object-cover opacity-70" priority />
         {/* Hardcoded-dark overlays — hero always stays dark regardless of theme */}
         <div className="absolute inset-0 bg-black/85" />
-        <div className="absolute inset-0 bg-gradient-to-tr from-brand-orange/40 via-transparent to-brand-orange/10 mix-blend-screen" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-linear-to-tr from-brand-orange/40 via-transparent to-brand-orange/10 mix-blend-screen" />
+        <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent" />
 
         <Link href="/" className="relative z-10 inline-flex items-center gap-2.5 font-semibold tracking-tight">
           <Image src="/logo.png" alt="WebriQ" width={40} height={40} className="h-10 w-10 object-contain" />
@@ -149,7 +149,7 @@ export default function SignUpPage() {
             The fastest path from blank canvas to launched product I&apos;ve ever used.
           </p>
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full flex-shrink-0 ring-1 ring-white/20" style={{ background: "#F97316" }} />
+            <div className="h-10 w-10 rounded-full shrink-0 ring-1 ring-white/20 bg-[#F97316]" />
             <div className="text-sm">
               <p className="font-semibold">Jordan Pierce</p>
               <p className="text-white/60">Product Lead, Northwind</p>
@@ -159,12 +159,11 @@ export default function SignUpPage() {
       </div>
 
       {/* ── Right: Form panel ─────────────────────────────────────────────── */}
-      <div className="relative flex min-h-[100dvh] flex-col lg:items-center lg:justify-center lg:px-10 lg:py-12">
+      <div className="relative flex min-h-dvh flex-col lg:items-center lg:justify-center lg:px-10 lg:py-12">
 
         {/* Mobile: gradient header */}
         <div
-          className="relative lg:hidden overflow-hidden px-6 pt-[max(2rem,env(safe-area-inset-top))] pb-16 text-white"
-          style={{ background: "linear-gradient(140deg, #07111f 0%, #0c1b38 55%, #070E1F 100%)" }}
+          className="relative lg:hidden overflow-hidden px-6 pt-[max(2rem,env(safe-area-inset-top))] pb-16 text-white bg-[linear-gradient(140deg,#07111f_0%,#0c1b38_55%,#070E1F_100%)]"
         >
           <div className="absolute -top-24 -right-16 h-64 w-64 rounded-full bg-primary/35 blur-3xl pointer-events-none" />
           <div className="absolute -bottom-20 -left-10 h-56 w-56 rounded-full bg-brand-orange/25 blur-3xl pointer-events-none" />
@@ -195,7 +194,7 @@ export default function SignUpPage() {
               onClick={handleZohoSignIn}
               className="inline-flex items-center justify-center gap-2.5 h-12 w-full rounded-md border border-brand-orange/30 bg-card font-semibold text-foreground text-sm cursor-pointer transition-colors hover:bg-brand-orange/10 hover:border-brand-orange/50"
             >
-              <Image src="/zoho-logo-512.png" alt="" width={24} height={24} className="h-6 w-6 object-contain flex-shrink-0" />
+              <Image src="/zoho-logo-512.png" alt="" width={24} height={24} className="h-6 w-6 object-contain shrink-0" />
               Continue with Zoho
             </button>
           </div>
@@ -318,7 +317,7 @@ export default function SignUpPage() {
                 role="checkbox"
                 aria-checked={agreed}
                 onClick={() => setAgreed((v) => !v)}
-                className={`mt-0.5 h-4 w-4 flex-shrink-0 rounded border cursor-pointer transition-colors ${
+                className={`mt-0.5 h-4 w-4 shrink-0 rounded border cursor-pointer transition-colors ${
                   agreed
                     ? "bg-brand-orange border-brand-orange"
                     : "border-brand-orange/60 bg-transparent hover:border-brand-orange"

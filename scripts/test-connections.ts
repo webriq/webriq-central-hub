@@ -48,11 +48,6 @@ function fail(label: string, err: unknown): void {
   console.error(`${c.dim}     ${msg}${c.reset}`);
 }
 
-function warn(label: string, detail: string): void {
-  process.stdout.write(`\r${c.yellow}  ⚠️  ${label}${c.reset}\n`);
-  console.error(`${c.dim}     ${detail}${c.reset}`);
-}
-
 function skip(label: string, reason: string): void {
   console.log(`${c.dim}  ⏭️  ${label} — ${reason}${c.reset}`);
 }

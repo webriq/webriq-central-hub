@@ -8,11 +8,23 @@ interface ProductSelectorProps {
   onChange: (selected: ProductName[]) => void;
 }
 
-const PRODUCTS: { name: ProductName; label: string; description: string; color: string }[] = [
-  { name: "StackShift", label: "StackShift", description: "Headless CMS & website platform", color: "#3358F4" },
-  { name: "PublishForge", label: "PublishForge", description: "Content publishing & blog management", color: "#7C3AED" },
-  { name: "PipelineForge", label: "PipelineForge", description: "Sales pipeline & outreach automation", color: "#F97316" },
+const PRODUCTS: { name: ProductName; label: string; description: string }[] = [
+  { name: "StackShift", label: "StackShift", description: "Headless CMS & website platform" },
+  { name: "PublishForge", label: "PublishForge", description: "Content publishing & blog management" },
+  { name: "PipelineForge", label: "PipelineForge", description: "Sales pipeline & outreach automation" },
 ];
+
+const BUTTON_SELECTED_CLASS: Record<string, string> = {
+  StackShift:    "border-[#3358F4] bg-[#3358F408]",
+  PublishForge:  "border-[#7C3AED] bg-[#7C3AED08]",
+  PipelineForge: "border-[#F97316] bg-[#F9731608]",
+};
+
+const ICON_SELECTED_CLASS: Record<string, string> = {
+  StackShift:    "bg-[#3358F4] text-white",
+  PublishForge:  "bg-[#7C3AED] text-white",
+  PipelineForge: "bg-[#F97316] text-white",
+};
 
 export default function ProductSelector({ selected, onChange }: ProductSelectorProps) {
   const toggleProduct = (product: ProductName) => {
@@ -36,18 +48,18 @@ export default function ProductSelector({ selected, onChange }: ProductSelectorP
               key={product.name}
               type="button"
               onClick={() => toggleProduct(product.name)}
-              className="flex items-start gap-3 p-[14px_16px] rounded-[10px] cursor-pointer text-left font-[inherit] transition-[border-color,background] duration-150"
-              style={{
-                border: `2px solid ${isSelected ? product.color : "#E2E8F0"}`,
-                background: isSelected ? `${product.color}08` : "#fff",
-              }}
+              className={`flex items-start gap-3 p-[14px_16px] rounded-[10px] cursor-pointer text-left font-[inherit] transition-[border-color,background] duration-150 border-2 ${
+                isSelected
+                  ? (BUTTON_SELECTED_CLASS[product.name] ?? "border-slate-300 bg-white")
+                  : "border-[#E2E8F0] bg-white"
+              }`}
             >
               <div
-                className="w-9 h-9 rounded-lg flex items-center justify-center text-base flex-shrink-0 transition-colors duration-150"
-                style={{
-                  background: isSelected ? product.color : "#F1F5F9",
-                  color: isSelected ? "#fff" : "#94A3B8",
-                }}
+                className={`w-9 h-9 rounded-lg flex items-center justify-center text-base shrink-0 transition-colors duration-150 ${
+                  isSelected
+                    ? (ICON_SELECTED_CLASS[product.name] ?? "bg-slate-400 text-white")
+                    : "bg-[#F1F5F9] text-[#94A3B8]"
+                }`}
               >
                 {isSelected ? "✓" : product.label[0]}
               </div>

@@ -98,7 +98,10 @@ src/
       providers.ts      getLanguageModel(provider, modelId) — AI SDK provider factory
       model-config.ts   getModelConfig(layer), getModel(layer) — DB-driven, 5-min cache
       logger.ts         logLLMInvocation() — writes to llm_invocation_logs
-    zoho/               Stub — Sprint 2+
+      context-chain.ts  buildContextChain(classificationId) — assembles customer+task context string for Sonnet prompts (Sprint 3+)
+      assess.ts         assessTask({ classificationId, customerId }) — Sonnet, CLEAR/PARTIAL/BLOCKED subtask breakdown, inserts to requirements_assessments
+      digest.ts         generateDigest(type) — Haiku, compiles PM/Dev digest from live DB data, inserts to digest_logs
+    zoho/               Sprint 2+
     sanity/             Stub — Sprint 5+
     github/             Stub — Sprint 5+
     utils.ts            cn(), formatDate(), formatRelativeTime(), truncate()
@@ -115,7 +118,7 @@ src/
     use-file-upload.ts  Upload to Supabase Storage via /api/upload
   proxy.ts              Supabase session refresh — Next.js 16 "proxy" convention
 supabase/
-  migrations/           Applied in order; 005 adds onboarding storage bucket + policies; 007 adds hub_users table + auto-insert trigger
+  migrations/           Applied in order; 005 adds onboarding storage bucket + policies; 007 adds hub_users table + auto-insert trigger; 011 adds raw_response to requirements_assessments; 012 enables pg_cron + pg_net for daily digest
 _docs/
   plan/                 Sprint plan + COO/CTO spec docs
   task/                 Task documents (001–NNN format)
@@ -143,10 +146,17 @@ When adding a new product form: add a section array in `onboarding-schemas.ts`, 
 - **Admin client** = `adminClient` from `@/lib/supabase/admin` — server-only, bypasses RLS
 - **All LLM calls must log** via `logLLMInvocation()` from `@/lib/ai/logger` — cost attribution from day one
 - **Model config is DB-driven** — use `getModel(layer)` from `@/lib/ai/model-config` for AI SDK calls; `getModelConfig(layer)` for metadata. Never hard-code model IDs.
+- **`buildContextChain(classificationId)`** from `@/lib/ai/context-chain` — call before every Sonnet prompt in Sprints 3–5. Returns a structured string with customer + task context. Never rebuild this inline.
+- **Assessment trigger is PM-manual** — no auto-trigger after classification. PM clicks "Run Assessment" in `/orchestration` page.
+- **Digest auth pattern** — `/api/digest` accepts either `x-digest-secret` header (pg_cron) or a valid user session. Secret must match `DIGEST_SECRET` env var.
+- **`DIGEST_SECRET`** env var required for pg_cron integration (Sprint 3+). See `env.example`.
+- **`ZOHO_CLIQ_DEV_WEBHOOK_URL`** env var — separate Cliq channel for dev digest notifications. Optional; silently skips if unset (Sprint 3+).
 - **Multi-provider**: `provider` column in `llm_config` controls `anthropic | openai`. Switch per-layer via DB with no code changes.
 - **shadcn components** are added via `npx shadcn add <component>` — they land in `src/components/ui/`
 - **`src/lib/utils.ts`** (flat file, not directory) is the cn() / utils home — shadcn imports from here
 - **Page-scoped UI** — inline small components into the page file rather than creating separate component files. Only extract to `src/components/` when a component is shared across multiple pages.
+- **Styling: always Tailwind CSS classes, never `style={{}}`** — use `className` with Tailwind utilities. Use `cn()` from `@/lib/utils` for conditional classes. For dynamic single-property values (e.g. computed colors), use a static lookup map or ternary that produces complete class strings (e.g. `score >= 80 ? "text-green-600" : "text-red-600"`), never construct class names dynamically at runtime (Tailwind tree-shakes unknown strings). `style={{}}` is only acceptable for values that are genuinely not expressible as Tailwind utilities (e.g. CSS custom properties, canvas/SVG dimensions, or third-party component overrides).
+- **Prefer Tailwind scale classes over arbitrary values** — for spacing, sizing, and layout use named scale values (e.g. `py-6.5`, `w-14`, `h-10`, `mt-3`) instead of arbitrary bracket syntax (e.g. `py-[26px]`, `w-[56px]`). Only use arbitrary values when no Tailwind scale step maps to the required dimension.
 - **`window.location`** is only safe inside callbacks/effects, never at component render time (SSR crash).
 - **`"use server"`** is only for React Server Actions (client-callable functions). Do not add it to utility modules or API route helpers.
 

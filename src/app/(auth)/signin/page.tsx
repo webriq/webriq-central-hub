@@ -81,8 +81,7 @@ export default function SignInPage() {
           </p>
           <div className="flex items-center gap-3">
             <div
-              className="h-10 w-10 rounded-full shrink-0 ring-1 ring-white/20"
-              style={{ background: "#F97316" }}
+              className="bg-brand-orange h-10 w-10 rounded-full shrink-0 ring-1 ring-white/20"
             />
             <div className="text-sm">
               <p className="font-semibold">Mira Chen</p>
@@ -97,8 +96,7 @@ export default function SignInPage() {
 
         {/* Mobile: gradient header */}
         <div
-          className="relative lg:hidden overflow-hidden px-6 pt-[max(2rem,env(safe-area-inset-top))] pb-16 text-white"
-          style={{ background: "linear-gradient(140deg, #07111f 0%, #0c1b38 55%, #070E1F 100%)" }}
+          className="relative lg:hidden overflow-hidden px-6 pt-[max(2rem,env(safe-area-inset-top))] pb-16 text-white bg-[linear-gradient(140deg,#07111f_0%,#0c1b38_55%,#070E1F_100%)]"
         >
           <div className="absolute -top-24 -right-16 h-64 w-64 rounded-full bg-primary/35 blur-3xl pointer-events-none" />
           <div className="absolute -bottom-20 -left-10 h-56 w-56 rounded-full bg-brand-orange/25 blur-3xl pointer-events-none" />
