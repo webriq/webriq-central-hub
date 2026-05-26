@@ -499,7 +499,7 @@ export default function OrchestrationPage() {
           .from("classification_records")
           .select("*")
           .eq("llm_eligible", "YES")
-          .in("status", ["pending", "planning", "planned", "approved"])
+          .in("status", ["pending", "reviewed", "planning", "planned", "approved"])
           .order("created_at", { ascending: false })
           .limit(50),
         supabase
