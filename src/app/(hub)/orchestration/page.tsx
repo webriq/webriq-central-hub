@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
+import { ExternalLink } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import type { Database } from "@/types/database";
@@ -8,6 +9,10 @@ import type { Database } from "@/types/database";
 type ClassificationRecordRow = Database["public"]["Tables"]["classification_records"]["Row"];
 type RequirementsAssessmentRow = Database["public"]["Tables"]["requirements_assessments"]["Row"];
 type ImplementationPlanRow = Database["public"]["Tables"]["implementation_plans"]["Row"];
+type ExecutionRecordRow = Database["public"]["Tables"]["execution_records"]["Row"];
+type ReplyDraftRow = Database["public"]["Tables"]["reply_drafts"]["Row"];
+
+type PmAction = "open" | "on_hold" | "active" | "review" | "close" | "reopen";
 
 type AssessmentState = {
   loading: boolean;
@@ -29,6 +34,21 @@ const REJECTION_REASONS = [
   { value: "KNOWLEDGE_GAP", label: "Knowledge Gap" },
   { value: "MISCLASSIFICATION", label: "Misclassification" },
 ] as const;
+
+const PM_ACTIONS: Array<{ value: PmAction; label: string }> = [
+  { value: "open",    label: "Open" },
+  { value: "on_hold", label: "On Hold" },
+  { value: "active",  label: "Mark Active" },
+  { value: "review",  label: "Review" },
+  { value: "close",   label: "Close" },
+  { value: "reopen",  label: "Reopen" },
+];
+
+function buildZohoTaskUrl(zohoProjectId: string, zohoTaskId: string): string {
+  const portalName = process.env.NEXT_PUBLIC_ZOHO_PORTAL_NAME ?? "";
+  if (!portalName) return "";
+  return `https://projects.zoho.com/portal/${portalName}/project/${zohoProjectId}/tasks/all/task/${zohoTaskId}/`;
+}
 
 /* ── Badge/chip components ────────────────────────────────────────────────── */
 
@@ -157,7 +177,7 @@ function TaskRow({
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        setState(prev => ({ ...prev, loading: false, result: null, error: err.error ?? "Assessment failed" }));
+        setState(prev => ({ ...prev, loading: false, result: null, error: (err as { error?: string }).error ?? "Assessment failed" }));
         return;
       }
       const data: RequirementsAssessmentRow = await res.json();
@@ -217,12 +237,28 @@ function TaskRow({
 
 function PlanResult({
   plan,
+  zohoProjectId,
   onAction,
+  onPmAction,
   actionLoading,
+  record,
+  execution,
+  isPaused,
+  onExecuted,
+  replyDraft,
+  onReplyUpdate,
 }: {
   plan: ImplementationPlanRow;
+  zohoProjectId: string | undefined;
   onAction: (action: "approve" | "reject", reason?: string) => Promise<void>;
+  onPmAction: (action: PmAction) => Promise<void>;
   actionLoading: boolean;
+  record: ClassificationRecordRow;
+  execution: ExecutionRecordRow | null;
+  isPaused: boolean;
+  onExecuted: (e: ExecutionRecordRow) => void;
+  replyDraft: ReplyDraftRow | null;
+  onReplyUpdate: (d: ReplyDraftRow) => void;
 }) {
   const steps = (plan.steps as Array<{ order: number; title: string; description: string; estimated_hours?: number }>) ?? [];
   const affectedFiles = (plan.affected_files as string[]) ?? [];
@@ -241,6 +277,10 @@ function PlanResult({
     await onAction("reject", rejectionReason);
     setShowReject(false);
   }
+
+  const zohoUrl = plan.zoho_task_id && zohoProjectId
+    ? buildZohoTaskUrl(zohoProjectId, plan.zoho_task_id)
+    : "";
 
   return (
     <div className="mt-3 px-4 py-3.5 bg-black/3 rounded-[10px] border border-black/7">
@@ -349,6 +389,293 @@ function PlanResult({
           </button>
         </div>
       )}
+
+      {plan.status === "APPROVED" && (
+        <div className="mt-2 flex flex-col gap-1.5">
+          {plan.direct_zoho_edit && (
+            <span className="text-[11px] text-orange-600 font-medium">
+              ⚠ Modified directly in Zoho
+            </span>
+          )}
+          {zohoUrl && (
+            <a
+              href={zohoUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-[11px] text-blue-600 hover:underline w-fit"
+            >
+              <ExternalLink size={11} />
+              Open in Zoho
+            </a>
+          )}
+          <div className="flex gap-1 flex-wrap mt-0.5">
+            {PM_ACTIONS.map(({ value, label }) => (
+              <button
+                key={value}
+                onClick={() => onPmAction(value)}
+                disabled={actionLoading}
+                className="px-2 py-0.5 text-[10px] font-medium rounded border border-black/12 text-gray-600 hover:bg-black/4 disabled:opacity-40 cursor-pointer"
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <ExecutionSection
+        plan={plan}
+        execution={execution}
+        classificationId={record.id}
+        customerId={record.customer_id}
+        isPaused={isPaused}
+        onExecuted={onExecuted}
+      />
+
+      <ReplyDraftSection
+        key={replyDraft?.id ?? "no-draft"}
+        draft={replyDraft}
+        onUpdate={onReplyUpdate}
+      />
+    </div>
+  );
+}
+
+/* ── Execution section ───────────────────────────────────────────────────── */
+
+function ExecutionSection({
+  plan,
+  execution,
+  classificationId,
+  customerId,
+  isPaused,
+  onExecuted,
+}: {
+  plan: ImplementationPlanRow;
+  execution: ExecutionRecordRow | null;
+  classificationId: string;
+  customerId: string;
+  isPaused: boolean;
+  onExecuted: (execution: ExecutionRecordRow) => void;
+}) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleExecute() {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/execution", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ planId: plan.id, customerId, classificationId }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "Execution failed");
+      } else {
+        const supabase = createClient();
+        const { data: exec } = await supabase
+          .from("execution_records")
+          .select("*")
+          .eq("id", data.executionId)
+          .single();
+        if (exec) onExecuted(exec as ExecutionRecordRow);
+      }
+    } catch {
+      setError("Network error");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleRevert() {
+    if (!execution) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/execution/${execution.id}/revert`, { method: "POST" });
+      if (res.ok) {
+        onExecuted({ ...execution, status: "REVERTED" });
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setError((data as { error?: string }).error ?? "Revert failed");
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const statusColorClass: Record<string, string> = {
+    RUNNING: "text-blue-600",
+    COMPLETED: "text-green-600",
+    PARTIAL_EXECUTION: "text-yellow-700",
+    FAILED: "text-red-600",
+    REVERTED: "text-slate-400",
+  };
+
+  return (
+    <div className="mt-4 border-t border-black/5 pt-4">
+      <div className="text-[12px] font-semibold text-slate-700 mb-2">Execution</div>
+
+      {!execution && plan.status === "APPROVED" && (
+        <button
+          onClick={handleExecute}
+          disabled={loading || isPaused}
+          className={cn(
+            "px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors",
+            isPaused
+              ? "bg-slate-100 text-slate-400 cursor-not-allowed"
+              : "bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+          )}
+        >
+          {loading ? "Executing…" : isPaused ? "Automation Paused" : "Execute Plan"}
+        </button>
+      )}
+
+      {execution && (
+        <div className="space-y-1.5">
+          <div
+            className={cn(
+              "text-[12px] font-semibold",
+              statusColorClass[execution.status] ?? "text-slate-600"
+            )}
+          >
+            {execution.status === "RUNNING"
+              ? "⏳ Running…"
+              : execution.status.replace(/_/g, " ")}
+          </div>
+          {execution.what_was_done && (
+            <p className="text-[12px] text-slate-600">{execution.what_was_done}</p>
+          )}
+          {execution.what_was_skipped && (
+            <p className="text-[12px] text-slate-400">
+              Skipped: {execution.what_was_skipped}
+            </p>
+          )}
+          {execution.error_message && (
+            <p className="text-[12px] text-red-600">{execution.error_message}</p>
+          )}
+          {["COMPLETED", "PARTIAL_EXECUTION"].includes(execution.status) && (
+            <button
+              onClick={handleRevert}
+              disabled={loading}
+              className="px-3 py-1.5 rounded-lg text-[12px] font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 disabled:opacity-50 transition-colors"
+            >
+              {loading ? "Reverting…" : "Revert"}
+            </button>
+          )}
+        </div>
+      )}
+
+      {error && <p className="mt-1.5 text-[12px] text-red-600">{error}</p>}
+    </div>
+  );
+}
+
+/* ── Reply draft section ─────────────────────────────────────────────────── */
+
+function ReplyDraftSection({
+  draft,
+  onUpdate,
+}: {
+  draft: ReplyDraftRow | null;
+  onUpdate: (d: ReplyDraftRow) => void;
+}) {
+  const [content, setContent] = useState(draft?.draft_content ?? "");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  if (!draft || draft.status === "DISCARDED") return null;
+
+  const isSent = draft.status === "SENT";
+
+  async function handleSend() {
+    if (!draft) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/reply/${draft.id}/send`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setError((data as { error?: string }).error ?? "Send failed");
+      } else {
+        onUpdate({
+          ...draft,
+          status: "SENT",
+          pm_edited_content: content !== draft.draft_content ? content : null,
+        });
+      }
+    } catch {
+      setError("Network error");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleDiscard() {
+    if (!draft) return;
+    setLoading(true);
+    try {
+      await fetch(`/api/reply/${draft.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "DISCARDED" }),
+      });
+      onUpdate({ ...draft, status: "DISCARDED" });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="mt-4 border-t border-black/5 pt-4">
+      <div className="flex items-center gap-2 mb-2">
+        <span className="text-[12px] font-semibold text-slate-700">Reply Draft</span>
+        <span
+          className={cn(
+            "text-[11px] font-medium",
+            isSent ? "text-green-600" : "text-blue-600"
+          )}
+        >
+          {draft.status}
+        </span>
+      </div>
+
+      <textarea
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
+        disabled={isSent}
+        rows={4}
+        className={cn(
+          "w-full text-[12px] text-slate-700 border border-black/10 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-blue-500/40",
+          isSent && "bg-slate-50 text-slate-400 cursor-default"
+        )}
+      />
+
+      {!isSent && (
+        <div className="flex gap-2 mt-2">
+          <button
+            onClick={handleSend}
+            disabled={loading || !content.trim()}
+            className="px-3 py-1.5 rounded-lg text-[12px] font-medium bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 transition-colors"
+          >
+            {loading ? "Sending…" : "Send via Cliq"}
+          </button>
+          <button
+            onClick={handleDiscard}
+            disabled={loading}
+            className="px-3 py-1.5 rounded-lg text-[12px] font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 disabled:opacity-50 transition-colors"
+          >
+            Discard
+          </button>
+        </div>
+      )}
+
+      {error && <p className="mt-1.5 text-[12px] text-red-600">{error}</p>}
     </div>
   );
 }
@@ -360,11 +687,23 @@ function PlanRow({
   existingAssessment,
   existingPlan,
   onPlanRejected,
+  zohoProjectId,
+  execution,
+  isPaused,
+  onExecuted,
+  replyDraft,
+  onReplyUpdate,
 }: {
   record: ClassificationRecordRow;
   existingAssessment: RequirementsAssessmentRow;
   existingPlan: ImplementationPlanRow | null;
   onPlanRejected: (classificationId: string) => void;
+  zohoProjectId: string | undefined;
+  execution: ExecutionRecordRow | null;
+  isPaused: boolean;
+  onExecuted: (e: ExecutionRecordRow) => void;
+  replyDraft: ReplyDraftRow | null;
+  onReplyUpdate: (d: ReplyDraftRow) => void;
 }) {
   const [state, setState] = useState<PlanState>({
     loading: false,
@@ -388,7 +727,7 @@ function PlanRow({
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        setState(prev => ({ ...prev, loading: false, error: err.error ?? "Plan generation failed" }));
+        setState(prev => ({ ...prev, loading: false, error: (err as { error?: string }).error ?? "Plan generation failed" }));
         return;
       }
       const data: ImplementationPlanRow = await res.json();
@@ -410,14 +749,19 @@ function PlanRow({
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        setState(prev => ({ ...prev, actionLoading: false, error: err.error ?? "Action failed" }));
+        setState(prev => ({ ...prev, actionLoading: false, error: (err as { error?: string }).error ?? "Action failed" }));
         return;
       }
       if (action === "approve") {
+        const responseData = await res.json() as { ok: boolean; zohoTaskId: string | null };
         setState(prev => ({
           ...prev,
           actionLoading: false,
-          result: prev.result ? { ...prev.result, status: "APPROVED" } : null,
+          result: prev.result ? {
+            ...prev.result,
+            status: "APPROVED",
+            zoho_task_id: responseData.zohoTaskId ?? prev.result.zoho_task_id,
+          } : null,
         }));
       } else {
         setState(prev => ({ ...prev, actionLoading: false, result: null }));
@@ -427,6 +771,19 @@ function PlanRow({
       setState(prev => ({ ...prev, actionLoading: false, error: err instanceof Error ? err.message : "Network error" }));
     }
   }, [state.result, record.id, onPlanRejected]);
+
+  const handlePmAction = useCallback(async (action: PmAction) => {
+    setState(prev => ({ ...prev, actionLoading: true }));
+    try {
+      await fetch("/api/zoho", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ classificationId: record.id, action }),
+      });
+    } finally {
+      setState(prev => ({ ...prev, actionLoading: false }));
+    }
+  }, [record.id]);
 
   return (
     <div className="bg-white rounded-xl border border-black/8 px-4 py-3.5 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
@@ -473,8 +830,16 @@ function PlanRow({
       {state.result && expanded && (
         <PlanResult
           plan={state.result}
+          zohoProjectId={zohoProjectId}
           onAction={handleAction}
+          onPmAction={handlePmAction}
           actionLoading={state.actionLoading}
+          record={record}
+          execution={execution}
+          isPaused={isPaused}
+          onExecuted={onExecuted}
+          replyDraft={replyDraft}
+          onReplyUpdate={onReplyUpdate}
         />
       )}
     </div>
@@ -487,6 +852,10 @@ export default function OrchestrationPage() {
   const [tasks, setTasks] = useState<ClassificationRecordRow[]>([]);
   const [assessments, setAssessments] = useState<Record<string, RequirementsAssessmentRow>>({});
   const [plans, setPlans] = useState<Record<string, ImplementationPlanRow>>({});
+  const [executions, setExecutions] = useState<Record<string, ExecutionRecordRow>>({});
+  const [customerPaused, setCustomerPaused] = useState<Record<string, boolean>>({});
+  const [replyDrafts, setReplyDrafts] = useState<Record<string, ReplyDraftRow>>({});
+  const [zohoProjects, setZohoProjects] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -494,7 +863,7 @@ export default function OrchestrationPage() {
     let cancelled = false;
 
     async function load() {
-      const [tasksResult, assessmentsResult, plansResult] = await Promise.all([
+      const [tasksResult, assessmentsResult, plansResult, zohoProjectsResult, executionsResult, pausedResult, replyDraftsResult] = await Promise.all([
         supabase
           .from("classification_records")
           .select("*")
@@ -509,6 +878,23 @@ export default function OrchestrationPage() {
         supabase
           .from("implementation_plans")
           .select("*")
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("customer_products")
+          .select("customer_id, zoho_project_id")
+          .not("zoho_project_id", "is", null),
+        supabase
+          .from("execution_records")
+          .select("*")
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("customers")
+          .select("customer_id, automation_paused")
+          .eq("automation_paused", true),
+        supabase
+          .from("reply_drafts")
+          .select("*")
+          .in("status", ["DRAFT", "SENT"])
           .order("created_at", { ascending: false }),
       ]);
 
@@ -534,6 +920,39 @@ export default function OrchestrationPage() {
         }
       }
       setPlans(latestByAssessment);
+
+      const latestByPlan: Record<string, ExecutionRecordRow> = {};
+      for (const e of (executionsResult.data ?? []) as ExecutionRecordRow[]) {
+        if (!latestByPlan[e.plan_id]) latestByPlan[e.plan_id] = e;
+      }
+      setExecutions(latestByPlan);
+
+      const paused: Record<string, boolean> = {};
+      for (const c of (pausedResult.data ?? []) as Array<{
+        customer_id: string;
+        automation_paused: boolean;
+      }>) {
+        paused[c.customer_id] = true;
+      }
+      setCustomerPaused(paused);
+
+      const latestDraftByClassification: Record<string, ReplyDraftRow> = {};
+      for (const d of (replyDraftsResult.data ?? []) as ReplyDraftRow[]) {
+        if (!latestDraftByClassification[d.classification_id]) {
+          latestDraftByClassification[d.classification_id] = d;
+        }
+      }
+      setReplyDrafts(latestDraftByClassification);
+
+      // Build customer_id → zoho_project_id map (first project per customer)
+      const projectMap: Record<string, string> = {};
+      for (const p of (zohoProjectsResult.data ?? []) as Array<{ customer_id: string; zoho_project_id: string | null }>) {
+        if (p.zoho_project_id && !projectMap[p.customer_id]) {
+          projectMap[p.customer_id] = p.zoho_project_id;
+        }
+      }
+      setZohoProjects(projectMap);
+
       setLoading(false);
     }
 
@@ -561,14 +980,22 @@ export default function OrchestrationPage() {
   }, []);
 
   return (
-    <div className="max-w-[780px] mx-auto px-6 py-7">
+    <div className="max-w-195 mx-auto px-6 py-7">
+
+      {Object.keys(customerPaused).length > 0 && (
+        <div className="mb-4 px-4 py-3 bg-yellow-50 border border-yellow-200 rounded-xl text-yellow-800 text-[13px]">
+          ⚠️ Automation paused for{" "}
+          <span className="font-mono">{Object.keys(customerPaused).join(", ")}</span>
+          {" "}— 3 consecutive execution failures. Reset via customer settings.
+        </div>
+      )}
 
       {/* ── Requirements Assessment section ─────────────────────────── */}
       <div className="mb-6">
         <div className="text-lg font-bold text-slate-900 tracking-[-0.02em]">
           Requirements Assessment
         </div>
-        <div className="text-[11px] text-slate-400 mt-[3px]">
+        <div className="text-[11px] text-slate-400 mt-0.75">
           LLM-eligible classified tasks · Claude Sonnet · M3
         </div>
       </div>
@@ -608,7 +1035,7 @@ export default function OrchestrationPage() {
             <div className="text-lg font-bold text-slate-900 tracking-[-0.02em]">
               Plan Generation
             </div>
-            <div className="text-[11px] text-slate-400 mt-[3px]">
+            <div className="text-[11px] text-slate-400 mt-0.75">
               CLEAR-assessed tasks · Claude Sonnet · M5
             </div>
           </div>
@@ -633,6 +1060,16 @@ export default function OrchestrationPage() {
                     existingAssessment={assessment}
                     existingPlan={plan}
                     onPlanRejected={handlePlanRejected}
+                    zohoProjectId={zohoProjects[task.customer_id]}
+                    execution={plan ? (executions[plan.id] ?? null) : null}
+                    isPaused={customerPaused[task.customer_id] ?? false}
+                    onExecuted={(exec) =>
+                      setExecutions((prev) => ({ ...prev, [exec.plan_id]: exec }))
+                    }
+                    replyDraft={replyDrafts[task.id] ?? null}
+                    onReplyUpdate={(d) =>
+                      setReplyDrafts((prev) => ({ ...prev, [d.classification_id]: d }))
+                    }
                   />
                 );
               })}

@@ -33,6 +33,8 @@ See `env.example` for all required vars. Key ones:
 - `ANTHROPIC_API_KEY` — server-only (for direct SDK calls)
 - `OPENAI_API_KEY` — server-only (if switching any layer to OpenAI)
 - `VERCEL_AI_GATEWAY_URL`, `VERCEL_AI_GATEWAY_TOKEN` — optional proxy for caching + unified billing; `llm_invocation_logs` in Supabase is the source of truth for per-customer cost attribution
+- `ZOHO_PORTAL_ID` — numeric Zoho Projects portal ID for API calls (server-only)
+- `NEXT_PUBLIC_ZOHO_PORTAL_NAME` — Zoho portal name/slug for client-side URL construction (`projects.zoho.com/portal/{name}/`)
 
 ## Route Group Architecture
 
@@ -101,7 +103,7 @@ src/
       context-chain.ts  buildContextChain(classificationId) — assembles customer+task context string for Sonnet prompts (Sprint 3+)
       assess.ts         assessTask({ classificationId, customerId }) — Sonnet, CLEAR/PARTIAL/BLOCKED subtask breakdown, inserts to requirements_assessments
       digest.ts         generateDigest(type) — Haiku, compiles PM/Dev digest from live DB data, inserts to digest_logs
-    zoho/               Sprint 2+
+    zoho/               Sprint 2+; `syncTaskToZoho(input)` creates Zoho task on plan approval; `updateZohoTaskStatus()` for close/reopen sync; `createZohoProject()` for onboarding; `sendCliqNotification()` for Cliq alerts
     sanity/             Stub — Sprint 5+
     github/             Stub — Sprint 5+
     utils.ts            cn(), formatDate(), formatRelativeTime(), truncate()
@@ -120,8 +122,8 @@ src/
 supabase/
   migrations/           Applied in order; 005 adds onboarding storage bucket + policies; 007 adds hub_users table + auto-insert trigger; 011 adds raw_response to requirements_assessments; 012 enables pg_cron + pg_net for daily digest
 _docs/
-  plan/                 Sprint plan + COO/CTO spec docs
-  task/                 Task documents (001–NNN format)
+  plan/                 Sprint plan + COO/CTO spec docs + design documents
+  task/                 Task documents (001–NNN format) — superpowers `/task` skill outputs go here, NOT in `docs/`
 ```
 
 ## Onboarding Form Architecture
@@ -140,6 +142,10 @@ When adding a new product form: add a section array in `onboarding-schemas.ts`, 
 - **`llm_eligible` is a 3-state TEXT**: `YES | NO | HUMAN_ONLY` — not a boolean. HUMAN_ONLY = never enters automation pipeline.
 - **Task priority casing**: `CRITICAL | HIGH | NORMAL | LOW` (uppercase, NORMAL not MEDIUM).
 - **Plan status**: `PENDING_APPROVAL | APPROVED | REJECTED | EXECUTING | COMPLETE | FAILED` (uppercase).
+- **`implementation_plans.zoho_task_id`** — set automatically on plan approval when Zoho is configured; used for Zoho deep links and bidirectional status sync.
+- **`implementation_plans.direct_zoho_edit`** — set `true` by the inbound webhook when Zoho sends a status change on a plan we pushed; shows a warning in the orchestration UI.
+- **`classification_records.status`** includes pipeline values (`pending`, `planning`, `approved`) and PM action values (`open`, `on_hold`, `active`, `review`, `closed`) — migration 013 expanded the constraint.
+- **Zoho task push is non-blocking** — Zoho failure on plan approval does not fail the approve action; `zoho_task_id` stays `null` if Zoho is unconfigured or the push fails.
 - **Playbook status**: `ACTIVE | STALE | ARCHIVED`.
 - **Supabase server client** = `createClient()` from `@/lib/supabase/server` (async, uses `cookies()`)
 - **Supabase browser client** = `createClient()` from `@/lib/supabase/client` (singleton)
@@ -171,6 +177,8 @@ When adding a new product form: add a section array in `onboarding-schemas.ts`, 
 - Never use the old `middleware.ts` convention — Next.js 16 requires `proxy.ts` with exported `proxy` function
 - Never run `pnpm build` without the `--webpack` flag — it is baked into the `build` script but do not remove it
 - **Never run git commands** (`git add`, `git commit`, `git push`, `git reset`, etc.) — the user manages all version control manually
+- **Never use Claude Opus** — use `claude-sonnet-4-6` for all deep reasoning, complex tasks, planning, and orchestration. Haiku for fast/cheap layers. Opus is off-limits.
+- **Task docs belong in `_docs/task/`** — superpowers skills (`/task`, `/implement`, writing-plans) must write task documents to `_docs/task/NNN-name.md`, never to `docs/`. Design/spec artifacts go to `_docs/plan/`.
 
 ## Sprint Plan
 Phase 0 (done): Infrastructure

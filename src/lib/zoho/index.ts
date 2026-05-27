@@ -1,4 +1,5 @@
-// Zoho API client — Sprint 2 (M2, M7 partial)
+// Zoho API client — Sprint 2 (M2), Sprint 4 (M7)
+import { adminClient } from "@/lib/supabase/admin";
 
 export async function getZohoAccessToken(): Promise<string> {
   const clientId = process.env.ZOHO_CLIENT_ID;
@@ -65,9 +66,92 @@ export async function createZohoProject(customerId: string, projectName: string)
   return (json?.projects?.[0]?.id_string as string) ?? "";
 }
 
-// Sprint 4 — not yet implemented
-export async function syncTaskToZoho(_taskId: string): Promise<void> {
-  throw new Error("Zoho task sync not yet implemented — Sprint 4");
+type SyncTaskInput = {
+  customerId: string;
+  title: string;
+  description: string;
+};
+
+export async function syncTaskToZoho(input: SyncTaskInput): Promise<string> {
+  const portalId = process.env.ZOHO_PORTAL_ID;
+  if (!portalId) {
+    console.warn("[zoho] ZOHO_PORTAL_ID not configured — skipping task sync for", input.customerId);
+    return "";
+  }
+
+  // adminClient used for reads — this function runs server-side only (no user session in API routes)
+  const { data: product } = await adminClient
+    .from("customer_products")
+    .select("zoho_project_id")
+    .eq("customer_id", input.customerId)
+    .not("zoho_project_id", "is", null)
+    .limit(1)
+    .maybeSingle();
+
+  if (!product?.zoho_project_id) {
+    console.warn("[zoho] no zoho_project_id for customer", input.customerId);
+    return "";
+  }
+
+  const token = await getZohoAccessToken();
+  if (!token) return "";
+
+  const body = new URLSearchParams({ name: input.title });
+  if (input.description) body.set("description", input.description);
+
+  const res = await fetch(
+    `https://projectsapi.zoho.com/restapi/portal/${portalId}/projects/${product.zoho_project_id}/tasks/`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Zoho-oauthtoken ${token}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: body.toString(),
+    }
+  );
+
+  if (!res.ok) {
+    console.error("[zoho] task creation failed:", res.status, await res.text());
+    return "";
+  }
+
+  const json = await res.json();
+  return (json?.tasks?.[0]?.id_string as string) ?? "";
+}
+
+// Close (completed=true) or reopen (completed=false) a Zoho task
+export async function updateZohoTaskStatus(
+  zohoProjectId: string,
+  zohoTaskId: string,
+  completed: boolean
+): Promise<boolean> {
+  const portalId = process.env.ZOHO_PORTAL_ID;
+  if (!portalId) return false;
+
+  const token = await getZohoAccessToken();
+  if (!token) return false;
+
+  const body = new URLSearchParams({ completed: completed ? "true" : "false" });
+
+  const res = await fetch(
+    `https://projectsapi.zoho.com/restapi/portal/${portalId}/projects/${zohoProjectId}/tasks/${zohoTaskId}/`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Zoho-oauthtoken ${token}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: body.toString(),
+    }
+  );
+
+  if (!res.ok) {
+    console.error("[zoho] task status update failed:", res.status, await res.text());
+    return false;
+  }
+
+  return true;
 }
 
 export async function sendCliqNotification(

@@ -55,11 +55,13 @@ Three remaining Sprint 2 UI wire-ups — all read from `classification_records`,
 
 ## Code Context
 
-### `src/app/(hub)/pm/page.tsx` — existing `fetchClassificationData` (lines 48–73)
+### `src/app/(hub)/pm/page.tsx` — current `fetchClassificationData`
+
+Four parallel queries in a single `Promise.all`. Also includes digest fetch and `clarificationNeededCount` from `requirements_assessments`.
 
 ```ts
 async function fetchClassificationData() {
-  const [countResult, itemsResult] = await Promise.all([
+  const [countResult, itemsResult, openResult, pipelineResult] = await Promise.all([
     supabase
       .from("classification_records")
       .select("*", { count: "exact", head: true })
@@ -71,67 +73,42 @@ async function fetchClassificationData() {
       .in("priority", ["CRITICAL", "HIGH"])
       .order("created_at", { ascending: false })
       .limit(4),
+    supabase
+      .from("classification_records")
+      .select("*", { count: "exact", head: true })
+      .neq("status", "rejected"),
+    supabase
+      .from("classification_records")
+      .select("*", { count: "exact", head: true })
+      .eq("llm_eligible", "YES")
+      .eq("status", "pending"),
   ]);
-
   if (!cancelled) {
     setPendingReviewCount(countResult.count ?? 0);
-    setClassificationAttentionItems(
-      (itemsResult.data ?? []) as ClassificationAttentionItem[]
-    );
+    setClassificationAttentionItems(...);
+    setOpenTasksCount(openResult.count ?? 0);
+    setInPipelineCount(pipelineResult.count ?? 0);
   }
 }
 ```
 
-**Extend this** — add two more parallel queries:
-```ts
-supabase
-  .from("classification_records")
-  .select("*", { count: "exact", head: true })
-  .neq("status", "rejected"),   // openTasksCount
+### `src/components/hub/pm-tabs/home-tab.tsx` — current stats
 
-supabase
-  .from("classification_records")
-  .select("*", { count: "exact", head: true })
-  .eq("llm_eligible", "YES")
-  .eq("status", "pending"),     // inPipelineCount
-```
-
-Then add state + props:
-```ts
-const [openTasksCount, setOpenTasksCount] = useState(0);
-const [inPipelineCount, setInPipelineCount] = useState(0);
-```
-
-Pass to `HomeTab`:
-```tsx
-<HomeTab
-  ...
-  openTasksCount={openTasksCount}
-  inPipelineCount={inPipelineCount}
-/>
-```
-
-### `src/components/hub/pm-tabs/home-tab.tsx` — hardcoded stats (lines 169–174)
+Uses `colorVar` CSS custom property keys instead of `c: C.*` token values (task 012 cleanup):
 
 ```ts
 const stats = [
-  { v: String(activeCount), l: "Active Clients", c: C.sky },
-  { v: "8", l: "Open Tasks", c: C.orange },        // ← replace "8"
-  { v: "3", l: "In Pipeline", c: C.violet },        // ← replace "3"
-  { v: String(pendingReviewCount), l: "Pending Review", c: C.amber },
+  { v: String(activeCount),        l: "Active Clients",  colorVar: "--c-sky"    },
+  { v: String(openTasksCount),     l: "Open Tasks",       colorVar: "--c-orange" },
+  { v: String(inPipelineCount),    l: "In Pipeline",      colorVar: "--c-violet" },
+  { v: String(pendingReviewCount), l: "Pending Review",   colorVar: "--c-amber"  },
 ];
 ```
 
-Add to `HomeTabProps`:
+`HomeTabProps` includes:
 ```ts
-openTasksCount?: number;
-inPipelineCount?: number;
-```
-
-Default both to `0` in the destructure. Replace in stats array:
-```ts
-{ v: String(openTasksCount), l: "Open Tasks", c: C.orange },
-{ v: String(inPipelineCount), l: "In Pipeline", c: C.violet },
+openTasksCount?: number;    // defaults to 0
+inPipelineCount?: number;   // defaults to 0
 ```
 
 ### `src/components/hub/pm-tabs/home-tab.tsx` — pipeline mini-bar (lines 194–200)
@@ -183,57 +160,104 @@ useEffect(() => {
 }, [customer.customer_id]);
 ```
 
-Display as a compact table (same `sectionCls` pattern as existing sections). Columns: Title, Type, Priority, Confidence, Status, Age.
-
-### `src/app/(hub)/pm/pipeline/page.tsx` — current stub
+Display as a compact table using the existing `sectionCls` and `sectionTitleCls` constants. Columns: Title, Type, Priority, Confidence, Status, Age.
 
 ```tsx
-"use client";
-import React from "react";
-import { usePMSettings } from "@/hooks/use-pm-settings";
-import { getTokens } from "@/components/hub/pm-tabs/shared";
-import PipelineTab from "@/components/hub/pm-tabs/pipeline-tab";
-
-export default function PMPipelinePage() {
-  const { settings } = usePMSettings();
-  const C = getTokens(settings);
-  return (
-    <div className="flex-1 overflow-y-auto py-[26px] px-8 bg-[var(--c-page-bg)]"
-      style={{ "--c-page-bg": C.bg } as React.CSSProperties}>
-      <PipelineTab settings={settings} />
+{/* Classifications */}
+<div className={sectionCls}>
+  <div className={sectionTitleCls}>Classifications ({classifications.length})</div>
+  {classifications.length === 0 ? (
+    <div className="text-[13px] text-slate-400 text-center py-6 bg-slate-50 rounded-lg border border-dashed border-slate-200">
+      No classification records yet.
     </div>
-  );
-}
+  ) : (
+    <table className="w-full border-collapse text-[12px]">
+      <thead>
+        <tr className="border-b border-slate-100">
+          {["Title", "Type", "Priority", "Confidence", "Status", "Age"].map(h => (
+            <th key={h} className="py-2 px-3 text-left text-[10px] font-bold text-slate-400 tracking-[0.06em] uppercase whitespace-nowrap">{h}</th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {classifications.map((c, i) => {
+          const priorityClass: Record<string, string> = {
+            CRITICAL: "text-red-700 bg-red-50",
+            HIGH:     "text-amber-700 bg-amber-50",
+            NORMAL:   "text-sky-700 bg-sky-50",
+            LOW:      "text-slate-500 bg-slate-50",
+          };
+          return (
+            <tr key={c.id} className={i < classifications.length - 1 ? "border-b border-slate-50" : ""}>
+              <td className="py-2.5 px-3 text-slate-800 font-medium max-w-60 truncate">{c.title}</td>
+              <td className="py-2.5 px-3 text-slate-500 whitespace-nowrap">{c.task_type?.replace(/_/g, " ") ?? "—"}</td>
+              <td className="py-2.5 px-3">
+                <span className={cn("text-[10px] font-bold rounded px-1.5 py-px", priorityClass[c.priority ?? ""] ?? "text-slate-500 bg-slate-50")}>
+                  {c.priority ?? "—"}
+                </span>
+              </td>
+              <td className="py-2.5 px-3 text-slate-500 font-mono">{c.confidence_score != null ? `${Math.round(Number(c.confidence_score))}%` : "—"}</td>
+              <td className="py-2.5 px-3">
+                <span className={cn("text-[10px] font-semibold rounded px-1.5 py-px",
+                  c.status === "reviewed" ? "text-green-700 bg-green-50" : "text-amber-700 bg-amber-50"
+                )}>{c.status}</span>
+              </td>
+              <td className="py-2.5 px-3 text-slate-400 whitespace-nowrap">{age}</td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  )}
+</div>
 ```
 
-Add a `useEffect` to fetch pending `classification_records` (with `customers(company_name)` join), pass `classifyItems` and `classifyCount` to `PipelineTab`.
+### `src/app/(hub)/pm/pipeline/page.tsx` — current implementation
 
-### `src/components/hub/pm-tabs/pipeline-tab.tsx` — current Classify stage items (lines 32–52)
+Fetches both `classifyItems` (classification_records not yet assessed) and `assessItems` (those with a `requirements_assessments` row) in a single `Promise.all`. Items that have been assessed move from the Classify column to the Assess column.
 
-```ts
-const stages = [
-  { k: "classify", l: "Classify", color: C.violet, items: [
-    { id: "T-0092", title: "New support ticket from Acme Corp", customer: "Acme Corp", t: "10m" },
-    { id: "T-0091", title: "Staging config request", customer: "Bright Labs", t: "1h" },
-  ]},
-  { k: "assess", l: "Assess", color: C.sky, items: [
-    { id: "T-0090", title: "Blog publishing broken on StackShift", customer: "Acme Corp", status: "CLEAR" },
-    // ...
-  ]},
-  // ...
-];
+```tsx
+const [classifyItems, setClassifyItems] = useState<PipelineItem[]>([]);
+const [assessItems, setAssessItems] = useState<PipelineItem[]>([]);
+
+useEffect(() => {
+  // Fetches classification_records with statuses: pending/reviewed/planning/planned/approved
+  // + requirements_assessments to split into classify vs assess columns
+  const [recordsResult, assessmentsResult] = await Promise.all([...]);
+  const assessedIds = new Set(assessmentsResult.data.map(a => a.classification_id));
+  setClassifyItems(records.filter(r => !assessedIds.has(r.id)).map(toItem));
+  setAssessItems(records.filter(r => assessedIds.has(r.id)).map(toItem));
+}, []);
+
+return (
+  <div className={`flex-1 overflow-y-auto py-6.5 px-8 ...`}>
+    <PipelineTab settings={settings} classifyItems={classifyItems} assessItems={assessItems} />
+  </div>
+);
 ```
 
-Accept new props:
+### `src/components/hub/pm-tabs/pipeline-tab.tsx` — current implementation
+
+Uses CSS custom property vars (not `C.*` tokens) for stage colors. Accepts `classifyItems` and `assessItems` props — both wired to live data. Plan/Execute/Reply show "Sprint 4+" placeholder.
+
 ```ts
 interface Props {
   settings: PMSettings;
-  classifyItems?: { id: string; title: string; customer: string; t: string }[];
-  classifyCount?: number;
+  classifyItems?: PipelineItem[];
+  assessItems?: PipelineItem[];
 }
+
+const stages = [
+  { k: "classify", l: "Classify", colorVar: "--c-violet", ..., items: classifyItems },
+  { k: "assess",   l: "Assess",   colorVar: "--c-sky",    ..., items: assessItems },
+  { k: "plan",     l: "Plan",     colorVar: "--c-blue",   ..., items: [], sprint3: true },
+  { k: "execute",  l: "Execute",  colorVar: "--c-orange", ..., items: [], sprint3: true },
+  { k: "reply",    l: "Reply",    colorVar: "--c-green",  ..., items: [], sprint3: true },
+];
+// sprint3 stages show: <div className="...">Sprint 4+</div>
 ```
 
-Replace hardcoded Classify items with `classifyItems ?? []`. Set all other stage items to `[]`. Add a note in the empty stage cards: "Sprint 3+" placeholder text.
+Note: the "Sprint 3+" label in the original spec became "Sprint 4+" in the actual implementation.
 
 ---
 

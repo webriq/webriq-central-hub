@@ -76,48 +76,46 @@ export default function ClassificationPage() {
 }
 ```
 
-### `src/app/api/webhooks/route.ts` — current stub
+### `src/app/api/webhooks/route.ts` — current implementation
+
+Full implementation. Handles JSON and form-encoded bodies. Optional HMAC signature validation (`ZOHO_WEBHOOK_SECRET`). Detects source (`zoho_desk` vs `zoho_projects`) from payload shape. For Zoho Projects, resolves `customer_id` via `customer_products.zoho_project_id`. Intercepts Zoho task status-update events (has `zoho_task_id` + `completed` field) and patches `implementation_plans` before returning — does not classify status events. Calls `classifyTask()` directly (imported from `@/lib/ai/classify`) rather than HTTP self-call.
 
 ```ts
-import { NextRequest, NextResponse } from "next/server";
+import { classifyTask } from "@/lib/ai/classify";
+// ...
+await classifyTask({ customerId, title, description, source, zoho_ticket_id, zoho_task_id });
+return NextResponse.json({ received: true });
+```
+
+Note: `zoho_account_id` column was removed — Zoho Desk → customer_id linking always returns `null` in current code.
+
+### `src/app/api/classification/route.ts` — current implementation
+
+Thin HTTP wrapper around `classifyTask()` from `@/lib/ai/classify`. The Haiku call, DB insert, and `logLLMInvocation` call are all inside `classifyTask` — the route just validates input and delegates.
+
+```ts
+import { classifyTask } from "@/lib/ai/classify";
+
 export async function POST(req: NextRequest) {
-  const body = await req.json().catch(() => null);
-  console.log("[webhook] received payload", body);
-  return NextResponse.json({ received: true });
+  const { customerId, title, source, ...rest } = await req.json();
+  if (!customerId || !title || !source)
+    return NextResponse.json({ error: "..." }, { status: 400 });
+  const record = await classifyTask({ customerId, title, source, ...rest });
+  if (!record) return NextResponse.json({ error: "Classification failed" }, { status: 500 });
+  return NextResponse.json(record, { status: 201 });
 }
 ```
 
-Zoho Desk sends:
-```json
-{ "ticketId": "...", "subject": "...", "description": "...", "accountId": "..." }
-```
-Zoho Projects sends:
-```json
-{ "taskId": "...", "taskName": "...", "description": "...", "projectId": "..." }
-```
-The webhook must map `accountId` / `projectId` to `customer_id` via a Supabase lookup (`customers.zoho_account_id` for Desk, `customer_products.zoho_project_id` for Projects).
+### `src/lib/zoho/index.ts` — current implementation
 
-### `src/app/api/classification/route.ts` — current stub
+All functions implemented. `sendCliqNotification` accepts an optional `channel: "pm" | "dev"` param (defaults to `"pm"`), reads `ZOHO_CLIQ_WEBHOOK_URL` or `ZOHO_CLIQ_DEV_WEBHOOK_URL`, and appends `?zapikey=${ZOHO_CLIQ_WEBHOOK_TOKEN}`. Returns silently if env vars absent.
 
 ```ts
-import { NextResponse } from "next/server";
-export async function POST() {
-  return NextResponse.json({ message: "Classification engine — Sprint 2" }, { status: 501 });
-}
-```
-
-### `src/lib/zoho/index.ts` — current stubs
-
-```ts
-export async function getZohoAccessToken(): Promise<string> {
-  throw new Error("Zoho client not yet implemented — Sprint 2");
-}
-export async function createZohoProject(_customerId: string): Promise<string> {
-  throw new Error("Zoho project creation not yet implemented — Sprint 2");
-}
-export async function syncTaskToZoho(_taskId: string): Promise<void> {
-  throw new Error("Zoho task sync not yet implemented — Sprint 4");
-}
+export async function getZohoAccessToken(): Promise<string> { /* exchanges refresh token */ }
+export async function createZohoProject(customerId: string, projectName: string): Promise<string> { /* creates project, returns id_string */ }
+export async function syncTaskToZoho(input: SyncTaskInput): Promise<string> { /* creates Zoho task */ }
+export async function updateZohoTaskStatus(zohoProjectId, zohoTaskId, completed): Promise<boolean> { /* close/reopen */ }
+export async function sendCliqNotification(message: string, channel: "pm" | "dev" = "pm"): Promise<void> { /* Cliq POST */ }
 ```
 
 ### `src/lib/ai/model-config.ts` — how to get the Haiku model
@@ -208,39 +206,34 @@ The modal should be an inline component in `tasks-tab.tsx` (not a separate file 
 - `PATCH /api/classification/[id]` (create this endpoint) with `{ task_type, priority, llm_eligible, reviewed_by: userId }`
 - Supabase updates `status = 'reviewed'`, `reviewed_at = now()`
 
-### `src/app/(hub)/pm/tasks/page.tsx` — current (extend with data fetch)
+### `src/app/(hub)/pm/tasks/page.tsx` — current implementation
+
+Fetches `classification_records` (with `customers(company_name)` join), subscribes to realtime `*` events on `classification_records`, and fetches `zohoProjectMap` (customer_id → zoho_project_id) for external Zoho link rendering. Passes `tasks` and `zohoProjectMap` to `TasksTab`.
 
 ```tsx
-"use client";
-import React from "react";
-import { usePMSettings } from "@/hooks/use-pm-settings";
-import { getTokens } from "@/components/hub/pm-tabs/shared";
-import TasksTab from "@/components/hub/pm-tabs/tasks-tab";
-
-export default function PMTasksPage() {
-  const { settings } = usePMSettings();
-  const C = getTokens(settings);
-  return (
-    <div className="flex-1 overflow-y-auto py-[26px] px-8 bg-[var(--c-page-bg)]"
-      style={{ "--c-page-bg": C.bg } as React.CSSProperties}>
-      <TasksTab settings={settings} />
-    </div>
-  );
-}
+const [tasks, setTasks] = useState<ClassificationRow[]>([]);
+const [zohoProjectMap, setZohoProjectMap] = useState<Record<string, string>>({});
+// fetch + realtime subscribe on mount
+return (
+  <div className={`flex-1 overflow-y-auto py-6.5 px-8 ${settings.theme === "dark" ? "bg-[#090c18]" : "bg-[#f5f4f1]"}`}>
+    <TasksTab settings={settings} tasks={tasks} zohoProjectMap={zohoProjectMap} />
+  </div>
+);
 ```
 
-Add a `useEffect` to fetch `classification_records` from Supabase (browser client) and pass the array to `TasksTab`. Subscribe to Supabase realtime `classification_records` channel for live updates (same pattern as `pm/page.tsx` which subscribes to `customer_products`).
-
-### Home tab — stat card count (home-tab.tsx line 162)
+### Home tab — stat card count (home-tab.tsx)
 
 ```ts
-// Change from:
-{ v: "2", l: "Pending Review", c: C.amber }
-// To: pass pendingReviewCount as prop, derive from classification_records
-{ v: String(pendingReviewCount), l: "Pending Review", c: C.amber }
+// Current stats array uses colorVar CSS custom property pattern:
+const stats = [
+  { v: String(activeCount),        l: "Active Clients",  colorVar: "--c-sky"    },
+  { v: String(openTasksCount),     l: "Open Tasks",       colorVar: "--c-orange" },
+  { v: String(inPipelineCount),    l: "In Pipeline",      colorVar: "--c-violet" },
+  { v: String(pendingReviewCount), l: "Pending Review",   colorVar: "--c-amber"  },
+];
 ```
 
-Fetch count from Supabase: `supabase.from("classification_records").select("id", { count: "exact", head: true }).eq("status", "pending")`
+Note: `c: C.amber` pattern from the original design was replaced with `colorVar: "--c-amber"` CSS custom property references (task 012 Tailwind cleanup).
 
 ---
 
@@ -271,12 +264,18 @@ Fetch count from Supabase: `supabase.from("classification_records").select("id",
 
 ### Step 2 — Zoho Cliq notification
 
-4. In `src/lib/zoho/index.ts`, add:
+4. In `src/lib/zoho/index.ts`, the implemented signature:
    ```ts
-   export async function sendCliqNotification(message: string): Promise<void> {
-     const url = process.env.ZOHO_CLIQ_WEBHOOK_URL;
-     if (!url) return; // blocked on O12 — no-op until configured
-     await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: message }) });
+   export async function sendCliqNotification(
+     message: string,
+     channel: "pm" | "dev" = "pm"
+   ): Promise<void> {
+     const webhookUrl = channel === "dev"
+       ? process.env.ZOHO_CLIQ_DEV_WEBHOOK_URL
+       : process.env.ZOHO_CLIQ_WEBHOOK_URL;
+     const token = process.env.ZOHO_CLIQ_WEBHOOK_TOKEN;
+     if (!webhookUrl || !token) return;
+     await fetch(`${webhookUrl}?zapikey=${token}`, { method: "POST", ... });
    }
    ```
 5. In `src/app/api/classification/route.ts`, after the DB insert, if `priority === 'CRITICAL' || priority === 'HIGH'`, call `sendCliqNotification()` with a human-readable summary (task title, customer, priority, classification ID)

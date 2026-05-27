@@ -56,51 +56,42 @@ Three focused improvements to the Hub shell and PM Home tab:
 
 ## Code Context
 
-### hub-sidebar.tsx — current navGroups (lines 24–50)
+### hub-sidebar.tsx — current navGroups (post-task 012, with exact flag + sub-routes)
 
 ```tsx
-const navGroups = [
+interface NavItem {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  exact?: boolean;
+}
+
+const navGroups: { section: string; items: NavItem[] }[] = [
   {
     section: "Main",
     items: [
-      { href: `${ROUTES.PM}?tab=home`, label: "Home", icon: LayoutDashboard },
-      { href: `${ROUTES.PM}?tab=customers`, label: "Clients", icon: Users },
-      { href: `${ROUTES.PM}?tab=tasks`, label: "Tasks", icon: ListChecks },
-      { href: `${ROUTES.PM}?tab=pipeline`, label: "Pipeline", icon: GitBranch },
+      { href: ROUTES.PM, label: "Home", icon: LayoutDashboard, exact: true },
+      { href: `${ROUTES.PM}/customers`, label: "Clients", icon: Users },
+      { href: `${ROUTES.PM}/tasks`, label: "Tasks", icon: ListChecks },
+      { href: `${ROUTES.PM}/pipeline`, label: "Pipeline", icon: GitBranch },
       { href: ROUTES.ORCHESTRATION, label: "AI Chat", icon: MessageSquare },
-    ],
-  },
-  {
-    section: "Developer",     // ← REMOVE THIS GROUP
-    items: [
-      { href: ROUTES.DEV, label: "My Dashboard", icon: Layout },
-      { href: "/timetrack", label: "Time Tracking", icon: Clock },
-    ],
-  },
-  {
-    section: "Admin",         // ← REMOVE THIS GROUP
-    items: [
-      { href: ROUTES.KB, label: "Knowledge Base", icon: BookOpen },
-      { href: "/reports", label: "Reports", icon: BarChart2 },
-      { href: "/settings", label: "Settings", icon: Settings },
     ],
   },
 ];
 ```
 
-After change: keep only the `Main` section. Remove unused lucide imports: `Layout`, `Clock`, `BookOpen`, `BarChart2`, `Settings` (if not used elsewhere in the file).
+Sidebar also has `HubSidebarProps` with `userEmail`, `userRole`, `userDisplayName`, `userZohoId`, and a `collapsed` state for a minimize toggle. Active logic: `item.exact ? pathname === item.href : pathname === item.href || pathname.startsWith(item.href + "/")`.
 
-### pm/page.tsx — wrapper divs to convert (lines 96–105)
+### pm/page.tsx — wrapper div (current)
 
 ```tsx
-// BEFORE
-<div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-  <div style={{ flex: 1, overflowY: "auto", background: C.bg, padding: "26px 32px" }}>
-
-// AFTER — structural only, keep background inline (C.bg is dynamic)
-<div className="flex flex-col flex-1 overflow-hidden">
-  <div className="flex-1 overflow-y-auto py-[26px] px-8" style={{ background: C.bg }}>
+// AFTER — theme-conditional Tailwind, no CSS var wrapper style={}
+<div
+  className={`flex-1 overflow-y-auto py-6.5 px-8 ${settings.theme === "dark" ? "bg-[#090c18]" : "bg-[#f5f4f1]"}`}
+>
 ```
+
+No `style={{ background: C.bg }}` — background is expressed directly as a conditional Tailwind arbitrary value.
 
 ### pm/page.tsx — add displayName fetch
 
@@ -125,9 +116,9 @@ useEffect(() => {
 }, []);
 ```
 
-Pass to HomeTab:
+Pass to HomeTab (pm/page.tsx renders HomeTab directly — no tab routing):
 ```tsx
-{activeTab === "home" && <HomeTab customers={customers} settings={settings} displayName={displayName} />}
+<HomeTab customers={customers} settings={settings} displayName={displayName} ... />
 ```
 
 ### home-tab.tsx — current hardcoded greeting (lines 53–55)
@@ -175,18 +166,25 @@ const SESSION_KEY = "hub_greeting_ts";
 
 ```tsx
 const [greetingVisible, setGreetingVisible] = useState(true);
-const [greetingText] = useState(() => `${pickGreeting(getTimeBucket())}, ${firstName} ✦`);
+// greetingPhrase is null on SSR/first render to prevent hydration mismatch
+const [greetingPhrase, setGreetingPhrase] = useState<string | null>(null);
 
 useEffect(() => {
+  // Deferred via setTimeout to avoid direct-setState-in-effect lint rule
+  const phraseTimer = setTimeout(() => setGreetingPhrase(pickGreeting(getTimeBucket())), 0);
+
   const now = Date.now();
   const stored = sessionStorage.getItem(SESSION_KEY);
   const shownAt = stored ? parseInt(stored, 10) : now;
   if (!stored) sessionStorage.setItem(SESSION_KEY, String(now));
   const remaining = FADE_DELAY_MS - (now - shownAt);
-  if (remaining <= 0) { setGreetingVisible(false); return; }
-  const timer = setTimeout(() => setGreetingVisible(false), remaining);
-  return () => clearTimeout(timer);
+  const fadeTimer = setTimeout(() => setGreetingVisible(false), remaining <= 0 ? 0 : remaining);
+
+  return () => { clearTimeout(phraseTimer); clearTimeout(fadeTimer); };
 }, []);
+
+// greetingText is only truthy after client mount — greeting never shown during SSR
+const greetingText = greetingPhrase ? `${greetingPhrase}, ${firstName} ✦` : null;
 ```
 
 **firstName** derived from `displayName` prop:
@@ -197,9 +195,9 @@ const firstName = displayName?.split(" ")[0] ?? "there";
 **AnimatePresence wrapper:**
 ```tsx
 <AnimatePresence>
-  {greetingVisible && (
+  {greetingVisible && greetingText && (
     <motion.div
-      className="mb-[22px] cursor-pointer select-none"
+      className="mb-5.5 cursor-pointer select-none"
       initial={{ opacity: 0, y: -6 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -4 }}
@@ -207,12 +205,14 @@ const firstName = displayName?.split(" ")[0] ?? "there";
       onClick={() => setGreetingVisible(false)}
       title="Click to dismiss"
     >
-      <div style={{ fontSize:22, fontWeight:700, color:C.text, letterSpacing:"-0.02em" }}>{greetingText}</div>
-      <div style={{ fontSize:12, color:C.sub, marginTop:3 }}>{formatCurrentDate()}</div>
+      <div className="text-[22px] font-bold text-(--c-text) tracking-[-0.02em]">{greetingText}</div>
+      <div className="text-xs text-(--c-sub) mt-0.75">{formatCurrentDate()}</div>
     </motion.div>
   )}
 </AnimatePresence>
 ```
+
+Note: `greetingText` is guarded (only truthy after client mount), so the outer `greetingVisible && greetingText &&` replaces `greetingVisible &&`. Inner divs use Tailwind v4 CSS var shorthand — no `style={{}}` for colors.
 
 **formatCurrentDate helper** (inline in file — replaces hardcoded "Thursday, May 15 · 2026"):
 ```tsx

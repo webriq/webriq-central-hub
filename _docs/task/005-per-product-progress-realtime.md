@@ -167,12 +167,16 @@ const { data, error } = await adminClient
   .update({
     onboarding_data: onboardingData,
     onboarding_complete: isComplete,
-    // ← completed_percentage NOT saved yet
+    completed_percentage: completedPercentage ?? 0,  // ← added by this task
   })
   .eq("customer_id", customerId)
   .eq("product_name", productName)
   .select()
   .single();
+
+// Post-task addition: on isComplete, checks all products, updates customer status
+// to "completed_onboarding" and fires sendCliqNotification().
+if (isComplete) { ... }
 ```
 
 ### useAutoSave already sends completedPercentage (src/hooks/use-auto-save.ts:44)

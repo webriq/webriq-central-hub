@@ -16,6 +16,9 @@ type ZohoPayload = {
   // Shared
   description?: string;
   webhookToken?: string;
+  // Status update events
+  status?: string;
+  completed?: string;
 };
 
 async function resolveCustomerId(
@@ -91,6 +94,31 @@ export async function POST(req: NextRequest) {
   const description = body.description ?? null;
   const zoho_ticket_id = body.ticketId ?? null;
   const zoho_task_id = body.taskId ?? null;
+
+  // Detect Zoho task status update: has zoho_task_id matching an existing plan + `completed` field.
+  // This is a status event, not a new task — handle and return early (do not classify).
+  if (zoho_task_id && body.completed !== undefined) {
+    const { data: existingPlan } = await adminClient
+      .from("implementation_plans")
+      .select("id, status")
+      .eq("zoho_task_id", zoho_task_id)
+      .maybeSingle();
+
+    if (existingPlan) {
+      let newStatus: string | null = null;
+      if (body.completed === "true") newStatus = "COMPLETE";
+      else if (body.completed === "false") newStatus = "APPROVED";
+
+      if (newStatus && newStatus !== existingPlan.status) {
+        await adminClient
+          .from("implementation_plans")
+          .update({ status: newStatus, direct_zoho_edit: true })
+          .eq("id", existingPlan.id);
+      }
+
+      return NextResponse.json({ received: true });
+    }
+  }
 
   const customerId = await resolveCustomerId(source, body);
   if (!customerId) {

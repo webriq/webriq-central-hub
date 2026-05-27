@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { generatePlan } from "@/lib/ai/plan";
+import { syncTaskToZoho } from "@/lib/zoho";
 
 const PostSchema = z.object({
   classificationId: z.string().uuid(),
@@ -56,7 +57,7 @@ export async function PATCH(req: NextRequest) {
 
   const { data: plan } = await supabase
     .from("implementation_plans")
-    .select("id, assessment_id")
+    .select("id, assessment_id, customer_id")
     .eq("id", planId)
     .maybeSingle();
 
@@ -76,6 +77,8 @@ export async function PATCH(req: NextRequest) {
 
   const classificationId = assessment.classification_id;
 
+  let zohoTaskId: string | null = null;
+
   if (action === "approve") {
     await Promise.all([
       adminClient
@@ -87,6 +90,29 @@ export async function PATCH(req: NextRequest) {
         .update({ status: "approved" })
         .eq("id", classificationId),
     ]);
+
+    // Push to Zoho — non-blocking; failure does not fail the approve
+    const { data: classificationRecord } = await adminClient
+      .from("classification_records")
+      .select("title, description")
+      .eq("id", classificationId)
+      .maybeSingle();
+
+    const customerId = (plan as { id: string; assessment_id: string; customer_id: string }).customer_id;
+    if (classificationRecord && customerId) {
+      const pushed = await syncTaskToZoho({
+        customerId,
+        title: classificationRecord.title,
+        description: classificationRecord.description ?? "",
+      });
+      if (pushed) {
+        zohoTaskId = pushed;
+        await adminClient
+          .from("implementation_plans")
+          .update({ zoho_task_id: pushed })
+          .eq("id", planId);
+      }
+    }
   } else {
     await Promise.all([
       adminClient
@@ -104,5 +130,5 @@ export async function PATCH(req: NextRequest) {
     ]);
   }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, zohoTaskId });
 }

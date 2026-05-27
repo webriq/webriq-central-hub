@@ -16,6 +16,7 @@ export interface Database {
           communication_tone: string;
           onboarding_status: Json;
           daily_token_budget: number | null;
+          automation_paused: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -31,6 +32,7 @@ export interface Database {
           communication_tone?: string;
           onboarding_status?: Json;
           daily_token_budget?: number | null;
+          automation_paused?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -46,6 +48,7 @@ export interface Database {
           communication_tone?: string;
           onboarding_status?: Json;
           daily_token_budget?: number | null;
+          automation_paused?: boolean;
           updated_at?: string;
         };
         Relationships: [];
@@ -263,6 +266,8 @@ export interface Database {
           output_tokens: number | null;
           created_at: string;
           updated_at: string;
+          zoho_task_id: string | null;
+          direct_zoho_edit: boolean;
         };
         Insert: {
           id?: string;
@@ -283,6 +288,8 @@ export interface Database {
           output_tokens?: number | null;
           created_at?: string;
           updated_at?: string;
+          zoho_task_id?: string | null;
+          direct_zoho_edit?: boolean;
         };
         Update: {
           id?: string;
@@ -302,6 +309,8 @@ export interface Database {
           input_tokens?: number | null;
           output_tokens?: number | null;
           updated_at?: string;
+          zoho_task_id?: string | null;
+          direct_zoho_edit?: boolean;
         };
         Relationships: [
           {
@@ -391,6 +400,67 @@ export interface Database {
             isOneToOne: false;
             referencedRelation: "customers";
             referencedColumns: ["customer_id"];
+          }
+        ];
+      };
+      reply_drafts: {
+        Row: {
+          id: string;
+          classification_id: string;
+          customer_id: string;
+          execution_record_id: string | null;
+          draft_content: string;
+          pm_edited_content: string | null;
+          pm_diff: string | null;
+          status: string;
+          sent_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          classification_id: string;
+          customer_id: string;
+          execution_record_id?: string | null;
+          draft_content: string;
+          pm_edited_content?: string | null;
+          pm_diff?: string | null;
+          status?: string;
+          sent_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          classification_id?: string;
+          customer_id?: string;
+          execution_record_id?: string | null;
+          draft_content?: string;
+          pm_edited_content?: string | null;
+          pm_diff?: string | null;
+          status?: string;
+          sent_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "reply_drafts_classification_id_fkey";
+            columns: ["classification_id"];
+            isOneToOne: false;
+            referencedRelation: "classification_records";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "reply_drafts_customer_id_fkey";
+            columns: ["customer_id"];
+            isOneToOne: false;
+            referencedRelation: "customers";
+            referencedColumns: ["customer_id"];
+          },
+          {
+            foreignKeyName: "reply_drafts_execution_record_id_fkey";
+            columns: ["execution_record_id"];
+            isOneToOne: false;
+            referencedRelation: "execution_records";
+            referencedColumns: ["id"];
           }
         ];
       };
@@ -656,6 +726,7 @@ export type ClassificationRecordRow = Database["public"]["Tables"]["classificati
 export type RequirementsAssessmentRow = Database["public"]["Tables"]["requirements_assessments"]["Row"];
 export type ImplementationPlanRow = Database["public"]["Tables"]["implementation_plans"]["Row"];
 export type ExecutionRecordRow = Database["public"]["Tables"]["execution_records"]["Row"];
+export type ReplyDraftRow = Database["public"]["Tables"]["reply_drafts"]["Row"];
 export type PlaybookRow = Database["public"]["Tables"]["playbooks"]["Row"];
 export type LLMInvocationLogRow = Database["public"]["Tables"]["llm_invocation_logs"]["Row"];
 export type DigestLogRow = Database["public"]["Tables"]["digest_logs"]["Row"];

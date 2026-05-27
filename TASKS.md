@@ -4,19 +4,21 @@
 
 ## In Progress
 
-## Planned
-
-## In Progress
-
 ## Testing
 
-| 025 | Sprint 4 — Plan Generation (M5) | HIGH | feature | _docs/task/025-sprint-4-plan-generation.md | 2026-05-26 |
-| 024 | Sprint 3 Digest Gaps — Clarification Flag, Automation Queue, Unassigned Tasks | HIGH | feature | _docs/task/024-sprint-3-digest-gaps-clarification-automation-queue-unassigned.md | 2026-05-26 |
-| 023 | Dev Digest — Type-Aware Queries, Dev Prompt & Cliq Dev Channel | HIGH | feature | _docs/task/023-dev-digest-type-aware-queries-cliq-channel.md | 2026-05-25 |
-| 022 | Sprint 3 — Requirements Assessment (M3) + Daily Digest (M4) | HIGH | feature | _docs/task/022-sprint-3-requirements-assessment-daily-digest.md | 2026-05-25 |
-| 021 | Onboarding Submission Flow — PM Notification, Zoho Project Dialog & Status Transitions | HIGH | feature | _docs/task/021-onboarding-submission-pm-notification-zoho-project-dialog.md | 2026-05-22 |
+| ID | Title | Priority | Type | Doc | Date |
+|----|-------|----------|------|-----|------|
+| 027 | Sprint 5 — Execution Engine (M6) | HIGH | feature | _docs/task/027-sprint-5-execution-engine.md | 2026-05-27 |
+| 028 | Sprint 5 — Reply Generation (M8) | HIGH | feature | _docs/task/028-sprint-5-reply-generation.md | 2026-05-27 |
 
 ## Completed
+
+- [026] Sprint 4 Part 2 — Full Zoho Sync (M7 complete) → `_docs/task/026-sprint-4-full-zoho-sync.md` (completed: 2026-05-27)
+- [025] Sprint 4 — Plan Generation (M5) → `_docs/task/025-sprint-4-plan-generation.md` (completed: 2026-05-27)
+- [024] Sprint 3 Digest Gaps — Clarification Flag, Automation Queue, Unassigned Tasks → `_docs/task/024-sprint-3-digest-gaps-clarification-automation-queue-unassigned.md` (completed: 2026-05-27)
+- [023] Dev Digest — Type-Aware Queries, Dev Prompt & Cliq Dev Channel → `_docs/task/023-dev-digest-type-aware-queries-cliq-channel.md` (completed: 2026-05-27)
+- [022] Sprint 3 — Requirements Assessment (M3) + Daily Digest (M4) → `_docs/task/022-sprint-3-requirements-assessment-daily-digest.md` (completed: 2026-05-27)
+- [021] Onboarding Submission Flow — PM Notification, Zoho Project Dialog & Status Transitions → `_docs/task/021-onboarding-submission-pm-notification-zoho-project-dialog.md` (completed: 2026-05-27)
 
 - [019] CiteForge Badge — Customers Table + Customer Details Add-On Card → `_docs/task/019-citeforge-badge-display.md` (completed: 2026-05-25)
 - [018] Fix Public Onboarding — CiteForge Filter + Product Sub-Routes → `_docs/task/018-public-onboarding-product-subroutes.md` (completed: 2026-05-25)

@@ -125,32 +125,32 @@ const hasCiteForge = prods.some(
 {hasCiteForge && <ProductBadge key="citeforge-addon" name="CiteForge" />}
 ```
 
-### `client.tsx:669–776` — product card rendering
+### `client.tsx` — product card rendering (current)
 
+Product colors are defined as two separate lookup maps (not the `PRODUCT_COLORS` constant from the task spec):
 ```tsx
-{products.map((product) => {
-  const color = PRODUCT_COLORS[product.product_name] ?? "#94A3B8";
-  const isComplete = product.onboarding_complete;
-  return (
-    <div key={product.id} className={cn("rounded-[10px] p-4", ...)}>
-      {/* header: icon, name, Edit, Remove, status badge */}
-      {/* progress bar */}
-      {/* metadata: instance, sanity, zoho, github */}
-      <a href={`/onboarding/${customer.customer_id}`} ...>View Onboarding Form →</a>
-    </div>
-  );
-})}
+const PRODUCT_ICON_CLASSES: Record<string, string> = {
+  StackShift:    "text-[#3358F4] bg-[#3358F418]",
+  PublishForge:  "text-[#7C3AED] bg-[#7C3AED18]",
+  PipelineForge: "text-[#F97316] bg-[#F9731618]",
+  CiteForge:     "text-[#0EA5E9] bg-[#0EA5E918]",
+};
+
+const PRODUCT_BAR_CLASSES: Record<string, string> = {
+  StackShift:    "bg-[#3358F4]",
+  PublishForge:  "bg-[#7C3AED]",
+  PipelineForge: "bg-[#F97316]",
+  CiteForge:     "bg-[#0EA5E9]",
+};
 ```
 
-**Modifications:**
-
-1. Fix the onboarding link to use slug routes (matches task 018):
+Onboarding link uses product slug (task 018):
 ```tsx
 const slug = product.product_name.toLowerCase().replace(/\s+/g, "");
-<a href={`/onboarding/${customer.customer_id}/${slug}`} ...>View Onboarding Form →</a>
+<a href={`/onboarding/${customer.customer_id}/${slug}`}>View Onboarding Form →</a>
 ```
 
-2. After the `products.map(...)` block, check StackShift for CiteForge opt-in and render a read-only add-on card:
+After the `products.map(...)` block, check StackShift for CiteForge opt-in and render a read-only add-on card:
 
 ```tsx
 {(() => {
@@ -158,15 +158,12 @@ const slug = product.product_name.toLowerCase().replace(/\s+/g, "");
   const hasCiteForge =
     (stackshift?.onboarding_data as Record<string, unknown>)?.includeCiteForge === "Yes";
   if (!hasCiteForge) return null;
-  const color = "#0EA5E9";
   return (
     <div className="rounded-[10px] p-4 border border-sky-100 bg-sky-50/20">
       <div className="flex justify-between items-center mb-3">
         <div className="flex items-center gap-2">
-          <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold"
-            style={{ background: `${color}18`, color }}
-          >
+          {/* Tailwind inline hex classes — no style={} needed */}
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold bg-[#0EA5E918] text-[#0EA5E9]">
             Ci
           </div>
           <div>
@@ -178,7 +175,8 @@ const slug = product.product_name.toLowerCase().replace(/\s+/g, "");
       </div>
       <div className="flex items-center gap-2">
         <div className="flex-1 h-1.25 bg-slate-100 rounded-full overflow-hidden">
-          <div className="h-full rounded-full bg-green-500" style={{ width: "100%" }} />
+          {/* w-full as Tailwind class — no style={{ width: "100%" }} */}
+          <div className="h-full rounded-full bg-green-500 w-full" />
         </div>
         <span className="text-[11px] text-slate-400">100%</span>
       </div>
@@ -187,7 +185,7 @@ const slug = product.product_name.toLowerCase().replace(/\s+/g, "");
 })()}
 ```
 
-Note: `PRODUCT_COLORS` in `client.tsx` is a local constant (not imported from `shared.tsx`). Add `CiteForge: "#0EA5E9"` to it too (line 26–30 in the file).
+Note: `client.tsx` color lookups use `PRODUCT_ICON_CLASSES` (`text-[#hex] bg-[#hex18]`) and `PRODUCT_BAR_CLASSES` (`bg-[#hex]`) maps — not a single `PRODUCT_COLORS` constant.
 
 ---
 

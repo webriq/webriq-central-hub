@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { ExternalLink } from "lucide-react";
 import type { PMSettings } from "@/hooks/use-pm-settings";
 import { PriorityDot } from "./shared";
 import type { Database } from "@/types/database";
@@ -137,11 +138,12 @@ function ReclassifyModal({ record, onClose, onSave }: {
 interface Props {
   settings: PMSettings;
   tasks: ClassificationRow[];
+  zohoProjectMap?: Record<string, string>;
 }
 
 type FilterTab = "all" | "review" | "classified";
 
-export default function TasksTab({ settings, tasks }: Props) {
+export default function TasksTab({ settings, tasks, zohoProjectMap = {} }: Props) {
   const [tab, setTab] = useState<FilterTab>("all");
   const [reclassifyTarget, setReclassifyTarget] = useState<ClassificationRow | null>(null);
   // Optimistic overrides: applied on top of the tasks prop until realtime re-fetch arrives
@@ -198,7 +200,7 @@ export default function TasksTab({ settings, tasks }: Props) {
           <table className="w-full border-collapse">
             <thead>
               <tr className="border-b border-(--c-border)">
-                {["Pri", "Task", "Customer", "Type", "AI Confidence", "Status", "Age"].map(h => (
+                {["Pri", "Task", "Customer", "Type", "AI Confidence", "Status", "Age", "Zoho"].map(h => (
                   <th key={h} className="py-2.25 px-4 text-left text-[10px] font-bold text-(--c-muted) tracking-[0.06em] uppercase whitespace-nowrap">
                     {h}
                   </th>
@@ -252,6 +254,19 @@ export default function TasksTab({ settings, tasks }: Props) {
                   </td>
                   <td className="py-3.25 px-4">
                     <span className="text-[11px] text-(--c-muted)">{formatAge(t.created_at)}</span>
+                  </td>
+                  <td className="py-3.25 px-4 text-center">
+                    {t.zoho_task_id && zohoProjectMap[t.customer_id] ? (
+                      <a
+                        href={`https://projects.zoho.com/portal/${process.env.NEXT_PUBLIC_ZOHO_PORTAL_NAME ?? ""}/project/${zohoProjectMap[t.customer_id]}/tasks/all/task/${t.zoho_task_id}/`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-(--c-blue) hover:opacity-70 inline-flex"
+                        title="Open in Zoho"
+                      >
+                        <ExternalLink size={14} />
+                      </a>
+                    ) : null}
                   </td>
                 </tr>
               ))}

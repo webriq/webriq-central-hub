@@ -72,9 +72,9 @@ Also fix a secondary bug: the auto-save PATCH API uses `createClient()` which re
 ## Implementation Steps
 
 1. **Create `src/app/(public)/layout.tsx`**
-   - Simple async server component (or sync — no async work needed)
+   - Simple sync server component — no async work needed
    - No auth check
-   - Render `<div style={{ minHeight: "100vh", background: "#F7F8FA" }}>{children}</div>`
+   - Uses Tailwind: `<div className="min-h-screen bg-page-bg">{children}</div>`
 
 2. **Create `src/app/(public)/onboarding/[customerId]/page.tsx`**
    - Copy from `src/app/(hub)/onboarding/[customerId]/page.tsx`
@@ -154,20 +154,48 @@ export default async function OnboardingPage({ params }: OnboardingPageProps) {
 
 ```typescript
 // AFTER (uses adminClient — bypasses RLS for login-free access)
+import { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { adminClient } from "@/lib/supabase/admin";
+import OnboardingFormClient from "./client";
 
 export async function generateMetadata({ params }: OnboardingPageProps): Promise<Metadata> {
   const { customerId } = await params;
   try {
-    const { data: customer } = await adminClient   // ← no await, already resolved
+    // Using adminClient intentionally: this route is publicly accessible (no auth)
+    const { data: customer } = await adminClient
       .from("customers")
-      ...
+      .select("company_name")
+      .eq("customer_id", customerId)
+      .single();
+    return {
+      title: customer ? `Onboarding — ${customer.company_name}` : "Customer Not Found",
+    };
+  } catch {
+    return { title: "Onboarding" };
+  }
+}
 
 export default async function OnboardingPage({ params }: OnboardingPageProps) {
   const { customerId } = await params;
-  const { data: customer, error } = await adminClient  // ← no await
+  // Using adminClient intentionally — see comment in generateMetadata above.
+  const { data: customer, error } = await adminClient
     .from("customers")
-    ...
+    .select("*, customer_products(*)")
+    .eq("customer_id", customerId)
+    .single();
+
+  // CiteForge is a StackShift add-on — filter it from the product picker
+  const products = ((customer?.customer_products ?? []) as Array<{
+    id: string; product_name: string; onboarding_data: Record<string, unknown>;
+  }>).filter((p) => p.product_name !== "CiteForge");
+
+  // Single-product: redirect directly to the product form (no picker needed)
+  if (products.length === 1) {
+    const slug = products[0].product_name.toLowerCase().replace(/\s+/g, "");
+    redirect(`/onboarding/${customerId}/${slug}`);
+  }
+  ...
 ```
 
 ### Auto-save route — `src/app/api/customers/[customerId]/products/[productName]/onboarding/route.ts` (lines to update)
@@ -181,12 +209,24 @@ const { data, error } = await supabase
   .from("customer_products")
   .update({ ... })
 
-// AFTER
+// AFTER — also includes completed_percentage (task 005) and completion trigger (post-task 005)
 import { adminClient } from "@/lib/supabase/admin";
 // ...
 const { data, error } = await adminClient
   .from("customer_products")
-  .update({ ... })
+  .update({
+    onboarding_data: onboardingData,
+    onboarding_complete: isComplete,
+    completed_percentage: completedPercentage ?? 0,
+  })
+  .eq("customer_id", customerId)
+  .eq("product_name", productName)
+  .select()
+  .single();
+
+// On isComplete: check if all products for this customer are done.
+// If so: update customer.status → "completed_onboarding" + sendCliqNotification().
+if (isComplete) { ... }
 ```
 
 ### Existing (auth) route group layout — `src/app/(auth)/layout.tsx`

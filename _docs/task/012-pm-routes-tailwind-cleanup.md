@@ -75,37 +75,28 @@ Three connected improvements to the PM dashboard:
 
 ```tsx
 // 1. Card class constant — replaces ThemeCard everywhere
-const CARD = "rounded-[14px] border border-[var(--c-border)] shadow-[0_1px_4px_rgba(0,0,0,0.05)] bg-[var(--c-card)]";
+// Tailwind v4 CSS variable shorthand: -(--c-*) instead of [var(--c-*)]
+const CARD = "rounded-[14px] border border-(--c-border) shadow-[0_1px_4px_rgba(0,0,0,0.05)] bg-(--c-card)";
 
-// 2. Wrapper div: single style={} for CSS var declarations only
-<div
-  style={{
-    "--c-text": C.text, "--c-sub": C.sub, "--c-muted": C.muted,
-    "--c-card": C.card, "--c-border": C.border,
-    "--c-blue": C.blue, "--c-orange": C.orange, "--c-sky": C.sky,
-    "--c-violet": C.violet, "--c-green": C.green, "--c-amber": C.amber,
-    "--c-red": C.red,
-    // derived tints
-    "--c-sky-tint": `${C.sky}0d`, "--c-sky-tint2": `${C.sky}0e`,
-    "--c-sky-border": `${C.sky}20`, "--c-sky-border2": `${C.sky}22`,
-    "--c-blue-tint": `${C.blue}12`, "--c-blue-border": `${C.blue}30`,
-    "--c-track": C === DARK ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)",
-  } as React.CSSProperties}
->
+// 2. Component root uses pm-dark / pm-light global CSS class (not per-component style={})
+// CSS vars (--c-text, --c-card, etc.) are defined by these global classes in globals.css
+<div className={settings.theme === "dark" ? "pm-dark" : "pm-light"}>
 
-// 3. All children use Tailwind + var() arbitrary values
-<div className="text-[var(--c-text)] text-[13px] font-medium" />
+// 3. All children use Tailwind v4 CSS variable shorthand
+<div className="text-(--c-text) text-[13px] font-medium" />
 <div className={`${CARD} p-5`} />
 
-// 4. Per-item dynamic colors → element-level CSS vars
+// 4. Per-item dynamic colors → element-level CSS vars (still uses style={} for the var declaration)
 <span
-  className="text-[9px] font-bold rounded-full px-[6px] py-px border text-[var(--bc)] bg-[var(--bb)] border-[var(--bd)]"
+  className="text-[9px] font-bold rounded-full px-1.5 py-px border text-[var(--bc)] bg-[var(--bb)] border-[var(--bd)]"
   style={{ "--bc": color, "--bb": `${color}12`, "--bd": `${color}22` } as React.CSSProperties}
 />
 
 // 5. Static lookup for Tailwind-scannable classes (not template literals)
-const STATUS_CLS: Record<string, { text: string; tint: string; border: string }> = {
-  green: { text: "text-[var(--c-green)]", tint: "bg-[var(--c-green-tint)]", border: "border-[var(--c-green-border)]" },
+// e.g. in shared.tsx ProductBadge:
+const BADGE_CLASSES: Record<string, string> = {
+  StackShift:    "text-[#3358F4] bg-[#3358F412] border-[#3358F41e]",
+  PublishForge:  "text-[#7C3AED] bg-[#7C3AED12] border-[#7C3AED1e]",
   // ...
 };
 ```
@@ -140,35 +131,60 @@ router.push("/pm?tab=settings");
 router.push("/pm/settings");
 ```
 
-### pm/page.tsx — current structure (lines 18–124)
+### pm/page.tsx — current structure (post task 013/014)
 
-Full client component. State: `displayName`, `customers`, `loading`, `error`, `search`, `statusFilter`, `sortBy`, `sortDir`. After change: remove `activeTab`, `tabParam`, all tab-routing logic. Keep `displayName` fetch, `customers` fetch, Realtime subscription. Remove unused state: `loading`, `error`, `search`, `statusFilter`, `sortBy`, `sortDir`, `retryRef`.
+Full client component. State: `displayName`, `customers`, `pendingReviewCount`, `classificationAttentionItems`, `openTasksCount`, `inPipelineCount`, `latestDigest`, `triggeringDigest`, `clarificationNeededCount`. Four separate `useEffect` hooks: display name fetch, customer list fetch, classification data fetch (4 parallel queries), and digest fetch. Realtime subscription on `customer_products`. Returns single scrollable wrapper + `<HomeTab ...all props />`.
 
-Return JSX: replace multi-tab render with single `<HomeTab customers={customers} settings={settings} displayName={displayName} />`.
+```tsx
+<HomeTab
+  customers={customers}
+  settings={settings}
+  displayName={displayName}
+  pendingReviewCount={pendingReviewCount}
+  classificationAttentionItems={classificationAttentionItems}
+  openTasksCount={openTasksCount}
+  inPipelineCount={inPipelineCount}
+  digest={latestDigest}
+  onFeedback={handleFeedback}
+  clarificationNeededCount={clarificationNeededCount}
+/>
+```
 
-### New page pattern — tasks, pipeline, settings (simplest cases)
+### New page pattern — tasks/page.tsx (post task 013 — has data fetch)
 
 ```tsx
 // src/app/(hub)/pm/tasks/page.tsx
 "use client";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { usePMSettings } from "@/hooks/use-pm-settings";
-import { getTokens } from "@/components/hub/pm-tabs/shared";
 import TasksTab from "@/components/hub/pm-tabs/tasks-tab";
+import { createClient } from "@/lib/supabase/client";
+import type { Database } from "@/types/database";
+
+type ClassificationRow = Database["public"]["Tables"]["classification_records"]["Row"] & {
+  customers?: { company_name: string } | null;
+};
 
 export default function PMTasksPage() {
   const { settings } = usePMSettings();
-  const C = getTokens(settings);
+  const [tasks, setTasks] = useState<ClassificationRow[]>([]);
+  const [zohoProjectMap, setZohoProjectMap] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const supabase = createClient();
+    // Fetch tasks + realtime subscription + zoho project map
+    ...
+  }, []);
+
   return (
-    <div
-      className="flex-1 overflow-y-auto py-[26px] px-8 bg-[var(--c-page-bg)]"
-      style={{ "--c-page-bg": C.bg } as React.CSSProperties}
-    >
-      <TasksTab settings={settings} />
+    <div className={`flex-1 overflow-y-auto py-6.5 px-8 ${settings.theme === "dark" ? "bg-[#090c18]" : "bg-[#f5f4f1]"}`}>
+      <TasksTab settings={settings} tasks={tasks} zohoProjectMap={zohoProjectMap} />
     </div>
   );
 }
 ```
+
+Note: `getTokens` / CSS var wrapper pattern was the original design; actual pages use Tailwind `bg-[#...]` with theme check instead.
 
 ### New page pattern — customers (needs data fetch + realtime)
 
@@ -238,8 +254,7 @@ export default function PMCustomersPage() {
 
   return (
     <div
-      className="flex-1 overflow-y-auto py-[26px] px-8 bg-[var(--c-page-bg)]"
-      style={{ "--c-page-bg": C.bg } as React.CSSProperties}
+      className={`flex-1 overflow-y-auto py-6.5 px-8 ${settings.theme === "dark" ? "bg-[#090c18]" : "bg-[#f5f4f1]"}`}
     >
       <ClientsTab
         customers={customers} loading={loading} error={error}
@@ -253,99 +268,109 @@ export default function PMCustomersPage() {
 }
 ```
 
-### clients-tab.tsx — inline style patterns to convert
+Note: all PM sub-pages use `settings.theme === "dark" ? "bg-[#090c18]" : "bg-[#f5f4f1]"` directly — no CSS var wrapper `style={}` on the page div.
+
+### clients-tab.tsx — actual converted classes
 
 ```tsx
-// Header row (line 47-53)
-style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}
-→ className="flex items-center justify-between mb-5"
+// Header title
+className="text-[22px] font-bold text-(--c-text) tracking-[-0.02em]"
 
-style={{ fontSize: 22, fontWeight: 700, color: C.text, letterSpacing: "-0.02em" }}
-→ className="text-[22px] font-bold text-[var(--c-text)] tracking-[-0.02em]"
+// Subtitle
+className="text-xs text-(--c-sub) mt-0.5"
 
-style={{ fontSize: 12, color: C.sub, marginTop: 2 }}
-→ className="text-xs text-[var(--c-sub)] mt-[2px]"
+// Filters container
+className="flex gap-2.5 mb-4 items-center"
 
-// "+ New Client" button (line 52)
-style={{ fontSize: 12, fontWeight: 600, color: "#fff", background: C.orange, border: "none", borderRadius: 9, padding: "9px 18px", cursor: "pointer", fontFamily: "inherit" }}
-→ className="text-xs font-semibold text-white bg-[var(--c-orange)] rounded-[9px] px-[18px] py-[9px] cursor-pointer border-0"
+// Search input wrapper
+className="relative flex-1 max-w-75"
 
-// Filters (lines 71-82)
-style={{ display: "flex", gap: 10, marginBottom: 16, alignItems: "center" }}
-→ className="flex gap-[10px] mb-4 items-center"
+// Search input
+className="w-full text-[13px] py-2 pr-3 pl-8.5 bg-(--c-card) border border-(--c-border) rounded-[9px] text-(--c-text) outline-none box-border"
 
-style={{ position: "relative", flex: 1, maxWidth: 300 }}
-→ className="relative flex-1 max-w-[300px]"
+// Filter buttons (active / inactive)
+active   ? "text-white bg-(--c-blue) border-(--c-blue)"
+         : "text-(--c-sub) bg-(--c-card) border-(--c-border)"
+// + base: "text-xs font-semibold rounded-lg px-3.5 py-1.75 cursor-pointer border"
 
-// search input style: background, border, color are token-dependent — use CSS vars
-// input className: "w-full text-[13px] py-2 pr-3 pl-[34px] bg-[var(--c-card)] border border-[var(--c-border)] rounded-[9px] text-[var(--c-text)] outline-none box-border"
+// Table header th
+"py-[9px] px-4 text-left text-[10px] font-bold text-(--c-muted) tracking-[0.06em] uppercase border-b border-(--c-border) whitespace-nowrap"
 
-// Filter buttons: active state via conditional className (not inline)
-const btnCls = active
-  ? "text-white bg-[var(--c-blue)] border-[var(--c-blue)]"
-  : "text-[var(--c-sub)] bg-[var(--c-card)] border-[var(--c-border)]";
-// + base: "text-xs font-semibold rounded-lg px-[14px] py-[7px] cursor-pointer border"
+// Table rows — conditional border
+className={i < data.length - 1 ? "border-b border-(--c-border)" : ""}
 
-// Table header (th style — line 90)
-// padding, fontSize, fontWeight, letterSpacing, textTransform, borderBottom, cursor, whiteSpace → all Tailwind
-// color and borderBottom color → CSS vars
-
-// Table rows — dynamic border (line 107): use conditional className
-className={i < data.length - 1 ? "border-b border-[var(--c-border)]" : ""}
-
-// View → button (line 123)
-style={{ fontSize: 12, fontWeight: 600, color: C.sky, background: `${C.sky}0d`, border: `1px solid ${C.sky}25`, borderRadius: 7, padding: "6px 12px", cursor: "pointer" }}
-→ className="text-xs font-semibold text-[var(--c-sky)] bg-[var(--c-sky-tint)] border border-[var(--c-sky-border3)] rounded-[7px] px-3 py-[6px] cursor-pointer"
+// View → button
+className="text-xs font-semibold text-(--c-sky) bg-(--c-sky-tint) border border-(--c-sky-border3) rounded-[7px] px-3 py-1.5 cursor-pointer"
 ```
 
-### tasks-tab.tsx — inline style patterns
+### tasks-tab.tsx — actual converted classes
 
 ```tsx
-// Header (line 26-37): same pattern as clients-tab header
-// Task type chip: color: C.sky, background: ${C.sky}0e, border: ${C.sky}20 → CSS vars
-// AI Confidence chip: color is dynamic (cc(t.conf)), background: cc10, border: cc20
-//   → per-element CSS vars: style={{ "--cc": cc(t.conf), "--cc-bg": `${cc(t.conf)}10`, "--cc-bd": `${cc(t.conf)}20` }}
-//   → className: "text-[11px] font-semibold rounded-[6px] px-2 py-px font-mono text-[var(--cc)] bg-[var(--cc-bg)] border border-[var(--cc-bd)]"
-// Classified badge: static classes for green text + classify button for blue bg
-```
+// Task type chip (CSS var shorthand)
+className="text-[11px] text-(--c-sky) bg-(--c-sky-tint2) rounded-[5px] px-2 py-px border border-(--c-sky-border)"
 
-### pipeline-tab.tsx — inline style patterns
-
-```tsx
-// Stage dot: background: s.color → element-level CSS var
-<div className="w-2 h-2 rounded-full bg-[var(--sc)]" style={{ "--sc": s.color } as React.CSSProperties} />
-
-// Stage count badge: color: s.color, bg: ${s.color}12, border: ${s.color}20
-<span className="..." style={{ "--sc": s.color, "--sc-bg": `${s.color}12`, "--sc-bd": `${s.color}20` } as React.CSSProperties}>
-
-// Pipeline item cards: replace ThemeCard with CARD const
-<div className={`${CARD} py-[11px] px-[13px] cursor-pointer`}>
-
-// Status badges in items: sc[item.status] is dynamic
-<span className="..." style={{ "--bc": sc[item.status], "--bb": `${sc[item.status]}12`, "--bd": `${sc[item.status]}22` } as React.CSSProperties}>
-```
-
-### settings-tab.tsx — inline `Seg` component must move outside
-
-```tsx
-// CURRENT (triggers react-hooks/static-components lint error):
-export default function SettingsTab(...) {
-  function Seg(...) { ... }  // ← defined inside render, lint error
+// AI Confidence chip — uses conditional Tailwind (not CSS vars), per task 013 spec:
+function confClass(score: number | null): string {
+  const v = score ?? 0;
+  if (v >= 80) return "text-green-700 bg-green-50 border-green-200 dark:text-green-400 dark:bg-green-950 dark:border-green-800";
+  if (v >= 60) return "text-amber-700 bg-amber-50 border-amber-200 ...";
+  return "text-red-700 bg-red-50 border-red-200 ...";
 }
+// usage:
+className={`text-[11px] font-semibold rounded-[6px] px-2 py-px font-mono border ${confClass(t.confidence_score)}`}
 
-// FIX: move Seg outside SettingsTab, pass C as prop
+// Classify button
+className="text-[11px] font-semibold text-white bg-(--c-blue) rounded-[6px] px-3 py-1.25 cursor-pointer border-0"
+
+// Classified label
+className="text-[11px] font-semibold text-(--c-green)"
+```
+
+### pipeline-tab.tsx — actual converted classes
+
+```tsx
+// Stage dot — uses Tailwind v4 CSS var shorthand referencing the stage's colorVar
+<div className={`w-2 h-2 rounded-full bg-[var(${s.colorVar})]`} />
+
+// Stage count badge — uses colorVar, tintVar, bdVar defined per stage
+<span
+  className={`text-[11px] rounded-full px-1.75 ml-auto border
+    text-[var(${s.colorVar})] bg-[var(${s.tintVar})] border-[var(${s.bdVar})]`}
+>
+
+// Pipeline item cards
+<div className={`${CARD} py-2.75 px-3.25`}>
+
+// Stage color vars are defined in the stages array (not element-level style={}):
+{ k: "classify", l: "Classify", colorVar: "--c-violet", tintVar: "--c-violet-tint", bdVar: "--c-violet-bd", items: classifyItems },
+{ k: "assess",   l: "Assess",   colorVar: "--c-sky",    tintVar: "--c-sky-tint",    bdVar: "--c-sky-bd",    items: assessItems },
+```
+
+### settings-tab.tsx — actual `Seg` fix
+
+Moved outside `SettingsTab`. Does NOT take `tokens` or `isDark` props — it reads CSS vars directly from the `pm-dark`/`pm-light` parent context.
+
+```tsx
 interface SegProps {
   label: string; desc?: string;
   options: { value: string; label: string; icon: string }[];
   value: string; onChange: (v: string) => void;
-  tokens: Tokens;
-  isDark: boolean;
+  isLast?: boolean;
 }
-function Seg({ label, desc, options, value, onChange, tokens: C, isDark }: SegProps) { ... }
-
-// Then in SettingsTab:
-<Seg ... tokens={C} isDark={C === DARK_C} />
+function Seg({ label, desc, options, value, onChange, isLast }: SegProps) {
+  return (
+    <div className={!isLast ? "pb-5 mb-5 border-b border-(--c-border)" : ""}>
+      <span className="text-[13px] font-semibold text-(--c-text)">{label}</span>
+      <div className="inline-flex bg-(--c-seg-bg) rounded-[10px] p-0.75 border border-(--c-border)">
+        {options.map(o => (
+          <button className={`... ${
+            value === o.value
+              ? "bg-(--c-card) text-(--c-text) shadow-[0_1px_4px_rgba(0,0,0,0.10)]"
+              : "bg-transparent text-(--c-sub)"
+          }`}>
 ```
+
+`SettingsTab` root uses `className={settings.theme === "dark" ? "pm-dark" : "pm-light"}`.
 
 ---
 
