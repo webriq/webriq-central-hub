@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { executeSanityPlan, type PlanStep } from "@/lib/sanity";
+import { executeGitHubPlan } from "@/lib/github";
 import { buildContextChain } from "@/lib/ai/context-chain";
 import { sendCliqNotification } from "@/lib/zoho";
 import { generateReplyDraft } from "@/lib/ai/reply";
@@ -34,17 +35,26 @@ export async function POST(req: NextRequest) {
 
   const { planId, customerId, classificationId } = parsed.data;
 
-  // Validate plan is approved
-  const { data: plan } = await adminClient
-    .from("implementation_plans")
-    .select("id, steps")
-    .eq("id", planId)
-    .eq("status", "APPROVED")
-    .maybeSingle();
+  // Fetch plan + task_type in parallel (async-parallel: independent queries)
+  const [{ data: plan }, { data: classification }] = await Promise.all([
+    adminClient
+      .from("implementation_plans")
+      .select("id, steps")
+      .eq("id", planId)
+      .eq("status", "APPROVED")
+      .maybeSingle(),
+    adminClient
+      .from("classification_records")
+      .select("task_type")
+      .eq("id", classificationId)
+      .maybeSingle(),
+  ]);
 
   if (!plan) {
     return NextResponse.json({ error: "Plan not found or not approved" }, { status: 404 });
   }
+
+  const taskType = classification?.task_type ?? "CONTENT_UPDATE";
 
   // Check circuit breaker
   const { data: customer } = await adminClient
@@ -60,22 +70,44 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Get Sanity project ID from customer_products
+  const steps = (plan.steps as unknown as PlanStep[]) ?? [];
+
+  if (taskType === "CODE_CHANGE_MINOR") {
+    return executeGitHub({ planId, customerId, classificationId, steps });
+  }
+
+  return executeSanity({ planId, customerId, classificationId, steps });
+}
+
+// ─── GitHub execution path ────────────────────────────────────────────────────
+
+interface ExecutionArgs {
+  planId: string;
+  customerId: string;
+  classificationId: string;
+  steps: PlanStep[];
+}
+
+async function executeGitHub({
+  planId,
+  customerId,
+  classificationId,
+  steps,
+}: ExecutionArgs): Promise<NextResponse> {
   const { data: product } = await adminClient
     .from("customer_products")
-    .select("sanity_project_id")
+    .select("github_repo")
     .eq("customer_id", customerId)
-    .not("sanity_project_id", "is", null)
+    .not("github_repo", "is", null)
     .maybeSingle();
 
-  if (!product?.sanity_project_id) {
+  if (!product?.github_repo) {
     return NextResponse.json(
-      { error: "No Sanity project configured for this customer" },
+      { error: "No GitHub repo configured for this customer" },
       { status: 422 }
     );
   }
 
-  // Create execution record
   const { data: execution, error: insertError } = await adminClient
     .from("execution_records")
     .insert({
@@ -91,17 +123,135 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Failed to create execution record" }, { status: 500 });
   }
 
-  const steps = (plan.steps as unknown as PlanStep[]) ?? [];
+  try {
+    const contextChain = await buildContextChain(classificationId);
+    const result = await executeGitHubPlan(
+      product.github_repo,
+      steps,
+      contextChain,
+      planId,
+      customerId
+    );
+
+    const { error: completedErrGh } = await adminClient
+      .from("execution_records")
+      .update({
+        status: "COMPLETED",
+        outcome: "SUCCESS",
+        pre_action_states: result.pre_action_states as unknown as Json,
+        post_action_states: result.post_action_states as unknown as Json,
+        what_was_done: result.what_was_done,
+        what_was_skipped: result.what_was_skipped,
+        github_pr_url: result.github_pr_url,
+        completed_at: new Date().toISOString(),
+      })
+      .eq("id", execution.id);
+    if (completedErrGh) {
+      throw new Error(`Failed to mark execution COMPLETED: ${completedErrGh.message}`);
+    }
+
+    const [planUpdate, classUpdate] = await Promise.all([
+      adminClient
+        .from("implementation_plans")
+        .update({ status: "COMPLETE" })
+        .eq("id", planId),
+      adminClient
+        .from("classification_records")
+        .update({ status: "closed" })
+        .eq("id", classificationId),
+    ]);
+
+    if (planUpdate.error) {
+      console.error("[execution/github] plan update failed", { planId }, planUpdate.error);
+    }
+    if (classUpdate.error) {
+      console.error("[execution/github] classification update failed", { classificationId }, classUpdate.error);
+    }
+
+    sendCliqNotification(
+      `✅ Execution complete for ${customerId}: ${result.what_was_done}`
+    ).catch(() => {});
+
+    generateReplyDraft({
+      classificationId,
+      customerId,
+      executionRecordId: execution.id,
+      whatWasDone: result.what_was_done,
+    }).catch((err) =>
+      console.error("[execution/github] reply draft failed:", err instanceof Error ? err.message : err)
+    );
+
+    const ghWarnings = [
+      ...(planUpdate.error ? ["plan status not updated"] : []),
+      ...(classUpdate.error ? ["classification status not updated"] : []),
+    ];
+    return NextResponse.json({
+      ok: true,
+      executionId: execution.id,
+      prUrl: result.github_pr_url,
+      ...(ghWarnings.length > 0 && { warnings: ghWarnings }),
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+
+    await adminClient
+      .from("execution_records")
+      .update({
+        status: "FAILED",
+        outcome: "FAILED",
+        error_message: message,
+        completed_at: new Date().toISOString(),
+      })
+      .eq("id", execution.id);
+
+    await applyCircuitBreaker(customerId, execution.id);
+
+    return NextResponse.json({ error: message, status: "FAILED" }, { status: 500 });
+  }
+}
+
+// ─── Sanity execution path ────────────────────────────────────────────────────
+
+async function executeSanity({
+  planId,
+  customerId,
+  classificationId,
+  steps,
+}: ExecutionArgs): Promise<NextResponse> {
+  const { data: product } = await adminClient
+    .from("customer_products")
+    .select("sanity_project_id")
+    .eq("customer_id", customerId)
+    .not("sanity_project_id", "is", null)
+    .maybeSingle();
+
+  if (!product?.sanity_project_id) {
+    return NextResponse.json(
+      { error: "No Sanity project configured for this customer" },
+      { status: 422 }
+    );
+  }
+
+  const { data: execution, error: insertError } = await adminClient
+    .from("execution_records")
+    .insert({
+      plan_id: planId,
+      customer_id: customerId,
+      status: "RUNNING",
+      started_at: new Date().toISOString(),
+    })
+    .select("id")
+    .single();
+
+  if (insertError || !execution) {
+    return NextResponse.json({ error: "Failed to create execution record" }, { status: 500 });
+  }
 
   try {
     const contextChain = await buildContextChain(classificationId);
-    const result = await executeSanityPlan(
-      product.sanity_project_id,
-      steps,
-      contextChain
-    );
+    const result = await executeSanityPlan(product.sanity_project_id, steps, contextChain);
 
-    await adminClient
+    const { error: completedErrSanity } = await adminClient
       .from("execution_records")
       .update({
         status: "COMPLETED",
@@ -113,19 +263,25 @@ export async function POST(req: NextRequest) {
         completed_at: new Date().toISOString(),
       })
       .eq("id", execution.id);
+    if (completedErrSanity) {
+      throw new Error(`Failed to mark execution COMPLETED: ${completedErrSanity.message}`);
+    }
 
-    await Promise.all([
-      adminClient
-        .from("implementation_plans")
-        .update({ status: "COMPLETE" })
-        .eq("id", planId),
+    const [planUpdate, classUpdate] = await Promise.all([
+      adminClient.from("implementation_plans").update({ status: "COMPLETE" }).eq("id", planId),
       adminClient
         .from("classification_records")
         .update({ status: "closed" })
         .eq("id", classificationId),
     ]);
 
-    // Non-blocking: Cliq notification and reply generation
+    if (planUpdate.error) {
+      console.error("[execution/sanity] plan update failed", { planId }, planUpdate.error);
+    }
+    if (classUpdate.error) {
+      console.error("[execution/sanity] classification update failed", { classificationId }, classUpdate.error);
+    }
+
     sendCliqNotification(
       `✅ Execution complete for ${customerId}: ${result.what_was_done}`
     ).catch(() => {});
@@ -136,10 +292,18 @@ export async function POST(req: NextRequest) {
       executionRecordId: execution.id,
       whatWasDone: result.what_was_done,
     }).catch((err) =>
-      console.error("[execution] reply draft generation failed:", err instanceof Error ? err.message : err)
+      console.error("[execution/sanity] reply draft failed:", err instanceof Error ? err.message : err)
     );
 
-    return NextResponse.json({ ok: true, executionId: execution.id });
+    const sanityWarnings = [
+      ...(planUpdate.error ? ["plan status not updated"] : []),
+      ...(classUpdate.error ? ["classification status not updated"] : []),
+    ];
+    return NextResponse.json({
+      ok: true,
+      executionId: execution.id,
+      ...(sanityWarnings.length > 0 && { warnings: sanityWarnings }),
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     const isPartial = message.toLowerCase().includes("partial");
@@ -156,22 +320,33 @@ export async function POST(req: NextRequest) {
       .eq("id", execution.id);
 
     if (!isPartial) {
-      // Circuit breaker: pause automation if last 3 executions for this customer all failed
-      const { data: recent } = await adminClient
-        .from("execution_records")
-        .select("status")
-        .eq("customer_id", customerId)
-        .order("created_at", { ascending: false })
-        .limit(3);
-
-      if (recent?.length === 3 && recent.every((e) => e.status === "FAILED")) {
-        await adminClient
-          .from("customers")
-          .update({ automation_paused: true })
-          .eq("customer_id", customerId);
-      }
+      await applyCircuitBreaker(customerId, execution.id);
     }
 
     return NextResponse.json({ error: message, status: newStatus }, { status: 500 });
+  }
+}
+
+// ─── Shared helpers ───────────────────────────────────────────────────────────
+
+async function applyCircuitBreaker(customerId: string, executionId: string): Promise<void> {
+  const { data: recent } = await adminClient
+    .from("execution_records")
+    .select("status")
+    .eq("customer_id", customerId)
+    .neq("id", executionId)
+    .order("created_at", { ascending: false })
+    .limit(2);
+
+  // Prepend current FAILED; pause if all consecutive executions (including this one) failed
+  const last3 = ["FAILED", ...(recent?.map((e) => e.status) ?? [])];
+  if (last3.length >= 1 && last3.every((s) => s === "FAILED")) {
+    const { error: pauseErr } = await adminClient
+      .from("customers")
+      .update({ automation_paused: true })
+      .eq("customer_id", customerId);
+    if (pauseErr) {
+      console.error("[execution] circuit breaker: failed to pause", { customerId }, pauseErr);
+    }
   }
 }

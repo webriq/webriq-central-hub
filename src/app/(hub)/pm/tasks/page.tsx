@@ -14,6 +14,7 @@ export default function PMTasksPage() {
   const { settings } = usePMSettings();
   const [tasks, setTasks] = useState<ClassificationRow[]>([]);
   const [zohoProjectMap, setZohoProjectMap] = useState<Record<string, string>>({});
+  const [reviewerMap, setReviewerMap] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const supabase = createClient();
@@ -32,21 +33,35 @@ export default function PMTasksPage() {
 
     fetchTasks();
 
-    // Fetch zoho_project_id per customer for Zoho links (one-time; doesn't change frequently)
-    supabase
-      .from("customer_products")
-      .select("customer_id, zoho_project_id")
-      .not("zoho_project_id", "is", null)
-      .then(({ data }) => {
-        if (cancelled || !data) return;
+    // Fetch zoho_project_id per customer for Zoho links and hub_users for reviewer names
+    // in parallel — neither depends on the other (async-parallel rule)
+    Promise.all([
+      supabase
+        .from("customer_products")
+        .select("customer_id, zoho_project_id")
+        .not("zoho_project_id", "is", null),
+      supabase
+        .from("hub_users")
+        .select("id, display_name"),
+    ]).then(([zohoResult, usersResult]) => {
+      if (cancelled) return;
+      if (zohoResult.data) {
         const map: Record<string, string> = {};
-        for (const p of data as Array<{ customer_id: string; zoho_project_id: string | null }>) {
+        for (const p of zohoResult.data as Array<{ customer_id: string; zoho_project_id: string | null }>) {
           if (p.zoho_project_id && !map[p.customer_id]) {
             map[p.customer_id] = p.zoho_project_id;
           }
         }
         setZohoProjectMap(map);
-      });
+      }
+      if (usersResult.data) {
+        const map: Record<string, string> = {};
+        for (const u of usersResult.data as Array<{ id: string; display_name: string | null }>) {
+          if (u.id && u.display_name) map[u.id] = u.display_name;
+        }
+        setReviewerMap(map);
+      }
+    });
 
     const channel = supabase
       .channel("pm_tasks_classification")
@@ -67,7 +82,7 @@ export default function PMTasksPage() {
     <div
       className={`flex-1 overflow-y-auto py-6.5 px-8 ${settings.theme === "dark" ? "bg-[#090c18]" : "bg-[#f5f4f1]"}`}
     >
-      <TasksTab settings={settings} tasks={tasks} zohoProjectMap={zohoProjectMap} />
+      <TasksTab settings={settings} tasks={tasks} zohoProjectMap={zohoProjectMap} reviewerMap={reviewerMap} />
     </div>
   );
 }

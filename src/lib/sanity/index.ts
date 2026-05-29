@@ -89,8 +89,11 @@ export async function executeSanityPlan(
   const pre_action_states: Record<string, unknown> = {};
   const allDocIds = [...new Set(plan.mutations.map((m) => m.documentId))];
   const preDocs = await client.getDocuments(allDocIds);
-  allDocIds.forEach((id, i) => {
-    pre_action_states[id] = preDocs[i] ?? null;
+  preDocs.forEach((doc) => {
+    if (doc?._id) pre_action_states[doc._id] = doc;
+  });
+  allDocIds.forEach((id) => {
+    if (!(id in pre_action_states)) pre_action_states[id] = null;
   });
 
   // Execute content mutations in a single transaction (skip if nothing to apply)

@@ -45,7 +45,18 @@ export type TaskStatus =
   | "clarification_needed"
   | "rejected";
 
-export type ClassificationStatus = "pending" | "reviewed" | "rejected";
+export type ClassificationStatus =
+  | "pending"
+  | "reviewed"
+  | "rejected"
+  | "planning"
+  | "planned"
+  | "approved"
+  | "open"
+  | "on_hold"
+  | "active"
+  | "review"
+  | "closed";
 
 export type AssessmentStatus = "CLEAR" | "PARTIAL" | "BLOCKED";
 

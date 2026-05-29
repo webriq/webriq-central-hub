@@ -1,13 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { adminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import type { LLMEligibility, TaskPriority, TaskType } from "@/types/hub";
 
-type ReclassifyBody = {
-  task_type: TaskType;
-  priority: TaskPriority;
-  llm_eligible: LLMEligibility;
-};
+const ReclassifyBody = z.object({
+  task_type: z.enum([
+    "CONTENT_UPDATE", "SETTINGS_CHANGE", "BLOG_PUBLISH", "ASSET_UPLOAD",
+    "CODE_CHANGE_MINOR", "SEO_UPDATE", "BUG_REPORT", "FEATURE_REQUEST",
+    "STRATEGIC", "OTHER",
+  ]),
+  priority: z.enum(["CRITICAL", "HIGH", "NORMAL", "LOW"]),
+  llm_eligible: z.enum(["YES", "NO", "HUMAN_ONLY"]),
+});
 
 export async function PATCH(
   req: NextRequest,
@@ -21,17 +25,18 @@ export async function PATCH(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  let body: ReclassifyBody;
+  let rawBody: unknown;
   try {
-    body = await req.json();
+    rawBody = await req.json();
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { task_type, priority, llm_eligible } = body;
-  if (!task_type || !priority || !llm_eligible) {
-    return NextResponse.json({ error: "task_type, priority, and llm_eligible are required" }, { status: 400 });
+  const parsed = ReclassifyBody.safeParse(rawBody);
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid body" }, { status: 400 });
   }
+  const { task_type, priority, llm_eligible } = parsed.data;
 
   const { data, error } = await adminClient
     .from("classification_records")

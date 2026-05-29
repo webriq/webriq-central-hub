@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { ExternalLink } from "lucide-react";
 import type { PMSettings } from "@/hooks/use-pm-settings";
+import type { TaskType, TaskPriority } from "@/types/hub";
 import { PriorityDot } from "./shared";
 import type { Database } from "@/types/database";
 
@@ -28,11 +29,11 @@ function formatAge(dateStr: string): string {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
-const TASK_TYPES = [
+const TASK_TYPES: TaskType[] = [
   "CONTENT_UPDATE", "SETTINGS_CHANGE", "BLOG_PUBLISH", "ASSET_UPLOAD",
   "CODE_CHANGE_MINOR", "SEO_UPDATE", "BUG_REPORT", "FEATURE_REQUEST", "STRATEGIC", "OTHER",
-] as const;
-const PRIORITIES = ["CRITICAL", "HIGH", "NORMAL", "LOW"] as const;
+];
+const PRIORITIES: TaskPriority[] = ["CRITICAL", "HIGH", "NORMAL", "LOW"];
 
 function ReclassifyModal({ record, onClose, onSave }: {
   record: ClassificationRow;
@@ -44,6 +45,14 @@ function ReclassifyModal({ record, onClose, onSave }: {
   const [llmEligible, setLlmEligible] = useState(record.llm_eligible ?? "NO");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const reasoning =
+    record.raw_response !== null &&
+    typeof record.raw_response === "object" &&
+    !Array.isArray(record.raw_response) &&
+    typeof (record.raw_response as Record<string, unknown>).reasoning === "string"
+      ? (record.raw_response as Record<string, unknown>).reasoning as string
+      : null;
 
   async function handleSubmit() {
     setSaving(true);
@@ -85,6 +94,17 @@ function ReclassifyModal({ record, onClose, onSave }: {
         <p className="text-[13px] text-gray-600 dark:text-gray-400 mb-4 leading-relaxed line-clamp-2">
           {record.title}
         </p>
+
+        {reasoning !== null ? (
+          <div className="mb-4 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-3 py-2.5">
+            <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-[0.06em] mb-1">
+              AI Reasoning
+            </p>
+            <p className="text-[12px] text-gray-700 dark:text-gray-300 leading-relaxed">
+              {reasoning}
+            </p>
+          </div>
+        ) : null}
 
         <div className="space-y-3 mb-5">
           <div>
@@ -139,11 +159,12 @@ interface Props {
   settings: PMSettings;
   tasks: ClassificationRow[];
   zohoProjectMap?: Record<string, string>;
+  reviewerMap?: Record<string, string>;
 }
 
 type FilterTab = "all" | "review" | "classified";
 
-export default function TasksTab({ settings, tasks, zohoProjectMap = {} }: Props) {
+export default function TasksTab({ settings, tasks, zohoProjectMap = {}, reviewerMap = {} }: Props) {
   const [tab, setTab] = useState<FilterTab>("all");
   const [reclassifyTarget, setReclassifyTarget] = useState<ClassificationRow | null>(null);
   // Optimistic overrides: applied on top of the tasks prop until realtime re-fetch arrives
@@ -249,7 +270,23 @@ export default function TasksTab({ settings, tasks, zohoProjectMap = {} }: Props
                         Classify
                       </button>
                     ) : (
-                      <span className="text-[11px] font-semibold text-(--c-green)">✓ Classified</span>
+                      <div>
+                        <span className="text-[11px] font-semibold text-(--c-green)">✓ Classified</span>
+                        {(t.confidence_score ?? 100) < 75 ? (
+                          <button
+                            onClick={() => setReclassifyTarget(t)}
+                            className="block text-[10px] font-semibold text-amber-600 dark:text-amber-400 mt-0.5 cursor-pointer hover:underline"
+                          >
+                            Re-classify
+                          </button>
+                        ) : null}
+                        {t.reviewed_at ? (
+                          <div className="text-[10px] text-(--c-muted) mt-0.5 leading-tight">
+                            {t.reviewed_by && reviewerMap[t.reviewed_by] ? `${reviewerMap[t.reviewed_by]} · ` : ""}
+                            {formatAge(t.reviewed_at)}
+                          </div>
+                        ) : null}
+                      </div>
                     )}
                   </td>
                   <td className="py-3.25 px-4">
@@ -258,7 +295,7 @@ export default function TasksTab({ settings, tasks, zohoProjectMap = {} }: Props
                   <td className="py-3.25 px-4 text-center">
                     {t.zoho_task_id && zohoProjectMap[t.customer_id] ? (
                       <a
-                        href={`https://projects.zoho.com/portal/${process.env.NEXT_PUBLIC_ZOHO_PORTAL_NAME ?? ""}/project/${zohoProjectMap[t.customer_id]}/tasks/all/task/${t.zoho_task_id}/`}
+                        href={`https://projects.zoho.com/portal/${process.env.NEXT_PUBLIC_ZOHO_PORTAL_NAME ?? ""}#zp/task-detail/${t.zoho_task_id}/`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-(--c-blue) hover:opacity-70 inline-flex"

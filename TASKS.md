@@ -2,14 +2,23 @@
 
 ## Planned
 
+| ID | Title | Priority | Type | Doc | Date |
+|----|-------|----------|------|-----|------|
+
 ## In Progress
 
 ## Testing
 
 | ID | Title | Priority | Type | Doc | Date |
 |----|-------|----------|------|-----|------|
+| 034 | Execution Engine — DB Write Error Visibility + Circuit Breaker Threshold | HIGH | patch | _docs/task/034-execution-engine-bug-fixes.md | 2026-05-29 |
+| 033 | Classification: Low-Confidence Review Gaps | NORMAL | patch | _docs/task/033-classification-low-confidence-review-gaps.md | 2026-05-29 |
+| 032 | Zoho V3: Fix 3 write functions + parseZohoDate | HIGH | patch | _docs/task/032-zoho-v3-write-functions-parseddate.md | 2026-05-29 |
+| 031 | GitHub PR Execution Mode (CODE_CHANGE_MINOR) | HIGH | minor | _docs/task/031-github-pr-execution-mode.md | 2026-05-29 |
 | 027 | Sprint 5 — Execution Engine (M6) | HIGH | feature | _docs/task/027-sprint-5-execution-engine.md | 2026-05-27 |
 | 028 | Sprint 5 — Reply Generation (M8) | HIGH | feature | _docs/task/028-sprint-5-reply-generation.md | 2026-05-27 |
+| 029 | Zoho API V3 Migration (/restapi → /api/v3) | HIGH | chore | _docs/task/029-zoho-api-v3-migration.md | 2026-05-28 |
+| 030 | Classification Review: Code Quality + Audit Trail | NORMAL | patch | _docs/task/030-classification-review-code-quality.md | 2026-05-29 |
 
 ## Completed
 

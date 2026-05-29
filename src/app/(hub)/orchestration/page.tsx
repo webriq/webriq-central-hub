@@ -479,7 +479,7 @@ function ExecutionSection({
           .from("execution_records")
           .select("*")
           .eq("id", data.executionId)
-          .single();
+          .maybeSingle();
         if (exec) onExecuted(exec as ExecutionRecordRow);
       }
     } catch {

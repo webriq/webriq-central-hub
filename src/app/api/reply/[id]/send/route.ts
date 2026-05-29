@@ -41,13 +41,13 @@ export async function POST(
 
   if (draft.status !== "DRAFT") {
     return NextResponse.json(
-      { error: "Draft has already been sent or discarded" },
+      { error: "Draft already sent or not found" },
       { status: 409 }
     );
   }
 
   const wasEdited = content !== draft.draft_content;
-  await adminClient
+  const { data: updated, error: updateError } = await adminClient
     .from("reply_drafts")
     .update({
       status: "SENT",
@@ -57,7 +57,22 @@ export async function POST(
         ? JSON.stringify({ before: draft.draft_content, after: content })
         : null,
     })
-    .eq("id", id);
+    .eq("id", id)
+    .eq("status", "DRAFT")
+    .select("id")
+    .maybeSingle();
+
+  if (updateError) {
+    console.error("[reply/send] UPDATE failed:", updateError);
+    return NextResponse.json({ error: "Failed to send reply" }, { status: 500 });
+  }
+
+  if (!updated) {
+    return NextResponse.json(
+      { error: "Draft already sent or not found" },
+      { status: 409 }
+    );
+  }
 
   sendCliqNotification(content, "pm").catch((err) =>
     console.error("[reply/send] Cliq notification failed:", err)

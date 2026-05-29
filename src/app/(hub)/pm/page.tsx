@@ -3,10 +3,91 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { usePMSettings } from "@/hooks/use-pm-settings";
 import { createClient } from "@/lib/supabase/client";
+import { cn } from "@/lib/utils";
 import HomeTab from "@/components/hub/pm-tabs/home-tab";
 import type { ClassificationAttentionItem } from "@/components/hub/pm-tabs/home-tab";
 import type { CustomerWithProducts } from "@/components/hub/pm-tabs/clients-tab";
 import type { CustomerProductRow, DigestLogRow } from "@/types/database";
+
+// ── Phase 1 target baselines ────────────────────────────────────────────────
+const TARGETS: Record<string, { label: string; target: number; unit: string }> = {
+  llm_eligible_rate_pct:         { label: "LLM-Eligible Rate",       target: 70, unit: "%" },
+  avg_classification_confidence: { label: "Avg Classification Conf", target: 80, unit: "%" },
+  plan_approval_rate_pct:        { label: "Plan Approval Rate",       target: 70, unit: "%" },
+  execution_success_rate_pct:    { label: "Execution Success Rate",   target: 85, unit: "%" },
+};
+
+const DISPLAY_METRICS: Array<{ key: string; label: string; unit?: string; isCurrency?: boolean }> = [
+  { key: "customers_total",             label: "Customers Onboarded" },
+  { key: "classifications_total",       label: "Tasks Classified" },
+  { key: "llm_eligible_rate_pct",       label: "LLM-Eligible Rate",       unit: "%" },
+  { key: "avg_classification_confidence", label: "Avg Confidence",         unit: "%" },
+  { key: "assessments_total",           label: "Assessments Run" },
+  { key: "plan_approval_rate_pct",      label: "Plan Approval Rate",       unit: "%" },
+  { key: "plan_rejection_rate_pct",     label: "Plan Rejection Rate",      unit: "%" },
+  { key: "executions_completed",        label: "Executions Completed" },
+  { key: "execution_success_rate_pct",  label: "Execution Success Rate",   unit: "%" },
+  { key: "llm_cost_total_usd",          label: "LLM Cost (All Time)",      isCurrency: true },
+  { key: "llm_cost_month_usd",          label: "LLM Cost (This Month)",    isCurrency: true },
+];
+
+function MetricsPanel() {
+  const [metrics, setMetrics] = useState<Record<string, number | null> | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/metrics")
+      .then((r) => r.json())
+      .then((json) => setMetrics(json.metrics ?? null))
+      .finally(() => setLoading(false));
+  }, []);
+
+  return (
+    <div className="mt-6">
+      <h2 className="text-sm font-bold text-slate-700 mb-3">Phase 1 Metrics</h2>
+      <div className="grid grid-cols-4 gap-3">
+        {DISPLAY_METRICS.map(({ key, label, unit, isCurrency }) => {
+          const raw = metrics?.[key] ?? null;
+          const val =
+            raw === null
+              ? "—"
+              : isCurrency
+              ? `$${Number(raw).toFixed(4)}`
+              : `${raw}${unit ?? ""}`;
+          const target = TARGETS[key];
+          const atTarget = target && raw !== null ? Number(raw) >= target.target : null;
+
+          return (
+            <div
+              key={key}
+              className="bg-white border border-slate-200 rounded-xl px-4 py-3.5 shadow-[0_1px_4px_rgba(0,0,0,0.04)]"
+            >
+              <div
+                className={cn(
+                  "text-xl font-extrabold tracking-tight",
+                  loading ? "text-slate-300" : "text-slate-900"
+                )}
+              >
+                {loading ? "…" : val}
+              </div>
+              <div className="text-[11px] text-slate-400 mt-0.5">{label}</div>
+              {target && !loading && raw !== null && (
+                <div
+                  className={cn(
+                    "text-[10px] font-semibold mt-1",
+                    atTarget ? "text-green-600" : "text-red-500"
+                  )}
+                >
+                  Target: {target.target}{target.unit} {atTarget ? "✓" : "↓"}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 export default function PMHomePage() {
   const { settings } = usePMSettings();
@@ -186,6 +267,8 @@ export default function PMHomePage() {
         onFeedback={handleFeedback}
         clarificationNeededCount={clarificationNeededCount}
       />
+      {/* Metrics panel (PM-visible, read-only) */}
+      <MetricsPanel />
     </div>
   );
 }
