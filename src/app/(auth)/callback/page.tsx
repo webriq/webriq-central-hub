@@ -1,11 +1,9 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 export default function AuthCallbackPage() {
-  const router = useRouter();
   const called = useRef(false);
 
   useEffect(() => {
@@ -17,7 +15,7 @@ export default function AuthCallbackPage() {
     const params = new URLSearchParams(window.location.search);
     if (params.get("error")) {
       console.error("[auth/callback] provider error:", params.get("error"), params.get("error_description"));
-      router.push("/signin?error=oauth_failed");
+      window.location.href = "/auth/login?error=oauth_failed";
       return;
     }
 
@@ -25,11 +23,10 @@ export default function AuthCallbackPage() {
     const hashParams = new URLSearchParams(hash);
     const accessToken = hashParams.get("access_token");
     const refreshToken = hashParams.get("refresh_token");
-    const providerToken = hashParams.get("provider_token");
 
     if (!accessToken || !refreshToken) {
       console.error("[auth/callback] no tokens in URL fragment");
-      router.push("/signin?error=oauth_failed");
+      window.location.href = "/auth/login?error=oauth_failed";
       return;
     }
 
@@ -38,47 +35,37 @@ export default function AuthCallbackPage() {
       .then(async ({ data, error }) => {
         if (error || !data.session) {
           console.error("[auth/callback] setSession failed:", error?.message);
-          router.push("/signin?error=oauth_failed");
+          window.location.href = "/auth/login?error=oauth_failed";
           return;
         }
 
         const userId = data.session.user.id;
-        console.log("[auth/callback] session established for:", data.session.user.email);
+        const email = data.session.user.email ?? "";
+        const displayName = (data.session.user.user_metadata?.display_name as string) ?? "";
+        console.log("[auth/callback] session established for:", email);
 
-        // Fire-and-forget: fetch Zoho profile in background so redirect isn't blocked
-        if (providerToken) {
-          void (async () => {
-            try {
-              const zohoRes = await fetch("/api/zoho/user-info", {
-                headers: { Authorization: `Bearer ${providerToken}` },
-              });
-              if (zohoRes.ok) {
-                const profile = await zohoRes.json();
-                const displayName = profile.Display_Name ?? "";
-                const zuid = String(profile.ZUID ?? "");
-                if (displayName) {
-                  const { updateZohoProfile } = await import(
-                    "@/app/(auth)/update-zoho-profile"
-                  );
-                  await updateZohoProfile(userId, displayName, zuid);
-                }
-              } else {
-                console.warn("[auth/callback] Zoho user/info failed:", zohoRes.status);
-              }
-            } catch (err) {
-              console.warn("[auth/callback] Zoho fetch error:", err);
-            }
-          })();
+        let destination = "/dashboard";
+        try {
+          const { syncZohoRole } = await import("@/app/(auth)/sync-zoho-role");
+          const role = await syncZohoRole(userId, email, displayName);
+          if (role === "pending") destination = "/auth/pending";
+        } catch (err) {
+          console.warn("[auth/callback] syncZohoRole error:", err);
         }
 
-        router.push("/");
-        router.refresh();
+        window.location.href = destination;
       });
-  }, [router]);
+  }, []);
 
   return (
-    <div className="flex items-center justify-center py-12">
-      <p className="text-sm text-muted-foreground">Completing sign-in…</p>
+    <div className="flex min-h-screen items-center justify-center bg-[#f5f4f1]">
+      <div className="flex flex-col items-center gap-3">
+        <svg className="w-5 h-5 text-slate-400 animate-spin" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+        </svg>
+        <p className="text-[13px] text-slate-400">Verifying your account…</p>
+      </div>
     </div>
   );
 }

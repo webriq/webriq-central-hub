@@ -9,7 +9,9 @@ import {
   Users,
   ListChecks,
   GitBranch,
-  MessageSquare,
+  Bot,
+  Clock,
+  ShieldCheck,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -24,18 +26,32 @@ interface NavItem {
   exact?: boolean;
 }
 
-const navGroups: { section: string; items: NavItem[] }[] = [
-  {
-    section: "Main",
-    items: [
-      { href: ROUTES.PM, label: "Home", icon: LayoutDashboard, exact: true },
-      { href: `${ROUTES.PM}/customers`, label: "Clients", icon: Users },
-      { href: `${ROUTES.PM}/tasks`, label: "Tasks", icon: ListChecks },
-      { href: `${ROUTES.PM}/pipeline`, label: "Pipeline", icon: GitBranch },
-      { href: ROUTES.ORCHESTRATION, label: "AI Chat", icon: MessageSquare },
-    ],
-  },
-];
+function getNavGroups(role: string | null): { section: string; items: NavItem[] }[] {
+  const isDev   = role === "developer";
+  const isAdmin = role === "admin";
+
+  const pmItems: NavItem[] = [
+    { href: ROUTES.DASHBOARD,           label: "Home",      icon: LayoutDashboard, exact: true },
+    { href: ROUTES.DASHBOARD_CUSTOMERS, label: "Customers", icon: Users },
+    { href: ROUTES.DASHBOARD_TASKS,     label: "Tasks",     icon: ListChecks },
+    { href: ROUTES.DASHBOARD_PIPELINE,  label: "Pipeline",  icon: GitBranch },
+    { href: ROUTES.DASHBOARD_CHAT,      label: "AI Chat",   icon: Bot },
+  ];
+
+  const devItems: NavItem[] = [
+    { href: ROUTES.DASHBOARD,           label: "Home",      icon: LayoutDashboard, exact: true },
+    { href: ROUTES.DASHBOARD_TASKS,     label: "Tasks",     icon: ListChecks },
+    { href: ROUTES.DASHBOARD_TIMELOGS,  label: "Time Logs", icon: Clock },
+  ];
+
+  const adminExtras: NavItem[] = [
+    { href: ROUTES.DASHBOARD_USERS, label: "Users", icon: ShieldCheck },
+  ];
+
+  const items = isDev ? devItems : [...pmItems, ...(isAdmin ? adminExtras : [])];
+
+  return [{ section: "Main", items }];
+}
 
 interface HubSidebarProps {
   userEmail: string | null;
@@ -44,9 +60,10 @@ interface HubSidebarProps {
   userZohoId: string | null;
 }
 
-export default function HubSidebar({ userEmail: _userEmail, userRole: _userRole }: HubSidebarProps) {
+export default function HubSidebar({ userEmail: _userEmail, userRole }: HubSidebarProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const navGroups = getNavGroups(userRole);
 
   return (
     <aside

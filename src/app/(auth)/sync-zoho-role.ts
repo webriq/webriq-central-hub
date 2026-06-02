@@ -1,0 +1,88 @@
+"use server";
+
+import { adminClient } from "@/lib/supabase/admin";
+import { getZohoPortalUser, type ZohoPortalUser } from "@/lib/zoho";
+
+export type HubRole = "admin" | "pm" | "pending";
+
+function determineHubRole(user: ZohoPortalUser, displayName: string): HubRole {
+  const fn = user.first_name ?? "";
+  const dn = displayName || user.full_name || "";
+  const roleName = user.role?.name ?? "";
+  const profileName = user.portal_profile?.name ?? "";
+
+  const isNamedAdmin =
+    dn.includes("WebriQ") || fn === "WebriQ" ||
+    dn.includes("Eleazar") || fn === "Eleazar" ||
+    dn.includes("Philippe") || dn.includes("Bodart") || fn === "Philippe";
+
+  if (isNamedAdmin && roleName === "Administrator" && profileName === "Admin") return "admin";
+  if (roleName === "Administrator" && profileName === "Manager") return "admin";
+  if (roleName === "Manager" && profileName === "Portal Owner") return "admin";
+
+  if (roleName === "Manager" && profileName === "Admin") return "pm";
+  if (roleName === "Administrator" && profileName === "Admin") return "pm";
+  if (roleName === "Manager" && profileName === "Manager") return "pm";
+
+  return "pending";
+}
+
+const APPROVED_ROLES = new Set(["admin", "pm", "dev"]);
+
+export async function syncZohoRole(
+  userId: string,
+  email: string,
+  displayName: string
+): Promise<HubRole | null> {
+  const raw = await getZohoPortalUser(email);
+  if (!raw) {
+    console.warn("[sync-zoho-role] no portal user found for:", email);
+    return null;
+  }
+
+  // Zoho API wraps response as { user: {...} } — handle both shapes defensively
+  const portalUser: ZohoPortalUser =
+    (raw as unknown as { user?: ZohoPortalUser }).user ?? raw;
+
+  const role = determineHubRole(portalUser, displayName);
+
+  // Don't downgrade users who already have an approved role (e.g. admin-assigned 'dev')
+  if (role === "pending") {
+    const { data: existing } = await adminClient
+      .from("hub_users")
+      .select("role")
+      .eq("id", userId)
+      .single();
+
+    const currentRole = existing?.role ?? null;
+    if (currentRole && APPROVED_ROLES.has(currentRole)) {
+      console.log("[sync-zoho-role] preserving approved role:", currentRole, "for:", email);
+      return currentRole as HubRole;
+    }
+  }
+
+  type HubUserUpdate = {
+    display_name?: string | null;
+    zoho_user_id?: string | null;
+    role?: string;
+  };
+
+  const updates: HubUserUpdate = {
+    display_name: (displayName ?? portalUser.full_name) || null,
+    zoho_user_id: portalUser.zuid ?? null,
+    role,
+  };
+
+  const { error } = await adminClient
+    .from("hub_users")
+    .update(updates)
+    .eq("id", userId);
+
+  if (error) {
+    console.error("[sync-zoho-role] hub_users update error:", error.message);
+  } else {
+    console.log("[sync-zoho-role] synced role:", role, "for:", email);
+  }
+
+  return role;
+}

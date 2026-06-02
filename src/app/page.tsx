@@ -19,7 +19,7 @@ import { ROUTES } from "@/config/constants";
 
 const modules = [
   {
-    href: ROUTES.PM,
+    href: ROUTES.DASHBOARD,
     title: "PM Dashboard",
     description: "Tasks, tickets, daily digest, Zoho sync",
     icon: LayoutDashboard,
@@ -37,7 +37,7 @@ const modules = [
     size: "lg",
   },
   {
-    href: ROUTES.ONBOARDING,
+    href: ROUTES.CUSTOMERS_ONBOARD,
     title: "Onboarding",
     description: "Customer creation, dynamic forms, progress tracking",
     icon: UserPlus,
@@ -46,7 +46,7 @@ const modules = [
     size: "sm",
   },
   {
-    href: ROUTES.CLASSIFICATION,
+    href: ROUTES.ORCHESTRATION,
     title: "Classification",
     description: "Zoho webhook → Haiku classification engine",
     icon: ScanSearch,
@@ -55,7 +55,7 @@ const modules = [
     size: "sm",
   },
   {
-    href: ROUTES.DEV,
+    href: ROUTES.DASHBOARD,
     title: "Dev Dashboard",
     description: "Assigned tasks, self-assignment, time logs",
     icon: Code2,

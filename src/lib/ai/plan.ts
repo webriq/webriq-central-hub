@@ -1,7 +1,8 @@
 import { generateObject } from "ai";
 import { z } from "zod";
 import { adminClient } from "@/lib/supabase/admin";
-import { getModel, getModelConfig } from "@/lib/ai/model-config";
+import { getModelConfig } from "@/lib/ai/model-config";
+import { getLanguageModel } from "@/lib/ai/providers";
 import { logLLMInvocation } from "@/lib/ai/logger";
 import { buildContextChain } from "@/lib/ai/context-chain";
 import type { Database } from "@/types/database";
@@ -66,10 +67,8 @@ export async function generatePlan(input: PlanInput): Promise<ImplementationPlan
       : "";
 
   try {
-    const [model, config] = await Promise.all([
-      getModel("planning"),
-      getModelConfig("planning"),
-    ]);
+    const config = await getModelConfig("planning");
+    const model = getLanguageModel((config.provider ?? "anthropic") as "anthropic" | "openai", config.model_id);
     modelId = config.model_id;
 
     const { object, usage } = await generateObject({

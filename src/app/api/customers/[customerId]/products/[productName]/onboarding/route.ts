@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminClient } from "@/lib/supabase/admin";
 import type { ProductName } from "@/types/hub";
+import type { Database } from "@/types/database";
+
+type CustomerProductUpdate = Database["public"]["Tables"]["customer_products"]["Update"];
 
 const VALID_PRODUCTS: ProductName[] = ["StackShift", "PublishForge", "PipelineForge"];
 
@@ -16,21 +19,26 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const { data: onboardingData, completedPercentage } = body;
+    const { data: onboardingData, completedPercentage, explicitSubmit } = body;
 
     if (onboardingData === undefined) {
       return NextResponse.json({ error: "data field is required" }, { status: 400 });
     }
 
-    const isComplete = completedPercentage !== undefined && completedPercentage >= 100;
+    // Only mark as submitted when the customer explicitly clicks Submit — not on auto-save.
+    const isExplicitSubmit = explicitSubmit === true;
+
+    const updatePayload: CustomerProductUpdate = {
+      onboarding_data: onboardingData,
+      completed_percentage: completedPercentage ?? 0,
+    };
+    if (isExplicitSubmit) {
+      updatePayload.onboarding_complete = true;
+    }
 
     const { data, error } = await adminClient
       .from("customer_products")
-      .update({
-        onboarding_data: onboardingData,
-        onboarding_complete: isComplete,
-        completed_percentage: completedPercentage ?? 0,
-      })
+      .update(updatePayload)
       .eq("customer_id", customerId)
       .eq("product_name", productName)
       .select()
@@ -44,10 +52,10 @@ export async function PATCH(
       return NextResponse.json({ error: "Failed to save onboarding data" }, { status: 500 });
     }
 
-    // When this product reaches 100%, check if all products for this customer are complete.
-    // If so: transition customer to "completed_onboarding" and notify PM via Cliq.
-    // Zoho project creation is now a deliberate PM action from the customer profile page.
-    if (isComplete) {
+    // On explicit submit: check if all products are now complete.
+    // If so: transition customer status and notify PM via Cliq (once only — guarded by status check).
+    // Zoho project creation is a deliberate PM action from the customer profile page.
+    if (isExplicitSubmit) {
       try {
         const { data: allProducts } = await adminClient
           .from("customer_products")
@@ -59,19 +67,22 @@ export async function PATCH(
         if (allDone) {
           const { data: customer } = await adminClient
             .from("customers")
-            .select("company_name")
+            .select("company_name, status")
             .eq("customer_id", customerId)
             .single();
 
-          await adminClient
-            .from("customers")
-            .update({ status: "completed_onboarding" })
-            .eq("customer_id", customerId);
+          // Idempotency guard — skip if already transitioned to prevent duplicate Cliq messages.
+          if (customer?.status !== "completed_onboarding") {
+            await adminClient
+              .from("customers")
+              .update({ status: "completed_onboarding" })
+              .eq("customer_id", customerId);
 
-          const { sendCliqNotification } = await import("@/lib/zoho");
-          await sendCliqNotification(
-            `✅ ${customer?.company_name ?? customerId} has completed all onboarding forms. Ready for Zoho project creation.`
-          );
+            const { sendCliqNotification } = await import("@/lib/zoho");
+            await sendCliqNotification(
+              `✅ ${customer?.company_name ?? customerId} has completed all onboarding forms. Ready for Zoho project creation.`
+            );
+          }
         }
       } catch (completionErr) {
         // Non-fatal — log but don't fail the save response

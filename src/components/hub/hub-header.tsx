@@ -14,17 +14,26 @@ interface HubHeaderProps {
 }
 
 const PATH_TITLES: Record<string, { title: string; subtitle?: string }> = {
-  "/pm": { title: "Home", subtitle: "Project Manager Dashboard" },
-  "/dev": { title: "My Dashboard", subtitle: "Developer daily view" },
-  "/orchestration": { title: "AI Chat", subtitle: "Claude-powered assistant — Sprint 5" },
+  "/dashboard": { title: "Home", subtitle: "Project Manager Dashboard" },
+  "/dashboard/customers": { title: "Customers", subtitle: "Manage your customer accounts" },
+  "/dashboard/tasks": { title: "Tasks", subtitle: "Classification records and task management" },
+  "/dashboard/pipeline": { title: "Pipeline", subtitle: "Kanban view across all automation stages" },
+  "/dashboard/chat": { title: "AI Chat", subtitle: "Claude-powered assistant — coming soon" },
+  "/dashboard/timelogs": { title: "Time Logs", subtitle: "Track logged hours by project" },
+  "/dashboard/settings": { title: "Settings", subtitle: "PM preferences and configuration" },
+  "/dashboard/customers/onboard": { title: "Onboard Customer", subtitle: "Create a new customer and onboarding link" },
+  "/orchestration": { title: "Orchestration", subtitle: "AI pipeline management — classification, assessment, plan, execution" },
   "/kb": { title: "Knowledge Base", subtitle: "LLM Wiki — playbooks, internal KB, customer context — Sprint 6" },
-  "/onboarding": { title: "Onboarding", subtitle: "Create a new customer" },
-  "/customers": { title: "Customer Profile" },
+  "/dashboard/users": { title: "Users", subtitle: "Registered hub members and roles" },
 };
 
 function getTitleOverride(pathname: string): { title: string; subtitle?: string } | null {
   if (PATH_TITLES[pathname]) return PATH_TITLES[pathname];
-  for (const [prefix, info] of Object.entries(PATH_TITLES)) {
+  if (/^\/dashboard\/customers\/[^/]+/.test(pathname) && !pathname.endsWith("/onboard")) {
+    return { title: "Customer Profile", subtitle: "View and manage customer details" };
+  }
+  const sorted = Object.entries(PATH_TITLES).sort((a, b) => b[0].length - a[0].length);
+  for (const [prefix, info] of sorted) {
     if (pathname.startsWith(prefix + "/")) return info;
   }
   return null;
@@ -83,7 +92,7 @@ export default function HubHeader({ title, subtitle, displayName, email, zohoUse
             <circle cx="11" cy="11" r="8" />
             <path d="m21 21-4.35-4.35" />
           </svg>
-          <input type="text" placeholder="Search projects, clients, tasks..." className="text-[13px] py-1.75 pr-3 pl-7.5 border border-slate-200 rounded-lg text-slate-900 bg-page-bg outline-none w-60 font-[inherit]" />
+          <input type="text" placeholder="Search projects, customers, tasks..." className="text-[13px] py-1.75 pr-3 pl-7.5 border border-slate-200 rounded-lg text-slate-900 bg-page-bg outline-none w-60 font-[inherit]" />
         </div>
 
         {/* Notification bell */}

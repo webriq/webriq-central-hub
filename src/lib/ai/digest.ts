@@ -1,7 +1,8 @@
 import { generateObject } from "ai";
 import { z } from "zod";
 import { adminClient } from "@/lib/supabase/admin";
-import { getModel, getModelConfig } from "@/lib/ai/model-config";
+import { getModelConfig } from "@/lib/ai/model-config";
+import { getLanguageModel } from "@/lib/ai/providers";
 import { logLLMInvocation } from "@/lib/ai/logger";
 import { sendCliqNotification } from "@/lib/zoho";
 import type { Database } from "@/types/database";
@@ -222,10 +223,8 @@ export async function generateDigest(type: DigestType): Promise<DigestLogRow | n
   }
 
   try {
-    const [model, config] = await Promise.all([
-      getModel("digest"),
-      getModelConfig("digest"),
-    ]);
+    const config = await getModelConfig("digest");
+    const model = getLanguageModel((config.provider ?? "anthropic") as "anthropic" | "openai", config.model_id);
     modelId = config.model_id;
 
     const pmPrompt = `You are an operational assistant for a web development agency PM.

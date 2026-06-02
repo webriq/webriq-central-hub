@@ -1,7 +1,8 @@
 import { generateObject } from "ai";
 import { z } from "zod";
 import { adminClient } from "@/lib/supabase/admin";
-import { getModel, getModelConfig } from "@/lib/ai/model-config";
+import { getModelConfig } from "@/lib/ai/model-config";
+import { getLanguageModel } from "@/lib/ai/providers";
 import { logLLMInvocation } from "@/lib/ai/logger";
 import { sendCliqNotification } from "@/lib/zoho";
 import type { WebhookSource } from "@/types/hub";
@@ -39,10 +40,8 @@ export async function classifyTask(input: ClassifyInput): Promise<Classification
   let modelId: string | null = null;
 
   try {
-    const [model, config] = await Promise.all([
-      getModel("classification"),
-      getModelConfig("classification"),
-    ]);
+    const config = await getModelConfig("classification");
+    const model = getLanguageModel((config.provider ?? "anthropic") as "anthropic" | "openai", config.model_id);
     modelId = config.model_id;
 
     const { object, usage } = await generateObject({

@@ -73,7 +73,7 @@ function FormEngineInner({
       await fetch(`/api/customers/${customerId}/products/${schema.productName}/onboarding`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ data, completedPercentage: 100 }),
+        body: JSON.stringify({ data, completedPercentage: 100, explicitSubmit: true }),
       });
     } catch {
       // best-effort — auto-save already persists data
@@ -112,7 +112,7 @@ function FormEngineInner({
         </div>
         <h2 className="text-2xl font-bold text-slate-900 mb-3 text-center">Form Submitted</h2>
         <p className="text-sm text-slate-500 leading-relaxed text-center max-w-110">
-          Thank you for completing the {schema.productName} onboarding form. Your project manager will review your submission and be in touch shortly.
+          Thank you for completing the {schema.productName} onboarding form. Your WebriQ administrator will review your submission and be in touch shortly.
         </p>
       </div>
     );

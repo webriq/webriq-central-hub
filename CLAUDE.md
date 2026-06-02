@@ -53,16 +53,26 @@ Route groups are invisible to the URL — `/onboarding/[customerId]` resolves to
 src/
   app/
     (hub)/              Hub shell — auth-gated, sidebar visible
-      onboarding/       PM: create customer + assign products (Sprint 1 — M1)
-      pm/               PM dashboard — customer list + progress (Sprints 1–4)
-      customers/        Customer profile pages
-      dev/              Sprint 6 — M9: Developer dashboard
+      dashboard/        Role-aware home + sub-routes (PM and Dev)
+        page.tsx        Server component — fetches role, renders PMDashboard or DevDashboard
+        _components/    pm-dashboard.tsx, dev-dashboard.tsx (client components)
+        customers/      PM customers list
+        tasks/          Role-aware tasks (PM = classification_records; Dev = Zoho tasks)
+        pipeline/       PM pipeline kanban
+        chat/           AI Chat (under development)
+        timelogs/       Dev time logs
+        settings/       PM settings
+      customers/
+        [customerId]/   Customer profile pages
+        new/            PM: create new customer + assign products
       classification/   Sprint 2 — M2
       orchestration/    Sprints 3–5 — M3/M5/M6/M8
       kb/               Sprint 6 — M10: LLM Wiki
     (auth)/             Auth pages — no sidebar, no auth check
-      signin/           Login page
-      signup/           Registration page
+      auth/
+        login/          Login page (/auth/login)
+        signup/         Registration page (/auth/signup)
+      callback/         OAuth PKCE callback — stays at /callback (Zoho OAuth registered here)
       actions.ts        Server Actions for auth (signIn, signUp, signOut)
       layout.tsx
     (public)/           Customer-facing — no sidebar, no auth check
@@ -103,6 +113,9 @@ src/
       context-chain.ts  buildContextChain(classificationId) — assembles customer+task context string for Sonnet prompts (Sprint 3+)
       assess.ts         assessTask({ classificationId, customerId }) — Sonnet, CLEAR/PARTIAL/BLOCKED subtask breakdown, inserts to requirements_assessments
       digest.ts         generateDigest(type) — Haiku, compiles PM/Dev digest from live DB data, inserts to digest_logs
+    auth/
+      role-access.ts    isRouteAllowed(pathname, role) — route permission table (no side effects)
+      require-role.ts   requireRole(pathname) — server guard; redirects to /auth/login or /dashboard if unauthorized
     zoho/               Sprint 2+; `syncTaskToZoho(input)` creates Zoho task on plan approval; `updateZohoTaskStatus()` for close/reopen sync; `createZohoProject()` for onboarding; `sendCliqNotification()` for Cliq alerts
     sanity/             Stub — Sprint 5+
     github/             Stub — Sprint 5+
@@ -112,7 +125,7 @@ src/
     hub.ts              Domain types: OrchestrationLayer, TaskType, LLMEligibility, UserRole, etc.
     onboarding.ts       FormSchema, FormSection, FormField, OnboardingData types
   config/
-    constants.ts        ROUTES, LLM_PRICING (Anthropic + OpenAI), computeLLMCost()
+    constants.ts        ROUTES (DASHBOARD, DASHBOARD_*, CUSTOMERS_NEW, AUTH_LOGIN, AUTH_SIGNUP, ORCHESTRATION, KB), LLM_PRICING, computeLLMCost()
     onboarding-schemas.ts  Per-product form definitions (StackShift, PublishForge, etc.)
   hooks/
     use-auto-save.ts    Debounced PATCH to save onboarding_data; accepts completionPercentage

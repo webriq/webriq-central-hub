@@ -52,6 +52,9 @@ export function validateCustomerUpdate(body: {
   zoho_account_id?: string;
   communication_tone?: string;
   status?: string;
+  automation_toggle?: boolean;
+  llm_excluded?: boolean;
+  daily_token_budget?: number | null;
 }): ValidationResult {
   const errors: Record<string, string> = {};
   const validStatuses: CustomerStatus[] = ["active", "inactive", "onboarding"];

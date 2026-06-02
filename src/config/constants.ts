@@ -1,11 +1,18 @@
 export const ROUTES = {
   HOME: "/",
-  PM: "/pm",
-  DEV: "/dev",
-  ONBOARDING: "/onboarding",
-  CLASSIFICATION: "/classification",
+  DASHBOARD: "/dashboard",
+  DASHBOARD_CUSTOMERS: "/dashboard/customers",
+  DASHBOARD_TASKS: "/dashboard/tasks",
+  DASHBOARD_PIPELINE: "/dashboard/pipeline",
+  DASHBOARD_CHAT: "/dashboard/chat",
+  DASHBOARD_TIMELOGS: "/dashboard/timelogs",
+  DASHBOARD_SETTINGS: "/dashboard/settings",
+  DASHBOARD_USERS: "/dashboard/users",
+  CUSTOMERS_ONBOARD: "/dashboard/customers/onboard",
   ORCHESTRATION: "/orchestration",
   KB: "/kb",
+  AUTH_LOGIN: "/auth/login",
+  AUTH_SIGNUP: "/auth/signup",
 } as const;
 
 // LLM pricing per million tokens (USD)

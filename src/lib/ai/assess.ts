@@ -1,7 +1,8 @@
 import { generateObject } from "ai";
 import { z } from "zod";
 import { adminClient } from "@/lib/supabase/admin";
-import { getModel, getModelConfig } from "@/lib/ai/model-config";
+import { getModelConfig } from "@/lib/ai/model-config";
+import { getLanguageModel } from "@/lib/ai/providers";
 import { logLLMInvocation } from "@/lib/ai/logger";
 import { buildContextChain } from "@/lib/ai/context-chain";
 import type { Database } from "@/types/database";
@@ -37,10 +38,8 @@ export async function assessTask(input: AssessInput): Promise<RequirementsAssess
   const contextChain = await buildContextChain(classificationId);
 
   try {
-    const [model, config] = await Promise.all([
-      getModel("assessment"),
-      getModelConfig("assessment"),
-    ]);
+    const config = await getModelConfig("assessment");
+    const model = getLanguageModel((config.provider ?? "anthropic") as "anthropic" | "openai", config.model_id);
     modelId = config.model_id;
 
     const { object, usage } = await generateObject({

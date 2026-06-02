@@ -15,11 +15,21 @@ export async function buildContextChain(classificationId: string): Promise<strin
     return `=== TASK ===\n[Classification record ${classificationId} not found]\n`;
   }
 
-  const customerResult = await adminClient
-    .from("customers")
-    .select("*, customer_products(*)")
-    .eq("customer_id", classification.customer_id)
-    .maybeSingle();
+  const [customerResult, assessmentResult] = await Promise.all([
+    adminClient
+      .from("customers")
+      .select("*, customer_products(*)")
+      .eq("customer_id", classification.customer_id)
+      .maybeSingle(),
+    // Sprint 4+: include latest assessment when one exists
+    adminClient
+      .from("requirements_assessments")
+      .select("overall_status, subtasks, assessment_version")
+      .eq("classification_id", classificationId)
+      .order("assessment_version", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
 
   const customer = customerResult.data;
 
@@ -51,15 +61,6 @@ export async function buildContextChain(classificationId: string): Promise<strin
   if (classification.description) {
     sections.push(``, `Description:`, classification.description);
   }
-
-  // Sprint 4+: include latest assessment when one exists
-  const assessmentResult = await adminClient
-    .from("requirements_assessments")
-    .select("overall_status, subtasks, assessment_version")
-    .eq("classification_id", classificationId)
-    .order("assessment_version", { ascending: false })
-    .limit(1)
-    .maybeSingle();
 
   const assessment = assessmentResult.data;
   if (assessment) {

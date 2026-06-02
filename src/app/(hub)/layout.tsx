@@ -8,7 +8,7 @@ export default async function HubLayout({ children }: { children: React.ReactNod
   const { data } = await supabase.auth.getClaims();
 
   if (!data?.claims) {
-    redirect("/signin");
+    redirect("/auth/login");
   }
 
   const userId = data.claims.sub;
@@ -30,6 +30,10 @@ export default async function HubLayout({ children }: { children: React.ReactNod
       userDisplayName = profile.display_name;
       userZohoId = profile.zoho_user_id;
     }
+  }
+
+  if (userRole === "pending") {
+    redirect("/auth/pending");
   }
 
   return (

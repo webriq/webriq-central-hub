@@ -114,6 +114,48 @@ export type ZohoTimeLog = {
   log_date: string;
 };
 
+export type ZohoPageInfo = {
+  per_page: number;
+  has_next_page: boolean;
+  count: number;
+  page: number;
+};
+
+export type ZohoPortalUser = {
+  id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  full_name: string;
+  zuid: string;
+  status: string;
+  user_type: string;
+  is_confirmed: boolean;
+  is_resend_invite: boolean;
+  added_time: string;
+  updated_time: string;
+  last_accessed_on?: string | null;
+  role: { id: string; name: string };
+  portal_profile: { id: string; name: string; is_default: boolean };
+  reporting_to?: { id: string; full_name: string; first_name: string; last_name: string; zuid: string } | null;
+  business_hours?: { id: string; name: string } | null;
+  budget?: { cost_per_hour: { currency_code: string; formatted_amount: string; currency_id: string; amount: number } } | null;
+};
+
+export type ZohoPortalUsersResponse = {
+  users: ZohoPortalUser[];
+  page_info: ZohoPageInfo | null;
+};
+
+export type ZohoPortalUsersParams = {
+  type?: string;
+  view_type?: string;
+  page?: string | number;
+  per_page?: string | number;
+  filter?: Record<string, unknown>;
+  sort_by?: string;
+};
+
 type SyncTaskInput = {
   customerId: string;
   title: string;
@@ -349,10 +391,8 @@ export async function getMyZohoTimeLogs(
   return results.flat();
 }
 
-// Returns all portal users with their zpuid, keyed by email (lowercase)
-// Returns email → zpuid map for all active portal users (v3.1 endpoint)
 export async function getZohoProjectUsers(
-  projectId: string  // add this
+  projectId: string
 ): Promise<Record<string, string>> {
   const token = await getZohoAccessToken();
   if (!token) return {};
@@ -409,4 +449,61 @@ export async function assignZohoTask(
   }
 
   return true;
+}
+
+export async function getZohoPortalUsers(
+  params: ZohoPortalUsersParams = {}
+): Promise<ZohoPortalUsersResponse> {
+  const portalId = process.env.ZOHO_PORTAL_ID;
+  if (!portalId) return { users: [], page_info: null };
+
+  const token = await getZohoAccessToken();
+  if (!token) return { users: [], page_info: null };
+
+  const query = new URLSearchParams();
+  query.set("type", params.type ?? "portal_user");
+  query.set("view_type", params.view_type ?? "active");
+  query.set("page", String(params.page ?? "1"));
+  query.set("per_page", String(params.per_page ?? "50"));
+  if (params.filter) query.set("filter", JSON.stringify(params.filter));
+  if (params.sort_by) query.set("sort_by", params.sort_by);
+
+  const res = await fetch(
+    `https://projectsapi.zoho.com/api/v3.1/portal/${portalId}/users?${query}`,
+    { headers: { Authorization: `Zoho-oauthtoken ${token}` } }
+  );
+
+  if (!res.ok) {
+    console.error("[zoho] getZohoPortalUsers failed:", res.status, await res.text());
+    return { users: [], page_info: null };
+  }
+
+  const json = await res.json();
+  return {
+    users: (json?.users ?? []) as ZohoPortalUser[],
+    page_info: (json?.page_info ?? null) as ZohoPageInfo | null,
+  };
+}
+
+export async function getZohoPortalUser(
+  zpuidOrEmail: string
+): Promise<ZohoPortalUser | null> {
+  const portalId = process.env.ZOHO_PORTAL_ID;
+  if (!portalId) return null;
+
+  const token = await getZohoAccessToken();
+  if (!token) return null;
+
+  const res = await fetch(
+    `https://projectsapi.zoho.com/api/v3.1/portal/${portalId}/users/${encodeURIComponent(zpuidOrEmail).replace('%40', '@')}`,
+    { headers: { Authorization: `Zoho-oauthtoken ${token}` } }
+  );
+
+  if (!res.ok) {
+    console.error("[zoho] getZohoPortalUser failed:", res.status, await res.text());
+    return null;
+  }
+
+  const json = await res.json();
+  return (json ?? null) as ZohoPortalUser | null;
 }

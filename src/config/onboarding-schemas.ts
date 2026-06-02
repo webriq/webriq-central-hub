@@ -2,10 +2,56 @@ import type { FormSchema, FormSection } from "@/types/onboarding";
 import type { ProductName } from "@/types/hub";
 
 // ============================================================================
+// Shared Sections (prepended to StackShift and PublishForge)
+// ============================================================================
+
+const companyInfoSection: FormSection = {
+  id: "company-info",
+  title: "Company Info",
+  description: "Tell us about your company.",
+  fields: [
+    { name: "companyName", label: "Company Name", type: "text", required: true, placeholder: "Acme Corp" },
+    { name: "website", label: "Website", type: "url", placeholder: "https://acme.com" },
+    {
+      name: "industry",
+      label: "Industry",
+      type: "select",
+      options: ["Technology", "E-commerce", "Healthcare", "Finance", "Education", "Media & Publishing", "Marketing & Advertising", "Non-profit", "Other"],
+    },
+    {
+      name: "region",
+      label: "Region",
+      type: "select",
+      options: ["North America", "Europe", "Asia Pacific", "Latin America", "Middle East & Africa", "Global"],
+    },
+    {
+      name: "companySize",
+      label: "Company Size",
+      type: "select",
+      options: ["1–10", "11–50", "51–200", "201–1000", "1000+"],
+    },
+  ],
+};
+
+const stakeholdersSection: FormSection = {
+  id: "stakeholders",
+  title: "Contacts & Stakeholders",
+  description: "Who are the key people we'll be working with?",
+  fields: [
+    { name: "primaryContactName", label: "Primary Contact Name", type: "text", required: true },
+    { name: "primaryContactEmail", label: "Primary Contact Email", type: "email", required: true },
+    { name: "primaryContactPhone", label: "Primary Contact Phone", type: "text" },
+    { name: "primaryContactRole", label: "Primary Contact Role", type: "text", placeholder: "e.g. CTO, Marketing Manager" },
+  ],
+};
+
+// ============================================================================
 // StackShift Onboarding Form
 // ============================================================================
 
 const stackShiftSections: FormSection[] = [
+  companyInfoSection,
+  stakeholdersSection,
   {
     id: "site-info",
     title: "Site Information",
@@ -312,6 +358,8 @@ const stackShiftSections: FormSection[] = [
 // ============================================================================
 
 const publishForgeSections: FormSection[] = [
+  companyInfoSection,
+  stakeholdersSection,
   {
     id: "content-volume",
     title: "Content Volume & Cadence",
@@ -562,6 +610,26 @@ export function getOnboardingSchema(productName: string): FormSchema | null {
     return schemas[productName as ProductName];
   }
   return null;
+}
+
+export function getIncompleteSections(productName: string, onboardingData: Record<string, unknown>): string[] {
+  const schema = getOnboardingSchema(productName);
+  if (!schema) return [];
+  return schema.sections
+    .filter((section) => {
+      if (section.condition) {
+        if (onboardingData[section.condition.field] !== section.condition.value) return false;
+      }
+      return section.fields.some((field) => {
+        if (!field.required) return false;
+        if (field.condition) {
+          if (onboardingData[field.condition.field] !== field.condition.value) return false;
+        }
+        const v = onboardingData[field.name];
+        return !v || (typeof v === "string" && v.trim() === "");
+      });
+    })
+    .map((s) => s.title);
 }
 
 export default schemas;

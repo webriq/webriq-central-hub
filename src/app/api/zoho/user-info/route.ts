@@ -21,7 +21,7 @@ export async function GET(request: Request) {
     });
 
     const data = await zohoRes.json();
-
+    console.log("[api/zoho/user-info] Zoho response:", data);
     return NextResponse.json(data, {
       status: zohoRes.ok ? 200 : zohoRes.status,
     });

@@ -55,6 +55,9 @@ export async function PATCH(
     if (body.contact_email !== undefined) updateData.contact_email = body.contact_email?.trim() ?? null;
     if (body.communication_tone !== undefined) updateData.communication_tone = body.communication_tone?.trim() ?? "";
     if (body.status !== undefined) updateData.status = body.status as CustomerUpdate["status"];
+    if (body.automation_toggle !== undefined) updateData.automation_toggle = body.automation_toggle;
+    if (body.llm_excluded !== undefined) updateData.llm_excluded = body.llm_excluded;
+    if (body.daily_token_budget !== undefined) updateData.daily_token_budget = body.daily_token_budget;
 
     if (Object.keys(updateData).length === 0) {
       return NextResponse.json({ error: "No fields to update" }, { status: 400 });

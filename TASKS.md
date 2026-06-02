@@ -4,13 +4,30 @@
 
 | ID | Title | Priority | Type | Doc | Date |
 |----|-------|----------|------|-----|------|
-
 ## In Progress
 
+| ID | Title | Priority | Type | Doc | Date |
+|----|-------|----------|------|-----|------|
+| 048 | Onboarding: Submit-Only Cliq Notification, Form Lock After Submit, PM Responses View & Reopen | HIGH | minor | _docs/task/048-onboarding-submit-lock-pm-responses-view.md | 2026-06-02 |
 ## Testing
 
 | ID | Title | Priority | Type | Doc | Date |
 |----|-------|----------|------|-----|------|
+| 048 | Onboarding: Submit-Only Cliq Notification, Form Lock After Submit, PM Responses View & Reopen | HIGH | minor | _docs/task/048-onboarding-submit-lock-pm-responses-view.md | 2026-06-02 |
+| 047 | Customer Profile Redesign: Left Nav Layout, Metadata, Product Data & Assets | HIGH | minor | _docs/task/047-customer-profile-redesign-layout-assets-metadata.md | 2026-06-02 |
+| 046 | Onboarding: Company Info Sections + PM Section-Gap View | HIGH | minor | _docs/task/046-onboarding-company-info-sections-pm-gap-view.md | 2026-06-02 |
+| 045 | Fix "+ New Customer" Button Route (404) | HIGH | bugfix | _docs/task/045-fix-new-customer-button-route.md | 2026-06-02 |
+| 041 | Route Architecture Restructure — /auth/login, /dashboard/*, /customers/new | HIGH | minor | _docs/task/041-route-architecture-restructure.md | 2026-06-02 |
+| 042 | RBAC: Sidebar & Route Enforcement — Role-based Nav + Guards + Admin Hub Users | HIGH | minor | _docs/task/042-rbac-sidebar-and-route-enforcement.md | 2026-06-02 |
+| 039 | Customer Profile Restructure — Settings Panel + Activity Tab | HIGH | minor | _docs/task/039-customer-profile-restructure.md | 2026-06-02 |
+| 038 | Pipeline Page Redesign — Rename + Stage Filters + Task Card CTAs | HIGH | minor | _docs/task/038-pipeline-page-redesign.md | 2026-06-02 |
+| 040 | Customer ID Format: WRQ-CLIENT- → WRQ-CUST- | NORMAL | patch | _docs/task/040-customer-id-format-rename.md | 2026-06-02 |
+
+| ID | Title | Priority | Type | Doc | Date |
+|----|-------|----------|------|-----|------|
+| 037 | Code Review Fixes — Security, Performance & Maintenance | HIGH | patch | _docs/task/037-code-review-fixes-security-performance.md | 2026-06-02 |
+| 036 | Zoho Portal User: Single-User Lookup by ZPUID or Email | NORMAL | patch | _docs/task/036-zoho-portal-user-by-id.md | 2026-06-01 |
+| 035 | Zoho Portal Users: Library Function + API Endpoint | NORMAL | patch | _docs/task/035-zoho-portal-users-endpoint.md | 2026-06-01 |
 | 034 | Execution Engine — DB Write Error Visibility + Circuit Breaker Threshold | HIGH | patch | _docs/task/034-execution-engine-bug-fixes.md | 2026-05-29 |
 | 033 | Classification: Low-Confidence Review Gaps | NORMAL | patch | _docs/task/033-classification-low-confidence-review-gaps.md | 2026-05-29 |
 | 032 | Zoho V3: Fix 3 write functions + parseZohoDate | HIGH | patch | _docs/task/032-zoho-v3-write-functions-parseddate.md | 2026-05-29 |
@@ -22,6 +39,8 @@
 
 ## Completed
 
+- [044] Zoho Employee Pending Approval Flow → `_docs/task/044-zoho-employee-pending-approval-flow.md` (completed: 2026-06-02)
+- [043] Auth Callback: Zoho Portal User Role Determination → `_docs/task/043-auth-callback-zoho-role-determination.md` (completed: 2026-06-02)
 - [026] Sprint 4 Part 2 — Full Zoho Sync (M7 complete) → `_docs/task/026-sprint-4-full-zoho-sync.md` (completed: 2026-05-27)
 - [025] Sprint 4 — Plan Generation (M5) → `_docs/task/025-sprint-4-plan-generation.md` (completed: 2026-05-27)
 - [024] Sprint 3 Digest Gaps — Clarification Flag, Automation Queue, Unassigned Tasks → `_docs/task/024-sprint-3-digest-gaps-clarification-automation-queue-unassigned.md` (completed: 2026-05-27)

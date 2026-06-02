@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 
 /**
- * Generates a unique customer ID in WRQ-CLIENT-XXXX format.
+ * Generates a unique customer ID in WRQ-CUST-XXXX format.
  * Uses crypto.randomUUID() → first 4 alphanumeric chars → uppercase.
  * Checks uniqueness against the customers table, retries up to 5 times on collision.
  */
@@ -13,7 +13,7 @@ export async function generateCustomerId(): Promise<string> {
     const raw = crypto.randomUUID().replace(/-/g, "");
     // Extract first 4 alphanumeric characters and uppercase them
     const suffix = raw.slice(0, 4).toUpperCase();
-    const customerId = `WRQ-CLIENT-${suffix}`;
+    const customerId = `WRQ-CUST-${suffix}`;
 
     // Check uniqueness
     const { data, error } = await supabase
@@ -38,5 +38,5 @@ export async function generateCustomerId(): Promise<string> {
   // Final fallback: use more chars to guarantee uniqueness
   const raw = crypto.randomUUID().replace(/-/g, "");
   const suffix = raw.slice(0, 6).toUpperCase();
-  return `WRQ-CLIENT-${suffix}`;
+  return `WRQ-CUST-${suffix}`;
 }

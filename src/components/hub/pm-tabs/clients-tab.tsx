@@ -52,7 +52,7 @@ function Filters({ search, onSearchChange, filter, onFilterChange }: FiltersProp
     <div className="flex gap-2.5 mb-4 items-center">
       <div className="relative flex-1 max-w-75">
         <input
-          placeholder="Search clients…"
+          placeholder="Search customers…"
           value={search}
           onChange={e => onSearchChange(e.target.value)}
           className="w-full text-[13px] py-2 pr-3 pl-8.5 bg-(--c-card) border border-(--c-border) rounded-[9px] text-(--c-text) outline-none box-border"
@@ -161,7 +161,7 @@ function ClientTable({ data, sortArrow, onSort, router }: ClientTableProps) {
                 </td>
                 <td className="py-3.25 px-5">
                   <button
-                    onClick={e => { e.stopPropagation(); router.push(`/customers/${c.customer_id}`); }}
+                    onClick={e => { e.stopPropagation(); router.push(`/dashboard/customers/${c.customer_id}`); }}
                     className="text-xs font-semibold text-(--c-sky) bg-(--c-sky-tint) border border-(--c-sky-border3) rounded-[7px] px-3 py-1.5 cursor-pointer"
                   >
                     View →
@@ -216,10 +216,10 @@ export default function ClientsTab(props: ClientsTabProps) {
           <div className="text-xs text-(--c-sub) mt-0.5">{customers.length} total clients</div>
         </div>
         <button
-          onClick={() => router.push("/onboarding")}
+          onClick={() => router.push("/dashboard/customers/onboard")}
           className="text-xs font-semibold text-white bg-(--c-orange) rounded-[9px] px-4.5 py-2.25 cursor-pointer border-0"
         >
-          + New Client
+          + New Customer
         </button>
       </div>
       <Filters search={search} onSearchChange={onSearchChange} filter={statusFilter} onFilterChange={onStatusFilterChange} />

@@ -111,6 +111,43 @@ export interface Database {
           }
         ];
       };
+      customer_assets: {
+        Row: {
+          id: string;
+          customer_id: string;
+          type: "file" | "link" | "credential";
+          label: string;
+          value: string;
+          masked: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          customer_id: string;
+          type: "file" | "link" | "credential";
+          label: string;
+          value: string;
+          masked?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          customer_id?: string;
+          type?: "file" | "link" | "credential";
+          label?: string;
+          value?: string;
+          masked?: boolean;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "customer_assets_customer_id_fkey";
+            columns: ["customer_id"];
+            isOneToOne: false;
+            referencedRelation: "customers";
+            referencedColumns: ["customer_id"];
+          }
+        ];
+      };
       classification_records: {
         Row: {
           id: string;
@@ -732,3 +769,4 @@ export type LLMInvocationLogRow = Database["public"]["Tables"]["llm_invocation_l
 export type DigestLogRow = Database["public"]["Tables"]["digest_logs"]["Row"];
 export type LLMConfigRow = Database["public"]["Tables"]["llm_config"]["Row"];
 export type UserRoleRow = Database["public"]["Tables"]["user_roles"]["Row"];
+export type CustomerAssetRow = Database["public"]["Tables"]["customer_assets"]["Row"];
