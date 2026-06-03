@@ -120,6 +120,19 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // If the task was pushed by us (zoho_task_id already in implementation_plans),
+  // this is a creation-event echo — skip classification to prevent duplicate records.
+  if (zoho_task_id) {
+    const { data: ownPlan } = await adminClient
+      .from("implementation_plans")
+      .select("id")
+      .eq("zoho_task_id", zoho_task_id)
+      .maybeSingle();
+    if (ownPlan) {
+      return NextResponse.json({ received: true });
+    }
+  }
+
   const customerId = await resolveCustomerId(source, body);
   if (!customerId) {
     // Return 200 — Zoho retries on non-2xx responses

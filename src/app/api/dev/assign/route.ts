@@ -44,8 +44,10 @@ export async function POST(req: NextRequest) {
   }
 
   const displayName = profile?.display_name ?? "A developer";
+  const portalName = process.env.NEXT_PUBLIC_ZOHO_PORTAL_NAME ?? "";
+  const taskLink = `https://projects.zoho.com/portal/${portalName}#zp/task-detail/${body.taskId}/`;
   await sendCliqNotification(
-    `🙋 ${displayName} self-assigned: ${body.taskName} (${body.projectName})`,
+    `@${displayName}\nSelf-assigned: ${body.taskName}\n${taskLink}`,
     "pm"
   );
 

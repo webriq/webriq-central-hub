@@ -420,12 +420,14 @@ export async function assignZohoTask(
   portalId: string,
   projectId: string,
   taskId: string,
-  zpuid: string
+  zpuids: string | string[]
 ): Promise<boolean> {
   if (!portalId) return false;
 
   const token = await getZohoAccessToken();
   if (!token) return false;
+
+  const zpuidList = Array.isArray(zpuids) ? zpuids : [zpuids];
 
   const res = await fetch(
     `${ZOHO_PROJECTSAPI_BASE}/projects/${projectId}/tasks/${taskId}`,
@@ -437,7 +439,7 @@ export async function assignZohoTask(
       },
       body: JSON.stringify({
         owners_and_work: {
-          owners: [{ add: [{ zpuid }] }],
+          owners: [{ add: zpuidList.map(zpuid => ({ zpuid })) }],
         },
       }),
     }
@@ -483,6 +485,39 @@ export async function getZohoPortalUsers(
     users: (json?.users ?? []) as ZohoPortalUser[],
     page_info: (json?.page_info ?? null) as ZohoPageInfo | null,
   };
+}
+
+// Adds one or more users to a Zoho project by email.
+// Returns email (lowercase) → project-level zpuid for all successfully added users.
+// Params are sent as URL query params per Zoho Projects v3 API spec.
+export async function addZohoProjectUsers(
+  portalId: string,
+  projectId: string,
+  emails: string[]
+): Promise<Record<string, string>> {
+  if (!portalId || !emails.length) return {};
+
+  const token = await getZohoAccessToken();
+  if (!token) return {};
+
+  const url = new URL(`${ZOHO_PROJECTSAPI_BASE}/projects/${projectId}/projectusers`);
+  url.searchParams.append("userdetails", JSON.stringify(emails.map(e => ({ email_id: e }))));
+  url.searchParams.append("notify", "false");
+
+  const res = await fetch(url.toString(), {
+    method: "POST",
+    headers: { Authorization: `Zoho-oauthtoken ${token}` },
+  });
+
+  if (!res.ok) {
+    console.error("[zoho] addZohoProjectUsers failed:", res.status, await res.text());
+    return {};
+  }
+
+  const json = await res.json() as { emailvszpuid?: Record<string, string> };
+  // Normalise keys to lowercase to match getZohoProjectUsers behaviour
+  const raw = json.emailvszpuid ?? {};
+  return Object.fromEntries(Object.entries(raw).map(([k, v]) => [k.toLowerCase(), v]));
 }
 
 export async function getZohoPortalUser(

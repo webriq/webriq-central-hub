@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import HubSidebar from "@/components/hub/hub-sidebar";
 import HubHeader from "@/components/hub/hub-header";
+import HubContentShell from "./_hub-content-shell";
 
 export default async function HubLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -37,12 +38,12 @@ export default async function HubLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <div className="flex min-h-screen bg-page-bg">
+    <div className="flex min-h-screen">
       <HubSidebar userEmail={userEmail} userRole={userRole} userDisplayName={userDisplayName} userZohoId={userZohoId} />
-      <div className="flex-1 flex flex-col min-w-0 bg-page-bg">
-        <HubHeader displayName={userDisplayName} email={userEmail} zohoUserId={userZohoId} />
+      <HubContentShell>
+        <HubHeader displayName={userDisplayName} email={userEmail} zohoUserId={userZohoId} userRole={userRole} />
         {children}
-      </div>
+      </HubContentShell>
     </div>
   );
 }

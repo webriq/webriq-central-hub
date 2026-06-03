@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { AlertTriangle } from "lucide-react";
+import { usePMSettings } from "@/hooks/use-pm-settings";
 import type { CustomerRow, CustomerProductRow, Database } from "@/types/database";
 import type { ProductName } from "@/types/hub";
 import { getIncompleteSections, getOnboardingSchema } from "@/config/onboarding-schemas";
@@ -19,15 +20,21 @@ interface CustomerProfileClientProps {
   zohoPortalName: string;
 }
 
-const statusClass = (status: string) => {
-  const map: Record<string, string> = {
-    onboarding: "bg-[#FFF4EC] text-orange-500",
-    active: "bg-green-50 text-green-600",
-    inactive: "bg-slate-100 text-slate-500",
-    completed_onboarding: "bg-amber-50 text-amber-600",
-  };
-  return map[status] ?? "bg-slate-100 text-slate-500";
+const STATUS_CLS_LIGHT: Record<string, string> = {
+  onboarding:            "bg-orange-50 text-orange-600",
+  active:                "bg-green-50 text-green-600",
+  inactive:              "bg-slate-100 text-slate-500",
+  completed_onboarding:  "bg-amber-50 text-amber-600",
 };
+const STATUS_CLS_DARK: Record<string, string> = {
+  onboarding:            "text-orange-400 bg-orange-500/15",
+  active:                "text-green-400 bg-green-500/15",
+  inactive:              "text-slate-400 bg-slate-500/15",
+  completed_onboarding:  "text-amber-400 bg-amber-500/15",
+};
+const statusClass = (status: string, isDark: boolean) =>
+  (isDark ? STATUS_CLS_DARK : STATUS_CLS_LIGHT)[status]
+  ?? (isDark ? "text-slate-400 bg-slate-500/15" : "bg-slate-100 text-slate-500");
 
 const statusLabel = (status: string) => {
   const map: Record<string, string> = {
@@ -61,17 +68,23 @@ const PRODUCT_BAR_CLASSES: Record<string, string> = {
 
 const ALL_PRODUCTS: ProductName[] = ["StackShift", "PublishForge", "PipelineForge"];
 
-const sectionCls = "bg-white border border-slate-200 rounded-xl p-5 shadow-[0_1px_4px_rgba(0,0,0,0.05)] mb-4";
 const sectionTitleCls = "text-[10px] font-bold text-slate-400 tracking-[0.06em] uppercase mb-3.5";
 const inputCls = "font-[inherit] w-full text-sm py-2.5 px-3.5 border border-slate-200 rounded-lg text-slate-900 bg-white outline-none transition-[border-color,box-shadow] duration-200 focus:border-brand focus:shadow-[0_0_0_3px_rgba(51,88,244,0.1)]";
 const labelCls = "block text-xs font-semibold text-slate-600 mb-1.5";
 
 const ASSET_TYPE_LABELS: Record<AssetRow["type"], string> = { file: "FILE", link: "LINK", credential: "CRED" };
-const ASSET_TYPE_CLASSES: Record<AssetRow["type"], string> = {
-  file: "bg-sky-50 text-sky-600",
-  link: "bg-indigo-50 text-indigo-600",
+const ASSET_TYPE_CLS_LIGHT: Record<AssetRow["type"], string> = {
+  file:       "bg-sky-50 text-sky-600",
+  link:       "bg-indigo-50 text-indigo-600",
   credential: "bg-amber-50 text-amber-600",
 };
+const ASSET_TYPE_CLS_DARK: Record<AssetRow["type"], string> = {
+  file:       "text-sky-400 bg-sky-500/15",
+  link:       "text-indigo-400 bg-indigo-500/15",
+  credential: "text-amber-400 bg-amber-500/15",
+};
+const assetTypeCls = (type: AssetRow["type"], isDark: boolean) =>
+  (isDark ? ASSET_TYPE_CLS_DARK : ASSET_TYPE_CLS_LIGHT)[type];
 
 function extractMetadata(prods: CustomerProductRow[]) {
   const data = (prods.find(p => p.onboarding_data)?.onboarding_data as Record<string, unknown>) ?? {};
@@ -114,6 +127,13 @@ interface EditForm {
 
 export default function CustomerProfileClient({ customer, zohoPortalId, zohoPortalName }: CustomerProfileClientProps) {
   const router = useRouter();
+  const { settings } = usePMSettings();
+  const isDark = settings.theme === "dark";
+  const sectionCls = isDark
+    ? "bg-[#121726] border border-white/[0.08] rounded-xl p-5 shadow-[0_1px_4px_rgba(0,0,0,0.15)] mb-4"
+    : "bg-white border border-slate-200 rounded-xl p-5 shadow-[0_1px_4px_rgba(0,0,0,0.05)] mb-4";
+  const textPrimary = isDark ? "text-slate-200" : "text-slate-900";
+  const tabBorder = isDark ? "border-b border-white/[0.08]" : "border-b border-slate-200";
   const [copied, setCopied] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -1027,12 +1047,12 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
           <div className={cn(sectionCls, "px-6")}>
             <div className="flex justify-between items-start flex-wrap gap-4">
               <div>
-                <h1 className="text-[22px] font-bold text-slate-900 mb-2">{customer.company_name}</h1>
+                <h1 className={cn("text-[22px] font-bold mb-2", textPrimary)}>{customer.company_name}</h1>
                 <div className="flex items-center gap-2.5">
-                  <span className="font-mono text-sm font-semibold text-slate-600 tracking-[0.04em]">
+                  <span className={cn("font-mono text-sm font-semibold tracking-[0.04em]", isDark ? "text-slate-400" : "text-slate-600")}>
                     {customer.customer_id}
                   </span>
-                  <span className={cn("inline-block px-2.5 py-px rounded text-[11px] font-semibold", statusClass(status))}>
+                  <span className={cn("inline-block px-2.5 py-px rounded text-[11px] font-semibold", statusClass(status, isDark))}>
                     {statusLabel(status)}
                   </span>
                 </div>
@@ -1081,7 +1101,7 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
           </div>
 
           {/* Section quick-links */}
-          <div className="flex gap-0.5 border-b border-slate-200 mb-5 flex-wrap">
+          <div className={cn("flex gap-0.5 mb-5 flex-wrap", tabBorder)}>
             {navItems.map(item => (
               <button
                 key={item.id}
@@ -1118,7 +1138,7 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
                 ] as { label: string; value: string | undefined }[]).map(({ label, value }) => (
                   <div key={label}>
                     <div className="text-[11px] text-slate-400 mb-0.5">{label}</div>
-                    <div className="text-[13px] text-slate-900 font-medium">{value ?? "—"}</div>
+                    <div className={cn("text-[13px] font-medium", textPrimary)}>{value ?? "—"}</div>
                   </div>
                 ))}
               </div>
@@ -1136,7 +1156,7 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
                 ].map(({ label, value }) => (
                   <div key={label}>
                     <div className="text-[11px] text-slate-400 mb-0.5">{label}</div>
-                    <div className="text-[13px] text-slate-900 font-medium">{value}</div>
+                    <div className={cn("text-[13px] font-medium", textPrimary)}>{value}</div>
                   </div>
                 ))}
               </div>
@@ -1158,11 +1178,11 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
               {viewingResponsesInline ? (
                 <div>
                   <div className="mb-5">
-                    <div className="text-sm font-bold text-slate-900">{viewingResponsesInline.product_name}</div>
+                    <div className={cn("text-sm font-bold", textPrimary)}>{viewingResponsesInline.product_name}</div>
                     <div className="text-[11px] text-slate-400">Onboarding Responses</div>
                   </div>
                   <div className="space-y-5">
-                    <ResponsesView product={viewingResponsesInline} />
+                    <ResponsesView product={viewingResponsesInline} isDark={isDark} />
                   </div>
                 </div>
               ) : (
@@ -1205,7 +1225,9 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
                         key={product.id}
                         className={cn(
                           "rounded-[10px] p-4",
-                          isComplete ? "border border-green-100 bg-green-50/20" : "border border-slate-200 bg-white"
+                          isComplete
+                            ? (isDark ? "border border-green-500/20 bg-green-500/5" : "border border-green-100 bg-green-50/20")
+                            : (isDark ? "border border-white/[0.08] bg-[#1a2235]" : "border border-slate-200 bg-white")
                         )}
                       >
                         <div className="flex justify-between items-center mb-3">
@@ -1215,7 +1237,7 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
                             >
                               {product.product_name[0]}
                             </div>
-                            <span className="text-sm font-bold text-slate-900">{product.product_name}</span>
+                            <span className={cn("text-sm font-bold", textPrimary)}>{product.product_name}</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <button
@@ -1251,7 +1273,9 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
                           <span
                             className={cn(
                               "inline-block px-2 py-px rounded text-[11px] font-semibold",
-                              isComplete ? "bg-green-50 text-green-600" : "bg-[#FFF4EC] text-orange-500"
+                              isComplete
+                                ? (isDark ? "text-green-400 bg-green-500/15" : "bg-green-50 text-green-600")
+                                : (isDark ? "text-orange-400 bg-orange-500/15" : "bg-orange-50 text-orange-500")
                             )}
                           >
                             {isComplete ? "Complete" : "In Progress"}
@@ -1267,13 +1291,13 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
                         )}
 
                         {highlights.length > 0 && (
-                          <div className="mt-2 mb-2 pt-2 border-t border-slate-100">
+                          <div className={cn("mt-2 mb-2 pt-2 border-t", isDark ? "border-white/[0.06]" : "border-slate-100")}>
                             <div className="text-[10px] font-bold text-slate-400 tracking-[0.06em] uppercase mb-1.5">Onboarding Highlights</div>
                             <div className="flex flex-col gap-1">
                               {highlights.map(h => (
                                 <div key={h.label} className="flex gap-1.5 text-[11px]">
                                   <span className="text-slate-400 shrink-0">{h.label}:</span>
-                                  <span className="text-slate-700 truncate">{h.value}</span>
+                                  <span className={cn("truncate", isDark ? "text-slate-300" : "text-slate-700")}>{h.value}</span>
                                 </div>
                               ))}
                             </div>
@@ -1356,18 +1380,18 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
                   })}
                   {/* CiteForge add-on card */}
                   {hasCiteForge && (
-                    <div className="rounded-[10px] p-4 border border-sky-100 bg-sky-50/20">
+                    <div className={cn("rounded-[10px] p-4", isDark ? "border border-sky-500/20 bg-sky-500/5" : "border border-sky-100 bg-sky-50/20")}>
                       <div className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold bg-[#0EA5E918] text-[#0EA5E9] shrink-0">
                           Ci
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-sm font-bold text-slate-900">CiteForge</span>
+                            <span className={cn("text-sm font-bold", isDark ? "text-slate-200" : "text-slate-900")}>CiteForge</span>
                             <span className="text-[10px] text-slate-400 font-medium">Add-on to StackShift</span>
                           </div>
                         </div>
-                        <span className="inline-block px-2 py-px rounded text-[11px] font-semibold bg-sky-50 text-sky-600 shrink-0">
+                        <span className={cn("inline-block px-2 py-px rounded text-[11px] font-semibold shrink-0", isDark ? "text-sky-400 bg-sky-500/15" : "bg-sky-50 text-sky-600")}>
                           Enabled
                         </span>
                       </div>
@@ -1399,7 +1423,7 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
               {assetsLoading ? (
                 <div className="text-[13px] text-slate-400 text-center py-6">Loading…</div>
               ) : assets.length === 0 ? (
-                <div className="text-[13px] text-slate-400 text-center py-6 bg-slate-50 rounded-lg border border-dashed border-slate-200">
+                <div className={cn("text-[13px] text-slate-400 text-center py-6 rounded-lg border border-dashed", isDark ? "bg-white/[0.02] border-white/[0.08]" : "bg-slate-50 border-slate-200")}>
                   No assets yet.{" "}
                   <button
                     onClick={() => { setAddAssetError(null); setShowAddAsset(true); }}
@@ -1414,11 +1438,11 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
                     const isRevealed = revealedAssets.has(asset.id);
                     const displayValue = asset.masked && !isRevealed ? "••••••••" : asset.value;
                     return (
-                      <div key={asset.id} className="flex items-center gap-3 py-2.5 px-3 rounded-lg border border-slate-100 bg-slate-50/50">
-                        <span className={cn("text-[10px] font-bold rounded px-1.5 py-px shrink-0", ASSET_TYPE_CLASSES[asset.type])}>
+                      <div key={asset.id} className={cn("flex items-center gap-3 py-2.5 px-3 rounded-lg border", isDark ? "border-white/[0.06] bg-white/[0.03]" : "border-slate-100 bg-slate-50/50")}>
+                        <span className={cn("text-[10px] font-bold rounded px-1.5 py-px shrink-0", assetTypeCls(asset.type, isDark))}>
                           {ASSET_TYPE_LABELS[asset.type]}
                         </span>
-                        <span className="text-[12px] font-semibold text-slate-700 shrink-0 min-w-20">{asset.label}</span>
+                        <span className={cn("text-[12px] font-semibold shrink-0 min-w-20", isDark ? "text-slate-300" : "text-slate-700")}>{asset.label}</span>
                         <span className="text-[12px] text-slate-500 font-mono flex-1 truncate">{displayValue}</span>
                         <div className="flex items-center gap-1.5 shrink-0">
                           {asset.masked && (
@@ -1463,14 +1487,14 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
             <div className={sectionCls}>
               <div className={sectionTitleCls}>Classifications ({classifications.length})</div>
               {classifications.length === 0 ? (
-                <div className="text-[13px] text-slate-400 text-center py-6 bg-slate-50 rounded-lg border border-dashed border-slate-200">
+                <div className={cn("text-[13px] text-slate-400 text-center py-6 rounded-lg border border-dashed", isDark ? "bg-white/[0.02] border-white/[0.08]" : "bg-slate-50 border-slate-200")}>
                   No classification records yet.
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full border-collapse text-[12px]">
                     <thead>
-                      <tr className="border-b border-slate-100">
+                      <tr className={cn("border-b", isDark ? "border-white/[0.08]" : "border-slate-100")}>
                         {["Title", "Type", "Priority", "Confidence", "Status", "Age"].map(h => (
                           <th key={h} className="py-2 px-3 text-left text-[10px] font-bold text-slate-400 tracking-[0.06em] uppercase whitespace-nowrap">
                             {h}
@@ -1488,15 +1512,12 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
                           if (hrs < 24) return `${hrs}h`;
                           return `${Math.floor(hrs / 24)}d`;
                         })();
-                        const priorityClass: Record<string, string> = {
-                          CRITICAL: "text-red-700 bg-red-50",
-                          HIGH: "text-amber-700 bg-amber-50",
-                          NORMAL: "text-sky-700 bg-sky-50",
-                          LOW: "text-slate-500 bg-slate-50",
-                        };
+                        const priorityClass: Record<string, string> = isDark
+                          ? { CRITICAL: "text-red-400 bg-red-500/15", HIGH: "text-amber-400 bg-amber-500/15", NORMAL: "text-sky-400 bg-sky-500/15", LOW: "text-slate-400 bg-slate-500/15" }
+                          : { CRITICAL: "text-red-700 bg-red-50", HIGH: "text-amber-700 bg-amber-50", NORMAL: "text-sky-700 bg-sky-50", LOW: "text-slate-500 bg-slate-50" };
                         return (
-                          <tr key={c.id} className={i < classifications.length - 1 ? "border-b border-slate-50" : ""}>
-                            <td className="py-2.5 px-3 text-slate-800 font-medium max-w-60 truncate">{c.title}</td>
+                          <tr key={c.id} className={i < classifications.length - 1 ? (isDark ? "border-b border-white/[0.04]" : "border-b border-slate-50") : ""}>
+                            <td className={cn("py-2.5 px-3 font-medium max-w-60 truncate", isDark ? "text-slate-300" : "text-slate-800")}>{c.title}</td>
                             <td className="py-2.5 px-3 text-slate-500 whitespace-nowrap">
                               {c.task_type ? c.task_type.replace(/_/g, " ") : "—"}
                             </td>
@@ -1513,7 +1534,9 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
                             <td className="py-2.5 px-3">
                               <span className={cn(
                                 "text-[10px] font-semibold rounded px-1.5 py-px",
-                                c.status === "reviewed" ? "text-green-700 bg-green-50" : "text-amber-700 bg-amber-50"
+                                c.status === "reviewed"
+                                  ? (isDark ? "text-green-400 bg-green-500/15" : "text-green-700 bg-green-50")
+                                  : (isDark ? "text-amber-400 bg-amber-500/15" : "text-amber-700 bg-amber-50")
                               )}>
                                 {c.status}
                               </span>
@@ -1539,10 +1562,10 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
                   <div className="text-[13px] font-medium">
                     <span className={cn(
                       "inline-block px-2 py-0.5 rounded text-[11px] font-semibold",
-                      customer.communication_tone === "formal" ? "bg-blue-50 text-blue-600" :
-                      customer.communication_tone === "technical" ? "bg-purple-50 text-purple-600" :
-                      customer.communication_tone === "casual" ? "bg-green-50 text-green-600" :
-                      "bg-slate-100 text-slate-500"
+                      customer.communication_tone === "formal"    ? (isDark ? "text-blue-400 bg-blue-500/15"   : "bg-blue-50 text-blue-600") :
+                      customer.communication_tone === "technical" ? (isDark ? "text-violet-400 bg-violet-500/15" : "bg-purple-50 text-purple-600") :
+                      customer.communication_tone === "casual"    ? (isDark ? "text-green-400 bg-green-500/15" : "bg-green-50 text-green-600") :
+                      (isDark ? "text-slate-400 bg-slate-500/15" : "bg-slate-100 text-slate-500")
                     )}>
                       {customer.communication_tone || "Not set"}
                     </span>
@@ -1553,7 +1576,9 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
                   <div className="text-[13px] font-medium">
                     <span className={cn(
                       "inline-block px-2 py-0.5 rounded text-[11px] font-semibold",
-                      customer.automation_toggle ? "bg-green-50 text-green-600" : "bg-slate-100 text-slate-500"
+                      customer.automation_toggle
+                        ? (isDark ? "text-green-400 bg-green-500/15" : "bg-green-50 text-green-600")
+                        : (isDark ? "text-slate-400 bg-slate-500/15" : "bg-slate-100 text-slate-500")
                     )}>
                       {customer.automation_toggle ? "ON" : "OFF"}
                     </span>
@@ -1564,7 +1589,9 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
                   <div className="text-[13px] font-medium">
                     <span className={cn(
                       "inline-block px-2 py-0.5 rounded text-[11px] font-semibold",
-                      customer.llm_excluded ? "bg-red-50 text-red-600" : "bg-green-50 text-green-600"
+                      customer.llm_excluded
+                        ? (isDark ? "text-red-400 bg-red-500/15" : "bg-red-50 text-red-600")
+                        : (isDark ? "text-green-400 bg-green-500/15" : "bg-green-50 text-green-600")
                     )}>
                       {customer.llm_excluded ? "Human Only" : "AI Enabled"}
                     </span>
@@ -1572,7 +1599,7 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
                 </div>
                 <div>
                   <div className="text-[11px] text-slate-400 mb-0.5">Daily Token Budget</div>
-                  <div className="text-[13px] text-slate-900 font-medium">
+                  <div className={cn("text-[13px] font-medium", textPrimary)}>
                     {customer.daily_token_budget != null ? customer.daily_token_budget.toLocaleString() : "Unlimited"}
                   </div>
                 </div>
@@ -1580,7 +1607,7 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
                   <div>
                     <div className="text-[11px] text-slate-400 mb-0.5">Circuit Breaker</div>
                     <div className="text-[13px] font-medium">
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-50 text-amber-600">
+                      <span className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold", isDark ? "text-amber-400 bg-amber-500/15" : "bg-amber-50 text-amber-600")}>
                         ⚠ Automation Paused
                       </span>
                     </div>
@@ -1594,7 +1621,7 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
   );
 }
 
-function ResponsesView({ product }: { product: CustomerProductRow }) {
+function ResponsesView({ product, isDark }: { product: CustomerProductRow; isDark: boolean }) {
   const schema = getOnboardingSchema(product.product_name);
   const data = (product.onboarding_data as Record<string, unknown>) ?? {};
 
@@ -1637,9 +1664,9 @@ function ResponsesView({ product }: { product: CustomerProductRow }) {
                       ? (value ? "Yes" : "No")
                       : String(value);
                 return (
-                  <div key={field.name} className="flex gap-3 py-2 border-b border-slate-50 last:border-0">
+                  <div key={field.name} className={cn("flex gap-3 py-2 border-b last:border-0", isDark ? "border-white/[0.04]" : "border-slate-50")}>
                     <span className="text-[11px] text-slate-400 w-44 shrink-0 pt-px">{field.label}</span>
-                    <span className="text-[13px] text-slate-800 font-medium flex-1 break-words">{displayValue}</span>
+                    <span className={cn("text-[13px] font-medium flex-1 break-words", isDark ? "text-slate-300" : "text-slate-800")}>{displayValue}</span>
                   </div>
                 );
               })}

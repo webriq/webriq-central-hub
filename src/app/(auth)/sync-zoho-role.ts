@@ -43,8 +43,10 @@ export async function syncZohoRole(
   // Zoho API wraps response as { user: {...} } — handle both shapes defensively
   const portalUser: ZohoPortalUser =
     (raw as unknown as { user?: ZohoPortalUser }).user ?? raw;
+    console.log("[sync-zoho-role] fetched portal user for:", email, "user:", portalUser);
 
   const role = determineHubRole(portalUser, displayName);
+  console.log("[sync-zoho-role] determined role:", role, "for:", email);
 
   // Don't downgrade users who already have an approved role (e.g. admin-assigned 'dev')
   if (role === "pending") {
@@ -53,6 +55,7 @@ export async function syncZohoRole(
       .select("role")
       .eq("id", userId)
       .single();
+    console.log("[sync-zoho-role] existing role for:", email, "is:", existing?.role);
 
     const currentRole = existing?.role ?? null;
     if (currentRole && APPROVED_ROLES.has(currentRole)) {

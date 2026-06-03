@@ -57,7 +57,7 @@ export async function PATCH(req: NextRequest) {
 
   const { data: plan } = await supabase
     .from("implementation_plans")
-    .select("id, assessment_id, customer_id")
+    .select("id, assessment_id, customer_id, zoho_task_id")
     .eq("id", planId)
     .maybeSingle();
 
@@ -91,27 +91,43 @@ export async function PATCH(req: NextRequest) {
         .eq("id", classificationId),
     ]);
 
-    // Push to Zoho — non-blocking; failure does not fail the approve
-    const { data: classificationRecord } = await adminClient
-      .from("classification_records")
-      .select("title, description")
-      .eq("id", classificationId)
-      .maybeSingle();
+    // Push to Zoho — non-blocking; failure does not fail the approve.
+    // If the plan already has a zoho_task_id (retry scenario), skip creation.
+    const planRecord = plan as { id: string; assessment_id: string; customer_id: string; zoho_task_id: string | null };
+    if (!planRecord.zoho_task_id) {
+      const { data: classificationRecord } = await adminClient
+        .from("classification_records")
+        .select("title, description, zoho_task_id")
+        .eq("id", classificationId)
+        .maybeSingle();
 
-    const customerId = (plan as { id: string; assessment_id: string; customer_id: string }).customer_id;
-    if (classificationRecord && customerId) {
-      const pushed = await syncTaskToZoho({
-        customerId,
-        title: classificationRecord.title,
-        description: classificationRecord.description ?? "",
-      });
-      if (pushed) {
-        zohoTaskId = pushed;
-        await adminClient
-          .from("implementation_plans")
-          .update({ zoho_task_id: pushed })
-          .eq("id", planId);
+      const customerId = planRecord.customer_id;
+      if (classificationRecord && customerId) {
+        // If the task came from Zoho (has zoho_task_id), re-use that ID instead of creating a duplicate.
+        const existingZohoTaskId = (classificationRecord as { title: string; description: string | null; zoho_task_id: string | null }).zoho_task_id;
+        if (existingZohoTaskId) {
+          zohoTaskId = existingZohoTaskId;
+          await adminClient
+            .from("implementation_plans")
+            .update({ zoho_task_id: existingZohoTaskId })
+            .eq("id", planId);
+        } else {
+          const pushed = await syncTaskToZoho({
+            customerId,
+            title: classificationRecord.title,
+            description: classificationRecord.description ?? "",
+          });
+          if (pushed) {
+            zohoTaskId = pushed;
+            await adminClient
+              .from("implementation_plans")
+              .update({ zoho_task_id: pushed })
+              .eq("id", planId);
+          }
+        }
       }
+    } else {
+      zohoTaskId = planRecord.zoho_task_id;
     }
   } else {
     await Promise.all([

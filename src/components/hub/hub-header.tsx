@@ -4,6 +4,7 @@ import { Bell, LogOut, Settings } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
 import { signOut } from "@/app/(auth)/actions";
+import { usePMSettings } from "@/hooks/use-pm-settings";
 
 interface HubHeaderProps {
   title?: string;
@@ -11,6 +12,7 @@ interface HubHeaderProps {
   displayName: string | null;
   email: string | null;
   zohoUserId: string | null;
+  userRole: string | null;
 }
 
 const PATH_TITLES: Record<string, { title: string; subtitle?: string }> = {
@@ -20,7 +22,7 @@ const PATH_TITLES: Record<string, { title: string; subtitle?: string }> = {
   "/dashboard/pipeline": { title: "Pipeline", subtitle: "Kanban view across all automation stages" },
   "/dashboard/chat": { title: "AI Chat", subtitle: "Claude-powered assistant — coming soon" },
   "/dashboard/timelogs": { title: "Time Logs", subtitle: "Track logged hours by project" },
-  "/dashboard/settings": { title: "Settings", subtitle: "PM preferences and configuration" },
+  "/dashboard/settings": { title: "Settings", subtitle: "Preferences and configuration" },
   "/dashboard/customers/onboard": { title: "Onboard Customer", subtitle: "Create a new customer and onboarding link" },
   "/orchestration": { title: "Orchestration", subtitle: "AI pipeline management — classification, assessment, plan, execution" },
   "/kb": { title: "Knowledge Base", subtitle: "LLM Wiki — playbooks, internal KB, customer context — Sprint 6" },
@@ -56,11 +58,13 @@ function getInitials(name: string | null, email: string | null): string {
   return "??";
 }
 
-export default function HubHeader({ title, subtitle, displayName, email, zohoUserId }: HubHeaderProps) {
+export default function HubHeader({ title, subtitle, displayName, email, zohoUserId, userRole }: HubHeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const { settings } = usePMSettings();
+  const isDark = settings.theme === "dark";
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -71,6 +75,12 @@ export default function HubHeader({ title, subtitle, displayName, email, zohoUse
   }, [menuOpen]);
 
   const override = getTitleOverride(pathname);
+  if (override && pathname === "/dashboard") {
+    override.subtitle =
+      userRole === "dev" ? "Developer Dashboard" :
+      userRole === "admin" ? "Admin Dashboard" :
+      "Project Manager Dashboard";
+  }
   const displayTitle = title ?? override?.title ?? "";
   const displaySubtitle = subtitle ?? override?.subtitle;
   const initials = getInitials(displayName, email);
@@ -79,9 +89,9 @@ export default function HubHeader({ title, subtitle, displayName, email, zohoUse
   const shownZoho = zohoUserId ?? null;
 
   return (
-    <header className="h-15 bg-white border-b border-slate-200 flex items-center justify-between px-6 shrink-0">
+    <header className={`h-15 border-b flex items-center justify-between px-6 shrink-0 ${isDark ? "bg-[#0b1020] border-white/[0.07]" : "bg-white border-slate-200"}`}>
       <div className="flex flex-col gap-px">
-        {displayTitle && <div className="text-base font-bold text-slate-900 leading-tight">{displayTitle}</div>}
+        {displayTitle && <div className={`text-base font-bold leading-tight ${isDark ? "text-white" : "text-slate-900"}`}>{displayTitle}</div>}
         {displaySubtitle && <div className="text-xs text-slate-400">{displaySubtitle}</div>}
       </div>
 
@@ -92,12 +102,12 @@ export default function HubHeader({ title, subtitle, displayName, email, zohoUse
             <circle cx="11" cy="11" r="8" />
             <path d="m21 21-4.35-4.35" />
           </svg>
-          <input type="text" placeholder="Search projects, customers, tasks..." className="text-[13px] py-1.75 pr-3 pl-7.5 border border-slate-200 rounded-lg text-slate-900 bg-page-bg outline-none w-60 font-[inherit]" />
+          <input type="text" placeholder="Search projects, customers, tasks..." className={`text-[13px] py-1.75 pr-3 pl-7.5 border rounded-lg outline-none w-60 font-[inherit] ${isDark ? "border-white/10 bg-white/5 text-slate-300 placeholder:text-slate-500" : "border-slate-200 bg-page-bg text-slate-900"}`} />
         </div>
 
         {/* Notification bell */}
         <div className="relative">
-          <button className="w-8.5 h-8.5 rounded-lg bg-transparent border border-slate-200 flex items-center justify-center cursor-pointer relative">
+          <button className={`w-8.5 h-8.5 rounded-lg bg-transparent border flex items-center justify-center cursor-pointer relative ${isDark ? "border-white/10" : "border-slate-200"}`}>
             <Bell size={18} color="#64748B" />
             <span className="absolute top-1.5 right-1.5 w-1.75 h-1.75 rounded-full bg-orange-500 border-[1.5px] border-white" />
           </button>
@@ -112,27 +122,27 @@ export default function HubHeader({ title, subtitle, displayName, email, zohoUse
             {initials}
           </button>
           {menuOpen && (
-            <div className="absolute right-0 top-full mt-2 w-64 bg-white border border-slate-200 rounded-xl shadow-[0_8px_30px_rgba(0,0,0,0.12)] z-50 overflow-hidden">
-              <div className="px-4 pt-4 pb-3 border-b border-slate-100">
+            <div className={`absolute right-0 top-full mt-2 w-64 border rounded-xl shadow-[0_8px_30px_rgba(0,0,0,0.12)] z-50 overflow-hidden ${isDark ? "bg-[#121726] border-white/10" : "bg-white border-slate-200"}`}>
+              <div className={`px-4 pt-4 pb-3 border-b ${isDark ? "border-white/8" : "border-slate-100"}`}>
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-10 h-10 rounded-full bg-brand text-white text-[13px] font-bold flex items-center justify-center shrink-0">
                     {initials}
                   </div>
                   <div className="min-w-0">
-                    <div className="text-[13px] font-semibold text-slate-900 truncate">{shownName}</div>
+                    <div className={`text-[13px] font-semibold truncate ${isDark ? "text-white" : "text-slate-900"}`}>{shownName}</div>
                     <div className="text-[11px] text-slate-500 truncate">{shownEmail}</div>
                   </div>
                 </div>
                 {shownZoho && (
-                  <div className="text-[10px] text-slate-400 bg-slate-50 rounded-md px-2.5 py-1.5 font-mono">
+                  <div className={`text-[10px] text-slate-400 rounded-md px-2.5 py-1.5 font-mono ${isDark ? "bg-white/5" : "bg-slate-50"}`}>
                     Zoho ID: {shownZoho}
                   </div>
                 )}
               </div>
               <div className="py-1">
                 <button
-                  onClick={() => { setMenuOpen(false); router.push("/pm/settings"); }}
-                  className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer font-[inherit] text-left"
+                  onClick={() => { setMenuOpen(false); router.push("/dashboard/settings"); }}
+                  className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] transition-colors cursor-pointer font-[inherit] text-left ${isDark ? "text-slate-300 hover:bg-white/5" : "text-slate-700 hover:bg-slate-50"}`}
                 >
                   <Settings size={15} className="text-slate-400" />
                   Settings

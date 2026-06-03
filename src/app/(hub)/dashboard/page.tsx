@@ -19,7 +19,7 @@ export default async function DashboardPage() {
 
   const role = profile?.role ?? "pm";
 
-  if (role === "developer") {
+  if (role === "dev") {
     return <DevDashboard />;
   }
 

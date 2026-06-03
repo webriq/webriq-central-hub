@@ -4,6 +4,7 @@
 
 | ID | Title | Priority | Type | Doc | Date |
 |----|-------|----------|------|-----|------|
+
 ## In Progress
 
 | ID | Title | Priority | Type | Doc | Date |
@@ -13,6 +14,9 @@
 
 | ID | Title | Priority | Type | Doc | Date |
 |----|-------|----------|------|-----|------|
+| 051 | In Review Queue — Tasks Ready for Checking Filter Tab | HIGH | feature | _docs/task/051-in-review-queue-filter-tab.md | 2026-06-03 |
+| 050 | PM Create Task from Hub — Manual Task Creation + Immediate Zoho Push | HIGH | feature | _docs/task/050-pm-create-task-from-hub.md | 2026-06-03 |
+| 049 | PM Assign Developer to Task (Zoho API) | HIGH | feature | _docs/task/049-pm-assign-dev-to-task.md | 2026-06-03 |
 | 048 | Onboarding: Submit-Only Cliq Notification, Form Lock After Submit, PM Responses View & Reopen | HIGH | minor | _docs/task/048-onboarding-submit-lock-pm-responses-view.md | 2026-06-02 |
 | 047 | Customer Profile Redesign: Left Nav Layout, Metadata, Product Data & Assets | HIGH | minor | _docs/task/047-customer-profile-redesign-layout-assets-metadata.md | 2026-06-02 |
 | 046 | Onboarding: Company Info Sections + PM Section-Gap View | HIGH | minor | _docs/task/046-onboarding-company-info-sections-pm-gap-view.md | 2026-06-02 |

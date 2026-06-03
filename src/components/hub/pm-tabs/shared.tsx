@@ -53,19 +53,18 @@ export function ProgressBar({ pct, colorClass }: { pct: number; colorClass?: str
   );
 }
 
-// Status badge — theme-aware via parent CSS vars, pure Tailwind structure
-const STATUS_COLOR_VAR: Record<string, string> = {
-  onboarding: "--c-orange",
-  active:     "--c-green",
-  inactive:   "--c-muted",
+// Status badge — static class strings so Tailwind doesn't tree-shake them
+const STATUS_CLASSES: Record<string, string> = {
+  onboarding: "text-[var(--c-orange)] bg-[var(--c-orange)]/10 border-[var(--c-orange)]/20",
+  active:     "text-[var(--c-green)]  bg-[var(--c-green)]/10  border-[var(--c-green)]/20",
+  inactive:   "text-[var(--c-muted)]  bg-[var(--c-muted)]/10  border-[var(--c-muted)]/20",
 };
 
 export function StatusBadge({ status }: { status: string }) {
-  const v = STATUS_COLOR_VAR[status] ?? STATUS_COLOR_VAR.inactive;
+  const colorClasses = STATUS_CLASSES[status] ?? STATUS_CLASSES.inactive;
   return (
     <span
-      className={`text-[11px] font-semibold rounded-[6px] px-2 py-px border whitespace-nowrap
-        text-[var(${v})] bg-[var(${v})]/10 border-[var(${v})]/20`}
+      className={`text-[11px] font-semibold rounded-[6px] px-2 py-px border whitespace-nowrap ${colorClasses}`}
     >
       {status.charAt(0).toUpperCase() + status.slice(1)}
     </span>
@@ -131,7 +130,7 @@ export function StatCard({ value, label, colorVar }: {
 }) {
   return (
     <div className="rounded-[14px] border border-(--c-border) shadow-[0_1px_4px_rgba(0,0,0,0.05)] bg-(--c-card) px-5 py-4.5">
-      <div className={`text-[30px] font-bold leading-none tracking-[-0.02em] text-[var(${colorVar})]`}>
+      <div className="text-[30px] font-bold leading-none tracking-[-0.02em]" style={{ color: `var(${colorVar})` }}>
         {value}
       </div>
       <div className="text-xs text-(--c-sub) mt-1.25">{label}</div>

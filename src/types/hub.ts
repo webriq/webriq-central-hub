@@ -101,10 +101,10 @@ export type CustomerStatus = "active" | "inactive" | "onboarding" | "completed_o
 // Tech spec §7A: formal | casual | technical
 export type CommunicationTone = "formal" | "casual" | "technical";
 
-export type WebhookSource = "zoho_desk" | "zoho_projects";
+export type WebhookSource = "zoho_desk" | "zoho_projects" | "hub_manual";
 
 // Tech spec §6.5: ACTIVE | STALE | ARCHIVED
 export type PlaybookStatus = "ACTIVE" | "STALE" | "ARCHIVED";
 
-// Access control roles (COO Specs §Access Control)
-export type UserRole = "admin" | "pm" | "developer" | "client";
+// Access control roles (Access Control)
+export type UserRole = "admin" | "pm" | "dev" | "customer";

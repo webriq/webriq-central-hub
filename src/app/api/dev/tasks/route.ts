@@ -65,7 +65,17 @@ export async function GET(req: NextRequest) {
       getUnassignedZohoTasks(portalId),
       getMyZohoTimeLogs(portalId, zohoUserId, dateStr),
     ]);
-    return NextResponse.json({ myTasks, unassignedTasks, timeLogs });
+
+    // Exclude AI-eligible tasks — devs should not self-assign tasks the AI pipeline will handle
+    const { data: aiRecords } = await adminClient
+      .from("classification_records")
+      .select("zoho_task_id")
+      .eq("llm_eligible", "YES")
+      .not("zoho_task_id", "is", null);
+    const aiZohoIds = new Set((aiRecords ?? []).map((r) => r.zoho_task_id));
+    const filteredUnassigned = unassignedTasks.filter((t) => !aiZohoIds.has(t.id));
+
+    return NextResponse.json({ myTasks, unassignedTasks: filteredUnassigned, timeLogs });
   } catch (err) {
     console.error("[dev/tasks] Zoho fetch error:", err);
     return NextResponse.json({ error: "zoho_fetch_failed" }, { status: 502 });

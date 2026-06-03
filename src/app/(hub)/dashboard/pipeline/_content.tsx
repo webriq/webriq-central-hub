@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import { usePMSettings } from "@/hooks/use-pm-settings";
 import type { Database } from "@/types/database";
 
 type ClassificationRow = Database["public"]["Tables"]["classification_records"]["Row"];
@@ -55,8 +56,34 @@ type Grouped = Record<Stage, CardRecord[]>;
 
 const EMPTY: Grouped = { classification: [], assessment: [], plan: [], execution: [], reply: [] };
 
+const DARK_STAGE_COLORS: Record<Stage, { bg: string; border: string; color: string }> = {
+  classification: { bg: "bg-blue-500/10",   border: "border-blue-500/20",   color: "text-blue-300"   },
+  assessment:     { bg: "bg-violet-500/10", border: "border-violet-500/20", color: "text-violet-300" },
+  plan:           { bg: "bg-orange-500/10", border: "border-orange-500/20", color: "text-orange-300" },
+  execution:      { bg: "bg-amber-500/10",  border: "border-amber-500/20",  color: "text-amber-300"  },
+  reply:          { bg: "bg-green-500/10",  border: "border-green-500/20",  color: "text-green-300"  },
+};
+
+const PRIORITY_CLS_DARK: Record<string, string> = {
+  CRITICAL: "text-red-400 bg-red-500/15",
+  HIGH:     "text-amber-400 bg-amber-500/15",
+  NORMAL:   "text-sky-400 bg-sky-500/15",
+  LOW:      "text-slate-400 bg-slate-500/15",
+};
+
+const STATUS_CLS_DARK: Record<string, string> = {
+  pending: "text-slate-400 bg-slate-500/15",
+  open:    "text-blue-400 bg-blue-500/15",
+  active:  "text-green-400 bg-green-500/15",
+  on_hold: "text-amber-400 bg-amber-500/15",
+  review:  "text-violet-400 bg-violet-500/15",
+  closed:  "text-slate-500 bg-slate-500/10",
+};
+
 export default function PipelineContent() {
   const router = useRouter();
+  const { settings } = usePMSettings();
+  const isDark = settings.theme === "dark";
   const [loading, setLoading] = useState(true);
   const [grouped, setGrouped] = useState<Grouped>(EMPTY);
 
@@ -153,12 +180,20 @@ export default function PipelineContent() {
             return (
               <div key={stage.id} className="flex flex-col min-w-0">
                 {/* Column header */}
-                <div className={cn("flex items-center gap-2 px-3 py-2.5 rounded-xl mb-3 border", stage.bg, stage.border)}>
+                <div className={cn(
+                  "flex items-center gap-2 px-3 py-2.5 rounded-xl mb-3 border",
+                  isDark ? DARK_STAGE_COLORS[stage.id].bg : stage.bg,
+                  isDark ? DARK_STAGE_COLORS[stage.id].border : stage.border,
+                )}>
                   <div className={cn("w-2 h-2 rounded-full shrink-0", stage.dot)} />
-                  <span className={cn("text-[11px] font-bold leading-none", stage.color)}>
+                  <span className={cn("text-[11px] font-bold leading-none", isDark ? DARK_STAGE_COLORS[stage.id].color : stage.color)}>
                     {stage.label}
                   </span>
-                  <span className={cn("ml-auto text-[10px] font-bold rounded-full px-1.5 py-0.5 bg-white/80", stage.color)}>
+                  <span className={cn(
+                    "ml-auto text-[10px] font-bold rounded-full px-1.5 py-0.5",
+                    isDark ? "bg-white/10" : "bg-white/80",
+                    isDark ? DARK_STAGE_COLORS[stage.id].color : stage.color,
+                  )}>
                     {items.length}
                   </span>
                 </div>
@@ -166,38 +201,46 @@ export default function PipelineContent() {
                 {/* Cards */}
                 <div className="flex flex-col gap-2">
                   {items.length === 0 ? (
-                    <div className="text-[12px] text-slate-400 text-center py-6 rounded-xl border border-dashed border-slate-200">
+                    <div className={cn(
+                      "text-[12px] text-center py-6 rounded-xl border border-dashed",
+                      isDark ? "border-white/15 text-slate-500" : "border-slate-200 text-slate-400",
+                    )}>
                       Empty
                     </div>
                   ) : items.map(record => (
                     <button
                       key={record.id}
                       onClick={() => router.push("/orchestration")}
-                      className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-[0_1px_3px_rgba(0,0,0,0.05)] hover:shadow-[0_2px_8px_rgba(0,0,0,0.08)] hover:border-slate-300 transition-all text-left w-full cursor-pointer font-[inherit]"
+                      className={cn(
+                        "rounded-xl p-3.5 transition-all text-left w-full cursor-pointer font-[inherit]",
+                        isDark
+                          ? "bg-[#121726] border border-white/[0.08] hover:border-white/20"
+                          : "bg-white border border-slate-200 shadow-[0_1px_3px_rgba(0,0,0,0.05)] hover:shadow-[0_2px_8px_rgba(0,0,0,0.08)] hover:border-slate-300",
+                      )}
                     >
-                      <div className="text-[13px] font-semibold text-slate-900 leading-snug mb-2 line-clamp-2">
+                      <div className={cn("text-[13px] font-semibold leading-snug mb-2 line-clamp-2", isDark ? "text-slate-200" : "text-slate-900")}>
                         {record.title}
                       </div>
 
                       <div className="flex items-center gap-1.5 flex-wrap mb-2.5">
                         {record.priority && (
-                          <span className={cn("text-[10px] font-bold px-1.5 py-0.5 rounded", PRIORITY_CLS[record.priority] ?? "text-slate-500 bg-slate-50")}>
+                          <span className={cn("text-[10px] font-bold px-1.5 py-0.5 rounded", isDark ? (PRIORITY_CLS_DARK[record.priority] ?? "text-slate-400 bg-slate-500/15") : (PRIORITY_CLS[record.priority] ?? "text-slate-500 bg-slate-50"))}>
                             {record.priority}
                           </span>
                         )}
                         {record.task_type && (
-                          <span className="text-[10px] text-slate-500 bg-slate-50 px-1.5 py-0.5 rounded capitalize">
+                          <span className={cn("text-[10px] px-1.5 py-0.5 rounded capitalize", isDark ? "text-slate-400 bg-white/5" : "text-slate-500 bg-slate-50")}>
                             {record.task_type.replace(/_/g, " ")}
                           </span>
                         )}
                         {record.status && (
-                          <span className={cn("text-[10px] font-medium px-1.5 py-0.5 rounded", STATUS_CLS[record.status] ?? "text-slate-500 bg-slate-50")}>
+                          <span className={cn("text-[10px] font-medium px-1.5 py-0.5 rounded", isDark ? (STATUS_CLS_DARK[record.status] ?? "text-slate-400 bg-slate-500/15") : (STATUS_CLS[record.status] ?? "text-slate-500 bg-slate-50"))}>
                             {record.status.replace(/_/g, " ")}
                           </span>
                         )}
                       </div>
 
-                      <div className="flex items-center justify-between text-[11px] text-slate-400">
+                      <div className={cn("flex items-center justify-between text-[11px]", isDark ? "text-slate-500" : "text-slate-400")}>
                         <span className="font-mono truncate max-w-36">{record.customer_id}</span>
                         <span className="shrink-0 ml-2">{formatAge(record.created_at)}</span>
                       </div>

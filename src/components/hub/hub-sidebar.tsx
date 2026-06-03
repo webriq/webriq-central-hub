@@ -18,6 +18,7 @@ import {
 import { ROUTES } from "@/config/constants";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
+import { usePMSettings } from "@/hooks/use-pm-settings";
 
 interface NavItem {
   href: string;
@@ -27,7 +28,7 @@ interface NavItem {
 }
 
 function getNavGroups(role: string | null): { section: string; items: NavItem[] }[] {
-  const isDev   = role === "developer";
+  const isDev   = role === "dev";
   const isAdmin = role === "admin";
 
   const pmItems: NavItem[] = [
@@ -64,18 +65,24 @@ export default function HubSidebar({ userEmail: _userEmail, userRole }: HubSideb
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const navGroups = getNavGroups(userRole);
+  const { settings } = usePMSettings();
+  const isLight = settings.theme === "light";
 
   return (
     <aside
       className={cn(
-        "min-h-screen bg-sidebar-dark border-r border-white/[0.07] flex flex-col shrink-0 overflow-hidden relative transition-[width] duration-200 ease-in-out",
+        "min-h-screen flex flex-col shrink-0 overflow-hidden relative transition-[width] duration-200 ease-in-out border-r",
+        isLight
+          ? "bg-white border-slate-200"
+          : "bg-sidebar-dark border-white/[0.07]",
         collapsed ? "w-14" : "w-55"
       )}
     >
       {/* Logo */}
       <div
         className={cn(
-          "flex items-center gap-2.5 border-b border-white/6",
+          "flex items-center gap-2.5 border-b",
+          isLight ? "border-slate-200" : "border-white/6",
           collapsed ? "px-3.25 pt-4.5 pb-3.5 justify-center" : "px-3.5 pt-4.5 pb-3.5 justify-start"
         )}
       >
@@ -84,10 +91,10 @@ export default function HubSidebar({ userEmail: _userEmail, userRole }: HubSideb
         </div>
         {!collapsed && (
           <div className="flex flex-col justify-center shrink-0">
-            <span className="text-[15px] font-bold text-white tracking-[-0.01em] whitespace-nowrap">
+            <span className={cn("text-[15px] font-bold tracking-[-0.01em] whitespace-nowrap", isLight ? "text-slate-900" : "text-white")}>
               WebriQ
             </span>
-            <span className="text-xs">Central Hub</span>
+            <span className={cn("text-xs", isLight ? "text-slate-500" : "text-slate-400")}>Central Hub</span>
           </div>
         )}
       </div>
@@ -97,7 +104,7 @@ export default function HubSidebar({ userEmail: _userEmail, userRole }: HubSideb
         {navGroups.map((group) => (
           <div key={group.section} className="mb-1">
             {!collapsed && (
-              <div className="text-[9px] font-bold tracking-widest uppercase text-slate-700 px-3.5 pt-2.5 pb-1">
+              <div className={cn("text-[9px] font-bold tracking-widest uppercase px-3.5 pt-2.5 pb-1", isLight ? "text-slate-500" : "text-slate-700")}>
                 {group.section}
               </div>
             )}
@@ -121,13 +128,15 @@ export default function HubSidebar({ userEmail: _userEmail, userRole }: HubSideb
                   >
                     <Icon
                       size={16}
-                      className={cn("shrink-0", active ? "text-[#4B6EFF]" : "text-slate-600")}
+                      className={cn("shrink-0", active ? "text-[#4B6EFF]" : isLight ? "text-slate-400" : "text-slate-600")}
                     />
                     {!collapsed && (
                       <span
                         className={cn(
                           "text-[13px] whitespace-nowrap",
-                          active ? "font-semibold text-white" : "font-normal text-slate-400"
+                          active
+                            ? cn("font-semibold", isLight ? "text-slate-900" : "text-white")
+                            : cn("font-normal", isLight ? "text-slate-500" : "text-slate-400")
                         )}
                       >
                         {item.label}
@@ -145,7 +154,10 @@ export default function HubSidebar({ userEmail: _userEmail, userRole }: HubSideb
       <button
         onClick={() => setCollapsed((c) => !c)}
         className={cn(
-          "flex items-center gap-2 border-t border-white/6 text-slate-500 hover:text-white transition-colors cursor-pointer",
+          "flex items-center gap-2 border-t transition-colors cursor-pointer",
+          isLight
+            ? "border-slate-200 text-slate-400 hover:text-slate-700"
+            : "border-white/6 text-slate-500 hover:text-white",
           collapsed ? "py-3 px-0 justify-center" : "py-3 px-3.5 justify-start"
         )}
         aria-label={collapsed ? "Expand sidebar" : "Minimize sidebar"}

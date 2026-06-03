@@ -10,7 +10,10 @@ type ClassificationRow = Database["public"]["Tables"]["classification_records"][
   customers?: { company_name: string } | null;
 };
 
-export default function PMTasksContent() {
+type Developer = { id: string; display_name: string | null; email: string };
+type Customer = { customer_id: string; company_name: string };
+
+export default function PMTasksContent({ developers, customers }: { developers: Developer[]; customers: Customer[] }) {
   const { settings } = usePMSettings();
   const [tasks, setTasks] = useState<ClassificationRow[]>([]);
   const [zohoProjectMap, setZohoProjectMap] = useState<Record<string, string>>({});
@@ -33,8 +36,7 @@ export default function PMTasksContent() {
 
     fetchTasks();
 
-    // Fetch zoho_project_id per customer for Zoho links and hub_users for reviewer names
-    // in parallel — neither depends on the other (async-parallel rule)
+    // Fetch zoho project map and reviewer names in parallel
     Promise.all([
       supabase
         .from("customer_products")
@@ -82,7 +84,7 @@ export default function PMTasksContent() {
     <div
       className={`flex-1 overflow-y-auto py-6.5 px-8 ${settings.theme === "dark" ? "bg-[#090c18]" : "bg-[#f5f4f1]"}`}
     >
-      <TasksTab settings={settings} tasks={tasks} zohoProjectMap={zohoProjectMap} reviewerMap={reviewerMap} />
+      <TasksTab settings={settings} tasks={tasks} zohoProjectMap={zohoProjectMap} reviewerMap={reviewerMap} developers={developers} customers={customers} />
     </div>
   );
 }
