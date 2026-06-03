@@ -1,8 +1,8 @@
 import { requireRole } from "@/lib/auth/require-role";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
-import { revalidatePath } from "next/cache";
 import { cn } from "@/lib/utils";
+import { approveHubUser } from "@/app/(hub)/actions/approve-hub-user";
 
 const ROLE_BADGE: Record<string, string> = {
   admin:   "bg-red-50 text-red-700 border border-red-200",
@@ -10,29 +10,6 @@ const ROLE_BADGE: Record<string, string> = {
   dev:     "bg-green-50 text-green-700 border border-green-200",
   pending: "bg-amber-50 text-amber-700 border border-amber-200",
 };
-
-async function approveHubUser(formData: FormData) {
-  "use server";
-  const { createClient: createServerClient } = await import("@/lib/supabase/server");
-  const supabase = await createServerClient();
-  const { data: claims } = await supabase.auth.getClaims();
-  if (!claims?.claims) return;
-
-  const { data: caller } = await supabase
-    .from("hub_users")
-    .select("role")
-    .eq("id", claims.claims.sub)
-    .single();
-  if (caller?.role !== "admin") return;
-
-  const userId = formData.get("userId") as string;
-  const role = formData.get("role") as string;
-  if (!userId || !["admin", "pm", "dev"].includes(role)) return;
-
-  const { adminClient } = await import("@/lib/supabase/admin");
-  await adminClient.from("hub_users").update({ role }).eq("id", userId);
-  revalidatePath("/admin/hub-users");
-}
 
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString("en-US", {
@@ -54,6 +31,7 @@ export default async function HubUsersPage() {
 
   const rows = users ?? [];
   const pendingCount = rows.filter((u) => u.role === "pending").length;
+  const approveAction = approveHubUser.bind(null, "/admin/hub-users");
 
   return (
     <div className="flex-1 overflow-y-auto py-6.5 px-8 bg-[#f5f4f1]">
@@ -109,7 +87,7 @@ export default async function HubUsersPage() {
                 </td>
                 <td className="py-3 px-4">
                   {user.role === "pending" ? (
-                    <form action={approveHubUser} className="flex items-center gap-2">
+                    <form action={approveAction} className="flex items-center gap-2">
                       <input type="hidden" name="userId" value={user.id} />
                       <select
                         name="role"

@@ -24,6 +24,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const { data: caller } = await adminClient
+    .from("hub_users")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+  if (!["pm", "admin"].includes(caller?.role ?? "")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   let body: ClassifyBody;
   try {
     body = await req.json();

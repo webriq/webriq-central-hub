@@ -1,31 +1,8 @@
 import { requireRole } from "@/lib/auth/require-role";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
-import { revalidatePath } from "next/cache";
 import UsersTable from "./_table";
-
-async function approveHubUser(formData: FormData) {
-  "use server";
-  const { createClient: createServerClient } = await import("@/lib/supabase/server");
-  const supabase = await createServerClient();
-  const { data: claims } = await supabase.auth.getClaims();
-  if (!claims?.claims) return;
-
-  const { data: caller } = await supabase
-    .from("hub_users")
-    .select("role")
-    .eq("id", claims.claims.sub)
-    .single();
-  if (caller?.role !== "admin") return;
-
-  const userId = formData.get("userId") as string;
-  const role = formData.get("role") as string;
-  if (!userId || !["admin", "pm", "dev"].includes(role)) return;
-
-  const { adminClient } = await import("@/lib/supabase/admin");
-  await adminClient.from("hub_users").update({ role }).eq("id", userId);
-  revalidatePath("/dashboard/users");
-}
+import { approveHubUser } from "@/app/(hub)/actions/approve-hub-user";
 
 export default async function UsersPage() {
   await requireRole("/dashboard/users");
@@ -41,11 +18,13 @@ export default async function UsersPage() {
 
   const rows = users ?? [];
 
+  const approveAction = approveHubUser.bind(null, "/dashboard/users");
+
   return (
     <UsersTable
       users={rows}
       currentUserId={currentUserId ?? ""}
-      approveAction={approveHubUser}
+      approveAction={approveAction}
     />
   );
 }

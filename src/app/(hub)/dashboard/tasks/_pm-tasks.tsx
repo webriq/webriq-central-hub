@@ -13,11 +13,10 @@ type ClassificationRow = Database["public"]["Tables"]["classification_records"][
 type Developer = { id: string; display_name: string | null; email: string };
 type Customer = { customer_id: string; company_name: string };
 
-export default function PMTasksContent({ developers, customers }: { developers: Developer[]; customers: Customer[] }) {
+export default function PMTasksContent({ developers, customers, reviewerMap }: { developers: Developer[]; customers: Customer[]; reviewerMap: Record<string, string> }) {
   const { settings } = usePMSettings();
   const [tasks, setTasks] = useState<ClassificationRow[]>([]);
   const [zohoProjectMap, setZohoProjectMap] = useState<Record<string, string>>({});
-  const [reviewerMap, setReviewerMap] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const supabase = createClient();
@@ -36,34 +35,23 @@ export default function PMTasksContent({ developers, customers }: { developers: 
 
     fetchTasks();
 
-    // Fetch zoho project map and reviewer names in parallel
-    Promise.all([
-      supabase
-        .from("customer_products")
-        .select("customer_id, zoho_project_id")
-        .not("zoho_project_id", "is", null),
-      supabase
-        .from("hub_users")
-        .select("id, display_name"),
-    ]).then(([zohoResult, usersResult]) => {
-      if (cancelled) return;
-      if (zohoResult.data) {
-        const map: Record<string, string> = {};
-        for (const p of zohoResult.data as Array<{ customer_id: string; zoho_project_id: string | null }>) {
-          if (p.zoho_project_id && !map[p.customer_id]) {
-            map[p.customer_id] = p.zoho_project_id;
+    // Fetch zoho project map
+    supabase
+      .from("customer_products")
+      .select("customer_id, zoho_project_id")
+      .not("zoho_project_id", "is", null)
+      .then(({ data }) => {
+        if (cancelled) return;
+        if (data) {
+          const map: Record<string, string> = {};
+          for (const p of data as Array<{ customer_id: string; zoho_project_id: string | null }>) {
+            if (p.zoho_project_id && !map[p.customer_id]) {
+              map[p.customer_id] = p.zoho_project_id;
+            }
           }
+          setZohoProjectMap(map);
         }
-        setZohoProjectMap(map);
-      }
-      if (usersResult.data) {
-        const map: Record<string, string> = {};
-        for (const u of usersResult.data as Array<{ id: string; display_name: string | null }>) {
-          if (u.id && u.display_name) map[u.id] = u.display_name;
-        }
-        setReviewerMap(map);
-      }
-    });
+      });
 
     const channel = supabase
       .channel("dashboard_tasks_classification")

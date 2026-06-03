@@ -18,14 +18,18 @@ export default async function DashboardTasksPage() {
     .eq("id", claims.claims.sub)
     .single();
 
-  const role = profile?.role ?? "pm";
+  const role = profile?.role ?? null;
+
+  if (!role || role === "pending") {
+    redirect("/auth/pending");
+  }
 
   if (role === "dev") {
     return <DevTasksContent />;
   }
 
   // adminClient bypasses RLS — needed to read other users' rows (RLS restricts to own row)
-  const [{ data: devUsers }, { data: customers }] = await Promise.all([
+  const [{ data: devUsers }, { data: customers }, { data: allUsers }] = await Promise.all([
     adminClient
       .from("hub_users")
       .select("id, display_name, email")
@@ -35,7 +39,15 @@ export default async function DashboardTasksPage() {
       .select("customer_id, company_name")
       .eq("status", "active")
       .order("company_name"),
+    adminClient
+      .from("hub_users")
+      .select("id, display_name"),
   ]);
 
-  return <PMTasksContent developers={devUsers ?? []} customers={customers ?? []} />;
+  const reviewerMap: Record<string, string> = {};
+  for (const u of allUsers ?? []) {
+    if (u.id && u.display_name) reviewerMap[u.id] = u.display_name;
+  }
+
+  return <PMTasksContent developers={devUsers ?? []} customers={customers ?? []} reviewerMap={reviewerMap} />;
 }

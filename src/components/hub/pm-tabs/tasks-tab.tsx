@@ -397,16 +397,19 @@ export default function TasksTab({ settings, tasks, zohoProjectMap = {}, reviewe
 
   const displayTasks = tasks.map(t => overrides[t.id] ? { ...t, ...overrides[t.id] } : t);
 
+  const isNeedsReview = (t: ClassificationRow) => t.status === "pending" || (t.confidence_score ?? 100) < 75;
+
+  const reviewCount = displayTasks.filter(isNeedsReview).length;
+  const inReviewCount = displayTasks.filter(t => t.status === "review").length;
+  const classifiedCount = displayTasks.filter(t => t.status === "reviewed").length;
+
   const shown = tab === "all"
     ? displayTasks
     : tab === "review"
-    ? displayTasks.filter(t => t.status === "pending" || (t.confidence_score ?? 100) < 75)
+    ? displayTasks.filter(isNeedsReview)
     : tab === "in_review"
     ? displayTasks.filter(t => t.status === "review")
     : displayTasks.filter(t => t.status === "reviewed");
-
-  const reviewCount = displayTasks.filter(t => t.status === "pending" || (t.confidence_score ?? 100) < 75).length;
-  const inReviewCount = displayTasks.filter(t => t.status === "review").length;
 
   function handleSave(updated: ClassificationRow) {
     setOverrides(prev => ({ ...prev, [updated.id]: updated }));
@@ -430,7 +433,7 @@ export default function TasksTab({ settings, tasks, zohoProjectMap = {}, reviewe
             ["all", "All", displayTasks.length],
             ["review", "Needs Review", reviewCount],
             ["in_review", "In Review", inReviewCount],
-            ["classified", "Classified", displayTasks.filter(t => t.status === "reviewed").length],
+            ["classified", "Classified", classifiedCount],
           ] as const).map(([k, l, count]) => (
             <button
               key={k}

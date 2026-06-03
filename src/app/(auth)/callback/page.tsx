@@ -48,7 +48,7 @@ export default function AuthCallbackPage() {
         try {
           const { syncZohoRole } = await import("@/app/(auth)/sync-zoho-role");
           const role = await syncZohoRole(userId, email, displayName);
-          if (role === "pending") destination = "/auth/pending";
+          if (!role || role === "pending") destination = "/auth/pending";
         } catch (err) {
           console.warn("[auth/callback] syncZohoRole error:", err);
         }

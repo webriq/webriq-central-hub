@@ -14,6 +14,7 @@
 
 | ID | Title | Priority | Type | Doc | Date |
 |----|-------|----------|------|-----|------|
+| 052 | Code Review Fixes — Security, Auth & Correctness | HIGH | patch | _docs/task/052-code-review-security-correctness-fixes.md | 2026-06-03 |
 | 051 | In Review Queue — Tasks Ready for Checking Filter Tab | HIGH | feature | _docs/task/051-in-review-queue-filter-tab.md | 2026-06-03 |
 | 050 | PM Create Task from Hub — Manual Task Creation + Immediate Zoho Push | HIGH | feature | _docs/task/050-pm-create-task-from-hub.md | 2026-06-03 |
 | 049 | PM Assign Developer to Task (Zoho API) | HIGH | feature | _docs/task/049-pm-assign-dev-to-task.md | 2026-06-03 |

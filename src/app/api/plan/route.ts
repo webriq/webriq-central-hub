@@ -80,16 +80,24 @@ export async function PATCH(req: NextRequest) {
   let zohoTaskId: string | null = null;
 
   if (action === "approve") {
-    await Promise.all([
-      adminClient
-        .from("implementation_plans")
-        .update({ status: "APPROVED", approved_by: user.id })
-        .eq("id", planId),
-      adminClient
-        .from("classification_records")
-        .update({ status: "approved" })
-        .eq("id", classificationId),
-    ]);
+    // Atomic guard: only update if plan is still PENDING_APPROVAL — prevents duplicate Zoho pushes on concurrent approvals
+    const { data: approvedPlan } = await adminClient
+      .from("implementation_plans")
+      .update({ status: "APPROVED", approved_by: user.id })
+      .eq("id", planId)
+      .eq("status", "PENDING_APPROVAL")
+      .select("id")
+      .maybeSingle();
+
+    if (!approvedPlan) {
+      // Already approved (or rejected) by a concurrent request — return current state
+      return NextResponse.json({ ok: true, zohoTaskId: plan.zoho_task_id });
+    }
+
+    await adminClient
+      .from("classification_records")
+      .update({ status: "approved" })
+      .eq("id", classificationId);
 
     // Push to Zoho — non-blocking; failure does not fail the approve.
     // If the plan already has a zoho_task_id (retry scenario), skip creation.
@@ -130,6 +138,16 @@ export async function PATCH(req: NextRequest) {
       zohoTaskId = planRecord.zoho_task_id;
     }
   } else {
+    // Read current classification status — only reset pipeline-owned statuses to avoid clobbering PM-set states
+    const { data: currentRecord } = await adminClient
+      .from("classification_records")
+      .select("status")
+      .eq("id", classificationId)
+      .maybeSingle();
+
+    const PIPELINE_STATUSES = new Set(["planning", "approved"]);
+    const resetStatus = PIPELINE_STATUSES.has(currentRecord?.status ?? "");
+
     await Promise.all([
       adminClient
         .from("implementation_plans")
@@ -139,10 +157,9 @@ export async function PATCH(req: NextRequest) {
           rejected_by: user.id,
         })
         .eq("id", planId),
-      adminClient
-        .from("classification_records")
-        .update({ status: "pending" })
-        .eq("id", classificationId),
+      resetStatus
+        ? adminClient.from("classification_records").update({ status: "pending" }).eq("id", classificationId)
+        : Promise.resolve(),
     ]);
   }
 
