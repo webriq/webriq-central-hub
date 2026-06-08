@@ -1,4 +1,4 @@
-import type { FormSchema, FormSection } from "@/types/onboarding";
+import type { FormSchema, FormSection, FormField } from "@/types/onboarding";
 import type { ProductName } from "@/types/hub";
 
 // ============================================================================
@@ -612,18 +612,44 @@ export function getOnboardingSchema(productName: string): FormSchema | null {
   return null;
 }
 
+export function computeCompletionPercentage(schema: FormSchema, data: Record<string, unknown>): number {
+  const requiredFields: FormField[] = [];
+  for (const section of schema.sections) {
+    if (section.condition) {
+      if (String(data[section.condition.field]) !== String(section.condition.value)) continue;
+    }
+    for (const field of section.fields) {
+      if (!field.required) continue;
+      if (field.condition) {
+        if (String(data[field.condition.field]) !== String(field.condition.value)) continue;
+      }
+      requiredFields.push(field);
+    }
+  }
+  if (requiredFields.length === 0) return 100;
+  let completed = 0;
+  for (const field of requiredFields) {
+    const value = data[field.name];
+    if (value !== undefined && value !== null && value !== "") {
+      if (Array.isArray(value) && value.length === 0) continue;
+      completed++;
+    }
+  }
+  return (completed / requiredFields.length) * 100;
+}
+
 export function getIncompleteSections(productName: string, onboardingData: Record<string, unknown>): string[] {
   const schema = getOnboardingSchema(productName);
   if (!schema) return [];
   return schema.sections
     .filter((section) => {
       if (section.condition) {
-        if (onboardingData[section.condition.field] !== section.condition.value) return false;
+        if (String(onboardingData[section.condition.field]) !== String(section.condition.value)) return false;
       }
       return section.fields.some((field) => {
         if (!field.required) return false;
         if (field.condition) {
-          if (onboardingData[field.condition.field] !== field.condition.value) return false;
+          if (String(onboardingData[field.condition.field]) !== String(field.condition.value)) return false;
         }
         const v = onboardingData[field.name];
         return !v || (typeof v === "string" && v.trim() === "");

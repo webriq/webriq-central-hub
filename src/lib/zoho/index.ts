@@ -91,7 +91,9 @@ export async function createZohoProject(customerId: string, projectName: string)
   }
 
   const json = await res.json();
-  return (json?.projects?.[0]?.id as string) ?? "";
+  // V3 API returns a flat object: { id: "...", name: "...", ... }
+  const proj = json?.projects?.[0] ?? json?.project ?? json;
+  return String(proj?.id_string ?? proj?.id ?? "") || "";
 }
 
 export type ZohoTask = {
@@ -160,7 +162,22 @@ type SyncTaskInput = {
   customerId: string;
   title: string;
   description: string;
+  zohoProjectId?: string;
+  tasklistId?: string;
+  startDate?: string;
+  dueDate?: string;
+  ownerId?: string;
+  billingType?: string;
 };
+
+// Zoho Projects API v3 requires ISO 8601: yyyy-MM-dd'T'HH:mm:ss'Z'
+// datetime-local inputs give YYYY-MM-DDTHH:mm — append :00Z for UTC
+function toZohoDate(iso: string): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  return d.toISOString(); // produces yyyy-MM-ddTHH:mm:ss.sssZ
+}
 
 export async function syncTaskToZoho(input: SyncTaskInput): Promise<string> {
   const portalId = process.env.ZOHO_PORTAL_ID;
@@ -169,25 +186,32 @@ export async function syncTaskToZoho(input: SyncTaskInput): Promise<string> {
     return "";
   }
 
-  // adminClient used for reads — this function runs server-side only (no user session in API routes)
-  const { data: product } = await adminClient
-    .from("customer_products")
-    .select("zoho_project_id")
-    .eq("customer_id", input.customerId)
-    .not("zoho_project_id", "is", null)
-    .limit(1)
-    .maybeSingle();
+  let zohoProjectId = input.zohoProjectId;
+  if (!zohoProjectId) {
+    // adminClient used for reads — this function runs server-side only (no user session in API routes)
+    const { data: product } = await adminClient
+      .from("customer_projects")
+      .select("zoho_project_id")
+      .eq("customer_id", input.customerId)
+      .not("zoho_project_id", "is", null)
+      .limit(1)
+      .maybeSingle();
 
-  if (!product?.zoho_project_id) {
-    console.warn("[zoho] no zoho_project_id for customer", input.customerId);
-    return "";
+    if (!product?.zoho_project_id) {
+      console.warn("[zoho] no zoho_project_id for customer", input.customerId);
+      return "";
+    }
+    zohoProjectId = product.zoho_project_id;
   }
 
   const token = await getZohoAccessToken();
   if (!token) return "";
 
+  const startDateZoho = input.startDate ? toZohoDate(input.startDate) : null;
+  const dueDateZoho = input.dueDate ? toZohoDate(input.dueDate) : null;
+
   const res = await fetch(
-    `${ZOHO_PROJECTSAPI_BASE}/projects/${product.zoho_project_id}/tasks`,
+    `${ZOHO_PROJECTSAPI_BASE}/projects/${zohoProjectId}/tasks`,
     {
       method: "POST",
       headers: {
@@ -197,6 +221,11 @@ export async function syncTaskToZoho(input: SyncTaskInput): Promise<string> {
       body: JSON.stringify({
         name: input.title,
         ...(input.description ? { description: input.description } : {}),
+        ...(input.tasklistId ? { tasklist: { id: input.tasklistId } } : {}),
+        ...(startDateZoho ? { start_date: startDateZoho } : {}),
+        ...(dueDateZoho ? { end_date: dueDateZoho } : {}),
+        ...(input.ownerId ? { person_responsible_array: [{ id: input.ownerId }] } : {}),
+        ...(input.billingType && input.billingType !== "None" ? { billing_type: input.billingType } : {}),
       }),
     }
   );
@@ -207,7 +236,90 @@ export async function syncTaskToZoho(input: SyncTaskInput): Promise<string> {
   }
 
   const json = await res.json();
-  return (json?.tasks?.[0]?.id as string) ?? "";
+  // v3 create-task returns the task as a flat root object, not wrapped in tasks[]
+  return String(json?.id_string ?? json?.id ?? "") || "";
+}
+
+export async function syncTaskAttachments(
+  zohoProjectId: string,
+  taskId: string,
+  files: File[]
+): Promise<void> {
+  if (!files.length) return;
+  const token = await getZohoAccessToken();
+  if (!token) return;
+
+  for (const file of files) {
+    const form = new FormData();
+    form.append("file", file);
+    try {
+      await fetch(
+        `${ZOHO_PROJECTSAPI_BASE}/projects/${zohoProjectId}/tasks/${taskId}/attachments`,
+        {
+          method: "POST",
+          headers: { Authorization: `Zoho-oauthtoken ${token}` },
+          body: form,
+        }
+      );
+    } catch {
+      // Non-blocking — attachment failure does not fail the task
+    }
+  }
+}
+
+export async function getZohoProjectTasklists(
+  projectId: string
+): Promise<{ id: string; name: string }[]> {
+  const portalId = process.env.ZOHO_PORTAL_ID;
+  if (!portalId) return [];
+  const token = await getZohoAccessToken();
+  if (!token) return [];
+
+  const res = await fetch(
+    `${ZOHO_PROJECTSAPI_BASE}/projects/${projectId}/tasklists`,
+    { headers: { Authorization: `Zoho-oauthtoken ${token}` } }
+  );
+  if (!res.ok) {
+    console.error("[zoho] getZohoProjectTasklists failed:", res.status, await res.text());
+    return [];
+  }
+  const json = await res.json();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (json?.tasklists ?? []).map((tl: any) => ({
+    id: String(tl.id_string ?? tl.id),
+    name: String(tl.name),
+  }));
+}
+
+export async function createZohoTasklist(
+  projectId: string,
+  name: string
+): Promise<{ id: string; name: string } | null> {
+  const portalId = process.env.ZOHO_PORTAL_ID;
+  if (!portalId) return null;
+  const token = await getZohoAccessToken();
+  if (!token) return null;
+
+  const res = await fetch(
+    `${ZOHO_PROJECTSAPI_BASE}/projects/${projectId}/tasklists`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Zoho-oauthtoken ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ name }),
+    }
+  );
+  if (!res.ok) {
+    console.error("[zoho] createZohoTasklist failed:", res.status, await res.text());
+    return null;
+  }
+  const json = await res.json();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const tl: any = json?.tasklists?.[0] ?? json?.tasklist ?? json;
+  if (!tl?.id_string && !tl?.id) return null;
+  return { id: String(tl.id_string ?? tl.id), name: String(tl.name) };
 }
 
 // Close (completed=true) or reopen (completed=false) a Zoho task
@@ -277,7 +389,7 @@ export async function getMyZohoTasks(
   if (!token) return [];
 
   const { data: products } = await adminClient
-    .from("customer_products")
+    .from("customer_projects")
     .select("zoho_project_id")
     .not("zoho_project_id", "is", null);
 
@@ -312,9 +424,9 @@ export async function getUnassignedZohoTasks(portalId: string): Promise<ZohoTask
   const token = await getZohoAccessToken();
   if (!token) return [];
 
-  // Collect all zoho_project_ids across all active customer products
+  // Collect all zoho_project_ids across all customer projects
   const { data: products } = await adminClient
-    .from("customer_products")
+    .from("customer_projects")
     .select("zoho_project_id")
     .not("zoho_project_id", "is", null);
 
@@ -356,7 +468,7 @@ export async function getMyZohoTimeLogs(
   if (!token) return [];
 
   const { data: products } = await adminClient
-    .from("customer_products")
+    .from("customer_projects")
     .select("zoho_project_id")
     .not("zoho_project_id", "is", null);
 

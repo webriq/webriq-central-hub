@@ -4,15 +4,17 @@ import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Archive } from "lucide-react";
+import type { UploadedFile } from "@/types/onboarding";
+import FileUpload from "@/components/onboarding/file-upload";
 import { usePMSettings } from "@/hooks/use-pm-settings";
-import type { CustomerRow, CustomerProductRow, Database } from "@/types/database";
+import type { CustomerRow, CustomerProductRow, CustomerProjectRow, Database } from "@/types/database";
 import type { ProductName } from "@/types/hub";
-import { getIncompleteSections, getOnboardingSchema } from "@/config/onboarding-schemas";
+import { getIncompleteSections, getOnboardingSchema, computeCompletionPercentage } from "@/config/onboarding-schemas";
 
 type ClassificationRow = Database["public"]["Tables"]["classification_records"]["Row"];
 type AssetRow = Database["public"]["Tables"]["customer_assets"]["Row"];
-type NavSection = "company" | "contact" | "products" | "assets" | "activity" | "settings";
+type NavSection = "company" | "contact" | "products" | "assets" | "activity" | "projects" | "settings";
 
 interface CustomerProfileClientProps {
   customer: CustomerRow & { customer_products: CustomerProductRow[] };
@@ -46,10 +48,12 @@ const statusLabel = (status: string) => {
   return map[status] ?? status.charAt(0).toUpperCase() + status.slice(1);
 };
 
-const ZOHO_PROJECT_DEFAULTS: Record<string, string> = {
-  StackShift: "App",
-  PublishForge: "Content Site",
-  PipelineForge: "Pipeline",
+const PROJECT_TYPES = ["Content Site", "Ecommerce (B2C)", "Ecommerce (B2B)", "Custom App"] as const;
+const PROJECT_TYPE_SUFFIXES: Record<string, string> = {
+  "Content Site":    "Content Site",
+  "Ecommerce (B2C)": "Ecommerce",
+  "Ecommerce (B2B)": "Ecommerce B2B",
+  "Custom App":      "App",
 };
 
 const PRODUCT_ICON_CLASSES: Record<string, string> = {
@@ -143,24 +147,29 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
 
   // Edit product metadata modal
   const [editProduct, setEditProduct] = useState<CustomerProductRow | null>(null);
-  const [editProductForm, setEditProductForm] = useState({
-    product_instance_id: "", zoho_project_id: "", sanity_project_id: "", github_repo: "",
-  });
+  const [editProductForm, setEditProductForm] = useState({ product_instance_id: "" });
   const [editProductSaving, setEditProductSaving] = useState(false);
   const [editProductError, setEditProductError] = useState<string | null>(null);
 
   // Add product modal
   const [addProductOpen, setAddProductOpen] = useState(false);
-  const [addProductForm, setAddProductForm] = useState({
-    product_name: "", product_instance_id: "", zoho_project_id: "", sanity_project_id: "", github_repo: "",
-  });
+  const [addProductForm, setAddProductForm] = useState({ product_name: "", product_instance_id: "" });
   const [addProductSaving, setAddProductSaving] = useState(false);
   const [addProductError, setAddProductError] = useState<string | null>(null);
 
-  // Remove product confirmation
-  const [removeProduct, setRemoveProduct] = useState<CustomerProductRow | null>(null);
-  const [removeProductSaving, setRemoveProductSaving] = useState(false);
-  const [removeProductError, setRemoveProductError] = useState<string | null>(null);
+  // Archive product confirmation (soft-delete)
+  const [archiveProduct, setArchiveProduct] = useState<CustomerProductRow | null>(null);
+  const [archiveProductSaving, setArchiveProductSaving] = useState(false);
+  const [archiveProductError, setArchiveProductError] = useState<string | null>(null);
+
+  // Edit onboarding responses (PM-side, active products only)
+  const [editResponses, setEditResponses] = useState<CustomerProductRow | null>(null);
+  const [editResponsesData, setEditResponsesData] = useState<Record<string, unknown>>({});
+  const [editResponsesSaving, setEditResponsesSaving] = useState(false);
+  const [editResponsesError, setEditResponsesError] = useState<string | null>(null);
+
+  // Products sub-tab: active vs archived
+  const [productTab, setProductTab] = useState<"active" | "archived">("active");
 
   // View onboarding responses inline
   const [viewingResponsesInline, setViewingResponsesInline] = useState<CustomerProductRow | null>(null);
@@ -169,11 +178,18 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
   const [reopening, setReopening] = useState(false);
   const [reopenError, setReopenError] = useState<string | null>(null);
 
-  // Create Zoho Projects dialog
-  const [zohoDialogOpen, setZohoDialogOpen] = useState(false);
-  const [zohoProjectNames, setZohoProjectNames] = useState<Record<string, string>>({});
-  const [zohoCreating, setZohoCreating] = useState(false);
-  const [zohoError, setZohoError] = useState<string | null>(null);
+  // Projects tab
+  const [projects, setProjects] = useState<CustomerProjectRow[]>([]);
+  const [projectsLoading, setProjectsLoading] = useState(false);
+  const hasFetchedProjectsRef = useRef(false);
+  const [addProjectDialogOpen, setAddProjectDialogOpen] = useState(false);
+  const [addProjectForm, setAddProjectForm] = useState({
+    project_type: "", project_name: "", zoho_project_id: "",
+    sanity_project_id: "", github_repo: "", dedicated_developers: "",
+  });
+  const [addProjectCreating, setAddProjectCreating] = useState(false);
+  const [addProjectError, setAddProjectError] = useState<string | null>(null);
+  const [createZohoWithProject, setCreateZohoWithProject] = useState(false);
 
   // Assets
   const [assets, setAssets] = useState<AssetRow[]>([]);
@@ -197,6 +213,17 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
       .limit(10)
       .then(({ data }) => { if (data) setClassifications(data as ClassificationRow[]); });
   }, [customer.customer_id]);
+
+  useEffect(() => {
+    if (activeSection !== "projects" || hasFetchedProjectsRef.current) return;
+    hasFetchedProjectsRef.current = true;
+    setProjectsLoading(true);
+    fetch(`/api/customers/${customer.customer_id}/projects`)
+      .then(r => r.json())
+      .then((data: unknown) => setProjects(Array.isArray(data) ? (data as CustomerProjectRow[]) : []))
+      .catch(() => {})
+      .finally(() => setProjectsLoading(false));
+  }, [activeSection, customer.customer_id]);
 
   useEffect(() => {
     if (activeSection !== "assets" || hasFetchedAssetsRef.current) return;
@@ -243,12 +270,7 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
   };
 
   const handleOpenEditProduct = (product: CustomerProductRow) => {
-    setEditProductForm({
-      product_instance_id: product.product_instance_id ?? "",
-      zoho_project_id: product.zoho_project_id ?? "",
-      sanity_project_id: product.sanity_project_id ?? "",
-      github_repo: product.github_repo ?? "",
-    });
+    setEditProductForm({ product_instance_id: product.product_instance_id ?? "" });
     setEditProductError(null);
     setEditProduct(product);
   };
@@ -265,9 +287,6 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             product_instance_id: editProductForm.product_instance_id || null,
-            zoho_project_id: editProductForm.zoho_project_id || null,
-            sanity_project_id: editProductForm.sanity_project_id || null,
-            github_repo: editProductForm.github_repo || null,
           }),
         }
       );
@@ -295,9 +314,6 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
         body: JSON.stringify({
           product_name: addProductForm.product_name,
           product_instance_id: addProductForm.product_instance_id || null,
-          zoho_project_id: addProductForm.zoho_project_id || null,
-          sanity_project_id: addProductForm.sanity_project_id || null,
-          github_repo: addProductForm.github_repo || null,
         }),
       });
       if (!res.ok) {
@@ -305,7 +321,7 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
         throw new Error(json.error ?? "Failed to add product");
       }
       setAddProductOpen(false);
-      setAddProductForm({ product_name: "", product_instance_id: "", zoho_project_id: "", sanity_project_id: "", github_repo: "" });
+      setAddProductForm({ product_name: "", product_instance_id: "" });
       router.refresh();
     } catch (err) {
       setAddProductError(err instanceof Error ? err.message : "Failed to add product");
@@ -349,25 +365,75 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
     }
   };
 
-  const handleRemoveProduct = async () => {
-    if (!removeProduct) return;
-    setRemoveProductSaving(true);
-    setRemoveProductError(null);
+  const handleArchiveProduct = async () => {
+    if (!archiveProduct) return;
+    setArchiveProductSaving(true);
+    setArchiveProductError(null);
     try {
       const res = await fetch(
-        `/api/customers/${customer.customer_id}/products?product_name=${encodeURIComponent(removeProduct.product_name)}`,
-        { method: "DELETE" }
+        `/api/customers/${customer.customer_id}/products/${encodeURIComponent(archiveProduct.product_name)}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "archived" }),
+        }
       );
       if (!res.ok) {
         const json = await res.json().catch(() => ({}));
-        throw new Error(json.error ?? "Failed to remove product");
+        throw new Error(json.error ?? "Failed to archive product");
       }
-      setRemoveProduct(null);
+      setArchiveProduct(null);
       router.refresh();
     } catch (err) {
-      setRemoveProductError(err instanceof Error ? err.message : "Failed to remove product");
+      setArchiveProductError(err instanceof Error ? err.message : "Failed to archive product");
     } finally {
-      setRemoveProductSaving(false);
+      setArchiveProductSaving(false);
+    }
+  };
+
+  const handleRestoreProduct = async (product: CustomerProductRow) => {
+    try {
+      const res = await fetch(
+        `/api/customers/${customer.customer_id}/products/${encodeURIComponent(product.product_name)}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "active" }),
+        }
+      );
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        throw new Error(json.error ?? "Failed to restore product");
+      }
+      router.refresh();
+    } catch (err) {
+      console.error("Restore product error:", err);
+    }
+  };
+
+  const handleSaveResponses = async () => {
+    if (!editResponses) return;
+    setEditResponsesSaving(true);
+    setEditResponsesError(null);
+    try {
+      const res = await fetch(
+        `/api/customers/${customer.customer_id}/products/${editResponses.product_name}/onboarding`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ data: editResponsesData }),
+        }
+      );
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        throw new Error(json.error ?? "Save failed");
+      }
+      setEditResponses(null);
+      router.refresh();
+    } catch (err) {
+      setEditResponsesError(err instanceof Error ? err.message : "Save failed");
+    } finally {
+      setEditResponsesSaving(false);
     }
   };
 
@@ -390,53 +456,55 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
     }
   };
 
-  const handleOpenZohoDialog = () => {
-    const names: Record<string, string> = {};
-    products.forEach(p => { names[p.product_name] = ""; });
-    setZohoProjectNames(names);
-    setZohoError(null);
-    setZohoDialogOpen(true);
+  const handleGenerateProjectName = () => {
+    if (!addProjectForm.project_type) return;
+    const suffix = PROJECT_TYPE_SUFFIXES[addProjectForm.project_type] ?? addProjectForm.project_type;
+    setAddProjectForm(f => ({ ...f, project_name: `${customer.company_name} ${suffix}` }));
   };
 
-  const handleGenerateName = (productName: string) => {
-    const suffix = ZOHO_PROJECT_DEFAULTS[productName] ?? productName;
-    setZohoProjectNames(n => ({ ...n, [productName]: `${customer.company_name} ${suffix}` }));
-  };
-
-  const handleGenerateAll = () => {
-    const names: Record<string, string> = {};
-    products.forEach(p => {
-      const suffix = ZOHO_PROJECT_DEFAULTS[p.product_name] ?? p.product_name;
-      names[p.product_name] = `${customer.company_name} ${suffix}`;
-    });
-    setZohoProjectNames(names);
-  };
-
-  const handleCreateZohoProjects = async () => {
-    const hasAny = Object.values(zohoProjectNames).some(n => n.trim() !== "");
-    if (!hasAny) {
-      setZohoError("Please enter at least one project name.");
+  const handleAddProjectSubmit = async () => {
+    if (!addProjectForm.project_name.trim() || !addProjectForm.project_type) {
+      setAddProjectError("Project name and type are required.");
       return;
     }
-    setZohoCreating(true);
-    setZohoError(null);
+    setAddProjectCreating(true);
+    setAddProjectError(null);
     try {
-      const res = await fetch(`/api/customers/${customer.customer_id}/zoho-projects`, {
+      const res = await fetch(`/api/customers/${customer.customer_id}/projects`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ projects: zohoProjectNames }),
+        body: JSON.stringify({
+          project_name: addProjectForm.project_name,
+          project_type: addProjectForm.project_type,
+          zoho_project_id: addProjectForm.zoho_project_id || null,
+          sanity_project_id: addProjectForm.sanity_project_id || null,
+          github_repo: addProjectForm.github_repo || null,
+          dedicated_developers: addProjectForm.dedicated_developers
+            ? addProjectForm.dedicated_developers.split(",").map(s => s.trim()).filter(Boolean)
+            : [],
+          create_zoho_project: createZohoWithProject,
+        }),
       });
       if (!res.ok) {
         const json = await res.json().catch(() => ({}));
-        throw new Error(json.error ?? "Failed to create projects");
+        throw new Error(json.error ?? "Failed to create project");
       }
-      setZohoDialogOpen(false);
-      setZohoProjectNames({});
+      const payload = await res.json();
+      const { zoho_creation_failed, ...newProject } = payload as CustomerProjectRow & { zoho_creation_failed?: boolean };
+      setProjects(p => [newProject, ...p]);
+      setAddProjectDialogOpen(false);
+      setAddProjectForm({ project_type: "", project_name: "", zoho_project_id: "",
+                          sanity_project_id: "", github_repo: "", dedicated_developers: "" });
+      setCreateZohoWithProject(false);
+      if (zoho_creation_failed) {
+        setAddProjectError("Project saved, but Zoho project creation failed — check ZOHO_PORTAL_ID and token config.");
+        setAddProjectDialogOpen(true);
+      }
       router.refresh();
     } catch (err) {
-      setZohoError(err instanceof Error ? err.message : "Failed to create projects");
+      setAddProjectError(err instanceof Error ? err.message : "Failed to create project");
     } finally {
-      setZohoCreating(false);
+      setAddProjectCreating(false);
     }
   };
 
@@ -477,19 +545,22 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
 
   const status = customer.status ?? "onboarding";
   const products = customer.customer_products ?? [];
+  const activeProducts = products.filter(p => p.status !== "archived");
+  const archivedProducts = products.filter(p => p.status === "archived");
   const assignedNames = products.map(p => p.product_name);
   const availableProducts = ALL_PRODUCTS.filter(p => !assignedNames.includes(p));
   const metadata = extractMetadata(products);
 
   const stackshiftProduct = products.find(p => p.product_name === "StackShift");
   const hasCiteForge = (stackshiftProduct?.onboarding_data as Record<string, unknown>)?.includeCiteForge === "Yes";
-  const totalProductCount = products.length + (hasCiteForge ? 1 : 0);
+  const totalProductCount = activeProducts.length + (hasCiteForge ? 1 : 0);
 
   const navItems: { id: NavSection; label: string }[] = [
     { id: "company", label: "Company Info" },
     { id: "contact", label: "Primary Contact" },
     { id: "products", label: `Products (${totalProductCount})` },
     { id: "assets", label: "Assets" },
+    { id: "projects", label: `Projects (${projects.length})` },
     { id: "activity", label: `Activity (${classifications.length})` },
     { id: "settings", label: "Settings" },
   ];
@@ -660,49 +731,15 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
               </button>
             </div>
             <div className="px-6 py-5 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className={labelCls}>Product Instance ID</label>
-                  <input
-                    type="text"
-                    value={editProductForm.product_instance_id}
-                    onChange={e => setEditProductForm(f => ({ ...f, product_instance_id: e.target.value }))}
-                    className={inputCls}
-                    placeholder="e.g. stackshift-001"
-                  />
-                </div>
-                <div>
-                  <label className={labelCls}>Zoho Project ID</label>
-                  <input
-                    type="text"
-                    value={editProductForm.zoho_project_id}
-                    onChange={e => setEditProductForm(f => ({ ...f, zoho_project_id: e.target.value }))}
-                    className={inputCls}
-                    placeholder="e.g. 123456789"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className={labelCls}>Sanity Project ID</label>
-                  <input
-                    type="text"
-                    value={editProductForm.sanity_project_id}
-                    onChange={e => setEditProductForm(f => ({ ...f, sanity_project_id: e.target.value }))}
-                    className={inputCls}
-                    placeholder="e.g. abc12def"
-                  />
-                </div>
-                <div>
-                  <label className={labelCls}>GitHub Repo URL</label>
-                  <input
-                    type="url"
-                    value={editProductForm.github_repo}
-                    onChange={e => setEditProductForm(f => ({ ...f, github_repo: e.target.value }))}
-                    className={inputCls}
-                    placeholder="https://github.com/org/repo"
-                  />
-                </div>
+              <div>
+                <label className={labelCls}>Product Instance ID</label>
+                <input
+                  type="text"
+                  value={editProductForm.product_instance_id}
+                  onChange={e => setEditProductForm(f => ({ ...f, product_instance_id: e.target.value }))}
+                  className={inputCls}
+                  placeholder="e.g. stackshift-001"
+                />
               </div>
               {editProductError && (
                 <p className="text-xs text-red-500 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
@@ -761,49 +798,15 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
                   ))}
                 </select>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className={labelCls}>Product Instance ID</label>
-                  <input
-                    type="text"
-                    value={addProductForm.product_instance_id}
-                    onChange={e => setAddProductForm(f => ({ ...f, product_instance_id: e.target.value }))}
-                    className={inputCls}
-                    placeholder="Optional"
-                  />
-                </div>
-                <div>
-                  <label className={labelCls}>Zoho Project ID</label>
-                  <input
-                    type="text"
-                    value={addProductForm.zoho_project_id}
-                    onChange={e => setAddProductForm(f => ({ ...f, zoho_project_id: e.target.value }))}
-                    className={inputCls}
-                    placeholder="Optional"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className={labelCls}>Sanity Project ID</label>
-                  <input
-                    type="text"
-                    value={addProductForm.sanity_project_id}
-                    onChange={e => setAddProductForm(f => ({ ...f, sanity_project_id: e.target.value }))}
-                    className={inputCls}
-                    placeholder="Optional"
-                  />
-                </div>
-                <div>
-                  <label className={labelCls}>GitHub Repo URL</label>
-                  <input
-                    type="url"
-                    value={addProductForm.github_repo}
-                    onChange={e => setAddProductForm(f => ({ ...f, github_repo: e.target.value }))}
-                    className={inputCls}
-                    placeholder="Optional"
-                  />
-                </div>
+              <div>
+                <label className={labelCls}>Product Instance ID</label>
+                <input
+                  type="text"
+                  value={addProductForm.product_instance_id}
+                  onChange={e => setAddProductForm(f => ({ ...f, product_instance_id: e.target.value }))}
+                  className={inputCls}
+                  placeholder="Optional"
+                />
               </div>
               {addProductError && (
                 <p className="text-xs text-red-500 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
@@ -830,111 +833,298 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
         </div>
       )}
 
-      {/* Remove Product Confirmation Modal */}
-      {removeProduct && (
+      {/* Archive Product Confirmation Modal */}
+      {archiveProduct && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-105 overflow-hidden">
             <div className="px-6 pt-6 pb-4">
-              <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center mb-4">
-                <AlertTriangle className="w-5 h-5 text-red-500" />
+              <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center mb-4">
+                <Archive className="w-5 h-5 text-amber-500" />
               </div>
-              <h2 className="text-base font-bold text-slate-900 mb-1">Remove {removeProduct.product_name}?</h2>
+              <h2 className="text-base font-bold text-slate-900 mb-1">Archive {archiveProduct.product_name}?</h2>
               <p className="text-sm text-slate-500">
-                This will remove <strong>{removeProduct.product_name}</strong> from{" "}
-                <strong>{customer.company_name}</strong> and delete all associated onboarding data.
-                This action cannot be undone.
+                This will archive <strong>{archiveProduct.product_name}</strong> for{" "}
+                <strong>{customer.company_name}</strong>. All onboarding data is preserved and the
+                product can be restored from the Archived tab at any time.
               </p>
-              {removeProductError && (
+              {archiveProductError && (
                 <p className="mt-3 text-xs text-red-500 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
-                  {removeProductError}
+                  {archiveProductError}
                 </p>
               )}
             </div>
             <div className="flex justify-end gap-2.5 px-6 py-4 border-t border-slate-100 bg-slate-50/50">
               <button
-                onClick={() => { setRemoveProduct(null); setRemoveProductError(null); }}
-                disabled={removeProductSaving}
+                onClick={() => { setArchiveProduct(null); setArchiveProductError(null); }}
+                disabled={archiveProductSaving}
                 className="py-2 px-4 bg-transparent text-slate-600 text-sm font-medium border border-slate-200 rounded-full cursor-pointer hover:border-slate-300 transition-colors disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
-                onClick={handleRemoveProduct}
-                disabled={removeProductSaving}
-                className="py-2 px-5 bg-red-500 text-white text-sm font-semibold border-none rounded-full cursor-pointer hover:bg-red-600 transition-colors disabled:opacity-60"
+                onClick={handleArchiveProduct}
+                disabled={archiveProductSaving}
+                className="py-2 px-5 bg-amber-500 text-white text-sm font-semibold border-none rounded-full cursor-pointer hover:bg-amber-600 transition-colors disabled:opacity-60"
               >
-                {removeProductSaving ? "Removing…" : "Remove Product"}
+                {archiveProductSaving ? "Archiving…" : "Archive Product"}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Create Zoho Projects Dialog */}
-      {zohoDialogOpen && (
+      {/* Edit Onboarding Responses Modal */}
+      {editResponses && (() => {
+        const schema = getOnboardingSchema(editResponses.product_name);
+        if (!schema) return null;
+        const visibleSections = schema.sections.filter(s => {
+          if (!s.condition) return true;
+          return String(editResponsesData[s.condition.field]) === String(s.condition.value);
+        });
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl overflow-hidden flex flex-col max-h-[90vh]">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
+                <div>
+                  <h2 className="text-base font-bold text-slate-900">Edit Responses</h2>
+                  <p className="text-[11px] text-slate-400 mt-0.5">{editResponses.product_name}</p>
+                </div>
+                <button
+                  onClick={() => { setEditResponses(null); setEditResponsesError(null); }}
+                  disabled={editResponsesSaving}
+                  className="text-slate-400 hover:text-slate-600 bg-transparent border-none cursor-pointer p-1 disabled:opacity-50"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="overflow-y-auto flex-1 px-6 py-4 space-y-6">
+                {visibleSections.map(section => (
+                  <div key={section.id}>
+                    <div className="text-[10px] font-bold text-slate-400 tracking-[0.06em] uppercase mb-3">{section.title}</div>
+                    <div className="space-y-3">
+                      {section.fields
+                        .filter(field => {
+                          if (!field.condition) return true;
+                          return String(editResponsesData[field.condition.field]) === String(field.condition.value);
+                        })
+                        .map(field => (
+                          <div key={field.name}>
+                            <label className={labelCls}>{field.label}</label>
+                            {field.type === "file" ? (
+                              <FileUpload
+                                fieldName={field.name}
+                                customerId={customer.customer_id}
+                                productName={editResponses.product_name}
+                                value={editResponsesData[field.name]}
+                                onChange={(file) => setEditResponsesData(prev => ({ ...prev, [field.name]: file }))}
+                              />
+                            ) : field.type === "textarea" ? (
+                              <textarea
+                                value={String(editResponsesData[field.name] ?? "")}
+                                onChange={e => setEditResponsesData(prev => ({ ...prev, [field.name]: e.target.value }))}
+                                rows={3}
+                                className={cn(inputCls, "resize-y")}
+                                placeholder={field.placeholder ?? ""}
+                              />
+                            ) : field.type === "select" ? (
+                              <select
+                                value={String(editResponsesData[field.name] ?? "")}
+                                onChange={e => setEditResponsesData(prev => ({ ...prev, [field.name]: e.target.value }))}
+                                className={inputCls}
+                              >
+                                <option value="">Select…</option>
+                                {field.options?.map(opt => (
+                                  <option key={opt} value={opt}>{opt}</option>
+                                ))}
+                              </select>
+                            ) : field.type === "radio-group" ? (
+                              <div className="flex flex-wrap gap-3 mt-1">
+                                {field.options?.map(opt => (
+                                  <label key={opt} className="flex items-center gap-1.5 cursor-pointer text-sm text-slate-700">
+                                    <input
+                                      type="radio"
+                                      name={`edit-${field.name}`}
+                                      value={opt}
+                                      checked={editResponsesData[field.name] === opt}
+                                      onChange={() => setEditResponsesData(prev => ({ ...prev, [field.name]: opt }))}
+                                      className="accent-brand"
+                                    />
+                                    {opt}
+                                  </label>
+                                ))}
+                              </div>
+                            ) : field.type === "checkbox-group" ? (
+                              <div className="flex flex-wrap gap-3 mt-1">
+                                {field.options?.map(opt => {
+                                  const selected = Array.isArray(editResponsesData[field.name])
+                                    ? (editResponsesData[field.name] as string[])
+                                    : [];
+                                  return (
+                                    <label key={opt} className="flex items-center gap-1.5 cursor-pointer text-sm text-slate-700">
+                                      <input
+                                        type="checkbox"
+                                        checked={selected.includes(opt)}
+                                        onChange={e => {
+                                          const next = e.target.checked
+                                            ? [...selected, opt]
+                                            : selected.filter(v => v !== opt);
+                                          setEditResponsesData(prev => ({ ...prev, [field.name]: next }));
+                                        }}
+                                        className="accent-brand w-4 h-4"
+                                      />
+                                      {opt}
+                                    </label>
+                                  );
+                                })}
+                              </div>
+                            ) : (
+                              <input
+                                type={field.type === "url" ? "url" : "text"}
+                                value={String(editResponsesData[field.name] ?? "")}
+                                onChange={e => setEditResponsesData(prev => ({ ...prev, [field.name]: e.target.value }))}
+                                className={inputCls}
+                                placeholder={field.placeholder ?? ""}
+                              />
+                            )}
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                ))}
+                {editResponsesError && (
+                  <p className="text-xs text-red-500 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+                    {editResponsesError}
+                  </p>
+                )}
+              </div>
+              <div className="flex justify-end gap-2.5 px-6 py-4 border-t border-slate-100 bg-slate-50/50 shrink-0">
+                <button
+                  onClick={() => { setEditResponses(null); setEditResponsesError(null); }}
+                  disabled={editResponsesSaving}
+                  className="py-2 px-4 bg-transparent text-slate-600 text-sm font-medium border border-slate-200 rounded-full cursor-pointer hover:border-slate-300 transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveResponses}
+                  disabled={editResponsesSaving}
+                  className="py-2 px-5 bg-brand text-white text-sm font-semibold border-none rounded-full cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-60"
+                >
+                  {editResponsesSaving ? "Saving…" : "Save Responses"}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Add Project Dialog */}
+      {addProjectDialogOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-130 overflow-hidden">
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
               <div>
-                <h2 className="text-base font-bold text-slate-900">Create Zoho Projects</h2>
+                <h2 className="text-base font-bold text-slate-900">Add Project</h2>
                 <p className="text-xs text-slate-400 mt-0.5">{customer.company_name}</p>
               </div>
               <button
-                onClick={() => { setZohoDialogOpen(false); setZohoError(null); }}
+                onClick={() => { setAddProjectDialogOpen(false); setAddProjectError(null); }}
                 className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors border-none bg-transparent cursor-pointer text-lg leading-none"
               >
                 ×
               </button>
             </div>
             <div className="px-6 py-5 space-y-4">
-              <div className="flex items-center justify-between">
-                <p className="text-xs text-slate-500">Enter a project name for each product. Leave blank to skip.</p>
-                <button
-                  onClick={handleGenerateAll}
-                  className="text-[11px] font-semibold text-brand border border-brand/30 rounded-full px-3 py-1 hover:bg-brand/5 transition-colors cursor-pointer bg-transparent whitespace-nowrap ml-3"
+              <div>
+                <label className={labelCls}>Project Type <span className="text-red-400">*</span></label>
+                <select
+                  value={addProjectForm.project_type}
+                  onChange={e => setAddProjectForm(f => ({ ...f, project_type: e.target.value }))}
+                  className={inputCls}
                 >
-                  Generate All
-                </button>
+                  <option value="">Select type…</option>
+                  {PROJECT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
               </div>
-              {products.map((product) => (
-                <div key={product.id}>
-                  <label className={labelCls}>{product.product_name}</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={zohoProjectNames[product.product_name] ?? ""}
-                      onChange={e => setZohoProjectNames(n => ({ ...n, [product.product_name]: e.target.value }))}
-                      className={cn(inputCls, "flex-1")}
-                      placeholder={`e.g. ${customer.company_name} ${ZOHO_PROJECT_DEFAULTS[product.product_name] ?? "Project"}`}
-                    />
-                    <button
-                      onClick={() => handleGenerateName(product.product_name)}
-                      className="py-2 px-3 text-[11px] font-semibold text-brand border border-brand/30 rounded-lg hover:bg-brand/5 transition-colors cursor-pointer bg-transparent whitespace-nowrap"
-                    >
-                      Generate
-                    </button>
-                  </div>
+              <div>
+                <label className={labelCls}>Project Name <span className="text-red-400">*</span></label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={addProjectForm.project_name}
+                    onChange={e => setAddProjectForm(f => ({ ...f, project_name: e.target.value }))}
+                    className={cn(inputCls, "flex-1")}
+                    placeholder="e.g. Acme Corp Content Site"
+                  />
+                  <button
+                    onClick={handleGenerateProjectName}
+                    disabled={!addProjectForm.project_type}
+                    className="py-2 px-3 text-[11px] font-semibold text-brand border border-brand/30 rounded-lg hover:bg-brand/5 transition-colors cursor-pointer bg-transparent whitespace-nowrap disabled:opacity-40"
+                  >
+                    Generate
+                  </button>
                 </div>
-              ))}
-              {zohoError && (
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className={labelCls}>GitHub Repo</label>
+                  <input
+                    type="text"
+                    value={addProjectForm.github_repo}
+                    onChange={e => setAddProjectForm(f => ({ ...f, github_repo: e.target.value }))}
+                    className={inputCls}
+                    placeholder="https://github.com/org/repo"
+                  />
+                </div>
+                <div>
+                  <label className={labelCls}>Sanity Project ID</label>
+                  <input
+                    type="text"
+                    value={addProjectForm.sanity_project_id}
+                    onChange={e => setAddProjectForm(f => ({ ...f, sanity_project_id: e.target.value }))}
+                    className={inputCls}
+                    placeholder="abc123"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className={labelCls}>Dedicated Developers</label>
+                <input
+                  type="text"
+                  value={addProjectForm.dedicated_developers}
+                  onChange={e => setAddProjectForm(f => ({ ...f, dedicated_developers: e.target.value }))}
+                  className={inputCls}
+                  placeholder="dev1@webriq.com, dev2@webriq.com (comma-separated)"
+                />
+              </div>
+              <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={createZohoWithProject}
+                  onChange={e => setCreateZohoWithProject(e.target.checked)}
+                  className="rounded border-slate-300"
+                />
+                Create Zoho Project now
+              </label>
+              {addProjectError && (
                 <p className="text-xs text-red-500 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
-                  {zohoError}
+                  {addProjectError}
                 </p>
               )}
             </div>
             <div className="flex justify-end gap-2.5 px-6 py-4 border-t border-slate-100 bg-slate-50/50">
               <button
-                onClick={() => { setZohoDialogOpen(false); setZohoError(null); }}
+                onClick={() => { setAddProjectDialogOpen(false); setAddProjectError(null); }}
                 className="font-[inherit] py-2 px-4 bg-transparent text-slate-600 text-sm font-medium border border-slate-200 rounded-full cursor-pointer hover:border-slate-300 transition-colors"
               >
                 Cancel
               </button>
               <button
-                onClick={handleCreateZohoProjects}
-                disabled={zohoCreating}
-                className="font-[inherit] py-2 px-5 bg-green-500 text-white text-sm font-semibold border-none rounded-full cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-60"
+                onClick={handleAddProjectSubmit}
+                disabled={addProjectCreating}
+                className="font-[inherit] py-2 px-5 bg-brand text-white text-sm font-semibold border-none rounded-full cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-60"
               >
-                {zohoCreating ? "Creating…" : "Create Project(s)"}
+                {addProjectCreating ? "Creating…" : "Add Project"}
               </button>
             </div>
           </div>
@@ -1066,10 +1256,10 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
                 </button>
                 {status === "completed_onboarding" && (
                   <button
-                    onClick={handleOpenZohoDialog}
+                    onClick={() => setActiveSection("projects")}
                     className="font-[inherit] py-2 px-4 bg-green-500 text-white text-xs font-semibold border-none rounded-full cursor-pointer hover:opacity-90 transition-opacity"
                   >
-                    Create Zoho Projects
+                    Add Project
                   </button>
                 )}
                 {status === "completed_onboarding" ? (
@@ -1177,9 +1367,23 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
             <div className={sectionCls}>
               {viewingResponsesInline ? (
                 <div>
-                  <div className="mb-5">
-                    <div className={cn("text-sm font-bold", textPrimary)}>{viewingResponsesInline.product_name}</div>
-                    <div className="text-[11px] text-slate-400">Onboarding Responses</div>
+                  <div className="flex items-center justify-between mb-5">
+                    <div>
+                      <div className={cn("text-sm font-bold", textPrimary)}>{viewingResponsesInline.product_name}</div>
+                      <div className="text-[11px] text-slate-400">Onboarding Responses</div>
+                    </div>
+                    {viewingResponsesInline.status !== "archived" && (
+                      <button
+                        onClick={() => {
+                          setEditResponsesData((viewingResponsesInline.onboarding_data as Record<string, unknown>) ?? {});
+                          setEditResponsesError(null);
+                          setEditResponses(viewingResponsesInline);
+                        }}
+                        className="text-[11px] font-semibold text-brand border border-brand/30 rounded-full px-3 py-1 hover:bg-brand/5 transition-colors cursor-pointer bg-transparent"
+                      >
+                        Edit Responses
+                      </button>
+                    )}
                   </div>
                   <div className="space-y-5">
                     <ResponsesView product={viewingResponsesInline} isDark={isDark} />
@@ -1187,9 +1391,9 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
                 </div>
               ) : (
               <>
-              <div className="flex items-center justify-between mb-3.5">
+              <div className="flex items-center justify-between mb-3">
                 <div className={cn(sectionTitleCls, "mb-0")}>Products ({totalProductCount})</div>
-                {availableProducts.length > 0 && (
+                {availableProducts.length > 0 && productTab === "active" && (
                   <button
                     onClick={() => setAddProductOpen(true)}
                     className="text-[11px] font-semibold text-brand border border-brand/30 rounded-full px-3 py-1 hover:bg-brand/5 transition-colors cursor-pointer bg-transparent"
@@ -1198,9 +1402,34 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
                   </button>
                 )}
               </div>
-              {products.length === 0 ? (
+              <div className="flex gap-1.5 mb-4">
+                <button
+                  onClick={() => setProductTab("active")}
+                  className={cn(
+                    "text-[11px] font-semibold px-3 py-1 rounded-full border cursor-pointer transition-colors",
+                    productTab === "active"
+                      ? "bg-brand text-white border-brand"
+                      : (isDark ? "bg-transparent text-slate-400 border-white/10 hover:border-white/20" : "bg-transparent text-slate-500 border-slate-200 hover:border-slate-300")
+                  )}
+                >
+                  Active ({activeProducts.length + (hasCiteForge ? 1 : 0)})
+                </button>
+                <button
+                  onClick={() => setProductTab("archived")}
+                  className={cn(
+                    "text-[11px] font-semibold px-3 py-1 rounded-full border cursor-pointer transition-colors",
+                    productTab === "archived"
+                      ? (isDark ? "bg-slate-600 text-white border-slate-600" : "bg-slate-700 text-white border-slate-700")
+                      : (isDark ? "bg-transparent text-slate-400 border-white/10 hover:border-white/20" : "bg-transparent text-slate-500 border-slate-200 hover:border-slate-300")
+                  )}
+                >
+                  Archived ({archivedProducts.length})
+                </button>
+              </div>
+              {productTab === "active" ? (
+              activeProducts.length === 0 ? (
                 <p className="text-[13px] text-slate-400 text-center py-4">
-                  No products associated yet.{" "}
+                  No active products yet.{" "}
                   <button
                     onClick={() => setAddProductOpen(true)}
                     className="text-brand bg-transparent border-none cursor-pointer p-0 text-[13px]"
@@ -1210,8 +1439,14 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
                 </p>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                  {products.map((product) => {
+                  {activeProducts.map((product) => {
                     const isComplete = product.onboarding_complete;
+                    const productSchema = getOnboardingSchema(product.product_name);
+                    const pct = isComplete
+                      ? 100
+                      : productSchema
+                      ? Math.round(computeCompletionPercentage(productSchema, (product.onboarding_data as Record<string, unknown>) ?? {}))
+                      : Math.round(product.completed_percentage ?? 0);
                     const productSlug = product.product_name.toLowerCase().replace(/\s+/g, "");
                     const missingSections = isComplete
                       ? []
@@ -1248,11 +1483,11 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
                               Edit
                             </button>
                             <button
-                              onClick={() => { setRemoveProductError(null); setRemoveProduct(product); }}
-                              className="text-[11px] font-medium text-slate-400 hover:text-red-500 transition-colors px-2 py-1 rounded bg-transparent border-none cursor-pointer"
-                              title="Remove product"
+                              onClick={() => { setArchiveProductError(null); setArchiveProduct(product); }}
+                              className="text-[11px] font-medium text-slate-400 hover:text-amber-500 transition-colors px-2 py-1 rounded bg-transparent border-none cursor-pointer"
+                              title="Archive product"
                             >
-                              Remove
+                              Archive
                             </button>
                           </div>
                         </div>
@@ -1264,11 +1499,11 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
                                 "h-full rounded-full transition-[width] duration-300",
                                 isComplete ? "bg-green-500" : (PRODUCT_BAR_CLASSES[product.product_name] ?? "bg-slate-400")
                               )}
-                              style={{ width: `${product.completed_percentage ?? 0}%` }}
+                              style={{ width: `${pct}%` }}
                             />
                           </div>
                           <span className="text-[11px] text-slate-400">
-                            {Math.round(product.completed_percentage ?? 0)}%
+                            {pct}%
                           </span>
                           <span
                             className={cn(
@@ -1305,54 +1540,10 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
                         )}
 
                         <div className="flex flex-col gap-1.5 text-xs">
-                          {product.dedicated_developers && product.dedicated_developers.length > 0 ? (
-                            <div className="text-[11px] text-slate-500">
-                              Dedicated devs: {product.dedicated_developers.length}
-                            </div>
-                          ) : (
-                            <div className="text-[11px] text-slate-400">No dedicated developers</div>
-                          )}
                           {product.product_instance_id && (
                             <div className="text-slate-500">
                               <span className="font-semibold">Instance: </span>
                               <span className="font-mono">{product.product_instance_id}</span>
-                            </div>
-                          )}
-                          {product.sanity_project_id && (
-                            <div className="text-slate-500">
-                              <span className="font-semibold">Sanity: </span>
-                              <span>{product.sanity_project_id}</span>
-                            </div>
-                          )}
-                          {product.zoho_project_id && (
-                            <div>
-                              {zohoPortalId ? (
-                                <a
-                                  href={`https://projects.zoho.com/portal/${zohoPortalName}#zp/projects/${product.zoho_project_id}/dashboard`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-brand font-medium"
-                                >
-                                  Zoho Project →
-                                </a>
-                              ) : (
-                                <div className="text-slate-500">
-                                  <span className="font-semibold">Zoho: </span>
-                                  <span className="font-mono">{product.zoho_project_id}</span>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                          {product.github_repo && (
-                            <div>
-                              <a
-                                href={product.github_repo}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-brand font-medium"
-                              >
-                                GitHub Repo →
-                              </a>
                             </div>
                           )}
                         </div>
@@ -1401,6 +1592,58 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
                     </div>
                   )}
                 </div>
+              )
+              ) : (
+              archivedProducts.length === 0 ? (
+                <p className="text-[13px] text-slate-400 text-center py-4">No archived products yet.</p>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  {archivedProducts.map(product => {
+                    const highlights = getProductHighlights(product);
+                    return (
+                      <div
+                        key={product.id}
+                        className={cn(
+                          "rounded-[10px] p-4 opacity-60",
+                          isDark ? "border border-white/[0.06] bg-[#1a2235]" : "border border-slate-200 bg-slate-50"
+                        )}
+                      >
+                        <div className="flex justify-between items-center mb-3">
+                          <div className="flex items-center gap-2">
+                            <div
+                              className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${PRODUCT_ICON_CLASSES[product.product_name] ?? "text-slate-400 bg-slate-100"}`}
+                            >
+                              {product.product_name[0]}
+                            </div>
+                            <span className={cn("text-sm font-bold", isDark ? "text-slate-400" : "text-slate-500")}>{product.product_name}</span>
+                          </div>
+                          <span className={cn("inline-block px-2 py-px rounded text-[11px] font-semibold", isDark ? "text-slate-500 bg-white/5" : "bg-slate-100 text-slate-400")}>
+                            Archived
+                          </span>
+                        </div>
+                        {highlights.length > 0 && (
+                          <div className={cn("mb-3 pb-2 pt-2 border-t", isDark ? "border-white/[0.06]" : "border-slate-100")}>
+                            <div className="flex flex-col gap-1">
+                              {highlights.map(h => (
+                                <div key={h.label} className="flex gap-1.5 text-[11px]">
+                                  <span className="text-slate-400 shrink-0">{h.label}:</span>
+                                  <span className="text-slate-500 truncate">{h.value}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        <button
+                          onClick={() => handleRestoreProduct(product)}
+                          className="text-xs text-brand font-semibold text-left bg-transparent border-none cursor-pointer p-0 transition-colors hover:opacity-80"
+                        >
+                          Restore →
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )
               )}
               </>
               )}
@@ -1552,6 +1795,82 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
             </div>
           )}
 
+          {/* Projects */}
+          {activeSection === "projects" && (
+            <div className={sectionCls}>
+              <div className="flex items-center justify-between mb-4">
+                <div className={sectionTitleCls}>Projects</div>
+                <button
+                  onClick={() => { setAddProjectDialogOpen(true); setAddProjectError(null); }}
+                  className="text-[11px] font-semibold text-brand border border-brand/30 rounded-full px-3 py-1 hover:bg-brand/5 transition-colors cursor-pointer bg-transparent"
+                >
+                  + Add Project
+                </button>
+              </div>
+              {projectsLoading ? (
+                <p className="text-sm text-slate-400">Loading…</p>
+              ) : projects.length === 0 ? (
+                <p className="text-sm text-slate-400">No projects yet. Add one above.</p>
+              ) : (
+                <div className="space-y-3">
+                  {projects.map(proj => (
+                    <div
+                      key={proj.id}
+                      className={cn("rounded-xl p-4 space-y-2 border", isDark ? "border-white/[0.08] bg-white/[0.03]" : "border-slate-200 bg-white")}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className={cn("text-sm font-semibold", textPrimary)}>{proj.project_name}</p>
+                          <p className="text-[11px] text-slate-400 mt-0.5">{proj.project_type}</p>
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-1.5 text-xs">
+                        {proj.zoho_project_id && (
+                          <div className="flex items-center gap-1.5 text-slate-500">
+                            <span className="font-semibold">Zoho:</span>
+                            <a
+                              href={`https://projects.zoho.com/portal/${zohoPortalName}#zp/projects/${proj.zoho_project_id}/dashboard`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-brand hover:underline font-mono"
+                            >
+                              {proj.zoho_project_id}
+                            </a>
+                          </div>
+                        )}
+                        {proj.github_repo && (
+                          <div className="flex items-center gap-1.5 text-slate-500">
+                            <span className="font-semibold">GitHub:</span>
+                            <a
+                              href={proj.github_repo}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-brand hover:underline truncate"
+                            >
+                              {proj.github_repo}
+                            </a>
+                          </div>
+                        )}
+                        {proj.sanity_project_id && (
+                          <div className="flex items-center gap-1.5 text-slate-500">
+                            <span className="font-semibold">Sanity:</span>
+                            <span className="font-mono">{proj.sanity_project_id}</span>
+                          </div>
+                        )}
+                        {proj.dedicated_developers.length > 0 && (
+                          <div className="flex items-center gap-1.5 text-slate-500">
+                            <span className="font-semibold">Devs:</span>
+                            <span>{proj.dedicated_developers.join(", ")}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Settings */}
           {activeSection === "settings" && (
             <div className={sectionCls}>
@@ -1657,12 +1976,25 @@ function ResponsesView({ product, isDark }: { product: CustomerProductRow; isDar
               })
               .map(field => {
                 const value = data[field.name];
-                const displayValue =
+                const displayValue: React.ReactNode =
                   value === undefined || value === null || value === ""
                     ? "—"
                     : typeof value === "boolean"
                       ? (value ? "Yes" : "No")
-                      : String(value);
+                      : Array.isArray(value)
+                        ? value.join(", ")
+                        : typeof value === "object" && "url" in (value as object)
+                          ? (
+                            <a
+                              href={(value as UploadedFile).url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-brand underline break-all"
+                            >
+                              {(value as UploadedFile).filename}
+                            </a>
+                          )
+                          : String(value);
                 return (
                   <div key={field.name} className={cn("flex gap-3 py-2 border-b last:border-0", isDark ? "border-white/[0.04]" : "border-slate-50")}>
                     <span className="text-[11px] text-slate-400 w-44 shrink-0 pt-px">{field.label}</span>

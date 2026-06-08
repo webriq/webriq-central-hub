@@ -15,6 +15,13 @@ type ClassifyBody = {
   task_type?: string | null;
   priority?: string | null;
   llm_eligible?: string | null;
+  confidence_score?: number | null;
+  zohoProjectId?: string | null;
+  tasklistId?: string | null;
+  startDate?: string | null;
+  dueDate?: string | null;
+  ownerId?: string | null;
+  billingType?: string | null;
 };
 
 export async function POST(req: NextRequest) {
@@ -46,7 +53,7 @@ export async function POST(req: NextRequest) {
   }
 
   if (source === "hub_manual") {
-    const { task_type, priority, llm_eligible, description } = body;
+    const { task_type, priority, llm_eligible, confidence_score, description, zohoProjectId, tasklistId, startDate, dueDate, ownerId, billingType } = body;
     if (!task_type || !priority || !llm_eligible) {
       return NextResponse.json({ error: "task_type, priority, and llm_eligible are required for hub_manual tasks" }, { status: 400 });
     }
@@ -61,8 +68,8 @@ export async function POST(req: NextRequest) {
         task_type,
         priority,
         llm_eligible,
+        confidence_score: confidence_score ?? null,
         status: "reviewed",
-        confidence_score: null,
         model_used: null,
       })
       .select()
@@ -75,7 +82,17 @@ export async function POST(req: NextRequest) {
 
     // Push to Zoho non-blocking — failure does not fail the creation
     try {
-      const zohoTaskId = await syncTaskToZoho({ customerId, title, description: description ?? "" });
+      const zohoTaskId = await syncTaskToZoho({
+        customerId,
+        title,
+        description: description ?? "",
+        zohoProjectId: zohoProjectId ?? undefined,
+        tasklistId: tasklistId ?? undefined,
+        startDate: startDate ?? undefined,
+        dueDate: dueDate ?? undefined,
+        ownerId: ownerId ?? undefined,
+        billingType: billingType ?? undefined,
+      });
       if (zohoTaskId) {
         await adminClient
           .from("classification_records")

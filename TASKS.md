@@ -4,16 +4,19 @@
 
 | ID | Title | Priority | Type | Doc | Date |
 |----|-------|----------|------|-----|------|
-
 ## In Progress
 
 | ID | Title | Priority | Type | Doc | Date |
 |----|-------|----------|------|-----|------|
 | 048 | Onboarding: Submit-Only Cliq Notification, Form Lock After Submit, PM Responses View & Reopen | HIGH | minor | _docs/task/048-onboarding-submit-lock-pm-responses-view.md | 2026-06-02 |
+| 056 | Enhance Hub Create Task Modal — Project + Tasklist Selection | HIGH | minor | _docs/task/056-enhance-create-task-modal-zoho-project-tasklist.md | 2026-06-08 |
 ## Testing
 
 | ID | Title | Priority | Type | Doc | Date |
 |----|-------|----------|------|-----|------|
+| 057 | Enhance Hub Create Task Modal — 2-Step Form with AI Classification | HIGH | minor | _docs/task/057-enhance-create-task-modal-2step-ai-classification.md | 2026-06-08 |
+| 054 | Fix Progress Percentage Discrepancy — Product Forms vs Customers Table | HIGH | patch | _docs/task/054-fix-progress-percentage-discrepancy.md | 2026-06-04 |
+| 053 | Onboarding Responses Edit, File URL Fix & Product Archive Tab | HIGH | minor | _docs/task/053-onboarding-responses-edit-file-url-archive-tab.md | 2026-06-04 |
 | 052 | Code Review Fixes — Security, Auth & Correctness | HIGH | patch | _docs/task/052-code-review-security-correctness-fixes.md | 2026-06-03 |
 | 051 | In Review Queue — Tasks Ready for Checking Filter Tab | HIGH | feature | _docs/task/051-in-review-queue-filter-tab.md | 2026-06-03 |
 | 050 | PM Create Task from Hub — Manual Task Creation + Immediate Zoho Push | HIGH | feature | _docs/task/050-pm-create-task-from-hub.md | 2026-06-03 |
@@ -44,6 +47,7 @@
 
 ## Completed
 
+- [055] New `customer_projects` Table — Move Project Fields Off `customer_products` + Fix Auto-Zoho-Creation → `_docs/task/055-customer-projects-table.md` (completed: 2026-06-08)
 - [044] Zoho Employee Pending Approval Flow → `_docs/task/044-zoho-employee-pending-approval-flow.md` (completed: 2026-06-02)
 - [043] Auth Callback: Zoho Portal User Role Determination → `_docs/task/043-auth-callback-zoho-role-determination.md` (completed: 2026-06-02)
 - [026] Sprint 4 Part 2 — Full Zoho Sync (M7 complete) → `_docs/task/026-sprint-4-full-zoho-sync.md` (completed: 2026-05-27)

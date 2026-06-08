@@ -95,7 +95,7 @@ async function executeGitHub({
   steps,
 }: ExecutionArgs): Promise<NextResponse> {
   const { data: product } = await adminClient
-    .from("customer_products")
+    .from("customer_projects")
     .select("github_repo")
     .eq("customer_id", customerId)
     .not("github_repo", "is", null)
@@ -219,7 +219,7 @@ async function executeSanity({
   steps,
 }: ExecutionArgs): Promise<NextResponse> {
   const { data: product } = await adminClient
-    .from("customer_products")
+    .from("customer_projects")
     .select("sanity_project_id")
     .eq("customer_id", customerId)
     .not("sanity_project_id", "is", null)

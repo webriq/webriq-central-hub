@@ -57,7 +57,7 @@ ${description ? `Description: ${description}` : ""}
 Guidelines:
 - task_type: choose the most specific type (CONTENT_UPDATE, SETTINGS_CHANGE, BLOG_PUBLISH, ASSET_UPLOAD, CODE_CHANGE_MINOR, SEO_UPDATE, BUG_REPORT, FEATURE_REQUEST, STRATEGIC, OTHER)
 - priority: CRITICAL (blocking production), HIGH (urgent, same-day), NORMAL (standard SLA), LOW (nice to have)
-- llm_eligible: YES (safe for AI automation), NO (needs human judgment), HUMAN_ONLY (never automate — billing, credentials, sensitive client decisions)
+- llm_eligible: YES = task is clearly understood AND confidence ≥ 60; NO = needs human judgment or confidence < 60; HUMAN_ONLY = never automate (billing, credentials, sensitive client decisions). When in doubt, use NO.
 - confidence_score: 0–100 representing your certainty in this classification
 - reasoning: one concise sentence explaining your classification choice`,
     });

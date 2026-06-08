@@ -894,7 +894,7 @@ export default function OrchestrationContent() {
           .select("*")
           .order("created_at", { ascending: false }),
         supabase
-          .from("customer_products")
+          .from("customer_projects")
           .select("customer_id, zoho_project_id")
           .not("zoho_project_id", "is", null),
         supabase

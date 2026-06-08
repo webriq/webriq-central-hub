@@ -17,6 +17,11 @@ export default function PMTasksContent({ developers, customers, reviewerMap }: {
   const { settings } = usePMSettings();
   const [tasks, setTasks] = useState<ClassificationRow[]>([]);
   const [zohoProjectMap, setZohoProjectMap] = useState<Record<string, string>>({});
+  const fetchTasksRef = React.useRef<(() => void) | null>(null);
+
+  function refreshTasks() {
+    fetchTasksRef.current?.();
+  }
 
   useEffect(() => {
     const supabase = createClient();
@@ -33,11 +38,12 @@ export default function PMTasksContent({ developers, customers, reviewerMap }: {
         });
     }
 
+    fetchTasksRef.current = fetchTasks;
     fetchTasks();
 
     // Fetch zoho project map
     supabase
-      .from("customer_products")
+      .from("customer_projects")
       .select("customer_id, zoho_project_id")
       .not("zoho_project_id", "is", null)
       .then(({ data }) => {
@@ -72,7 +78,7 @@ export default function PMTasksContent({ developers, customers, reviewerMap }: {
     <div
       className={`flex-1 overflow-y-auto py-6.5 px-8 ${settings.theme === "dark" ? "bg-[#090c18]" : "bg-[#f5f4f1]"}`}
     >
-      <TasksTab settings={settings} tasks={tasks} zohoProjectMap={zohoProjectMap} reviewerMap={reviewerMap} developers={developers} customers={customers} />
+      <TasksTab settings={settings} tasks={tasks} zohoProjectMap={zohoProjectMap} reviewerMap={reviewerMap} developers={developers} customers={customers} onTaskCreated={refreshTasks} />
     </div>
   );
 }

@@ -59,14 +59,10 @@ export interface Database {
           customer_id: string;
           product_name: string;
           product_instance_id: string | null;
-          sanity_project_id: string | null;
-          zoho_project_id: string | null;
-          github_repo: string | null;
           status: string;
           onboarding_complete: boolean;
           onboarding_data: Json;
           completed_percentage: number;
-          dedicated_developers: string[];
           created_at: string;
           updated_at: string;
         };
@@ -75,14 +71,10 @@ export interface Database {
           customer_id: string;
           product_name: string;
           product_instance_id?: string | null;
-          sanity_project_id?: string | null;
-          zoho_project_id?: string | null;
-          github_repo?: string | null;
           status?: string;
           onboarding_complete?: boolean;
           onboarding_data?: Json;
           completed_percentage?: number;
-          dedicated_developers?: string[];
           created_at?: string;
           updated_at?: string;
         };
@@ -91,19 +83,61 @@ export interface Database {
           customer_id?: string;
           product_name?: string;
           product_instance_id?: string | null;
-          sanity_project_id?: string | null;
-          zoho_project_id?: string | null;
-          github_repo?: string | null;
           status?: string;
           onboarding_complete?: boolean;
           onboarding_data?: Json;
           completed_percentage?: number;
-          dedicated_developers?: string[];
           updated_at?: string;
         };
         Relationships: [
           {
             foreignKeyName: "customer_products_customer_id_fkey";
+            columns: ["customer_id"];
+            isOneToOne: false;
+            referencedRelation: "customers";
+            referencedColumns: ["customer_id"];
+          }
+        ];
+      };
+      customer_projects: {
+        Row: {
+          id: string;
+          customer_id: string;
+          project_name: string;
+          project_type: string;
+          zoho_project_id: string | null;
+          sanity_project_id: string | null;
+          github_repo: string | null;
+          dedicated_developers: string[];
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          customer_id: string;
+          project_name: string;
+          project_type: string;
+          zoho_project_id?: string | null;
+          sanity_project_id?: string | null;
+          github_repo?: string | null;
+          dedicated_developers?: string[];
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          customer_id?: string;
+          project_name?: string;
+          project_type?: string;
+          zoho_project_id?: string | null;
+          sanity_project_id?: string | null;
+          github_repo?: string | null;
+          dedicated_developers?: string[];
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "customer_projects_customer_id_fkey";
             columns: ["customer_id"];
             isOneToOne: false;
             referencedRelation: "customers";
@@ -759,6 +793,7 @@ export interface Database {
 // Convenience row types
 export type CustomerRow = Database["public"]["Tables"]["customers"]["Row"];
 export type CustomerProductRow = Database["public"]["Tables"]["customer_products"]["Row"];
+export type CustomerProjectRow = Database["public"]["Tables"]["customer_projects"]["Row"];
 export type ClassificationRecordRow = Database["public"]["Tables"]["classification_records"]["Row"];
 export type RequirementsAssessmentRow = Database["public"]["Tables"]["requirements_assessments"]["Row"];
 export type ImplementationPlanRow = Database["public"]["Tables"]["implementation_plans"]["Row"];

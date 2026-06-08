@@ -6,7 +6,7 @@ import { Search } from "lucide-react";
 import type { CustomerRow, CustomerProductRow } from "@/types/database";
 import type { PMSettings } from "@/hooks/use-pm-settings";
 import { ProgressBar, StatusBadge, ProductBadge, ClientAvatar, getClientColor } from "./shared";
-import { getOnboardingSchema } from "@/config/onboarding-schemas";
+import { getOnboardingSchema, computeCompletionPercentage } from "@/config/onboarding-schemas";
 
 function getMissingFields(productName: string, onboardingData: Record<string, unknown>) {
   const schema = getOnboardingSchema(productName);
@@ -103,8 +103,16 @@ function ClientTable({ data, sortArrow, onSort, router }: ClientTableProps) {
         <tbody>
           {data.map((c, i) => {
             const prods = c.customer_products ?? [];
-            const avgPct = prods.length > 0
-              ? Math.round(prods.reduce((sum, p) => sum + (p.completed_percentage ?? 0), 0) / prods.length)
+            const scoredProds = prods
+              .filter(p => p.status !== 'archived')
+              .map(p => ({ p, schema: getOnboardingSchema(p.product_name) }))
+              .filter((x): x is { p: typeof x.p; schema: NonNullable<typeof x.schema> } => x.schema !== null);
+            const avgPct = scoredProds.length > 0
+              ? Math.round(
+                  scoredProds.reduce((sum, { p, schema }) =>
+                    sum + computeCompletionPercentage(schema, (p.onboarding_data as Record<string, unknown>) ?? {}), 0
+                  ) / scoredProds.length
+                )
               : 0;
             const allMissing = prods.flatMap(p =>
               getMissingFields(p.product_name, (p.onboarding_data as unknown as Record<string, unknown>) ?? {})
