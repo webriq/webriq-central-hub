@@ -59,7 +59,7 @@ export async function PATCH(req: NextRequest) {
 
       if (plan?.zoho_task_id && plan.customer_id) {
         const { data: project } = await adminClient
-          .from("customer_projects")
+          .from("projects")
           .select("zoho_project_id")
           .eq("customer_id", plan.customer_id)
           .not("zoho_project_id", "is", null)

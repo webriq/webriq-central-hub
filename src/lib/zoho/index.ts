@@ -96,6 +96,31 @@ export async function createZohoProject(customerId: string, projectName: string)
   return String(proj?.id_string ?? proj?.id ?? "") || "";
 }
 
+export async function updateZohoProject(projectId: string, projectName: string): Promise<boolean> {
+  const portalId = process.env.ZOHO_PORTAL_ID;
+  if (!portalId) {
+    console.warn("[zoho] ZOHO_PORTAL_ID not configured — skipping project rename for", projectId);
+    return false;
+  }
+  const token = await getZohoAccessToken();
+  if (!token) return false;
+
+  const res = await fetch(`${ZOHO_PROJECTSAPI_BASE}/projects/${projectId}`, {
+    method: "PATCH",
+    headers: {
+      Authorization: `Zoho-oauthtoken ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ name: projectName }),
+  });
+
+  if (!res.ok) {
+    console.error("[zoho] project rename failed:", res.status, await res.text());
+    return false;
+  }
+  return true;
+}
+
 export type ZohoTask = {
   id: string;
   name: string;
@@ -190,7 +215,7 @@ export async function syncTaskToZoho(input: SyncTaskInput): Promise<string> {
   if (!zohoProjectId) {
     // adminClient used for reads — this function runs server-side only (no user session in API routes)
     const { data: product } = await adminClient
-      .from("customer_projects")
+      .from("projects")
       .select("zoho_project_id")
       .eq("customer_id", input.customerId)
       .not("zoho_project_id", "is", null)
@@ -389,7 +414,7 @@ export async function getMyZohoTasks(
   if (!token) return [];
 
   const { data: products } = await adminClient
-    .from("customer_projects")
+    .from("projects")
     .select("zoho_project_id")
     .not("zoho_project_id", "is", null);
 
@@ -426,7 +451,7 @@ export async function getUnassignedZohoTasks(portalId: string): Promise<ZohoTask
 
   // Collect all zoho_project_ids across all customer projects
   const { data: products } = await adminClient
-    .from("customer_projects")
+    .from("projects")
     .select("zoho_project_id")
     .not("zoho_project_id", "is", null);
 
@@ -468,7 +493,7 @@ export async function getMyZohoTimeLogs(
   if (!token) return [];
 
   const { data: products } = await adminClient
-    .from("customer_projects")
+    .from("projects")
     .select("zoho_project_id")
     .not("zoho_project_id", "is", null);
 

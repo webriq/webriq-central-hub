@@ -8,7 +8,7 @@ import { AlertTriangle, Archive } from "lucide-react";
 import type { UploadedFile } from "@/types/onboarding";
 import FileUpload from "@/components/onboarding/file-upload";
 import { usePMSettings } from "@/hooks/use-pm-settings";
-import type { CustomerRow, CustomerProductRow, CustomerProjectRow, Database } from "@/types/database";
+import type { CustomerRow, CustomerProductRow, ProjectRow, Database } from "@/types/database";
 import type { ProductName } from "@/types/hub";
 import { getIncompleteSections, getOnboardingSchema, computeCompletionPercentage } from "@/config/onboarding-schemas";
 
@@ -151,6 +151,11 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
   const [editProductSaving, setEditProductSaving] = useState(false);
   const [editProductError, setEditProductError] = useState<string | null>(null);
 
+  const [editProject, setEditProject] = useState<ProjectRow | null>(null);
+  const [editProjectForm, setEditProjectForm] = useState({ project_name: "", project_type: "", zoho_project_id: "", sanity_project_id: "", github_repo: "", dedicated_developers: "" });
+  const [editProjectSaving, setEditProjectSaving] = useState(false);
+  const [editProjectError, setEditProjectError] = useState<string | null>(null);
+
   // Add product modal
   const [addProductOpen, setAddProductOpen] = useState(false);
   const [addProductForm, setAddProductForm] = useState({ product_name: "", product_instance_id: "" });
@@ -179,7 +184,7 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
   const [reopenError, setReopenError] = useState<string | null>(null);
 
   // Projects tab
-  const [projects, setProjects] = useState<CustomerProjectRow[]>([]);
+  const [projects, setProjects] = useState<ProjectRow[]>([]);
   const [projectsLoading, setProjectsLoading] = useState(false);
   const hasFetchedProjectsRef = useRef(false);
   const [addProjectDialogOpen, setAddProjectDialogOpen] = useState(false);
@@ -220,7 +225,7 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
     setProjectsLoading(true);
     fetch(`/api/customers/${customer.customer_id}/projects`)
       .then(r => r.json())
-      .then((data: unknown) => setProjects(Array.isArray(data) ? (data as CustomerProjectRow[]) : []))
+      .then((data: unknown) => setProjects(Array.isArray(data) ? (data as ProjectRow[]) : []))
       .catch(() => {})
       .finally(() => setProjectsLoading(false));
   }, [activeSection, customer.customer_id]);
@@ -300,6 +305,59 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
       setEditProductError(err instanceof Error ? err.message : "Save failed");
     } finally {
       setEditProductSaving(false);
+    }
+  };
+
+  const handleOpenEditProject = (proj: ProjectRow) => {
+    setEditProjectForm({
+      project_name: proj.name,
+      project_type: proj.project_type,
+      zoho_project_id: proj.zoho_project_id ?? "",
+      sanity_project_id: proj.sanity_project_id ?? "",
+      github_repo: proj.github_repo ?? "",
+      dedicated_developers: proj.dedicated_developers.join(", "),
+    });
+    setEditProjectError(null);
+    setEditProject(proj);
+  };
+
+  const handleSaveProject = async () => {
+    if (!editProject) return;
+    setEditProjectSaving(true);
+    setEditProjectError(null);
+    try {
+      const res = await fetch(
+        `/api/customers/${customer.customer_id}/projects/${editProject.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            project_name: editProjectForm.project_name,
+            project_type: editProjectForm.project_type,
+            sanity_project_id: editProjectForm.sanity_project_id || null,
+            github_repo: editProjectForm.github_repo || null,
+            dedicated_developers: editProjectForm.dedicated_developers
+              .split(",")
+              .map(s => s.trim())
+              .filter(Boolean),
+          }),
+        }
+      );
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        throw new Error(json.error ?? "Save failed");
+      }
+      const updated = await res.json();
+      setProjects(prev => prev.map(p => p.id === updated.id ? updated : p));
+      if (updated.zoho_rename_failed) {
+        setEditProjectError("Saved, but Zoho rename failed. Update Zoho manually.");
+        return;
+      }
+      setEditProject(null);
+    } catch (err) {
+      setEditProjectError(err instanceof Error ? err.message : "Save failed");
+    } finally {
+      setEditProjectSaving(false);
     }
   };
 
@@ -490,7 +548,7 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
         throw new Error(json.error ?? "Failed to create project");
       }
       const payload = await res.json();
-      const { zoho_creation_failed, ...newProject } = payload as CustomerProjectRow & { zoho_creation_failed?: boolean };
+      const { zoho_creation_failed, ...newProject } = payload as ProjectRow & { zoho_creation_failed?: boolean };
       setProjects(p => [newProject, ...p]);
       setAddProjectDialogOpen(false);
       setAddProjectForm({ project_type: "", project_name: "", zoho_project_id: "",
@@ -760,6 +818,106 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
                 className="py-2 px-5 bg-brand text-white text-sm font-semibold border-none rounded-full cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-60"
               >
                 {editProductSaving ? "Saving…" : "Save Changes"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Project Modal */}
+      {editProject && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-130 overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+              <div>
+                <h2 className="text-base font-bold text-slate-900">Edit Project</h2>
+                <p className="text-xs text-slate-400 mt-0.5">{editProject.name}</p>
+              </div>
+              <button
+                onClick={() => setEditProject(null)}
+                className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors border-none bg-transparent cursor-pointer text-lg leading-none"
+              >
+                ×
+              </button>
+            </div>
+            <div className="px-6 py-5 space-y-4">
+              <div>
+                <label className={labelCls}>Project Name</label>
+                <input
+                  type="text"
+                  value={editProjectForm.project_name}
+                  onChange={e => setEditProjectForm(f => ({ ...f, project_name: e.target.value }))}
+                  className={inputCls}
+                  placeholder="e.g. My Ecommerce Site"
+                />
+              </div>
+              <div>
+                <label className={labelCls}>Project Type</label>
+                <select
+                  value={editProjectForm.project_type}
+                  onChange={e => setEditProjectForm(f => ({ ...f, project_type: e.target.value }))}
+                  className={inputCls}
+                >
+                  {PROJECT_TYPES.map(t => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className={labelCls}>Zoho Project ID</label>
+                <p className="text-sm text-slate-500 py-2.5 px-3.5 border border-slate-100 rounded-lg bg-slate-50 font-mono">
+                  {editProjectForm.zoho_project_id || <span className="text-slate-300 font-sans">Not linked</span>}
+                </p>
+              </div>
+              <div>
+                <label className={labelCls}>Sanity Project ID</label>
+                <input
+                  type="text"
+                  value={editProjectForm.sanity_project_id}
+                  onChange={e => setEditProjectForm(f => ({ ...f, sanity_project_id: e.target.value }))}
+                  className={inputCls}
+                  placeholder="e.g. abc12def"
+                />
+              </div>
+              <div>
+                <label className={labelCls}>GitHub Repo</label>
+                <input
+                  type="text"
+                  value={editProjectForm.github_repo}
+                  onChange={e => setEditProjectForm(f => ({ ...f, github_repo: e.target.value }))}
+                  className={inputCls}
+                  placeholder="owner/repo"
+                />
+              </div>
+              <div>
+                <label className={labelCls}>Dedicated Developers (comma-separated)</label>
+                <input
+                  type="text"
+                  value={editProjectForm.dedicated_developers}
+                  onChange={e => setEditProjectForm(f => ({ ...f, dedicated_developers: e.target.value }))}
+                  className={inputCls}
+                  placeholder="e.g. dev1@example.com, dev2@example.com"
+                />
+              </div>
+              {editProjectError && (
+                <p className="text-xs text-red-500 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+                  {editProjectError}
+                </p>
+              )}
+            </div>
+            <div className="flex justify-end gap-2.5 px-6 py-4 border-t border-slate-100 bg-slate-50/50">
+              <button
+                onClick={() => setEditProject(null)}
+                className="py-2 px-4 bg-transparent text-slate-600 text-sm font-medium border border-slate-200 rounded-full cursor-pointer hover:border-slate-300 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveProject}
+                disabled={editProjectSaving}
+                className="py-2 px-5 bg-brand text-white text-sm font-semibold border-none rounded-full cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-60"
+              >
+                {editProjectSaving ? "Saving…" : "Save Changes"}
               </button>
             </div>
           </div>
@@ -1820,9 +1978,15 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div>
-                          <p className={cn("text-sm font-semibold", textPrimary)}>{proj.project_name}</p>
+                          <p className={cn("text-sm font-semibold", textPrimary)}>{proj.name}</p>
                           <p className="text-[11px] text-slate-400 mt-0.5">{proj.project_type}</p>
                         </div>
+                        <button
+                          onClick={() => handleOpenEditProject(proj)}
+                          className="text-[11px] font-semibold text-slate-400 hover:text-brand border border-slate-200 rounded-full px-2.5 py-0.5 hover:border-brand/30 transition-colors cursor-pointer bg-transparent shrink-0"
+                        >
+                          Edit
+                        </button>
                       </div>
                       <div className="flex flex-col gap-1.5 text-xs">
                         {proj.zoho_project_id && (

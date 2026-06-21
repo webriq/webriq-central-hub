@@ -1,0 +1,5 @@
+allowBuilds:
+  msw: set this to true or false
+  sharp: true
+  supabase: set this to true or false
+  unrs-resolver: true

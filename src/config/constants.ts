@@ -35,5 +35,26 @@ export function computeLLMCost(modelId: string, inputTokens: number, outputToken
   return (inputTokens / 1_000_000) * pricing.input + (outputTokens / 1_000_000) * pricing.output;
 }
 
+export const V2_ROUTES = {
+  HOME: "/v2",
+  DASHBOARD: "/v2/dashboard",
+  PROJECTS: "/v2/projects",
+  CUSTOMERS: "/v2/customers",
+  DASHBOARD_CUSTOMERS: "/v2/dashboard/customers",
+  DASHBOARD_TASKS: "/v2/dashboard/tasks",
+  DASHBOARD_PIPELINE: "/v2/dashboard/pipeline",
+  DASHBOARD_CHAT: "/v2/dashboard/chat",
+  DASHBOARD_TIMELOGS: "/v2/dashboard/timelogs",
+  DASHBOARD_SETTINGS: "/v2/dashboard/settings",
+  DASHBOARD_USERS: "/v2/dashboard/users",
+  CUSTOMERS_ONBOARD: "/v2/dashboard/customers/onboard",
+  ORCHESTRATION: "/v2/orchestration",
+  KB: "/v2/kb",
+  AUTH_LOGIN: "/v2/auth/login",
+  AUTH_SIGNUP: "/v2/auth/signup",
+  AUTH_PENDING: "/v2/auth/pending",
+  CALLBACK: "/v2/callback",
+} as const;
+
 export const APP_NAME = "WebriQ Central Hub";
 export const APP_VERSION = "0.1.0";

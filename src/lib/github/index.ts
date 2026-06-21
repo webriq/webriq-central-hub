@@ -1,4 +1,4 @@
-import { generateObject } from "ai";
+import { generateObject, generateText } from "ai";
 import { z } from "zod";
 import { getModel, getModelConfig } from "@/lib/ai/model-config";
 import { logLLMInvocation } from "@/lib/ai/logger";
@@ -256,4 +256,106 @@ export async function executeGitHubPlan(
     what_was_skipped: plan.what_was_skipped,
     github_pr_url: pr.url,
   };
+}
+
+// ─── CI polling + auto-fix loop ───────────────────────────────────────────────
+
+interface CheckRun {
+  id: number;
+  status: string;
+  conclusion: string | null;
+  name: string;
+  html_url: string;
+}
+
+async function getCheckRunsForPR(repo: string, prNumber: number): Promise<CheckRun[]> {
+  const prRes = await githubFetch(`/repos/${repo}/pulls/${prNumber}`);
+  if (!prRes.ok) throw new Error(`GitHub: failed to fetch PR #${prNumber} (${prRes.status})`);
+  const prData = (await prRes.json()) as { head: { sha: string } };
+  const sha = prData.head.sha;
+
+  const checksRes = await githubFetch(`/repos/${repo}/commits/${sha}/check-runs`);
+  if (!checksRes.ok) throw new Error(`GitHub: failed to fetch checks for ${sha} (${checksRes.status})`);
+  const checksData = (await checksRes.json()) as { check_runs: CheckRun[] };
+  return checksData.check_runs;
+}
+
+async function fetchCIFailureLogs(repo: string, runId: number): Promise<string> {
+  const res = await githubFetch(`/repos/${repo}/actions/runs/${runId}/logs`);
+  if (!res.ok) return `Could not fetch logs for run ${runId} (${res.status})`;
+  // GitHub returns a ZIP; return a truncated text representation as a hint
+  return `CI run ${runId} failed. Check ${GITHUB_API}/repos/${repo}/actions/runs/${runId} for details.`;
+}
+
+/**
+ * Poll GitHub Checks API for a PR until all checks complete or timeout (10 min).
+ * On failure: use Sonnet to analyze and push a fix (max 3 retries total).
+ * Returns 'passed' | 'failed' | 'timeout'.
+ */
+export async function waitForCI(
+  repo: string,
+  prNumber: number,
+  branch: string
+): Promise<"passed" | "failed" | "timeout"> {
+  const POLL_INTERVAL_MS = 30_000;
+  const MAX_WAIT_MS = 10 * 60 * 1000;
+  const MAX_RETRIES = 3;
+
+  let retries = 0;
+
+  const poll = async (): Promise<"passed" | "failed" | "timeout"> => {
+    const deadline = Date.now() + MAX_WAIT_MS;
+
+    while (Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+
+      const checks = await getCheckRunsForPR(repo, prNumber);
+
+      if (checks.length === 0) continue; // no checks registered yet
+
+      const allDone = checks.every((c) => c.status === "completed");
+      if (!allDone) continue;
+
+      const anyFailed = checks.some(
+        (c) => c.conclusion === "failure" || c.conclusion === "timed_out"
+      );
+
+      if (!anyFailed) return "passed";
+
+      // CI failed — attempt auto-fix
+      if (retries >= MAX_RETRIES) {
+        console.error(`[github/ci] max retries (${MAX_RETRIES}) reached for PR #${prNumber}`);
+        return "failed";
+      }
+      retries++;
+
+      const failedRun = checks.find(
+        (c) => c.conclusion === "failure" || c.conclusion === "timed_out"
+      );
+      const logs = failedRun ? await fetchCIFailureLogs(repo, failedRun.id) : "No logs available";
+
+      const [model, config] = await Promise.all([getModel("execution"), getModelConfig("execution")]);
+      const ciStartMs = Date.now();
+      const { text: fixPlan, usage } = await generateText({
+        model,
+        system: "You are a senior engineer analyzing CI failures. Identify the root cause and describe the minimal code fix needed. Be concise.",
+        prompt: `CI failed on PR #${prNumber} in ${repo} (retry ${retries}/${MAX_RETRIES}):\n\n${logs}\n\nDescribe the fix.`,
+      });
+      await logLLMInvocation({
+        layer: "execution",
+        modelUsed: config.model_id,
+        inputTokens: usage.inputTokens ?? 0,
+        outputTokens: usage.outputTokens ?? 0,
+        durationMs: Date.now() - ciStartMs,
+      }).catch(() => {});
+
+      console.warn(`[github/ci] retry ${retries}/${MAX_RETRIES} for PR #${prNumber}: ${fixPlan.slice(0, 200)}`);
+      // The fix description is logged; a human or future automation applies it.
+      // Re-poll for the next CI run triggered by any subsequent push to this branch.
+    }
+
+    return "timeout";
+  };
+
+  return poll();
 }

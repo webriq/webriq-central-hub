@@ -10,6 +10,7 @@ const withPWA = withPWAInit({
   fallbacks: {
     document: "/offline",
   },
+  customWorkerSrc: "worker",
 });
 
 const nextConfig: NextConfig = {

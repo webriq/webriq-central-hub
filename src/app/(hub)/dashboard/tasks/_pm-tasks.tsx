@@ -43,7 +43,7 @@ export default function PMTasksContent({ developers, customers, reviewerMap }: {
 
     // Fetch zoho project map
     supabase
-      .from("customer_projects")
+      .from("projects")
       .select("customer_id, zoho_project_id")
       .not("zoho_project_id", "is", null)
       .then(({ data }) => {

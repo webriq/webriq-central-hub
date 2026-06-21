@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
-import { executeSanityPlan, type PlanStep } from "@/lib/sanity";
+import { executeSanityPlan, generatePreviewUrl, type PlanStep } from "@/lib/sanity";
 import { executeGitHubPlan } from "@/lib/github";
 import { buildContextChain } from "@/lib/ai/context-chain";
 import { sendCliqNotification } from "@/lib/zoho";
 import { generateReplyDraft } from "@/lib/ai/reply";
+import { checkLiveUrl } from "@/lib/pipeline/health-check";
 import type { Json } from "@/types/database";
 
 const PostSchema = z.object({
@@ -45,13 +46,27 @@ export async function POST(req: NextRequest) {
       .maybeSingle(),
     adminClient
       .from("classification_records")
-      .select("task_type")
+      .select("task_type, llm_eligible")
       .eq("id", classificationId)
       .maybeSingle(),
   ]);
 
   if (!plan) {
     return NextResponse.json({ error: "Plan not found or not approved" }, { status: 404 });
+  }
+
+  const llmEligible = classification?.llm_eligible ?? "NO";
+  if (llmEligible === "NO" || llmEligible === "HUMAN_ONLY") {
+    return NextResponse.json(
+      {
+        error: "Task is not eligible for LLM automation",
+        llm_eligible: llmEligible,
+        reason: llmEligible === "HUMAN_ONLY"
+          ? "This task requires human handling and must never enter the automation pipeline."
+          : "This task was classified as not suitable for automated execution. A developer should handle it manually.",
+      },
+      { status: 422 }
+    );
   }
 
   const taskType = classification?.task_type ?? "CONTENT_UPDATE";
@@ -95,7 +110,7 @@ async function executeGitHub({
   steps,
 }: ExecutionArgs): Promise<NextResponse> {
   const { data: product } = await adminClient
-    .from("customer_projects")
+    .from("projects")
     .select("github_repo")
     .eq("customer_id", customerId)
     .not("github_repo", "is", null)
@@ -168,9 +183,9 @@ async function executeGitHub({
       console.error("[execution/github] classification update failed", { classificationId }, classUpdate.error);
     }
 
-    sendCliqNotification(
-      `✅ Execution complete for ${customerId}: ${result.what_was_done}`
-    ).catch(() => {});
+    // sendCliqNotification(
+    //   `✅ Execution complete for ${customerId}: ${result.what_was_done}`
+    // ).catch(() => {});
 
     generateReplyDraft({
       classificationId,
@@ -219,8 +234,8 @@ async function executeSanity({
   steps,
 }: ExecutionArgs): Promise<NextResponse> {
   const { data: product } = await adminClient
-    .from("customer_projects")
-    .select("sanity_project_id")
+    .from("projects")
+    .select("sanity_project_id, dataset")
     .eq("customer_id", customerId)
     .not("sanity_project_id", "is", null)
     .maybeSingle();
@@ -249,7 +264,12 @@ async function executeSanity({
 
   try {
     const contextChain = await buildContextChain(classificationId);
-    const result = await executeSanityPlan(product.sanity_project_id, steps, contextChain);
+    const result = await executeSanityPlan(
+      product.sanity_project_id,
+      steps,
+      contextChain,
+      product.dataset ?? undefined,
+    );
 
     const { error: completedErrSanity } = await adminClient
       .from("execution_records")
@@ -267,6 +287,17 @@ async function executeSanity({
       throw new Error(`Failed to mark execution COMPLETED: ${completedErrSanity.message}`);
     }
 
+    const previewUrl = await generatePreviewUrl(
+      product.sanity_project_id,
+      product.dataset,
+    ).catch(() => null);
+    if (previewUrl) {
+      await adminClient
+        .from("execution_records")
+        .update({ preview_url: previewUrl })
+        .eq("id", execution.id);
+    }
+
     const [planUpdate, classUpdate] = await Promise.all([
       adminClient.from("implementation_plans").update({ status: "COMPLETE" }).eq("id", planId),
       adminClient
@@ -282,18 +313,44 @@ async function executeSanity({
       console.error("[execution/sanity] classification update failed", { classificationId }, classUpdate.error);
     }
 
-    sendCliqNotification(
-      `✅ Execution complete for ${customerId}: ${result.what_was_done}`
-    ).catch(() => {});
+    // Health check — fall back to app URL; project-specific URL (T069 follow-up) not yet in schema
+    const liveUrl = process.env.NEXT_PUBLIC_APP_URL ?? null;
 
-    generateReplyDraft({
-      classificationId,
-      customerId,
-      executionRecordId: execution.id,
-      whatWasDone: result.what_was_done,
-    }).catch((err) =>
-      console.error("[execution/sanity] reply draft failed:", err instanceof Error ? err.message : err)
-    );
+    if (liveUrl) {
+      const healthCheck = await checkLiveUrl(liveUrl);
+      await adminClient
+        .from("execution_records")
+        .update({
+          health_check_status: healthCheck.ok ? "PASS" : `FAIL:${healthCheck.status}`,
+          health_check_url: liveUrl,
+        })
+        .eq("id", execution.id);
+
+      if (healthCheck.ok) {
+        generateReplyDraft({
+          classificationId,
+          customerId,
+          executionRecordId: execution.id,
+          whatWasDone: result.what_was_done,
+        }).catch((err) =>
+          console.error("[execution/sanity] reply draft failed:", err instanceof Error ? err.message : err)
+        );
+      } else {
+        sendCliqNotification(
+          `⚠️ Health check FAILED for ${customerId} (HTTP ${healthCheck.status}) after execution. Manual review required. Execution: ${execution.id}`
+        ).catch(() => {});
+      }
+    } else {
+      // No live URL configured — send reply draft without health check
+      generateReplyDraft({
+        classificationId,
+        customerId,
+        executionRecordId: execution.id,
+        whatWasDone: result.what_was_done,
+      }).catch((err) =>
+        console.error("[execution/sanity] reply draft failed (no health check):", err instanceof Error ? err.message : err)
+      );
+    }
 
     const sanityWarnings = [
       ...(planUpdate.error ? ["plan status not updated"] : []),
@@ -338,9 +395,9 @@ async function applyCircuitBreaker(customerId: string, executionId: string): Pro
     .order("created_at", { ascending: false })
     .limit(2);
 
-  // Prepend current FAILED; pause if all consecutive executions (including this one) failed
+  // Prepend current FAILED; pause if last 3 consecutive executions all failed
   const last3 = ["FAILED", ...(recent?.map((e) => e.status) ?? [])];
-  if (last3.length >= 1 && last3.every((s) => s === "FAILED")) {
+  if (last3.length >= 3 && last3.every((s) => s === "FAILED")) {
     const { error: pauseErr } = await adminClient
       .from("customers")
       .update({ automation_paused: true })

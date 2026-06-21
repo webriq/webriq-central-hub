@@ -5,7 +5,8 @@ export type OrchestrationLayer =
   | "execution"
   | "digest"
   | "reply"
-  | "wiki_lint";
+  | "wiki_lint"
+  | "ops_chat";
 
 export type AIProvider = "anthropic" | "openai";
 
@@ -108,3 +109,12 @@ export type PlaybookStatus = "ACTIVE" | "STALE" | "ARCHIVED";
 
 // Access control roles (Access Control)
 export type UserRole = "admin" | "pm" | "dev" | "customer";
+
+// Sub-task enumeration — produced by enumerateSubTasks()
+export type SubTask = {
+  id: string;
+  description: string;
+  classification: "sanity" | "code" | "both";
+  lane: 1 | 2 | 3;
+  order: number;
+};

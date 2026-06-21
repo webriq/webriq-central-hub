@@ -6,7 +6,7 @@ import { getLanguageModel } from "@/lib/ai/providers";
 import { logLLMInvocation } from "@/lib/ai/logger";
 import { sendCliqNotification } from "@/lib/zoho";
 import type { WebhookSource } from "@/types/hub";
-import type { Database } from "@/types/database";
+import type { Database, Json } from "@/types/database";
 
 type ClassificationRow = Database["public"]["Tables"]["classification_records"]["Row"];
 
@@ -20,6 +20,96 @@ const ClassificationSchema = z.object({
   confidence_score: z.number().min(0).max(100),
   reasoning: z.string(),
 });
+
+const SubTaskSchema = z.object({
+  id: z.string(),
+  description: z.string(),
+  classification: z.enum(["sanity", "code", "both"]),
+  lane: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+  order: z.number().int().positive(),
+});
+
+const SubTaskEnumerationSchema = z.object({
+  sub_tasks: z.array(SubTaskSchema).min(1),
+  reasoning: z.string(),
+});
+
+export type SubTask = z.infer<typeof SubTaskSchema>;
+
+const SUB_TASK_CLASSIFICATION_RULES = `
+Sub-task classification rules:
+| Request Type                                  | Tag    | Lane |
+|-----------------------------------------------|--------|------|
+| Update page title, SEO, text, slug, body      | sanity | 1    |
+| Create or delete a page or document           | sanity | 1    |
+| Publish or unpublish content                  | sanity | 1    |
+| New schema type or field                      | code   | 2    |
+| New component, layout, or design change       | code   | 2    |
+| Feature development                           | code   | 2    |
+| Content update AND schema/component together  | both   | 3    |
+
+Lane 3 (both) tasks must be broken into at least two sub-tasks:
+one code/lane-2 sub-task first, then the sanity/lane-1 sub-task that depends on it.
+`.trim();
+
+export async function enumerateSubTasks(classificationId: string): Promise<SubTask[]> {
+  const { data: record, error } = await adminClient
+    .from("classification_records")
+    .select("title, description, task_type")
+    .eq("id", classificationId)
+    .single();
+
+  if (error || !record) {
+    throw new Error(`[enumerateSubTasks] classification record not found: ${classificationId}`);
+  }
+
+  const config = await getModelConfig("classification");
+  const model = getLanguageModel(
+    (config.provider ?? "anthropic") as "anthropic" | "openai",
+    config.model_id,
+  );
+
+  const start = Date.now();
+  const { object, usage } = await generateObject({
+    model,
+    schema: SubTaskEnumerationSchema,
+    prompt: `You are a task decomposition assistant for a web development agency.
+
+Break the following task into atomic sub-tasks, each tagged with a classification and lane.
+
+Task title: ${record.title}
+${record.description ? `Description: ${record.description}` : ""}
+${record.task_type ? `Pre-classified type: ${record.task_type}` : ""}
+
+${SUB_TASK_CLASSIFICATION_RULES}
+
+Rules:
+- A pure content request produces 1 sub-task tagged sanity/lane-1.
+- A pure code request produces 1 sub-task tagged code/lane-2.
+- A request that requires BOTH a code change AND a content update produces 2+ sub-tasks:
+  code/lane-2 sub-task(s) first (order 1, 2, ...), then sanity/lane-1 (higher order numbers).
+- Each sub-task id must be a short kebab-case slug (e.g. "update-seo-title").
+- Order drives sequencing — lower order executes first.
+- Provide concise reasoning for the overall decomposition.`,
+  });
+
+  await logLLMInvocation({
+    customerId: undefined,
+    layer: "classification",
+    modelUsed: config.model_id,
+    inputTokens: usage?.inputTokens ?? 0,
+    outputTokens: usage?.outputTokens ?? 0,
+    durationMs: Date.now() - start,
+    status: "success",
+  } as Parameters<typeof logLLMInvocation>[0]);
+
+  await adminClient
+    .from("classification_records")
+    .update({ sub_tasks: object.sub_tasks as unknown as Json })
+    .eq("id", classificationId);
+
+  return object.sub_tasks;
+}
 
 export type ClassifyInput = {
   customerId: string;

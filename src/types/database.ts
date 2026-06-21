@@ -1,6 +1,401 @@
 export type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
 
 export interface Database {
+  hr: {
+    Tables: {
+      employees: {
+        Row: {
+          id: string;
+          profile_id: string;
+          employee_number: string | null;
+          full_name: string;
+          department: string | null;
+          position: string | null;
+          employment_type: "full_time" | "part_time" | "contract";
+          manager_id: string | null;
+          date_hired: string | null;
+          date_separated: string | null;
+          status: "active" | "on_leave" | "separated";
+          emergency_contact: Json | null;
+          meta: Json | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          profile_id: string;
+          employee_number?: string | null;
+          full_name: string;
+          department?: string | null;
+          position?: string | null;
+          employment_type: "full_time" | "part_time" | "contract";
+          manager_id?: string | null;
+          date_hired?: string | null;
+          date_separated?: string | null;
+          status?: "active" | "on_leave" | "separated";
+          emergency_contact?: Json | null;
+          meta?: Json | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          profile_id?: string;
+          employee_number?: string | null;
+          full_name?: string;
+          department?: string | null;
+          position?: string | null;
+          employment_type?: "full_time" | "part_time" | "contract";
+          manager_id?: string | null;
+          date_hired?: string | null;
+          date_separated?: string | null;
+          status?: "active" | "on_leave" | "separated";
+          emergency_contact?: Json | null;
+          meta?: Json | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "employees_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: true;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "employees_manager_id_fkey";
+            columns: ["manager_id"];
+            isOneToOne: false;
+            referencedRelation: "employees";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      attendance_punches: {
+        Row: {
+          id: string;
+          employee_id: string;
+          punched_at: string;
+          direction: "in" | "out";
+          ip: string | null;
+          geo: string | null;
+          device: string | null;
+        };
+        Insert: {
+          id?: string;
+          employee_id: string;
+          punched_at: string;
+          direction: "in" | "out";
+          ip?: string | null;
+          geo?: string | null;
+          device?: string | null;
+        };
+        Update: {
+          id?: string;
+          employee_id?: string;
+          punched_at?: string;
+          direction?: "in" | "out";
+          ip?: string | null;
+          geo?: string | null;
+          device?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "attendance_punches_employee_id_fkey";
+            columns: ["employee_id"];
+            isOneToOne: false;
+            referencedRelation: "employees";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      attendance_days: {
+        Row: {
+          id: string;
+          employee_id: string;
+          work_date: string;
+          status: "present" | "late" | "half_day" | "absent" | "on_leave" | "holiday" | "rest_day";
+          first_in: string | null;
+          last_out: string | null;
+          total_hours: number | null;
+          correction_of: string | null;
+          corrected_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          employee_id: string;
+          work_date: string;
+          status: "present" | "late" | "half_day" | "absent" | "on_leave" | "holiday" | "rest_day";
+          first_in?: string | null;
+          last_out?: string | null;
+          total_hours?: number | null;
+          correction_of?: string | null;
+          corrected_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          employee_id?: string;
+          work_date?: string;
+          status?: "present" | "late" | "half_day" | "absent" | "on_leave" | "holiday" | "rest_day";
+          first_in?: string | null;
+          last_out?: string | null;
+          total_hours?: number | null;
+          correction_of?: string | null;
+          corrected_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "attendance_days_employee_id_fkey";
+            columns: ["employee_id"];
+            isOneToOne: false;
+            referencedRelation: "employees";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      leave_types: {
+        Row: {
+          id: string;
+          name: string;
+          code: string;
+          paid: boolean;
+          accrual_rule: Json | null;
+          carry_over_cap: number | null;
+          active: boolean;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          code: string;
+          paid?: boolean;
+          accrual_rule?: Json | null;
+          carry_over_cap?: number | null;
+          active?: boolean;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          code?: string;
+          paid?: boolean;
+          accrual_rule?: Json | null;
+          carry_over_cap?: number | null;
+          active?: boolean;
+        };
+        Relationships: [];
+      };
+      leave_balances: {
+        Row: {
+          id: string;
+          employee_id: string;
+          leave_type_id: string;
+          year: number;
+          accrued: number;
+          used: number;
+          balance: number;
+        };
+        Insert: {
+          id?: string;
+          employee_id: string;
+          leave_type_id: string;
+          year: number;
+          accrued?: number;
+          used?: number;
+        };
+        Update: {
+          id?: string;
+          employee_id?: string;
+          leave_type_id?: string;
+          year?: number;
+          accrued?: number;
+          used?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "leave_balances_employee_id_fkey";
+            columns: ["employee_id"];
+            isOneToOne: false;
+            referencedRelation: "employees";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "leave_balances_leave_type_id_fkey";
+            columns: ["leave_type_id"];
+            isOneToOne: false;
+            referencedRelation: "leave_types";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      leave_requests: {
+        Row: {
+          id: string;
+          employee_id: string;
+          leave_type_id: string;
+          start_date: string;
+          end_date: string;
+          half_day: boolean;
+          reason: string | null;
+          attachment_path: string | null;
+          status: "pending" | "approved" | "rejected" | "cancelled";
+          approver_id: string | null;
+          decided_at: string | null;
+          decision_note: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          employee_id: string;
+          leave_type_id: string;
+          start_date: string;
+          end_date: string;
+          half_day?: boolean;
+          reason?: string | null;
+          attachment_path?: string | null;
+          status?: "pending" | "approved" | "rejected" | "cancelled";
+          approver_id?: string | null;
+          decided_at?: string | null;
+          decision_note?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          employee_id?: string;
+          leave_type_id?: string;
+          start_date?: string;
+          end_date?: string;
+          half_day?: boolean;
+          reason?: string | null;
+          attachment_path?: string | null;
+          status?: "pending" | "approved" | "rejected" | "cancelled";
+          approver_id?: string | null;
+          decided_at?: string | null;
+          decision_note?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "leave_requests_employee_id_fkey";
+            columns: ["employee_id"];
+            isOneToOne: false;
+            referencedRelation: "employees";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "leave_requests_leave_type_id_fkey";
+            columns: ["leave_type_id"];
+            isOneToOne: false;
+            referencedRelation: "leave_types";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      timesheets: {
+        Row: {
+          id: string;
+          employee_id: string;
+          week_start: string;
+          status: "draft" | "submitted" | "approved" | "locked";
+          submitted_at: string | null;
+          approved_by: string | null;
+          approved_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          employee_id: string;
+          week_start: string;
+          status?: "draft" | "submitted" | "approved" | "locked";
+          submitted_at?: string | null;
+          approved_by?: string | null;
+          approved_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          employee_id?: string;
+          week_start?: string;
+          status?: "draft" | "submitted" | "approved" | "locked";
+          submitted_at?: string | null;
+          approved_by?: string | null;
+          approved_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "timesheets_employee_id_fkey";
+            columns: ["employee_id"];
+            isOneToOne: false;
+            referencedRelation: "employees";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      announcements: {
+        Row: {
+          id: string;
+          title: string;
+          body: string;
+          pinned: boolean;
+          author_id: string;
+          published_at: string;
+        };
+        Insert: {
+          id?: string;
+          title: string;
+          body: string;
+          pinned?: boolean;
+          author_id: string;
+          published_at?: string;
+        };
+        Update: {
+          id?: string;
+          title?: string;
+          body?: string;
+          pinned?: boolean;
+          author_id?: string;
+          published_at?: string;
+        };
+        Relationships: [];
+      };
+      hr_requests: {
+        Row: {
+          id: string;
+          employee_id: string;
+          request_type: string;
+          details: Json | null;
+          status: "pending" | "approved" | "rejected" | "cancelled";
+          approver_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          employee_id: string;
+          request_type: string;
+          details?: Json | null;
+          status?: "pending" | "approved" | "rejected" | "cancelled";
+          approver_id?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          employee_id?: string;
+          request_type?: string;
+          details?: Json | null;
+          status?: "pending" | "approved" | "rejected" | "cancelled";
+          approver_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "hr_requests_employee_id_fkey";
+            columns: ["employee_id"];
+            isOneToOne: false;
+            referencedRelation: "employees";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+    };
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
+    Enums: Record<string, never>;
+    CompositeTypes: Record<string, never>;
+  };
   public: {
     Tables: {
       customers: {
@@ -99,51 +494,644 @@ export interface Database {
           }
         ];
       };
-      customer_projects: {
+      profiles: {
         Row: {
           id: string;
-          customer_id: string;
-          project_name: string;
-          project_type: string;
-          zoho_project_id: string | null;
-          sanity_project_id: string | null;
-          github_repo: string | null;
-          dedicated_developers: string[];
+          role: "admin" | "hr" | "pm" | "developer" | "client";
+          full_name: string | null;
+          avatar_url: string | null;
+          customer_id: string | null;
           created_at: string;
           updated_at: string;
         };
         Insert: {
-          id?: string;
-          customer_id: string;
-          project_name: string;
-          project_type: string;
-          zoho_project_id?: string | null;
-          sanity_project_id?: string | null;
-          github_repo?: string | null;
-          dedicated_developers?: string[];
+          id: string;
+          role: "admin" | "hr" | "pm" | "developer" | "client";
+          full_name?: string | null;
+          avatar_url?: string | null;
+          customer_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
         Update: {
           id?: string;
-          customer_id?: string;
-          project_name?: string;
-          project_type?: string;
-          zoho_project_id?: string | null;
-          sanity_project_id?: string | null;
-          github_repo?: string | null;
-          dedicated_developers?: string[];
+          role?: "admin" | "hr" | "pm" | "developer" | "client";
+          full_name?: string | null;
+          avatar_url?: string | null;
+          customer_id?: string | null;
           updated_at?: string;
         };
         Relationships: [
           {
-            foreignKeyName: "customer_projects_customer_id_fkey";
+            foreignKeyName: "profiles_customer_id_fkey";
             columns: ["customer_id"];
             isOneToOne: false;
             referencedRelation: "customers";
             referencedColumns: ["customer_id"];
           }
         ];
+      };
+      projects: {
+        Row: {
+          id: string;
+          customer_id: string;
+          name: string;
+          project_type: string;
+          status: "active" | "on_hold" | "completed" | "archived";
+          customer_product_id: string | null;
+          description: string | null;
+          created_by: string | null;
+          zoho_project_id: string | null;
+          sanity_project_id: string | null;
+          github_repo: string | null;
+          dedicated_developers: string[];
+          dataset: string | null;
+          vercel_project_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          customer_id: string;
+          name: string;
+          project_type: string;
+          status?: "active" | "on_hold" | "completed" | "archived";
+          customer_product_id?: string | null;
+          description?: string | null;
+          created_by?: string | null;
+          zoho_project_id?: string | null;
+          sanity_project_id?: string | null;
+          github_repo?: string | null;
+          dedicated_developers?: string[];
+          dataset?: string | null;
+          vercel_project_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          customer_id?: string;
+          name?: string;
+          project_type?: string;
+          status?: "active" | "on_hold" | "completed" | "archived";
+          customer_product_id?: string | null;
+          description?: string | null;
+          created_by?: string | null;
+          zoho_project_id?: string | null;
+          sanity_project_id?: string | null;
+          github_repo?: string | null;
+          dedicated_developers?: string[];
+          dataset?: string | null;
+          vercel_project_id?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "projects_customer_id_fkey";
+            columns: ["customer_id"];
+            isOneToOne: false;
+            referencedRelation: "customers";
+            referencedColumns: ["customer_id"];
+          },
+          {
+            foreignKeyName: "projects_customer_product_id_fkey";
+            columns: ["customer_product_id"];
+            isOneToOne: false;
+            referencedRelation: "customer_products";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      tasks: {
+        Row: {
+          id: string;
+          project_id: string;
+          ticket_id: string | null;
+          parent_task_id: string | null;
+          milestone_id: string | null;
+          title: string;
+          description: string | null;
+          task_type: string | null;
+          priority: "low" | "normal" | "high" | "critical";
+          status: "open" | "in_progress" | "ready_for_qa" | "testing_completed" | "for_client_approval" | "ready_to_merge" | "post_live_qa" | "closed";
+          assignees: string[] | null;
+          due_date: string | null;
+          estimate_hours: number | null;
+          labels: string[] | null;
+          position: number | null;
+          classification_id: string | null;
+          github_pr_url: string | null;
+          preview_url: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          project_id: string;
+          ticket_id?: string | null;
+          parent_task_id?: string | null;
+          milestone_id?: string | null;
+          title: string;
+          description?: string | null;
+          task_type?: string | null;
+          priority?: "low" | "normal" | "high" | "critical";
+          status?: "open" | "in_progress" | "ready_for_qa" | "testing_completed" | "for_client_approval" | "ready_to_merge" | "post_live_qa" | "closed";
+          assignees?: string[] | null;
+          due_date?: string | null;
+          estimate_hours?: number | null;
+          labels?: string[] | null;
+          position?: number | null;
+          classification_id?: string | null;
+          github_pr_url?: string | null;
+          preview_url?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          project_id?: string;
+          ticket_id?: string | null;
+          parent_task_id?: string | null;
+          milestone_id?: string | null;
+          title?: string;
+          description?: string | null;
+          task_type?: string | null;
+          priority?: "low" | "normal" | "high" | "critical";
+          status?: "open" | "in_progress" | "ready_for_qa" | "testing_completed" | "for_client_approval" | "ready_to_merge" | "post_live_qa" | "closed";
+          assignees?: string[] | null;
+          due_date?: string | null;
+          estimate_hours?: number | null;
+          labels?: string[] | null;
+          position?: number | null;
+          classification_id?: string | null;
+          github_pr_url?: string | null;
+          preview_url?: string | null;
+          created_by?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "tasks_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "tasks_ticket_id_fkey";
+            columns: ["ticket_id"];
+            isOneToOne: false;
+            referencedRelation: "tickets";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "tasks_milestone_id_fkey";
+            columns: ["milestone_id"];
+            isOneToOne: false;
+            referencedRelation: "milestones";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      milestones: {
+        Row: {
+          id: string;
+          project_id: string;
+          name: string;
+          description: string | null;
+          due_date: string | null;
+          status: "planned" | "active" | "completed";
+          position: number | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          project_id: string;
+          name: string;
+          description?: string | null;
+          due_date?: string | null;
+          status?: "planned" | "active" | "completed";
+          position?: number | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          project_id?: string;
+          name?: string;
+          description?: string | null;
+          due_date?: string | null;
+          status?: "planned" | "active" | "completed";
+          position?: number | null;
+          created_by?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "milestones_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      task_comments: {
+        Row: {
+          id: string;
+          task_id: string;
+          author_id: string;
+          body: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          task_id: string;
+          author_id: string;
+          body: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          task_id?: string;
+          author_id?: string;
+          body?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "task_comments_task_id_fkey";
+            columns: ["task_id"];
+            isOneToOne: false;
+            referencedRelation: "tasks";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      attachments: {
+        Row: {
+          id: string;
+          entity_type: string;
+          entity_id: string;
+          storage_path: string;
+          filename: string;
+          size: number | null;
+          uploaded_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          entity_type: string;
+          entity_id: string;
+          storage_path: string;
+          filename: string;
+          size?: number | null;
+          uploaded_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          entity_type?: string;
+          entity_id?: string;
+          storage_path?: string;
+          filename?: string;
+          size?: number | null;
+          uploaded_by?: string | null;
+        };
+        Relationships: [];
+      };
+      time_logs: {
+        Row: {
+          id: string;
+          task_id: string;
+          project_id: string;
+          employee_id: string | null;
+          date_logged: string;
+          hours: number;
+          billable: boolean;
+          note: string | null;
+          source: "timer" | "manual";
+          timesheet_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          task_id: string;
+          project_id: string;
+          employee_id?: string | null;
+          date_logged: string;
+          hours: number;
+          billable?: boolean;
+          note?: string | null;
+          source?: "timer" | "manual";
+          timesheet_id?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          task_id?: string;
+          project_id?: string;
+          employee_id?: string | null;
+          date_logged?: string;
+          hours?: number;
+          billable?: boolean;
+          note?: string | null;
+          source?: "timer" | "manual";
+          timesheet_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "time_logs_task_id_fkey";
+            columns: ["task_id"];
+            isOneToOne: false;
+            referencedRelation: "tasks";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "time_logs_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      tickets: {
+        Row: {
+          id: string;
+          ticket_number: number;
+          customer_id: string;
+          customer_product_id: string | null;
+          subject: string;
+          channel: "portal" | "email" | "manual";
+          priority: "low" | "normal" | "high" | "critical";
+          status: "new" | "open" | "waiting_on_client" | "waiting_on_us" | "resolved" | "closed";
+          requester_email: string | null;
+          requester_profile_id: string | null;
+          sla_due_at: string | null;
+          first_response_at: string | null;
+          resolved_at: string | null;
+          classification_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          customer_id: string;
+          customer_product_id?: string | null;
+          subject: string;
+          channel: "portal" | "email" | "manual";
+          priority?: "low" | "normal" | "high" | "critical";
+          status?: "new" | "open" | "waiting_on_client" | "waiting_on_us" | "resolved" | "closed";
+          requester_email?: string | null;
+          requester_profile_id?: string | null;
+          sla_due_at?: string | null;
+          first_response_at?: string | null;
+          resolved_at?: string | null;
+          classification_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          customer_id?: string;
+          customer_product_id?: string | null;
+          subject?: string;
+          channel?: "portal" | "email" | "manual";
+          priority?: "low" | "normal" | "high" | "critical";
+          status?: "new" | "open" | "waiting_on_client" | "waiting_on_us" | "resolved" | "closed";
+          requester_email?: string | null;
+          requester_profile_id?: string | null;
+          sla_due_at?: string | null;
+          first_response_at?: string | null;
+          resolved_at?: string | null;
+          classification_id?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "tickets_customer_id_fkey";
+            columns: ["customer_id"];
+            isOneToOne: false;
+            referencedRelation: "customers";
+            referencedColumns: ["customer_id"];
+          }
+        ];
+      };
+      ticket_messages: {
+        Row: {
+          id: string;
+          ticket_id: string;
+          author_type: "client" | "staff" | "system" | "llm_draft";
+          author_id: string | null;
+          body: string;
+          email_message_id: string | null;
+          visibility: "public" | "internal";
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          ticket_id: string;
+          author_type: "client" | "staff" | "system" | "llm_draft";
+          author_id?: string | null;
+          body: string;
+          email_message_id?: string | null;
+          visibility?: "public" | "internal";
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          ticket_id?: string;
+          author_type?: "client" | "staff" | "system" | "llm_draft";
+          author_id?: string | null;
+          body?: string;
+          email_message_id?: string | null;
+          visibility?: "public" | "internal";
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ticket_messages_ticket_id_fkey";
+            columns: ["ticket_id"];
+            isOneToOne: false;
+            referencedRelation: "tickets";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      event_bus: {
+        Row: {
+          id: number;
+          event_type: string;
+          entity_type: string;
+          entity_id: string;
+          payload: Json | null;
+          status: "pending" | "processing" | "done" | "failed";
+          attempts: number;
+          available_at: string;
+          created_at: string;
+        };
+        Insert: {
+          event_type: string;
+          entity_type: string;
+          entity_id: string;
+          payload?: Json | null;
+          status?: "pending" | "processing" | "done" | "failed";
+          attempts?: number;
+          available_at?: string;
+          created_at?: string;
+        };
+        Update: {
+          event_type?: string;
+          entity_type?: string;
+          entity_id?: string;
+          payload?: Json | null;
+          status?: "pending" | "processing" | "done" | "failed";
+          attempts?: number;
+          available_at?: string;
+        };
+        Relationships: [];
+      };
+      notifications: {
+        Row: {
+          id: string;
+          recipient_id: string;
+          event_type: string;
+          title: string;
+          body: string;
+          link: string | null;
+          read_at: string | null;
+          channels_sent: string[] | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          recipient_id: string;
+          event_type: string;
+          title: string;
+          body: string;
+          link?: string | null;
+          read_at?: string | null;
+          channels_sent?: string[] | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          recipient_id?: string;
+          event_type?: string;
+          title?: string;
+          body?: string;
+          link?: string | null;
+          read_at?: string | null;
+          channels_sent?: string[] | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "notifications_recipient_id_fkey";
+            columns: ["recipient_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      notification_preferences: {
+        Row: {
+          profile_id: string;
+          event_type: string;
+          in_app: boolean;
+          push: boolean;
+          email: boolean;
+        };
+        Insert: {
+          profile_id: string;
+          event_type: string;
+          in_app?: boolean;
+          push?: boolean;
+          email?: boolean;
+        };
+        Update: {
+          profile_id?: string;
+          event_type?: string;
+          in_app?: boolean;
+          push?: boolean;
+          email?: boolean;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "notification_preferences_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      push_subscriptions: {
+        Row: {
+          id: string;
+          profile_id: string;
+          endpoint: string;
+          keys: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          profile_id: string;
+          endpoint: string;
+          keys: Json;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          profile_id?: string;
+          endpoint?: string;
+          keys?: Json;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "push_subscriptions_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      audit_logs: {
+        Row: {
+          id: string;
+          actor_id: string | null;
+          action: string;
+          entity_type: string;
+          entity_id: string;
+          before: Json | null;
+          after: Json | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          actor_id?: string | null;
+          action: string;
+          entity_type: string;
+          entity_id: string;
+          before?: Json | null;
+          after?: Json | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          actor_id?: string | null;
+          action?: string;
+          entity_type?: string;
+          entity_id?: string;
+          before?: Json | null;
+          after?: Json | null;
+        };
+        Relationships: [];
       };
       customer_assets: {
         Row: {
@@ -199,6 +1187,7 @@ export interface Database {
           input_tokens: number | null;
           output_tokens: number | null;
           raw_response: Json | null;
+          sub_tasks: Json | null;
           status: string;
           reviewed_by: string | null;
           reviewed_at: string | null;
@@ -220,6 +1209,7 @@ export interface Database {
           input_tokens?: number | null;
           output_tokens?: number | null;
           raw_response?: Json | null;
+          sub_tasks?: Json | null;
           status?: string;
           reviewed_by?: string | null;
           reviewed_at?: string | null;
@@ -241,6 +1231,7 @@ export interface Database {
           input_tokens?: number | null;
           output_tokens?: number | null;
           raw_response?: Json | null;
+          sub_tasks?: Json | null;
           status?: string;
           reviewed_by?: string | null;
           reviewed_at?: string | null;
@@ -414,6 +1405,8 @@ export interface Database {
           what_was_skipped: string | null;
           github_pr_url: string | null;
           preview_url: string | null;
+          health_check_status: string | null;
+          health_check_url: string | null;
           error_message: string | null;
           failure_count: number;
           started_at: string | null;
@@ -433,6 +1426,8 @@ export interface Database {
           what_was_skipped?: string | null;
           github_pr_url?: string | null;
           preview_url?: string | null;
+          health_check_status?: string | null;
+          health_check_url?: string | null;
           error_message?: string | null;
           failure_count?: number;
           started_at?: string | null;
@@ -452,6 +1447,8 @@ export interface Database {
           what_was_skipped?: string | null;
           github_pr_url?: string | null;
           preview_url?: string | null;
+          health_check_status?: string | null;
+          health_check_url?: string | null;
           error_message?: string | null;
           failure_count?: number;
           started_at?: string | null;
@@ -772,6 +1769,131 @@ export interface Database {
         };
         Relationships: [];
       };
+      kb_entries: {
+        Row: {
+          id: string;
+          request_pattern: string | null;
+          embedding: unknown;
+          classification: string | null;
+          lane: number | null;
+          tools_used: string[] | null;
+          execution_steps: Json | null;
+          outcome: string | null;
+          project_id: string | null;
+          use_count: number | null;
+          flagged: boolean | null;
+          created_at: string | null;
+          last_used_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          request_pattern?: string | null;
+          embedding?: unknown;
+          classification?: string | null;
+          lane?: number | null;
+          tools_used?: string[] | null;
+          execution_steps?: Json | null;
+          outcome?: string | null;
+          project_id?: string | null;
+          use_count?: number | null;
+          flagged?: boolean | null;
+          created_at?: string | null;
+          last_used_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          request_pattern?: string | null;
+          embedding?: unknown;
+          classification?: string | null;
+          lane?: number | null;
+          tools_used?: string[] | null;
+          execution_steps?: Json | null;
+          outcome?: string | null;
+          project_id?: string | null;
+          use_count?: number | null;
+          flagged?: boolean | null;
+          last_used_at?: string | null;
+        };
+        Relationships: [];
+      };
+      task_logs: {
+        Row: {
+          id: string;
+          task_id: string | null;
+          project_id: string | null;
+          description: string | null;
+          lane: number | null;
+          tools_called: string[] | null;
+          result: string | null;
+          kb_hit: boolean | null;
+          triggered_by: string | null;
+          triggered_by_id: string | null;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          task_id?: string | null;
+          project_id?: string | null;
+          description?: string | null;
+          lane?: number | null;
+          tools_called?: string[] | null;
+          result?: string | null;
+          kb_hit?: boolean | null;
+          triggered_by?: string | null;
+          triggered_by_id?: string | null;
+          created_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          task_id?: string | null;
+          project_id?: string | null;
+          description?: string | null;
+          lane?: number | null;
+          tools_called?: string[] | null;
+          result?: string | null;
+          kb_hit?: boolean | null;
+          triggered_by?: string | null;
+          triggered_by_id?: string | null;
+        };
+        Relationships: [];
+      };
+      kb_corrections: {
+        Row: {
+          id: string;
+          kb_entry_id: string | null;
+          original_lane: number | null;
+          corrected_lane: number | null;
+          corrected_by: string | null;
+          reason: string | null;
+          corrected_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          kb_entry_id?: string | null;
+          original_lane?: number | null;
+          corrected_lane?: number | null;
+          corrected_by?: string | null;
+          reason?: string | null;
+          corrected_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          kb_entry_id?: string | null;
+          original_lane?: number | null;
+          corrected_lane?: number | null;
+          corrected_by?: string | null;
+          reason?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "kb_corrections_kb_entry_id_fkey";
+            columns: ["kb_entry_id"];
+            isOneToOne: false;
+            referencedRelation: "kb_entries";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -784,16 +1906,47 @@ export interface Database {
           count: number;
         }[];
       };
+      match_kb_entries: {
+        Args: {
+          query_embedding: unknown;
+          match_threshold: number;
+          match_count: number;
+        };
+        Returns: {
+          id: string;
+          request_pattern: string;
+          classification: string;
+          lane: number;
+          execution_steps: Json;
+          similarity: number;
+        }[];
+      };
+      match_kb_by_text: {
+        Args: {
+          query_text: string;
+          match_threshold?: number;
+          match_count?: number;
+        };
+        Returns: {
+          id: string;
+          request_pattern: string;
+          classification: string;
+          lane: number;
+          execution_steps: Json;
+          similarity: number;
+        }[];
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };
 }
 
-// Convenience row types
+// Convenience row types — public schema
 export type CustomerRow = Database["public"]["Tables"]["customers"]["Row"];
 export type CustomerProductRow = Database["public"]["Tables"]["customer_products"]["Row"];
-export type CustomerProjectRow = Database["public"]["Tables"]["customer_projects"]["Row"];
+export type ProjectRow = Database["public"]["Tables"]["projects"]["Row"];
+export type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 export type ClassificationRecordRow = Database["public"]["Tables"]["classification_records"]["Row"];
 export type RequirementsAssessmentRow = Database["public"]["Tables"]["requirements_assessments"]["Row"];
 export type ImplementationPlanRow = Database["public"]["Tables"]["implementation_plans"]["Row"];
@@ -805,3 +1958,19 @@ export type DigestLogRow = Database["public"]["Tables"]["digest_logs"]["Row"];
 export type LLMConfigRow = Database["public"]["Tables"]["llm_config"]["Row"];
 export type UserRoleRow = Database["public"]["Tables"]["user_roles"]["Row"];
 export type CustomerAssetRow = Database["public"]["Tables"]["customer_assets"]["Row"];
+export type TaskRow = Database["public"]["Tables"]["tasks"]["Row"];
+export type TicketRow = Database["public"]["Tables"]["tickets"]["Row"];
+export type EventBusRow = Database["public"]["Tables"]["event_bus"]["Row"];
+export type NotificationRow = Database["public"]["Tables"]["notifications"]["Row"];
+export type AuditLogRow = Database["public"]["Tables"]["audit_logs"]["Row"];
+export type KbEntryRow = Database["public"]["Tables"]["kb_entries"]["Row"];
+export type TaskLogRow = Database["public"]["Tables"]["task_logs"]["Row"];
+export type KbCorrectionRow = Database["public"]["Tables"]["kb_corrections"]["Row"];
+
+// Convenience row types — hr schema
+// Note: hr.* queries require .schema("hr").from("employees") on the Supabase client
+export type HrEmployeeRow = Database["hr"]["Tables"]["employees"]["Row"];
+export type HrLeaveRequestRow = Database["hr"]["Tables"]["leave_requests"]["Row"];
+export type HrLeaveBalanceRow = Database["hr"]["Tables"]["leave_balances"]["Row"];
+export type HrAttendanceDayRow = Database["hr"]["Tables"]["attendance_days"]["Row"];
+export type HrTimesheetRow = Database["hr"]["Tables"]["timesheets"]["Row"];

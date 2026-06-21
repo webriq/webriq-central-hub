@@ -566,6 +566,20 @@ function ExecutionSection({
               {loading ? "Reverting…" : "Revert"}
             </button>
           )}
+          {execution.status === "FAILED" && plan.status === "APPROVED" && (
+            <button
+              onClick={handleExecute}
+              disabled={loading || isPaused}
+              className={cn(
+                "px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors",
+                isPaused
+                  ? "bg-slate-100 text-slate-400 cursor-not-allowed"
+                  : "bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+              )}
+            >
+              {loading ? "Executing…" : isPaused ? "Automation Paused" : "Retry Execution"}
+            </button>
+          )}
         </div>
       )}
 
@@ -698,7 +712,7 @@ function PlanRow({
   customerName,
 }: {
   record: ClassificationRecordRow;
-  existingAssessment: RequirementsAssessmentRow;
+  existingAssessment: RequirementsAssessmentRow | null;
   existingPlan: ImplementationPlanRow | null;
   onPlanRejected: (classificationId: string) => void;
   zohoProjectId: string | undefined;
@@ -726,7 +740,7 @@ function PlanRow({
         body: JSON.stringify({
           classificationId: record.id,
           customerId: record.customer_id,
-          assessmentId: existingAssessment.id,
+          assessmentId: existingAssessment?.id ?? "",
         }),
       });
       if (!res.ok) {
@@ -740,7 +754,7 @@ function PlanRow({
     } catch (err) {
       setState(prev => ({ ...prev, loading: false, error: err instanceof Error ? err.message : "Network error" }));
     }
-  }, [record.id, record.customer_id, existingAssessment.id]);
+  }, [record.id, record.customer_id, existingAssessment?.id]);
 
   const handleAction = useCallback(async (action: "approve" | "reject", reason?: string) => {
     if (!state.result) return;
@@ -800,7 +814,7 @@ function PlanRow({
             <PriorityChip priority={record.priority} />
             <span className="text-[11px] text-gray-500">{record.task_type ?? "UNCLASSIFIED"}</span>
             <span className="text-[11px] text-gray-500">{customerName}</span>
-            <StatusBadge status={existingAssessment.overall_status} />
+            {existingAssessment && <StatusBadge status={existingAssessment.overall_status} />}
           </div>
         </div>
 
@@ -813,7 +827,7 @@ function PlanRow({
               {expanded ? "Hide" : "View"}
             </button>
           )}
-          {!state.result && (
+          {!state.result && !!existingAssessment && (
             <button
               onClick={generatePlan}
               disabled={state.loading}
@@ -864,6 +878,7 @@ export default function OrchestrationContent() {
   const [tasks, setTasks] = useState<ClassificationRecordRow[]>([]);
   const [assessments, setAssessments] = useState<Record<string, RequirementsAssessmentRow>>({});
   const [plans, setPlans] = useState<Record<string, ImplementationPlanRow>>({});
+  const [plansByClassification, setPlansByClassification] = useState<Record<string, ImplementationPlanRow>>({});
   const [executions, setExecutions] = useState<Record<string, ExecutionRecordRow>>({});
   const [customerPaused, setCustomerPaused] = useState<Record<string, boolean>>({});
   const [replyDrafts, setReplyDrafts] = useState<Record<string, ReplyDraftRow>>({});
@@ -894,7 +909,7 @@ export default function OrchestrationContent() {
           .select("*")
           .order("created_at", { ascending: false }),
         supabase
-          .from("customer_projects")
+          .from("projects")
           .select("customer_id, zoho_project_id")
           .not("zoho_project_id", "is", null),
         supabase
@@ -937,6 +952,20 @@ export default function OrchestrationContent() {
         }
       }
       setPlans(latestByAssessment);
+
+      // Build classification_id → latest non-rejected plan across all assessment versions.
+      // Needed because a newer (non-CLEAR) assessment run after plan approval would otherwise
+      // hide the plan from the Plan Generation section.
+      const allAssessmentsList = (assessmentsResult.data ?? []) as RequirementsAssessmentRow[];
+      const plansByClassId: Record<string, ImplementationPlanRow> = {};
+      for (const p of (plansResult.data ?? []) as ImplementationPlanRow[]) {
+        if (p.status === "REJECTED") continue;
+        const parentAssessment = allAssessmentsList.find(a => a.id === p.assessment_id);
+        if (parentAssessment && !plansByClassId[parentAssessment.classification_id]) {
+          plansByClassId[parentAssessment.classification_id] = p;
+        }
+      }
+      setPlansByClassification(plansByClassId);
 
       const latestByPlan: Record<string, ExecutionRecordRow> = {};
       for (const e of (executionsResult.data ?? []) as ExecutionRecordRow[]) {
@@ -983,16 +1012,18 @@ export default function OrchestrationContent() {
     return () => { cancelled = true; };
   }, []);
 
-  // Tasks needing assessment: no CLEAR assessment yet
+  // Tasks needing assessment: no CLEAR assessment and no existing non-rejected plan
   const assessmentTasks = tasks.filter(t => {
     const a = assessments[t.id];
-    return !a || a.overall_status !== "CLEAR";
+    const p = plansByClassification[t.id];
+    return !(a?.overall_status === "CLEAR" || (p && p.status !== "REJECTED"));
   });
 
-  // Tasks ready for plan generation: have a CLEAR assessment
+  // Tasks ready for plan generation: CLEAR assessment OR already have an approved/active plan
   const planTasks = tasks.filter(t => {
     const a = assessments[t.id];
-    return a?.overall_status === "CLEAR";
+    const p = plansByClassification[t.id];
+    return a?.overall_status === "CLEAR" || (!!p && p.status !== "REJECTED");
   });
 
   // When a plan is rejected, move the task back to assessment section
@@ -1103,8 +1134,8 @@ export default function OrchestrationContent() {
           ) : (
             <div className="flex flex-col gap-2.5">
               {planTasks.map(task => {
-                const assessment = assessments[task.id]!;
-                const plan = plans[assessment.id] ?? null;
+                const assessment = assessments[task.id] ?? null;
+                const plan = plansByClassification[task.id] ?? null;
                 return (
                   <PlanRow
                     key={task.id}

@@ -61,7 +61,7 @@ export async function POST(
   const { zoho_task_id, customer_id, title } = recordResult.data;
 
   const { data: project } = await adminClient
-    .from("customer_projects")
+    .from("projects")
     .select("zoho_project_id")
     .eq("customer_id", customer_id)
     .not("zoho_project_id", "is", null)

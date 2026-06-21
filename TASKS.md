@@ -4,6 +4,8 @@
 
 | ID | Title | Priority | Type | Doc | Date |
 |----|-------|----------|------|-----|------|
+| 064 | Push Notifications (web-push + VAPID + subscription API) | HIGH | feature | _docs/task/064-push-notifications.md | 2026-06-19 |
+
 ## In Progress
 
 | ID | Title | Priority | Type | Doc | Date |
@@ -14,6 +16,25 @@
 
 | ID | Title | Priority | Type | Doc | Date |
 |----|-------|----------|------|-----|------|
+| 076 | Dashboard RBAC + Remove Duplicate "Dashboards" Nav Link | HIGH | enhancement | _docs/task/076-dashboard-rbac-remove-duplicate-nav.md | 2026-06-21 |
+| 075 | Ops Chat: Full Task CRUD Tools (Create, Update, Assign, Delete) | HIGH | feature | _docs/task/075-ops-chat-task-crud-tools.md | 2026-06-21 |
+| 074 | Ops Chat: update_task_status + update_classification_status Tools | HIGH | feature | _docs/task/074-ops-chat-update-task-status-tool.md | 2026-06-21 |
+| 073 | Native PM Core — Projects/Milestones/Tasks/Subtasks + Kanban/List/Calendar | HIGH | feature | _docs/task/073-native-pm-core-projects-tasks.md | 2026-06-21 |
+| 072 | Ops Chat Agent Activation (Claude + Vercel AI SDK + Sanity MCP) | HIGH | feature | _docs/task/072-ops-chat-agent-activation.md | 2026-06-21 |
+| 071 | v2 Dashboard: Role-Aware PM/Dev/Admin Dashboards (Zoho Decommission + Design Refresh) | HIGH | feature | _docs/task/071-v2-dashboard-redesign.md | 2026-06-19 |
+| 070 | Offline PWA Queue (IndexedDB service worker intercept) | NORMAL | feature | _docs/task/070-offline-pwa-queue.md | 2026-06-19 |
+| 069 | Health Check + Rollback + Lane 3 Sequencing | HIGH | feature | _docs/task/069-health-check-lane3-sequencing.md | 2026-06-19 |
+| 068 | KB Library (lookupKB, saveToKB, saveKBCorrection) | HIGH | feature | _docs/task/068-kb-library.md | 2026-06-19 |
+| 067 | Orchestrator Route + KB Embedding Lookup | HIGH | feature | _docs/task/067-orchestrator-route-kb-lookup.md | 2026-06-19 |
+| 066 | Sub-task Enumerator (sanity \| code \| both lane tagging) | HIGH | feature | _docs/task/066-subtask-enumerator.md | 2026-06-19 |
+| 065 | Sanity MCP (Streamable HTTP) + Global Token + Preview URL | HIGH | feature | _docs/task/065-sanity-mcp-global-token-preview-url.md | 2026-06-19 |
+| 064 | Push Notifications (web-push + VAPID + subscription API) | HIGH | feature | _docs/task/064-push-notifications.md | 2026-06-19 |
+| 063 | KB Schema Migration (pgvector + kb_entries + task_logs + kb_corrections) | HIGH | feature | _docs/task/063-kb-schema-migration.md | 2026-06-19 |
+| 062 | Sprint 0A: RLS Policies v1 + Auth Trigger | CRITICAL | feature | _docs/task/062-rls-policies-auth-trigger.md | 2026-06-11 |
+| 061 | Sprint 0A: v2.0 Schema Migration — All New Tables + Rename customer_projects → projects | CRITICAL | feature | _docs/task/061-v2-schema-migration.md | 2026-06-11 |
+| 060 | v2 Route Scaffold — Sprint 0A Foundation | CRITICAL | feature | _docs/task/060-v2-route-scaffold.md | 2026-06-11 |
+| 059 | Fix Execution Engine 500 — Sanity `getDocuments([])` 404, Circuit Breaker Threshold, `maxTokens` Passthrough | HIGH | patch | _docs/task/059-fix-execution-engine-500.md | 2026-06-09 |
+| 058 | Edit Project Modal — Edit Button on Project Cards with Zoho Rename Sync | HIGH | minor | _docs/task/058-edit-project-modal.md | 2026-06-09 |
 | 057 | Enhance Hub Create Task Modal — 2-Step Form with AI Classification | HIGH | minor | _docs/task/057-enhance-create-task-modal-2step-ai-classification.md | 2026-06-08 |
 | 054 | Fix Progress Percentage Discrepancy — Product Forms vs Customers Table | HIGH | patch | _docs/task/054-fix-progress-percentage-discrepancy.md | 2026-06-04 |
 | 053 | Onboarding Responses Edit, File URL Fix & Product Archive Tab | HIGH | minor | _docs/task/053-onboarding-responses-edit-file-url-archive-tab.md | 2026-06-04 |

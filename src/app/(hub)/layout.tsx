@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import HubSidebar from "@/components/hub/hub-sidebar";
 import HubHeader from "@/components/hub/hub-header";
 import HubContentShell from "./_hub-content-shell";
+import PushPermissionPrompt from "@/components/hub/push-permission-prompt";
 
 export default async function HubLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -39,6 +40,7 @@ export default async function HubLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex min-h-screen">
+      <PushPermissionPrompt />
       <HubSidebar userEmail={userEmail} userRole={userRole} userDisplayName={userDisplayName} userZohoId={userZohoId} />
       <HubContentShell>
         <HubHeader displayName={userDisplayName} email={userEmail} zohoUserId={userZohoId} userRole={userRole} />

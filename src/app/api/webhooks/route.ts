@@ -34,7 +34,7 @@ async function resolveCustomerId(
 
   if (source === "zoho_projects" && payload.projectId) {
     const { data } = await adminClient
-      .from("customer_projects")
+      .from("projects")
       .select("customer_id")
       .eq("zoho_project_id", payload.projectId)
       .maybeSingle();

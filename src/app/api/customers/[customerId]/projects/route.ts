@@ -11,7 +11,7 @@ export async function GET(
   try {
     const { customerId } = await params;
     const { data, error } = await adminClient
-      .from("customer_projects")
+      .from("projects")
       .select("*")
       .eq("customer_id", customerId)
       .order("created_at", { ascending: false });
@@ -72,10 +72,10 @@ export async function POST(
     }
 
     const { data, error } = await adminClient
-      .from("customer_projects")
+      .from("projects")
       .insert({
         customer_id: customerId,
-        project_name: project_name.trim(),
+        name: project_name.trim(),
         project_type,
         zoho_project_id: resolvedZohoId,
         sanity_project_id: sanity_project_id || null,
