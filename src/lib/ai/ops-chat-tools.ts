@@ -7,7 +7,7 @@ import { runOrchestration, type OrchestrationProject } from "@/lib/pipeline/orch
 
 type Supabase = SupabaseClient<Database>;
 
-const STAFF_ROLES = ["admin", "pm", "hr"] as const;
+const STAFF_ROLES = ["admin", "pm"] as const;
 type Role = "admin" | "pm" | "hr" | "developer" | "client";
 
 function isStaff(role: Role): boolean {
