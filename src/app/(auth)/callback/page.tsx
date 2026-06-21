@@ -44,11 +44,11 @@ export default function AuthCallbackPage() {
         const displayName = (data.session.user.user_metadata?.display_name as string) ?? "";
         console.log("[auth/callback] session established for:", email);
 
-        let destination = "/dashboard";
+        let destination = "/v2/dashboard";
         try {
           const { syncZohoRole } = await import("@/app/(auth)/sync-zoho-role");
           const role = await syncZohoRole(userId, email, displayName);
-          if (!role || role === "pending") destination = "/auth/pending";
+          if (!role || role === "pending") destination = "/v2/auth/pending";
         } catch (err) {
           console.warn("[auth/callback] syncZohoRole error:", err);
         }

@@ -20,10 +20,17 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
+  function safeReturnTo(value: string | null): string {
+    return value && value.startsWith("/v2/") ? value : V2_ROUTES.DASHBOARD;
+  }
+
   function handleZohoSignIn() {
-    const redirectTo = `${window.location.origin}/v2/callback`;
+    const returnTo = searchParams.get("returnTo");
+    const callbackUrl = returnTo
+      ? `${window.location.origin}/v2/callback?returnTo=${encodeURIComponent(returnTo)}`
+      : `${window.location.origin}/v2/callback`;
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    window.location.href = `${supabaseUrl}/auth/v1/authorize?provider=custom%3Azoho&redirect_to=${encodeURIComponent(redirectTo)}`;
+    window.location.href = `${supabaseUrl}/auth/v1/authorize?provider=custom%3Azoho&redirect_to=${encodeURIComponent(callbackUrl)}`;
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -46,7 +53,7 @@ export default function LoginPage() {
       return;
     }
 
-    router.push(V2_ROUTES.DASHBOARD);
+    router.push(safeReturnTo(searchParams.get("returnTo")));
     router.refresh();
   }
 

@@ -39,7 +39,7 @@ export default async function HubLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen" suppressHydrationWarning>
       <PushPermissionPrompt />
       <HubSidebar userEmail={userEmail} userRole={userRole} userDisplayName={userDisplayName} userZohoId={userZohoId} />
       <HubContentShell>

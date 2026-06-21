@@ -16,6 +16,7 @@
 
 | ID | Title | Priority | Type | Doc | Date |
 |----|-------|----------|------|-----|------|
+| 077 | Login Redirect → /v2/dashboard + returnTo Deep-Link Restore | HIGH | enhancement | _docs/task/077-login-returnto-redirect.md | 2026-06-21 |
 | 076 | Dashboard RBAC + Remove Duplicate "Dashboards" Nav Link | HIGH | enhancement | _docs/task/076-dashboard-rbac-remove-duplicate-nav.md | 2026-06-21 |
 | 075 | Ops Chat: Full Task CRUD Tools (Create, Update, Assign, Delete) | HIGH | feature | _docs/task/075-ops-chat-task-crud-tools.md | 2026-06-21 |
 | 074 | Ops Chat: update_task_status + update_classification_status Tools | HIGH | feature | _docs/task/074-ops-chat-update-task-status-tool.md | 2026-06-21 |
