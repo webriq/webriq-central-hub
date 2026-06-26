@@ -183,6 +183,14 @@ export type ZohoPortalUsersParams = {
   sort_by?: string;
 };
 
+export type ZohoProject = {
+  id: string;
+  id_string: string;
+  name: string;
+  status: string;
+  [key: string]: unknown;
+};
+
 type SyncTaskInput = {
   customerId: string;
   title: string;
@@ -622,6 +630,47 @@ export async function getZohoPortalUsers(
     users: (json?.users ?? []) as ZohoPortalUser[],
     page_info: (json?.page_info ?? null) as ZohoPageInfo | null,
   };
+}
+
+export async function getZohoProjects(): Promise<{ projects: ZohoProject[]; total: number }> {
+  const portalId = process.env.ZOHO_PORTAL_ID;
+  console.log("[zoho] getZohoProjects: portalId =", portalId ?? "(not set)");
+  if (!portalId) return { projects: [], total: 0 };
+
+  const token = await getZohoAccessToken();
+  console.log("[zoho] getZohoProjects: token present =", !!token);
+  if (!token) return { projects: [], total: 0 };
+
+  const all: ZohoProject[] = [];
+  let page = 1;
+
+  while (true) {
+    const query = new URLSearchParams({ page: String(page), per_page: "100" });
+    const url = `${ZOHO_PROJECTSAPI_BASE}/projects?${query}`;
+    console.log("[zoho] getZohoProjects: fetching", url);
+
+    const res = await fetch(url, { headers: { Authorization: `Zoho-oauthtoken ${token}` } });
+    console.log("[zoho] getZohoProjects: response status =", res.status);
+
+    if (!res.ok) {
+      const body = await res.text();
+      console.error("[zoho] getZohoProjects failed:", res.status, body);
+      break;
+    }
+
+    const json = await res.json();
+    // Zoho v3 GET /projects returns a top-level array, not { projects: [] }
+    const batch: ZohoProject[] = (Array.isArray(json) ? json : (json?.projects ?? [])) as ZohoProject[];
+    console.log("[zoho] getZohoProjects: batch size =", batch.length);
+    all.push(...batch);
+
+    // No page_info in this endpoint — stop when batch is smaller than per_page
+    if (batch.length < 100) break;
+    page++;
+  }
+
+  console.log("[zoho] getZohoProjects: total collected =", all.length);
+  return { projects: all, total: all.length };
 }
 
 // Adds one or more users to a Zoho project by email.

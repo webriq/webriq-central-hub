@@ -16,6 +16,13 @@
 
 | ID | Title | Priority | Type | Doc | Date |
 |----|-------|----------|------|-----|------|
+| 084 | Zoho Milestones Export + Import + Schema Fix | HIGH | feature | _docs/task/084-zoho-milestones-export-import.md | 2026-06-26 |
+| 083 | Projects Search: Server-Side Filtering + Real Pagination Total | HIGH | patch | _docs/task/083-projects-search-server-side-pagination-fix.md | 2026-06-26 |
+| 082 | Projects Grid Card: Rotating Conic Gradient Border on Hover | NORMAL | patch | _docs/task/082-projects-grid-card-conic-border.md | 2026-06-26 |
+| 081 | Projects Listing UI/UX Redesign — Grid/List toggle, status/type colors, owner, tags, completion ring, pagination, skeleton, DB indexes | HIGH | feature | _docs/task/081-projects-listing-ui-redesign.md | 2026-06-25 |
+| 080 | Zoho Projects Import — Create New Hub Rows from projects.json | HIGH | feature | _docs/task/080-zoho-projects-import-create-new-rows.md | 2026-06-25 |
+| 079 | Zoho Decommission — Full Data Migration to Supabase | HIGH | feature | _docs/task/079-zoho-decommission-data-migration.md | 2026-06-25 |
+| 078 | Zoho Projects Export — GET /api/zoho/projects (Full Paginated Raw Dump) | HIGH | patch | _docs/task/078-zoho-projects-export-endpoint.md | 2026-06-25 |
 | 077 | Login Redirect → /v2/dashboard + returnTo Deep-Link Restore | HIGH | enhancement | _docs/task/077-login-returnto-redirect.md | 2026-06-21 |
 | 076 | Dashboard RBAC + Remove Duplicate "Dashboards" Nav Link | HIGH | enhancement | _docs/task/076-dashboard-rbac-remove-duplicate-nav.md | 2026-06-21 |
 | 075 | Ops Chat: Full Task CRUD Tools (Create, Update, Assign, Delete) | HIGH | feature | _docs/task/075-ops-chat-task-crud-tools.md | 2026-06-21 |

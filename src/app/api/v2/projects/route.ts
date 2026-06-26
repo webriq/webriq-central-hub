@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json().catch(() => ({}));
-  const { customer_id, name, project_type, description, status } = body;
+  const { customer_id, name, project_type, description, status, tags } = body;
 
   if (!customer_id?.trim()) {
     return NextResponse.json({ error: "customer_id is required" }, { status: 400 });
@@ -65,6 +65,7 @@ export async function POST(req: NextRequest) {
       description: description?.trim() || null,
       status: status || "active",
       created_by: user.id,
+      tags: Array.isArray(tags) ? tags.filter((t: unknown): t is string => typeof t === "string") : [],
     })
     .select()
     .single();

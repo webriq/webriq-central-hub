@@ -547,6 +547,14 @@ export interface Database {
           dedicated_developers: string[];
           dataset: string | null;
           vercel_project_id: string | null;
+          start_date: string | null;
+          end_date: string | null;
+          percent_complete: number;
+          existing_website: string | null;
+          development_site: string | null;
+          source_meta: Json;
+          tags: string[] | null;
+          owner_name: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -565,6 +573,14 @@ export interface Database {
           dedicated_developers?: string[];
           dataset?: string | null;
           vercel_project_id?: string | null;
+          start_date?: string | null;
+          end_date?: string | null;
+          percent_complete?: number;
+          existing_website?: string | null;
+          development_site?: string | null;
+          source_meta?: Json;
+          tags?: string[] | null;
+          owner_name?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -583,6 +599,14 @@ export interface Database {
           dedicated_developers?: string[];
           dataset?: string | null;
           vercel_project_id?: string | null;
+          start_date?: string | null;
+          end_date?: string | null;
+          percent_complete?: number;
+          existing_website?: string | null;
+          development_site?: string | null;
+          source_meta?: Json;
+          tags?: string[] | null;
+          owner_name?: string | null;
           updated_at?: string;
         };
         Relationships: [
@@ -602,6 +626,56 @@ export interface Database {
           }
         ];
       };
+      tasklists: {
+        Row: {
+          id: string;
+          project_id: string;
+          external_id: string | null;
+          name: string;
+          position: number | null;
+          is_default: boolean;
+          milestone_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          project_id: string;
+          external_id?: string | null;
+          name: string;
+          position?: number | null;
+          is_default?: boolean;
+          milestone_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          project_id?: string;
+          external_id?: string | null;
+          name?: string;
+          position?: number | null;
+          is_default?: boolean;
+          milestone_id?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "tasklists_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "tasklists_milestone_id_fkey";
+            columns: ["milestone_id"];
+            isOneToOne: false;
+            referencedRelation: "milestones";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
       tasks: {
         Row: {
           id: string;
@@ -609,6 +683,8 @@ export interface Database {
           ticket_id: string | null;
           parent_task_id: string | null;
           milestone_id: string | null;
+          tasklist_id: string | null;
+          external_id: string | null;
           title: string;
           description: string | null;
           task_type: string | null;
@@ -616,6 +692,7 @@ export interface Database {
           status: "open" | "in_progress" | "ready_for_qa" | "testing_completed" | "for_client_approval" | "ready_to_merge" | "post_live_qa" | "closed";
           assignees: string[] | null;
           due_date: string | null;
+          start_date: string | null;
           estimate_hours: number | null;
           labels: string[] | null;
           position: number | null;
@@ -632,6 +709,8 @@ export interface Database {
           ticket_id?: string | null;
           parent_task_id?: string | null;
           milestone_id?: string | null;
+          tasklist_id?: string | null;
+          external_id?: string | null;
           title: string;
           description?: string | null;
           task_type?: string | null;
@@ -639,6 +718,7 @@ export interface Database {
           status?: "open" | "in_progress" | "ready_for_qa" | "testing_completed" | "for_client_approval" | "ready_to_merge" | "post_live_qa" | "closed";
           assignees?: string[] | null;
           due_date?: string | null;
+          start_date?: string | null;
           estimate_hours?: number | null;
           labels?: string[] | null;
           position?: number | null;
@@ -655,6 +735,8 @@ export interface Database {
           ticket_id?: string | null;
           parent_task_id?: string | null;
           milestone_id?: string | null;
+          tasklist_id?: string | null;
+          external_id?: string | null;
           title?: string;
           description?: string | null;
           task_type?: string | null;
@@ -662,6 +744,7 @@ export interface Database {
           status?: "open" | "in_progress" | "ready_for_qa" | "testing_completed" | "for_client_approval" | "ready_to_merge" | "post_live_qa" | "closed";
           assignees?: string[] | null;
           due_date?: string | null;
+          start_date?: string | null;
           estimate_hours?: number | null;
           labels?: string[] | null;
           position?: number | null;
@@ -692,6 +775,13 @@ export interface Database {
             isOneToOne: false;
             referencedRelation: "milestones";
             referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "tasks_tasklist_id_fkey";
+            columns: ["tasklist_id"];
+            isOneToOne: false;
+            referencedRelation: "tasklists";
+            referencedColumns: ["id"];
           }
         ];
       };
@@ -699,8 +789,10 @@ export interface Database {
         Row: {
           id: string;
           project_id: string;
+          external_id: string | null;
           name: string;
           description: string | null;
+          start_date: string | null;
           due_date: string | null;
           status: "planned" | "active" | "completed";
           position: number | null;
@@ -711,8 +803,10 @@ export interface Database {
         Insert: {
           id?: string;
           project_id: string;
+          external_id?: string | null;
           name: string;
           description?: string | null;
+          start_date?: string | null;
           due_date?: string | null;
           status?: "planned" | "active" | "completed";
           position?: number | null;
@@ -723,8 +817,10 @@ export interface Database {
         Update: {
           id?: string;
           project_id?: string;
+          external_id?: string | null;
           name?: string;
           description?: string | null;
+          start_date?: string | null;
           due_date?: string | null;
           status?: "planned" | "active" | "completed";
           position?: number | null;
@@ -745,21 +841,30 @@ export interface Database {
         Row: {
           id: string;
           task_id: string;
-          author_id: string;
+          author_id: string | null;
+          author_name: string | null;
+          author_email: string | null;
+          external_id: string | null;
           body: string;
           created_at: string;
         };
         Insert: {
           id?: string;
           task_id: string;
-          author_id: string;
+          author_id?: string | null;
+          author_name?: string | null;
+          author_email?: string | null;
+          external_id?: string | null;
           body: string;
           created_at?: string;
         };
         Update: {
           id?: string;
           task_id?: string;
-          author_id?: string;
+          author_id?: string | null;
+          author_name?: string | null;
+          author_email?: string | null;
+          external_id?: string | null;
           body?: string;
         };
         Relationships: [
@@ -781,6 +886,8 @@ export interface Database {
           filename: string;
           size: number | null;
           uploaded_by: string | null;
+          external_id: string | null;
+          source_url: string | null;
           created_at: string;
         };
         Insert: {
@@ -791,6 +898,8 @@ export interface Database {
           filename: string;
           size?: number | null;
           uploaded_by?: string | null;
+          external_id?: string | null;
+          source_url?: string | null;
           created_at?: string;
         };
         Update: {
@@ -801,13 +910,15 @@ export interface Database {
           filename?: string;
           size?: number | null;
           uploaded_by?: string | null;
+          external_id?: string | null;
+          source_url?: string | null;
         };
         Relationships: [];
       };
       time_logs: {
         Row: {
           id: string;
-          task_id: string;
+          task_id: string | null;
           project_id: string;
           employee_id: string | null;
           date_logged: string;
@@ -816,11 +927,14 @@ export interface Database {
           note: string | null;
           source: "timer" | "manual";
           timesheet_id: string | null;
+          external_id: string | null;
+          owner_name: string | null;
+          owner_email: string | null;
           created_at: string;
         };
         Insert: {
           id?: string;
-          task_id: string;
+          task_id?: string | null;
           project_id: string;
           employee_id?: string | null;
           date_logged: string;
@@ -829,11 +943,14 @@ export interface Database {
           note?: string | null;
           source?: "timer" | "manual";
           timesheet_id?: string | null;
+          external_id?: string | null;
+          owner_name?: string | null;
+          owner_email?: string | null;
           created_at?: string;
         };
         Update: {
           id?: string;
-          task_id?: string;
+          task_id?: string | null;
           project_id?: string;
           employee_id?: string | null;
           date_logged?: string;
@@ -842,6 +959,9 @@ export interface Database {
           note?: string | null;
           source?: "timer" | "manual";
           timesheet_id?: string | null;
+          external_id?: string | null;
+          owner_name?: string | null;
+          owner_email?: string | null;
         };
         Relationships: [
           {

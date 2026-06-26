@@ -52,6 +52,7 @@ export async function PATCH(
   if (typeof body.name === "string") patch.name = body.name.trim();
   if (typeof body.description === "string") patch.description = body.description.trim() || null;
   if (typeof body.project_type === "string") patch.project_type = body.project_type;
+  if (Array.isArray(body.tags)) patch.tags = body.tags.filter((t: unknown): t is string => typeof t === "string");
   if (typeof body.status === "string") {
     if (!(VALID_STATUS as readonly string[]).includes(body.status)) {
       return NextResponse.json({ error: "invalid status" }, { status: 400 });

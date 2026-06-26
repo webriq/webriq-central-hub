@@ -3,3 +3,7 @@ allowBuilds:
   sharp: true
   supabase: set this to true or false
   unrs-resolver: true
+
+onlyBuiltDependencies:
+  - sharp
+  - unrs-resolver

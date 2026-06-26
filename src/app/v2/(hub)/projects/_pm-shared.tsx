@@ -52,11 +52,19 @@ export const PRIORITY_STYLE: Record<TaskPriority, { label: string; text: string;
   low:      { label: "Low",      text: "#94A3B8", dot: "#94A3B8" },
 };
 
-export const PROJECT_STATUS_STYLE: Record<string, { text: string; bg: string; border: string }> = {
-  active:    { text: "#16A34A", bg: "#F0FDF4", border: "#BBF7D0" },
-  on_hold:   { text: "#D97706", bg: "#FFFBEB", border: "#FDE68A" },
-  completed: { text: "#2563EB", bg: "#EFF6FF", border: "#BFDBFE" },
-  archived:  { text: "#94A3B8", bg: "#F8FAFC", border: "#E2E8F0" },
+export const PROJECT_STATUS_STYLE: Record<string, { text: string; bg: string; border: string; label: string }> = {
+  not_started: { text: "#7C3AED", bg: "#F5F3FF", border: "#DDD6FE", label: "Not Started" },
+  active:      { text: "#2563EB", bg: "#EFF6FF", border: "#BFDBFE", label: "Active" },
+  on_hold:     { text: "#D97706", bg: "#FFFBEB", border: "#FDE68A", label: "On Hold" },
+  completed:   { text: "#16A34A", bg: "#F0FDF4", border: "#BBF7D0", label: "Completed" },
+  archived:    { text: "#94A3B8", bg: "#F8FAFC", border: "#E2E8F0", label: "Archived" },
+};
+
+export const PROJECT_TYPE_STYLE: Record<string, { text: string; bg: string; border: string }> = {
+  "Content Site":    { text: "#0D9488", bg: "#F0FDFA", border: "#99F6E4" },
+  "Ecommerce (B2C)": { text: "#7C3AED", bg: "#F5F3FF", border: "#DDD6FE" },
+  "Ecommerce (B2B)": { text: "#2563EB", bg: "#EFF6FF", border: "#BFDBFE" },
+  "Custom App":      { text: "#EA580C", bg: "#FFF7ED", border: "#FED7AA" },
 };
 
 export const PROJECT_TYPES = [
@@ -97,16 +105,155 @@ export function PriorityBadge({ priority }: { priority: TaskPriority }) {
   );
 }
 
-export function ProjectStatusBadge({ status }: { status: string }) {
-  const c = PROJECT_STATUS_STYLE[status] ?? PROJECT_STATUS_STYLE.active;
+export function ProjectStatusBadge({ status, pct }: { status: string; pct?: number }) {
+  const key = status === "active" && (pct ?? 1) === 0 ? "not_started" : status;
+  const c = PROJECT_STATUS_STYLE[key] ?? PROJECT_STATUS_STYLE.active;
   return (
     <span
-      className="inline-flex items-center text-[10px] font-medium px-2 py-0.5 rounded-full border capitalize whitespace-nowrap"
+      className="inline-flex items-center text-[10px] font-medium px-2 py-0.5 rounded-full border whitespace-nowrap"
       style={{ color: c.text, background: c.bg, borderColor: c.border }}
     >
-      {status.replace("_", " ")}
+      {c.label}
     </span>
   );
+}
+
+export function ProjectTypeBadge({ type }: { type: string }) {
+  const c = PROJECT_TYPE_STYLE[type] ?? { text: "#64748B", bg: "#F8FAFC", border: "#E2E8F0" };
+  return (
+    <span
+      className="self-start inline-flex items-center text-[10px] font-medium px-2 py-0.5 rounded-md border whitespace-nowrap"
+      style={{ color: c.text, background: c.bg, borderColor: c.border }}
+    >
+      {type}
+    </span>
+  );
+}
+
+// ─── Deterministic tag color — pastel palette matching Zoho's light-bg + dark-text style ─
+const TAG_PALETTE = [
+  "#C4B5FD", // lavender
+  "#93C5FD", // sky blue
+  "#6EE7B7", // mint
+  "#FED7AA", // peach
+  "#FCA5A5", // blush
+  "#86EFAC", // sage
+  "#7DD3FC", // ice blue
+  "#A5B4FC", // periwinkle
+  "#FDE68A", // butter
+  "#BAE6FD", // powder blue
+];
+
+export function tagColorFor(tag: string): string {
+  let hash = 0;
+  for (const ch of tag) hash = (hash * 31 + ch.charCodeAt(0)) & 0xffff;
+  return TAG_PALETTE[hash % TAG_PALETTE.length];
+}
+
+// Zoho's exact clip-path (--clippySize = 10px resolved) — smooth curved arrow tip + 3px left radius
+const ZOHO_TAG_CLIP =
+  "polygon(0 3px, 0.4px 1.2px, 1.2px 0.4px, 3px 0, calc(100% - 10.5px) 0px, calc(100% - 9.9px) .1px, calc(100% - 9.7px) .2px, calc(100% - 9.4px) .3px, calc(100% - 9.1px) .5px, calc(100% - 8.8px) .7px, calc(100% - 8.6px) .9px, calc(100% - 0.8px) calc(50% - 0.3px), calc(100% - 0.7px) 50%, calc(100% - 0.8px) calc(50% + 0.3px), calc(100% - 8.6px) calc(100% - 0.9px), calc(100% - 8.8px) calc(100% - 0.7px), calc(100% - 9.1px) calc(100% - 0.5px), calc(100% - 9.4px) calc(100% - 0.3px), calc(100% - 9.7px) calc(100% - 0.2px), calc(100% - 9.9px) calc(100% - 0.1px), calc(100% - 10.5px) 100%, 3px 100%, 1.2px calc(100% - 0.4px), 0.4px calc(100% - 1.2px), 0 calc(100% - 3px))";
+
+export function TagChip({
+  tag,
+  idx = 0,
+  canRemove,
+  onRemove,
+}: {
+  tag: string;
+  idx?: number;
+  canRemove?: boolean;
+  onRemove?: () => void;
+}) {
+  const bg = tagColorFor(tag);
+
+  return (
+    <span
+      className="inline-flex items-center gap-1 text-[10px] font-medium leading-5 text-black whitespace-nowrap select-none"
+      style={{
+        background: bg,
+        clipPath: ZOHO_TAG_CLIP,
+        paddingTop: 0,
+        paddingBottom: 0,
+        paddingLeft: "8px",
+        paddingRight: "10px",
+        boxShadow: "rgba(0,0,0,0.18) inset 0 0 10px -4px",
+      }}
+    >
+      {tag}
+      {canRemove && onRemove && (
+        <button
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onRemove(); }}
+          className="leading-none opacity-60 hover:opacity-100 transition-opacity cursor-pointer text-[12px] ml-0.5"
+          title={`Remove ${tag}`}
+        >
+          ×
+        </button>
+      )}
+    </span>
+  );
+}
+
+export function OwnerChip({ name }: { name: string }) {
+  const initials = name.split(" ").filter(Boolean).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+  const colors = ["#2563EB", "#7C3AED", "#0D9488", "#DC2626", "#D97706"];
+  const bg = colors[name.charCodeAt(0) % colors.length];
+  return (
+    <div
+      className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-semibold text-white shrink-0"
+      style={{ background: bg }}
+      title={name}
+    >
+      {initials}
+    </div>
+  );
+}
+
+export function CompletionRing({ pct, size = 40 }: { pct: number; size?: number }) {
+  const strokeWidth = 3;
+  const r = (size - strokeWidth * 2) / 2;
+  const circ = 2 * Math.PI * r;
+  const dash = (pct / 100) * circ;
+  const cx = size / 2;
+  const cy = size / 2;
+  const trackColor = "#E2E8F0";
+  const fillColor = pct === 100 ? "#16A34A" : "#2563EB";
+  const textColor = "#334155";
+  return (
+    <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke={trackColor} strokeWidth={strokeWidth} />
+      <circle
+        cx={cx} cy={cy} r={r} fill="none"
+        stroke={fillColor} strokeWidth={strokeWidth} strokeLinecap="round"
+        strokeDasharray={`${dash} ${circ}`}
+      />
+      <text
+        x={cx} y={cy}
+        dominantBaseline="middle" textAnchor="middle"
+        style={{ fontSize: size * 0.24, fill: textColor, fontWeight: 600, transform: `rotate(90deg)`, transformOrigin: `${cx}px ${cy}px` }}
+      >
+        {pct}%
+      </text>
+    </svg>
+  );
+}
+
+export function businessDaysRemaining(endDate: string | null): number | null {
+  if (!endDate) return null;
+  const end = new Date(endDate + "T00:00:00");
+  if (isNaN(end.getTime())) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  if (end.getTime() === today.getTime()) return 0;
+  let days = 0;
+  const dir = end > today ? 1 : -1;
+  const cur = new Date(today);
+  while (cur.getTime() !== end.getTime()) {
+    cur.setDate(cur.getDate() + dir);
+    const dow = cur.getDay();
+    if (dow !== 0 && dow !== 6) days += dir;
+  }
+  return days;
 }
 
 const AVATAR_COLORS = ["#2563EB", "#7C3AED", "#0D9488", "#DC2626", "#D97706"];
