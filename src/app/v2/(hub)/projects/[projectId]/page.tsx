@@ -20,12 +20,17 @@ export default async function ProjectDetailPage({
 
   if (!project) notFound();
 
-  const [milestonesRes, tasksRes, customerRes] = await Promise.all([
+  const [milestonesRes, tasklistsRes, tasksRes, customerRes] = await Promise.all([
     supabase
       .from("milestones")
       .select("*")
       .eq("project_id", projectId)
       .order("position", { ascending: true, nullsFirst: false }),
+    supabase
+      .from("tasklists")
+      .select("*")
+      .eq("project_id", projectId)
+      .order("created_at", { ascending: true }),
     supabase
       .from("tasks")
       .select("*")
@@ -40,6 +45,7 @@ export default async function ProjectDetailPage({
       project={project}
       companyName={customerRes.data?.company_name ?? project.customer_id}
       initialMilestones={milestonesRes.data ?? []}
+      initialTasklists={tasklistsRes.data ?? []}
       initialTasks={tasksRes.data ?? []}
     />
   );

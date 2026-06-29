@@ -16,6 +16,11 @@
 
 | ID | Title | Priority | Type | Doc | Date |
 |----|-------|----------|------|-----|------|
+| 092 | Task Detail Page — /v2/projects/[projectId]/tasks/[taskId] | HIGH | feature | _docs/task/092-task-detail-page.md | 2026-06-29 |
+| 090 | Tasks Import: Multi-File, Full Column Set & Parent Resolution | HIGH | feature | _docs/task/090-tasks-import-multi-file-full-columns.md | 2026-06-29 |
+| 089 | Tasks Export: SSE Progress, Project Slice & Date Filter | HIGH | feature | _docs/task/089-tasks-export-sse-progress-slice-date-filter.md | 2026-06-29 |
+| 088 | Zoho Tasklists: Batch Import Fix + pg_cron Zoho API Sync | HIGH | feature | _docs/task/088-zoho-tasklists-batch-import-cron-sync.md | 2026-06-29 |
+| 085 | Auth Overhaul — Invitation-Only Registration, Forced Password Change & Email OTP Step-Up | HIGH | feature | _docs/task/085-auth-overhaul-invitation-password-change-otp.md | 2026-06-29 |
 | 084 | Zoho Milestones Export + Import + Schema Fix | HIGH | feature | _docs/task/084-zoho-milestones-export-import.md | 2026-06-26 |
 | 083 | Projects Search: Server-Side Filtering + Real Pagination Total | HIGH | patch | _docs/task/083-projects-search-server-side-pagination-fix.md | 2026-06-26 |
 | 082 | Projects Grid Card: Rotating Conic Gradient Border on Hover | NORMAL | patch | _docs/task/082-projects-grid-card-conic-border.md | 2026-06-26 |
@@ -76,6 +81,9 @@
 
 ## Completed
 
+- [091] List View: Status Normalization, Priority Fix & Zoho-Style UI Overhaul → `_docs/task/091-list-view-status-priority-fix-ui-overhaul.md` (completed: 2026-06-29)
+- [087] Project Detail Overhaul: Primary Tabs, Tasklist Grouping, Milestone Panel & Skeleton → `_docs/task/087-project-detail-list-default-milestone-panel.md` (completed: 2026-06-29)
+- [086] Fix profiles.role for Existing Staff Users — Seed from hub_users via migration 040 → `_docs/task/086-fix-profiles-role-seed-from-hub-users.md` (completed: 2026-06-29)
 - [055] New `customer_projects` Table — Move Project Fields Off `customer_products` + Fix Auto-Zoho-Creation → `_docs/task/055-customer-projects-table.md` (completed: 2026-06-08)
 - [044] Zoho Employee Pending Approval Flow → `_docs/task/044-zoho-employee-pending-approval-flow.md` (completed: 2026-06-02)
 - [043] Auth Callback: Zoho Portal User Role Determination → `_docs/task/043-auth-callback-zoho-role-determination.md` (completed: 2026-06-02)

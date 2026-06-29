@@ -689,7 +689,7 @@ export interface Database {
           description: string | null;
           task_type: string | null;
           priority: "low" | "normal" | "high" | "critical";
-          status: "open" | "in_progress" | "ready_for_qa" | "testing_completed" | "for_client_approval" | "ready_to_merge" | "post_live_qa" | "closed";
+          status: string;
           assignees: string[] | null;
           due_date: string | null;
           start_date: string | null;
@@ -702,6 +702,11 @@ export interface Database {
           created_by: string | null;
           created_at: string;
           updated_at: string;
+          completion_percentage: number;
+          is_completed: boolean;
+          depth: number;
+          completed_on: string | null;
+          source_meta: Record<string, unknown>;
         };
         Insert: {
           id?: string;
@@ -715,7 +720,7 @@ export interface Database {
           description?: string | null;
           task_type?: string | null;
           priority?: "low" | "normal" | "high" | "critical";
-          status?: "open" | "in_progress" | "ready_for_qa" | "testing_completed" | "for_client_approval" | "ready_to_merge" | "post_live_qa" | "closed";
+          status?: string;
           assignees?: string[] | null;
           due_date?: string | null;
           start_date?: string | null;
@@ -728,6 +733,11 @@ export interface Database {
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
+          completion_percentage?: number;
+          is_completed?: boolean;
+          depth?: number;
+          completed_on?: string | null;
+          source_meta?: Record<string, unknown>;
         };
         Update: {
           id?: string;
@@ -741,7 +751,7 @@ export interface Database {
           description?: string | null;
           task_type?: string | null;
           priority?: "low" | "normal" | "high" | "critical";
-          status?: "open" | "in_progress" | "ready_for_qa" | "testing_completed" | "for_client_approval" | "ready_to_merge" | "post_live_qa" | "closed";
+          status?: string;
           assignees?: string[] | null;
           due_date?: string | null;
           start_date?: string | null;
@@ -753,6 +763,11 @@ export interface Database {
           preview_url?: string | null;
           created_by?: string | null;
           updated_at?: string;
+          completion_percentage?: number;
+          is_completed?: boolean;
+          depth?: number;
+          completed_on?: string | null;
+          source_meta?: Record<string, unknown>;
         };
         Relationships: [
           {

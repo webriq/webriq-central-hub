@@ -7,31 +7,16 @@ import Image from "next/image";
 import { Eye, EyeOff, Mail, Lock, ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { ThemeToggle } from "@/components/auth/theme-toggle";
-import { V2_ROUTES } from "@/config/constants";
+import { postLoginGate } from "@/app/v2/(auth)/actions";
 
 export default function LoginPage() {
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState<string | null>(
-    searchParams.get("error") === "oauth_failed" ? "Zoho sign-in failed. Please try again." : null
-  );
+  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-
-  function safeReturnTo(value: string | null): string {
-    return value && value.startsWith("/v2/") ? value : V2_ROUTES.DASHBOARD;
-  }
-
-  function handleZohoSignIn() {
-    const returnTo = searchParams.get("returnTo");
-    const callbackUrl = returnTo
-      ? `${window.location.origin}/v2/callback?returnTo=${encodeURIComponent(returnTo)}`
-      : `${window.location.origin}/v2/callback`;
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    window.location.href = `${supabaseUrl}/auth/v1/authorize?provider=custom%3Azoho&redirect_to=${encodeURIComponent(callbackUrl)}`;
-  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -53,8 +38,20 @@ export default function LoginPage() {
       return;
     }
 
-    router.push(safeReturnTo(searchParams.get("returnTo")));
-    router.refresh();
+    // Generate or read device ID for OTP step-up
+    let deviceId = localStorage.getItem("hub_device_id");
+    if (!deviceId) {
+      deviceId = crypto.randomUUID();
+      localStorage.setItem("hub_device_id", deviceId);
+    }
+
+    const { redirect: dest, error: gateError } = await postLoginGate(deviceId, searchParams.get("returnTo") ?? undefined);
+    if (gateError) {
+      setError(gateError);
+      setLoading(false);
+      return;
+    }
+    router.push(dest);
   }
 
   return (
@@ -88,9 +85,7 @@ export default function LoginPage() {
             A workspace where ideas turn into shipped products — without the busywork.
           </p>
           <div className="flex items-center gap-3">
-            <div
-              className="bg-brand-orange h-10 w-10 rounded-full shrink-0 ring-1 ring-white/20"
-            />
+            <div className="bg-brand-orange h-10 w-10 rounded-full shrink-0 ring-1 ring-white/20" />
             <div className="text-sm">
               <p className="font-semibold">Mira Chen</p>
               <p className="text-white/60">Product Lead, Northwind</p>
@@ -103,9 +98,7 @@ export default function LoginPage() {
       <div className="relative flex min-h-dvh flex-col lg:items-center lg:justify-center lg:px-10 lg:py-12">
 
         {/* Mobile: gradient header */}
-        <div
-          className="relative lg:hidden overflow-hidden px-6 pt-[max(2rem,env(safe-area-inset-top))] pb-16 text-white bg-[linear-gradient(140deg,#07111f_0%,#0c1b38_55%,#070E1F_100%)]"
-        >
+        <div className="relative lg:hidden overflow-hidden px-6 pt-[max(2rem,env(safe-area-inset-top))] pb-16 text-white bg-[linear-gradient(140deg,#07111f_0%,#0c1b38_55%,#070E1F_100%)]">
           <div className="absolute -top-24 -right-16 h-64 w-64 rounded-full bg-primary/35 blur-3xl pointer-events-none" />
           <div className="absolute -bottom-20 -left-10 h-56 w-56 rounded-full bg-brand-orange/25 blur-3xl pointer-events-none" />
           <Link href="/" className="relative z-10 inline-flex items-center gap-2 font-semibold tracking-tight">
@@ -128,31 +121,6 @@ export default function LoginPage() {
           <div className="hidden lg:block mb-8 space-y-2">
             <h1 className="text-4xl font-semibold tracking-tight text-foreground">Welcome back</h1>
             <p className="text-muted-foreground">Sign in to your account to continue.</p>
-          </div>
-
-          {/* Zoho SSO */}
-          <div className="mb-6">
-            <button
-              type="button"
-              onClick={handleZohoSignIn}
-              className="inline-flex items-center justify-center gap-2.5 h-12 w-full rounded-md border border-brand-orange/30 bg-card font-semibold text-foreground text-sm cursor-pointer transition-colors hover:bg-brand-orange/10 hover:border-brand-orange/50"
-            >
-              <Image
-                src="/zoho-logo-512.png"
-                alt=""
-                width={40}
-                height={40}
-                className="h-10 w-10 object-contain shrink-0"
-              />
-              Continue with Zoho
-            </button>
-          </div>
-
-          {/* Divider */}
-          <div className="flex items-center gap-3 text-xs uppercase tracking-wider text-muted-foreground mb-6">
-            <div className="h-px flex-1 bg-border" />
-            or continue with email
-            <div className="h-px flex-1 bg-border" />
           </div>
 
           {/* Email / password form */}
@@ -231,10 +199,7 @@ export default function LoginPage() {
           </form>
 
           <p className="mt-8 text-center text-sm text-muted-foreground">
-            Don&apos;t have an account?{" "}
-            <Link href={V2_ROUTES.AUTH_SIGNUP} className="font-semibold text-foreground hover:text-brand-orange transition-colors">
-              Create one
-            </Link>
+            Contact your administrator to get access.
           </p>
         </div>
       </div>

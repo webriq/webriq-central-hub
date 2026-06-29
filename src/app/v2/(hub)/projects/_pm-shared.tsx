@@ -6,6 +6,7 @@ import type { Database } from "@/types/database";
 // ─── DB row aliases ─────────────────────────────────────────────────────────
 export type Project = Database["public"]["Tables"]["projects"]["Row"];
 export type Milestone = Database["public"]["Tables"]["milestones"]["Row"];
+export type Tasklist = Database["public"]["Tables"]["tasklists"]["Row"];
 export type Task = Database["public"]["Tables"]["tasks"]["Row"];
 
 export type TaskStatus = Task["status"];
@@ -45,11 +46,12 @@ export const STATUS_STYLE: Record<TaskStatus, { text: string; bg: string; border
   closed:              { text: "#94A3B8", bg: "#F8FAFC", border: "#E2E8F0" },
 };
 
-export const PRIORITY_STYLE: Record<TaskPriority, { label: string; text: string; dot: string }> = {
+export const PRIORITY_STYLE: Record<string, { label: string; text: string; dot: string }> = {
   critical: { label: "Critical", text: "#DC2626", dot: "#DC2626" },
   high:     { label: "High",     text: "#EA580C", dot: "#EA580C" },
   normal:   { label: "Normal",   text: "#2563EB", dot: "#2563EB" },
   low:      { label: "Low",      text: "#94A3B8", dot: "#94A3B8" },
+  none:     { label: "—",        text: "#94A3B8", dot: "#CBD5E1" },
 };
 
 export const PROJECT_STATUS_STYLE: Record<string, { text: string; bg: string; border: string; label: string }> = {
@@ -74,6 +76,20 @@ export const PROJECT_TYPES = [
   "Custom App",
 ] as const;
 
+// ─── Status normalization (handles both normalized keys and raw Zoho names) ──
+const STATUS_NORMALIZE: Record<string, string> = {
+  open: "open", in_progress: "in_progress", ready_for_qa: "ready_for_qa",
+  testing_completed: "testing_completed", for_client_approval: "for_client_approval",
+  ready_to_merge: "ready_to_merge", post_live_qa: "post_live_qa", closed: "closed",
+  "Open": "open", "In Progress": "in_progress", "Ready for QA/QC": "ready_for_qa",
+  "Testing Completed": "testing_completed", "For Client Approval": "for_client_approval",
+  "Ready to Merge": "ready_to_merge", "Post-live QA/QC": "post_live_qa",
+  "Post Live QA": "post_live_qa", "Closed": "closed",
+};
+export function normalizeStatus(s: string): string {
+  return STATUS_NORMALIZE[s] ?? "open";
+}
+
 // ─── Fractional position (midpoint reorder) ─────────────────────────────────
 export function midpoint(prev?: number | null, next?: number | null): number {
   if (prev == null && next == null) return Date.now();
@@ -84,19 +100,20 @@ export function midpoint(prev?: number | null, next?: number | null): number {
 
 // ─── Small presentational helpers ───────────────────────────────────────────
 export function StatusBadge({ status }: { status: TaskStatus }) {
-  const c = STATUS_STYLE[status];
+  const norm = normalizeStatus(status);
+  const c = STATUS_STYLE[norm] ?? STATUS_STYLE["open"];
   return (
     <span
       className="inline-flex items-center text-[10px] font-medium px-2 py-0.5 rounded-full border whitespace-nowrap"
       style={{ color: c.text, background: c.bg, borderColor: c.border }}
     >
-      {STATUS_LABEL[status]}
+      {STATUS_LABEL[norm] ?? norm}
     </span>
   );
 }
 
 export function PriorityBadge({ priority }: { priority: TaskPriority }) {
-  const p = PRIORITY_STYLE[priority];
+  const p = PRIORITY_STYLE[priority] ?? PRIORITY_STYLE["normal"];
   return (
     <span className="inline-flex items-center gap-1 text-[11px] font-medium" style={{ color: p.text }}>
       <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: p.dot }} />

@@ -35,6 +35,18 @@ export async function proxy(request: NextRequest) {
   // Refresh session if expired — getClaims validates JWT signature against project keys
   await supabase.auth.getClaims();
 
+  const pathname = request.nextUrl.pathname;
+  const isHubRoute = pathname.startsWith("/v2/") && !pathname.startsWith("/v2/auth/");
+
+  if (isHubRoute) {
+    if (request.cookies.get("change_password_required")?.value) {
+      return NextResponse.redirect(new URL("/v2/auth/change-password", request.url));
+    }
+    if (request.cookies.get("mfa_pending")?.value) {
+      return NextResponse.redirect(new URL("/v2/auth/verify", request.url));
+    }
+  }
+
   return supabaseResponse;
 }
 

@@ -4,12 +4,14 @@ import { useLayoutEffect, useState } from "react";
 import { Sun, Moon } from "lucide-react";
 
 export function ThemeToggle() {
-  const [isDark, setIsDark] = useState(() => {
-    if (typeof window === "undefined") return true;
-    return localStorage.getItem("auth-theme") !== "light";
-  });
+  // SSR-safe default: server and client both start dark, eliminating hydration mismatch.
+  const [isDark, setIsDark] = useState(true);
 
-  // DOM-only effect — no setState, runs before paint to avoid flash
+  // Correct from localStorage before first paint (client-only, skipped on server).
+  useLayoutEffect(() => {
+    setIsDark(localStorage.getItem("auth-theme") !== "light");
+  }, []);
+
   useLayoutEffect(() => {
     document.documentElement.classList.toggle("dark", isDark);
   }, [isDark]);

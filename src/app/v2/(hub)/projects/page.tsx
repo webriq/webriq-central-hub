@@ -42,7 +42,7 @@ export default async function ProjectsPage({
   let projectsQuery = supabase
     .from("projects")
     .select("id,name,project_type,status,customer_id,end_date,tags,owner_name,updated_at", { count: "exact" })
-    .order("updated_at", { ascending: false });
+    .order("start_date", { ascending: false, nullsFirst: false });
 
   if (customerParam) {
     projectsQuery = projectsQuery.eq("customer_id", customerParam);
