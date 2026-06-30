@@ -20,7 +20,10 @@ export default async function ProjectDetailPage({
 
   if (!project) notFound();
 
-  const [milestonesRes, tasklistsRes, tasksRes, customerRes] = await Promise.all([
+  const { data: claimsData } = await supabase.auth.getClaims();
+  const currentUserId = (claimsData?.claims?.sub as string | undefined) ?? "";
+
+  const [milestonesRes, tasklistsRes, tasksRes, customerRes, profilesRes, timeLogsRes] = await Promise.all([
     supabase
       .from("milestones")
       .select("*")
@@ -35,10 +38,21 @@ export default async function ProjectDetailPage({
       .from("tasks")
       .select("*")
       .eq("project_id", projectId)
-      .is("parent_task_id", null)
       .order("position", { ascending: true, nullsFirst: false }),
     supabase.from("customers").select("company_name").eq("customer_id", project.customer_id).single(),
+    supabase.from("profiles").select("id, full_name, avatar_url").in("role", ["developer", "pm", "admin"]).order("full_name", { ascending: true }),
+    supabase.from("time_logs").select("task_id, hours").eq("project_id", projectId),
   ]);
+
+  const profilesById: Record<string, { full_name: string; avatar_url: string | null }> = {};
+  for (const p of (profilesRes.data ?? [])) {
+    profilesById[p.id] = { full_name: p.full_name ?? "", avatar_url: p.avatar_url ?? null };
+  }
+
+  const hoursById: Record<string, number> = {};
+  for (const row of (timeLogsRes.data ?? [])) {
+    if (row.task_id) hoursById[row.task_id] = (hoursById[row.task_id] ?? 0) + row.hours;
+  }
 
   return (
     <ProjectDetail
@@ -47,6 +61,10 @@ export default async function ProjectDetailPage({
       initialMilestones={milestonesRes.data ?? []}
       initialTasklists={tasklistsRes.data ?? []}
       initialTasks={tasksRes.data ?? []}
+      currentUserId={currentUserId}
+      profilesById={profilesById}
+      allMembers={profilesRes.data ?? []}
+      initialHoursById={hoursById}
     />
   );
 }

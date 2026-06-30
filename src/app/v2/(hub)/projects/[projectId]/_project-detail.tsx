@@ -46,12 +46,20 @@ export default function ProjectDetail({
   initialMilestones,
   initialTasklists,
   initialTasks,
+  currentUserId,
+  profilesById,
+  allMembers,
+  initialHoursById,
 }: {
   project: Project;
   companyName: string;
   initialMilestones: Milestone[];
   initialTasklists: Tasklist[];
   initialTasks: Task[];
+  currentUserId: string;
+  profilesById: Record<string, { full_name: string; avatar_url: string | null }>;
+  allMembers: { id: string; full_name: string | null; avatar_url: string | null }[];
+  initialHoursById: Record<string, number>;
 }) {
   const router = useRouter();
   const [primaryTab, setPrimaryTab] = useState<PrimaryTab>("tasks");
@@ -60,6 +68,7 @@ export default function ProjectDetail({
   const [milestones, setMilestones] = useState<Milestone[]>(initialMilestones);
   const [tasklists] = useState<Tasklist[]>(initialTasklists);
   const [createDefaults, setCreateDefaults] = useState<TaskDefaults | null>(null);
+  const [hoursById, setHoursById] = useState<Record<string, number>>(initialHoursById);
 
   // ─── Realtime sync ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -127,6 +136,15 @@ export default function ProjectDetail({
     setMilestones((prev) => prev.filter((m) => m.id !== id));
     setTasks((prev) => prev.map((t) => (t.milestone_id === id ? { ...t, milestone_id: null } : t)));
   }, []);
+
+  const handleTimerStop = useCallback(async (taskId: string, hours: number) => {
+    setHoursById((prev) => ({ ...prev, [taskId]: (prev[taskId] ?? 0) + hours }));
+    await fetch(`/api/v2/tasks/${taskId}/timelog`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ hours, project_id: project.id }),
+    });
+  }, [project.id]);
 
   return (
     <div className="flex flex-col h-full min-h-0">
@@ -204,6 +222,11 @@ export default function ProjectDetail({
                   tasklists={tasklists}
                   onOpen={(task) => router.push(`/v2/projects/${project.id}/tasks/${task.id}`)}
                   onUpdate={updateTask}
+                  currentUserId={currentUserId}
+                  profilesById={profilesById}
+                  allMembers={allMembers}
+                  hoursById={hoursById}
+                  onTimerStop={handleTimerStop}
                 />
               )}
               {view === "calendar" && (

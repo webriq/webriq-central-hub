@@ -82,6 +82,8 @@
 
 ## Completed
 
+- [097] List View: Inline Subtask Expand/Collapse — tree rendering, depth indentation, pre-expand on load, count badge + import Pass 2 pagination fix → `_docs/task/097-list-view-subtask-inline-expand.md` (completed: 2026-06-30)
+- [096] Tasks List View Redesign — Zoho-style table, inline pickers, timer, real name chips + assignees backfill migration → `_docs/task/096-tasks-list-view-redesign.md` (completed: 2026-06-30)
 - [095] v2 HR > Users Tab: List Users, Manage Role/Status, Send Invite + Register Page → `_docs/task/095-v2-hr-users-tab-management-invite.md` (completed: 2026-06-30)
 - [094] hub_users Schema: external_id rename, first_name/last_name split, role system, invite flow, trigger fix → `_docs/task/094-hub-users-schema-rename-roles.md` (completed: 2026-06-30)
 - [091] List View: Status Normalization, Priority Fix & Zoho-Style UI Overhaul → `_docs/task/091-list-view-status-priority-fix-ui-overhaul.md` (completed: 2026-06-29)

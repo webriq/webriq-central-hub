@@ -197,13 +197,26 @@ export async function POST() {
         }
 
         // ── Pass 2: resolve parent_task_id ──────────────────────────────────────
-        const { data: insertedTasks } = await adminClient
-          .from("tasks")
-          .select("id, external_id")
-          .not("external_id", "is", null);
+        // Paginate to avoid Supabase's 1000-row default limit (6 946 tasks total)
+        const allInsertedTasks: Array<{ id: string; external_id: string }> = [];
+        {
+          const PAGE = 1000;
+          let from = 0;
+          while (true) {
+            const { data: page } = await adminClient
+              .from("tasks")
+              .select("id, external_id")
+              .not("external_id", "is", null)
+              .range(from, from + PAGE - 1);
+            if (!page || page.length === 0) break;
+            allInsertedTasks.push(...(page as Array<{ id: string; external_id: string }>));
+            if (page.length < PAGE) break;
+            from += PAGE;
+          }
+        }
 
         const taskMap = new Map(
-          (insertedTasks ?? []).map((t) => [String(t.external_id), t.id as string])
+          allInsertedTasks.map((t) => [String(t.external_id), t.id as string])
         );
 
         const parentUpdates: Array<{ id: string; parent_task_id: string }> = [];
