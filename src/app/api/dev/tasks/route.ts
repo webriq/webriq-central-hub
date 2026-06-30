@@ -37,12 +37,12 @@ export async function GET(req: NextRequest) {
 
   const { data: profile } = await adminClient
     .from("hub_users")
-    .select("zoho_user_id, display_name")
+    .select("external_id, first_name, last_name")
     .eq("id", user.id)
     .single();
 
   const portalId = process.env.ZOHO_PORTAL_ID ?? "";
-  const zohoUserId = profile?.zoho_user_id ?? "";
+  const zohoUserId = profile?.external_id ?? "";
 
   if (!zohoUserId) {
     return NextResponse.json(

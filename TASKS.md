@@ -16,6 +16,7 @@
 
 | ID | Title | Priority | Type | Doc | Date |
 |----|-------|----------|------|-----|------|
+| 093 | Zoho Users Export + Import | HIGH | feature | _docs/task/093-zoho-users-export-import.md | 2026-06-30 |
 | 092 | Task Detail Page — /v2/projects/[projectId]/tasks/[taskId] | HIGH | feature | _docs/task/092-task-detail-page.md | 2026-06-29 |
 | 090 | Tasks Import: Multi-File, Full Column Set & Parent Resolution | HIGH | feature | _docs/task/090-tasks-import-multi-file-full-columns.md | 2026-06-29 |
 | 089 | Tasks Export: SSE Progress, Project Slice & Date Filter | HIGH | feature | _docs/task/089-tasks-export-sse-progress-slice-date-filter.md | 2026-06-29 |
@@ -81,6 +82,8 @@
 
 ## Completed
 
+- [095] v2 HR > Users Tab: List Users, Manage Role/Status, Send Invite + Register Page → `_docs/task/095-v2-hr-users-tab-management-invite.md` (completed: 2026-06-30)
+- [094] hub_users Schema: external_id rename, first_name/last_name split, role system, invite flow, trigger fix → `_docs/task/094-hub-users-schema-rename-roles.md` (completed: 2026-06-30)
 - [091] List View: Status Normalization, Priority Fix & Zoho-Style UI Overhaul → `_docs/task/091-list-view-status-priority-fix-ui-overhaul.md` (completed: 2026-06-29)
 - [087] Project Detail Overhaul: Primary Tabs, Tasklist Grouping, Milestone Panel & Skeleton → `_docs/task/087-project-detail-list-default-milestone-panel.md` (completed: 2026-06-29)
 - [086] Fix profiles.role for Existing Staff Users — Seed from hub_users via migration 040 → `_docs/task/086-fix-profiles-role-seed-from-hub-users.md` (completed: 2026-06-29)

@@ -32,8 +32,8 @@ export default async function DashboardTasksPage() {
   const [{ data: devUsers }, { data: customers }, { data: allUsers }] = await Promise.all([
     adminClient
       .from("hub_users")
-      .select("id, display_name, email")
-      .eq("role", "dev"),
+      .select("id, first_name, last_name, email")
+      .eq("role", "Developer"),
     adminClient
       .from("customers")
       .select("customer_id, company_name")
@@ -41,12 +41,13 @@ export default async function DashboardTasksPage() {
       .order("company_name"),
     adminClient
       .from("hub_users")
-      .select("id, display_name"),
+      .select("id, first_name, last_name"),
   ]);
 
   const reviewerMap: Record<string, string> = {};
   for (const u of allUsers ?? []) {
-    if (u.id && u.display_name) reviewerMap[u.id] = u.display_name;
+    const name = [u.first_name, u.last_name].filter(Boolean).join(" ");
+    if (u.id && name) reviewerMap[u.id] = name;
   }
 
   return <PMTasksContent developers={devUsers ?? []} customers={customers ?? []} reviewerMap={reviewerMap} />;

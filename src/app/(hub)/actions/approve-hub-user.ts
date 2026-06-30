@@ -14,11 +14,11 @@ export async function approveHubUser(path: string, formData: FormData) {
     .select("role")
     .eq("id", claims.claims.sub)
     .single();
-  if (caller?.role !== "admin") return;
+  if (!["Super Admin", "Admin"].includes(caller?.role ?? "")) return;
 
   const userId = formData.get("userId") as string;
   const role = formData.get("role") as string;
-  if (!userId || !["admin", "pm", "dev"].includes(role)) return;
+  if (!userId || !["Super Admin", "PM", "Admin", "Developer", "Other"].includes(role)) return;
 
   await adminClient.from("hub_users").update({ role }).eq("id", userId);
   revalidatePath(path);

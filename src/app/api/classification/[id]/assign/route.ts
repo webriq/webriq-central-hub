@@ -38,7 +38,7 @@ export async function POST(
   const [developersResult, recordResult] = await Promise.all([
     adminClient
       .from("hub_users")
-      .select("id, email, display_name")
+      .select("id, email, first_name, last_name")
       .in("id", developerIds),
     adminClient
       .from("classification_records")
@@ -99,7 +99,7 @@ export async function POST(
     return NextResponse.json({ ok: false, error: "assign_failed" }, { status: 502 });
   }
 
-  const developerNames = developers.map(d => d.display_name ?? d.email);
+  const developerNames = developers.map(d => [d.first_name, d.last_name].filter(Boolean).join(" ") || d.email);
   const portalName = process.env.NEXT_PUBLIC_ZOHO_PORTAL_NAME ?? "";
   const taskLink = `https://projects.zoho.com/portal/${portalName}#zp/task-detail/${zoho_task_id}/`;
   await sendCliqNotification(

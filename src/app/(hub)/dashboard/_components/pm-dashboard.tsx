@@ -110,11 +110,14 @@ export default function PMDashboard() {
       if (!data.user) return;
       supabase
         .from("hub_users")
-        .select("display_name")
+        .select("first_name, last_name")
         .eq("id", data.user.id)
         .single()
         .then(({ data: profile }) => {
-          if (profile?.display_name) setDisplayName(profile.display_name);
+          if (profile) {
+            const name = [profile.first_name, profile.last_name].filter(Boolean).join(" ");
+            if (name) setDisplayName(name);
+          }
         });
     });
   }, []);

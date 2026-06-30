@@ -65,14 +65,18 @@ export async function syncZohoRole(
   }
 
   type HubUserUpdate = {
-    display_name?: string | null;
-    zoho_user_id?: string | null;
+    first_name?: string | null;
+    last_name?: string | null;
+    external_id?: string | null;
     role?: string;
   };
 
+  const fullName = (displayName ?? portalUser.full_name ?? "").trim();
+  const nameParts = fullName.split(/\s+/);
   const updates: HubUserUpdate = {
-    display_name: (displayName ?? portalUser.full_name) || null,
-    zoho_user_id: portalUser.zuid ?? null,
+    first_name: nameParts[0] || null,
+    last_name: nameParts.slice(1).join(" ") || null,
+    external_id: portalUser.zuid ?? null,
     role,
   };
 

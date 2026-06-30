@@ -1,0 +1,1249 @@
+[
+  {
+    "business_hours": {
+      "name": "Standard Business Hours",
+      "id": "1512955000015957015"
+    },
+    "updated_time": "2025-06-12T16:48:05.331Z",
+    "role": {
+      "name": "Manager",
+      "id": "1512955000000030005"
+    },
+    "added_time": "2020-12-08T02:12:26.888Z",
+    "is_confirmed": true,
+    "last_name": "Belding",
+    "zuid": "727458079",
+    "last_accessed_on": "2025-11-07T19:54:20.735Z",
+    "is_resend_invite": false,
+    "full_name": "Alex Belding",
+    "user_type": "portal_user",
+    "portal_profile": {
+      "name": "Admin",
+      "id": "1512955000000030327",
+      "is_default": true
+    },
+    "id": "1512955000000897136",
+    "first_name": "Alex",
+    "email": "alex.belding@webriq.services",
+    "status": "active",
+    "budget": {
+      "cost_rate_per_hour": {
+        "amount": 0,
+        "formatted_amount": "0.00"
+      }
+    }
+  },
+  {
+    "business_hours": {
+      "name": "Standard Business Hours",
+      "id": "1512955000015957015"
+    },
+    "updated_time": "2022-09-27T18:49:38.854Z",
+    "role": {
+      "name": "Customer",
+      "id": "1512955000001788931"
+    },
+    "added_time": "2021-08-17T12:56:22.652Z",
+    "is_confirmed": true,
+    "zuid": "758029548",
+    "last_accessed_on": "2024-04-11T17:09:50.555Z",
+    "is_resend_invite": false,
+    "full_name": "Alex VandeVooren",
+    "user_type": "portal_user",
+    "portal_profile": {
+      "name": "Customer",
+      "id": "1512955000001788935",
+      "is_default": false
+    },
+    "id": "1512955000003042169",
+    "first_name": "Alex VandeVooren",
+    "email": "alex.vandevooren@belwith.com",
+    "status": "active",
+    "budget": {
+      "cost_rate_per_hour": {
+        "amount": 0,
+        "formatted_amount": "0.00"
+      }
+    }
+  },
+  {
+    "business_hours": {
+      "name": "Standard Business Hours",
+      "id": "1512955000015957015"
+    },
+    "updated_time": "2025-12-08T12:21:56.514Z",
+    "role": {
+      "name": "Employee",
+      "id": "1512955000000030007"
+    },
+    "added_time": "2020-08-12T12:38:17.171Z",
+    "is_confirmed": true,
+    "last_name": "Cartagenas",
+    "zuid": "649536095",
+    "last_accessed_on": "2026-06-29T03:15:29.640Z",
+    "is_resend_invite": false,
+    "full_name": "Allen Edward Cartagenas",
+    "user_type": "portal_user",
+    "portal_profile": {
+      "name": "Employee",
+      "id": "1512955000000030333",
+      "is_default": true
+    },
+    "id": "1512955000000050287",
+    "first_name": "Allen Edward",
+    "email": "allen@webriq.services",
+    "status": "active",
+    "budget": {
+      "cost_rate_per_hour": {
+        "amount": 0,
+        "formatted_amount": "0.00"
+      }
+    }
+  },
+  {
+    "business_hours": {
+      "name": "Standard Business Hours",
+      "id": "1512955000015957015"
+    },
+    "updated_time": "2026-02-18T15:37:17.616Z",
+    "role": {
+      "name": "Administrator",
+      "id": "1512955000000030003"
+    },
+    "added_time": "2024-11-12T02:38:52.729Z",
+    "is_confirmed": true,
+    "last_name": "Trocio",
+    "zuid": "871125681",
+    "last_accessed_on": "2026-06-30T02:35:20.633Z",
+    "is_resend_invite": false,
+    "full_name": "April Grace Trocio",
+    "user_type": "portal_user",
+    "portal_profile": {
+      "name": "Admin",
+      "id": "1512955000000030327",
+      "is_default": true
+    },
+    "id": "1512955000013630159",
+    "first_name": "April Grace",
+    "email": "april.trocio@webriq.services",
+    "status": "active",
+    "budget": {
+      "cost_rate_per_hour": {
+        "amount": 0,
+        "formatted_amount": "0.00"
+      }
+    }
+  },
+  {
+    "business_hours": {
+      "name": "Standard Business Hours",
+      "id": "1512955000015957015"
+    },
+    "updated_time": "2025-10-14T09:22:38.861Z",
+    "role": {
+      "name": "Manager",
+      "id": "1512955000000030005"
+    },
+    "added_time": "2025-09-26T10:13:28.303Z",
+    "is_confirmed": true,
+    "last_name": "van den boer",
+    "zuid": "837930006",
+    "last_accessed_on": "2026-04-09T12:53:07.094Z",
+    "is_resend_invite": false,
+    "full_name": "Bert van den boer",
+    "user_type": "portal_user",
+    "portal_profile": {
+      "name": "Manager",
+      "id": "1512955000000030330",
+      "is_default": true
+    },
+    "id": "1512955000013308003",
+    "first_name": "Bert",
+    "email": "bert.vandenboer@webriq.services",
+    "status": "active",
+    "budget": {
+      "cost_rate_per_hour": {
+        "amount": 0,
+        "formatted_amount": "0.00"
+      }
+    }
+  },
+  {
+    "business_hours": {
+      "name": "Standard Business Hours",
+      "id": "1512955000015957015"
+    },
+    "updated_time": "2026-02-20T11:34:47.554Z",
+    "role": {
+      "name": "Employee",
+      "id": "1512955000000030007"
+    },
+    "added_time": "2025-12-05T09:36:17.127Z",
+    "is_confirmed": true,
+    "last_name": "Cobacha",
+    "zuid": "908075526",
+    "last_accessed_on": "2026-06-30T02:45:20.645Z",
+    "is_resend_invite": false,
+    "full_name": "Brandon Dwite Cobacha",
+    "user_type": "portal_user",
+    "portal_profile": {
+      "name": "Employee",
+      "id": "1512955000000030333",
+      "is_default": true
+    },
+    "id": "1512955000017794600",
+    "first_name": "Brandon Dwite",
+    "email": "brandondwite.cobacha@webriq.services",
+    "status": "active",
+    "budget": {
+      "cost_rate_per_hour": {
+        "amount": 0,
+        "formatted_amount": "0.00"
+      }
+    }
+  },
+  {
+    "business_hours": {
+      "name": "Standard Business Hours",
+      "id": "1512955000015957015"
+    },
+    "updated_time": "2026-02-23T11:07:33.064Z",
+    "role": {
+      "name": "Administrator",
+      "id": "1512955000000030003"
+    },
+    "added_time": "2020-08-13T04:28:11.208Z",
+    "is_confirmed": true,
+    "last_name": "helpdesk@webriq.us",
+    "zuid": "670722007",
+    "last_accessed_on": "2026-06-30T01:32:22.631Z",
+    "is_resend_invite": false,
+    "full_name": "Danessa helpdesk@webriq.us",
+    "user_type": "portal_user",
+    "portal_profile": {
+      "name": "Admin",
+      "id": "1512955000000030327",
+      "is_default": true
+    },
+    "id": "1512955000000056826",
+    "first_name": "Danessa",
+    "email": "helpdesk@webriq.us",
+    "status": "active",
+    "budget": {
+      "cost_rate_per_hour": {
+        "amount": 0,
+        "formatted_amount": "0.00"
+      }
+    }
+  },
+  {
+    "business_hours": {
+      "name": "Standard Business Hours",
+      "id": "1512955000015957015"
+    },
+    "updated_time": "2026-01-27T02:10:53.967Z",
+    "role": {
+      "name": "Manager",
+      "id": "1512955000000030005"
+    },
+    "added_time": "2020-09-01T07:40:56.242Z",
+    "is_confirmed": true,
+    "last_name": "Moneva",
+    "zuid": "723452793",
+    "last_accessed_on": "2026-06-25T09:41:35.142Z",
+    "is_resend_invite": false,
+    "full_name": "Danessa Moneva",
+    "user_type": "portal_user",
+    "portal_profile": {
+      "name": "Manager",
+      "id": "1512955000000030330",
+      "is_default": true
+    },
+    "id": "1512955000000186436",
+    "first_name": "Danessa",
+    "email": "danessa@webriq.services",
+    "status": "active",
+    "budget": {
+      "cost_rate_per_hour": {
+        "amount": 0,
+        "formatted_amount": "0.00"
+      }
+    }
+  },
+  {
+    "business_hours": {
+      "name": "Standard Business Hours",
+      "id": "1512955000015957015"
+    },
+    "updated_time": "2026-05-26T11:59:38.708Z",
+    "role": {
+      "name": "Administrator",
+      "id": "1512955000000030003"
+    },
+    "added_time": "2026-05-26T11:59:38.708Z",
+    "is_confirmed": false,
+    "last_name": "Moneva",
+    "zuid": "664612818",
+    "is_resend_invite": false,
+    "full_name": "Dannea Moneva",
+    "user_type": "portal_user",
+    "portal_profile": {
+      "name": "Manager",
+      "id": "1512955000000030330",
+      "is_default": true
+    },
+    "id": "1512955000002852897",
+    "first_name": "Dannea",
+    "email": "dannea@webriq.services",
+    "status": "active",
+    "budget": {
+      "cost_rate_per_hour": {
+        "amount": 0,
+        "formatted_amount": "0.00"
+      }
+    }
+  },
+  {
+    "business_hours": {
+      "name": "Standard Business Hours",
+      "id": "1512955000015957015"
+    },
+    "updated_time": "2026-01-19T07:05:40.852Z",
+    "role": {
+      "name": "Manager",
+      "id": "1512955000000030005"
+    },
+    "added_time": "2021-07-09T08:31:14.003Z",
+    "is_confirmed": true,
+    "zuid": "755030321",
+    "last_accessed_on": "2026-06-30T02:17:38.993Z",
+    "is_resend_invite": false,
+    "full_name": "Dannea Moneva",
+    "user_type": "portal_user",
+    "portal_profile": {
+      "name": "Portal Owner",
+      "id": "1512955000000030324",
+      "is_default": true
+    },
+    "id": "1512955000002745265",
+    "first_name": "Dannea Moneva",
+    "email": "dannea.moneva@webriq.com",
+    "status": "active",
+    "budget": {
+      "cost_rate_per_hour": {
+        "amount": 0,
+        "formatted_amount": "0.00"
+      }
+    }
+  },
+  {
+    "business_hours": {
+      "name": "Standard Business Hours",
+      "id": "1512955000015957015"
+    },
+    "updated_time": "2025-12-04T05:26:44.484Z",
+    "role": {
+      "name": "Administrator",
+      "id": "1512955000000030003"
+    },
+    "added_time": "2020-08-12T12:43:21.006Z",
+    "is_confirmed": true,
+    "last_name": "Junsan",
+    "zuid": "649537174",
+    "last_accessed_on": "2026-06-22T01:16:35.496Z",
+    "is_resend_invite": false,
+    "full_name": "Eleazar Junsan",
+    "user_type": "portal_user",
+    "portal_profile": {
+      "name": "Admin",
+      "id": "1512955000000030327",
+      "is_default": true
+    },
+    "id": "1512955000000050317",
+    "first_name": "Eleazar",
+    "email": "eleazar@webriq.services",
+    "status": "active",
+    "budget": {
+      "cost_rate_per_hour": {
+        "amount": 0,
+        "formatted_amount": "0.00"
+      }
+    }
+  },
+  {
+    "business_hours": {
+      "name": "Standard Business Hours",
+      "id": "1512955000015957015"
+    },
+    "updated_time": "2026-02-23T01:35:27.381Z",
+    "role": {
+      "name": "Employee",
+      "id": "1512955000000030007"
+    },
+    "added_time": "2023-11-06T03:32:54.167Z",
+    "is_confirmed": true,
+    "last_name": "Inocian",
+    "zuid": "836251664",
+    "last_accessed_on": "2026-06-30T03:14:04.712Z",
+    "is_resend_invite": false,
+    "full_name": "Erica Inocian",
+    "user_type": "portal_user",
+    "portal_profile": {
+      "name": "Employee",
+      "id": "1512955000000030333",
+      "is_default": true
+    },
+    "id": "1512955000010417288",
+    "first_name": "Erica",
+    "email": "erica.inocian@webriq.services",
+    "status": "active",
+    "budget": {
+      "cost_rate_per_hour": {
+        "amount": 0,
+        "formatted_amount": "0.00"
+      }
+    }
+  },
+  {
+    "business_hours": {
+      "name": "Standard Business Hours",
+      "id": "1512955000015957015"
+    },
+    "updated_time": "2026-02-20T08:37:17.847Z",
+    "role": {
+      "name": "Employee",
+      "id": "1512955000000030007"
+    },
+    "added_time": "2024-02-15T05:52:47.053Z",
+    "is_confirmed": true,
+    "last_name": "Dichon",
+    "zuid": "845829049",
+    "last_accessed_on": "2026-06-30T02:26:16.744Z",
+    "is_resend_invite": false,
+    "full_name": "Ericka Dichon",
+    "user_type": "portal_user",
+    "portal_profile": {
+      "name": "Employee",
+      "id": "1512955000000030333",
+      "is_default": true
+    },
+    "id": "1512955000011449057",
+    "first_name": "Ericka",
+    "email": "ericka.dichon@webriq.services",
+    "status": "active",
+    "budget": {
+      "cost_rate_per_hour": {
+        "amount": 0,
+        "formatted_amount": "0.00"
+      }
+    }
+  },
+  {
+    "business_hours": {
+      "name": "Standard Business Hours",
+      "id": "1512955000015957015"
+    },
+    "updated_time": "2026-01-29T02:31:35.502Z",
+    "role": {
+      "name": "Employee",
+      "id": "1512955000000030007"
+    },
+    "added_time": "2025-09-08T01:26:11.769Z",
+    "is_confirmed": true,
+    "last_name": "Caber",
+    "zuid": "898913996",
+    "last_accessed_on": "2026-06-29T17:19:38.121Z",
+    "is_resend_invite": false,
+    "full_name": "Garry Caber",
+    "user_type": "portal_user",
+    "portal_profile": {
+      "name": "Employee",
+      "id": "1512955000000030333",
+      "is_default": true
+    },
+    "id": "1512955000016950146",
+    "first_name": "Garry",
+    "email": "garry.caber@webriq.services",
+    "status": "active",
+    "budget": {
+      "cost_rate_per_hour": {
+        "amount": 0,
+        "formatted_amount": "0.00"
+      }
+    }
+  },
+  {
+    "business_hours": {
+      "name": "Standard Business Hours",
+      "id": "1512955000015957015"
+    },
+    "updated_time": "2026-02-06T16:23:01.109Z",
+    "role": {
+      "name": "Customer",
+      "id": "1512955000001788931"
+    },
+    "added_time": "2022-07-06T20:27:56.351Z",
+    "is_confirmed": true,
+    "last_name": "McBride",
+    "zuid": "782783946",
+    "last_accessed_on": "2026-05-26T16:13:25.788Z",
+    "is_resend_invite": false,
+    "full_name": "Greg McBride",
+    "user_type": "portal_user",
+    "portal_profile": {
+      "name": "Customer",
+      "id": "1512955000001788935",
+      "is_default": false
+    },
+    "id": "1512955000004371009",
+    "first_name": "Greg",
+    "email": "gmcbride@mhlighting.com",
+    "status": "active",
+    "budget": {
+      "cost_rate_per_hour": {
+        "amount": 0,
+        "formatted_amount": "0.00"
+      }
+    }
+  },
+  {
+    "business_hours": {
+      "name": "Standard Business Hours",
+      "id": "1512955000015957015"
+    },
+    "updated_time": "2026-02-23T07:09:49.648Z",
+    "role": {
+      "name": "Employee",
+      "id": "1512955000000030007"
+    },
+    "added_time": "2025-02-10T01:53:00.519Z",
+    "is_confirmed": true,
+    "last_name": "Balane",
+    "zuid": "878388388",
+    "last_accessed_on": "2026-06-30T01:06:37.228Z",
+    "is_resend_invite": false,
+    "full_name": "Jacob Balane",
+    "user_type": "portal_user",
+    "portal_profile": {
+      "name": "Employee",
+      "id": "1512955000000030333",
+      "is_default": true
+    },
+    "id": "1512955000014419118",
+    "first_name": "Jacob",
+    "email": "jacob.balane@webriq.services",
+    "status": "active",
+    "budget": {
+      "cost_rate_per_hour": {
+        "amount": 0,
+        "formatted_amount": "0.00"
+      }
+    }
+  },
+  {
+    "business_hours": {
+      "name": "Standard Business Hours",
+      "id": "1512955000015957015"
+    },
+    "updated_time": "2022-08-31T17:36:54.817Z",
+    "role": {
+      "name": "Customer",
+      "id": "1512955000001788931"
+    },
+    "added_time": "2022-08-31T12:23:47.505Z",
+    "is_confirmed": true,
+    "zuid": "788536809",
+    "last_accessed_on": "2022-08-31T17:37:55.719Z",
+    "is_resend_invite": false,
+    "full_name": "Jason Litke",
+    "user_type": "portal_user",
+    "portal_profile": {
+      "name": "Customer",
+      "id": "1512955000001788935",
+      "is_default": false
+    },
+    "id": "1512955000006279413",
+    "first_name": "Jason Litke",
+    "email": "jason.litke@belwith.com",
+    "status": "active",
+    "budget": {
+      "cost_rate_per_hour": {
+        "amount": 0,
+        "formatted_amount": "0.00"
+      }
+    }
+  },
+  {
+    "business_hours": {
+      "name": "Standard Business Hours",
+      "id": "1512955000015957015"
+    },
+    "updated_time": "2026-02-02T05:11:58.919Z",
+    "role": {
+      "name": "Employee",
+      "id": "1512955000000030007"
+    },
+    "added_time": "2021-09-24T06:30:25.281Z",
+    "is_confirmed": true,
+    "last_name": "Matiga",
+    "zuid": "760791628",
+    "last_accessed_on": "2026-06-29T13:48:32.977Z",
+    "is_resend_invite": false,
+    "full_name": "Jaymar Matiga",
+    "user_type": "portal_user",
+    "portal_profile": {
+      "name": "Employee",
+      "id": "1512955000000030333",
+      "is_default": true
+    },
+    "id": "1512955000003339043",
+    "first_name": "Jaymar",
+    "email": "jaymar.matiga@webriq.services",
+    "status": "active",
+    "budget": {
+      "cost_rate_per_hour": {
+        "amount": 0,
+        "formatted_amount": "0.00"
+      }
+    }
+  },
+  {
+    "business_hours": {
+      "name": "Standard Business Hours",
+      "id": "1512955000015957015"
+    },
+    "updated_time": "2021-03-27T05:46:52.528Z",
+    "role": {
+      "name": "Customer",
+      "id": "1512955000001788931"
+    },
+    "added_time": "2021-03-27T05:46:52.519Z",
+    "is_confirmed": true,
+    "zuid": "746766305",
+    "last_accessed_on": "2021-04-21T16:20:43.547Z",
+    "is_resend_invite": false,
+    "full_name": "Kemi Chavez",
+    "user_type": "portal_user",
+    "portal_profile": {
+      "name": "Customer",
+      "id": "1512955000001788935",
+      "is_default": false
+    },
+    "id": "1512955000001842001",
+    "first_name": "Kemi Chavez",
+    "email": "kemi@peakprofinancial.com",
+    "status": "active",
+    "budget": {
+      "cost_rate_per_hour": {
+        "amount": 0,
+        "formatted_amount": "0.00"
+      }
+    }
+  },
+  {
+    "business_hours": {
+      "name": "Standard Business Hours",
+      "id": "1512955000015957015"
+    },
+    "updated_time": "2026-02-09T04:32:43.159Z",
+    "role": {
+      "name": "Employee",
+      "id": "1512955000000030007"
+    },
+    "added_time": "2024-02-15T05:52:47.347Z",
+    "is_confirmed": true,
+    "last_name": "Medez",
+    "zuid": "845830651",
+    "last_accessed_on": "2026-06-30T02:31:25.722Z",
+    "is_resend_invite": false,
+    "full_name": "Kenet Medez",
+    "user_type": "portal_user",
+    "portal_profile": {
+      "name": "Employee",
+      "id": "1512955000000030333",
+      "is_default": true
+    },
+    "id": "1512955000011450287",
+    "first_name": "Kenet",
+    "email": "kenet.medez@webriq.services",
+    "status": "active",
+    "budget": {
+      "cost_rate_per_hour": {
+        "amount": 0,
+        "formatted_amount": "0.00"
+      }
+    }
+  },
+  {
+    "business_hours": {
+      "name": "Standard Business Hours",
+      "id": "1512955000015957015"
+    },
+    "updated_time": "2021-07-29T13:07:10.651Z",
+    "role": {
+      "name": "Customer",
+      "id": "1512955000001788931"
+    },
+    "added_time": "2021-07-29T13:07:10.538Z",
+    "is_confirmed": true,
+    "zuid": "756522043",
+    "last_accessed_on": "2021-07-29T13:07:17.692Z",
+    "is_resend_invite": false,
+    "full_name": "Leesa Fotis",
+    "user_type": "portal_user",
+    "portal_profile": {
+      "name": "Customer",
+      "id": "1512955000001788935",
+      "is_default": false
+    },
+    "id": "1512955000002917001",
+    "first_name": "Leesa Fotis",
+    "email": "leesa.fotis@belwith.com",
+    "status": "active",
+    "budget": {
+      "cost_rate_per_hour": {
+        "amount": 0,
+        "formatted_amount": "0.00"
+      }
+    }
+  },
+  {
+    "business_hours": {
+      "name": "Standard Business Hours",
+      "id": "1512955000015957015"
+    },
+    "updated_time": "2026-02-20T07:40:33.428Z",
+    "role": {
+      "name": "Employee",
+      "id": "1512955000000030007"
+    },
+    "added_time": "2023-06-19T05:50:44.942Z",
+    "is_confirmed": true,
+    "last_name": "Genodiala",
+    "zuid": "814277754",
+    "last_accessed_on": "2026-06-26T08:46:26.347Z",
+    "is_resend_invite": false,
+    "full_name": "Mariel Genodiala",
+    "user_type": "portal_user",
+    "portal_profile": {
+      "name": "Employee",
+      "id": "1512955000000030333",
+      "is_default": true
+    },
+    "id": "1512955000009122237",
+    "first_name": "Mariel",
+    "email": "mariel.genodiala@webriq.services",
+    "status": "active",
+    "budget": {
+      "cost_rate_per_hour": {
+        "amount": 0,
+        "formatted_amount": "0.00"
+      }
+    }
+  },
+  {
+    "business_hours": {
+      "name": "Standard Business Hours",
+      "id": "1512955000015957015"
+    },
+    "updated_time": "2026-02-20T17:33:16.939Z",
+    "role": {
+      "name": "Administrator",
+      "id": "1512955000000030003"
+    },
+    "added_time": "2021-07-09T08:45:42.907Z",
+    "is_confirmed": true,
+    "last_name": "Filosopo",
+    "zuid": "740314075",
+    "last_accessed_on": "2026-06-30T01:22:03.170Z",
+    "is_resend_invite": false,
+    "full_name": "Mariel Ann Filosopo",
+    "user_type": "portal_user",
+    "portal_profile": {
+      "name": "Manager",
+      "id": "1512955000000030330",
+      "is_default": true
+    },
+    "id": "1512955000002745423",
+    "first_name": "Mariel Ann",
+    "email": "mariel.filosopo@webriq.services",
+    "status": "active",
+    "budget": {
+      "cost_rate_per_hour": {
+        "amount": 0,
+        "formatted_amount": "0.00"
+      }
+    }
+  },
+  {
+    "business_hours": {
+      "name": "Standard Business Hours",
+      "id": "1512955000015957015"
+    },
+    "updated_time": "2025-08-20T05:56:51.137Z",
+    "role": {
+      "name": "Employee",
+      "id": "1512955000000030007"
+    },
+    "added_time": "2024-05-31T13:31:51.761Z",
+    "is_confirmed": true,
+    "last_name": "Mejias",
+    "zuid": "854392166",
+    "last_accessed_on": "2026-06-30T01:54:24.656Z",
+    "is_resend_invite": false,
+    "full_name": "Mark John Mejias",
+    "user_type": "portal_user",
+    "portal_profile": {
+      "name": "Employee",
+      "id": "1512955000000030333",
+      "is_default": true
+    },
+    "id": "1512955000012444001",
+    "first_name": "Mark John",
+    "email": "markjohn.mejias@webriq.services",
+    "status": "active",
+    "budget": {
+      "cost_rate_per_hour": {
+        "amount": 0,
+        "formatted_amount": "0.00"
+      }
+    }
+  },
+  {
+    "business_hours": {
+      "name": "Standard Business Hours",
+      "id": "1512955000015957015"
+    },
+    "updated_time": "2026-02-21T00:27:08.232Z",
+    "role": {
+      "name": "Employee",
+      "id": "1512955000000030007"
+    },
+    "added_time": "2025-09-24T14:26:41.602Z",
+    "is_confirmed": true,
+    "last_name": "Trinidad",
+    "zuid": "900288881",
+    "last_accessed_on": "2026-06-30T00:58:14.349Z",
+    "is_resend_invite": false,
+    "full_name": "Miguel Franco Trinidad",
+    "user_type": "portal_user",
+    "portal_profile": {
+      "name": "Employee",
+      "id": "1512955000000030333",
+      "is_default": true
+    },
+    "id": "1512955000017126081",
+    "first_name": "Miguel Franco",
+    "email": "miguel.trinidad@webriq.services",
+    "status": "active",
+    "budget": {
+      "cost_rate_per_hour": {
+        "amount": 0,
+        "formatted_amount": "0.00"
+      }
+    }
+  },
+  {
+    "business_hours": {
+      "name": "Standard Business Hours",
+      "id": "1512955000015957015"
+    },
+    "updated_time": "2021-05-11T02:06:07.234Z",
+    "role": {
+      "name": "Customer",
+      "id": "1512955000001788931"
+    },
+    "added_time": "2021-05-11T02:06:07.225Z",
+    "is_confirmed": true,
+    "zuid": "750257836",
+    "last_accessed_on": "2021-06-29T03:17:33.592Z",
+    "is_resend_invite": false,
+    "full_name": "Nathan Hildreth",
+    "user_type": "portal_user",
+    "portal_profile": {
+      "name": "Customer",
+      "id": "1512955000001788935",
+      "is_default": false
+    },
+    "id": "1512955000002129001",
+    "first_name": "Nathan Hildreth",
+    "email": "nathan@fluoinc.com",
+    "status": "active",
+    "budget": {
+      "cost_rate_per_hour": {
+        "amount": 0,
+        "formatted_amount": "0.00"
+      }
+    }
+  },
+  {
+    "business_hours": {
+      "name": "Standard Business Hours",
+      "id": "1512955000015957015"
+    },
+    "updated_time": "2026-02-10T05:47:54.841Z",
+    "role": {
+      "name": "Employee",
+      "id": "1512955000000030007"
+    },
+    "added_time": "2025-10-27T03:12:10.095Z",
+    "is_confirmed": true,
+    "last_name": "Gabato",
+    "zuid": "903301469",
+    "last_accessed_on": "2026-06-29T04:58:51.380Z",
+    "is_resend_invite": false,
+    "full_name": "Nikki Gabato",
+    "user_type": "portal_user",
+    "portal_profile": {
+      "name": "Employee",
+      "id": "1512955000000030333",
+      "is_default": true
+    },
+    "id": "1512955000017404019",
+    "first_name": "Nikki",
+    "email": "nikki.gabato@webriq.services",
+    "status": "active",
+    "budget": {
+      "cost_rate_per_hour": {
+        "amount": 0,
+        "formatted_amount": "0.00"
+      }
+    }
+  },
+  {
+    "business_hours": {
+      "name": "Standard Business Hours",
+      "id": "1512955000015957015"
+    },
+    "updated_time": "2026-02-23T13:11:17.032Z",
+    "role": {
+      "name": "Administrator",
+      "id": "1512955000000030003"
+    },
+    "added_time": "2024-03-05T05:08:23.768Z",
+    "is_confirmed": true,
+    "last_name": "Baraquil",
+    "zuid": "847035989",
+    "last_accessed_on": "2026-06-30T02:43:37.685Z",
+    "is_resend_invite": false,
+    "full_name": "Niña Anjerrie Baraquil",
+    "user_type": "portal_user",
+    "portal_profile": {
+      "name": "Admin",
+      "id": "1512955000000030327",
+      "is_default": true
+    },
+    "id": "1512955000011632080",
+    "first_name": "Niña Anjerrie",
+    "email": "nina.baraquil@webriq.services",
+    "status": "active",
+    "budget": {
+      "cost_rate_per_hour": {
+        "amount": 0,
+        "formatted_amount": "0.00"
+      }
+    }
+  },
+  {
+    "business_hours": {
+      "name": "Standard Business Hours",
+      "id": "1512955000015957015"
+    },
+    "updated_time": "2021-03-20T03:31:27.346Z",
+    "role": {
+      "name": "Employee",
+      "id": "1512955000000030007"
+    },
+    "added_time": "2021-03-20T03:31:27.338Z",
+    "is_confirmed": true,
+    "last_name": "Bodart",
+    "zuid": "28320259",
+    "last_accessed_on": "2023-08-03T06:20:48.105Z",
+    "is_resend_invite": false,
+    "full_name": "Philippe Bodart",
+    "user_type": "portal_user",
+    "portal_profile": {
+      "name": "Manager",
+      "id": "1512955000000030330",
+      "is_default": true
+    },
+    "id": "1512955000001771001",
+    "first_name": "Philippe",
+    "email": "philippe.bodart@webtools2go.com",
+    "status": "active",
+    "budget": {
+      "cost_rate_per_hour": {
+        "amount": 0,
+        "formatted_amount": "0.00"
+      }
+    }
+  },
+  {
+    "business_hours": {
+      "name": "Standard Business Hours",
+      "id": "1512955000015957015"
+    },
+    "updated_time": "2025-01-20T08:03:52.492Z",
+    "role": {
+      "name": "Administrator",
+      "id": "1512955000000030003"
+    },
+    "added_time": "2020-08-28T07:39:17.729Z",
+    "is_confirmed": true,
+    "last_name": "Bodart",
+    "zuid": "648946793",
+    "last_accessed_on": "2026-05-28T01:50:04.545Z",
+    "is_resend_invite": false,
+    "full_name": "Philippe Bodart",
+    "user_type": "portal_user",
+    "portal_profile": {
+      "name": "Admin",
+      "id": "1512955000000030327",
+      "is_default": true
+    },
+    "id": "1512955000000181065",
+    "first_name": "Philippe",
+    "email": "philippe.bodart@webriq.services",
+    "status": "active",
+    "budget": {
+      "cost_rate_per_hour": {
+        "amount": 0,
+        "formatted_amount": "0.00"
+      }
+    }
+  },
+  {
+    "business_hours": {
+      "name": "Standard Business Hours",
+      "id": "1512955000015957015"
+    },
+    "updated_time": "2025-05-21T06:18:49.368Z",
+    "role": {
+      "name": "Customer",
+      "id": "1512955000001788931"
+    },
+    "added_time": "2025-05-21T06:18:49.368Z",
+    "is_confirmed": false,
+    "is_resend_invite": false,
+    "full_name": "Regenia Robb",
+    "user_type": "portal_user",
+    "portal_profile": {
+      "name": "Customer",
+      "id": "1512955000001788935",
+      "is_default": false
+    },
+    "id": "1512955000009975015",
+    "first_name": "Regenia Robb",
+    "email": "regenia.robb@belwith.com",
+    "status": "active",
+    "budget": {
+      "cost_rate_per_hour": {
+        "amount": 0,
+        "formatted_amount": "0.00"
+      }
+    }
+  },
+  {
+    "business_hours": {
+      "name": "Standard Business Hours",
+      "id": "1512955000015957015"
+    },
+    "updated_time": "2025-09-02T05:41:32.880Z",
+    "role": {
+      "name": "Employee",
+      "id": "1512955000000030007"
+    },
+    "added_time": "2024-02-15T05:52:47.276Z",
+    "is_confirmed": true,
+    "last_name": "Dulog",
+    "zuid": "845829841",
+    "last_accessed_on": "2026-06-30T02:20:29.637Z",
+    "is_resend_invite": false,
+    "full_name": "Renato Dulog",
+    "user_type": "portal_user",
+    "portal_profile": {
+      "name": "Employee",
+      "id": "1512955000000030333",
+      "is_default": true
+    },
+    "id": "1512955000011450285",
+    "first_name": "Renato",
+    "email": "renato.dulog@webriq.services",
+    "status": "active",
+    "budget": {
+      "cost_rate_per_hour": {
+        "amount": 0,
+        "formatted_amount": "0.00"
+      }
+    }
+  },
+  {
+    "business_hours": {
+      "name": "Standard Business Hours",
+      "id": "1512955000015957015"
+    },
+    "updated_time": "2026-01-21T03:27:39.895Z",
+    "role": {
+      "name": "Employee",
+      "id": "1512955000000030007"
+    },
+    "added_time": "2024-01-02T06:50:46.743Z",
+    "is_confirmed": true,
+    "last_name": "Enriquez",
+    "zuid": "839460623",
+    "last_accessed_on": "2026-06-29T03:30:56.226Z",
+    "is_resend_invite": false,
+    "full_name": "Roseller Enriquez",
+    "user_type": "portal_user",
+    "portal_profile": {
+      "name": "Employee",
+      "id": "1512955000000030333",
+      "is_default": true
+    },
+    "id": "1512955000010983233",
+    "first_name": "Roseller",
+    "email": "roseller.enriquez@webriq.services",
+    "status": "active",
+    "budget": {
+      "cost_rate_per_hour": {
+        "amount": 0,
+        "formatted_amount": "0.00"
+      }
+    }
+  },
+  {
+    "business_hours": {
+      "name": "Standard Business Hours",
+      "id": "1512955000015957015"
+    },
+    "updated_time": "2025-10-07T18:46:14.505Z",
+    "role": {
+      "name": "Customer",
+      "id": "1512955000001788931"
+    },
+    "added_time": "2025-05-14T07:09:59.210Z",
+    "is_confirmed": true,
+    "last_name": "Molegraaf",
+    "zuid": "887900555",
+    "last_accessed_on": "2025-10-07T18:50:26.694Z",
+    "is_resend_invite": false,
+    "full_name": "Sarah Molegraaf",
+    "user_type": "portal_user",
+    "portal_profile": {
+      "name": "Customer",
+      "id": "1512955000001788935",
+      "is_default": false
+    },
+    "id": "1512955000015569064",
+    "first_name": "Sarah",
+    "email": "sarah.molegraaf@belwith.com",
+    "status": "active",
+    "budget": {
+      "cost_rate_per_hour": {
+        "amount": 0,
+        "formatted_amount": "0.00"
+      }
+    }
+  },
+  {
+    "business_hours": {
+      "name": "Standard Business Hours",
+      "id": "1512955000015957015"
+    },
+    "updated_time": "2021-03-23T04:17:12.443Z",
+    "role": {
+      "name": "Customer",
+      "id": "1512955000001788931"
+    },
+    "added_time": "2021-03-23T04:17:12.434Z",
+    "is_confirmed": true,
+    "zuid": "746323993",
+    "last_accessed_on": "2021-04-12T21:44:29.294Z",
+    "is_resend_invite": false,
+    "full_name": "Test Account Danessa",
+    "user_type": "portal_user",
+    "portal_profile": {
+      "name": "Customer",
+      "id": "1512955000001788935",
+      "is_default": false
+    },
+    "id": "1512955000001794001",
+    "first_name": "Test Account Danessa",
+    "email": "bel.cuore88@gmail.com",
+    "status": "active",
+    "budget": {
+      "cost_rate_per_hour": {
+        "amount": 0,
+        "formatted_amount": "0.00"
+      }
+    }
+  },
+  {
+    "business_hours": {
+      "name": "Standard Business Hours",
+      "id": "1512955000015957015"
+    },
+    "updated_time": "2025-05-21T06:18:48.653Z",
+    "role": {
+      "name": "Customer",
+      "id": "1512955000001788931"
+    },
+    "added_time": "2022-08-31T12:24:32.791Z",
+    "is_confirmed": true,
+    "last_name": "Ramsdell",
+    "zuid": "779236848",
+    "last_accessed_on": "2025-06-05T14:02:40.351Z",
+    "is_resend_invite": false,
+    "full_name": "Todd Ramsdell",
+    "user_type": "portal_user",
+    "portal_profile": {
+      "name": "Customer",
+      "id": "1512955000001788935",
+      "is_default": false
+    },
+    "id": "1512955000006281132",
+    "first_name": "Todd",
+    "email": "todd.ramsdell@belwith.com",
+    "status": "active",
+    "budget": {
+      "cost_rate_per_hour": {
+        "amount": 0,
+        "formatted_amount": "0.00"
+      }
+    }
+  },
+  {
+    "business_hours": {
+      "name": "Standard Business Hours",
+      "id": "1512955000015957015"
+    },
+    "updated_time": "2026-02-20T08:11:53.030Z",
+    "role": {
+      "name": "Employee",
+      "id": "1512955000000030007"
+    },
+    "added_time": "2023-11-06T03:32:38.607Z",
+    "is_confirmed": true,
+    "last_name": "Sanchez",
+    "zuid": "836253155",
+    "last_accessed_on": "2026-06-30T01:44:28.825Z",
+    "is_resend_invite": false,
+    "full_name": "Ulrick Sanchez",
+    "user_type": "portal_user",
+    "portal_profile": {
+      "name": "Employee",
+      "id": "1512955000000030333",
+      "is_default": true
+    },
+    "id": "1512955000010419263",
+    "first_name": "Ulrick",
+    "email": "ulrick.sanchez@webriq.services",
+    "status": "active",
+    "budget": {
+      "cost_rate_per_hour": {
+        "amount": 0,
+        "formatted_amount": "0.00"
+      }
+    }
+  }
+]

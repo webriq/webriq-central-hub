@@ -11,12 +11,17 @@ export async function updateZohoProfile(
   displayName: string,
   zuid: string
 ) {
+  const parts = displayName.trim().split(/\s+/);
+  const firstName = parts[0] ?? null;
+  const lastName = parts.slice(1).join(" ") || null;
+
   // 1. Update hub_users
   const { error: hubErr } = await adminClient
     .from("hub_users")
     .update({
-      display_name: displayName,
-      zoho_user_id: zuid,
+      first_name: firstName,
+      last_name: lastName,
+      external_id: zuid,
     })
     .eq("id", userId);
 

@@ -21,40 +21,52 @@ export async function syncHubUserAfterLogin() {
   // Check current hub_users row
   const { data: existing } = await supabase
     .from("hub_users")
-    .select("display_name, zoho_user_id")
+    .select("first_name, last_name, external_id")
     .eq("id", user.id)
     .maybeSingle();
 
+  function splitName(full: string | null) {
+    if (!full) return { first_name: null as string | null, last_name: null as string | null };
+    const parts = full.trim().split(/\s+/);
+    return { first_name: parts[0] ?? null, last_name: parts.slice(1).join(" ") || null };
+  }
+
   if (!existing) {
     // No hub_users row yet — insert it (shouldn't happen, but safety net)
+    const fullName =
+      (rawMeta["full_name"] as string) ??
+      (rawMeta["name"] as string) ??
+      (rawMeta["display_name"] as string) ??
+      user.email.split("@")[0];
+    const { first_name, last_name } = splitName(fullName);
     await supabase.from("hub_users").insert({
       id: user.id,
       email: user.email,
-      display_name:
-        (rawMeta["full_name"] as string) ??
-        (rawMeta["name"] as string) ??
-        (rawMeta["display_name"] as string) ??
-        user.email.split("@")[0],
-      role: "pm",
-      zoho_user_id: (rawMeta["sub"] as string) ?? null,
+      first_name,
+      last_name,
+      role: null,
+      external_id: (rawMeta["sub"] as string) ?? null,
     });
     return;
   }
 
   // Build updates only for NULL fields
-  const updates: { display_name?: string; zoho_user_id?: string | null } = {};
+  const updates: { first_name?: string | null; last_name?: string | null; external_id?: string | null } = {};
 
-  if (!existing.display_name) {
-    updates.display_name =
+  if (!existing.first_name) {
+    const fullName =
       (rawMeta["full_name"] as string) ??
       (rawMeta["name"] as string) ??
       (rawMeta["display_name"] as string) ??
       user.email.split("@")[0];
+    const { first_name, last_name } = splitName(fullName);
+    updates.first_name = first_name;
+    updates.last_name = last_name;
   }
 
   const zohoSub = rawMeta["sub"] as string | undefined;
-  if (!existing.zoho_user_id && zohoSub) {
-    updates.zoho_user_id = zohoSub;
+  if (!existing.external_id && zohoSub) {
+    updates.external_id = zohoSub;
   }
 
   if (Object.keys(updates).length > 0) {

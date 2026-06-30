@@ -201,3 +201,24 @@ export async function inviteUser(
   await sendInvitationEmail(email, fullName, tempPassword);
   return { tempPassword };
 }
+
+export async function registerFromInvite(
+  password: string,
+  deviceId: string
+): Promise<{ redirect?: string; error?: string }> {
+  if (password.length < 8) return { error: "Password must be at least 8 characters." };
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Session expired. Request a new invite from your administrator." };
+
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) return { error: error.message };
+
+  await adminClient
+    .from("hub_users")
+    .update({ joined_at: new Date().toISOString() })
+    .eq("id", user.id);
+
+  return postLoginGate(deviceId);
+}

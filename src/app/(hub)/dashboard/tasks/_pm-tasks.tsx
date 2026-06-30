@@ -10,7 +10,7 @@ type ClassificationRow = Database["public"]["Tables"]["classification_records"][
   customers?: { company_name: string } | null;
 };
 
-type Developer = { id: string; display_name: string | null; email: string };
+type Developer = { id: string; first_name: string | null; last_name: string | null; email: string };
 type Customer = { customer_id: string; company_name: string };
 
 export default function PMTasksContent({ developers, customers, reviewerMap }: { developers: Developer[]; customers: Customer[]; reviewerMap: Record<string, string> }) {

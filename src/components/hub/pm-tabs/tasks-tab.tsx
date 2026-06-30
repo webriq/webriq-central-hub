@@ -33,7 +33,7 @@ function formatAge(dateStr: string): string {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
-type Developer = { id: string; display_name: string | null; email: string };
+type Developer = { id: string; first_name: string | null; last_name: string | null; email: string };
 
 function AssignDropdown({ taskId, developers }: { taskId: string; developers: Developer[] }) {
   const [open, setOpen] = useState(false);
@@ -98,7 +98,7 @@ function AssignDropdown({ taskId, developers }: { taskId: string; developers: De
                 onChange={() => toggleDev(d.id)}
                 className="rounded cursor-pointer"
               />
-              {d.display_name ?? d.email}
+              {[d.first_name, d.last_name].filter(Boolean).join(" ") || d.email}
             </label>
           ))}
           <button

@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
 
   const { data: profile } = await adminClient
     .from("hub_users")
-    .select("zoho_user_id, display_name")
+    .select("external_id, first_name, last_name")
     .eq("id", user.id)
     .single();
 
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "assign_failed" }, { status: 502 });
   }
 
-  const displayName = profile?.display_name ?? "A developer";
+  const displayName = [profile?.first_name, profile?.last_name].filter(Boolean).join(" ") || "A developer";
   const portalName = process.env.NEXT_PUBLIC_ZOHO_PORTAL_NAME ?? "";
   const taskLink = `https://projects.zoho.com/portal/${portalName}#zp/task-detail/${body.taskId}/`;
   await sendCliqNotification(

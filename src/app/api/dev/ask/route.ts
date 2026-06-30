@@ -36,14 +36,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  // 3. Read zoho_user_id from hub_users
+  // 3. Read external_id from hub_users
   const { data: profile } = await adminClient
     .from("hub_users")
-    .select("zoho_user_id")
+    .select("external_id")
     .eq("id", user.id)
     .single();
 
-  const zohoUserId = profile?.zoho_user_id ?? null;
+  const zohoUserId = profile?.external_id ?? null;
   if (!zohoUserId) {
     return NextResponse.json({ error: "no_zoho_id" }, { status: 400 });
   }

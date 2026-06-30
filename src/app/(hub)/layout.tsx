@@ -22,19 +22,19 @@ export default async function HubLayout({ children }: { children: React.ReactNod
   if (userId) {
     const { data: profile } = await supabase
       .from("hub_users")
-      .select("email, role, display_name, zoho_user_id")
+      .select("email, role, first_name, last_name, external_id")
       .eq("id", userId)
       .single();
 
     if (profile) {
       userEmail = profile.email;
       userRole = profile.role;
-      userDisplayName = profile.display_name;
-      userZohoId = profile.zoho_user_id;
+      userDisplayName = [profile.first_name, profile.last_name].filter(Boolean).join(" ") || null;
+      userZohoId = profile.external_id;
     }
   }
 
-  if (userRole === "pending") {
+  if (!userRole) {
     redirect("/auth/pending");
   }
 

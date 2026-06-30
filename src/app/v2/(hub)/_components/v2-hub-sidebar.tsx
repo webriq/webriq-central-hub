@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, FolderKanban, Inbox, Cpu, Users,
   Megaphone, BookOpen, Settings, ChevronLeft, ChevronRight,
-  KeyRound, Circle, LogOut, Building2,
+  Circle, LogOut, Building2,
 } from "lucide-react";
 import { V2_ROUTES } from "@/config/constants";
 import { cn } from "@/lib/utils";
@@ -50,7 +50,6 @@ function getNavGroups(role: string | null): NavGroup[] {
 
   const adminItems: NavItem[] = isAdmin ? [
     { label: "Settings",      icon: <Settings size={18} />,        href: V2_ROUTES.DASHBOARD_SETTINGS },
-    { label: "Auth frames",   icon: <KeyRound size={18} />,        href: V2_ROUTES.DASHBOARD_USERS },
   ] : [];
 
   const groups: NavGroup[] = [

@@ -13,7 +13,7 @@ export default async function UsersPage() {
 
   const { data: users } = await adminClient
     .from("hub_users")
-    .select("id, email, display_name, role, zoho_user_id, created_at")
+    .select("id, email, first_name, last_name, role, external_id, is_invited, created_at")
     .order("created_at", { ascending: false });
 
   const rows = users ?? [];

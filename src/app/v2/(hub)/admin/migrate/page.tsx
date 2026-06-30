@@ -29,6 +29,7 @@ interface TasksImportState {
 }
 
 const EXPORT_LEVELS = [
+  { key: "users", label: "Users", desc: "All Zoho portal users — can run independently" },
   { key: "milestones", label: "Milestones", desc: "All milestones across every project — export before Tasklists" },
   { key: "tasklists", label: "Tasklists", desc: "All tasklists across every project" },
   { key: "tasks", label: "Tasks", desc: "All tasks (paginated per project)" },
@@ -38,6 +39,7 @@ const EXPORT_LEVELS = [
 ] as const;
 
 const IMPORT_LEVELS = [
+  { key: "users", label: "Users", desc: "Syncs Zoho portal users to hub_users and profiles — can run independently" },
   { key: "customers", label: "Customers", desc: "Creates Hub customer records from unique names in projects.json — run first" },
   { key: "projects", label: "Projects", desc: "Creates or upserts Hub project rows from projects.json — requires Customers imported first" },
   { key: "milestones", label: "Milestones", desc: "Creates Hub milestone records from milestones.json — run before Tasklists" },

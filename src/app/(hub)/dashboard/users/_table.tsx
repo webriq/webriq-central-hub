@@ -4,16 +4,18 @@ import { cn } from "@/lib/utils";
 import { usePMSettings } from "@/hooks/use-pm-settings";
 
 const ROLE_BADGE_LIGHT: Record<string, string> = {
-  admin:   "bg-red-50 text-red-700 border border-red-200",
-  pm:      "bg-blue-50 text-blue-700 border border-blue-200",
-  dev:     "bg-green-50 text-green-700 border border-green-200",
-  pending: "bg-amber-50 text-amber-700 border border-amber-200",
+  "Super Admin": "bg-purple-50 text-purple-700 border border-purple-200",
+  "Admin":       "bg-red-50 text-red-700 border border-red-200",
+  "PM":          "bg-blue-50 text-blue-700 border border-blue-200",
+  "Developer":   "bg-green-50 text-green-700 border border-green-200",
+  "Other":       "bg-slate-50 text-slate-600 border border-slate-200",
 };
 const ROLE_BADGE_DARK: Record<string, string> = {
-  admin:   "text-red-400 bg-red-500/15 border border-red-500/20",
-  pm:      "text-blue-400 bg-blue-500/15 border border-blue-500/20",
-  dev:     "text-green-400 bg-green-500/15 border border-green-500/20",
-  pending: "text-amber-400 bg-amber-500/15 border border-amber-500/20",
+  "Super Admin": "text-purple-400 bg-purple-500/15 border border-purple-500/20",
+  "Admin":       "text-red-400 bg-red-500/15 border border-red-500/20",
+  "PM":          "text-blue-400 bg-blue-500/15 border border-blue-500/20",
+  "Developer":   "text-green-400 bg-green-500/15 border border-green-500/20",
+  "Other":       "text-slate-400 bg-slate-500/15 border border-slate-500/20",
 };
 
 function formatDate(dateStr: string) {
@@ -23,9 +25,11 @@ function formatDate(dateStr: string) {
 type HubUser = {
   id: string;
   email: string | null;
-  role: string;
-  display_name: string | null;
-  zoho_user_id: string | null;
+  role: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  external_id: string | null;
+  is_invited: boolean;
   created_at: string;
 };
 
@@ -38,7 +42,7 @@ interface UsersTableProps {
 export default function UsersTable({ users, currentUserId, approveAction }: UsersTableProps) {
   const { settings } = usePMSettings();
   const isDark = settings.theme === "dark";
-  const pendingCount = users.filter((u) => u.role === "pending").length;
+  const pendingCount = users.filter((u) => !u.role).length;
 
   return (
     <div className="flex-1 overflow-y-auto py-6.5 px-8">
@@ -69,7 +73,9 @@ export default function UsersTable({ users, currentUserId, approveAction }: User
             ) : users.map((user, i) => (
               <tr key={user.id} className={cn("border-b last:border-0", isDark ? "border-white/[0.05]" : "border-slate-100", i % 2 !== 0 && (isDark ? "bg-white/[0.02]" : "bg-slate-50/40"))}>
                 <td className="py-3 px-4">
-                  <div className={cn("font-semibold text-[13px]", isDark ? "text-slate-200" : "text-slate-900")}>{user.display_name ?? "—"}</div>
+                  <div className={cn("font-semibold text-[13px]", isDark ? "text-slate-200" : "text-slate-900")}>
+                    {[user.first_name, user.last_name].filter(Boolean).join(" ") || "—"}
+                  </div>
                   <div className="text-[11px] text-slate-400 mt-0.5">
                     {user.email}
                     {user.id === currentUserId && (
@@ -78,24 +84,26 @@ export default function UsersTable({ users, currentUserId, approveAction }: User
                   </div>
                 </td>
                 <td className="py-3 px-4">
-                  <span className={cn("text-[11px] font-semibold px-2 py-0.5 rounded", user.role === "pm" ? "uppercase" : "capitalize", (isDark ? ROLE_BADGE_DARK : ROLE_BADGE_LIGHT)[user.role] ?? (isDark ? "text-slate-400 bg-slate-500/15 border border-slate-500/20" : "bg-slate-50 text-slate-600 border border-slate-200"))}>
-                    {user.role}
+                  <span className={cn("text-[11px] font-semibold px-2 py-0.5 rounded", (isDark ? ROLE_BADGE_DARK : ROLE_BADGE_LIGHT)[user.role ?? ""] ?? (isDark ? "text-amber-400 bg-amber-500/15 border border-amber-500/20" : "bg-amber-50 text-amber-700 border border-amber-200"))}>
+                    {user.role ?? "Unassigned"}
                   </span>
                 </td>
                 <td className="py-3 px-4">
-                  <span className="text-[12px] font-mono text-slate-500">{user.zoho_user_id ?? "—"}</span>
+                  <span className="text-[12px] font-mono text-slate-500">{user.external_id ?? "—"}</span>
                 </td>
                 <td className="py-3 px-4 text-[12px] text-slate-400">
                   {user.created_at ? formatDate(user.created_at) : "—"}
                 </td>
                 <td className="py-3 px-4">
-                  {user.role === "pending" ? (
+                  {!user.role ? (
                     <form action={approveAction} className="flex items-center gap-2">
                       <input type="hidden" name="userId" value={user.id} />
                       <select name="role" className={cn("text-[11px] border rounded px-1.5 py-0.5", isDark ? "border-white/[0.08] bg-white/5 text-slate-300" : "border-slate-200 bg-white text-slate-700")}>
-                        <option value="dev">Dev</option>
-                        <option value="pm">PM</option>
-                        <option value="admin">Admin</option>
+                        <option value="Super Admin">Super Admin</option>
+                        <option value="PM">PM</option>
+                        <option value="Admin">Admin</option>
+                        <option value="Developer">Developer</option>
+                        <option value="Other">Other</option>
                       </select>
                       <button type="submit" className="text-[11px] font-semibold text-white bg-slate-800 hover:bg-slate-900 px-2.5 py-0.5 rounded">
                         Approve
