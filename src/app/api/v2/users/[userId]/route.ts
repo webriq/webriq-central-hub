@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 
-const VALID_ROLES = ["admin", "hr", "pm", "developer", "client", "other"] as const;
+const VALID_ROLES = ["admin", "super_admin", "hr", "pm", "developer", "client", "other"] as const;
 type ValidRole = (typeof VALID_ROLES)[number];
 
 const ROLE_DISPLAY: Record<ValidRole, string> = {
   admin: "Admin",
+  super_admin: "Super Admin",
   hr: "HR",
   pm: "PM",
   developer: "Developer",
@@ -15,8 +16,9 @@ const ROLE_DISPLAY: Record<ValidRole, string> = {
 };
 
 // "other" maps to "client" in profiles (closest enum value for non-standard roles)
-const PROFILE_ROLE: Record<ValidRole, "admin" | "hr" | "pm" | "developer" | "client"> = {
+const PROFILE_ROLE: Record<ValidRole, "admin" | "super_admin" | "hr" | "pm" | "developer" | "client"> = {
   admin: "admin",
+  super_admin: "super_admin",
   hr: "hr",
   pm: "pm",
   developer: "developer",
@@ -39,7 +41,8 @@ export async function PATCH(
     .select("role")
     .eq("id", user.id)
     .single();
-  if (callerProfile?.role !== "admin") {
+  const callerRole = callerProfile?.role;
+  if (callerRole !== "admin" && callerRole !== "super_admin") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -48,6 +51,9 @@ export async function PATCH(
   if (body.role !== undefined) {
     if (!(VALID_ROLES as readonly string[]).includes(body.role)) {
       return NextResponse.json({ error: "Invalid role" }, { status: 400 });
+    }
+    if (body.role === "super_admin" && callerRole !== "super_admin") {
+      return NextResponse.json({ error: "Only a Super Admin can assign the Super Admin role." }, { status: 403 });
     }
     const role = body.role as ValidRole;
 

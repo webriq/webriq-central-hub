@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type ProfileRole = "admin" | "hr" | "pm" | "developer" | "client";
+type ProfileRole = "admin" | "super_admin" | "hr" | "pm" | "developer" | "client";
 type SelectRole  = ProfileRole | "other" | "";
 
 interface HubUser {
@@ -27,23 +27,25 @@ interface HubUser {
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const ROLE_OPTIONS: { value: SelectRole; label: string }[] = [
-  { value: "admin",     label: "Admin" },
-  { value: "hr",        label: "HR" },
-  { value: "pm",        label: "PM" },
-  { value: "developer", label: "Developer" },
-  { value: "client",    label: "Client" },
-  { value: "other",     label: "Other" },
+  { value: "super_admin", label: "Super Admin" },
+  { value: "admin",       label: "Admin" },
+  { value: "hr",          label: "HR" },
+  { value: "pm",          label: "PM" },
+  { value: "developer",   label: "Developer" },
+  { value: "client",      label: "Client" },
+  { value: "other",       label: "Other" },
 ];
 
 // Keyed by select value (not profile_role) so "other" and "" get their own colours
 const ROLE_BADGE: Record<string, string> = {
-  "":          "bg-amber-50 text-amber-700 border-amber-200",
-  "admin":     "bg-purple-50 text-purple-700 border-purple-200",
-  "hr":        "bg-teal-50 text-teal-700 border-teal-200",
-  "pm":        "bg-blue-50 text-blue-700 border-blue-200",
-  "developer": "bg-green-50 text-green-700 border-green-200",
-  "client":    "bg-slate-50 text-slate-600 border-slate-200",
-  "other":     "bg-orange-50 text-orange-700 border-orange-200",
+  "":             "bg-amber-50 text-amber-700 border-amber-200",
+  "super_admin":  "bg-violet-50 text-violet-700 border-violet-200",
+  "admin":        "bg-purple-50 text-purple-700 border-purple-200",
+  "hr":           "bg-teal-50 text-teal-700 border-teal-200",
+  "pm":           "bg-blue-50 text-blue-700 border-blue-200",
+  "developer":    "bg-green-50 text-green-700 border-green-200",
+  "client":       "bg-slate-50 text-slate-600 border-slate-200",
+  "other":        "bg-orange-50 text-orange-700 border-orange-200",
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

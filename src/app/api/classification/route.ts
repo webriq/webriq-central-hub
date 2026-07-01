@@ -32,11 +32,11 @@ export async function POST(req: NextRequest) {
   }
 
   const { data: caller } = await adminClient
-    .from("hub_users")
+    .from("profiles")
     .select("role")
     .eq("id", user.id)
     .single();
-  if (!["pm", "admin"].includes(caller?.role ?? "")) {
+  if (!["pm", "admin", "super_admin"].includes(caller?.role ?? "")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

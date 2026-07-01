@@ -42,7 +42,7 @@ export async function POST() {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { data: callerProfile } = await adminClient.from("profiles").select("role").eq("id", user.id).maybeSingle();
-  if (callerProfile?.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (callerProfile?.role !== "admin" && callerProfile?.role !== "super_admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const filePath = path.join(process.cwd(), "_from_zoho", "users.json");
   if (!fs.existsSync(filePath)) {

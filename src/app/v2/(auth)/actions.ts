@@ -163,7 +163,7 @@ export async function verifyOtpCode(
 export async function inviteUser(
   email: string,
   fullName: string,
-  role: "admin" | "hr" | "pm" | "developer"
+  role: "admin" | "hr" | "pm" | "developer" | "super_admin"
 ): Promise<{ tempPassword?: string; error?: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -174,7 +174,13 @@ export async function inviteUser(
     .select("role")
     .eq("id", user.id)
     .single();
-  if (profile?.role !== "admin") return { error: "Admin access required." };
+  const callerRole = profile?.role;
+  if (callerRole !== "admin" && callerRole !== "super_admin") {
+    return { error: "Admin access required." };
+  }
+  if (role === "super_admin" && callerRole !== "super_admin") {
+    return { error: "Only a Super Admin can invite Super Admin users." };
+  }
 
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%";
   const tempBytes = randomBytes(12);

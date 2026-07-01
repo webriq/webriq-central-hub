@@ -26,7 +26,7 @@ type NavGroup = {
 };
 
 function getNavGroups(role: string | null): NavGroup[] {
-  const isAdmin = role === "admin";
+  const isAdmin = role === "admin" || role === "super_admin";
   const isDev   = role === "developer";
 
   const workItems: NavItem[] = [
@@ -74,7 +74,7 @@ function getInitials(name: string | null): string {
 
 const ROLE_LABEL: Record<string, string> = {
   admin: "Admin", pm: "PM", developer: "Developer",
-  hr: "HR", client: "Client",
+  hr: "HR", client: "Client", super_admin: "Super Admin",
 };
 
 interface V2HubSidebarProps {

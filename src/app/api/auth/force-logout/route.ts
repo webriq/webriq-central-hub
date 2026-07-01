@@ -25,13 +25,13 @@ export async function POST(request: NextRequest) {
     const callerUserId = claimsData.claims.sub;
 
     // 2. Verify admin role
-    const { data: profile } = await supabase
-      .from("hub_users")
+    const { data: profile } = await adminClient
+      .from("profiles")
       .select("role")
       .eq("id", callerUserId)
       .single();
 
-    if (!profile || profile.role !== "admin") {
+    if (!profile || (profile.role !== "admin" && profile.role !== "super_admin")) {
       return NextResponse.json(
         { error: "Forbidden — admin role required" },
         { status: 403 }

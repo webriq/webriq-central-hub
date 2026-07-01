@@ -16,11 +16,11 @@ export async function POST(
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { data: caller } = await adminClient
-    .from("hub_users")
+    .from("profiles")
     .select("role")
     .eq("id", user.id)
     .single();
-  if (!["pm", "admin"].includes(caller?.role ?? "")) {
+  if (!["pm", "admin", "super_admin"].includes(caller?.role ?? "")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

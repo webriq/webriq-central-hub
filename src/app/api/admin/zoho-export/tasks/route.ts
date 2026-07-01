@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
   if (!user) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
 
   const { data: profile } = await adminClient.from("profiles").select("role").eq("id", user.id).maybeSingle();
-  if (profile?.role !== "admin") return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403 });
+  if (profile?.role !== "admin" && profile?.role !== "super_admin") return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403 });
 
   const token = await getZohoAccessToken();
   if (!token) return new Response(JSON.stringify({ error: "No Zoho token" }), { status: 502 });

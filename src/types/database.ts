@@ -497,7 +497,7 @@ export interface Database {
       profiles: {
         Row: {
           id: string;
-          role: "admin" | "hr" | "pm" | "developer" | "client";
+          role: "admin" | "hr" | "pm" | "developer" | "client" | "super_admin";
           full_name: string | null;
           avatar_url: string | null;
           customer_id: string | null;
@@ -506,7 +506,7 @@ export interface Database {
         };
         Insert: {
           id: string;
-          role: "admin" | "hr" | "pm" | "developer" | "client";
+          role: "admin" | "hr" | "pm" | "developer" | "client" | "super_admin";
           full_name?: string | null;
           avatar_url?: string | null;
           customer_id?: string | null;
@@ -515,7 +515,7 @@ export interface Database {
         };
         Update: {
           id?: string;
-          role?: "admin" | "hr" | "pm" | "developer" | "client";
+          role?: "admin" | "hr" | "pm" | "developer" | "client" | "super_admin";
           full_name?: string | null;
           avatar_url?: string | null;
           customer_id?: string | null;

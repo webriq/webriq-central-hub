@@ -4,13 +4,14 @@ import { useState } from "react";
 import { User, Mail, ShieldCheck, Copy, Check } from "lucide-react";
 import { inviteUser } from "@/app/v2/(auth)/actions";
 
-type Role = "pm" | "developer" | "hr" | "admin";
+type Role = "pm" | "developer" | "hr" | "admin" | "super_admin";
 
 const ROLES: { value: Role; label: string }[] = [
   { value: "pm", label: "Project Manager" },
   { value: "developer", label: "Developer" },
   { value: "hr", label: "HR" },
   { value: "admin", label: "Admin" },
+  { value: "super_admin", label: "Super Admin" },
 ];
 
 export default function HubUsersPage() {
