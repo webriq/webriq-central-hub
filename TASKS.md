@@ -16,6 +16,7 @@
 
 | ID | Title | Priority | Type | Doc | Date |
 |----|-------|----------|------|-----|------|
+| 100 | Super Admin: RLS Policies + Application-Layer Access | HIGH | patch | _docs/task/100-super-admin-rls-and-app-layer-access.md | 2026-07-01 |
 | 099 | Fix Super Admin 403 on Admin API Routes | HIGH | bugfix | _docs/task/099-fix-super-admin-403-api-routes.md | 2026-07-01 |
 | 098 | Add super_admin role to v2 hub (migration, invite, PATCH API, sidebar, users table) | HIGH | minor | _docs/task/098-add-super-admin-role.md | 2026-07-01 |
 | 093 | Zoho Users Export + Import | HIGH | feature | _docs/task/093-zoho-users-export-import.md | 2026-06-30 |

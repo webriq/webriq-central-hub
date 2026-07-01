@@ -26,7 +26,7 @@ export default async function ProjectsPage({
     ? await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle()
     : null;
   const role = profileRes?.data?.role;
-  const canManageTags = role === "admin" || role === "pm";
+  const canManageTags = role === "admin" || role === "pm" || role === "super_admin";
 
   // Two-step lookup: resolve company-name search to customer_ids first (only when searching).
   let searchCustomerIds: string[] | null = null;

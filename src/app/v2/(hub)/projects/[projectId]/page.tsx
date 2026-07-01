@@ -40,7 +40,7 @@ export default async function ProjectDetailPage({
       .eq("project_id", projectId)
       .order("position", { ascending: true, nullsFirst: false }),
     supabase.from("customers").select("company_name").eq("customer_id", project.customer_id).single(),
-    supabase.from("profiles").select("id, full_name, avatar_url").in("role", ["developer", "pm", "admin"]).order("full_name", { ascending: true }),
+    supabase.from("profiles").select("id, full_name, avatar_url").in("role", ["developer", "pm", "admin", "super_admin"]).order("full_name", { ascending: true }),
     supabase.from("time_logs").select("task_id, hours").eq("project_id", projectId),
   ]);
 
