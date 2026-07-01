@@ -69,7 +69,28 @@ export default function RegisterPage() {
     const supabase = createClient();
 
     async function initSession() {
-      // Read tokens from URL hash (Supabase recovery link flow)
+      // Primary flow: token_hash in query string (direct invite URL, no Supabase redirect needed)
+      const searchParams = new URLSearchParams(window.location.search);
+      const tokenHash = searchParams.get("token_hash");
+      const otpType = searchParams.get("type");
+
+      if (tokenHash && otpType === "recovery") {
+        const { data, error: verifyErr } = await supabase.auth.verifyOtp({
+          token_hash: tokenHash,
+          type: "recovery",
+        });
+        if (verifyErr || !data.session) {
+          setSessionState("error");
+          setError("This invite link is invalid or has expired. Contact your administrator for a new one.");
+          return;
+        }
+        setEmail(data.session.user.email ?? "");
+        setSessionState("ready");
+        window.history.replaceState(null, "", window.location.pathname);
+        return;
+      }
+
+      // Legacy flow: access_token + refresh_token in URL hash (old invite links)
       const hash = window.location.hash.slice(1);
       const hashParams = new URLSearchParams(hash);
       const accessToken = hashParams.get("access_token");
@@ -87,12 +108,11 @@ export default function RegisterPage() {
         }
         setEmail(data.session.user.email ?? "");
         setSessionState("ready");
-        // Clean up hash from URL without triggering a re-render
-        window.history.replaceState(null, "", window.location.pathname + window.location.search);
+        window.history.replaceState(null, "", window.location.pathname);
         return;
       }
 
-      // No hash tokens — check for existing session (user refreshed the page)
+      // No tokens — check for existing session (user refreshed the page)
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
         setEmail(session.user.email ?? "");
