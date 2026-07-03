@@ -13,11 +13,9 @@ import {
 
 type ZohoCommentRaw = {
   id?: string;
-  content?: string;
-  body?: string;
-  added_by?: { name?: string; email?: string };
-  added_time?: string;
-  time?: string;
+  comment?: string;
+  created_by?: { full_name?: string; name?: string; email?: string };
+  created_time?: string;
   _zoho_task_id?: string;
   [key: string]: unknown;
 };
@@ -43,23 +41,23 @@ export async function POST() {
 
   for (const c of comments) {
     const externalId = String(c.id ?? "");
-    const body = c.content ?? c.body ?? "";
+    const body = c.comment ?? "";
     if (!externalId || !body) { result.skipped++; continue; }
 
     const taskId = await resolveTaskId(String(c._zoho_task_id ?? ""));
     if (!taskId) { result.skipped++; continue; }
 
-    const authorId = await resolveUserId(c.added_by?.email, userCache);
+    const authorId = await resolveUserId(c.created_by?.email, userCache);
 
     const { error } = await adminClient.from("task_comments").upsert(
       {
         external_id: externalId,
         task_id: taskId,
         author_id: authorId,
-        author_name: c.added_by?.name ?? null,
-        author_email: c.added_by?.email ?? null,
+        author_name: c.created_by?.full_name ?? c.created_by?.name ?? null,
+        author_email: c.created_by?.email ?? null,
         body,
-        created_at: c.added_time ?? c.time ?? new Date().toISOString(),
+        created_at: c.created_time ?? new Date().toISOString(),
       },
       { onConflict: "external_id" }
     );

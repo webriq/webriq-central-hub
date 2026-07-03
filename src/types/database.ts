@@ -676,6 +676,77 @@ export interface Database {
           }
         ];
       };
+      issues: {
+        Row: {
+          id: string;
+          project_id: string;
+          task_id: string | null;
+          external_id: string | null;
+          prefix: string | null;
+          title: string;
+          description: string | null;
+          status: string;
+          severity: string | null;
+          flag: string | null;
+          assignee_name: string | null;
+          assignee_email: string | null;
+          due_date: string | null;
+          created_at: string;
+          updated_at: string;
+          source_meta: Record<string, unknown>;
+        };
+        Insert: {
+          id?: string;
+          project_id: string;
+          task_id?: string | null;
+          external_id?: string | null;
+          prefix?: string | null;
+          title: string;
+          description?: string | null;
+          status?: string;
+          severity?: string | null;
+          flag?: string | null;
+          assignee_name?: string | null;
+          assignee_email?: string | null;
+          due_date?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          source_meta?: Record<string, unknown>;
+        };
+        Update: {
+          id?: string;
+          project_id?: string;
+          task_id?: string | null;
+          external_id?: string | null;
+          prefix?: string | null;
+          title?: string;
+          description?: string | null;
+          status?: string;
+          severity?: string | null;
+          flag?: string | null;
+          assignee_name?: string | null;
+          assignee_email?: string | null;
+          due_date?: string | null;
+          updated_at?: string;
+          source_meta?: Record<string, unknown>;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "issues_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "issues_task_id_fkey";
+            columns: ["task_id"];
+            isOneToOne: false;
+            referencedRelation: "tasks";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
       tasks: {
         Row: {
           id: string;

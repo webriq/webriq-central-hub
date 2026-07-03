@@ -63,6 +63,77 @@ export async function getZohoAccessToken(): Promise<string> {
   return _tokenRefreshPromise;
 }
 
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+export type ZohoFetchResult = {
+  res: Response;
+  token: string;
+  throttleExhausted: boolean;
+};
+
+/**
+ * Fetches a Zoho API URL with built-in throttle/auth resilience:
+ * - 429 → respects Retry-After header, retries once
+ * - 400 URL_ROLLING_THROTTLES_LIMIT_EXCEEDED → bounded retry loop with backoff
+ *   (default 3 attempts: 9min, 12min, 15min waits) before giving up
+ * - 401 → refreshes the token via getZohoAccessToken() and retries once
+ *
+ * Returns the final Response, the (possibly refreshed) token to carry forward
+ * into subsequent calls, and whether the rolling-throttle retries were exhausted
+ * without success — callers must treat `throttleExhausted: true` as a real
+ * failure (surface it), not a silent skip.
+ */
+export async function fetchZohoWithRetry(
+  url: string,
+  token: string,
+  options?: { label?: string; maxRollingRetries?: number }
+): Promise<ZohoFetchResult> {
+  const label = options?.label ?? "zoho";
+  const maxRollingRetries = options?.maxRollingRetries ?? 3;
+  let currentToken = token;
+
+  const doFetch = () => fetch(url, { headers: { Authorization: `Zoho-oauthtoken ${currentToken}` } });
+
+  let res = await doFetch();
+
+  // 429: respect Retry-After header, retry once
+  if (res.status === 429) {
+    const retryAfter = parseInt(res.headers.get("Retry-After") ?? "5", 10);
+    console.log(`[${label}] 429 — waiting ${retryAfter}s`);
+    await sleep(retryAfter * 1000);
+    res = await doFetch();
+  }
+
+  // Zoho rolling throttle (400 URL_ROLLING_THROTTLES_LIMIT_EXCEEDED) — bounded retry with backoff
+  let rollingAttempt = 0;
+  let throttleExhausted = false;
+  while (res.status === 400) {
+    const body = (await res.clone().json().catch(() => ({}))) as { error?: { title?: string } };
+    if (body?.error?.title !== "URL_ROLLING_THROTTLES_LIMIT_EXCEEDED") break;
+    if (rollingAttempt >= maxRollingRetries) {
+      throttleExhausted = true;
+      break;
+    }
+    rollingAttempt++;
+    const waitMinutes = 9 + (rollingAttempt - 1) * 3; // 9, 12, 15 min
+    console.log(`[${label}] Rolling throttle hit (attempt ${rollingAttempt}/${maxRollingRetries}) — waiting ${waitMinutes}min`);
+    await sleep(waitMinutes * 60 * 1000);
+    res = await doFetch();
+  }
+
+  // Token expired mid-export — refresh and retry once
+  if (res.status === 401) {
+    console.log(`[${label}] Token expired — refreshing`);
+    const fresh = await getZohoAccessToken();
+    if (fresh) {
+      currentToken = fresh;
+      res = await doFetch();
+    }
+  }
+
+  return { res, token: currentToken, throttleExhausted };
+}
+
 export async function createZohoProject(customerId: string, projectName: string): Promise<string> {
   const portalId = process.env.ZOHO_PORTAL_ID;
   if (!portalId) {

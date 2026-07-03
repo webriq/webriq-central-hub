@@ -16,6 +16,10 @@
 
 | ID | Title | Priority | Type | Doc | Date |
 |----|-------|----------|------|-----|------|
+| 105 | Fix Attachments Export Throttle: Bounded Retry + Shared Zoho Retry Helper | HIGH | bugfix | _docs/task/105-fix-attachments-export-throttle-bounded-retry-shared-helper.md | 2026-07-03 |
+| 104 | Attachments Export/Import Fix: Multi-File Scan, SSE, Failure Visibility + DB Index/Constraint | HIGH | feature | _docs/task/104-attachments-export-import-fix-index-constraint.md | 2026-07-02 |
+| 102 | Timelogs Export: SSE Streaming + 429 Handling | HIGH | patch | _docs/task/102-timelogs-export-sse-streaming.md | 2026-07-01 |
+| 101 | Comments Export: SSE Streaming + Pagination | HIGH | patch | _docs/task/101-comments-export-sse-pagination.md | 2026-07-01 |
 | 100 | Super Admin: RLS Policies + Application-Layer Access | HIGH | patch | _docs/task/100-super-admin-rls-and-app-layer-access.md | 2026-07-01 |
 | 099 | Fix Super Admin 403 on Admin API Routes | HIGH | bugfix | _docs/task/099-fix-super-admin-403-api-routes.md | 2026-07-01 |
 | 098 | Add super_admin role to v2 hub (migration, invite, PATCH API, sidebar, users table) | HIGH | minor | _docs/task/098-add-super-admin-role.md | 2026-07-01 |
@@ -85,6 +89,10 @@
 
 ## Completed
 
+- [108] Zoho Issues Import: New `issues` Table + Import Route — new `issues` table (migration 051, `task_id` FK reserved for future linkage) + import route mirroring Tasks import's lookup-map/chunking pattern. Live run exposed an N+1 query bug (per-issue `resolveProjectId`+`upsert`, 282 sequential round-trips → 2.4min with zero UI feedback, looked hung); fixed by pre-building a project lookup Map (1 query) + chunked upserts (matches `tasks/route.ts`, not the `milestones/route.ts` pattern it was first modeled on). Also caught and fixed a missing `super_admin` RLS grant before shipping (same bug class migration 048 patched elsewhere). Re-run: 1049 issues imported, 0 errors → `_docs/task/108-zoho-issues-import.md` (completed: 2026-07-03)
+- [107] Zoho Issues Export: Per-Project SSE Streaming (with From/To/Since) — added "Issues" export card mirroring Tasks; corrected mid-build from an assumed portal-wide endpoint to the real per-project `/projects/{projectId}/issues` shape (page/per_page required), added `fetchZohoWithRetry` + `failed_project_ids` visibility, then added From/To/Since inputs matching the Tasks card. Live run: 141 issues across 50 projects exported cleanly, verified same array+`_zoho_project_id` shape as `tasks-0-50-2025.json` → `_docs/task/107-zoho-issues-export-per-project-sse.md` (completed: 2026-07-03)
+- [106] Attachments Bulk Upload: Manual-Match Uploader — replaced broken Zoho auto-fetch (OAuth-scope/CORS/IAM-ticket blocked, confirmed via live diagnostics) with file-picker + filename-match import; fixed external_id bug (third_party_file_id vs always-"-1" attachment_id); live run surfaced + fixed a missing proxyClientMaxBodySize config and a never-provisioned project-assets Storage bucket (migration 050) — 40/40 real attachments imported and verified linked → `_docs/task/106-attachments-bulk-upload-manual-match.md` (completed: 2026-07-03)
+- [103] Timelogs Import: Field-Mapping Fixes, Multi-File Scan & SSE Upsert — fixed log_hour/module_detail/billing_status/notes mapping bugs, pre-built lookup maps (fixed Supabase 1000-row pagination gap), chunked SSE upsert + migrate page UI → `_docs/task/103-timelogs-import-multi-file-field-mapping-sse.md` (completed: 2026-07-02)
 - [097] List View: Inline Subtask Expand/Collapse — tree rendering, depth indentation, pre-expand on load, count badge + import Pass 2 pagination fix → `_docs/task/097-list-view-subtask-inline-expand.md` (completed: 2026-06-30)
 - [096] Tasks List View Redesign — Zoho-style table, inline pickers, timer, real name chips + assignees backfill migration → `_docs/task/096-tasks-list-view-redesign.md` (completed: 2026-06-30)
 - [095] v2 HR > Users Tab: List Users, Manage Role/Status, Send Invite + Register Page → `_docs/task/095-v2-hr-users-tab-management-invite.md` (completed: 2026-06-30)

@@ -139,7 +139,7 @@ src/
     auth/
       role-access.ts    isRouteAllowed(pathname, role) — route permission table (no side effects)
       require-role.ts   requireRole(pathname) — server guard; redirects to /auth/login or /dashboard if unauthorized
-    zoho/               Sprint 2+; `syncTaskToZoho(input)` creates Zoho task on plan approval; `updateZohoTaskStatus()` for close/reopen sync; `createZohoProject()` for onboarding; `sendCliqNotification()` for Cliq alerts
+    zoho/               Sprint 2+; `syncTaskToZoho(input)` creates Zoho task on plan approval; `updateZohoTaskStatus()` for close/reopen sync; `createZohoProject()` for onboarding; `sendCliqNotification()` for Cliq alerts; `fetchZohoWithRetry(url, token, opts)` — shared 429/rolling-throttle (bounded backoff)/401 retry wrapper for zoho-export routes, used by attachment-meta, timelogs, and issues
     sanity/             Stub — Sprint 5+
     github/             Stub — Sprint 5+
     utils.ts            cn(), formatDate(), formatRelativeTime(), truncate()
@@ -180,6 +180,7 @@ When adding a new product form: add a section array in `onboarding-schemas.ts`, 
 - **v2 layout uses `profiles` (not `hub_users`)** — email comes from JWT claims (`data.claims.email`), role and full_name from `profiles` table. `profiles.role` enum is `admin|hr|pm|developer|client` — note `developer` (not `dev`). No `pending` role in profiles. `zohoUserId` is always `null` in v2 shell.
 - **RLS role helpers** — `get_my_role()` and `get_my_customer_id()` are `security definer` SQL functions (migration 026) used by all v2 RLS policies. They read from `profiles` without hitting RLS themselves. Never replicate this logic inline — always call the function in new policies.
 - **`hr.*` schema** — 9 tables (`employees`, `attendance_punches`, `attendance_days`, `leave_types`, `leave_balances`, `leave_requests`, `timesheets`, `announcements`, `hr_requests`) in dedicated `hr` Postgres schema. Supabase client calls require `.schema("hr").from(tableName)`.
+- **`issues` table** (migration 051) holds imported Zoho Project Issues/Bugs — `project_id` FK required, `task_id` FK exists for future Issue↔Task linkage but is **always `null` from the import** (`zoho-import/issues/route.ts`); no Zoho export currently carries that linkage data. `severity` keeps Zoho's own vocabulary (`None|Minor|Major|Critical|Show stopper`), not the task `priority` enum. Import-only — no Issues browsing UI exists yet.
 - **`classification_records.source`** now accepts `portal | email | manual | recurring | hub_manual` (widened in migration 025; legacy `zoho_desk | zoho_projects` still valid until Phase 1D cutover).
 - **`llm_eligible` is a 3-state TEXT**: `YES | NO | HUMAN_ONLY` — not a boolean. HUMAN_ONLY = never enters automation pipeline.
 - **Task priority casing**: `CRITICAL | HIGH | NORMAL | LOW` (uppercase, NORMAL not MEDIUM).
@@ -200,6 +201,7 @@ When adding a new product form: add a section array in `onboarding-schemas.ts`, 
 - **`DIGEST_SECRET`** env var required for pg_cron integration (Sprint 3+). See `env.example`.
 - **`ZOHO_CLIQ_DEV_WEBHOOK_URL`** env var — separate Cliq channel for dev digest notifications. Optional; silently skips if unset (Sprint 3+).
 - **Multi-provider**: `provider` column in `llm_config` controls `anthropic | openai`. Switch per-layer via DB with no code changes.
+- **Route handlers accepting large request bodies** (e.g. multipart file uploads) need `experimental.proxyClientMaxBodySize` in `next.config.ts`, not `experimental.serverActions.bodySizeLimit` — the latter only governs `"use server"` Server Actions. Next.js 16's `proxy.ts` buffers the whole request body in memory and silently truncates past 10MB by default (no error to the client, just a corrupted body downstream). Requires a dev server restart to take effect.
 - **shadcn components** are added via `npx shadcn add <component>` — they land in `src/components/ui/`
 - **`src/lib/utils.ts`** (flat file, not directory) is the cn() / utils home — shadcn imports from here
 - **Page-scoped UI** — inline small components into the page file rather than creating separate component files. Only extract to `src/components/` when a component is shared across multiple pages.

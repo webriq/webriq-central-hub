@@ -28,11 +28,55 @@ interface TasksImportState {
   error: string | null;
 }
 
+interface IssuesExportState {
+  from: string;
+  to: string;
+  since: string;
+  progress: { current: number; total: number; project: string } | null;
+  done: { count: number; failed: string[] } | null;
+  error: string | null;
+}
+
+interface CommentsExportState {
+  progress: { current: number; total: number; taskId: string } | null;
+  done: { count: number } | null;
+  error: string | null;
+}
+
+interface TimelogsExportState {
+  from: string;
+  to: string;
+  progress: { current: number; total: number; project: string } | null;
+  done: { count: number; failed: string[] } | null;
+  error: string | null;
+}
+
+interface TimelogsImportState {
+  progress: { current: number; total: number } | null;
+  done: { imported: number; skipped: number; errors: string[] } | null;
+  error: string | null;
+}
+
+interface AttachmentMetaExportState {
+  from: string;
+  to: string;
+  progress: { current: number; total: number } | null;
+  done: { count: number; failed: string[] } | null;
+  error: string | null;
+}
+
+interface AttachmentsImportState {
+  progress: { current: number; total: number } | null;
+  done: { imported: number; skipped: number; errors: string[] } | null;
+  error: string | null;
+}
+
 const EXPORT_LEVELS = [
   { key: "users", label: "Users", desc: "All Zoho portal users — can run independently" },
   { key: "milestones", label: "Milestones", desc: "All milestones across every project — export before Tasklists" },
   { key: "tasklists", label: "Tasklists", desc: "All tasklists across every project" },
   { key: "tasks", label: "Tasks", desc: "All tasks (paginated per project)" },
+  { key: "issues", label: "Issues", desc: "All issues/bugs (paginated per project) — can run independently" },
   { key: "comments", label: "Comments", desc: "All task comments — requires tasks.json exported first" },
   { key: "timelogs", label: "Time Logs", desc: "All time log entries per project" },
   { key: "attachment-meta", label: "Attachment Metadata", desc: "Attachment list per task — requires tasks.json exported first" },
@@ -45,9 +89,10 @@ const IMPORT_LEVELS = [
   { key: "milestones", label: "Milestones", desc: "Creates Hub milestone records from milestones.json — run before Tasklists" },
   { key: "tasklists", label: "Tasklists", desc: "Creates Hub tasklist records from tasklists.json" },
   { key: "tasks", label: "Tasks", desc: "Creates Hub task records from tasks.json" },
+  { key: "issues", label: "Issues", desc: "Creates Hub issue records from issues-*.json — requires Projects imported first" },
   { key: "comments", label: "Comments", desc: "Imports task comments from comments.json" },
   { key: "timelogs", label: "Time Logs", desc: "Imports time log entries from timelogs.json" },
-  { key: "attachments", label: "Attachments", desc: "Downloads files from Zoho, uploads to Supabase Storage — may be slow" },
+  { key: "attachments", label: "Attachments", desc: "Select the files you manually downloaded from each attachment's download_url (not the attachment-meta-*.json files) — matches by filename and uploads to Supabase Storage" },
 ] as const;
 
 function ResultChip({ result }: { result: ImportResult }) {
@@ -95,6 +140,44 @@ export default function MigratePage() {
     done: null,
     error: null,
   });
+  const [issuesExport, setIssuesExport] = useState<IssuesExportState>({
+    from: "0",
+    to: "",
+    since: "2025-01-01",
+    progress: null,
+    done: null,
+    error: null,
+  });
+  const [commentsExport, setCommentsExport] = useState<CommentsExportState>({
+    progress: null,
+    done: null,
+    error: null,
+  });
+  const [timelogsExport, setTimelogsExport] = useState<TimelogsExportState>({
+    from: "0",
+    to: "25",
+    progress: null,
+    done: null,
+    error: null,
+  });
+  const [timelogsImport, setTimelogsImport] = useState<TimelogsImportState>({
+    progress: null,
+    done: null,
+    error: null,
+  });
+  const [attachmentMetaExport, setAttachmentMetaExport] = useState<AttachmentMetaExportState>({
+    from: "0",
+    to: "1000",
+    progress: null,
+    done: null,
+    error: null,
+  });
+  const [attachmentsImport, setAttachmentsImport] = useState<AttachmentsImportState>({
+    progress: null,
+    done: null,
+    error: null,
+  });
+  const [attachmentsFiles, setAttachmentsFiles] = useState<File[]>([]);
 
   async function handleExport(level: string) {
     if (anyRunning) return;
@@ -189,6 +272,288 @@ export default function MigratePage() {
     }
   }
 
+  async function handleIssuesExport() {
+    if (anyRunning) return;
+    setAnyRunning(true);
+    setExportStates((s) => ({ ...s, issues: "running" }));
+    setIssuesExport((s) => ({ ...s, progress: null, done: null, error: null }));
+
+    try {
+      const qp = new URLSearchParams({ from: issuesExport.from || "0" });
+      if (issuesExport.to) qp.set("to", issuesExport.to);
+      if (issuesExport.since) qp.set("since", issuesExport.since);
+
+      const res = await fetch(`/api/admin/zoho-export/issues?${qp}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      const accumulated: unknown[] = [];
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const frames = buffer.split("\n\n");
+        buffer = frames.pop() ?? "";
+
+        for (const frame of frames) {
+          if (!frame.startsWith("data: ")) continue;
+          const evt = JSON.parse(frame.slice(6)) as {
+            type: string;
+            current?: number;
+            total?: number;
+            project?: string;
+            issues?: unknown[];
+            total_issues?: number;
+            failed_project_ids?: string[];
+          };
+
+          if (evt.type === "progress") {
+            setIssuesExport((s) => ({
+              ...s,
+              progress: { current: evt.current!, total: evt.total!, project: evt.project! },
+            }));
+          }
+          if (evt.type === "issues" && evt.issues) {
+            accumulated.push(...evt.issues);
+          }
+          if (evt.type === "done") {
+            const blob = new Blob([JSON.stringify(accumulated, null, 2)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            const sinceYear = issuesExport.since ? issuesExport.since.split("-")[0] : "all";
+            const toLabel = issuesExport.to || "end";
+            a.download = `issues-${issuesExport.from || "0"}-${toLabel}-${sinceYear}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            setIssuesExport((s) => ({
+              ...s,
+              done: { count: evt.total_issues!, failed: evt.failed_project_ids ?? [] },
+              progress: null,
+            }));
+            setExportStates((s) => ({ ...s, issues: "done" }));
+          }
+        }
+      }
+    } catch (e) {
+      setIssuesExport((s) => ({ ...s, error: String(e), progress: null }));
+      setExportStates((s) => ({ ...s, issues: "error" }));
+      console.error("[export/issues]", e);
+    } finally {
+      setAnyRunning(false);
+    }
+  }
+
+  async function handleCommentsExport() {
+    if (anyRunning) return;
+    setAnyRunning(true);
+    setExportStates((s) => ({ ...s, comments: "running" }));
+    setCommentsExport({ progress: null, done: null, error: null });
+
+    try {
+      const res = await fetch("/api/admin/zoho-export/comments");
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      const accumulated: unknown[] = [];
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const frames = buffer.split("\n\n");
+        buffer = frames.pop() ?? "";
+
+        for (const frame of frames) {
+          if (!frame.startsWith("data: ")) continue;
+          const evt = JSON.parse(frame.slice(6)) as {
+            type: string;
+            current?: number;
+            total?: number;
+            taskId?: string;
+            comments?: unknown[];
+            total_comments?: number;
+          };
+
+          if (evt.type === "progress") {
+            setCommentsExport((s) => ({
+              ...s,
+              progress: { current: evt.current!, total: evt.total!, taskId: evt.taskId! },
+            }));
+          }
+          if (evt.type === "comments" && evt.comments) {
+            accumulated.push(...evt.comments);
+          }
+          if (evt.type === "done") {
+            const blob = new Blob([JSON.stringify(accumulated, null, 2)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "comments.json";
+            a.click();
+            URL.revokeObjectURL(url);
+            setCommentsExport((s) => ({ ...s, done: { count: evt.total_comments! }, progress: null }));
+            setExportStates((s) => ({ ...s, comments: "done" }));
+          }
+        }
+      }
+    } catch (e) {
+      setCommentsExport((s) => ({ ...s, error: String(e), progress: null }));
+      setExportStates((s) => ({ ...s, comments: "error" }));
+      console.error("[export/comments]", e);
+    } finally {
+      setAnyRunning(false);
+    }
+  }
+
+  async function handleTimelogsExport() {
+    if (anyRunning) return;
+    setAnyRunning(true);
+    setExportStates((s) => ({ ...s, timelogs: "running" }));
+    setTimelogsExport((s) => ({ ...s, progress: null, done: null, error: null }));
+
+    try {
+      const qp = new URLSearchParams({ from: timelogsExport.from || "0" });
+      if (timelogsExport.to) qp.set("to", timelogsExport.to);
+      const res = await fetch(`/api/admin/zoho-export/timelogs?${qp}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      const accumulated: unknown[] = [];
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const frames = buffer.split("\n\n");
+        buffer = frames.pop() ?? "";
+
+        for (const frame of frames) {
+          if (!frame.startsWith("data: ")) continue;
+          const evt = JSON.parse(frame.slice(6)) as {
+            type: string;
+            current?: number;
+            total?: number;
+            project?: string;
+            logs?: unknown[];
+            total_logs?: number;
+            failed_windows?: string[];
+          };
+
+          if (evt.type === "progress") {
+            setTimelogsExport((s) => ({
+              ...s,
+              progress: { current: evt.current!, total: evt.total!, project: evt.project! },
+            }));
+          }
+          if (evt.type === "timelogs" && evt.logs) {
+            accumulated.push(...evt.logs);
+          }
+          if (evt.type === "done") {
+            const blob = new Blob([JSON.stringify(accumulated, null, 2)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            const toLabel = timelogsExport.to || "end";
+            a.download = `timelogs-${timelogsExport.from || "0"}-${toLabel}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            setTimelogsExport((s) => ({
+              ...s,
+              done: { count: evt.total_logs!, failed: evt.failed_windows ?? [] },
+              progress: null,
+            }));
+            setExportStates((s) => ({ ...s, timelogs: "done" }));
+          }
+        }
+      }
+    } catch (e) {
+      setTimelogsExport((s) => ({ ...s, error: String(e), progress: null }));
+      setExportStates((s) => ({ ...s, timelogs: "error" }));
+      console.error("[export/timelogs]", e);
+    } finally {
+      setAnyRunning(false);
+    }
+  }
+
+  async function handleAttachmentMetaExport() {
+    if (anyRunning) return;
+    setAnyRunning(true);
+    setExportStates((s) => ({ ...s, "attachment-meta": "running" }));
+    setAttachmentMetaExport((s) => ({ ...s, progress: null, done: null, error: null }));
+
+    try {
+      const qp = new URLSearchParams({ from: attachmentMetaExport.from || "0" });
+      if (attachmentMetaExport.to) qp.set("to", attachmentMetaExport.to);
+      const res = await fetch(`/api/admin/zoho-export/attachment-meta?${qp}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      const accumulated: unknown[] = [];
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const frames = buffer.split("\n\n");
+        buffer = frames.pop() ?? "";
+
+        for (const frame of frames) {
+          if (!frame.startsWith("data: ")) continue;
+          const evt = JSON.parse(frame.slice(6)) as {
+            type: string;
+            current?: number;
+            total?: number;
+            items?: unknown[];
+            total_attachments?: number;
+            failed_task_ids?: string[];
+          };
+
+          if (evt.type === "progress") {
+            setAttachmentMetaExport((s) => ({
+              ...s,
+              progress: { current: evt.current!, total: evt.total! },
+            }));
+          }
+          if (evt.type === "attachments" && evt.items) {
+            accumulated.push(...evt.items);
+          }
+          if (evt.type === "done") {
+            const blob = new Blob([JSON.stringify(accumulated, null, 2)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            const toLabel = attachmentMetaExport.to || "end";
+            a.download = `attachment-meta-${attachmentMetaExport.from || "0"}-${toLabel}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            setAttachmentMetaExport((s) => ({
+              ...s,
+              done: { count: evt.total_attachments!, failed: evt.failed_task_ids ?? [] },
+              progress: null,
+            }));
+            setExportStates((s) => ({ ...s, "attachment-meta": "done" }));
+          }
+        }
+      }
+    } catch (e) {
+      setAttachmentMetaExport((s) => ({ ...s, error: String(e), progress: null }));
+      setExportStates((s) => ({ ...s, "attachment-meta": "error" }));
+      console.error("[export/attachment-meta]", e);
+    } finally {
+      setAnyRunning(false);
+    }
+  }
+
   async function handleTasksImport() {
     if (anyRunning) return;
     setAnyRunning(true);
@@ -252,6 +617,131 @@ export default function MigratePage() {
       setTasksImport((s) => ({ ...s, error: String(e), progress: null }));
       setImportStates((s) => ({ ...s, tasks: { state: "error", errorMsg: String(e) } }));
       console.error("[import/tasks]", e);
+    } finally {
+      setAnyRunning(false);
+    }
+  }
+
+  async function handleTimelogsImport() {
+    if (anyRunning) return;
+    setAnyRunning(true);
+    setImportStates((s) => ({ ...s, timelogs: { state: "running" } }));
+    setTimelogsImport({ progress: null, done: null, error: null });
+
+    try {
+      const res = await fetch("/api/admin/zoho-import/timelogs", { method: "POST" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const frames = buffer.split("\n\n");
+        buffer = frames.pop() ?? "";
+
+        for (const frame of frames) {
+          if (!frame.startsWith("data: ")) continue;
+          const evt = JSON.parse(frame.slice(6)) as {
+            type: string;
+            current?: number;
+            total?: number;
+            imported?: number;
+            skipped?: number;
+            errors?: string[];
+            message?: string;
+          };
+
+          if (evt.type === "progress") {
+            setTimelogsImport((s) => ({
+              ...s,
+              progress: { current: evt.current!, total: evt.total! },
+            }));
+          }
+          if (evt.type === "done") {
+            setTimelogsImport((s) => ({
+              ...s,
+              progress: null,
+              done: { imported: evt.imported!, skipped: evt.skipped!, errors: evt.errors ?? [] },
+            }));
+            setImportStates((s) => ({ ...s, timelogs: { state: "done" } }));
+          }
+          if (evt.type === "error") {
+            throw new Error(evt.message ?? "Unknown error");
+          }
+        }
+      }
+    } catch (e) {
+      setTimelogsImport((s) => ({ ...s, error: String(e), progress: null }));
+      setImportStates((s) => ({ ...s, timelogs: { state: "error", errorMsg: String(e) } }));
+      console.error("[import/timelogs]", e);
+    } finally {
+      setAnyRunning(false);
+    }
+  }
+
+  async function handleAttachmentsImport() {
+    if (anyRunning || attachmentsFiles.length === 0) return;
+    setAnyRunning(true);
+    setImportStates((s) => ({ ...s, attachments: { state: "running" } }));
+    setAttachmentsImport({ progress: null, done: null, error: null });
+
+    try {
+      const formData = new FormData();
+      for (const file of attachmentsFiles) formData.append("files", file);
+
+      const res = await fetch("/api/admin/zoho-import/attachments", { method: "POST", body: formData });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const frames = buffer.split("\n\n");
+        buffer = frames.pop() ?? "";
+
+        for (const frame of frames) {
+          if (!frame.startsWith("data: ")) continue;
+          const evt = JSON.parse(frame.slice(6)) as {
+            type: string;
+            current?: number;
+            total?: number;
+            imported?: number;
+            skipped?: number;
+            errors?: string[];
+            message?: string;
+          };
+
+          if (evt.type === "progress") {
+            setAttachmentsImport((s) => ({
+              ...s,
+              progress: { current: evt.current!, total: evt.total! },
+            }));
+          }
+          if (evt.type === "done") {
+            setAttachmentsImport((s) => ({
+              ...s,
+              progress: null,
+              done: { imported: evt.imported!, skipped: evt.skipped!, errors: evt.errors ?? [] },
+            }));
+            setImportStates((s) => ({ ...s, attachments: { state: "done" } }));
+          }
+          if (evt.type === "error") {
+            throw new Error(evt.message ?? "Unknown error");
+          }
+        }
+      }
+    } catch (e) {
+      setAttachmentsImport((s) => ({ ...s, error: String(e), progress: null }));
+      setImportStates((s) => ({ ...s, attachments: { state: "error", errorMsg: String(e) } }));
+      console.error("[import/attachments]", e);
     } finally {
       setAnyRunning(false);
     }
@@ -387,6 +877,299 @@ export default function MigratePage() {
               );
             }
 
+            if (key === "issues") {
+              const isRunning = exportStates.issues === "running";
+              const pct = issuesExport.progress
+                ? Math.round((issuesExport.progress.current / issuesExport.progress.total) * 100)
+                : 0;
+
+              return (
+                <div key="issues" className="py-2 border-b border-slate-100 last:border-0">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[13px] font-medium text-slate-800 flex items-center gap-2">
+                        {label}
+                        <StateIcon state={exportStates.issues ?? "idle"} />
+                      </div>
+                      <div className="text-[11px] text-slate-500 mt-0.5 truncate">{desc}</div>
+                      {!isRunning && (
+                        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                          <label className="text-[11px] text-slate-500">From</label>
+                          <input
+                            type="number"
+                            min={0}
+                            value={issuesExport.from}
+                            onChange={(e) => setIssuesExport((s) => ({ ...s, from: e.target.value }))}
+                            className="w-16 text-[11px] text-slate-800 border border-slate-200 rounded px-1.5 py-0.5 focus:outline-none focus:border-slate-400"
+                          />
+                          <label className="text-[11px] text-slate-500">To</label>
+                          <input
+                            type="number"
+                            min={0}
+                            value={issuesExport.to}
+                            placeholder="all"
+                            onChange={(e) => setIssuesExport((s) => ({ ...s, to: e.target.value }))}
+                            className="w-16 text-[11px] text-slate-800 border border-slate-200 rounded px-1.5 py-0.5 focus:outline-none focus:border-slate-400"
+                          />
+                          <label className="text-[11px] text-slate-500">Since</label>
+                          <input
+                            type="date"
+                            value={issuesExport.since}
+                            onChange={(e) => setIssuesExport((s) => ({ ...s, since: e.target.value }))}
+                            className="text-[11px] text-slate-800 border border-slate-200 rounded px-1.5 py-0.5 focus:outline-none focus:border-slate-400"
+                          />
+                        </div>
+                      )}
+                    </div>
+                    {!isRunning && (
+                      <button
+                        onClick={handleIssuesExport}
+                        disabled={anyRunning}
+                        className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium bg-slate-900 text-white hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <Download size={11} />
+                        Export
+                      </button>
+                    )}
+                  </div>
+                  {isRunning && issuesExport.progress !== null ? (
+                    <div className="mt-2">
+                      <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-blue-500 rounded-full transition-all"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      <div className="text-[11px] text-slate-500 mt-1 truncate">
+                        Project {issuesExport.progress.current} of {issuesExport.progress.total} — {issuesExport.progress.project}
+                      </div>
+                    </div>
+                  ) : null}
+                  {exportStates.issues === "done" && issuesExport.done !== null ? (
+                    <div className="mt-1 text-[11px]">
+                      <div className="text-green-600">{issuesExport.done.count} issues downloaded</div>
+                      {issuesExport.done.failed.length > 0 ? (
+                        <div className="text-amber-600 mt-0.5 truncate" title={issuesExport.done.failed.join(", ")}>
+                          {issuesExport.done.failed.length} project(s) failed after retries — re-run to retry
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
+                  {issuesExport.error !== null ? (
+                    <div className="mt-1 text-[11px] text-red-600">{issuesExport.error}</div>
+                  ) : null}
+                </div>
+              );
+            }
+
+            if (key === "comments") {
+              const isRunning = exportStates.comments === "running";
+              const pct = commentsExport.progress
+                ? Math.round((commentsExport.progress.current / commentsExport.progress.total) * 100)
+                : 0;
+
+              return (
+                <div key="comments" className="py-2 border-b border-slate-100 last:border-0">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[13px] font-medium text-slate-800 flex items-center gap-2">
+                        {label}
+                        <StateIcon state={exportStates.comments ?? "idle"} />
+                      </div>
+                      <div className="text-[11px] text-slate-500 mt-0.5 truncate">{desc}</div>
+                    </div>
+                    {!isRunning && (
+                      <button
+                        onClick={handleCommentsExport}
+                        disabled={anyRunning}
+                        className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium bg-slate-900 text-white hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <Download size={11} />
+                        Export
+                      </button>
+                    )}
+                  </div>
+                  {isRunning && commentsExport.progress !== null ? (
+                    <div className="mt-2">
+                      <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-blue-500 rounded-full transition-all"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      <div className="text-[11px] text-slate-500 mt-1 truncate">
+                        Task {commentsExport.progress.current} of {commentsExport.progress.total}
+                      </div>
+                    </div>
+                  ) : null}
+                  {exportStates.comments === "done" && commentsExport.done !== null ? (
+                    <div className="mt-1 text-[11px] text-green-600">{commentsExport.done.count} comments downloaded</div>
+                  ) : null}
+                  {commentsExport.error !== null ? (
+                    <div className="mt-1 text-[11px] text-red-600">{commentsExport.error}</div>
+                  ) : null}
+                </div>
+              );
+            }
+
+            if (key === "timelogs") {
+              const isRunning = exportStates.timelogs === "running";
+              const pct = timelogsExport.progress
+                ? Math.round((timelogsExport.progress.current / timelogsExport.progress.total) * 100)
+                : 0;
+
+              return (
+                <div key="timelogs" className="py-2 border-b border-slate-100 last:border-0">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[13px] font-medium text-slate-800 flex items-center gap-2">
+                        {label}
+                        <StateIcon state={exportStates.timelogs ?? "idle"} />
+                      </div>
+                      <div className="text-[11px] text-slate-500 mt-0.5 truncate">{desc}</div>
+                      {!isRunning && (
+                        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                          <label className="text-[11px] text-slate-500">From</label>
+                          <input
+                            type="number"
+                            min={0}
+                            value={timelogsExport.from}
+                            onChange={(e) => setTimelogsExport((s) => ({ ...s, from: e.target.value }))}
+                            className="w-16 text-[11px] text-slate-800 border border-slate-200 rounded px-1.5 py-0.5 focus:outline-none focus:border-slate-400"
+                          />
+                          <label className="text-[11px] text-slate-500">To</label>
+                          <input
+                            type="number"
+                            min={0}
+                            value={timelogsExport.to}
+                            placeholder="all"
+                            onChange={(e) => setTimelogsExport((s) => ({ ...s, to: e.target.value }))}
+                            className="w-16 text-[11px] text-slate-800 border border-slate-200 rounded px-1.5 py-0.5 focus:outline-none focus:border-slate-400"
+                          />
+                          <span className="text-[11px] text-slate-400">of 100 projects</span>
+                        </div>
+                      )}
+                    </div>
+                    {!isRunning && (
+                      <button
+                        onClick={handleTimelogsExport}
+                        disabled={anyRunning}
+                        className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium bg-slate-900 text-white hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <Download size={11} />
+                        Export
+                      </button>
+                    )}
+                  </div>
+                  {isRunning && timelogsExport.progress !== null ? (
+                    <div className="mt-2">
+                      <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-blue-500 rounded-full transition-all"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      <div className="text-[11px] text-slate-500 mt-1 truncate">
+                        Project {timelogsExport.progress.current} of {timelogsExport.progress.total} — {timelogsExport.progress.project}
+                      </div>
+                    </div>
+                  ) : null}
+                  {exportStates.timelogs === "done" && timelogsExport.done !== null ? (
+                    <div className="mt-1 text-[11px]">
+                      <div className="text-green-600">{timelogsExport.done.count} logs downloaded</div>
+                      {timelogsExport.done.failed.length > 0 ? (
+                        <div className="text-amber-600 mt-0.5 truncate" title={timelogsExport.done.failed.join(", ")}>
+                          {timelogsExport.done.failed.length} window(s) failed after retries — re-run with from/to to retry
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
+                  {timelogsExport.error !== null ? (
+                    <div className="mt-1 text-[11px] text-red-600">{timelogsExport.error}</div>
+                  ) : null}
+                </div>
+              );
+            }
+
+            if (key === "attachment-meta") {
+              const isRunning = exportStates["attachment-meta"] === "running";
+              const pct = attachmentMetaExport.progress
+                ? Math.round((attachmentMetaExport.progress.current / attachmentMetaExport.progress.total) * 100)
+                : 0;
+
+              return (
+                <div key="attachment-meta" className="py-2 border-b border-slate-100 last:border-0">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[13px] font-medium text-slate-800 flex items-center gap-2">
+                        {label}
+                        <StateIcon state={exportStates["attachment-meta"] ?? "idle"} />
+                      </div>
+                      <div className="text-[11px] text-slate-500 mt-0.5 truncate">{desc}</div>
+                      {!isRunning && (
+                        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                          <label className="text-[11px] text-slate-500">From</label>
+                          <input
+                            type="number"
+                            min={0}
+                            value={attachmentMetaExport.from}
+                            onChange={(e) => setAttachmentMetaExport((s) => ({ ...s, from: e.target.value }))}
+                            className="w-16 text-[11px] text-slate-800 border border-slate-200 rounded px-1.5 py-0.5 focus:outline-none focus:border-slate-400"
+                          />
+                          <label className="text-[11px] text-slate-500">To</label>
+                          <input
+                            type="number"
+                            min={0}
+                            value={attachmentMetaExport.to}
+                            placeholder="all"
+                            onChange={(e) => setAttachmentMetaExport((s) => ({ ...s, to: e.target.value }))}
+                            className="w-16 text-[11px] text-slate-800 border border-slate-200 rounded px-1.5 py-0.5 focus:outline-none focus:border-slate-400"
+                          />
+                          <span className="text-[11px] text-slate-400">of 6946 tasks</span>
+                        </div>
+                      )}
+                    </div>
+                    {!isRunning && (
+                      <button
+                        onClick={handleAttachmentMetaExport}
+                        disabled={anyRunning}
+                        className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium bg-slate-900 text-white hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <Download size={11} />
+                        Export
+                      </button>
+                    )}
+                  </div>
+                  {isRunning && attachmentMetaExport.progress !== null ? (
+                    <div className="mt-2">
+                      <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-blue-500 rounded-full transition-all"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      <div className="text-[11px] text-slate-500 mt-1 truncate">
+                        Task {attachmentMetaExport.progress.current} of {attachmentMetaExport.progress.total}
+                      </div>
+                    </div>
+                  ) : null}
+                  {exportStates["attachment-meta"] === "done" && attachmentMetaExport.done !== null ? (
+                    <div className="mt-1 text-[11px]">
+                      <div className="text-green-600">{attachmentMetaExport.done.count} attachments downloaded</div>
+                      {attachmentMetaExport.done.failed.length > 0 ? (
+                        <div className="text-amber-600 mt-0.5 truncate" title={attachmentMetaExport.done.failed.join(", ")}>
+                          {attachmentMetaExport.done.failed.length} task(s) failed after retries — re-run with from/to to retry
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
+                  {attachmentMetaExport.error !== null ? (
+                    <div className="mt-1 text-[11px] text-red-600">{attachmentMetaExport.error}</div>
+                  ) : null}
+                </div>
+              );
+            }
+
             return (
               <div key={key} className="flex items-center justify-between gap-4 py-2 border-b border-slate-100 last:border-0">
                 <div className="min-w-0">
@@ -504,6 +1287,146 @@ export default function MigratePage() {
 
                   {tasksImport.error !== null ? (
                     <div className="mt-1 text-[11px] text-red-600">{tasksImport.error}</div>
+                  ) : null}
+                </div>
+              );
+            }
+
+            if (key === "timelogs") {
+              const isRunning = importStates.timelogs?.state === "running";
+              const prog = timelogsImport.progress;
+              const pct = prog ? Math.round((prog.current / prog.total) * 100) : 0;
+
+              return (
+                <div key="timelogs" className="py-2 border-b border-slate-100 last:border-0">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[13px] font-medium text-slate-800 flex items-center gap-2">
+                        {label}
+                        <StateIcon state={importStates.timelogs?.state ?? "idle"} />
+                      </div>
+                      <div className="text-[11px] text-slate-500 mt-0.5 truncate">{desc}</div>
+                    </div>
+                    {!isRunning && (
+                      <button
+                        onClick={handleTimelogsImport}
+                        disabled={anyRunning}
+                        className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <Upload size={11} />
+                        Import
+                      </button>
+                    )}
+                  </div>
+
+                  {isRunning && prog !== null ? (
+                    <div className="mt-2">
+                      <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-blue-500 rounded-full transition-all"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      <div className="text-[11px] text-slate-500 mt-1 truncate">
+                        Chunk {prog.current} of {prog.total}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {importStates.timelogs?.state === "done" && timelogsImport.done !== null ? (
+                    <div className="mt-2 text-[12px] text-slate-600 space-y-0.5">
+                      <div>
+                        <span className="font-semibold text-green-700">{timelogsImport.done.imported}</span> imported ·{" "}
+                        <span className="font-semibold text-slate-500">{timelogsImport.done.skipped}</span> skipped
+                      </div>
+                      {timelogsImport.done.errors.length > 0 && (
+                        <div className="text-red-600">{timelogsImport.done.errors.length} error(s)</div>
+                      )}
+                      {timelogsImport.done.errors.slice(0, 3).map((e, i) => (
+                        <div key={i} className="text-red-500 text-[11px] truncate" title={e}>{e}</div>
+                      ))}
+                      {timelogsImport.done.errors.length > 3 && (
+                        <div className="text-slate-400 text-[11px]">+{timelogsImport.done.errors.length - 3} more</div>
+                      )}
+                    </div>
+                  ) : null}
+
+                  {timelogsImport.error !== null ? (
+                    <div className="mt-1 text-[11px] text-red-600">{timelogsImport.error}</div>
+                  ) : null}
+                </div>
+              );
+            }
+
+            if (key === "attachments") {
+              const isRunning = importStates.attachments?.state === "running";
+              const prog = attachmentsImport.progress;
+              const pct = prog ? Math.round((prog.current / prog.total) * 100) : 0;
+
+              return (
+                <div key="attachments" className="py-2 border-b border-slate-100 last:border-0">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[13px] font-medium text-slate-800 flex items-center gap-2">
+                        {label}
+                        <StateIcon state={importStates.attachments?.state ?? "idle"} />
+                      </div>
+                      <div className="text-[11px] text-slate-500 mt-0.5 truncate">{desc}</div>
+                    </div>
+                    {!isRunning && (
+                      <div className="shrink-0 flex items-center gap-2">
+                        <input
+                          type="file"
+                          multiple
+                          onChange={(e) => setAttachmentsFiles(Array.from(e.target.files ?? []))}
+                          className="text-[11px] text-slate-500 max-w-[160px]"
+                        />
+                        <button
+                          onClick={handleAttachmentsImport}
+                          disabled={anyRunning || attachmentsFiles.length === 0}
+                          className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        >
+                          <Upload size={11} />
+                          Import ({attachmentsFiles.length})
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {isRunning && prog !== null ? (
+                    <div className="mt-2">
+                      <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-blue-500 rounded-full transition-all"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      <div className="text-[11px] text-slate-500 mt-1 truncate">
+                        Attachment {prog.current} of {prog.total}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {importStates.attachments?.state === "done" && attachmentsImport.done !== null ? (
+                    <div className="mt-2 text-[12px] text-slate-600 space-y-0.5">
+                      <div>
+                        <span className="font-semibold text-green-700">{attachmentsImport.done.imported}</span> imported ·{" "}
+                        <span className="font-semibold text-slate-500">{attachmentsImport.done.skipped}</span> skipped
+                      </div>
+                      {attachmentsImport.done.errors.length > 0 && (
+                        <div className="text-red-600">{attachmentsImport.done.errors.length} error(s)</div>
+                      )}
+                      {attachmentsImport.done.errors.slice(0, 3).map((e, i) => (
+                        <div key={i} className="text-red-500 text-[11px] truncate" title={e}>{e}</div>
+                      ))}
+                      {attachmentsImport.done.errors.length > 3 && (
+                        <div className="text-slate-400 text-[11px]">+{attachmentsImport.done.errors.length - 3} more</div>
+                      )}
+                    </div>
+                  ) : null}
+
+                  {attachmentsImport.error !== null ? (
+                    <div className="mt-1 text-[11px] text-red-600">{attachmentsImport.error}</div>
                   ) : null}
                 </div>
               );

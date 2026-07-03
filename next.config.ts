@@ -21,6 +21,10 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: "10mb",
     },
+    // Next.js 16 proxy.ts buffers the request body in memory (for re-reads in both proxy
+    // and the route handler) and truncates at 10MB by default — the attachments bulk
+    // uploader (task 106) sends up to ~40 files as multipart/form-data, easily over that.
+    proxyClientMaxBodySize: "50mb",
   },
 };
 
