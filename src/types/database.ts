@@ -747,6 +747,52 @@ export interface Database {
           }
         ];
       };
+      issue_comments: {
+        Row: {
+          id: string;
+          issue_id: string;
+          author_id: string | null;
+          author_name: string | null;
+          author_email: string | null;
+          body: string;
+          external_id: string | null;
+          created_at: string;
+          updated_at: string;
+          source_meta: Record<string, unknown>;
+        };
+        Insert: {
+          id?: string;
+          issue_id: string;
+          author_id?: string | null;
+          author_name?: string | null;
+          author_email?: string | null;
+          body: string;
+          external_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          source_meta?: Record<string, unknown>;
+        };
+        Update: {
+          id?: string;
+          issue_id?: string;
+          author_id?: string | null;
+          author_name?: string | null;
+          author_email?: string | null;
+          body?: string;
+          external_id?: string | null;
+          updated_at?: string;
+          source_meta?: Record<string, unknown>;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "issue_comments_issue_id_fkey";
+            columns: ["issue_id"];
+            isOneToOne: false;
+            referencedRelation: "issues";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
       tasks: {
         Row: {
           id: string;
@@ -1005,6 +1051,7 @@ export interface Database {
         Row: {
           id: string;
           task_id: string | null;
+          issue_id: string | null;
           project_id: string;
           employee_id: string | null;
           date_logged: string;
@@ -1021,6 +1068,7 @@ export interface Database {
         Insert: {
           id?: string;
           task_id?: string | null;
+          issue_id?: string | null;
           project_id: string;
           employee_id?: string | null;
           date_logged: string;
@@ -1037,6 +1085,7 @@ export interface Database {
         Update: {
           id?: string;
           task_id?: string | null;
+          issue_id?: string | null;
           project_id?: string;
           employee_id?: string | null;
           date_logged?: string;
@@ -1055,6 +1104,13 @@ export interface Database {
             columns: ["task_id"];
             isOneToOne: false;
             referencedRelation: "tasks";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "time_logs_issue_id_fkey";
+            columns: ["issue_id"];
+            isOneToOne: false;
+            referencedRelation: "issues";
             referencedColumns: ["id"];
           },
           {

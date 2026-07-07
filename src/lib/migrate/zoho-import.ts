@@ -96,6 +96,16 @@ export async function resolveTaskId(externalId: string): Promise<string | null> 
   return data?.id ?? null;
 }
 
+export async function resolveIssueId(externalId: string): Promise<string | null> {
+  if (!externalId) return null;
+  const { data } = await adminClient
+    .from("issues")
+    .select("id")
+    .eq("external_id", externalId)
+    .maybeSingle();
+  return data?.id ?? null;
+}
+
 export async function resolveTasklistId(externalId: string): Promise<string | null> {
   if (!externalId) return null;
   const { data } = await adminClient

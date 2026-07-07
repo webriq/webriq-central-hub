@@ -43,7 +43,21 @@ interface CommentsExportState {
   error: string | null;
 }
 
+interface IssueCommentsExportState {
+  progress: { current: number; total: number; issueId: string } | null;
+  done: { count: number; failed: string[] } | null;
+  error: string | null;
+}
+
 interface TimelogsExportState {
+  from: string;
+  to: string;
+  progress: { current: number; total: number; project: string } | null;
+  done: { count: number; failed: string[] } | null;
+  error: string | null;
+}
+
+interface IssueTimelogsExportState {
   from: string;
   to: string;
   progress: { current: number; total: number; project: string } | null;
@@ -57,7 +71,21 @@ interface TimelogsImportState {
   error: string | null;
 }
 
+interface IssueTimelogsImportState {
+  progress: { current: number; total: number } | null;
+  done: { imported: number; skipped: number; errors: string[] } | null;
+  error: string | null;
+}
+
 interface AttachmentMetaExportState {
+  from: string;
+  to: string;
+  progress: { current: number; total: number } | null;
+  done: { count: number; failed: string[] } | null;
+  error: string | null;
+}
+
+interface IssueAttachmentMetaExportState {
   from: string;
   to: string;
   progress: { current: number; total: number } | null;
@@ -71,6 +99,12 @@ interface AttachmentsImportState {
   error: string | null;
 }
 
+interface IssueAttachmentsImportState {
+  progress: { current: number; total: number } | null;
+  done: { imported: number; skipped: number; errors: string[] } | null;
+  error: string | null;
+}
+
 const EXPORT_LEVELS = [
   { key: "users", label: "Users", desc: "All Zoho portal users — can run independently" },
   { key: "milestones", label: "Milestones", desc: "All milestones across every project — export before Tasklists" },
@@ -78,8 +112,11 @@ const EXPORT_LEVELS = [
   { key: "tasks", label: "Tasks", desc: "All tasks (paginated per project)" },
   { key: "issues", label: "Issues", desc: "All issues/bugs (paginated per project) — can run independently" },
   { key: "comments", label: "Comments", desc: "All task comments — requires tasks.json exported first" },
+  { key: "issue-comments", label: "Issue Comments", desc: "All issue comments — requires issues-*.json exported first" },
   { key: "timelogs", label: "Time Logs", desc: "All time log entries per project" },
+  { key: "issue-timelogs", label: "Issue Time Logs", desc: "All time logged against issues (paginated per issue, all 1049 queried — no pre-filter available) — requires Issues exported first" },
   { key: "attachment-meta", label: "Attachment Metadata", desc: "Attachment list per task — requires tasks.json exported first" },
+  { key: "issue-attachment-meta", label: "Issue Attachment Metadata", desc: "Attachment list per issue (entity_type: bug) — requires issues-*.json exported first" },
 ] as const;
 
 const IMPORT_LEVELS = [
@@ -91,8 +128,11 @@ const IMPORT_LEVELS = [
   { key: "tasks", label: "Tasks", desc: "Creates Hub task records from tasks.json" },
   { key: "issues", label: "Issues", desc: "Creates Hub issue records from issues-*.json — requires Projects imported first" },
   { key: "comments", label: "Comments", desc: "Imports task comments from comments.json" },
+  { key: "issue-comments", label: "Issue Comments", desc: "Imports issue comments from issue-comments.json — requires Issues imported first" },
   { key: "timelogs", label: "Time Logs", desc: "Imports time log entries from timelogs.json" },
+  { key: "issue-timelogs", label: "Issue Time Logs", desc: "Imports time log entries from issue-timelogs-*.json — requires Issues imported first" },
   { key: "attachments", label: "Attachments", desc: "Select the files you manually downloaded from each attachment's download_url (not the attachment-meta-*.json files) — matches by filename and uploads to Supabase Storage" },
+  { key: "issue-attachments", label: "Issue Attachments", desc: "Select the files you manually downloaded from each issue attachment's download_url — matches by filename+size and uploads to Supabase Storage" },
 ] as const;
 
 function ResultChip({ result }: { result: ImportResult }) {
@@ -153,6 +193,11 @@ export default function MigratePage() {
     done: null,
     error: null,
   });
+  const [issueCommentsExport, setIssueCommentsExport] = useState<IssueCommentsExportState>({
+    progress: null,
+    done: null,
+    error: null,
+  });
   const [timelogsExport, setTimelogsExport] = useState<TimelogsExportState>({
     from: "0",
     to: "25",
@@ -160,7 +205,19 @@ export default function MigratePage() {
     done: null,
     error: null,
   });
+  const [issueTimelogsExport, setIssueTimelogsExport] = useState<IssueTimelogsExportState>({
+    from: "0",
+    to: "",
+    progress: null,
+    done: null,
+    error: null,
+  });
   const [timelogsImport, setTimelogsImport] = useState<TimelogsImportState>({
+    progress: null,
+    done: null,
+    error: null,
+  });
+  const [issueTimelogsImport, setIssueTimelogsImport] = useState<IssueTimelogsImportState>({
     progress: null,
     done: null,
     error: null,
@@ -172,12 +229,25 @@ export default function MigratePage() {
     done: null,
     error: null,
   });
+  const [issueAttachmentMetaExport, setIssueAttachmentMetaExport] = useState<IssueAttachmentMetaExportState>({
+    from: "0",
+    to: "100",
+    progress: null,
+    done: null,
+    error: null,
+  });
   const [attachmentsImport, setAttachmentsImport] = useState<AttachmentsImportState>({
     progress: null,
     done: null,
     error: null,
   });
   const [attachmentsFiles, setAttachmentsFiles] = useState<File[]>([]);
+  const [issueAttachmentsImport, setIssueAttachmentsImport] = useState<IssueAttachmentsImportState>({
+    progress: null,
+    done: null,
+    error: null,
+  });
+  const [issueAttachmentsFiles, setIssueAttachmentsFiles] = useState<File[]>([]);
 
   async function handleExport(level: string) {
     if (anyRunning) return;
@@ -411,6 +481,75 @@ export default function MigratePage() {
     }
   }
 
+  async function handleIssueCommentsExport() {
+    if (anyRunning) return;
+    setAnyRunning(true);
+    setExportStates((s) => ({ ...s, "issue-comments": "running" }));
+    setIssueCommentsExport({ progress: null, done: null, error: null });
+
+    try {
+      const res = await fetch("/api/admin/zoho-export/issue-comments");
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      const accumulated: unknown[] = [];
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const frames = buffer.split("\n\n");
+        buffer = frames.pop() ?? "";
+
+        for (const frame of frames) {
+          if (!frame.startsWith("data: ")) continue;
+          const evt = JSON.parse(frame.slice(6)) as {
+            type: string;
+            current?: number;
+            total?: number;
+            issueId?: string;
+            comments?: unknown[];
+            total_comments?: number;
+            failed_issue_ids?: string[];
+          };
+
+          if (evt.type === "progress") {
+            setIssueCommentsExport((s) => ({
+              ...s,
+              progress: { current: evt.current!, total: evt.total!, issueId: evt.issueId! },
+            }));
+          }
+          if (evt.type === "comments" && evt.comments) {
+            accumulated.push(...evt.comments);
+          }
+          if (evt.type === "done") {
+            const blob = new Blob([JSON.stringify(accumulated, null, 2)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "issue-comments.json";
+            a.click();
+            URL.revokeObjectURL(url);
+            setIssueCommentsExport((s) => ({
+              ...s,
+              done: { count: evt.total_comments!, failed: evt.failed_issue_ids ?? [] },
+              progress: null,
+            }));
+            setExportStates((s) => ({ ...s, "issue-comments": "done" }));
+          }
+        }
+      }
+    } catch (e) {
+      setIssueCommentsExport((s) => ({ ...s, error: String(e), progress: null }));
+      setExportStates((s) => ({ ...s, "issue-comments": "error" }));
+      console.error("[export/issue-comments]", e);
+    } finally {
+      setAnyRunning(false);
+    }
+  }
+
   async function handleTimelogsExport() {
     if (anyRunning) return;
     setAnyRunning(true);
@@ -483,6 +622,78 @@ export default function MigratePage() {
     }
   }
 
+  async function handleIssueTimelogsExport() {
+    if (anyRunning) return;
+    setAnyRunning(true);
+    setExportStates((s) => ({ ...s, "issue-timelogs": "running" }));
+    setIssueTimelogsExport((s) => ({ ...s, progress: null, done: null, error: null }));
+
+    try {
+      const qp = new URLSearchParams({ from: issueTimelogsExport.from || "0" });
+      if (issueTimelogsExport.to) qp.set("to", issueTimelogsExport.to);
+      const res = await fetch(`/api/admin/zoho-export/issue-timelogs?${qp}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      const accumulated: unknown[] = [];
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const frames = buffer.split("\n\n");
+        buffer = frames.pop() ?? "";
+
+        for (const frame of frames) {
+          if (!frame.startsWith("data: ")) continue;
+          const evt = JSON.parse(frame.slice(6)) as {
+            type: string;
+            current?: number;
+            total?: number;
+            project?: string;
+            logs?: unknown[];
+            total_logs?: number;
+            failed_windows?: string[];
+          };
+
+          if (evt.type === "progress") {
+            setIssueTimelogsExport((s) => ({
+              ...s,
+              progress: { current: evt.current!, total: evt.total!, project: evt.project! },
+            }));
+          }
+          if (evt.type === "timelogs" && evt.logs) {
+            accumulated.push(...evt.logs);
+          }
+          if (evt.type === "done") {
+            const blob = new Blob([JSON.stringify(accumulated, null, 2)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            const toLabel = issueTimelogsExport.to || "end";
+            a.download = `issue-timelogs-${issueTimelogsExport.from || "0"}-${toLabel}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            setIssueTimelogsExport((s) => ({
+              ...s,
+              done: { count: evt.total_logs!, failed: evt.failed_windows ?? [] },
+              progress: null,
+            }));
+            setExportStates((s) => ({ ...s, "issue-timelogs": "done" }));
+          }
+        }
+      }
+    } catch (e) {
+      setIssueTimelogsExport((s) => ({ ...s, error: String(e), progress: null }));
+      setExportStates((s) => ({ ...s, "issue-timelogs": "error" }));
+      console.error("[export/issue-timelogs]", e);
+    } finally {
+      setAnyRunning(false);
+    }
+  }
+
   async function handleAttachmentMetaExport() {
     if (anyRunning) return;
     setAnyRunning(true);
@@ -549,6 +760,77 @@ export default function MigratePage() {
       setAttachmentMetaExport((s) => ({ ...s, error: String(e), progress: null }));
       setExportStates((s) => ({ ...s, "attachment-meta": "error" }));
       console.error("[export/attachment-meta]", e);
+    } finally {
+      setAnyRunning(false);
+    }
+  }
+
+  async function handleIssueAttachmentMetaExport() {
+    if (anyRunning) return;
+    setAnyRunning(true);
+    setExportStates((s) => ({ ...s, "issue-attachment-meta": "running" }));
+    setIssueAttachmentMetaExport((s) => ({ ...s, progress: null, done: null, error: null }));
+
+    try {
+      const qp = new URLSearchParams({ from: issueAttachmentMetaExport.from || "0" });
+      if (issueAttachmentMetaExport.to) qp.set("to", issueAttachmentMetaExport.to);
+      const res = await fetch(`/api/admin/zoho-export/issue-attachment-meta?${qp}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      const accumulated: unknown[] = [];
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const frames = buffer.split("\n\n");
+        buffer = frames.pop() ?? "";
+
+        for (const frame of frames) {
+          if (!frame.startsWith("data: ")) continue;
+          const evt = JSON.parse(frame.slice(6)) as {
+            type: string;
+            current?: number;
+            total?: number;
+            items?: unknown[];
+            total_attachments?: number;
+            failed_issue_ids?: string[];
+          };
+
+          if (evt.type === "progress") {
+            setIssueAttachmentMetaExport((s) => ({
+              ...s,
+              progress: { current: evt.current!, total: evt.total! },
+            }));
+          }
+          if (evt.type === "attachments" && evt.items) {
+            accumulated.push(...evt.items);
+          }
+          if (evt.type === "done") {
+            const blob = new Blob([JSON.stringify(accumulated, null, 2)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            const toLabel = issueAttachmentMetaExport.to || "end";
+            a.download = `issue-attachment-meta-${issueAttachmentMetaExport.from || "0"}-${toLabel}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            setIssueAttachmentMetaExport((s) => ({
+              ...s,
+              done: { count: evt.total_attachments!, failed: evt.failed_issue_ids ?? [] },
+              progress: null,
+            }));
+            setExportStates((s) => ({ ...s, "issue-attachment-meta": "done" }));
+          }
+        }
+      }
+    } catch (e) {
+      setIssueAttachmentMetaExport((s) => ({ ...s, error: String(e), progress: null }));
+      setExportStates((s) => ({ ...s, "issue-attachment-meta": "error" }));
+      console.error("[export/issue-attachment-meta]", e);
     } finally {
       setAnyRunning(false);
     }
@@ -683,6 +965,67 @@ export default function MigratePage() {
     }
   }
 
+  async function handleIssueTimelogsImport() {
+    if (anyRunning) return;
+    setAnyRunning(true);
+    setImportStates((s) => ({ ...s, "issue-timelogs": { state: "running" } }));
+    setIssueTimelogsImport({ progress: null, done: null, error: null });
+
+    try {
+      const res = await fetch("/api/admin/zoho-import/issue-timelogs", { method: "POST" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const frames = buffer.split("\n\n");
+        buffer = frames.pop() ?? "";
+
+        for (const frame of frames) {
+          if (!frame.startsWith("data: ")) continue;
+          const evt = JSON.parse(frame.slice(6)) as {
+            type: string;
+            current?: number;
+            total?: number;
+            imported?: number;
+            skipped?: number;
+            errors?: string[];
+            message?: string;
+          };
+
+          if (evt.type === "progress") {
+            setIssueTimelogsImport((s) => ({
+              ...s,
+              progress: { current: evt.current!, total: evt.total! },
+            }));
+          }
+          if (evt.type === "done") {
+            setIssueTimelogsImport((s) => ({
+              ...s,
+              progress: null,
+              done: { imported: evt.imported!, skipped: evt.skipped!, errors: evt.errors ?? [] },
+            }));
+            setImportStates((s) => ({ ...s, "issue-timelogs": { state: "done" } }));
+          }
+          if (evt.type === "error") {
+            throw new Error(evt.message ?? "Unknown error");
+          }
+        }
+      }
+    } catch (e) {
+      setIssueTimelogsImport((s) => ({ ...s, error: String(e), progress: null }));
+      setImportStates((s) => ({ ...s, "issue-timelogs": { state: "error", errorMsg: String(e) } }));
+      console.error("[import/issue-timelogs]", e);
+    } finally {
+      setAnyRunning(false);
+    }
+  }
+
   async function handleAttachmentsImport() {
     if (anyRunning || attachmentsFiles.length === 0) return;
     setAnyRunning(true);
@@ -742,6 +1085,70 @@ export default function MigratePage() {
       setAttachmentsImport((s) => ({ ...s, error: String(e), progress: null }));
       setImportStates((s) => ({ ...s, attachments: { state: "error", errorMsg: String(e) } }));
       console.error("[import/attachments]", e);
+    } finally {
+      setAnyRunning(false);
+    }
+  }
+
+  async function handleIssueAttachmentsImport() {
+    if (anyRunning || issueAttachmentsFiles.length === 0) return;
+    setAnyRunning(true);
+    setImportStates((s) => ({ ...s, "issue-attachments": { state: "running" } }));
+    setIssueAttachmentsImport({ progress: null, done: null, error: null });
+
+    try {
+      const formData = new FormData();
+      for (const file of issueAttachmentsFiles) formData.append("files", file);
+
+      const res = await fetch("/api/admin/zoho-import/issue-attachments", { method: "POST", body: formData });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const frames = buffer.split("\n\n");
+        buffer = frames.pop() ?? "";
+
+        for (const frame of frames) {
+          if (!frame.startsWith("data: ")) continue;
+          const evt = JSON.parse(frame.slice(6)) as {
+            type: string;
+            current?: number;
+            total?: number;
+            imported?: number;
+            skipped?: number;
+            errors?: string[];
+            message?: string;
+          };
+
+          if (evt.type === "progress") {
+            setIssueAttachmentsImport((s) => ({
+              ...s,
+              progress: { current: evt.current!, total: evt.total! },
+            }));
+          }
+          if (evt.type === "done") {
+            setIssueAttachmentsImport((s) => ({
+              ...s,
+              progress: null,
+              done: { imported: evt.imported!, skipped: evt.skipped!, errors: evt.errors ?? [] },
+            }));
+            setImportStates((s) => ({ ...s, "issue-attachments": { state: "done" } }));
+          }
+          if (evt.type === "error") {
+            throw new Error(evt.message ?? "Unknown error");
+          }
+        }
+      }
+    } catch (e) {
+      setIssueAttachmentsImport((s) => ({ ...s, error: String(e), progress: null }));
+      setImportStates((s) => ({ ...s, "issue-attachments": { state: "error", errorMsg: String(e) } }));
+      console.error("[import/issue-attachments]", e);
     } finally {
       setAnyRunning(false);
     }
@@ -1012,6 +1419,63 @@ export default function MigratePage() {
               );
             }
 
+            if (key === "issue-comments") {
+              const isRunning = exportStates["issue-comments"] === "running";
+              const pct = issueCommentsExport.progress
+                ? Math.round((issueCommentsExport.progress.current / issueCommentsExport.progress.total) * 100)
+                : 0;
+
+              return (
+                <div key="issue-comments" className="py-2 border-b border-slate-100 last:border-0">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[13px] font-medium text-slate-800 flex items-center gap-2">
+                        {label}
+                        <StateIcon state={exportStates["issue-comments"] ?? "idle"} />
+                      </div>
+                      <div className="text-[11px] text-slate-500 mt-0.5 truncate">{desc}</div>
+                    </div>
+                    {!isRunning && (
+                      <button
+                        onClick={handleIssueCommentsExport}
+                        disabled={anyRunning}
+                        className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium bg-slate-900 text-white hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <Download size={11} />
+                        Export
+                      </button>
+                    )}
+                  </div>
+                  {isRunning && issueCommentsExport.progress !== null ? (
+                    <div className="mt-2">
+                      <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-blue-500 rounded-full transition-all"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      <div className="text-[11px] text-slate-500 mt-1 truncate">
+                        Issue {issueCommentsExport.progress.current} of {issueCommentsExport.progress.total}
+                      </div>
+                    </div>
+                  ) : null}
+                  {exportStates["issue-comments"] === "done" && issueCommentsExport.done !== null ? (
+                    <div className="mt-1 text-[11px] space-y-0.5">
+                      <div className="text-green-600">{issueCommentsExport.done.count} comments downloaded</div>
+                      {issueCommentsExport.done.failed.length > 0 ? (
+                        <div className="text-amber-600 truncate" title={issueCommentsExport.done.failed.join(", ")}>
+                          {issueCommentsExport.done.failed.length} issue(s) failed after retries — re-run to retry
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
+                  {issueCommentsExport.error !== null ? (
+                    <div className="mt-1 text-[11px] text-red-600">{issueCommentsExport.error}</div>
+                  ) : null}
+                </div>
+              );
+            }
+
             if (key === "timelogs") {
               const isRunning = exportStates.timelogs === "running";
               const pct = timelogsExport.progress
@@ -1091,6 +1555,85 @@ export default function MigratePage() {
               );
             }
 
+            if (key === "issue-timelogs") {
+              const isRunning = exportStates["issue-timelogs"] === "running";
+              const pct = issueTimelogsExport.progress
+                ? Math.round((issueTimelogsExport.progress.current / issueTimelogsExport.progress.total) * 100)
+                : 0;
+
+              return (
+                <div key="issue-timelogs" className="py-2 border-b border-slate-100 last:border-0">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[13px] font-medium text-slate-800 flex items-center gap-2">
+                        {label}
+                        <StateIcon state={exportStates["issue-timelogs"] ?? "idle"} />
+                      </div>
+                      <div className="text-[11px] text-slate-500 mt-0.5 truncate">{desc}</div>
+                      {!isRunning && (
+                        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                          <label className="text-[11px] text-slate-500">From</label>
+                          <input
+                            type="number"
+                            min={0}
+                            value={issueTimelogsExport.from}
+                            onChange={(e) => setIssueTimelogsExport((s) => ({ ...s, from: e.target.value }))}
+                            className="w-16 text-[11px] text-slate-800 border border-slate-200 rounded px-1.5 py-0.5 focus:outline-none focus:border-slate-400"
+                          />
+                          <label className="text-[11px] text-slate-500">To</label>
+                          <input
+                            type="number"
+                            min={0}
+                            value={issueTimelogsExport.to}
+                            placeholder="all"
+                            onChange={(e) => setIssueTimelogsExport((s) => ({ ...s, to: e.target.value }))}
+                            className="w-16 text-[11px] text-slate-800 border border-slate-200 rounded px-1.5 py-0.5 focus:outline-none focus:border-slate-400"
+                          />
+                          <span className="text-[11px] text-slate-400">of projects with issues</span>
+                        </div>
+                      )}
+                    </div>
+                    {!isRunning && (
+                      <button
+                        onClick={handleIssueTimelogsExport}
+                        disabled={anyRunning}
+                        className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium bg-slate-900 text-white hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <Download size={11} />
+                        Export
+                      </button>
+                    )}
+                  </div>
+                  {isRunning && issueTimelogsExport.progress !== null ? (
+                    <div className="mt-2">
+                      <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-blue-500 rounded-full transition-all"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      <div className="text-[11px] text-slate-500 mt-1 truncate">
+                        Project {issueTimelogsExport.progress.current} of {issueTimelogsExport.progress.total} — {issueTimelogsExport.progress.project}
+                      </div>
+                    </div>
+                  ) : null}
+                  {exportStates["issue-timelogs"] === "done" && issueTimelogsExport.done !== null ? (
+                    <div className="mt-1 text-[11px]">
+                      <div className="text-green-600">{issueTimelogsExport.done.count} logs downloaded</div>
+                      {issueTimelogsExport.done.failed.length > 0 ? (
+                        <div className="text-amber-600 mt-0.5 truncate" title={issueTimelogsExport.done.failed.join(", ")}>
+                          {issueTimelogsExport.done.failed.length} window(s) failed after retries — re-run with from/to to retry
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
+                  {issueTimelogsExport.error !== null ? (
+                    <div className="mt-1 text-[11px] text-red-600">{issueTimelogsExport.error}</div>
+                  ) : null}
+                </div>
+              );
+            }
+
             if (key === "attachment-meta") {
               const isRunning = exportStates["attachment-meta"] === "running";
               const pct = attachmentMetaExport.progress
@@ -1165,6 +1708,85 @@ export default function MigratePage() {
                   ) : null}
                   {attachmentMetaExport.error !== null ? (
                     <div className="mt-1 text-[11px] text-red-600">{attachmentMetaExport.error}</div>
+                  ) : null}
+                </div>
+              );
+            }
+
+            if (key === "issue-attachment-meta") {
+              const isRunning = exportStates["issue-attachment-meta"] === "running";
+              const pct = issueAttachmentMetaExport.progress
+                ? Math.round((issueAttachmentMetaExport.progress.current / issueAttachmentMetaExport.progress.total) * 100)
+                : 0;
+
+              return (
+                <div key="issue-attachment-meta" className="py-2 border-b border-slate-100 last:border-0">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[13px] font-medium text-slate-800 flex items-center gap-2">
+                        {label}
+                        <StateIcon state={exportStates["issue-attachment-meta"] ?? "idle"} />
+                      </div>
+                      <div className="text-[11px] text-slate-500 mt-0.5 truncate">{desc}</div>
+                      {!isRunning && (
+                        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                          <label className="text-[11px] text-slate-500">From</label>
+                          <input
+                            type="number"
+                            min={0}
+                            value={issueAttachmentMetaExport.from}
+                            onChange={(e) => setIssueAttachmentMetaExport((s) => ({ ...s, from: e.target.value }))}
+                            className="w-16 text-[11px] text-slate-800 border border-slate-200 rounded px-1.5 py-0.5 focus:outline-none focus:border-slate-400"
+                          />
+                          <label className="text-[11px] text-slate-500">To</label>
+                          <input
+                            type="number"
+                            min={0}
+                            value={issueAttachmentMetaExport.to}
+                            placeholder="all"
+                            onChange={(e) => setIssueAttachmentMetaExport((s) => ({ ...s, to: e.target.value }))}
+                            className="w-16 text-[11px] text-slate-800 border border-slate-200 rounded px-1.5 py-0.5 focus:outline-none focus:border-slate-400"
+                          />
+                          <span className="text-[11px] text-slate-400">of 1049 issues</span>
+                        </div>
+                      )}
+                    </div>
+                    {!isRunning && (
+                      <button
+                        onClick={handleIssueAttachmentMetaExport}
+                        disabled={anyRunning}
+                        className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium bg-slate-900 text-white hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <Download size={11} />
+                        Export
+                      </button>
+                    )}
+                  </div>
+                  {isRunning && issueAttachmentMetaExport.progress !== null ? (
+                    <div className="mt-2">
+                      <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-blue-500 rounded-full transition-all"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      <div className="text-[11px] text-slate-500 mt-1 truncate">
+                        Issue {issueAttachmentMetaExport.progress.current} of {issueAttachmentMetaExport.progress.total}
+                      </div>
+                    </div>
+                  ) : null}
+                  {exportStates["issue-attachment-meta"] === "done" && issueAttachmentMetaExport.done !== null ? (
+                    <div className="mt-1 text-[11px]">
+                      <div className="text-green-600">{issueAttachmentMetaExport.done.count} attachments downloaded</div>
+                      {issueAttachmentMetaExport.done.failed.length > 0 ? (
+                        <div className="text-amber-600 mt-0.5 truncate" title={issueAttachmentMetaExport.done.failed.join(", ")}>
+                          {issueAttachmentMetaExport.done.failed.length} issue(s) failed after retries — re-run with from/to to retry
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
+                  {issueAttachmentMetaExport.error !== null ? (
+                    <div className="mt-1 text-[11px] text-red-600">{issueAttachmentMetaExport.error}</div>
                   ) : null}
                 </div>
               );
@@ -1358,6 +1980,72 @@ export default function MigratePage() {
               );
             }
 
+            if (key === "issue-timelogs") {
+              const isRunning = importStates["issue-timelogs"]?.state === "running";
+              const prog = issueTimelogsImport.progress;
+              const pct = prog ? Math.round((prog.current / prog.total) * 100) : 0;
+
+              return (
+                <div key="issue-timelogs" className="py-2 border-b border-slate-100 last:border-0">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[13px] font-medium text-slate-800 flex items-center gap-2">
+                        {label}
+                        <StateIcon state={importStates["issue-timelogs"]?.state ?? "idle"} />
+                      </div>
+                      <div className="text-[11px] text-slate-500 mt-0.5 truncate">{desc}</div>
+                    </div>
+                    {!isRunning && (
+                      <button
+                        onClick={handleIssueTimelogsImport}
+                        disabled={anyRunning}
+                        className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <Upload size={11} />
+                        Import
+                      </button>
+                    )}
+                  </div>
+
+                  {isRunning && prog !== null ? (
+                    <div className="mt-2">
+                      <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-blue-500 rounded-full transition-all"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      <div className="text-[11px] text-slate-500 mt-1 truncate">
+                        Chunk {prog.current} of {prog.total}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {importStates["issue-timelogs"]?.state === "done" && issueTimelogsImport.done !== null ? (
+                    <div className="mt-2 text-[12px] text-slate-600 space-y-0.5">
+                      <div>
+                        <span className="font-semibold text-green-700">{issueTimelogsImport.done.imported}</span> imported ·{" "}
+                        <span className="font-semibold text-slate-500">{issueTimelogsImport.done.skipped}</span> skipped
+                      </div>
+                      {issueTimelogsImport.done.errors.length > 0 && (
+                        <div className="text-red-600">{issueTimelogsImport.done.errors.length} error(s)</div>
+                      )}
+                      {issueTimelogsImport.done.errors.slice(0, 3).map((e, i) => (
+                        <div key={i} className="text-red-500 text-[11px] truncate" title={e}>{e}</div>
+                      ))}
+                      {issueTimelogsImport.done.errors.length > 3 && (
+                        <div className="text-slate-400 text-[11px]">+{issueTimelogsImport.done.errors.length - 3} more</div>
+                      )}
+                    </div>
+                  ) : null}
+
+                  {issueTimelogsImport.error !== null ? (
+                    <div className="mt-1 text-[11px] text-red-600">{issueTimelogsImport.error}</div>
+                  ) : null}
+                </div>
+              );
+            }
+
             if (key === "attachments") {
               const isRunning = importStates.attachments?.state === "running";
               const prog = attachmentsImport.progress;
@@ -1427,6 +2115,80 @@ export default function MigratePage() {
 
                   {attachmentsImport.error !== null ? (
                     <div className="mt-1 text-[11px] text-red-600">{attachmentsImport.error}</div>
+                  ) : null}
+                </div>
+              );
+            }
+
+            if (key === "issue-attachments") {
+              const isRunning = importStates["issue-attachments"]?.state === "running";
+              const prog = issueAttachmentsImport.progress;
+              const pct = prog ? Math.round((prog.current / prog.total) * 100) : 0;
+
+              return (
+                <div key="issue-attachments" className="py-2 border-b border-slate-100 last:border-0">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[13px] font-medium text-slate-800 flex items-center gap-2">
+                        {label}
+                        <StateIcon state={importStates["issue-attachments"]?.state ?? "idle"} />
+                      </div>
+                      <div className="text-[11px] text-slate-500 mt-0.5 truncate">{desc}</div>
+                    </div>
+                    {!isRunning && (
+                      <div className="shrink-0 flex items-center gap-2">
+                        <input
+                          type="file"
+                          multiple
+                          onChange={(e) => setIssueAttachmentsFiles(Array.from(e.target.files ?? []))}
+                          className="text-[11px] text-slate-500 max-w-[160px]"
+                        />
+                        <button
+                          onClick={handleIssueAttachmentsImport}
+                          disabled={anyRunning || issueAttachmentsFiles.length === 0}
+                          className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        >
+                          <Upload size={11} />
+                          Import ({issueAttachmentsFiles.length})
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {isRunning && prog !== null ? (
+                    <div className="mt-2">
+                      <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-blue-500 rounded-full transition-all"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      <div className="text-[11px] text-slate-500 mt-1 truncate">
+                        Attachment {prog.current} of {prog.total}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {importStates["issue-attachments"]?.state === "done" && issueAttachmentsImport.done !== null ? (
+                    <div className="mt-2 text-[12px] text-slate-600 space-y-0.5">
+                      <div>
+                        <span className="font-semibold text-green-700">{issueAttachmentsImport.done.imported}</span> imported ·{" "}
+                        <span className="font-semibold text-slate-500">{issueAttachmentsImport.done.skipped}</span> skipped
+                      </div>
+                      {issueAttachmentsImport.done.errors.length > 0 && (
+                        <div className="text-red-600">{issueAttachmentsImport.done.errors.length} error(s)</div>
+                      )}
+                      {issueAttachmentsImport.done.errors.slice(0, 3).map((e, i) => (
+                        <div key={i} className="text-red-500 text-[11px] truncate" title={e}>{e}</div>
+                      ))}
+                      {issueAttachmentsImport.done.errors.length > 3 && (
+                        <div className="text-slate-400 text-[11px]">+{issueAttachmentsImport.done.errors.length - 3} more</div>
+                      )}
+                    </div>
+                  ) : null}
+
+                  {issueAttachmentsImport.error !== null ? (
+                    <div className="mt-1 text-[11px] text-red-600">{issueAttachmentsImport.error}</div>
                   ) : null}
                 </div>
               );
