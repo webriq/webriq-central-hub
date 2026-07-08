@@ -28,7 +28,7 @@ async function getDB() {
 }
 
 async function queueTaskForLater(request: Request): Promise<Response> {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+   
   const body = await request.clone().json();
   const db = await getDB();
   await db.add(STORE_NAME, {

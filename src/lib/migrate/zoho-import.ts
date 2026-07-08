@@ -149,6 +149,20 @@ export async function buildCustomerNameMap(): Promise<Map<string, string>> {
   return map;
 }
 
+// Normalizes a company name for fuzzy comparison between Zoho Desk account
+// names and customers.company_name — lowercases, strips common legal suffixes
+// (Inc/LLC/Ltd/Co/Corp/Corporation/Company), and collapses whitespace/punctuation.
+// Distinct from extractZohoCustomerName(), which strips Zoho *Projects* project-name
+// suffixes ("- Content Site", "- Ecommerce") — a different source format entirely.
+export function normalizeCompanyName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[.,]/g, "")
+    .replace(/\b(inc|llc|ltd|co|corp|corporation|company)\b\.?/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export function inferProjectType(
   tags: ZohoTag[],
   layoutName: string | undefined,

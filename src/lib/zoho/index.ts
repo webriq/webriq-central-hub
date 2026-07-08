@@ -86,13 +86,14 @@ export type ZohoFetchResult = {
 export async function fetchZohoWithRetry(
   url: string,
   token: string,
-  options?: { label?: string; maxRollingRetries?: number }
+  options?: { label?: string; maxRollingRetries?: number; headers?: Record<string, string> }
 ): Promise<ZohoFetchResult> {
   const label = options?.label ?? "zoho";
   const maxRollingRetries = options?.maxRollingRetries ?? 3;
   let currentToken = token;
 
-  const doFetch = () => fetch(url, { headers: { Authorization: `Zoho-oauthtoken ${currentToken}` } });
+  const doFetch = () =>
+    fetch(url, { headers: { Authorization: `Zoho-oauthtoken ${currentToken}`, ...options?.headers } });
 
   let res = await doFetch();
 

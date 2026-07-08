@@ -10,7 +10,6 @@ const BREADCRUMB_MAP: Record<string, { section: string; page: string }> = {
   [V2_ROUTES.DASHBOARD]:           { section: "Work",      page: "Dashboard" },
   [V2_ROUTES.PROJECTS]:            { section: "Work",      page: "Projects" },
   [V2_ROUTES.CUSTOMERS]:           { section: "Work",      page: "Customers" },
-  [V2_ROUTES.DASHBOARD_CUSTOMERS]: { section: "Work",      page: "Projects" },
   [V2_ROUTES.DASHBOARD_TASKS]:     { section: "Work",      page: "Desk" },
   [V2_ROUTES.DASHBOARD_PIPELINE]:  { section: "Work",      page: "Pipeline" },
   [V2_ROUTES.DASHBOARD_CHAT]:      { section: "Work",      page: "AI Chat" },

@@ -4,16 +4,21 @@ import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
-import { AlertTriangle, Archive } from "lucide-react";
+import { AlertTriangle, Archive, ArrowLeft } from "lucide-react";
 import type { UploadedFile } from "@/types/onboarding";
 import FileUpload from "@/components/onboarding/file-upload";
 import { usePMSettings } from "@/hooks/use-pm-settings";
 import type { CustomerRow, CustomerProductRow, ProjectRow, Database } from "@/types/database";
 import type { ProductName } from "@/types/hub";
 import { getIncompleteSections, getOnboardingSchema, computeCompletionPercentage } from "@/config/onboarding-schemas";
+import { V2_ROUTES } from "@/config/constants";
 
 type ClassificationRow = Database["public"]["Tables"]["classification_records"]["Row"];
 type AssetRow = Database["public"]["Tables"]["customer_assets"]["Row"];
+type CustomerDeskContact = Pick<
+  Database["public"]["Tables"]["contacts"]["Row"],
+  "id" | "first_name" | "last_name" | "email" | "secondary_email" | "phone" | "mobile" | "title"
+>;
 type NavSection = "company" | "contact" | "products" | "assets" | "activity" | "projects" | "settings";
 
 interface CustomerProfileClientProps {
@@ -234,6 +239,22 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
   const [revealedAssets, setRevealedAssets] = useState<Set<string>>(new Set());
   const [openingAssetId, setOpeningAssetId] = useState<string | null>(null);
 
+  // Desk Contacts (Zoho Desk, matched — task 117/119)
+  const [deskContacts, setDeskContacts] = useState<CustomerDeskContact[]>([]);
+  const [deskContactsLoading, setDeskContactsLoading] = useState(false);
+  const hasFetchedDeskContactsRef = useRef(false);
+
+  useEffect(() => {
+    if (activeSection !== "contact" || hasFetchedDeskContactsRef.current) return;
+    hasFetchedDeskContactsRef.current = true;
+    setDeskContactsLoading(true);
+    fetch(`/api/customers/${customer.customer_id}/contacts`)
+      .then((r) => r.json())
+      .then((data: unknown) => setDeskContacts(Array.isArray(data) ? (data as CustomerDeskContact[]) : []))
+      .catch(() => {})
+      .finally(() => setDeskContactsLoading(false));
+  }, [activeSection, customer.customer_id]);
+
   useEffect(() => {
     const supabase = createClient();
     supabase
@@ -447,6 +468,48 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
     } finally {
       setSaving(false);
     }
+  };
+
+  // Primary Contact select/deselect (task 120) — writes into the same customers.contact_name/
+  // contact_email fields the Edit modal above already uses; no new schema.
+  const [primaryContactSavingId, setPrimaryContactSavingId] = useState<string | null>(null);
+  const [primaryContactError, setPrimaryContactError] = useState<string | null>(null);
+
+  function isPrimaryContact(contact: CustomerDeskContact): boolean {
+    return !!customer.contact_email && !!contact.email &&
+      customer.contact_email.trim().toLowerCase() === contact.email.trim().toLowerCase();
+  }
+
+  async function patchPrimaryContact(contactName: string | null, contactEmail: string | null) {
+    try {
+      const res = await fetch(`/api/customers/${customer.customer_id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contact_name: contactName, contact_email: contactEmail }),
+      });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        throw new Error(json.error ?? "Failed to update primary contact");
+      }
+      router.refresh();
+    } catch (err) {
+      setPrimaryContactError(err instanceof Error ? err.message : "Failed to update primary contact");
+    }
+  }
+
+  const handleSetPrimaryContact = async (contact: CustomerDeskContact) => {
+    setPrimaryContactSavingId(contact.id);
+    setPrimaryContactError(null);
+    const fullName = [contact.first_name, contact.last_name].filter(Boolean).join(" ") || null;
+    await patchPrimaryContact(fullName, contact.email ?? null);
+    setPrimaryContactSavingId(null);
+  };
+
+  const handleRemovePrimaryContact = async (contactId: string) => {
+    setPrimaryContactSavingId(contactId);
+    setPrimaryContactError(null);
+    await patchPrimaryContact(null, null);
+    setPrimaryContactSavingId(null);
   };
 
   const handleArchiveProduct = async () => {
@@ -1609,6 +1672,12 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
 
       {/* Page content */}
       <div className="p-6 max-w-5xl mx-auto">
+          <button
+            onClick={() => router.push(V2_ROUTES.CUSTOMERS)}
+            className="inline-flex items-center gap-1.5 text-[12px] font-medium text-slate-500 hover:text-brand transition-colors bg-transparent border-none cursor-pointer mb-3 p-0"
+          >
+            <ArrowLeft size={14} /> Back to Customers
+          </button>
           {/* Header card — always visible */}
           <div className={cn(sectionCls, "px-6")}>
             <div className="flex justify-between items-start flex-wrap gap-4">
@@ -1716,16 +1785,80 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
             <div className={sectionCls}>
               <div className={sectionTitleCls}>Primary Contact</div>
               <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-x-6 gap-y-3">
-                {[
-                  { label: "Contact Name", value: customer.contact_name || "—" },
-                  { label: "Email", value: customer.contact_email || "—" },
-                ].map(({ label, value }) => (
-                  <div key={label}>
-                    <div className="text-[11px] text-slate-400 mb-0.5">{label}</div>
-                    <div className={cn("text-[13px] font-medium", textPrimary)}>{value}</div>
-                  </div>
-                ))}
+                {(() => {
+                  const matched = deskContacts.find((c) => isPrimaryContact(c));
+                  const fields = [
+                    { label: "Contact Name", value: customer.contact_name || "—" },
+                    { label: "Email", value: customer.contact_email || "—" },
+                  ];
+                  if (matched) {
+                    fields.push(
+                      { label: "Phone", value: matched.phone ?? matched.mobile ?? "—" },
+                      { label: "Title", value: matched.title ?? "—" }
+                    );
+                  }
+                  return fields.map(({ label, value }) => (
+                    <div key={label}>
+                      <div className="text-[11px] text-slate-400 mb-0.5">{label}</div>
+                      <div className={cn("text-[13px] font-medium", textPrimary)}>{value}</div>
+                    </div>
+                  ));
+                })()}
               </div>
+            </div>
+          )}
+
+          {/* Desk Contacts (Zoho Desk, matched — task 117/119) */}
+          {activeSection === "contact" && (
+            <div className={cn(sectionCls, "mt-4")}>
+              <div className={sectionTitleCls}>
+                Desk Contacts{deskContacts.length > 0 && ` (${deskContacts.length})`}
+              </div>
+              {deskContactsLoading ? (
+                <div className="text-[13px] text-slate-400 text-center py-4">Loading…</div>
+              ) : deskContacts.length === 0 ? (
+                <div className={cn("text-[13px] text-slate-400 text-center py-4 rounded-lg border border-dashed", isDark ? "bg-white/[0.02] border-white/[0.08]" : "bg-slate-50 border-slate-200")}>
+                  No Desk contacts matched to this customer yet.
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {deskContacts.map((c) => {
+                    const primary = isPrimaryContact(c);
+                    return (
+                      <div key={c.id} className={cn("flex items-center gap-3 py-2.5 px-3 rounded-lg border", isDark ? "border-white/[0.06] bg-white/[0.03]" : "border-slate-100 bg-slate-50/50")}>
+                        <div className="min-w-0 flex-1">
+                          <div className={cn("text-[13px] font-medium flex items-center gap-1.5", textPrimary)}>
+                            {[c.first_name, c.last_name].filter(Boolean).join(" ") || "—"}
+                            {primary && (
+                              <span className="text-[10px] font-semibold text-brand border border-brand/30 rounded-full px-1.5 py-px">
+                                Primary
+                              </span>
+                            )}
+                          </div>
+                          {c.title && <div className="text-[11px] text-slate-400 truncate">{c.title}</div>}
+                        </div>
+                        <div className="text-[12px] text-slate-500 truncate min-w-0 flex-1">{c.email ?? "—"}</div>
+                        <div className="text-[12px] text-slate-500 shrink-0">{c.phone ?? c.mobile ?? "—"}</div>
+                        <button
+                          onClick={() => (primary ? handleRemovePrimaryContact(c.id) : handleSetPrimaryContact(c))}
+                          disabled={primaryContactSavingId === c.id}
+                          className={cn(
+                            "shrink-0 text-[11px] font-medium px-2.5 py-1 rounded-full border cursor-pointer transition-colors disabled:opacity-50",
+                            primary
+                              ? "text-slate-400 border-slate-200 hover:border-red-300 hover:text-red-500 bg-transparent"
+                              : "text-brand border-brand/30 hover:bg-brand/5 bg-transparent"
+                          )}
+                        >
+                          {primaryContactSavingId === c.id ? "…" : primary ? "Remove Primary" : "Set as Primary"}
+                        </button>
+                      </div>
+                    );
+                  })}
+                  {primaryContactError && (
+                    <p className="text-[11px] text-red-500 mt-1">{primaryContactError}</p>
+                  )}
+                </div>
+              )}
             </div>
           )}
 

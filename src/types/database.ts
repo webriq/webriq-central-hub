@@ -747,6 +747,67 @@ export interface Database {
           }
         ];
       };
+      contacts: {
+        Row: {
+          id: string;
+          customer_id: string | null;
+          external_id: string;
+          external_account_id: string | null;
+          first_name: string | null;
+          last_name: string | null;
+          email: string | null;
+          secondary_email: string | null;
+          phone: string | null;
+          mobile: string | null;
+          title: string | null;
+          match_method: string | null;
+          created_at: string;
+          updated_at: string;
+          source_meta: Record<string, unknown>;
+        };
+        Insert: {
+          id?: string;
+          customer_id?: string | null;
+          external_id: string;
+          external_account_id?: string | null;
+          first_name?: string | null;
+          last_name?: string | null;
+          email?: string | null;
+          secondary_email?: string | null;
+          phone?: string | null;
+          mobile?: string | null;
+          title?: string | null;
+          match_method?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          source_meta?: Record<string, unknown>;
+        };
+        Update: {
+          id?: string;
+          customer_id?: string | null;
+          external_id?: string;
+          external_account_id?: string | null;
+          first_name?: string | null;
+          last_name?: string | null;
+          email?: string | null;
+          secondary_email?: string | null;
+          phone?: string | null;
+          mobile?: string | null;
+          title?: string | null;
+          match_method?: string | null;
+          updated_at?: string;
+          source_meta?: Record<string, unknown>;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "contacts_customer_id_fkey";
+            columns: ["customer_id"];
+            isOneToOne: false;
+            referencedRelation: "customers";
+            referencedColumns: ["customer_id"];
+          }
+        ];
+      };
       issue_comments: {
         Row: {
           id: string;
@@ -1401,8 +1462,14 @@ export interface Database {
           customer_id: string;
           type: "file" | "link" | "credential";
           label: string;
-          value: string;
+          value: string | null;
           masked: boolean;
+          fields: Json | null;
+          allowed_roles: string[] | null;
+          file_path: string | null;
+          file_name: string | null;
+          file_size: number | null;
+          file_mime_type: string | null;
           created_at: string;
         };
         Insert: {
@@ -1410,8 +1477,14 @@ export interface Database {
           customer_id: string;
           type: "file" | "link" | "credential";
           label: string;
-          value: string;
+          value?: string | null;
           masked?: boolean;
+          fields?: Json | null;
+          allowed_roles?: string[] | null;
+          file_path?: string | null;
+          file_name?: string | null;
+          file_size?: number | null;
+          file_mime_type?: string | null;
           created_at?: string;
         };
         Update: {
@@ -1419,8 +1492,14 @@ export interface Database {
           customer_id?: string;
           type?: "file" | "link" | "credential";
           label?: string;
-          value?: string;
+          value?: string | null;
           masked?: boolean;
+          fields?: Json | null;
+          allowed_roles?: string[] | null;
+          file_path?: string | null;
+          file_name?: string | null;
+          file_size?: number | null;
+          file_mime_type?: string | null;
         };
         Relationships: [
           {

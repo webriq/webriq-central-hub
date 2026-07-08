@@ -47,8 +47,8 @@ export function validateCustomerCreate(body: {
  */
 export function validateCustomerUpdate(body: {
   company_name?: string;
-  contact_name?: string;
-  contact_email?: string;
+  contact_name?: string | null;
+  contact_email?: string | null;
   zoho_account_id?: string;
   communication_tone?: string;
   status?: string;
@@ -68,8 +68,8 @@ export function validateCustomerUpdate(body: {
     }
   }
 
-  // contact_email
-  if (body.contact_email !== undefined && body.contact_email.trim()) {
+  // contact_email — null means "clear this field", not "please validate an email"
+  if (body.contact_email !== undefined && body.contact_email !== null && body.contact_email.trim()) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(body.contact_email.trim())) {
       errors.contact_email = "Invalid email format";

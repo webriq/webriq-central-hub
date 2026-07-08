@@ -117,6 +117,8 @@ const EXPORT_LEVELS = [
   { key: "issue-timelogs", label: "Issue Time Logs", desc: "All time logged against issues (paginated per issue, all 1049 queried — no pre-filter available) — requires Issues exported first" },
   { key: "attachment-meta", label: "Attachment Metadata", desc: "Attachment list per task — requires tasks.json exported first" },
   { key: "issue-attachment-meta", label: "Issue Attachment Metadata", desc: "Attachment list per issue (entity_type: bug) — requires issues-*.json exported first" },
+  { key: "desk-accounts", label: "Desk Accounts", desc: "All Zoho Desk accounts (companies) — requires the Desk.accounts.READ OAuth scope; export before Desk Contacts for account-name matching" },
+  { key: "desk-contacts", label: "Desk Contacts", desc: "All Zoho Desk contacts — can run independently, but export Desk Accounts first for customer matching" },
 ] as const;
 
 const IMPORT_LEVELS = [
@@ -133,6 +135,7 @@ const IMPORT_LEVELS = [
   { key: "issue-timelogs", label: "Issue Time Logs", desc: "Imports time log entries from issue-timelogs-*.json — requires Issues imported first" },
   { key: "attachments", label: "Attachments", desc: "Select the files you manually downloaded from each attachment's download_url (not the attachment-meta-*.json files) — matches by filename and uploads to Supabase Storage" },
   { key: "issue-attachments", label: "Issue Attachments", desc: "Select the files you manually downloaded from each issue attachment's download_url — matches by filename+size and uploads to Supabase Storage" },
+  { key: "desk-contacts", label: "Desk Contacts", desc: "Imports desk-contacts.json into the contacts table, matched to customers via desk-accounts.json (if present) by normalized account name" },
 ] as const;
 
 function ResultChip({ result }: { result: ImportResult }) {

@@ -163,7 +163,7 @@ export async function revertSanityExecution(
     if (doc === null) {
       tx.delete(docId);
     } else {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       tx.createOrReplace({
         ...(doc as Record<string, unknown>),
         _id: docId,
