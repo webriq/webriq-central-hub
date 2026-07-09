@@ -212,6 +212,25 @@ When adding a new product form: add a section array in `onboarding-schemas.ts`, 
 - **`window.location`** is only safe inside callbacks/effects, never at component render time (SSR crash).
 - **`"use server"`** is only for React Server Actions (client-callable functions). Do not add it to utility modules or API route helpers.
 
+## UI Polish Conventions
+
+A distilled, codebase-compatible subset of `_design/CLAUDE (1).md` (a generic UI-polish guide) — reconciled during task 122 by checking what this codebase actually does before adopting any rule wholesale. The goal is output that looks intentional by default, without introducing a second, incompatible pattern alongside the ~2500-line files that already established the real conventions.
+
+**Adopted:**
+- Every interactive element needs a visible hover state (`transition-colors hover:...`).
+- Every list/table/section needs an explicit empty state — icon + one-line message + primary action, not blank space.
+- Every async action needs a loading state — a disabled button with a spinner or "…" text, never a silent hang.
+- Icon-only buttons get `aria-label`; focus-visible rings stay visible; color is never the sole state indicator.
+- Never use `<div onClick>` for an action — use `<button>`.
+- No emoji as icons or bullets in UI — `lucide-react` only.
+- Prefer `cva` over ternary piles for components with real variants.
+
+**Rejected / superseded** (contradicts this codebase's shipped, working convention — do not "fix" existing files to match these; they were checked against the generic guide and lost):
+- **Semantic `bg-background`/`text-foreground` CSS-variable tokens and Tailwind's `dark:` variant are NOT used anywhere in `src/app/v2`.** Theming is done via an `isDark` boolean (from `usePMSettings()`/the shared theme hook) passed down as a prop, combined with `cn()` picking explicit paired light/dark utility classes per element (e.g. `isDark ? "border-white/[0.06] bg-white/[0.03]" : "border-slate-100 bg-slate-50/50"`). New v2 UI must follow the `isDark`-prop pattern for visual consistency with the rest of the page it lives on — do not introduce `dark:` classes into v2 files.
+- **Not every form needs shadcn `Form` + `react-hook-form` + `zod`, and toasts are not `sonner`.** Neither `react-hook-form`/`@hookform/resolvers` nor `sonner` is an installed dependency. Every existing form in this codebase (onboarding form engine, Edit Customer modal, Add Asset modal) uses plain controlled `useState` + inline `fetch` + inline error state shown next to the action — match that, don't introduce a second forms pattern for one new feature.
+- **Not every UI element needs to be a shadcn primitive.** Only `button.tsx` exists in `src/components/ui/` today. Badges/pills/progress bars should match the hand-rolled `rounded-full`/`text-[10-11px]` pill pattern already used throughout the hub (e.g. status badges, asset-type pills) rather than pulling in shadcn `Badge`/`Progress` for visual consistency with neighboring UI on the same page.
+- Reference-design namechecks and generic component-anatomy boilerplate are dropped as non-actionable.
+
 ## Do Not
 - Never `npm install` or `yarn add` — use `pnpm add` / `pnpm install`
 - Never import `@/lib/supabase/admin` in Client Components

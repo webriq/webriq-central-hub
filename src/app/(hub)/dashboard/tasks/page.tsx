@@ -29,16 +29,11 @@ export default async function DashboardTasksPage() {
   }
 
   // adminClient bypasses RLS — needed to read other users' rows (RLS restricts to own row)
-  const [{ data: devUsers }, { data: customers }, { data: allUsers }] = await Promise.all([
+  const [{ data: devUsers }, { data: allUsers }] = await Promise.all([
     adminClient
       .from("hub_users")
       .select("id, first_name, last_name, email")
       .eq("role", "Developer"),
-    adminClient
-      .from("customers")
-      .select("customer_id, company_name")
-      .eq("status", "active")
-      .order("company_name"),
     adminClient
       .from("hub_users")
       .select("id, first_name, last_name"),
@@ -50,5 +45,5 @@ export default async function DashboardTasksPage() {
     if (u.id && name) reviewerMap[u.id] = name;
   }
 
-  return <PMTasksContent developers={devUsers ?? []} customers={customers ?? []} reviewerMap={reviewerMap} />;
+  return <PMTasksContent developers={devUsers ?? []} reviewerMap={reviewerMap} />;
 }

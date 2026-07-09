@@ -16,7 +16,6 @@ export default async function HubLayout({ children }: { children: React.ReactNod
   }
 
   const userId = data.claims.sub as string;
-  const userEmail = (data.claims.email as string | undefined) ?? null;
   let userRole: string | null = null;
   let userDisplayName: string | null = null;
 
@@ -37,7 +36,6 @@ export default async function HubLayout({ children }: { children: React.ReactNod
     <V2HubShell
       userRole={userRole}
       displayName={userDisplayName}
-      email={userEmail}
     >
       {children}
     </V2HubShell>

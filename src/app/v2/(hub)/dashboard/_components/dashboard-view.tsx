@@ -23,7 +23,7 @@ export default function DashboardView({ role, displayName, userId }: DashboardVi
     return <DevDashboard userId={userId} displayName={displayName} />;
   }
   if (role === "admin" || role === "super_admin") {
-    return <AdminDashboard userId={userId} displayName={displayName} />;
+    return <AdminDashboard userId={userId} />;
   }
-  return <PMDashboard displayName={displayName} />;
+  return <PMDashboard />;
 }

@@ -13,6 +13,11 @@ const ALLOWED_MIME_TYPES = [
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "application/vnd.ms-excel",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  // HTML mockups / MD source content / plain-text access notes — Bert's onboarding wizard
+  // (task 122) explicitly uploads these alongside branding/document files.
+  "text/html",
+  "text/markdown",
+  "text/plain",
 ];
 
 const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB — matches the customer-assets bucket's file_size_limit
@@ -28,7 +33,7 @@ export async function POST(
 
     const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
     const myRole = profile?.role;
-    if (myRole !== "admin" && myRole !== "super_admin" && myRole !== "pm") {
+    if (myRole !== "admin" && myRole !== "super_admin" && myRole !== "pm" && myRole !== "marketing") {
       return NextResponse.json({ error: "Not permitted to upload customer assets" }, { status: 403 });
     }
 
@@ -41,7 +46,7 @@ export async function POST(
     }
     if (!ALLOWED_MIME_TYPES.includes(file.type)) {
       return NextResponse.json(
-        { error: `Unsupported file type: ${file.type}. Supported types: images, PDF, Word docs, Excel spreadsheets` },
+        { error: `Unsupported file type: ${file.type}. Supported types: images, PDF, Word docs, Excel spreadsheets, HTML, Markdown, plain text` },
         { status: 400 }
       );
     }

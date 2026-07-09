@@ -1,23 +1,17 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import dynamic from "next/dynamic";
+import React, { useState, useEffect, useSyncExternalStore } from "react";
 import Link from "next/link";
 import {
-  AlertCircle, TrendingUp, Inbox, Sparkles, Square, CheckSquare,
+  AlertCircle, Inbox, Sparkles, Square, CheckSquare,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { formatRelativeTime } from "@/lib/utils";
 import { V2_ROUTES } from "@/config/constants";
 import {
-  KpiCard, SectionCard, StatusChip, AIChip, ConfidenceBar,
+  KpiCard, StatusChip, AIChip, ConfidenceBar,
   PriorityDot, Avatar, SkeletonRow,
 } from "./dashboard-shared";
-
-const ClassificationPulseChart = dynamic(
-  () => import("./classification-pulse-chart"),
-  { ssr: false, loading: () => <div className="h-32 animate-pulse bg-slate-100 rounded-lg" /> }
-);
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -63,13 +57,12 @@ function formatCurrentDate(): string {
   return `${d.toLocaleDateString("en-US", { weekday: "long" })}, ${d.toLocaleDateString("en-US", { month: "long" })} ${d.getDate()} · ${d.getFullYear()} · PM workspace`;
 }
 
-function getGreeting(): string {
-  const h = new Date().getHours();
-  return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : h < 21 ? "Good evening" : "Still at it?";
+function subscribeNoop() {
+  return () => {};
 }
 
-function shortId(id: string): string {
-  return id.toUpperCase().slice(0, 8).replace(/-/g, "").slice(0, 7);
+function getDateServerSnapshot() {
+  return "";
 }
 
 function planLabel(idx: number): string {
@@ -380,30 +373,23 @@ function LeaveCalendar() {
 
 // ─── Main export ──────────────────────────────────────────────────────────────
 
-export default function PMDashboard({ displayName }: { displayName: string | null }) {
-  const [greeting, setGreeting] = useState("Good morning");
-  const [date, setDate] = useState("");
+export default function PMDashboard() {
+  const date = useSyncExternalStore(subscribeNoop, formatCurrentDate, getDateServerSnapshot);
   const [classRecords, setClassRecords] = useState<ClassRecord[]>([]);
   const [pendingPlans, setPendingPlans] = useState<PendingPlan[]>([]);
   const [digest, setDigest] = useState<DigestLog | null>(null);
-  const [customerCount, setCustomerCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setGreeting(getGreeting());
-    setDate(formatCurrentDate());
-
     const supabase = createClient();
     Promise.all([
       supabase.from("classification_records").select("id, customer_id, title, priority, status, created_at").order("created_at", { ascending: false }),
       supabase.from("implementation_plans").select("id, customer_id, confidence_score, created_at").eq("status", "PENDING_APPROVAL").limit(5),
       supabase.from("digest_logs").select("id, content, created_at").eq("digest_type", "pm").order("created_at", { ascending: false }).limit(1).maybeSingle(),
-      supabase.from("customers").select("*", { count: "exact", head: true }),
-    ]).then(([classResult, plansResult, digestResult, countResult]) => {
+    ]).then(([classResult, plansResult, digestResult]) => {
       setClassRecords((classResult.data ?? []) as ClassRecord[]);
       setPendingPlans((plansResult.data ?? []) as PendingPlan[]);
       setDigest(digestResult.data as DigestLog | null);
-      setCustomerCount(countResult.count ?? 0);
       setLoading(false);
     });
   }, []);

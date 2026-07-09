@@ -55,7 +55,7 @@ export async function POST(
     const body = await request.json();
     const {
       type, label, value, masked, allowed_roles,
-      fields, file_path, file_name, file_size, file_mime_type,
+      fields, file_path, file_name, file_size, file_mime_type, phase_number, project_id,
     } = body as {
       type: "file" | "link" | "credential";
       label: string;
@@ -67,6 +67,8 @@ export async function POST(
       file_name?: string;
       file_size?: number;
       file_mime_type?: string;
+      phase_number?: number;
+      project_id?: string;
     };
 
     if (!type || !label?.trim()) {
@@ -106,6 +108,8 @@ export async function POST(
         file_name: type === "file" ? file_name : null,
         file_size: type === "file" ? file_size ?? null : null,
         file_mime_type: type === "file" ? file_mime_type ?? null : null,
+        phase_number: Number.isInteger(phase_number) ? phase_number : null,
+        project_id: project_id ?? null,
       })
       .select()
       .single();

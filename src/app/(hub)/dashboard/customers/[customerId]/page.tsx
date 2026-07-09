@@ -43,7 +43,7 @@ export default async function CustomerProfilePage({ params }: CustomerProfilePag
 
   return (
     <div className="overflow-y-auto flex-1">
-      <CustomerProfileClient customer={customer} zohoPortalId={process.env.ZOHO_PORTAL_ID ?? ""} zohoPortalName={process.env.ZOHO_PORTAL_NAME ?? ""} />
+      <CustomerProfileClient customer={customer} zohoPortalName={process.env.ZOHO_PORTAL_NAME ?? ""} />
     </div>
   );
 }

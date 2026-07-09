@@ -113,13 +113,6 @@ export default function ProjectDetail({
     return true;
   }, [tasks]);
 
-  const deleteTask = useCallback(async (id: string) => {
-    const snapshot = tasks;
-    setTasks((prev) => prev.filter((t) => t.id !== id));
-    const res = await fetch(`/api/v2/tasks/${id}`, { method: "DELETE" });
-    if (!res.ok) setTasks(snapshot);
-  }, [tasks]);
-
   const addTask = useCallback((task: Task) => {
     setTasks((prev) => [...prev, task]);
   }, []);

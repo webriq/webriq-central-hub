@@ -11,9 +11,8 @@ type ClassificationRow = Database["public"]["Tables"]["classification_records"][
 };
 
 type Developer = { id: string; first_name: string | null; last_name: string | null; email: string };
-type Customer = { customer_id: string; company_name: string };
 
-export default function PMTasksContent({ developers, customers, reviewerMap }: { developers: Developer[]; customers: Customer[]; reviewerMap: Record<string, string> }) {
+export default function PMTasksContent({ developers, reviewerMap }: { developers: Developer[]; reviewerMap: Record<string, string> }) {
   const { settings } = usePMSettings();
   const [tasks, setTasks] = useState<ClassificationRow[]>([]);
   const [zohoProjectMap, setZohoProjectMap] = useState<Record<string, string>>({});
@@ -78,7 +77,7 @@ export default function PMTasksContent({ developers, customers, reviewerMap }: {
     <div
       className={`flex-1 overflow-y-auto py-6.5 px-8 ${settings.theme === "dark" ? "bg-[#090c18]" : "bg-[#f5f4f1]"}`}
     >
-      <TasksTab settings={settings} tasks={tasks} zohoProjectMap={zohoProjectMap} reviewerMap={reviewerMap} developers={developers} customers={customers} onTaskCreated={refreshTasks} />
+      <TasksTab settings={settings} tasks={tasks} zohoProjectMap={zohoProjectMap} reviewerMap={reviewerMap} developers={developers} onTaskCreated={refreshTasks} />
     </div>
   );
 }

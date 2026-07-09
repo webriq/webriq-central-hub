@@ -162,12 +162,15 @@ function TimerButton({ taskId, onStop }: { taskId: string; onStop: (taskId: stri
   const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
-    if (startedAt === null) { setElapsed(0); return; }
+    if (startedAt === null) return;
     const id = setInterval(() => setElapsed(Math.floor((Date.now() - startedAt) / 1000)), 1000);
     return () => clearInterval(id);
   }, [startedAt]);
 
-  function handleStart() { setStartedAt(Date.now()); }
+  function handleStart() {
+    setElapsed(0);
+    setStartedAt(Date.now());
+  }
 
   function handleStop() {
     if (startedAt === null) return;

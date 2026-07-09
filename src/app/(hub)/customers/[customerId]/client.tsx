@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
-import { AlertTriangle, Archive } from "lucide-react";
+import { Archive } from "lucide-react";
 import type { UploadedFile } from "@/types/onboarding";
 import FileUpload from "@/components/onboarding/file-upload";
 import { usePMSettings } from "@/hooks/use-pm-settings";
@@ -18,7 +18,6 @@ type NavSection = "company" | "contact" | "products" | "assets" | "activity" | "
 
 interface CustomerProfileClientProps {
   customer: CustomerRow & { customer_products: CustomerProductRow[] };
-  zohoPortalId: string;
   zohoPortalName: string;
 }
 
@@ -146,7 +145,7 @@ interface EditForm {
   daily_token_budget: string;
 }
 
-export default function CustomerProfileClient({ customer, zohoPortalId, zohoPortalName }: CustomerProfileClientProps) {
+export default function CustomerProfileClient({ customer, zohoPortalName }: CustomerProfileClientProps) {
   const router = useRouter();
   const { settings } = usePMSettings();
   const isDark = settings.theme === "dark";
@@ -2094,7 +2093,7 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
                             <button
                               onClick={() => setRevealedAssets(prev => {
                                 const next = new Set(prev);
-                                isRevealed ? next.delete(asset.id) : next.add(asset.id);
+                                if (isRevealed) next.delete(asset.id); else next.add(asset.id);
                                 return next;
                               })}
                               className="text-[11px] font-medium text-slate-400 hover:text-brand transition-colors px-1.5 py-0.5 rounded bg-transparent border-none cursor-pointer"

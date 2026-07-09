@@ -454,6 +454,7 @@ export interface Database {
           customer_id: string;
           product_name: string;
           product_instance_id: string | null;
+          classification: string | null;
           status: string;
           onboarding_complete: boolean;
           onboarding_data: Json;
@@ -466,6 +467,7 @@ export interface Database {
           customer_id: string;
           product_name: string;
           product_instance_id?: string | null;
+          classification?: string | null;
           status?: string;
           onboarding_complete?: boolean;
           onboarding_data?: Json;
@@ -478,6 +480,7 @@ export interface Database {
           customer_id?: string;
           product_name?: string;
           product_instance_id?: string | null;
+          classification?: string | null;
           status?: string;
           onboarding_complete?: boolean;
           onboarding_data?: Json;
@@ -497,7 +500,7 @@ export interface Database {
       profiles: {
         Row: {
           id: string;
-          role: "admin" | "hr" | "pm" | "developer" | "client" | "super_admin";
+          role: "admin" | "hr" | "pm" | "developer" | "client" | "super_admin" | "marketing";
           full_name: string | null;
           avatar_url: string | null;
           customer_id: string | null;
@@ -506,7 +509,7 @@ export interface Database {
         };
         Insert: {
           id: string;
-          role: "admin" | "hr" | "pm" | "developer" | "client" | "super_admin";
+          role: "admin" | "hr" | "pm" | "developer" | "client" | "super_admin" | "marketing";
           full_name?: string | null;
           avatar_url?: string | null;
           customer_id?: string | null;
@@ -515,7 +518,7 @@ export interface Database {
         };
         Update: {
           id?: string;
-          role?: "admin" | "hr" | "pm" | "developer" | "client" | "super_admin";
+          role?: "admin" | "hr" | "pm" | "developer" | "client" | "super_admin" | "marketing";
           full_name?: string | null;
           avatar_url?: string | null;
           customer_id?: string | null;
@@ -555,6 +558,9 @@ export interface Database {
           source_meta: Json;
           tags: string[] | null;
           owner_name: string | null;
+          programme_started_at: string | null;
+          onboarding_visible_at: string | null;
+          scheduled_onboarding_start_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -581,6 +587,9 @@ export interface Database {
           source_meta?: Json;
           tags?: string[] | null;
           owner_name?: string | null;
+          programme_started_at?: string | null;
+          onboarding_visible_at?: string | null;
+          scheduled_onboarding_start_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -607,6 +616,9 @@ export interface Database {
           source_meta?: Json;
           tags?: string[] | null;
           owner_name?: string | null;
+          programme_started_at?: string | null;
+          onboarding_visible_at?: string | null;
+          scheduled_onboarding_start_at?: string | null;
           updated_at?: string;
         };
         Relationships: [
@@ -1470,6 +1482,8 @@ export interface Database {
           file_name: string | null;
           file_size: number | null;
           file_mime_type: string | null;
+          phase_number: number | null;
+          project_id: string | null;
           created_at: string;
         };
         Insert: {
@@ -1485,6 +1499,8 @@ export interface Database {
           file_name?: string | null;
           file_size?: number | null;
           file_mime_type?: string | null;
+          phase_number?: number | null;
+          project_id?: string | null;
           created_at?: string;
         };
         Update: {
@@ -1500,6 +1516,8 @@ export interface Database {
           file_name?: string | null;
           file_size?: number | null;
           file_mime_type?: string | null;
+          phase_number?: number | null;
+          project_id?: string | null;
         };
         Relationships: [
           {
@@ -1508,6 +1526,195 @@ export interface Database {
             isOneToOne: false;
             referencedRelation: "customers";
             referencedColumns: ["customer_id"];
+          },
+          {
+            foreignKeyName: "customer_assets_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      customer_phases: {
+        Row: {
+          id: string;
+          customer_id: string;
+          project_id: string;
+          phase_number: number;
+          status: string;
+          actual_start_date: string | null;
+          actual_completed_date: string | null;
+          is_manual_override: boolean;
+          override_note: string | null;
+          wizard_data: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          customer_id: string;
+          project_id: string;
+          phase_number: number;
+          status?: string;
+          actual_start_date?: string | null;
+          actual_completed_date?: string | null;
+          is_manual_override?: boolean;
+          override_note?: string | null;
+          wizard_data?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          customer_id?: string;
+          project_id?: string;
+          phase_number?: number;
+          status?: string;
+          actual_start_date?: string | null;
+          actual_completed_date?: string | null;
+          is_manual_override?: boolean;
+          override_note?: string | null;
+          wizard_data?: Json;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "customer_phases_customer_id_fkey";
+            columns: ["customer_id"];
+            isOneToOne: false;
+            referencedRelation: "customers";
+            referencedColumns: ["customer_id"];
+          },
+          {
+            foreignKeyName: "customer_phases_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      customer_deliverables: {
+        Row: {
+          id: string;
+          customer_id: string;
+          project_id: string;
+          phase_number: number;
+          deliverable_key: string;
+          status: string;
+          completed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          customer_id: string;
+          project_id: string;
+          phase_number: number;
+          deliverable_key: string;
+          status?: string;
+          completed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          customer_id?: string;
+          project_id?: string;
+          phase_number?: number;
+          deliverable_key?: string;
+          status?: string;
+          completed_at?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "customer_deliverables_customer_id_fkey";
+            columns: ["customer_id"];
+            isOneToOne: false;
+            referencedRelation: "customers";
+            referencedColumns: ["customer_id"];
+          },
+          {
+            foreignKeyName: "customer_deliverables_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      programme_notifications: {
+        Row: {
+          id: string;
+          customer_id: string;
+          project_id: string;
+          notification_key: string;
+          sent_at: string;
+        };
+        Insert: {
+          id?: string;
+          customer_id: string;
+          project_id: string;
+          notification_key: string;
+          sent_at?: string;
+        };
+        Update: {
+          id?: string;
+          customer_id?: string;
+          project_id?: string;
+          notification_key?: string;
+          sent_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "programme_notifications_customer_id_fkey";
+            columns: ["customer_id"];
+            isOneToOne: false;
+            referencedRelation: "customers";
+            referencedColumns: ["customer_id"];
+          },
+          {
+            foreignKeyName: "programme_notifications_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      onboarding_internal_deliverables: {
+        Row: {
+          id: string;
+          project_id: string;
+          deliverable_key: string;
+          status: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          project_id: string;
+          deliverable_key: string;
+          status?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          project_id?: string;
+          deliverable_key?: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_internal_deliverables_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
           }
         ];
       };
@@ -2320,6 +2527,9 @@ export type DigestLogRow = Database["public"]["Tables"]["digest_logs"]["Row"];
 export type LLMConfigRow = Database["public"]["Tables"]["llm_config"]["Row"];
 export type UserRoleRow = Database["public"]["Tables"]["user_roles"]["Row"];
 export type CustomerAssetRow = Database["public"]["Tables"]["customer_assets"]["Row"];
+export type CustomerPhaseRow = Database["public"]["Tables"]["customer_phases"]["Row"];
+export type CustomerDeliverableRow = Database["public"]["Tables"]["customer_deliverables"]["Row"];
+export type OnboardingInternalDeliverableRow = Database["public"]["Tables"]["onboarding_internal_deliverables"]["Row"];
 export type TaskRow = Database["public"]["Tables"]["tasks"]["Row"];
 export type TicketRow = Database["public"]["Tables"]["tickets"]["Row"];
 export type EventBusRow = Database["public"]["Tables"]["event_bus"]["Row"];

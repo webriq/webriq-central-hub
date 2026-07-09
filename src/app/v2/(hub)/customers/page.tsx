@@ -3,6 +3,24 @@ import CustomersIndex, { type CustomerListItem, type PaginationMeta } from "./_c
 
 export const dynamic = "force-dynamic";
 
+const PAGE = 1000; // Supabase/PostgREST default response cap — see CLAUDE.md's pagination convention.
+
+async function fetchAllPaginated<T>(
+  query: (from: number, to: number) => Promise<{ data: T[] | null; error: unknown }>
+): Promise<T[]> {
+  const all: T[] = [];
+  let from = 0;
+  for (;;) {
+    const { data, error } = await query(from, from + PAGE - 1);
+    if (error) throw error;
+    if (!data || data.length === 0) break;
+    all.push(...data);
+    if (data.length < PAGE) break;
+    from += PAGE;
+  }
+  return all;
+}
+
 export default async function CustomersPage({
   searchParams,
 }: {
@@ -19,6 +37,22 @@ export default async function CustomersPage({
   const searchQ = params.search?.trim() ?? "";
   const statusParam = params.status ?? "";
 
+  // A customer is hidden from the default list iff it has at least one project and *every*
+  // project is still onboarding-gated (onboarding_visible_at IS NULL). Computed up front so the
+  // exclusion can be applied before pagination/count, keeping `total`/`.range()` accurate.
+  const allProjects = await fetchAllPaginated<{ customer_id: string; onboarding_visible_at: string | null }>(
+    async (f, t) => supabase.from("projects").select("customer_id, onboarding_visible_at").range(f, t)
+  );
+  const projectsByCustomer = new Map<string, { onboarding_visible_at: string | null }[]>();
+  for (const p of allProjects) {
+    const list = projectsByCustomer.get(p.customer_id) ?? [];
+    list.push({ onboarding_visible_at: p.onboarding_visible_at });
+    projectsByCustomer.set(p.customer_id, list);
+  }
+  const fullyHiddenCustomerIds = [...projectsByCustomer.entries()]
+    .filter(([, rows]) => rows.length > 0 && rows.every((r) => r.onboarding_visible_at === null))
+    .map(([id]) => id);
+
   let customersQuery = supabase
     .from("customers")
     .select("customer_id,company_name,contact_name,contact_email,status", { count: "exact" })
@@ -32,6 +66,9 @@ export default async function CustomersPage({
       `company_name.ilike.%${searchQ}%,contact_name.ilike.%${searchQ}%,contact_email.ilike.%${searchQ}%,customer_id.ilike.%${searchQ}%`
     );
   }
+  if (fullyHiddenCustomerIds.length > 0) {
+    customersQuery = customersQuery.not("customer_id", "in", `(${fullyHiddenCustomerIds.join(",")})`);
+  }
 
   customersQuery = customersQuery.range(from, to);
 
@@ -39,19 +76,29 @@ export default async function CustomersPage({
   const pageCustomerIds = (customersRes.data ?? []).map((c) => c.customer_id);
 
   // Project count + onboarding products, scoped to just this page's customers.
-  const projectCount = new Map<string, number>();
+  const visibleProjectCount = new Map<string, number>();
+  const programmeStartedAtByCustomer = new Map<string, string>();
   const productsByCustomer = new Map<string, CustomerListItem["customer_products"]>();
   const contactCountByCustomer = new Map<string, number>();
 
   if (pageCustomerIds.length > 0) {
     const [projectsRes, productsRes, contactsRes] = await Promise.all([
-      supabase.from("projects").select("customer_id").in("customer_id", pageCustomerIds),
+      supabase.from("projects").select("customer_id, onboarding_visible_at, programme_started_at").in("customer_id", pageCustomerIds),
       supabase.from("customer_products").select("id,customer_id,product_name,completed_percentage").in("customer_id", pageCustomerIds),
       supabase.from("contacts").select("customer_id").in("customer_id", pageCustomerIds).not("customer_id", "is", null),
     ]);
 
     for (const p of projectsRes.data ?? []) {
-      projectCount.set(p.customer_id, (projectCount.get(p.customer_id) ?? 0) + 1);
+      // Individually-hidden projects (new product on an already-visible customer) still drop out
+      // of the count even though the parent customer stays in the list.
+      if (!p.onboarding_visible_at) continue;
+      visibleProjectCount.set(p.customer_id, (visibleProjectCount.get(p.customer_id) ?? 0) + 1);
+      if (p.programme_started_at) {
+        const existing = programmeStartedAtByCustomer.get(p.customer_id);
+        if (!existing || p.programme_started_at > existing) {
+          programmeStartedAtByCustomer.set(p.customer_id, p.programme_started_at);
+        }
+      }
     }
     for (const p of productsRes.data ?? []) {
       const list = productsByCustomer.get(p.customer_id) ?? [];
@@ -70,9 +117,10 @@ export default async function CustomersPage({
     contact_name: c.contact_name,
     contact_email: c.contact_email,
     status: c.status,
-    project_count: projectCount.get(c.customer_id) ?? 0,
+    project_count: visibleProjectCount.get(c.customer_id) ?? 0,
     customer_products: productsByCustomer.get(c.customer_id) ?? [],
     desk_contact_count: contactCountByCustomer.get(c.customer_id) ?? 0,
+    programme_started_at: programmeStartedAtByCustomer.get(c.customer_id) ?? null,
   }));
 
   const paginationMeta: PaginationMeta = {

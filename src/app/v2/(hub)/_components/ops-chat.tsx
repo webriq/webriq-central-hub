@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { X, Sparkles, Send, ThumbsUp, ThumbsDown } from "lucide-react";
@@ -23,6 +23,21 @@ function TextBubble({ parts }: { parts: UIMessage["parts"] }) {
     .map((p) => p.text)
     .join("");
   return <p className="text-[13px] text-slate-600 leading-relaxed m-0 whitespace-pre-wrap">{text}</p>;
+}
+
+function subscribeNoop() {
+  return () => {};
+}
+
+// Computed client-side only — new Date().getHours() returns UTC on the server
+// but local time in the browser, causing a hydration mismatch if done at render.
+function getGreetingSnapshot() {
+  const h = new Date().getHours();
+  return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
+}
+
+function getGreetingServerSnapshot() {
+  return "";
 }
 
 function AIBubble({ msg }: { msg: UIMessage }) {
@@ -72,16 +87,9 @@ function AIBubble({ msg }: { msg: UIMessage }) {
 export default function OpsChat({ open, onClose, trigger, displayName }: OpsChatProps) {
   const { messages, sendMessage, status } = useChat({ transport: TRANSPORT });
   const [input, setInput] = useState("");
-  const [greeting, setGreeting] = useState("");
+  const greeting = useSyncExternalStore(subscribeNoop, getGreetingSnapshot, getGreetingServerSnapshot);
   const bottomRef = useRef<HTMLDivElement>(null);
   const processedTsRef = useRef<number | undefined>(undefined);
-
-  // Computed client-side only — new Date().getHours() returns UTC on the server
-  // but local time in the browser, causing a hydration mismatch if done at render.
-  useEffect(() => {
-    const h = new Date().getHours();
-    setGreeting(h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening");
-  }, []);
 
   const isStreaming = status === "streaming" || status === "submitted";
 

@@ -12,18 +12,21 @@ const PRODUCTS: { name: ProductName; label: string; description: string }[] = [
   { name: "StackShift", label: "StackShift", description: "Headless CMS & website platform" },
   { name: "PublishForge", label: "PublishForge", description: "Content publishing & blog management" },
   { name: "PipelineForge", label: "PipelineForge", description: "Sales pipeline & outreach automation" },
+  { name: "CiteForge", label: "CiteForge", description: "AI citation & brand visibility tracking" },
 ];
 
 const BUTTON_SELECTED_CLASS: Record<string, string> = {
   StackShift:    "border-[#3358F4] bg-[#3358F408]",
   PublishForge:  "border-[#7C3AED] bg-[#7C3AED08]",
   PipelineForge: "border-[#F97316] bg-[#F9731608]",
+  CiteForge:     "border-[#0EA5E9] bg-[#0EA5E908]",
 };
 
 const ICON_SELECTED_CLASS: Record<string, string> = {
   StackShift:    "bg-[#3358F4] text-white",
   PublishForge:  "bg-[#7C3AED] text-white",
   PipelineForge: "bg-[#F97316] text-white",
+  CiteForge:     "bg-[#0EA5E9] text-white",
 };
 
 export default function ProductSelector({ selected, onChange }: ProductSelectorProps) {

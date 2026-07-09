@@ -95,7 +95,8 @@ export type DigestFeedback = "useful" | "partial" | "not_useful";
 export type ProductName =
   | "StackShift"
   | "PublishForge"
-  | "PipelineForge";
+  | "PipelineForge"
+  | "CiteForge";
 
 export type CustomerStatus = "active" | "inactive" | "onboarding" | "completed_onboarding";
 

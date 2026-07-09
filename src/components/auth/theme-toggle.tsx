@@ -1,25 +1,41 @@
 "use client";
 
-import { useLayoutEffect, useState } from "react";
+import { useLayoutEffect, useSyncExternalStore } from "react";
 import { Sun, Moon } from "lucide-react";
 
-export function ThemeToggle() {
-  // SSR-safe default: server and client both start dark, eliminating hydration mismatch.
-  const [isDark, setIsDark] = useState(true);
+const THEME_KEY = "auth-theme";
+let listeners: Array<() => void> = [];
 
-  // Correct from localStorage before first paint (client-only, skipped on server).
-  useLayoutEffect(() => {
-    setIsDark(localStorage.getItem("auth-theme") !== "light");
-  }, []);
+function subscribe(onChange: () => void) {
+  listeners.push(onChange);
+  return () => {
+    listeners = listeners.filter((l) => l !== onChange);
+  };
+}
+
+function getSnapshot() {
+  return localStorage.getItem(THEME_KEY) !== "light";
+}
+
+// SSR-safe default: server and client both start dark, eliminating hydration mismatch.
+function getServerSnapshot() {
+  return true;
+}
+
+function setDarkTheme(next: boolean) {
+  localStorage.setItem(THEME_KEY, next ? "dark" : "light");
+  listeners.forEach((l) => l());
+}
+
+export function ThemeToggle() {
+  const isDark = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
   useLayoutEffect(() => {
     document.documentElement.classList.toggle("dark", isDark);
   }, [isDark]);
 
   function toggle() {
-    const next = !isDark;
-    setIsDark(next);
-    localStorage.setItem("auth-theme", next ? "dark" : "light");
+    setDarkTheme(!isDark);
   }
 
   return (

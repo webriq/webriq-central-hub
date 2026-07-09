@@ -4,8 +4,8 @@ import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, FolderKanban, Inbox, Cpu, Users,
-  Megaphone, BookOpen, Settings, ChevronLeft, ChevronRight,
-  Circle, LogOut, Building2,
+  Megaphone, BookOpen, Settings, ChevronLeft,
+  Circle, LogOut, Building2, Rocket,
 } from "lucide-react";
 import { V2_ROUTES } from "@/config/constants";
 import { cn } from "@/lib/utils";
@@ -33,6 +33,9 @@ function getNavGroups(role: string | null): NavGroup[] {
     { label: "Dashboard",     icon: <LayoutDashboard size={18} />, href: V2_ROUTES.DASHBOARD, exact: true },
     ...(!isDev ? [
       { label: "Customers",   icon: <Building2 size={18} />,       href: V2_ROUTES.CUSTOMERS },
+    ] : []),
+    ...(role !== "client" ? [
+      { label: "Onboarding",  icon: <Rocket size={18} />,          href: V2_ROUTES.ONBOARDING },
     ] : []),
     { label: "Projects",      icon: <FolderKanban size={18} />,   href: V2_ROUTES.PROJECTS },
     { label: "Desk",          icon: <Inbox size={18} />,           href: V2_ROUTES.DASHBOARD_TASKS },
@@ -75,6 +78,7 @@ function getInitials(name: string | null): string {
 const ROLE_LABEL: Record<string, string> = {
   admin: "Admin", pm: "PM", developer: "Developer",
   hr: "HR", client: "Client", super_admin: "Super Admin",
+  marketing: "Marketing",
 };
 
 interface V2HubSidebarProps {

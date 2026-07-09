@@ -1,4 +1,4 @@
-import { createClient, type SanityClient } from "@sanity/client";
+import { createClient, type SanityClient, type IdentifiedSanityDocumentStub } from "@sanity/client";
 import { generateText, stepCountIs } from "ai";
 import { createMCPClient } from "@ai-sdk/mcp";
 import { createPreviewSecret } from "@sanity/preview-url-secret/create-secret";
@@ -167,7 +167,7 @@ export async function revertSanityExecution(
       tx.createOrReplace({
         ...(doc as Record<string, unknown>),
         _id: docId,
-      } as any);
+      } as IdentifiedSanityDocumentStub);
     }
   }
 

@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
-import { AlertTriangle, Archive, ArrowLeft } from "lucide-react";
+import { Archive, ArrowLeft } from "lucide-react";
 import type { UploadedFile } from "@/types/onboarding";
 import FileUpload from "@/components/onboarding/file-upload";
 import { usePMSettings } from "@/hooks/use-pm-settings";
@@ -12,6 +12,7 @@ import type { CustomerRow, CustomerProductRow, ProjectRow, Database } from "@/ty
 import type { ProductName } from "@/types/hub";
 import { getIncompleteSections, getOnboardingSchema, computeCompletionPercentage } from "@/config/onboarding-schemas";
 import { V2_ROUTES } from "@/config/constants";
+import ProgrammeTab from "./_programme-tab";
 
 type ClassificationRow = Database["public"]["Tables"]["classification_records"]["Row"];
 type AssetRow = Database["public"]["Tables"]["customer_assets"]["Row"];
@@ -19,11 +20,10 @@ type CustomerDeskContact = Pick<
   Database["public"]["Tables"]["contacts"]["Row"],
   "id" | "first_name" | "last_name" | "email" | "secondary_email" | "phone" | "mobile" | "title"
 >;
-type NavSection = "company" | "contact" | "products" | "assets" | "activity" | "projects" | "settings";
+type NavSection = "company" | "contact" | "products" | "programme" | "assets" | "activity" | "projects" | "settings";
 
 interface CustomerProfileClientProps {
   customer: CustomerRow & { customer_products: CustomerProductRow[] };
-  zohoPortalId: string;
   zohoPortalName: string;
 }
 
@@ -99,7 +99,7 @@ const assetTypeCls = (type: AssetRow["type"], isDark: boolean) =>
 // (src/app/api/customers/[customerId]/assets/upload/route.ts).
 const ASSET_TYPE_HELP: Record<AssetRow["type"], string> = {
   link: "e.g. staging URL, admin dashboard, documentation page.",
-  file: "Accepted: images, PDF, Word docs, Excel spreadsheets — up to 25MB.",
+  file: "Accepted: images, PDF, Word docs, Excel spreadsheets, HTML, Markdown, plain text — up to 25MB.",
   credential: "e.g. payment API keys, DNS registrar access, CMS admin login. Store references only (e.g. LastPass item name, vault path) — not actual passwords or API keys.",
 };
 
@@ -151,7 +151,7 @@ interface EditForm {
   daily_token_budget: string;
 }
 
-export default function CustomerProfileClient({ customer, zohoPortalId, zohoPortalName }: CustomerProfileClientProps) {
+export default function CustomerProfileClient({ customer, zohoPortalName }: CustomerProfileClientProps) {
   const router = useRouter();
   const { settings } = usePMSettings();
   const isDark = settings.theme === "dark";
@@ -768,6 +768,7 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
     { id: "company", label: "Company Info" },
     { id: "contact", label: "Primary Contact" },
     { id: "products", label: `Products (${totalProductCount})` },
+    { id: "programme", label: "120-Day Programme" },
     { id: "assets", label: "Assets" },
     { id: "projects", label: `Projects (${projects.length})` },
     { id: "activity", label: `Activity (${classifications.length})` },
@@ -2160,6 +2161,11 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
             </>
           )}
 
+          {/* 120-Day Programme */}
+          {activeSection === "programme" && (
+            <ProgrammeTab customerId={customer.customer_id} isDark={isDark} />
+          )}
+
           {/* Assets */}
           {activeSection === "assets" && (
             <div className={sectionCls}>
@@ -2227,7 +2233,7 @@ export default function CustomerProfileClient({ customer, zohoPortalId, zohoPort
                             <button
                               onClick={() => setRevealedAssets(prev => {
                                 const next = new Set(prev);
-                                isRevealed ? next.delete(asset.id) : next.add(asset.id);
+                                if (isRevealed) next.delete(asset.id); else next.add(asset.id);
                                 return next;
                               })}
                               className="text-[11px] font-medium text-slate-400 hover:text-brand transition-colors px-1.5 py-0.5 rounded bg-transparent border-none cursor-pointer"

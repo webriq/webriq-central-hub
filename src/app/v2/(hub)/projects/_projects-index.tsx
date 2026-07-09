@@ -349,11 +349,10 @@ function GridView({
                 className="flex flex-wrap gap-1.5"
                 onClick={(e) => e.preventDefault()}
               >
-                {tags.slice(0, 4).map((tag, i) => (
+                {tags.slice(0, 4).map((tag) => (
                   <TagChip
                     key={tag}
                     tag={tag}
-                    idx={i}
                     canRemove={canManageTags}
                     onRemove={() => removeTag(p.id, tags, tag)}
                   />
@@ -527,11 +526,10 @@ function ListView({
                   <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
                     {tags.length > 0 ? (
                       <div className="flex flex-wrap gap-y-1">
-                        {tags.slice(0, 3).map((tag, i) => (
+                        {tags.slice(0, 3).map((tag) => (
                           <TagChip
                             key={tag}
                             tag={tag}
-                            idx={i}
                             canRemove={canManageTags}
                             onRemove={() => removeTag(p.id, tags, tag)}
                           />

@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Building2, Search, FolderKanban, Mail, Plus, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
+import { Building2, Search, FolderKanban, Mail, Plus, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, CalendarClock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { V2_ROUTES } from "@/config/constants";
+import { getCurrentProgrammeDay, getPhaseForDay } from "@/config/customer-phases";
 
 export type CustomerProductProgress = {
   id: string;
@@ -22,6 +23,9 @@ export type CustomerListItem = {
   project_count: number;
   customer_products: CustomerProductProgress[];
   desk_contact_count: number;
+  // Derived from the customer's *visible* project(s) only — hidden (still-onboarding) projects
+  // never surface here. `null` = no visible project has started its 120-day clock.
+  programme_started_at: string | null;
 };
 
 export type PaginationMeta = { page: number; pageSize: number; total: number };
@@ -52,6 +56,17 @@ function StatusBadge({ status }: { status: string }) {
     >
       {STATUS_LABELS[status] ?? status}
     </span>
+  );
+}
+
+function ProgrammeBadge({ programmeStartedAt }: { programmeStartedAt: string }) {
+  const day = Math.min(120, getCurrentProgrammeDay(programmeStartedAt));
+  const phase = getPhaseForDay(day);
+  return (
+    <div className="inline-flex items-center gap-1 text-[10.5px] text-slate-400 mt-0.5">
+      <CalendarClock size={10} />
+      Day {day}/120 · Phase {phase.number}
+    </div>
   );
 }
 
@@ -280,6 +295,9 @@ export default function CustomersIndex({
                 >
                   <div className="text-[13px] font-medium text-slate-800 truncate group-hover:text-blue-600">{c.company_name}</div>
                   <div className="text-[11px] font-mono text-slate-400 truncate">{c.customer_id}</div>
+                  {c.programme_started_at && (
+                    <ProgrammeBadge programmeStartedAt={c.programme_started_at} />
+                  )}
                 </button>
                 <div className="min-w-0">
                   <div className="text-[13px] text-slate-600 truncate">{c.contact_name ?? "—"}</div>

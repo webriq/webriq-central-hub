@@ -173,12 +173,10 @@ const ZOHO_TAG_CLIP =
 
 export function TagChip({
   tag,
-  idx = 0,
   canRemove,
   onRemove,
 }: {
   tag: string;
-  idx?: number;
   canRemove?: boolean;
   onRemove?: () => void;
 }) {

@@ -243,7 +243,6 @@ function ReclassifyModal({ record, onClose, onSave }: {
   );
 }
 
-type Customer = { customer_id: string; company_name: string };
 type AllProject = { id: string; project_name: string; zoho_project_id: string; customer_id: string; company_name: string };
 type TasklistOption = { id: string; name: string };
 type ClassifyResult = {
@@ -910,13 +909,12 @@ interface Props {
   zohoProjectMap?: Record<string, string>;
   reviewerMap?: Record<string, string>;
   developers?: Developer[];
-  customers?: Customer[];
   onTaskCreated?: () => void;
 }
 
 type FilterTab = "all" | "review" | "classified" | "in_review";
 
-export default function TasksTab({ settings, tasks, zohoProjectMap = {}, reviewerMap = {}, developers = [], customers = [], onTaskCreated }: Props) {
+export default function TasksTab({ settings, tasks, zohoProjectMap = {}, reviewerMap = {}, developers = [], onTaskCreated }: Props) {
   const [tab, setTab] = useState<FilterTab>("all");
   const [reclassifyTarget, setReclassifyTarget] = useState<ClassificationRow | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);

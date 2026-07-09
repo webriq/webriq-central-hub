@@ -29,7 +29,8 @@ export default function KnowledgeBasePage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [files, setFiles] = useState<KbFile[]>([]);
-  const [loadingFiles, setLoadingFiles] = useState(false);
+  const [loadedForId, setLoadedForId] = useState<string | null>(null);
+  const loadingFiles = selectedId !== null && selectedId !== loadedForId;
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -43,11 +44,13 @@ export default function KnowledgeBasePage() {
 
   useEffect(() => {
     if (!selectedId) return;
-    setLoadingFiles(true);
-    fetch(`/api/kb/${selectedId}`)
+    let ignore = false;
+    const requestedId = selectedId;
+    fetch(`/api/kb/${requestedId}`)
       .then((r) => r.json())
-      .then((json) => setFiles(json.files ?? []))
-      .finally(() => setLoadingFiles(false));
+      .then((json) => { if (!ignore) setFiles(json.files ?? []); })
+      .finally(() => { if (!ignore) setLoadedForId(requestedId); });
+    return () => { ignore = true; };
   }, [selectedId]);
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {

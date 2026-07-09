@@ -294,8 +294,7 @@ async function fetchCIFailureLogs(repo: string, runId: number): Promise<string> 
  */
 export async function waitForCI(
   repo: string,
-  prNumber: number,
-  branch: string
+  prNumber: number
 ): Promise<"passed" | "failed" | "timeout"> {
   const POLL_INTERVAL_MS = 30_000;
   const MAX_WAIT_MS = 10 * 60 * 1000;

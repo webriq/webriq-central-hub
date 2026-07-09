@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8">
+<title>Project Onboarding QBR — 120-Day Programme</title>
+<style>
+  :root{
+    --navy:#1b2a4a;
+    --blue:#2e75b6;
+    --lightblue:#d5e8f0;
+    --gray:#666;
+    --border:#d9d9d9;
+    --bg:#f5f6f8;
+  }
+  *{box-sizing:border-box;}
+  body{
+    font-family:Arial, Helvetica, sans-serif;
+    background:var(--bg);
+    margin:0;
+    padding:0;
+    color:#222;
+    line-height:1.5;
+  }
+  .toolbar{
+    position:sticky;
+    top:0;
+    z-index:50;
+    background:var(--navy);
+    color:#fff;
+    padding:10px 24px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+  .toolbar .title{font-weight:bold;font-size:14px;}
+  .toolbar .hint{font-size:12px;color:#cdd6e8;}
+  .toolbar button{
+    background:var(--blue);
+    color:#fff;
+    border:none;
+    padding:8px 14px;
+    border-radius:4px;
+    cursor:pointer;
+    font-size:13px;
+    margin-left:6px;
+  }
+  .toolbar button:hover{background:#255f96;}
+  .page{
+    max-width:980px;
+    margin:24px auto 80px;
+    background:#fff;
+    padding:48px 56px;
+    box-shadow:0 0 0 1px var(--border), 0 4px 16px rgba(0,0,0,.06);
+  }
+  .doc-header{
+    text-align:center;
+    border-bottom:3px solid var(--navy);
+    padding-bottom:18px;
+    margin-bottom:28px;
+  }
+  .doc-header .kicker{
+    font-size:11px;
+    letter-spacing:1px;
+    color:var(--gray);
+    text-transform:uppercase;
+  }
+  .doc-header h1{
+    font-size:26px;
+    color:var(--navy);
+    margin:8px 0 4px;
+    letter-spacing:.5px;
+  }
+  .doc-header h2{
+    font-size:15px;
+    font-weight:normal;
+    color:var(--blue);
+    margin:0 0 4px;
+  }
+  .doc-header .sub{font-size:13px;color:var(--gray);margin-top:6px;}
+  .meta-line{
+    display:flex;
+    justify-content:center;
+    gap:24px;
+    font-size:12px;
+    color:var(--gray);
+    margin-top:10px;
+  }
+  h3.section{
+    font-size:18px;
+    color:#fff;
+    background:var(--navy);
+    padding:8px 14px;
+    margin:36px 0 14px;
+    border-radius:4px;
+  }
+  h4.subsection{
+    font-size:14.5px;
+    color:var(--blue);
+    border-bottom:1px solid var(--border);
+    padding-bottom:4px;
+    margin:22px 0 10px;
+  }
+  .phase-meta{
+    font-size:12.5px;
+    color:var(--gray);
+    background:var(--lightblue);
+    display:inline-block;
+    padding:5px 10px;
+    border-radius:4px;
+    margin-bottom:10px;
+  }
+  p{margin:8px 0;}
+  ul{margin:6px 0 14px 22px;padding:0;}
+  li{margin-bottom:5px;}
+  table{
+    width:100%;
+    border-collapse:collapse;
+    margin:10px 0 18px;
+    font-size:13px;
+  }
+  th,td{
+    border:1px solid var(--border);
+    padding:8px 10px;
+    text-align:left;
+    vertical-align:top;
+  }
+  th{
+    background:var(--lightblue);
+    color:var(--navy);
+    font-weight:bold;
+  }
+  tr:nth-child(even) td{background:#fafbfc;}
+  [contenteditable="true"]{
+    outline:none;
+    border-radius:3px;
+    transition:background .15s;
+  }
+  [contenteditable="true"]:hover{background:#fff7d6;}
+  [contenteditable="true"]:focus{background:#fff2b0;box-shadow:0 0 0 1px #e0c14a;}
+  .chk{
+    cursor:pointer;
+    display:inline-block;
+    width:16px;
+    text-align:center;
+    user-select:none;
+    font-size:14px;
+  }
+  .status{
+    cursor:pointer;
+    user-select:none;
+    padding:2px 8px;
+    border-radius:10px;
+    font-size:12px;
+    font-weight:bold;
+    display:inline-block;
+  }
+  .status.pending{background:#fde3e3;color:#a33;}
+  .status.progress{background:#fff3cd;color:#946c00;}
+  .status.done{background:#d8f3dc;color:#1b7a3d;}
+  .status.ontrack{background:#d8f3dc;color:#1b7a3d;}
+  .row-add-btn, .row-del-btn{
+    background:none;
+    border:1px solid var(--border);
+    color:var(--gray);
+    border-radius:3px;
+    font-size:11px;
+    cursor:pointer;
+    padding:2px 6px;
+  }
+  .row-add-btn:hover{background:#eef6ff;}
+  .row-del-btn:hover{background:#fdeaea;color:#a33;}
+  .table-actions{margin:4px 0 18px;}
+  .appendix-flag{
+    background:#fbeedc;
+    color:#8a5a00;
+    display:inline-block;
+    padding:2px 8px;
+    border-radius:4px;
+    font-size:11px;
+    margin-left:8px;
+  }
+  .emoji-card{
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding:12px 14px;
+    margin-bottom:12px;
+    background:#fafcff;
+  }
+  .emoji-card h5{margin:0 0 6px;font-size:13.5px;color:var(--navy);}
+  footer.doc-footer{
+    margin-top:40px;
+    border-top:1px solid var(--border);
+    padding-top:10px;
+    font-size:11px;
+    color:var(--gray);
+    text-align:center;
+  }
+  @media print{
+    .toolbar{display:none;}
+    .page{box-shadow:none;margin:0;padding:0;}
+    [contenteditable="true"]:hover, [contenteditable="true"]:focus{background:none;box-shadow:none;}
+    .row-add-btn,.row-del-btn{display:none;}
+  }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <div>
+    <div class="title">Project Onboarding QBR — Editable HTML</div>
+    <div class="hint">Click any text, table cell, checkbox ☐, or status badge to edit. Changes are local to this browser tab.</div>
+  </div>
+  <div>
+    <button onclick="window.print()">Print / Save as PDF</button>
+    <button onclick="downloadHTML()">Download Edited HTML</button>
+  </div>
+</div>
+
+<div class="page" id="doc">
+
+  <div class="doc-header">
+    <div class="kicker" contenteditable="true">Project Onboarding QBR &nbsp;|&nbsp; 120-Day Programme &nbsp;|&nbsp; Confidential</div>
+    <h1 contenteditable="true">PROJECT ONBOARDING</h1>
+    <h2 contenteditable="true">Quarterly Business Review</h2>
+    <div class="sub" contenteditable="true">120-Day End-to-End Workflow &amp; Handover Document</div>
+    <div class="meta-line">
+      <span>Prepared: <span contenteditable="true">June 29, 2026</span></span>
+      <span>Version: <span contenteditable="true">1.0</span></span>
+    </div>
+  </div>
+
+  <h3 class="section" contenteditable="true">1. Programme Overview</h3>
+  <p contenteditable="true">This QBR covers the complete 120-day engagement lifecycle across five phases. Each phase has a defined customer input, a WebriQ deliverable set, and a primary outcome. All stakeholders should use this document to track progress and manage handovers.</p>
+
+  <table id="tbl-overview">
+    <thead>
+      <tr><th>Phase</th><th>Customer provides</th><th>WebriQ delivers</th><th>Primary outcome</th><th>Days</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td contenteditable="true">Days 1–15 Onboard</td>
+        <td contenteditable="true">Senior contact, access, business facts, URLs, documents, customer data, DNS, credentials for tools to be used — anything useful for digital positioning.<br></td>
+        <td contenteditable="true">Kickoff, outcome target, migration checklist, and 90-day content map.</td>
+        <td contenteditable="true">Commercial alignment and operating readiness.</td>
+        <td contenteditable="true">1–15</td>
+      </tr>
+      <tr>
+        <td contenteditable="true">Days 16–30 Migrate &amp; Rebrand</td>
+        <td contenteditable="true">Positioning feedback, brand inputs, and service-area priorities.</td>
+        <td contenteditable="true">Migration execution, structure cleanup, brand clarity, and foundational pages.</td>
+        <td contenteditable="true">Operational relaunch foundation.</td>
+        <td contenteditable="true">16–30</td>
+      </tr>
+      <tr>
+        <td contenteditable="true">Days 31–60 Publish</td>
+        <td contenteditable="true">Additional knowledge-based documents.</td>
+        <td contenteditable="true">Product, industry, location, and buyer-education publishing begins.</td>
+        <td contenteditable="true">Visibility and topical authority building.</td>
+        <td contenteditable="true">31–60</td>
+      </tr>
+      <tr>
+        <td contenteditable="true">Days 61–90 AI Visibility</td>
+        <td contenteditable="true">Observations and priority adjustments.</td>
+        <td contenteditable="true">AI visibility tracking, gap publishing, and conversion refinements.</td>
+        <td contenteditable="true">Stronger AI readability and buyer discovery.</td>
+        <td contenteditable="true">61–90</td>
+      </tr>
+      <tr>
+        <td contenteditable="true">Days 91–120 Optimize</td>
+        <td contenteditable="true">Outcome review and next-quarter priorities.</td>
+        <td contenteditable="true">120-day report, competitor insight, and next 90-day roadmap.</td>
+        <td contenteditable="true">Repeatable operating cadence.</td>
+        <td contenteditable="true">91–120</td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="table-actions"><button class="row-add-btn" onclick="addRow('tbl-overview',5)">+ Add row</button></div>
+
+  <!-- PHASE 1 -->
+  <h3 class="section" contenteditable="true">2. Phase 1 — Onboard</h3>
+  <div class="phase-meta" contenteditable="true">Days 1–15 &nbsp;|&nbsp; Owner: Bert &nbsp;| Assist: Nikki/Dannea | Outcome: Commercial alignment and operating readiness</div>
+
+  <h4 class="subsection" contenteditable="true">2.1 What the Customer Provides</h4>
+  <ul contenteditable="true">
+    <li>Senior contact details and direct access</li>
+    <li>Business facts — company history, services, value proposition, service areas, target customers, etc.</li>
+    <li>URLs — current website and any competitor or reference sites</li>
+    <li>Documents — existing branding, proposals, collateral</li>
+    <li>Customer data — anything useful for positioning in the digital world</li><li>DNS access</li><li>Credentials for any 3rd-party tool that needs to be integrated (if there are any)</li>
+  </ul>
+
+  <h4 class="subsection" contenteditable="true">2.2 What WebriQ Delivers</h4>
+  <table id="tbl-p1-deliver">
+    <thead><tr><th>Deliverable</th><th>Description</th><th>Owner/Due</th></tr></thead>
+    <tbody>
+      <tr><td contenteditable="true">Kickoff</td><td contenteditable="true">Structured kickoff meeting; goals, timeline, and contacts confirmed.</td><td contenteditable="true">Bert / Day 1</td></tr>
+      <tr><td contenteditable="true">Outcome target</td><td contenteditable="true">Agreed measurable outcomes for the 120-day programme.</td><td contenteditable="true">Bert / Day 3</td></tr>
+      <tr><td contenteditable="true">Migration checklist</td><td contenteditable="true">Full audit of existing site and content ready for migration.<br>TO DO: create a migration checklist template</td><td contenteditable="true">Bert / Day 5</td></tr>
+      <tr><td contenteditable="true">90-day content map</td><td contenteditable="true">Topics, clusters, and publishing schedule through Day 90.<br>TO DO: create a content map template</td><td contenteditable="true">Bert / Day 10<br></td></tr>
+      <tr><td contenteditable="true">HTML mockup</td><td contenteditable="true">Visual mockup of new site structure for client approval.</td><td contenteditable="true">Bert / Day 12</td></tr>
+      <tr><td contenteditable="true">Storage folder + KB</td><td contenteditable="true">Project folder live; knowledge base populated with all assets.</td><td contenteditable="true">Bert / Day 14<br>April - organize data</td></tr>
+      <tr><td contenteditable="true">Client call — sign-off</td><td contenteditable="true">Scope, mockup, and migration plan approved by client.<br>(PM to join this meeting with the client for alignment and this serves as handover)</td><td contenteditable="true">PM + Bert / Day 15</td></tr>
+    </tbody>
+  </table>
+  <div class="table-actions"><button class="row-add-btn" onclick="addRow('tbl-p1-deliver',3)">+ Add row</button></div>
+
+  <h4 class="subsection" contenteditable="true">2.3 Bert's Internal Deliverables</h4>
+  <p contenteditable="true">Before handover to Phase 2, all of the following must be filed in the project storage folder:</p><div>NOTE 1: Project Folders will eventually be handled via the WebriQ Central Hub with appropriate permissions</div><div>NOTE 2: April will handle data management tasks&nbsp;</div><p></p>
+  <table id="tbl-p1-internal">
+    <thead><tr><th>File</th><th>Description</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td contenteditable="true">Implementation file</td><td contenteditable="true">Full implementation plan document</td><td><span class="status pending" onclick="cycleStatus(this)">Pending</span></td></tr>
+      <tr><td contenteditable="true">HTML and MD files</td><td contenteditable="true">Mockup files and markdown source content</td><td><span class="status pending" onclick="cycleStatus(this)">Pending</span></td></tr>
+      <tr><td contenteditable="true">Branding guides</td><td contenteditable="true">Logo, colour palette, typography specs</td><td><span class="status pending" onclick="cycleStatus(this)">Pending</span></td></tr>
+      <tr><td contenteditable="true">KB info (raw)</td><td contenteditable="true">Raw knowledge base content before formatting</td><td><span class="status pending" onclick="cycleStatus(this)">Pending</span></td></tr>
+      <tr><td contenteditable="true">Cluster topics &amp; schedules</td><td contenteditable="true">Content clusters and publishing schedule</td><td><span class="status pending" onclick="cycleStatus(this)">Pending</span></td></tr>
+      <tr><td contenteditable="true">Publishing plan</td><td contenteditable="true">Planned content calendar and approval flow</td><td><span class="status pending" onclick="cycleStatus(this)">Pending</span></td></tr>
+    <tr><td contenteditable="true">DNS details</td><td contenteditable="true">Access to their domain management</td><td contenteditable="true"><br></td></tr><tr><td contenteditable="true">Credentials <br>(for external integrations)</td><td contenteditable="true">For example access to their Hubspot or Payment gateway</td><td contenteditable="true"><br></td></tr></tbody>
+  </table>
+  <div class="table-actions"><button class="row-add-btn" onclick="addRow('tbl-p1-internal',3)">+ Add row</button></div>
+  <p style="font-size:11px;color:var(--gray)">Click a status badge to cycle Pending → In Progress → Done.</p>
+
+  <h4 class="subsection" contenteditable="true">2.4 Phase 1 Checklist</h4>
+  <table id="tbl-p1-checklist">
+    <thead><tr><th style="width:36px"></th><th>Item</th><th>Completion Criteria</th></tr></thead>
+    <tbody>
+      <tr><td><span class="chk" onclick="toggleChk(this)">☐</span></td><td contenteditable="true">Kickoff meeting held</td><td contenteditable="true">Meeting notes filed</td></tr>
+      <tr><td><span class="chk" onclick="toggleChk(this)">☐</span></td><td contenteditable="true">Storage folder created</td><td contenteditable="true">All team members have access</td></tr>
+      <tr><td><span class="chk" onclick="toggleChk(this)">☐</span></td><td contenteditable="true">PF knowledge base live</td><td contenteditable="true">All KB categories populated</td></tr>
+      <tr><td><span class="chk" onclick="toggleChk(this)">☐</span></td><td contenteditable="true">All 8 deliverables filed</td><td contenteditable="true">Correct sub-folders, accessible</td></tr>
+      <tr><td><span class="chk" onclick="toggleChk(this)">☐</span></td><td contenteditable="true">HTML mockup complete</td><td contenteditable="true">Internal review approved</td></tr>
+      <tr><td><span class="chk" onclick="toggleChk(this)">☐</span></td><td contenteditable="true">Client call completed</td><td contenteditable="true">Written sign-off received</td></tr>
+    </tbody>
+  </table>
+  <div class="table-actions"><button class="row-add-btn" onclick="addChecklistRow('tbl-p1-checklist')">+ Add checklist item</button></div>
+
+  <!-- PHASE 2 -->
+  <h3 class="section" contenteditable="true">3. Phase 2 — Migrate &amp; Rebrand</h3>
+  <div class="phase-meta" contenteditable="true">Days 16–30 &nbsp;|&nbsp; Owner: PM + Developer &nbsp;|&nbsp; Outcome: Operational relaunch foundation</div>
+
+  <h4 class="subsection" contenteditable="true">3.1 What the Customer Provides</h4>
+  <ul contenteditable="true">
+    <li>Positioning feedback on the approved HTML mockup</li>
+    <li>Brand inputs — final logo files, color preferences, tone of voice notes</li>
+    <li>Service-area priorities — which services to lead with on the new site</li>
+  </ul>
+
+  <h4 class="subsection" contenteditable="true">3.2 What WebriQ Delivers</h4>
+  <table id="tbl-p2-deliver">
+    <thead><tr><th>Deliverable</th><th>Description</th><th>Owner/Due</th></tr></thead>
+    <tbody>
+      <tr><td contenteditable="true">Tech docs from Jun</td><td contenteditable="true">Scope/specs - Bert gives to Jun for conversion to technical specs for the developer - discrete development (high level description of what customer wants)<br>Full technical specification package for the developer.<br>(For clients with Discrete Development)</td><td contenteditable="true">Jun / Day 16</td></tr>
+      <tr><td contenteditable="true">Migration / Implementaion</td><td contenteditable="true">HTML mockups converted to StackShift I<br>(Applies for both build-from-scratch and with-existing-sites clients)<br>(may include other documents: implementation plan, branding guideline, etc.)<br>Implement using LLM Workflow with StackShift Skills [to be replaced with CiteForge workflow eventually - Nina; call developers for fixes only]<br><br>FOR PIM, Ecommerce, Discrete Development:<br>- start implementation in parallel with the content implementation, based on the timeline and plans from onboarding</td><td contenteditable="true">Dev / Day 16</td></tr>
+      <tr><td contenteditable="true">Structure cleanup</td><td contenteditable="true">URL architecture, redirects, forms, and navigation finalized.</td><td contenteditable="true">Dev / Day 24</td></tr>
+      <tr><td contenteditable="true">Branding review</td><td contenteditable="true">Brand colours, fonts, and voice applied across all pages.</td><td contenteditable="true">Dev / Day 26</td></tr>
+      <tr><td contenteditable="true">Foundational pages</td><td contenteditable="true">Home, About, Services, and Contact pages are launch ready</td><td contenteditable="true">Dev / Day 28</td></tr>
+      <tr><td contenteditable="true">Internal QA</td><td contenteditable="true">Team review of build against mockup and tech docs.</td><td contenteditable="true">PM / Day 29</td></tr>
+      <tr><td contenteditable="true">Client review + approval</td><td contenteditable="true">Client reviews dev URL and approves for launch.</td><td contenteditable="true">PM / Day 30</td></tr>
+    <tr><td contenteditable="true">NOTES:</td><td contenteditable="true">Automate the timeline milestones in the Central Hub with reminders in place<br>FOR PIM, Ecommerce, Discrete Development - will follow their own set timeline which may or may not be within the 120 days<br><br></td><td contenteditable="true"><br></td></tr></tbody>
+  </table>
+  <div class="table-actions"><button class="row-add-btn" onclick="addRow('tbl-p2-deliver',3)">+ Add row</button></div>
+
+  <h4 class="subsection" contenteditable="true">3.3 Developer Handover Criteria</h4>
+  <p contenteditable="true">The following must be in place before the developer begins the build:</p>
+  <ul contenteditable="true">
+    <li>Client has signed off on the HTML mockup (Phase 1 gate)</li><li>PM is clear on the main goal and deliverables</li>
+    <li>Jun's tech docs are filed and confirmed complete - if needed (Note: Discrete Development will follow its own workflow)</li>
+    <li>Developer has been briefed and has access to the storage folder</li>
+    <li>StackShift I instance has been created</li>
+  </ul>
+
+  <h4 class="subsection" contenteditable="true">3.4 Internal QA Checklist</h4>
+  <table id="tbl-p2-qa">
+    <thead><tr><th>QA Category</th><th>What to Check</th><th>Pass / Fail</th></tr></thead>
+    <tbody>
+      <tr><td contenteditable="true">Visual fidelity</td><td contenteditable="true">Build matches approved HTML mockup</td><td><span class="status pending" onclick="cyclePassFail(this)">☐ Pass / ☐ Fail</span></td></tr>
+      <tr><td contenteditable="true">Content accuracy</td><td contenteditable="true">All migrated content is correct and complete</td><td><span class="status pending" onclick="cyclePassFail(this)">☐ Pass / ☐ Fail</span></td></tr>
+      <tr><td contenteditable="true">Functionality</td><td contenteditable="true">All links, forms, and features work</td><td><span class="status pending" onclick="cyclePassFail(this)">☐ Pass / ☐ Fail</span></td></tr>
+      <tr><td contenteditable="true">Responsiveness</td><td contenteditable="true">Correct on mobile and desktop</td><td><span class="status pending" onclick="cyclePassFail(this)">☐ Pass / ☐ Fail</span></td></tr>
+      <tr><td contenteditable="true">Brand application</td><td contenteditable="true">Colours, fonts, and tone match brand guide</td><td><span class="status pending" onclick="cyclePassFail(this)">☐ Pass / ☐ Fail</span></td></tr>
+      <tr><td contenteditable="true">Redirects</td><td contenteditable="true">Old URLs redirect correctly to new pages</td><td><span class="status pending" onclick="cyclePassFail(this)">☐ Pass / ☐ Fail</span></td></tr>
+    <tr><td contenteditable="true">StackShift CMS + PublishForge</td><td contenteditable="true">Confirm both are functioning as expected</td><td contenteditable="true"><br></td></tr><tr><td contenteditable="true">Schemas and Metadata</td><td contenteditable="true">Confirm that these are in place</td><td contenteditable="true"><br></td></tr></tbody>
+  </table>
+  <div class="table-actions"><button class="row-add-btn" onclick="addRow('tbl-p2-qa',3)">+ Add row</button></div>
+  <p style="font-size:11px;color:var(--gray)">Click the Pass/Fail badge to cycle: Untested → Pass → Fail.</p>
+
+  <!-- PHASE 3 -->
+  <h3 class="section" contenteditable="true">4. Phase 3 — Publish</h3>
+  <div class="phase-meta" contenteditable="true">Days 31–60 &nbsp;|&nbsp; Owner: Erica + April&nbsp; |&nbsp; Outcome: Visibility and topical authority building</div>
+
+  <h4 class="subsection" contenteditable="true">4.1 What the Customer Provides</h4>
+  <ul contenteditable="true">
+    <li>Additional knowledge-based documents — whitepapers, case studies, FAQs, service descriptions</li>
+    <li>Subject matter input for product, industry, and location content</li>
+    <li>Approval on drafted content plan before publishing</li>
+  </ul>
+
+  <h4 class="subsection" contenteditable="true">4.2 What WebriQ Delivers</h4>
+  <table id="tbl-p3-deliver">
+    <thead><tr><th>Deliverable</th><th>Description</th><th>Due</th></tr></thead>
+    <tbody>
+      <tr><td contenteditable="true">Product publishing</td><td contenteditable="true">Dedicated pages per product/service line published.</td><td contenteditable="true">Day 35-40</td></tr>
+      <tr><td contenteditable="true">Industry publishing</td><td contenteditable="true">Industry-specific content targeting buyer segments.</td><td contenteditable="true">Day 45</td></tr>
+      <tr><td contenteditable="true">Location publishing</td><td contenteditable="true">Local and regional landing pages as per content map.</td><td contenteditable="true">Day 50</td></tr>
+      <tr><td contenteditable="true">Buyer-education content</td><td contenteditable="true">Blog posts, guides, and FAQs aligned to buyer journey.</td><td contenteditable="true">Day 55</td></tr>
+      <tr><td contenteditable="true">Publishing report</td><td contenteditable="true">Summary of all content published and initial traffic data.</td><td contenteditable="true">Day 60</td></tr>
+    </tbody>
+  </table>
+  <div class="table-actions"><button class="row-add-btn" onclick="addRow('tbl-p3-deliver',3)">+ Add row</button></div>
+
+  <h4 class="subsection" contenteditable="true">4.3 Publishing Schedule</h4>
+  <p contenteditable="true">Content is published in waves aligned to the 90-day content map agreed in Phase 1. The PM (April) tracks publishing progress and flags any delays to the content team.</p>
+  <table id="tbl-p3-schedule">
+    <thead><tr><th>Week</th><th>Content type</th><th>Volume target</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td contenteditable="true">Wk 5–6</td><td contenteditable="true">Product &amp; service pages</td><td contenteditable="true">4–6 pages</td><td><span class="status ontrack" onclick="cycleTrackStatus(this)">On track</span></td></tr>
+      <tr><td contenteditable="true">Wk 7</td><td contenteditable="true">Industry pages</td><td contenteditable="true">3–4 pages</td><td><span class="status ontrack" onclick="cycleTrackStatus(this)">On track</span></td></tr>
+      <tr><td contenteditable="true">Wk 8</td><td contenteditable="true">Location landing pages</td><td contenteditable="true">3–5 pages</td><td><span class="status ontrack" onclick="cycleTrackStatus(this)">On track</span></td></tr>
+      <tr><td contenteditable="true">Wk 9</td><td contenteditable="true">Buyer-education blog</td><td contenteditable="true">4–6 posts</td><td><span class="status ontrack" onclick="cycleTrackStatus(this)">On track</span></td></tr>
+    </tbody>
+  </table>
+  <div class="table-actions"><button class="row-add-btn" onclick="addRow('tbl-p3-schedule',4)">+ Add row</button></div>
+
+  <!-- PHASE 4 -->
+  <h3 class="section" contenteditable="true">5. Phase 4 — AI Visibility</h3>
+  <div class="phase-meta" contenteditable="true">Days 61–90 &nbsp;|&nbsp; Owner: April + Eri |&nbsp; Outcome: Stronger AI readability and buyer discovery</div>
+
+  <h4 class="subsection" contenteditable="true">5.1 What the Customer Provides</h4>
+  <ul contenteditable="true">
+    <li>Observations from the field — sales team feedback, customer questions, objections</li>
+    <li>Priority adjustments — which topics or services to push harder</li>
+    <li>Any new assets, case studies, or data that has emerged since onboarding</li>
+  </ul>
+
+  <h4 class="subsection" contenteditable="true">5.2 What WebriQ Delivers</h4>
+  <table id="tbl-p4-deliver">
+    <thead><tr><th>Deliverable</th><th>Description</th><th>Due</th></tr></thead>
+    <tbody>
+      <tr><td contenteditable="true">Updated Publishing Plan</td><td contenteditable="true">Based on the metrics obtained from the previous publishing report</td><td contenteditable="true">Day 62</td></tr>
+      <tr><td contenteditable="true">Gap publishing</td><td contenteditable="true">Identify and fill content gaps found via AI and search data.</td><td contenteditable="true">Day 70</td></tr>
+      <tr><td contenteditable="true">Conversion refinements</td><td contenteditable="true">CTA, form, and page improvements based on behaviour data.</td><td contenteditable="true">Day 80</td></tr>
+      <tr><td contenteditable="true">AI visibility tracking &amp; reporting</td><td contenteditable="true">90- Day Outcome check</td><td contenteditable="true">Day 90</td></tr>
+    <tr><td contenteditable="true"><br></td><td contenteditable="true"><br></td><td contenteditable="true"><br></td></tr></tbody>
+  </table>
+  <div class="table-actions"><button class="row-add-btn" onclick="addRow('tbl-p4-deliver',3)">+ Add row</button></div>
+
+  <h4 class="subsection" contenteditable="true">5.3 AI Visibility Checklist</h4>
+  <ul contenteditable="true">
+    <li>Site appears in AI-assisted search results for primary service terms</li>
+    <li>Content is structured with clear headings, schema, and entity relationships</li>
+    <li>Gap content published covering all top buyer questions</li>
+    <li>Conversion tracking confirmed and reporting live</li>
+    <li>Priority adjustments from client incorporated</li>
+  </ul>
+
+  <!-- PHASE 5 -->
+  <h3 class="section" contenteditable="true">6. Phase 5 — Optimize</h3>
+  <div class="phase-meta" contenteditable="true">Days 91–120 &nbsp;|&nbsp; Owner: PM + WebriQ Strategy &nbsp;|&nbsp; Outcome: Repeatable operating cadence</div>
+
+  <h4 class="subsection" contenteditable="true">6.1 What the Customer Provides</h4>
+  <ul contenteditable="true">
+    <li>Outcome review — honest assessment of what has and hasn't worked</li>
+    <li>Next-quarter priorities — growth areas, new services, markets to enter</li>
+    <li>Budget and resource confirmation for the next engagement cycle</li>
+  </ul>
+
+  <h4 class="subsection" contenteditable="true">6.2 What WebriQ Delivers</h4>
+  <table id="tbl-p5-deliver">
+    <thead><tr><th>Deliverable</th><th>Description</th><th>Due</th></tr></thead>
+    <tbody>
+      <tr><td contenteditable="true">Updated Publishing Plan</td><td contenteditable="true">Plans (content + publishing cadence) for the last 30 days in this cycle</td><td contenteditable="true">Day 92</td></tr>
+      <tr><td contenteditable="true">Gap publishing</td><td contenteditable="true">Identify and fill content gaps found via AI and search data.</td><td contenteditable="true">Day 115</td></tr>
+      <tr><td contenteditable="true">Next 90-day roadmap</td><td contenteditable="true">Content, technical, and strategy plan for the next quarter.</td><td contenteditable="true">Day 118</td></tr>
+      <tr><td contenteditable="true">QBR presentation</td><td contenteditable="true">Live review session with client covering results and roadmap for next cycle.</td><td contenteditable="true">Day 120</td></tr>
+    </tbody>
+  </table>
+  <div class="table-actions"><button class="row-add-btn" onclick="addRow('tbl-p5-deliver',3)">+ Add row</button></div>
+
+  <!-- APPENDIX A -->
+  <h3 class="section" contenteditable="true">Appendix A – WebriQ Central Hub Overview &amp; Q2 Development Updates <span class="appendix-flag">Appendix</span></h3>
+
+  <h4 class="subsection" contenteditable="true">Purpose</h4>
+  <p contenteditable="true">The WebriQ Central Hub is an internal operations platform designed to centralize project onboarding, project management, knowledge management, and AI-assisted operational workflows into a single workspace.</p>
+
+  <h4 class="subsection" contenteditable="true">Strategic Objectives</h4>
+  <p contenteditable="true">Central Hub is designed to support WebriQ's long-term operational growth by:</p>
+
+  <div class="emoji-card">
+    <h5 contenteditable="true">📂 Centralizing Project Information</h5>
+    <p contenteditable="true">Provide one location for onboarding documents, implementation plans, project assets, branding materials, and knowledge resources.</p>
+  </div>
+  <div class="emoji-card">
+    <h5 contenteditable="true">🤝 Improving Cross-Team Collaboration</h5>
+    <p contenteditable="true">Enable Project Managers, Developers, Content Teams, and Leadership to work from the same source of truth throughout the project lifecycle.</p>
+  </div>
+  <div class="emoji-card">
+    <h5 contenteditable="true">⚙️ Standardizing Internal Processes</h5>
+    <p contenteditable="true">Replace fragmented workflows with standardized project execution, task management, and documentation processes.</p>
+  </div>
+  <div class="emoji-card">
+    <h5 contenteditable="true">🤖 Introducing AI into Daily Operations</h5>
+    <p contenteditable="true">Leverage AI to assist with operational tasks, retrieve project information, automate repetitive workflows, and continuously learn from completed projects.</p>
+  </div>
+  <div class="emoji-card">
+    <h5 contenteditable="true">📈 Increasing Operational Visibility</h5>
+    <p contenteditable="true">Provide leadership with real-time visibility into project progress, team activities, and operational performance.</p>
+  </div>
+
+  <h4 class="subsection" contenteditable="true">Core Capabilities</h4>
+  <table id="tbl-capabilities">
+    <thead><tr><th>Capability</th><th>Business Value</th></tr></thead>
+    <tbody>
+      <tr><td contenteditable="true">📁 Project Onboarding</td><td contenteditable="true">Centralized onboarding documents, implementation files, and client assets</td></tr>
+      <tr><td contenteditable="true">✅ Project &amp; Task Management</td><td contenteditable="true">Unified management of projects, milestones, task lists, and tasks</td></tr>
+      <tr><td contenteditable="true">🤖 AI Operations (Ops Chat)</td><td contenteditable="true">AI-powered assistant for project information, task management, and operational automation</td></tr>
+      <tr><td contenteditable="true">📚 Knowledge Base</td><td contenteditable="true">Central repository of reusable project knowledge and best practices</td></tr>
+      <tr><td contenteditable="true">🔒 Role-Based Permissions</td><td contenteditable="true">Secure access control based on organizational roles</td></tr>
+      <tr><td contenteditable="true">📊 Operational Visibility</td><td contenteditable="true">Centralized reporting and project status monitoring</td></tr>
+    </tbody>
+  </table>
+  <div class="table-actions"><button class="row-add-btn" onclick="addRow('tbl-capabilities',2)">+ Add row</button></div>
+
+  <h4 class="subsection" contenteditable="true">Q2 Development Highlights</h4>
+
+  <div class="emoji-card">
+    <h5 contenteditable="true">🚀 Platform Modernization</h5>
+    <ul contenteditable="true">
+      <li>Progressed migration from Central Hub V1 to the new V2 Dashboard.</li>
+      <li>Reduced dependency on Zoho by transitioning project management capabilities into Central Hub.</li>
+      <li>Established the foundation for a unified operational workspace.</li>
+    </ul>
+  </div>
+
+  <div class="emoji-card">
+    <h5 contenteditable="true">🤖 Ops Chat Launch</h5>
+    <ul contenteditable="true">
+      <li>Successfully introduced Ops Chat, WebriQ's AI-powered operational assistant.</li>
+      <li>Supports project retrieval, task management, ticket lookup, and Sanity CMS automation.</li>
+      <li>Designed as the foundation for future AI-assisted operations across the organization.</li>
+    </ul>
+  </div>
+
+  <div class="emoji-card">
+    <h5 contenteditable="true">🧠 AI Agent Development</h5>
+    <ul contenteditable="true">
+      <li>Implemented the first AI execution framework using Vercel AI SDK, Claude, and Sanity MCP.</li>
+      <li>Built intelligent workflows capable of planning, executing, and learning from operational tasks.</li>
+      <li>Ongoing research focuses on extending automation to code-related workflows.</li>
+    </ul>
+  </div>
+
+  <div class="emoji-card">
+    <h5 contenteditable="true">📂 Project Data Migration</h5>
+    <p contenteditable="true"><strong>Completed:</strong></p>
+    <ul contenteditable="true">
+      <li>Zoho Projects (2025-2026)</li>
+      <li>Project Milestones</li>
+    </ul>
+    <p contenteditable="true"><strong>In Progress:</strong></p>
+    <ul contenteditable="true">
+      <li>Task Lists</li>
+      <li>Project Tasks</li><li>Logging of Hours</li>
+    </ul>
+  </div>
+
+  <div class="emoji-card">
+    <h5 contenteditable="true">📁 Onboarding Workspace</h5>
+    <p contenteditable="true">Development continues on a centralized onboarding experience featuring:</p>
+    <ul contenteditable="true">
+      <li>Project file uploads</li>
+      <li>Document management</li>
+      <li>Production database migration</li>
+      <li>Drag-and-drop uploads</li>
+      <li>Role-based access control</li>
+    </ul>
+  </div>
+
+  <div class="emoji-card">
+    <h5 contenteditable="true">🧪 Pilot Rollout</h5>
+    <p contenteditable="true">Following completion of task migration, Central Hub will enter pilot testing with selected Project Managers and Developers to validate end-to-end workflows before broader deployment on or before July 30.</p>
+  </div>
+
+  <h4 class="subsection" contenteditable="true">Current Project Status</h4>
+  <table id="tbl-status">
+    <thead><tr><th>Workstream</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td contenteditable="true">Ops Chat</td><td><span class="status progress" onclick="cycleWorkstreamStatus(this)">🟡 In Progress</span></td></tr>
+      <tr><td contenteditable="true">Central Hub V2</td><td><span class="status progress" onclick="cycleWorkstreamStatus(this)">🟡 In Progress</span></td></tr>
+      <tr><td contenteditable="true">AI Agent Framework</td><td><span class="status progress" onclick="cycleWorkstreamStatus(this)">🟡 In Progress</span></td></tr>
+      <tr><td contenteditable="true">Project Migration</td><td><span class="status done" onclick="cycleWorkstreamStatus(this)">🟢 Mostly Complete</span></td></tr>
+      <tr><td contenteditable="true">Task Migration</td><td><span class="status progress" onclick="cycleWorkstreamStatus(this)">🟡 In Progress</span></td></tr>
+      <tr><td contenteditable="true">Onboarding Workspace</td><td><span class="status progress" onclick="cycleWorkstreamStatus(this)">🟡 In Development</span></td></tr>
+      <tr><td contenteditable="true">Pilot Testing</td><td><span class="status pending" onclick="cycleWorkstreamStatus(this)">🔵 Planned</span></td></tr>
+    <tr><td contenteditable="true">&nbsp;Notes:&nbsp;<br>1. WhatsApp integration (WebriQ's Business account) to replace Zoho Voice - Phase 2<br>2. Timesheets functions to be developed<br>3. Developers' view to be developed<br>4. Orchestration - custom build - review again during July 13 meeting<br>5. put on a subdomain: support.webriq.com (implement LogTo) - PM<br><br><br></td><td contenteditable="true"><br></td></tr></tbody>
+  </table>
+  <div class="table-actions"><button class="row-add-btn" onclick="addRow('tbl-status',2)">+ Add row</button></div>
+  <p style="font-size:11px;color:var(--gray)">Click a workstream status to cycle: Planned → In Progress → Live/Complete.</p>
+
+  <footer class="doc-footer" contenteditable="true">Project Onboarding QBR &nbsp;|&nbsp; 120-Day Programme &nbsp;|&nbsp; Confidential</footer>
+
+</div>
+
+<script>
+function toggleChk(el){
+  el.textContent = el.textContent.trim() === '☐' ? '☑' : '☐';
+}
+
+function cycleStatus(el){
+  const states = [
+    {cls:'pending', label:'Pending'},
+    {cls:'progress', label:'In Progress'},
+    {cls:'done', label:'Done'}
+  ];
+  const idx = states.findIndex(s => el.classList.contains(s.cls));
+  const next = states[(idx+1) % states.length];
+  el.className = 'status ' + next.cls;
+  el.textContent = next.label;
+}
+
+function cyclePassFail(el){
+  const states = [
+    {cls:'pending', label:'☐ Pass / ☐ Fail'},
+    {cls:'done', label:'☑ Pass'},
+    {cls:'progress', label:'☑ Fail'}
+  ];
+  const idx = states.findIndex(s => el.classList.contains(s.cls));
+  const next = states[(idx+1) % states.length];
+  el.className = 'status ' + next.cls;
+  el.textContent = next.label;
+}
+
+function cycleTrackStatus(el){
+  const states = [
+    {cls:'ontrack', label:'On track'},
+    {cls:'progress', label:'At risk'},
+    {cls:'done', label:'Delayed'}
+  ];
+  const idx = states.findIndex(s => el.classList.contains(s.cls));
+  const next = states[(idx+1) % states.length];
+  el.className = 'status ' + next.cls;
+  el.textContent = next.label;
+}
+
+function cycleWorkstreamStatus(el){
+  const states = [
+    {cls:'pending', label:'🔵 Planned'},
+    {cls:'progress', label:'🟡 In Progress'},
+    {cls:'done', label:'🟢 Live'}
+  ];
+  const idx = states.findIndex(s => el.classList.contains(s.cls));
+  const next = states[(idx+1) % states.length];
+  el.className = 'status ' + next.cls;
+  el.textContent = next.label;
+}
+
+function addRow(tableId, colCount){
+  const table = document.getElementById(tableId);
+  const tbody = table.querySelector('tbody');
+  const tr = document.createElement('tr');
+  for(let i=0;i<colCount;i++){
+    const td = document.createElement('td');
+    td.contentEditable = "true";
+    td.textContent = "New cell";
+    tr.appendChild(td);
+  }
+  tbody.appendChild(tr);
+}
+
+function addChecklistRow(tableId){
+  const table = document.getElementById(tableId);
+  const tbody = table.querySelector('tbody');
+  const tr = document.createElement('tr');
+  tr.innerHTML = '<td><span class="chk" onclick="toggleChk(this)">☐</span></td>' +
+                 '<td contenteditable="true">New item</td>' +
+                 '<td contenteditable="true">Completion criteria</td>';
+  tbody.appendChild(tr);
+}
+
+function downloadHTML(){
+  const docClone = document.documentElement.cloneNode(true);
+  const html = '<!DOCTYPE html>\n' + docClone.outerHTML;
+  const blob = new Blob([html], {type:'text/html'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'Project_Onboarding_QBR_120Day_Edited.html';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+</script>
+
+
+
+</body></html>

@@ -8,11 +8,10 @@ import OpsChat from "./ops-chat";
 interface V2HubShellProps {
   userRole: string | null;
   displayName: string | null;
-  email: string | null;
   children: React.ReactNode;
 }
 
-export default function V2HubShell({ userRole, displayName, email, children }: V2HubShellProps) {
+export default function V2HubShell({ userRole, displayName, children }: V2HubShellProps) {
   const [opsChatOpen, setOpsChatOpen] = useState(false);
   const [chatTrigger, setChatTrigger] = useState<{ message: string; ts: number } | null>(null);
 
@@ -44,9 +43,6 @@ export default function V2HubShell({ userRole, displayName, email, children }: V
       {/* Main content column */}
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         <V2HubHeader
-          displayName={displayName}
-          email={email}
-          userRole={userRole}
           chatOpen={opsChatOpen}
           onOpenChat={openChat}
           onOpenWithMessage={openChatWithMessage}

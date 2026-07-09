@@ -39,15 +39,12 @@ const PRESENCE = [
 ];
 
 interface V2HubHeaderProps {
-  displayName: string | null;
-  email: string | null;
-  userRole: string | null;
   chatOpen: boolean;
   onOpenChat: () => void;
   onOpenWithMessage: (message: string) => void;
 }
 
-export default function V2HubHeader({ displayName, email, userRole, chatOpen, onOpenChat, onOpenWithMessage }: V2HubHeaderProps) {
+export default function V2HubHeader({ chatOpen, onOpenChat, onOpenWithMessage }: V2HubHeaderProps) {
   const pathname = usePathname();
   const [query, setQuery] = useState("");
   const [inputFocused, setInputFocused] = useState(false);

@@ -10,10 +10,13 @@ export async function GET(
 ) {
   try {
     const { customerId } = await params;
+    // Individually-hidden projects (in-progress onboarding on an otherwise-visible customer)
+    // never appear in the profile's Projects tab or count, per task 123's visibility gate.
     const { data, error } = await adminClient
       .from("projects")
       .select("*")
       .eq("customer_id", customerId)
+      .not("onboarding_visible_at", "is", null)
       .order("created_at", { ascending: false });
 
     if (error) {

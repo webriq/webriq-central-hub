@@ -587,7 +587,9 @@ const pipelineForgeSections: FormSection[] = [
 // Master Schema Map
 // ============================================================================
 
-const schemas: Record<ProductName, FormSchema> = {
+// CiteForge is a StackShift add-on (task 017), not a standalone onboarding flow — its fields
+// live inside stackShiftSections' conditional sections, so it deliberately has no top-level key.
+const schemas: Partial<Record<ProductName, FormSchema>> = {
   StackShift: {
     productName: "StackShift",
     sections: stackShiftSections,
@@ -606,10 +608,7 @@ const schemas: Record<ProductName, FormSchema> = {
  * Returns the onboarding form schema for a given product.
  */
 export function getOnboardingSchema(productName: string): FormSchema | null {
-  if (productName in schemas) {
-    return schemas[productName as ProductName];
-  }
-  return null;
+  return schemas[productName as ProductName] ?? null;
 }
 
 export function computeCompletionPercentage(schema: FormSchema, data: Record<string, unknown>): number {

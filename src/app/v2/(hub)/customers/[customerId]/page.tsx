@@ -45,7 +45,6 @@ export default async function CustomerProfilePage({ params }: CustomerProfilePag
     <div className="px-8 py-6 max-w-240 mx-auto">
       <CustomerProfileClient
         customer={customer}
-        zohoPortalId={process.env.ZOHO_PORTAL_ID ?? ""}
         zohoPortalName={process.env.NEXT_PUBLIC_ZOHO_PORTAL_NAME ?? ""}
       />
     </div>

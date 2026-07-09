@@ -877,7 +877,6 @@ const STAGE_TABS: { key: StageFilter; label: string }[] = [
 export default function OrchestrationContent() {
   const [tasks, setTasks] = useState<ClassificationRecordRow[]>([]);
   const [assessments, setAssessments] = useState<Record<string, RequirementsAssessmentRow>>({});
-  const [plans, setPlans] = useState<Record<string, ImplementationPlanRow>>({});
   const [plansByClassification, setPlansByClassification] = useState<Record<string, ImplementationPlanRow>>({});
   const [executions, setExecutions] = useState<Record<string, ExecutionRecordRow>>({});
   const [customerPaused, setCustomerPaused] = useState<Record<string, boolean>>({});
@@ -943,15 +942,6 @@ export default function OrchestrationContent() {
         }
       }
       setAssessments(latestByClassification);
-
-      // Keep only the latest non-rejected plan per assessment
-      const latestByAssessment: Record<string, ImplementationPlanRow> = {};
-      for (const p of (plansResult.data ?? []) as ImplementationPlanRow[]) {
-        if (p.status !== "REJECTED" && !latestByAssessment[p.assessment_id]) {
-          latestByAssessment[p.assessment_id] = p;
-        }
-      }
-      setPlans(latestByAssessment);
 
       // Build classification_id → latest non-rejected plan across all assessment versions.
       // Needed because a newer (non-CLEAR) assessment run after plan approval would otherwise

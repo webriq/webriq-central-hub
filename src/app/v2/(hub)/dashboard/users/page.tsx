@@ -253,9 +253,7 @@ export default function UsersPage() {
     setTimeout(() => setToast(null), 3500);
   }
 
-  const loadUsers = useCallback(async () => {
-    setLoading(true);
-    setFetchError(null);
+  const fetchAndSetUsers = useCallback(async () => {
     try {
       const res = await fetch("/api/v2/users");
       if (!res.ok) {
@@ -265,6 +263,7 @@ export default function UsersPage() {
       }
       const data = await res.json() as HubUser[];
       setUsers(data);
+      setFetchError(null);
     } catch {
       setFetchError("Failed to load users. Please refresh.");
     } finally {
@@ -272,7 +271,34 @@ export default function UsersPage() {
     }
   }, []);
 
-  useEffect(() => { loadUsers(); }, [loadUsers]);
+  const loadUsers = useCallback(() => {
+    setLoading(true);
+    setFetchError(null);
+    void fetchAndSetUsers();
+  }, [fetchAndSetUsers]);
+
+  // Mount-only fetch, inlined (rather than calling fetchAndSetUsers) so no setState
+  // setter is reachable synchronously from the effect body — `loading` already
+  // defaults to true, so nothing needs to run before the fetch's own .then()/.catch().
+  useEffect(() => {
+    let ignore = false;
+    fetch("/api/v2/users")
+      .then(async (res) => {
+        if (!res.ok) {
+          const d = await res.json() as { error?: string };
+          if (!ignore) setFetchError(d.error ?? `HTTP ${res.status}`);
+          return;
+        }
+        const data = await res.json() as HubUser[];
+        if (!ignore) {
+          setUsers(data);
+          setFetchError(null);
+        }
+      })
+      .catch(() => { if (!ignore) setFetchError("Failed to load users. Please refresh."); })
+      .finally(() => { if (!ignore) setLoading(false); });
+    return () => { ignore = true; };
+  }, []);
 
   const handleRoleChange = useCallback(async (userId: string, role: SelectRole) => {
     setSavingId(userId);

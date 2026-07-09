@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { adminClient } from "@/lib/supabase/admin";
 import type { ProductName } from "@/types/hub";
 
-const VALID_PRODUCTS: ProductName[] = ["StackShift", "PublishForge", "PipelineForge"];
+const VALID_PRODUCTS: ProductName[] = ["StackShift", "PublishForge", "PipelineForge", "CiteForge"];
 
 export async function POST(
   request: NextRequest,
@@ -15,7 +15,7 @@ export async function POST(
 
     if (!productName || !VALID_PRODUCTS.includes(productName as ProductName)) {
       return NextResponse.json(
-        { error: "Invalid product_name. Must be one of: StackShift, PublishForge, PipelineForge" },
+        { error: "Invalid product_name. Must be one of: StackShift, PublishForge, PipelineForge, CiteForge" },
         { status: 400 }
       );
     }

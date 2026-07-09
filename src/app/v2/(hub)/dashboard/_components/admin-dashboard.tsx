@@ -10,10 +10,9 @@ type LLMLog = { customer_id: string | null; cost_usd: number | null };
 
 interface Props {
   userId: string;
-  displayName: string | null;
 }
 
-export default function AdminDashboard({ displayName }: Props) {
+export default function AdminDashboard(_props: Props) {
   const { settings } = usePMSettings();
   const isDark = settings.theme === "dark";
 
@@ -55,7 +54,7 @@ export default function AdminDashboard({ displayName }: Props) {
   return (
     <div className={isDark ? "pm-dark" : "pm-light"}>
       {/* Reuse PM dashboard for core content */}
-      <PMDashboard displayName={displayName} />
+      <PMDashboard />
 
       {/* Admin-only extras */}
       <div className="px-8 pb-8 flex flex-col gap-5 mt-2">

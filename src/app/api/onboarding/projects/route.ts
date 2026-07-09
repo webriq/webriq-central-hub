@@ -1,0 +1,220 @@
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { generateCustomerId } from "@/lib/customers/generate-id";
+import {
+  CLASSIFICATIONS,
+  type Classification,
+  deriveProductName,
+  deriveProjectType,
+  getCurrentProgrammeDay,
+  getPhaseByNumber,
+} from "@/config/customer-phases";
+import { seedAndStartProgramme } from "@/lib/programme/seed";
+
+const STAFF_ROLES = ["admin", "super_admin", "marketing", "pm", "developer", "hr"];
+const CREATE_ROLES = ["admin", "super_admin", "marketing"];
+
+// GET — role-conditional list of projects still gated behind the Phase 1 handover
+// (onboarding_visible_at IS NULL). Marketing/admin/super_admin see the same shape as
+// pm/developer/hr — this is a status-only list either way; the wizard/detail route is where
+// the real access split happens (marketing|admin|super_admin only, see [projectId]/page.tsx).
+export async function GET() {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+    if (!profile?.role || !STAFF_ROLES.includes(profile.role)) {
+      return NextResponse.json({ error: "Not permitted to view onboarding projects" }, { status: 403 });
+    }
+
+    const { data: projects, error } = await supabase
+      .from("projects")
+      .select("id, name, customer_id, programme_started_at, scheduled_onboarding_start_at, customer_product_id, customers(company_name), customer_products(classification)")
+      .is("onboarding_visible_at", null)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("GET /api/onboarding/projects error:", error);
+      return NextResponse.json({ error: "Failed to fetch onboarding projects" }, { status: 500 });
+    }
+
+    const projectIds = (projects ?? []).map((p) => p.id);
+    const activePhaseByProject = new Map<string, number>();
+    if (projectIds.length > 0) {
+      const { data: phases } = await supabase
+        .from("customer_phases")
+        .select("project_id, phase_number")
+        .in("project_id", projectIds)
+        .eq("status", "active");
+      for (const row of phases ?? []) activePhaseByProject.set(row.project_id, row.phase_number);
+    }
+
+    const items = (projects ?? []).map((p) => {
+      const companyName = (p.customers as unknown as { company_name: string } | null)?.company_name ?? "Unknown";
+      const classification = (p.customer_products as unknown as { classification: string | null } | null)?.classification ?? null;
+      const activePhaseNumber = activePhaseByProject.get(p.id) ?? null;
+      const currentDay = p.programme_started_at ? Math.min(120, getCurrentProgrammeDay(p.programme_started_at)) : null;
+      const targetHandoverDate = p.programme_started_at
+        ? new Date(new Date(p.programme_started_at).getTime() + 14 * 86_400_000).toISOString()
+        : p.scheduled_onboarding_start_at
+          ? new Date(new Date(p.scheduled_onboarding_start_at).getTime() + 14 * 86_400_000).toISOString()
+          : null;
+
+      return {
+        project_id: p.id,
+        project_name: p.name,
+        company_name: companyName,
+        customer_id: p.customer_id,
+        classification,
+        current_phase_number: activePhaseNumber,
+        current_phase_name: activePhaseNumber ? getPhaseByNumber(activePhaseNumber).name : null,
+        current_day: currentDay,
+        progress_pct: currentDay ? Math.min(100, Math.round((currentDay / 15) * 100)) : 0,
+        programme_started_at: p.programme_started_at,
+        scheduled_onboarding_start_at: p.scheduled_onboarding_start_at,
+        target_handover_date: targetHandoverDate,
+        status: p.programme_started_at ? "in_progress" : p.scheduled_onboarding_start_at ? "scheduled" : "draft",
+      };
+    });
+
+    return NextResponse.json({ projects: items, canCreate: CREATE_ROLES.includes(profile.role) });
+  } catch (err) {
+    console.error("GET /api/onboarding/projects unexpected error:", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
+
+type NewProjectBody = {
+  mode: "save" | "save_scheduled" | "start";
+  scheduled_start_at?: string;
+  customer: { existing_customer_id: string } | { company_name: string };
+  contact: { name: string; email?: string; phone?: string };
+  classification: Classification;
+  project_name: string;
+};
+
+// POST — the "New Project" intake (marketing/admin/super_admin only). Explicitly NOT the same
+// action as starting the 120-day clock — see task 123 doc. Creates/reuses the customer, creates
+// a customer_products row (classification + derived product_name) and a hidden projects row
+// (onboarding_visible_at stays null until Phase 1 handover), then branches on `mode`.
+export async function POST(request: NextRequest) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+    if (!profile?.role || !CREATE_ROLES.includes(profile.role)) {
+      return NextResponse.json({ error: "Not permitted to create onboarding projects" }, { status: 403 });
+    }
+
+    const body = (await request.json()) as NewProjectBody;
+
+    if (!["save", "save_scheduled", "start"].includes(body.mode)) {
+      return NextResponse.json({ error: "mode must be one of save, save_scheduled, start" }, { status: 400 });
+    }
+    if (!CLASSIFICATIONS.includes(body.classification)) {
+      return NextResponse.json({ error: "Invalid classification" }, { status: 400 });
+    }
+    if (!body.project_name?.trim()) {
+      return NextResponse.json({ error: "project_name is required" }, { status: 400 });
+    }
+    if (body.mode === "save_scheduled" && !body.scheduled_start_at) {
+      return NextResponse.json({ error: "scheduled_start_at is required when mode is save_scheduled" }, { status: 400 });
+    }
+
+    // Resolve or create the customer.
+    let customerId: string;
+    let companyName: string;
+    if ("existing_customer_id" in body.customer) {
+      const { data: existing, error: existingError } = await supabase
+        .from("customers")
+        .select("customer_id, company_name")
+        .eq("customer_id", body.customer.existing_customer_id)
+        .single();
+      if (existingError || !existing) {
+        return NextResponse.json({ error: "Customer not found" }, { status: 404 });
+      }
+      customerId = existing.customer_id;
+      companyName = existing.company_name;
+    } else {
+      if (!body.customer.company_name?.trim()) {
+        return NextResponse.json({ error: "company_name is required for a new customer" }, { status: 400 });
+      }
+      customerId = await generateCustomerId();
+      companyName = body.customer.company_name.trim();
+      const { error: createError } = await supabase.from("customers").insert({
+        customer_id: customerId,
+        company_name: companyName,
+        contact_name: body.contact?.name?.trim() || null,
+        contact_email: body.contact?.email?.trim() || null,
+        status: "onboarding",
+      });
+      if (createError) {
+        console.error("POST /api/onboarding/projects customer create error:", createError);
+        return NextResponse.json({ error: "Failed to create customer" }, { status: 500 });
+      }
+    }
+
+    // If reusing an existing customer, still apply the submitted primary contact fields.
+    if ("existing_customer_id" in body.customer && (body.contact?.name || body.contact?.email)) {
+      await supabase
+        .from("customers")
+        .update({
+          ...(body.contact.name ? { contact_name: body.contact.name.trim() } : {}),
+          ...(body.contact.email ? { contact_email: body.contact.email.trim() } : {}),
+        })
+        .eq("customer_id", customerId);
+    }
+
+    const productName = deriveProductName(body.classification);
+    const { data: product, error: productError } = await supabase
+      .from("customer_products")
+      .insert({
+        customer_id: customerId,
+        product_name: productName,
+        classification: body.classification,
+        status: "active",
+        onboarding_complete: false,
+        onboarding_data: {},
+      })
+      .select("id")
+      .single();
+    if (productError || !product) {
+      console.error("POST /api/onboarding/projects product create error:", productError);
+      return NextResponse.json({ error: "Failed to create product" }, { status: 500 });
+    }
+
+    const { data: project, error: projectError } = await supabase
+      .from("projects")
+      .insert({
+        customer_id: customerId,
+        name: body.project_name.trim(),
+        project_type: deriveProjectType(body.classification),
+        customer_product_id: product.id,
+        onboarding_visible_at: null,
+        scheduled_onboarding_start_at: body.mode === "save_scheduled" ? body.scheduled_start_at : null,
+        source_meta: body.contact?.phone ? { primary_contact_phone: body.contact.phone.trim() } : {},
+      })
+      .select("id, customer_id")
+      .single();
+    if (projectError || !project) {
+      console.error("POST /api/onboarding/projects project create error:", projectError);
+      return NextResponse.json({ error: "Failed to create project" }, { status: 500 });
+    }
+
+    if (body.mode === "start") {
+      const result = await seedAndStartProgramme({ id: project.id, customer_id: project.customer_id }, companyName);
+      if (result.error) {
+        return NextResponse.json({ error: result.error }, { status: 500 });
+      }
+    }
+
+    return NextResponse.json({ project_id: project.id, customer_id: customerId }, { status: 201 });
+  } catch (err) {
+    console.error("POST /api/onboarding/projects unexpected error:", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
