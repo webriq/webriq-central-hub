@@ -34,6 +34,9 @@ export async function seedAndStartProgramme(
       project_id: project.id,
       phase_number: p.number,
       deliverable_key: d.key,
+      // Kickoff is Phase 1's first sub-phase — it starts "in_progress" the moment onboarding
+      // begins, rather than sitting at "pending" until the first checklist item is touched.
+      status: p.number === 1 && d.key === "kickoff" ? "in_progress" : "pending",
     }))
   );
   const internalDeliverableRows = INTERNAL_DELIVERABLES.map((d) => ({

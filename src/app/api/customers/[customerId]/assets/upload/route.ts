@@ -18,6 +18,7 @@ const ALLOWED_MIME_TYPES = [
   "text/html",
   "text/markdown",
   "text/plain",
+  "text/csv",
 ];
 
 const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB — matches the customer-assets bucket's file_size_limit
@@ -46,7 +47,7 @@ export async function POST(
     }
     if (!ALLOWED_MIME_TYPES.includes(file.type)) {
       return NextResponse.json(
-        { error: `Unsupported file type: ${file.type}. Supported types: images, PDF, Word docs, Excel spreadsheets, HTML, Markdown, plain text` },
+        { error: `Unsupported file type: ${file.type}. Supported types: images, PDF, Word docs, Excel spreadsheets, HTML, Markdown, plain text, CSV` },
         { status: 400 }
       );
     }

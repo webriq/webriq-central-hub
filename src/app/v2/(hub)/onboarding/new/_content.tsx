@@ -635,7 +635,7 @@ export default function NewProjectWizard() {
                               value={existingSearch}
                               onChange={(e) => handleSearchChange(e.target.value)}
                               placeholder="Search existing customers…"
-                              className="w-full rounded-[9px] border-[1.5px] border-[#E2E8F0] bg-white py-[11px] pl-[34px] pr-3.5 text-sm text-[#0F172A] outline-none transition-colors focus:border-[#2563EB]"
+                              className="w-full rounded-[9px] border-[1.5px] border-[#E2E8F0] bg-white py-2.75 pl-8.5 pr-3.5 text-sm text-[#0F172A] outline-none transition-colors focus:border-[#2563EB]"
                             />
                             <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#94A3B8]" />
                           </div>

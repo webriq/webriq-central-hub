@@ -763,7 +763,7 @@ export interface Database {
         Row: {
           id: string;
           customer_id: string | null;
-          external_id: string;
+          external_id: string | null;
           external_account_id: string | null;
           first_name: string | null;
           last_name: string | null;
@@ -780,7 +780,7 @@ export interface Database {
         Insert: {
           id?: string;
           customer_id?: string | null;
-          external_id: string;
+          external_id?: string | null;
           external_account_id?: string | null;
           first_name?: string | null;
           last_name?: string | null;
@@ -797,7 +797,7 @@ export interface Database {
         Update: {
           id?: string;
           customer_id?: string | null;
-          external_id?: string;
+          external_id?: string | null;
           external_account_id?: string | null;
           first_name?: string | null;
           last_name?: string | null;

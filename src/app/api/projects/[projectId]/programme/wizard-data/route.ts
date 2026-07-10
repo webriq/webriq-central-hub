@@ -59,6 +59,30 @@ export async function PATCH(
       return NextResponse.json({ error: "Failed to save wizard data" }, { status: 500 });
     }
 
+    // Sync the Kickoff step's first (primary) contact to customers.contact_name/contact_email on
+    // every save (task 129) — non-fatal, the wizard-data save itself must not fail because of it.
+    if (subPhaseKey === "kickoff") {
+      const primaryContact = (mergedSubPhase.contacts as { fullName?: string; email?: string }[] | undefined)?.[0];
+      if (primaryContact?.email) {
+        try {
+          const { data: projectRow } = await supabase
+            .from("projects")
+            .select("customer_id")
+            .eq("id", projectId)
+            .single();
+          if (projectRow?.customer_id) {
+            const { error: syncError } = await supabase
+              .from("customers")
+              .update({ contact_name: primaryContact.fullName ?? "", contact_email: primaryContact.email })
+              .eq("customer_id", projectRow.customer_id);
+            if (syncError) console.error("PATCH .../wizard-data primary contact sync error:", syncError);
+          }
+        } catch (syncErr) {
+          console.error("PATCH .../wizard-data primary contact sync unexpected error:", syncErr);
+        }
+      }
+    }
+
     return NextResponse.json(data);
   } catch (err) {
     console.error("PATCH /api/projects/[projectId]/programme/wizard-data unexpected error:", err);

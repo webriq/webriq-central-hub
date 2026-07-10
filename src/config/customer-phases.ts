@@ -36,7 +36,7 @@ export const PROGRAMME_PHASES: PhaseConfig[] = [
     dayEnd: 15,
     owner: "Bert",
     deliverables: [
-      { key: "kickoff", name: "Kickoff meeting", description: "Structured kickoff; goals, timeline, and contacts confirmed.", dayStart: 1, dayEnd: 2, owner: "Bert" },
+      { key: "kickoff", name: "Kickoff", description: "Structured kickoff meeting; goals, timeline, and contacts confirmed.", dayStart: 1, dayEnd: 2, owner: "Bert" },
       { key: "outcome-target", name: "Outcome target", description: "Agreed measurable outcomes for the 120-day programme.", dayStart: 3, dayEnd: 4, owner: "Bert" },
       { key: "migration-checklist", name: "Migration checklist", description: "Full audit of existing site and content ready for migration.", dayStart: 5, dayEnd: 9, owner: "Bert" },
       { key: "content-map", name: "90-day content map", description: "Topics, clusters, and publishing schedule through Day 90.", dayStart: 10, dayEnd: 11, owner: "Bert" },
@@ -110,7 +110,12 @@ export const PROGRAMME_PHASES: PhaseConfig[] = [
 export function getCurrentProgrammeDay(startedAt: string | Date): number {
   const start = new Date(startedAt);
   const now = new Date();
-  const diffDays = Math.floor((now.getTime() - start.getTime()) / 86_400_000);
+  // Diff calendar dates (local midnight to local midnight), not raw ms/86_400_000 — programme_started_at
+  // carries a time-of-day, and floor-dividing the raw instant gap under-counts until "now" catches up to
+  // that same time-of-day each day (e.g. started 3pm, still shows yesterday's day number at 9am today).
+  const startDay = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const diffDays = Math.round((today.getTime() - startDay.getTime()) / 86_400_000);
   return Math.max(1, diffDays + 1);
 }
 
@@ -148,6 +153,14 @@ export const INTERNAL_DELIVERABLES: InternalDeliverableConfig[] = [
   { key: "publishing-plan", name: "Publishing plan", description: "Planned content calendar and approval flow.", subPhaseKey: "content-map" },
   { key: "dns-details", name: "DNS details", description: "Access to their domain management.", subPhaseKey: "storage-kb" },
   { key: "credentials-external", name: "Credentials (for external integrations)", description: "e.g. HubSpot, payment gateway access.", subPhaseKey: "storage-kb" },
+  // Kickoff completion checklist (task 129) — gates the Kickoff sub-phase's own status via the
+  // same auto-derive-from-siblings logic used above; not part of the original QBR table.
+  { key: "kickoff-meeting-held", name: "Kickoff meeting held", description: "A structured kickoff call took place with the client.", subPhaseKey: "kickoff" },
+  { key: "kickoff-contacts-confirmed", name: "Contacts confirmed", description: "At least one verified client contact is on file.", subPhaseKey: "kickoff" },
+  { key: "kickoff-goals-timeline-filed", name: "Goals, timeline and other important details filed", description: "Captured in Business Facts / meeting notes.", subPhaseKey: "kickoff" },
+  // Outcome Target completion checklist (task 130) — gates the sub-phase's own status via the
+  // same auto-derive-from-siblings logic used above; not part of the original QBR table.
+  { key: "outcome-target-filed", name: "Agreed measurable outcomes for the 120-day programme filed", description: "Recorded as text or an attached document.", subPhaseKey: "outcome-target" },
 ];
 
 export function getInternalDeliverable(key: string): InternalDeliverableConfig | undefined {

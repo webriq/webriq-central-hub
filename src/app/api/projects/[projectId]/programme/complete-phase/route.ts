@@ -34,7 +34,7 @@ export async function POST(
 
     const { data: project, error: projectError } = await supabase
       .from("projects")
-      .select("id, customers(company_name)")
+      .select("id, customer_id, customers(company_name)")
       .eq("id", projectId)
       .single();
     if (projectError || !project) {
@@ -64,6 +64,48 @@ export async function POST(
       if (visibilityError) {
         console.error("POST .../complete-phase visibility error:", visibilityError);
         return NextResponse.json({ error: "Failed to hand over project visibility" }, { status: 500 });
+      }
+
+      // Hand-off: write the Kickoff step's manually-entered contacts into the `contacts` table
+      // (task 129). Non-fatal — must not block the phase-completion response. Uses adminClient:
+      // contacts_pm_write RLS covers admin|super_admin|pm, not marketing (Bert's role).
+      try {
+        const { data: phaseRow } = await adminClient
+          .from("customer_phases")
+          .select("wizard_data")
+          .eq("project_id", projectId)
+          .eq("phase_number", 1)
+          .maybeSingle();
+        const kickoffContacts = (
+          (phaseRow?.wizard_data as Record<string, unknown> | null)?.kickoff as { contacts?: unknown } | undefined
+        )?.contacts as { fullName?: string; position?: string; email?: string; phone?: string; socialMedia?: string }[] | undefined;
+
+        if (project.customer_id && kickoffContacts?.length) {
+          const contactRows = kickoffContacts
+            .filter((c) => c.email)
+            .map((c) => {
+              const nameParts = (c.fullName ?? "").trim().split(/\s+/);
+              const firstName = nameParts[0] || null;
+              const lastName = nameParts.length > 1 ? nameParts.slice(1).join(" ") : null;
+              return {
+                customer_id: project.customer_id,
+                external_id: null,
+                match_method: "manual" as const,
+                first_name: firstName,
+                last_name: lastName,
+                email: c.email,
+                phone: c.phone || null,
+                title: c.position || null,
+                source_meta: c.socialMedia ? { social_media_accounts: c.socialMedia } : {},
+              };
+            });
+          if (contactRows.length > 0) {
+            const { error: contactsInsertError } = await adminClient.from("contacts").insert(contactRows);
+            if (contactsInsertError) console.error("POST .../complete-phase kickoff contacts insert error:", contactsInsertError);
+          }
+        }
+      } catch (contactsErr) {
+        console.error("POST .../complete-phase kickoff contacts unexpected error:", contactsErr);
       }
     }
 
