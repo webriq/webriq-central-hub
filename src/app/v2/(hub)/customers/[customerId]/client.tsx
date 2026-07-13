@@ -230,13 +230,18 @@ export default function CustomerProfileClient({ customer, zohoPortalName }: Cust
     masked: boolean;
     fields: { label: string; value: string }[];
     allowedRoles: string[];
+    allowedUserIds: string[];
   }>({
-    type: "link", label: "", value: "", masked: false, fields: [{ label: "", value: "" }], allowedRoles: [],
+    type: "link", label: "", value: "", masked: false, fields: [{ label: "", value: "" }], allowedRoles: [], allowedUserIds: [],
   });
   const [addAssetFile, setAddAssetFile] = useState<File | null>(null);
   const [addAssetSaving, setAddAssetSaving] = useState(false);
   const [addAssetError, setAddAssetError] = useState<string | null>(null);
   const [revealedAssets, setRevealedAssets] = useState<Set<string>>(new Set());
+  // Sharing picker (task 138) — lightweight staff directory, fetched once on first open of
+  // the Add Asset modal rather than on every page load.
+  const [staffDirectory, setStaffDirectory] = useState<{ id: string; full_name: string | null; role: string }[]>([]);
+  const hasFetchedStaffDirectoryRef = useRef(false);
   const [openingAssetId, setOpeningAssetId] = useState<string | null>(null);
 
   // Desk Contacts (Zoho Desk, matched — task 117/119)
@@ -287,6 +292,15 @@ export default function CustomerProfileClient({ customer, zohoPortalName }: Cust
       .catch(() => {})
       .finally(() => setAssetsLoading(false));
   }, [activeSection, customer.customer_id]);
+
+  useEffect(() => {
+    if (!showAddAsset || hasFetchedStaffDirectoryRef.current) return;
+    hasFetchedStaffDirectoryRef.current = true;
+    fetch("/api/staff-directory")
+      .then(r => r.json())
+      .then((data: unknown) => setStaffDirectory(Array.isArray(data) ? data as { id: string; full_name: string | null; role: string }[] : []))
+      .catch(() => {});
+  }, [showAddAsset]);
 
   const [form, setForm] = useState<EditForm>({
     company_name: customer.company_name ?? "",
@@ -702,6 +716,7 @@ export default function CustomerProfileClient({ customer, zohoPortalName }: Cust
         label: addAssetForm.label.trim(),
         masked: addAssetForm.masked,
         allowed_roles: addAssetForm.allowedRoles,
+        allowed_user_ids: addAssetForm.allowedUserIds,
         ...(addAssetForm.type === "link" ? { value: addAssetForm.value.trim() } : {}),
         ...(addAssetForm.type === "credential" ? { fields: cleanFields } : {}),
         ...(addAssetForm.type === "file" && filePayload ? filePayload : {}),
@@ -719,7 +734,7 @@ export default function CustomerProfileClient({ customer, zohoPortalName }: Cust
       const newAsset: AssetRow = await res.json();
       setAssets(prev => [...prev, newAsset]);
       setShowAddAsset(false);
-      setAddAssetForm({ type: "link", label: "", value: "", masked: false, fields: [{ label: "", value: "" }], allowedRoles: [] });
+      setAddAssetForm({ type: "link", label: "", value: "", masked: false, fields: [{ label: "", value: "" }], allowedRoles: [], allowedUserIds: [] });
       setAddAssetFile(null);
     } catch (err) {
       setAddAssetError(err instanceof Error ? err.message : "Failed to add asset");
@@ -1642,6 +1657,37 @@ export default function CustomerProfileClient({ customer, zohoPortalName }: Cust
                 </div>
               </div>
 
+              <div>
+                <label className={labelCls}>Share with specific people</label>
+                <p className="text-[11px] text-slate-400 mb-1.5">Optional — additive on top of the roles above, e.g. share with one person outside the selected roles.</p>
+                <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
+                  {staffDirectory.length === 0 && (
+                    <span className="text-[12px] text-slate-400">No staff directory entries found.</span>
+                  )}
+                  {staffDirectory.map(person => {
+                    const active = addAssetForm.allowedUserIds.includes(person.id);
+                    return (
+                      <button
+                        key={person.id}
+                        type="button"
+                        onClick={() => setAddAssetForm(f => ({
+                          ...f,
+                          allowedUserIds: active ? f.allowedUserIds.filter(id => id !== person.id) : [...f.allowedUserIds, person.id],
+                        }))}
+                        className={cn(
+                          "px-3 py-1.5 rounded-full text-[12px] font-medium border cursor-pointer transition-colors",
+                          active
+                            ? "bg-brand text-white border-brand"
+                            : "bg-transparent text-slate-500 border-slate-200 hover:border-slate-300"
+                        )}
+                      >
+                        {person.full_name ?? "Unnamed"}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               <p className="text-[11px] text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
                 {ASSET_TYPE_HELP[addAssetForm.type]}
               </p>
@@ -2198,6 +2244,11 @@ export default function CustomerProfileClient({ customer, zohoPortalName }: Cust
                       ? (asset.fields as { label: string; value: string }[])
                       : [];
                     const hasRoleRestriction = !!asset.allowed_roles && asset.allowed_roles.length > 0;
+                    const hasUserRestriction = !!asset.allowed_user_ids && asset.allowed_user_ids.length > 0;
+                    const permissionBadge = [
+                      hasRoleRestriction ? asset.allowed_roles!.map(r => ASSET_ROLE_LABELS[r] ?? r).join(", ") : null,
+                      hasUserRestriction ? `${asset.allowed_user_ids!.length} ${asset.allowed_user_ids!.length === 1 ? "person" : "people"}` : null,
+                    ].filter(Boolean).join(" + ");
                     return (
                       <div key={asset.id} className={cn("flex items-center gap-3 py-2.5 px-3 rounded-lg border", isDark ? "border-white/[0.06] bg-white/[0.03]" : "border-slate-100 bg-slate-50/50")}>
                         <span className={cn("text-[10px] font-bold rounded px-1.5 py-px shrink-0", assetTypeCls(asset.type, isDark))}>
@@ -2223,9 +2274,9 @@ export default function CustomerProfileClient({ customer, zohoPortalName }: Cust
                             <span className="text-[12px] text-slate-500 font-mono truncate">{asset.value}</span>
                           )}
                         </div>
-                        {hasRoleRestriction && (
+                        {(hasRoleRestriction || hasUserRestriction) && (
                           <span className="text-[10px] font-medium text-slate-400 border border-slate-200 rounded-full px-2 py-0.5 shrink-0 whitespace-nowrap">
-                            {asset.allowed_roles!.map(r => ASSET_ROLE_LABELS[r] ?? r).join(", ")}
+                            {permissionBadge}
                           </span>
                         )}
                         <div className="flex items-center gap-1.5 shrink-0">

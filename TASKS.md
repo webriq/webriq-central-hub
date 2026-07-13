@@ -4,6 +4,7 @@
 
 | ID | Title | Priority | Type | Doc | Date |
 |----|-------|----------|------|-----|------|
+| 135 | Onboarding Wizard — Client Call, Sign-Off Step (Meeting Notes + Agreement Upload) | HIGH | enhancement | _docs/task/135-client-signoff-step-redesign.md | 2026-07-13 |
 | 064 | Push Notifications (web-push + VAPID + subscription API) | HIGH | feature | _docs/task/064-push-notifications.md | 2026-06-19 |
 
 ## In Progress
@@ -16,6 +17,15 @@
 
 | ID | Title | Priority | Type | Doc | Date |
 |----|-------|----------|------|-----|------|
+| 140 | Storage/KB — Add Credential/Link Assets (Add Asset Modal Pattern) | MEDIUM | feature | _docs/task/140-storage-kb-add-credential-link-assets.md | 2026-07-13 |
+| 139 | Storage/KB File Explorer — Real Folder Look + Grid/List View Toggle (Default Grid) | MEDIUM | enhancement | _docs/task/139-storage-kb-explorer-folder-look-grid-list-view.md | 2026-07-13 |
+| 138 | Customer Assets — Per-User Sharing (Alongside Existing Role-Based Permissions) | MEDIUM | feature | _docs/task/138-customer-assets-per-user-sharing.md | 2026-07-13 |
+| 137 | Customer Assets — Per-Project Folder Separation in Supabase Storage | MEDIUM | refactor | _docs/task/137-customer-assets-per-project-storage-folders.md | 2026-07-13 |
+| 136 | Phase 1 Completion — Animated Closing/Transition Screen (2.4 Completion Criteria) | HIGH | feature | _docs/task/136-phase1-completion-animated-closing-screen.md | 2026-07-13 |
+| 134 | Onboarding Wizard — Storage Folder + KB Step Redesign (File Explorer / Finder UI with Permissions) | HIGH | feature | _docs/task/134-storage-kb-file-explorer-redesign.md | 2026-07-13 |
+| 133 | Onboarding Wizard — HTML Mockup Step (Upload, In-App Preview, Code Editor) | HIGH | feature | _docs/task/133-html-mockup-step-upload-preview-editor.md | 2026-07-13 |
+| 132 | Onboarding Wizard — 90-Day Content Map Step (Rich Text + Optional File Attachment) | HIGH | enhancement | _docs/task/132-content-map-step-redesign.md | 2026-07-13 |
+| 131 | Onboarding Wizard — Migration Checklist Step (Rich Text + Optional File Attachment) | HIGH | enhancement | _docs/task/131-migration-checklist-step-redesign.md | 2026-07-13 |
 | 130 | Onboarding Wizard — Outcome Target Step (Rich Text + Optional File Attachment) | HIGH | enhancement | _docs/task/130-outcome-target-step-rich-text-file-upload.md | 2026-07-10 |
 | 128 | Onboarding Wizard — Kickoff Step Redesign, Rich Text Editor & Autosave Indicator | HIGH | enhancement | _docs/task/128-onboarding-kickoff-step-redesign-rich-text-editor.md | 2026-07-10 |
 | 125 | Onboarding Project Detail — Horizontal Gantt Timeline Redesign (exact reference functionality + design, WebriQ style guide) | HIGH | feature | _docs/task/125-onboarding-detail-horizontal-timeline-redesign.md | 2026-07-09 |

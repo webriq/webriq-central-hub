@@ -14,7 +14,7 @@ export async function GET(
     const { customerId, assetId } = await params;
     const { data: asset, error } = await supabase
       .from("customer_assets")
-      .select("type, file_path, allowed_roles")
+      .select("type, file_path, allowed_roles, allowed_user_ids")
       .eq("id", assetId)
       .eq("customer_id", customerId)
       .maybeSingle();
@@ -30,8 +30,12 @@ export async function GET(
     const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
     const myRole = profile?.role ?? null;
     const isPrivileged = myRole === "admin" || myRole === "super_admin";
-    const permitted = isPrivileged || !asset.allowed_roles || asset.allowed_roles.length === 0
-      || (myRole ? asset.allowed_roles.includes(myRole) : false);
+    // allowed_user_ids is an additive, OR-combined grant on top of allowed_roles — see task 138.
+    const noRoleRestriction = !asset.allowed_roles || asset.allowed_roles.length === 0;
+    const noUserRestriction = !asset.allowed_user_ids || asset.allowed_user_ids.length === 0;
+    const roleMatches = !noRoleRestriction && !!myRole && asset.allowed_roles!.includes(myRole);
+    const userMatches = !noUserRestriction && asset.allowed_user_ids!.includes(user.id);
+    const permitted = isPrivileged || (noRoleRestriction && noUserRestriction) || roleMatches || userMatches;
 
     if (!permitted) {
       return NextResponse.json({ error: "Not permitted to access this file" }, { status: 403 });

@@ -1478,6 +1478,7 @@ export interface Database {
           masked: boolean;
           fields: Json | null;
           allowed_roles: string[] | null;
+          allowed_user_ids: string[] | null;
           file_path: string | null;
           file_name: string | null;
           file_size: number | null;
@@ -1495,6 +1496,7 @@ export interface Database {
           masked?: boolean;
           fields?: Json | null;
           allowed_roles?: string[] | null;
+          allowed_user_ids?: string[] | null;
           file_path?: string | null;
           file_name?: string | null;
           file_size?: number | null;
@@ -1512,6 +1514,7 @@ export interface Database {
           masked?: boolean;
           fields?: Json | null;
           allowed_roles?: string[] | null;
+          allowed_user_ids?: string[] | null;
           file_path?: string | null;
           file_name?: string | null;
           file_size?: number | null;

@@ -41,6 +41,7 @@ export async function POST(
     const { customerId } = await params;
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
+    const projectId = formData.get("project_id") as string | null;
 
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
@@ -60,7 +61,15 @@ export async function POST(
 
     const timestamp = Date.now();
     const safeFilename = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-    const storagePath = `${customerId}/${timestamp}_${safeFilename}`;
+    // Nested under project_id when the caller has a project context (e.g. the onboarding
+    // wizard) so files are actually separated per-project in the bucket, not just in the
+    // customer_assets DB row's project_id column. Falls back to the flat customer-level
+    // path when absent (e.g. the Customers -> Assets tab's non-project-scoped uploads) —
+    // fully backward compatible, existing stored file_path values are read as-is regardless
+    // of shape.
+    const storagePath = projectId
+      ? `${customerId}/${projectId}/${timestamp}_${safeFilename}`
+      : `${customerId}/${timestamp}_${safeFilename}`;
 
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);

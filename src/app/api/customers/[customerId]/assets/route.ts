@@ -6,10 +6,19 @@ async function getRequesterRole(supabase: Awaited<ReturnType<typeof createClient
   return profile?.role ?? null;
 }
 
-function canSeeAsset(role: string | null, allowedRoles: string[] | null) {
+// allowed_user_ids is an additive, OR-combined grant on top of allowed_roles (sharing with
+// a specific person doesn't require also matching a role) — see task 138.
+function canSeeAsset(
+  role: string | null, userId: string | null,
+  allowedRoles: string[] | null, allowedUserIds: string[] | null
+) {
   if (role === "admin" || role === "super_admin") return true;
-  if (!allowedRoles || allowedRoles.length === 0) return true;
-  return role ? allowedRoles.includes(role) : false;
+  const noRoleRestriction = !allowedRoles || allowedRoles.length === 0;
+  const noUserRestriction = !allowedUserIds || allowedUserIds.length === 0;
+  if (noRoleRestriction && noUserRestriction) return true;
+  const roleMatches = !noRoleRestriction && !!role && allowedRoles.includes(role);
+  const userMatches = !noUserRestriction && !!userId && allowedUserIds.includes(userId);
+  return roleMatches || userMatches;
 }
 
 export async function GET(
@@ -34,7 +43,7 @@ export async function GET(
       return NextResponse.json({ error: "Failed to fetch assets" }, { status: 500 });
     }
 
-    const visible = (data ?? []).filter((a) => canSeeAsset(myRole, a.allowed_roles));
+    const visible = (data ?? []).filter((a) => canSeeAsset(myRole, user.id, a.allowed_roles, a.allowed_user_ids));
     return NextResponse.json(visible);
   } catch (err) {
     console.error("GET /api/customers/[customerId]/assets unexpected error:", err);
@@ -54,7 +63,7 @@ export async function POST(
     const { customerId } = await params;
     const body = await request.json();
     const {
-      type, label, value, masked, allowed_roles,
+      type, label, value, masked, allowed_roles, allowed_user_ids,
       fields, file_path, file_name, file_size, file_mime_type, phase_number, project_id,
     } = body as {
       type: "file" | "link" | "credential";
@@ -62,6 +71,7 @@ export async function POST(
       value?: string;
       masked?: boolean;
       allowed_roles?: string[];
+      allowed_user_ids?: string[];
       fields?: { label: string; value: string }[];
       file_path?: string;
       file_name?: string;
@@ -102,6 +112,7 @@ export async function POST(
         label: label.trim(),
         masked: masked ?? false,
         allowed_roles: allowed_roles && allowed_roles.length > 0 ? allowed_roles : null,
+        allowed_user_ids: allowed_user_ids && allowed_user_ids.length > 0 ? allowed_user_ids : null,
         value: type === "link" ? value!.trim() : null,
         fields: type === "credential" ? cleanFields : null,
         file_path: type === "file" ? file_path : null,
@@ -141,7 +152,7 @@ export async function DELETE(
 
     const { data: existing, error: fetchError } = await supabase
       .from("customer_assets")
-      .select("id, allowed_roles")
+      .select("id, allowed_roles, allowed_user_ids")
       .eq("id", id)
       .eq("customer_id", customerId)
       .maybeSingle();
@@ -153,7 +164,7 @@ export async function DELETE(
     if (!existing) return NextResponse.json({ error: "Asset not found" }, { status: 404 });
 
     const myRole = await getRequesterRole(supabase, user.id);
-    if (!canSeeAsset(myRole, existing.allowed_roles)) {
+    if (!canSeeAsset(myRole, user.id, existing.allowed_roles, existing.allowed_user_ids)) {
       return NextResponse.json({ error: "Not permitted to delete this asset" }, { status: 403 });
     }
 
