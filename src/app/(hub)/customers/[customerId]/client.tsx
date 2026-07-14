@@ -168,7 +168,7 @@ export default function CustomerProfileClient({ customer, zohoPortalName }: Cust
   const [editProductError, setEditProductError] = useState<string | null>(null);
 
   const [editProject, setEditProject] = useState<ProjectRow | null>(null);
-  const [editProjectForm, setEditProjectForm] = useState({ project_name: "", project_type: "", zoho_project_id: "", sanity_project_id: "", github_repo: "", dedicated_developers: "" });
+  const [editProjectForm, setEditProjectForm] = useState({ project_name: "", project_type: "", external_project_id: "", sanity_project_id: "", github_repo: "", dedicated_developers: "" });
   const [editProjectSaving, setEditProjectSaving] = useState(false);
   const [editProjectError, setEditProjectError] = useState<string | null>(null);
 
@@ -205,7 +205,7 @@ export default function CustomerProfileClient({ customer, zohoPortalName }: Cust
   const hasFetchedProjectsRef = useRef(false);
   const [addProjectDialogOpen, setAddProjectDialogOpen] = useState(false);
   const [addProjectForm, setAddProjectForm] = useState({
-    project_type: "", project_name: "", zoho_project_id: "",
+    project_type: "", project_name: "", external_project_id: "",
     sanity_project_id: "", github_repo: "", dedicated_developers: "",
   });
   const [addProjectCreating, setAddProjectCreating] = useState(false);
@@ -337,7 +337,7 @@ export default function CustomerProfileClient({ customer, zohoPortalName }: Cust
     setEditProjectForm({
       project_name: proj.name,
       project_type: proj.project_type,
-      zoho_project_id: proj.zoho_project_id ?? "",
+      external_project_id: proj.external_project_id ?? "",
       sanity_project_id: proj.sanity_project_id ?? "",
       github_repo: proj.github_repo ?? "",
       dedicated_developers: proj.dedicated_developers.join(", "),
@@ -559,7 +559,7 @@ export default function CustomerProfileClient({ customer, zohoPortalName }: Cust
         body: JSON.stringify({
           project_name: addProjectForm.project_name,
           project_type: addProjectForm.project_type,
-          zoho_project_id: addProjectForm.zoho_project_id || null,
+          external_project_id: addProjectForm.external_project_id || null,
           sanity_project_id: addProjectForm.sanity_project_id || null,
           github_repo: addProjectForm.github_repo || null,
           dedicated_developers: addProjectForm.dedicated_developers
@@ -576,7 +576,7 @@ export default function CustomerProfileClient({ customer, zohoPortalName }: Cust
       const { zoho_creation_failed, ...newProject } = payload as ProjectRow & { zoho_creation_failed?: boolean };
       setProjects(p => [newProject, ...p]);
       setAddProjectDialogOpen(false);
-      setAddProjectForm({ project_type: "", project_name: "", zoho_project_id: "",
+      setAddProjectForm({ project_type: "", project_name: "", external_project_id: "",
                           sanity_project_id: "", github_repo: "", dedicated_developers: "" });
       setCreateZohoWithProject(false);
       if (zoho_creation_failed) {
@@ -953,7 +953,7 @@ export default function CustomerProfileClient({ customer, zohoPortalName }: Cust
               <div>
                 <label className={labelCls}>Zoho Project ID</label>
                 <p className="text-sm text-slate-500 py-2.5 px-3.5 border border-slate-100 rounded-lg bg-slate-50 font-mono">
-                  {editProjectForm.zoho_project_id || <span className="text-slate-300 font-sans">Not linked</span>}
+                  {editProjectForm.external_project_id || <span className="text-slate-300 font-sans">Not linked</span>}
                 </p>
               </div>
               <div>
@@ -2241,16 +2241,16 @@ export default function CustomerProfileClient({ customer, zohoPortalName }: Cust
                         </button>
                       </div>
                       <div className="flex flex-col gap-1.5 text-xs">
-                        {proj.zoho_project_id && (
+                        {proj.external_project_id && (
                           <div className="flex items-center gap-1.5 text-slate-500">
                             <span className="font-semibold">Zoho:</span>
                             <a
-                              href={`https://projects.zoho.com/portal/${zohoPortalName}#zp/projects/${proj.zoho_project_id}/dashboard`}
+                              href={`https://projects.zoho.com/portal/${zohoPortalName}#zp/projects/${proj.external_project_id}/dashboard`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-brand hover:underline font-mono"
                             >
-                              {proj.zoho_project_id}
+                              {proj.external_project_id}
                             </a>
                           </div>
                         )}

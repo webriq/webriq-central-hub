@@ -20,7 +20,7 @@ import { spaceGrotesk, inter, jetBrainsMono } from "../_fonts";
 import OnboardingWizard from "./_onboarding-wizard";
 
 interface OnboardingDetailProps {
-  project: { id: string; name: string; customer_id: string; company_name: string };
+  project: { id: string; name: string; customer_id: string; project_id: string | null; company_name: string };
 }
 
 // ─── Gantt grid constants ─────────────────────────────────────────────────────

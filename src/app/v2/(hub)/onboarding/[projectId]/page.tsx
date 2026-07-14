@@ -27,7 +27,7 @@ export default async function OnboardingProjectPage({ params }: PageProps) {
 
   const { data: project, error } = await supabase
     .from("projects")
-    .select("id, name, customer_id, customers(company_name)")
+    .select("id, name, customer_id, project_id, customers(company_name)")
     .eq("id", projectId)
     .single();
 
@@ -39,7 +39,7 @@ export default async function OnboardingProjectPage({ params }: PageProps) {
 
   return (
     <OnboardingDetail
-      project={{ id: project.id, name: project.name, customer_id: project.customer_id, company_name: companyName }}
+      project={{ id: project.id, name: project.name, customer_id: project.customer_id, project_id: project.project_id, company_name: companyName }}
     />
   );
 }

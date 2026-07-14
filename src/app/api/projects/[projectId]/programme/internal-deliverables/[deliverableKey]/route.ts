@@ -32,11 +32,16 @@ export async function PATCH(
       return NextResponse.json({ error: "Unknown internal deliverable" }, { status: 400 });
     }
 
+    // Upsert rather than a strict update — a project seeded before this deliverable_key existed
+    // in INTERNAL_DELIVERABLES (i.e. its backfill migration hasn't run yet, or hasn't run at
+    // all) would otherwise have 0 matching rows here, and .single() throws PGRST116 on an
+    // empty result instead of creating the row on first toggle.
     const { data, error } = await supabase
       .from("onboarding_internal_deliverables")
-      .update({ status, updated_at: new Date().toISOString() })
-      .eq("project_id", projectId)
-      .eq("deliverable_key", deliverableKey)
+      .upsert(
+        { project_id: projectId, deliverable_key: deliverableKey, status, updated_at: new Date().toISOString() },
+        { onConflict: "project_id,deliverable_key" }
+      )
       .select()
       .single();
 

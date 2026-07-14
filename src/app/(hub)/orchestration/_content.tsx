@@ -909,8 +909,8 @@ export default function OrchestrationContent() {
           .order("created_at", { ascending: false }),
         supabase
           .from("projects")
-          .select("customer_id, zoho_project_id")
-          .not("zoho_project_id", "is", null),
+          .select("customer_id, external_project_id")
+          .not("external_project_id", "is", null),
         supabase
           .from("execution_records")
           .select("*")
@@ -980,11 +980,11 @@ export default function OrchestrationContent() {
       }
       setReplyDrafts(latestDraftByClassification);
 
-      // Build customer_id → zoho_project_id map (first project per customer)
+      // Build customer_id → external_project_id map (first project per customer)
       const projectMap: Record<string, string> = {};
-      for (const p of (zohoProjectsResult.data ?? []) as Array<{ customer_id: string; zoho_project_id: string | null }>) {
-        if (p.zoho_project_id && !projectMap[p.customer_id]) {
-          projectMap[p.customer_id] = p.zoho_project_id;
+      for (const p of (zohoProjectsResult.data ?? []) as Array<{ customer_id: string; external_project_id: string | null }>) {
+        if (p.external_project_id && !projectMap[p.customer_id]) {
+          projectMap[p.customer_id] = p.external_project_id;
         }
       }
       setZohoProjects(projectMap);

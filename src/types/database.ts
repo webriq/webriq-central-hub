@@ -544,7 +544,8 @@ export interface Database {
           customer_product_id: string | null;
           description: string | null;
           created_by: string | null;
-          zoho_project_id: string | null;
+          external_project_id: string | null;
+          project_id: string | null;
           sanity_project_id: string | null;
           github_repo: string | null;
           dedicated_developers: string[];
@@ -573,7 +574,8 @@ export interface Database {
           customer_product_id?: string | null;
           description?: string | null;
           created_by?: string | null;
-          zoho_project_id?: string | null;
+          external_project_id?: string | null;
+          project_id?: string | null;
           sanity_project_id?: string | null;
           github_repo?: string | null;
           dedicated_developers?: string[];
@@ -602,7 +604,8 @@ export interface Database {
           customer_product_id?: string | null;
           description?: string | null;
           created_by?: string | null;
-          zoho_project_id?: string | null;
+          external_project_id?: string | null;
+          project_id?: string | null;
           sanity_project_id?: string | null;
           github_repo?: string | null;
           dedicated_developers?: string[];
@@ -1485,6 +1488,7 @@ export interface Database {
           file_mime_type: string | null;
           phase_number: number | null;
           project_id: string | null;
+          folder_id: string | null;
           created_at: string;
         };
         Insert: {
@@ -1503,6 +1507,7 @@ export interface Database {
           file_mime_type?: string | null;
           phase_number?: number | null;
           project_id?: string | null;
+          folder_id?: string | null;
           created_at?: string;
         };
         Update: {
@@ -1521,6 +1526,7 @@ export interface Database {
           file_mime_type?: string | null;
           phase_number?: number | null;
           project_id?: string | null;
+          folder_id?: string | null;
         };
         Relationships: [
           {
@@ -1535,6 +1541,73 @@ export interface Database {
             columns: ["project_id"];
             isOneToOne: false;
             referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "customer_assets_folder_id_fkey";
+            columns: ["folder_id"];
+            isOneToOne: false;
+            referencedRelation: "customer_asset_folders";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      customer_asset_folders: {
+        Row: {
+          id: string;
+          customer_id: string;
+          project_id: string | null;
+          phase_number: number | null;
+          parent_folder_id: string | null;
+          name: string;
+          is_system: boolean;
+          allowed_roles: string[] | null;
+          allowed_user_ids: string[] | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          customer_id: string;
+          project_id?: string | null;
+          phase_number?: number | null;
+          parent_folder_id?: string | null;
+          name: string;
+          is_system?: boolean;
+          allowed_roles?: string[] | null;
+          allowed_user_ids?: string[] | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          customer_id?: string;
+          project_id?: string | null;
+          phase_number?: number | null;
+          parent_folder_id?: string | null;
+          name?: string;
+          is_system?: boolean;
+          allowed_roles?: string[] | null;
+          allowed_user_ids?: string[] | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "customer_asset_folders_customer_id_fkey";
+            columns: ["customer_id"];
+            isOneToOne: false;
+            referencedRelation: "customers";
+            referencedColumns: ["customer_id"];
+          },
+          {
+            foreignKeyName: "customer_asset_folders_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "customer_asset_folders_parent_folder_id_fkey";
+            columns: ["parent_folder_id"];
+            isOneToOne: false;
+            referencedRelation: "customer_asset_folders";
             referencedColumns: ["id"];
           }
         ];

@@ -9,8 +9,8 @@ export async function GET(_req: NextRequest) {
 
   const { data: projects, error } = await adminClient
     .from("projects")
-    .select("id, name, project_type, zoho_project_id, customer_id")
-    .not("zoho_project_id", "is", null)
+    .select("id, name, project_type, external_project_id, customer_id")
+    .not("external_project_id", "is", null)
     .order("name");
 
   if (error) {
@@ -34,7 +34,7 @@ export async function GET(_req: NextRequest) {
     projects.map(p => ({
       id: p.id,
       name: p.name,
-      zoho_project_id: p.zoho_project_id as string,
+      external_project_id: p.external_project_id as string,
       customer_id: p.customer_id,
       company_name: nameMap[p.customer_id] ?? p.customer_id,
     }))

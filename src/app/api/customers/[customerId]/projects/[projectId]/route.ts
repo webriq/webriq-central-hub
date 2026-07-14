@@ -28,7 +28,7 @@ export async function PATCH(
 
     const { data: current, error: fetchError } = await adminClient
       .from("projects")
-      .select("name, zoho_project_id")
+      .select("name, external_project_id")
       .eq("id", projectId)
       .eq("customer_id", customerId)
       .single();
@@ -60,7 +60,7 @@ export async function PATCH(
     }
 
     let zohoRenameFailed = false;
-    const effectiveZohoId = updates.zoho_project_id ?? current.zoho_project_id;
+    const effectiveZohoId = updates.external_project_id ?? current.external_project_id;
     const nameChanged = project_name !== undefined && project_name.trim() !== current.name;
     if (nameChanged && effectiveZohoId) {
       const ok = await updateZohoProject(String(effectiveZohoId), project_name.trim());

@@ -58,7 +58,7 @@ export async function POST() {
 
     const projectId = await resolveProjectId(String(m._zoho_project_id ?? ""));
     if (!projectId) {
-      result.errors.push(`milestone ${externalId}: no Hub project found for zoho_project_id=${m._zoho_project_id}`);
+      result.errors.push(`milestone ${externalId}: no Hub project found for external_project_id=${m._zoho_project_id}`);
       result.skipped++;
       continue;
     }

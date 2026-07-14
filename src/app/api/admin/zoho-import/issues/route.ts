@@ -90,12 +90,12 @@ export async function POST() {
   }
 
   // Pre-build project lookup — one query instead of one query per issue
-  const { data: projectRows, error: projectFetchError } = await adminClient.from("projects").select("id, zoho_project_id");
+  const { data: projectRows, error: projectFetchError } = await adminClient.from("projects").select("id, external_project_id");
   if (projectFetchError) {
     console.error("[issues] failed to fetch projects for lookup:", projectFetchError.message);
     return NextResponse.json({ error: `Could not fetch projects: ${projectFetchError.message}` }, { status: 500 });
   }
-  const projectMap = new Map((projectRows ?? []).map((p) => [String(p.zoho_project_id), p.id as string]));
+  const projectMap = new Map((projectRows ?? []).map((p) => [String(p.external_project_id), p.id as string]));
   console.log(`[issues] project lookup map built: ${projectMap.size} projects`);
 
   const result: ImportResult = { imported: 0, updated: 0, skipped: 0, errors: [] };
@@ -107,7 +107,7 @@ export async function POST() {
 
     const projectId = projectMap.get(String(issue._zoho_project_id ?? ""));
     if (!projectId) {
-      result.errors.push(`issue ${externalId}: no Hub project found for zoho_project_id=${issue._zoho_project_id}`);
+      result.errors.push(`issue ${externalId}: no Hub project found for external_project_id=${issue._zoho_project_id}`);
       result.skipped++;
       continue;
     }

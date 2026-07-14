@@ -74,13 +74,13 @@ export async function resolveUserId(
   return cache.get(email.toLowerCase()) ?? null;
 }
 
-// Projects still use the pre-existing zoho_project_id column as the bridge key
+// Projects still use the pre-existing external_project_id column as the bridge key
 export async function resolveProjectId(zohoProjectId: string): Promise<string | null> {
   if (!zohoProjectId) return null;
   const { data } = await adminClient
     .from("projects")
     .select("id")
-    .eq("zoho_project_id", zohoProjectId)
+    .eq("external_project_id", zohoProjectId)
     .maybeSingle();
   return data?.id ?? null;
 }

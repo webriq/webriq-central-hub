@@ -41,7 +41,7 @@ export async function POST(
     const {
       project_name,
       project_type,
-      zoho_project_id,
+      external_project_id,
       sanity_project_id,
       github_repo,
       dedicated_developers,
@@ -58,7 +58,7 @@ export async function POST(
       );
     }
 
-    let resolvedZohoId: string | null = zoho_project_id || null;
+    let resolvedZohoId: string | null = external_project_id || null;
     let zohoCreationFailed = false;
 
     if (create_zoho_project && !resolvedZohoId) {
@@ -80,7 +80,7 @@ export async function POST(
         customer_id: customerId,
         name: project_name.trim(),
         project_type,
-        zoho_project_id: resolvedZohoId,
+        external_project_id: resolvedZohoId,
         sanity_project_id: sanity_project_id || null,
         github_repo: github_repo || null,
         dedicated_developers: Array.isArray(dedicated_developers) ? dedicated_developers : [],

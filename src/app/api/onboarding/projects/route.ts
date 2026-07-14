@@ -14,10 +14,14 @@ import { seedAndStartProgramme } from "@/lib/programme/seed";
 const STAFF_ROLES = ["admin", "super_admin", "marketing", "pm", "developer", "hr"];
 const CREATE_ROLES = ["admin", "super_admin", "marketing"];
 
-// GET — role-conditional list of projects still gated behind the Phase 1 handover
-// (onboarding_visible_at IS NULL). Marketing/admin/super_admin see the same shape as
-// pm/developer/hr — this is a status-only list either way; the wizard/detail route is where
-// the real access split happens (marketing|admin|super_admin only, see [projectId]/page.tsx).
+// GET — role-conditional list of every project that has started onboarding, tracked for its
+// full 120-day programme (Phases 1-5), not just Phase 1. Projects don't roll off this list
+// once Phase 1 hands over (onboarding_visible_at set) or even once the full programme
+// completes — customer_phases RLS restricts phase 2-5 read/write to admin|super_admin|marketing
+// (migration 060), so this page is the only surface that can track those phases at all.
+// Marketing/admin/super_admin see the same shape as pm/developer/hr — this is a status-only
+// list either way; the wizard/detail route is where the real access split happens
+// (marketing|admin|super_admin only, see [projectId]/page.tsx).
 export async function GET() {
   try {
     const supabase = await createClient();
@@ -30,10 +34,19 @@ export async function GET() {
     }
 
     const { data: projects, error } = await supabase
-      .from("projects")
-      .select("id, name, customer_id, programme_started_at, scheduled_onboarding_start_at, customer_product_id, customers(company_name), customer_products(classification)")
-      .is("onboarding_visible_at", null)
-      .order("created_at", { ascending: false });
+  .from("projects")
+  .select(`
+    id,
+    name,
+    customer_id,
+    programme_started_at,
+    scheduled_onboarding_start_at,
+    customer_product_id,
+    customers(company_name),
+    customer_products(classification)
+  `)
+  .gte("created_at", "2026-07-06T00:00:00Z")
+  .order("created_at", { ascending: false });
 
     if (error) {
       console.error("GET /api/onboarding/projects error:", error);
@@ -71,7 +84,7 @@ export async function GET() {
         current_phase_number: activePhaseNumber,
         current_phase_name: activePhaseNumber ? getPhaseByNumber(activePhaseNumber).name : null,
         current_day: currentDay,
-        progress_pct: currentDay ? Math.min(100, Math.round((currentDay / 15) * 100)) : 0,
+        progress_pct: currentDay ? Math.min(100, Math.round((currentDay / 120) * 100)) : 0,
         programme_started_at: p.programme_started_at,
         scheduled_onboarding_start_at: p.scheduled_onboarding_start_at,
         target_handover_date: targetHandoverDate,

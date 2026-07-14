@@ -60,15 +60,15 @@ export async function PATCH(req: NextRequest) {
       if (plan?.zoho_task_id && plan.customer_id) {
         const { data: project } = await adminClient
           .from("projects")
-          .select("zoho_project_id")
+          .select("external_project_id")
           .eq("customer_id", plan.customer_id)
-          .not("zoho_project_id", "is", null)
+          .not("external_project_id", "is", null)
           .limit(1)
           .maybeSingle();
 
-        if (project?.zoho_project_id) {
+        if (project?.external_project_id) {
           await updateZohoTaskStatus(
-            project.zoho_project_id,
+            project.external_project_id,
             plan.zoho_task_id,
             action === "close"
           );

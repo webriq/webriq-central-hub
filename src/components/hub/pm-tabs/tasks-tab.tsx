@@ -243,7 +243,7 @@ function ReclassifyModal({ record, onClose, onSave }: {
   );
 }
 
-type AllProject = { id: string; project_name: string; zoho_project_id: string; customer_id: string; company_name: string };
+type AllProject = { id: string; project_name: string; external_project_id: string; customer_id: string; company_name: string };
 type TasklistOption = { id: string; name: string };
 type ClassifyResult = {
   task_type: string;
@@ -357,7 +357,7 @@ function CreateTaskModal({ onClose, onCreated }: { onClose: () => void; onCreate
       return;
     }
     setCustomerId(project.customer_id);
-    await handleTasklistsLoad(project.zoho_project_id);
+    await handleTasklistsLoad(project.external_project_id);
   }
 
   async function handleCreateTasklist() {

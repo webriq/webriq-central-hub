@@ -161,6 +161,10 @@ export const INTERNAL_DELIVERABLES: InternalDeliverableConfig[] = [
   // Outcome Target completion checklist (task 130) — gates the sub-phase's own status via the
   // same auto-derive-from-siblings logic used above; not part of the original QBR table.
   { key: "outcome-target-filed", name: "Agreed measurable outcomes for the 120-day programme filed", description: "Recorded as text or an attached document.", subPhaseKey: "outcome-target" },
+  // Client sign-off completion checklist (task 135) — gates the sub-phase's own status via the
+  // same auto-derive-from-siblings logic used above; not part of the original QBR table.
+  { key: "signoff-call-held", name: "Sign-off call held with the client, PM joining for handover", description: "A structured sign-off call took place.", subPhaseKey: "client-signoff" },
+  { key: "signoff-agreement-filed", name: "Scope, mockup, and migration plan approval recorded", description: "Recorded as notes or a signed agreement.", subPhaseKey: "client-signoff" },
 ];
 
 export function getInternalDeliverable(key: string): InternalDeliverableConfig | undefined {

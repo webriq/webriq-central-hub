@@ -296,17 +296,17 @@ export async function syncTaskToZoho(input: SyncTaskInput): Promise<string> {
     // adminClient used for reads — this function runs server-side only (no user session in API routes)
     const { data: product } = await adminClient
       .from("projects")
-      .select("zoho_project_id")
+      .select("external_project_id")
       .eq("customer_id", input.customerId)
-      .not("zoho_project_id", "is", null)
+      .not("external_project_id", "is", null)
       .limit(1)
       .maybeSingle();
 
-    if (!product?.zoho_project_id) {
-      console.warn("[zoho] no zoho_project_id for customer", input.customerId);
+    if (!product?.external_project_id) {
+      console.warn("[zoho] no external_project_id for customer", input.customerId);
       return "";
     }
-    zohoProjectId = product.zoho_project_id;
+    zohoProjectId = product.external_project_id;
   }
 
   const token = await getZohoAccessToken();
@@ -495,12 +495,12 @@ export async function getMyZohoTasks(
 
   const { data: products } = await adminClient
     .from("projects")
-    .select("zoho_project_id")
-    .not("zoho_project_id", "is", null);
+    .select("external_project_id")
+    .not("external_project_id", "is", null);
 
   if (!products?.length) return [];
 
-  const projectIds = [...new Set(products.map((p) => p.zoho_project_id as string))];
+  const projectIds = [...new Set(products.map((p) => p.external_project_id as string))];
 
   const results = await Promise.all(
     projectIds.map(async (projectId) => {
@@ -529,15 +529,15 @@ export async function getUnassignedZohoTasks(portalId: string): Promise<ZohoTask
   const token = await getZohoAccessToken();
   if (!token) return [];
 
-  // Collect all zoho_project_ids across all customer projects
+  // Collect all external_project_ids across all customer projects
   const { data: products } = await adminClient
     .from("projects")
-    .select("zoho_project_id")
-    .not("zoho_project_id", "is", null);
+    .select("external_project_id")
+    .not("external_project_id", "is", null);
 
   if (!products?.length) return [];
 
-  const projectIds = [...new Set(products.map((p) => p.zoho_project_id as string))];
+  const projectIds = [...new Set(products.map((p) => p.external_project_id as string))];
 
   const results = await Promise.all(
     projectIds.map(async (projectId) => {
@@ -574,12 +574,12 @@ export async function getMyZohoTimeLogs(
 
   const { data: products } = await adminClient
     .from("projects")
-    .select("zoho_project_id")
-    .not("zoho_project_id", "is", null);
+    .select("external_project_id")
+    .not("external_project_id", "is", null);
 
   if (!products?.length) return [];
 
-  const projectIds = [...new Set(products.map((p) => p.zoho_project_id as string))];
+  const projectIds = [...new Set(products.map((p) => p.external_project_id as string))];
   const results = await Promise.all(
     projectIds.map(async (projectId) => {
       const params = new URLSearchParams({

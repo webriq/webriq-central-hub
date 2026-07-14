@@ -108,8 +108,8 @@ export async function POST() {
 
       try {
         // Pre-build lookup maps — one DB query per table
-        const { data: projectRows } = await adminClient.from("projects").select("id, zoho_project_id");
-        const projectMap = new Map((projectRows ?? []).map((p) => [String(p.zoho_project_id), p.id as string]));
+        const { data: projectRows } = await adminClient.from("projects").select("id, external_project_id");
+        const projectMap = new Map((projectRows ?? []).map((p) => [String(p.external_project_id), p.id as string]));
 
         const { data: tasklistRows } = await adminClient.from("tasklists").select("id, external_id");
         const tasklistMap = new Map((tasklistRows ?? []).map((t) => [String(t.external_id), t.id as string]));
@@ -131,7 +131,7 @@ export async function POST() {
 
           const projectId = projectMap.get(String(t._zoho_project_id ?? ""));
           if (!projectId) {
-            errors.push(`task ${externalId}: no Hub project for zoho_project_id=${t._zoho_project_id}`);
+            errors.push(`task ${externalId}: no Hub project for external_project_id=${t._zoho_project_id}`);
             skipped++;
             continue;
           }

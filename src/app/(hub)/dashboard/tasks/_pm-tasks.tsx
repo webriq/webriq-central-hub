@@ -43,15 +43,15 @@ export default function PMTasksContent({ developers, reviewerMap }: { developers
     // Fetch zoho project map
     supabase
       .from("projects")
-      .select("customer_id, zoho_project_id")
-      .not("zoho_project_id", "is", null)
+      .select("customer_id, external_project_id")
+      .not("external_project_id", "is", null)
       .then(({ data }) => {
         if (cancelled) return;
         if (data) {
           const map: Record<string, string> = {};
-          for (const p of data as Array<{ customer_id: string; zoho_project_id: string | null }>) {
-            if (p.zoho_project_id && !map[p.customer_id]) {
-              map[p.customer_id] = p.zoho_project_id;
+          for (const p of data as Array<{ customer_id: string; external_project_id: string | null }>) {
+            if (p.external_project_id && !map[p.customer_id]) {
+              map[p.customer_id] = p.external_project_id;
             }
           }
           setZohoProjectMap(map);

@@ -63,11 +63,15 @@ function ProjectCard({ item, editable }: { item: OnboardingProjectListItem; edit
             <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
               <div className="h-full rounded-full bg-blue-500 transition-[width] duration-300" style={{ width: `${item.progress_pct}%` }} />
             </div>
-            <span className="text-[11px] text-slate-500 font-mono shrink-0">Day {item.current_day}/15</span>
+            <span className="text-[11px] text-slate-500 font-mono shrink-0">Day {item.current_day}/120</span>
           </div>
           <div className="text-[11.5px] text-slate-500">
-            {item.current_phase_name ? `Phase 1: ${item.current_phase_name}` : "Onboarding"}
-            {item.target_handover_date && <span className="text-slate-400"> · Handover ~{formatDate(item.target_handover_date)}</span>}
+            {item.current_phase_name
+              ? `Phase ${item.current_phase_number}: ${item.current_phase_name}`
+              : "Onboarding"}
+            {item.current_phase_number === 1 && item.target_handover_date && (
+              <span className="text-slate-400"> · Handover ~{formatDate(item.target_handover_date)}</span>
+            )}
           </div>
         </>
       ) : item.scheduled_onboarding_start_at ? (
@@ -128,7 +132,7 @@ export default function OnboardingList({ role }: { role: string | null }) {
           </h1>
           <p className="text-[13px] text-slate-500 mt-0.5">
             {editable
-              ? "Phase 1 (Day 1–15) intake and progress — hidden from PM/staff view until handover."
+              ? "120-day programme intake and progress, Phase 1–5 — Phase 1 is hidden from PM/staff view until handover."
               : "Projects currently going through Phase 1 onboarding."}
           </p>
         </div>

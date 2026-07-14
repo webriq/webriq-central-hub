@@ -98,8 +98,8 @@ export async function POST() {
 
         // Pre-built lookup maps — two bulk queries instead of one per row.
         // tasks table can exceed Supabase's 1000-row default select limit, so paginate.
-        const { data: projectRows } = await adminClient.from("projects").select("id, zoho_project_id");
-        const projectMap = new Map((projectRows ?? []).map((p) => [String(p.zoho_project_id), p.id as string]));
+        const { data: projectRows } = await adminClient.from("projects").select("id, external_project_id");
+        const projectMap = new Map((projectRows ?? []).map((p) => [String(p.external_project_id), p.id as string]));
 
         const taskRows: Array<{ id: string; external_id: string }> = [];
         {
@@ -134,7 +134,7 @@ export async function POST() {
 
           const projectId = projectMap.get(String(log._zoho_project_id ?? ""));
           if (!projectId) {
-            errors.push(`timelog ${externalId}: no Hub project for zoho_project_id=${log._zoho_project_id}`);
+            errors.push(`timelog ${externalId}: no Hub project for external_project_id=${log._zoho_project_id}`);
             skipped++;
             continue;
           }

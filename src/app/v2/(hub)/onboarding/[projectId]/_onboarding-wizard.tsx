@@ -7,6 +7,7 @@ import {
   ArrowLeft, ArrowRight, Check, CheckCircle2, Circle, Clock, Upload,
   FileText, Plus, Trash2, Sparkles, AlertTriangle, ListChecks, X, Eye, Pencil,
   Monitor, Tablet, Smartphone, Folder, Lock, Grid3x3, LayoutList,
+  MoreVertical, FolderPlus, FolderInput, Share2, ChevronRight,
 } from "lucide-react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -26,6 +27,7 @@ import type { SaveStatus } from "@/types/onboarding";
 import SaveIndicator from "@/components/onboarding/save-indicator";
 
 type AssetRow = Database["public"]["Tables"]["customer_assets"]["Row"];
+type AssetFolder = Database["public"]["Tables"]["customer_asset_folders"]["Row"];
 
 type ContactEntry = { fullName: string; position: string; email: string; phone: string; socialMedia: string };
 
@@ -77,7 +79,7 @@ function markdownToHtmlDocument(md: string): string {
 }
 
 interface OnboardingWizardProps {
-  project: { id: string; name: string; customer_id: string; company_name: string };
+  project: { id: string; name: string; customer_id: string; project_id: string | null; company_name: string };
   deliverables: CustomerDeliverableRow[];
   internalDeliverables: OnboardingInternalDeliverableRow[];
   wizardData: Record<string, unknown>;
@@ -123,23 +125,6 @@ const ASSET_TYPE_CLS_LIGHT: Record<"link" | "credential", string> = { link: "bg-
 const ASSET_TYPE_CLS_DARK: Record<"link" | "credential", string> = { link: "text-indigo-400 bg-indigo-500/15", credential: "text-amber-400 bg-amber-500/15" };
 const assetTypeCls = (type: "link" | "credential", isDark: boolean) => (isDark ? ASSET_TYPE_CLS_DARK : ASSET_TYPE_CLS_LIGHT)[type];
 
-// Folder categorization for the File Explorer — derived from each asset's own `label`, which
-// every upload call site in this file already sets consistently (Business Facts, Documents,
-// Outcome Target, Migration Checklist, Content Map, HTML Mockup). Anything unmapped (e.g. a
-// future step's uploads) falls into "Other" rather than being hidden.
-const ASSET_FOLDER_BY_LABEL: Record<string, string> = {
-  "Business Facts": "Business Files",
-  "Documents": "Business Files",
-  "Outcome Target": "Outcome Target",
-  "Migration Checklist": "Checklist",
-  "Content Map": "Content Map",
-  "HTML Mockup": "HTML Mockup",
-};
-function folderForAsset(a: AssetRow): string {
-  return ASSET_FOLDER_BY_LABEL[a.label] ?? "Other";
-}
-const ASSET_FOLDER_ORDER = ["Business Files", "Outcome Target", "Checklist", "Content Map", "HTML Mockup", "Other"];
-
 function formatFileSize(bytes: number | null): string {
   if (!bytes) return "";
   if (bytes < 1024) return `${bytes} B`;
@@ -179,10 +164,10 @@ export default function OnboardingWizard({
   const [showTransition, setShowTransition] = useState(false);
 
   const kickoffData = (wizardData.kickoff as Record<string, unknown>) ?? {};
-  const storageKbData = (wizardData["storage-kb"] as Record<string, unknown>) ?? {};
   const outcomeTargetData = (wizardData["outcome-target"] as Record<string, unknown>) ?? {};
   const migrationChecklistData = (wizardData["migration-checklist"] as Record<string, unknown>) ?? {};
   const contentMapData = (wizardData["content-map"] as Record<string, unknown>) ?? {};
+  const clientSignoffData = (wizardData["client-signoff"] as Record<string, unknown>) ?? {};
 
   const initialContacts = (kickoffData.contacts as ContactEntry[] | undefined) ?? [];
   const defaultContacts: ContactEntry[] =
@@ -229,10 +214,11 @@ export default function OnboardingWizard({
     })
   );
 
-  const [documentsNote, setDocumentsNote] = useState((storageKbData.documentsNote as string) ?? "");
-  // dnsAccess/credentialsNote textareas removed (task 140 follow-up) — superseded by the
-  // structured "Credentials & links" list, which covers the same DNS/3rd-party-credential
-  // inputs with per-field sensitivity and sharing controls.
+  // documentsNote (free-text "Documents (branding / proposals / collateral)" note) removed
+  // (task 141) — superseded by real Branding/Proposals/Collateral sub-folders under
+  // "Business Files" in the File Explorer below. dnsAccess/credentialsNote textareas were
+  // already removed earlier (task 140 follow-up) — superseded by the structured
+  // "Credentials & links" list.
 
   const [uploadedFiles, setUploadedFiles] = useState<AssetRow[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -245,6 +231,19 @@ export default function OnboardingWizard({
   const [phase1Assets, setPhase1Assets] = useState<AssetRow[]>([]);
   const [phase1AssetsError, setPhase1AssetsError] = useState<string | null>(null);
   const [permissionsUpdatingId, setPermissionsUpdatingId] = useState<string | null>(null);
+  // Folder tree (task 141) — fetched (and, on first load, provisioned + backfilled
+  // server-side) before phase1Assets, so assets already carry a real folder_id by the
+  // time they're rendered.
+  const [phase1Folders, setPhase1Folders] = useState<AssetFolder[]>([]);
+  const [phase1FoldersError, setPhase1FoldersError] = useState<string | null>(null);
+  const [phase1Loading, setPhase1Loading] = useState(true);
+  const [movingAssetId, setMovingAssetId] = useState<string | null>(null);
+  const [creatingFolder, setCreatingFolder] = useState(false);
+  // Folder permissions/rename/delete + file rename (task 144).
+  const [folderPermissionsUpdatingId, setFolderPermissionsUpdatingId] = useState<string | null>(null);
+  const [renamingFolderId, setRenamingFolderId] = useState<string | null>(null);
+  const [deletingFolderId, setDeletingFolderId] = useState<string | null>(null);
+  const [renamingAssetId, setRenamingAssetId] = useState<string | null>(null);
   // Sharing picker (task 138) — lightweight staff directory for the File Explorer's
   // permissions panel.
   const [staffDirectory, setStaffDirectory] = useState<{ id: string; full_name: string | null; role: string }[]>([]);
@@ -318,16 +317,33 @@ export default function OnboardingWizard({
   const [editingHtmlContent, setEditingHtmlContent] = useState<string | null>(null);
   const [editingHtmlLoadError, setEditingHtmlLoadError] = useState<string | null>(null);
 
+  const [signoffNotes, setSignoffNotes] = useState((clientSignoffData.signoffNotes as string) ?? "");
+  const [signoffFiles, setSignoffFiles] = useState<AssetRow[]>([]);
+  const [uploadingSignoffFile, setUploadingSignoffFile] = useState(false);
+  const [signoffUploadError, setSignoffUploadError] = useState<string | null>(null);
+  const [viewingSignoffFileId, setViewingSignoffFileId] = useState<string | null>(null);
+  // Gates the "signoff-agreement-filed" checklist item only (handleValidatedInternalToggle) —
+  // not the Complete Phase 1 button itself, which is gated on the checklist being marked done,
+  // not on this field directly (task 135 follow-up).
+  const isSignoffFilled = stripHtml(signoffNotes).length > 0 || signoffFiles.length > 0;
+
+  const [signoffSaveStatus, setSignoffSaveStatus] = useState<SaveStatus>("idle");
+  const [signoffLastSavedAt, setSignoffLastSavedAt] = useState<Date | null>(null);
+  const [signoffSaveError, setSignoffSaveError] = useState<string | null>(null);
+  const lastSignoffSavedRef = useRef<string>(
+    JSON.stringify({ signoffNotes: (clientSignoffData.signoffNotes as string) ?? "" })
+  );
+
   const [localDeliverables, setLocalDeliverables] = useState(deliverables);
   const [localInternal, setLocalInternal] = useState(internalDeliverables);
   const [togglingKey, setTogglingKey] = useState<string | null>(null);
 
   const kickoffSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const storageKbSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const outcomeSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const outcomeProgressRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const migrationChecklistSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const contentMapSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const signoffSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Moved up from just above the render return (still used there) so the auto-progress
   // effect below — and any other hook — can reference `step` safely, without depending on
@@ -370,36 +386,39 @@ export default function OnboardingWizard({
     return () => { if (kickoffSaveRef.current) clearTimeout(kickoffSaveRef.current); };
   }, [project.id, contacts, additionalNotes, businessFacts, websiteUrl, competitorUrls]);
 
-  // Debounced autosave — Storage + KB fields.
-  useEffect(() => {
-    if (storageKbSaveRef.current) clearTimeout(storageKbSaveRef.current);
-    storageKbSaveRef.current = setTimeout(() => {
-      fetch(`/api/projects/${project.id}/programme/wizard-data`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subPhaseKey: "storage-kb", data: { documentsNote } }),
-      }).catch(() => {});
-    }, 2000);
-    return () => { if (storageKbSaveRef.current) clearTimeout(storageKbSaveRef.current); };
-  }, [project.id, documentsNote]);
-
-  // Fetch all Phase 1 assets for the Storage/KB File Explorer — small dataset, fetched once
-  // on mount rather than gated to only when the storage-kb step is active, since switching
-  // steps shouldn't show a loading flash for what's normally a handful of files.
+  // Fetch the folder tree, then Phase 1 assets, for the Storage/KB File Explorer — small
+  // dataset, fetched once on mount rather than gated to only when the storage-kb step is
+  // active, since switching steps shouldn't show a loading flash for what's normally a
+  // handful of files. Folders are fetched first: that call idempotently provisions the
+  // system folders and backfills any asset missing a folder_id (task 141), so the
+  // subsequent assets fetch already returns fully-filed rows.
   useEffect(() => {
     let cancelled = false;
-    fetch(`/api/customers/${project.customer_id}/assets`)
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to fetch assets");
-        return res.json();
-      })
-      .then((data: AssetRow[]) => {
+    (async () => {
+      try {
+        const foldersRes = await fetch(
+          `/api/customers/${project.customer_id}/assets/folders?projectId=${project.id}&phaseNumber=1`
+        );
+        if (!foldersRes.ok) throw new Error("Failed to fetch folders");
+        const folders: AssetFolder[] = await foldersRes.json();
+        if (cancelled) return;
+        setPhase1Folders(folders);
+      } catch {
+        if (!cancelled) setPhase1FoldersError("Failed to load folders.");
+      }
+
+      try {
+        const assetsRes = await fetch(`/api/customers/${project.customer_id}/assets`);
+        if (!assetsRes.ok) throw new Error("Failed to fetch assets");
+        const data: AssetRow[] = await assetsRes.json();
         if (cancelled) return;
         setPhase1Assets(data.filter((a) => a.phase_number === 1 && a.project_id === project.id));
-      })
-      .catch(() => {
+      } catch {
         if (!cancelled) setPhase1AssetsError("Failed to load project files.");
-      });
+      }
+
+      if (!cancelled) setPhase1Loading(false);
+    })();
     return () => {
       cancelled = true;
     };
@@ -505,6 +524,35 @@ export default function OnboardingWizard({
     return () => { if (contentMapSaveRef.current) clearTimeout(contentMapSaveRef.current); };
   }, [project.id, contentMapText]);
 
+  // Debounced autosave — Client sign-off field. Same skip-if-unchanged + save-status
+  // pattern as the Content map effect above.
+  useEffect(() => {
+    const payload = { signoffNotes };
+    const payloadJson = JSON.stringify(payload);
+    if (payloadJson === lastSignoffSavedRef.current) return;
+
+    if (signoffSaveRef.current) clearTimeout(signoffSaveRef.current);
+    signoffSaveRef.current = setTimeout(() => {
+      setSignoffSaveStatus("saving");
+      fetch(`/api/projects/${project.id}/programme/wizard-data`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subPhaseKey: "client-signoff", data: payload }),
+      })
+        .then((res) => {
+          if (!res.ok) throw new Error("Failed to save");
+          lastSignoffSavedRef.current = payloadJson;
+          setSignoffSaveStatus("saved");
+          setSignoffLastSavedAt(new Date());
+        })
+        .catch(() => {
+          setSignoffSaveStatus("error");
+          setSignoffSaveError("Failed to save changes");
+        });
+    }, 2000);
+    return () => { if (signoffSaveRef.current) clearTimeout(signoffSaveRef.current); };
+  }, [project.id, signoffNotes]);
+
   const setDeliverableStatus = async (key: string, status: "pending" | "in_progress" | "done") => {
     setTogglingKey(key);
     try {
@@ -532,7 +580,18 @@ export default function OnboardingWizard({
       });
       if (!res.ok) return;
       const { internalDeliverable, deliverable }: { internalDeliverable: OnboardingInternalDeliverableRow; deliverable: CustomerDeliverableRow | null } = await res.json();
-      setLocalInternal((prev) => prev.map((d) => (d.id === internalDeliverable.id ? internalDeliverable : d)));
+      // Match by deliverable_key, not id: the PATCH route now upserts (task 135 follow-up), so
+      // a project whose row didn't exist yet gets one created on first toggle with a brand-new
+      // id that was never in localInternal — an id-keyed .map would silently no-op (0 matches),
+      // leaving the checklist item stuck showing "pending" until a full page reload re-fetched
+      // internalDeliverables from the server. deliverable_key is stable and unique per project
+      // regardless of whether the row pre-existed.
+      setLocalInternal((prev) => {
+        const exists = prev.some((d) => d.deliverable_key === internalDeliverable.deliverable_key);
+        return exists
+          ? prev.map((d) => (d.deliverable_key === internalDeliverable.deliverable_key ? internalDeliverable : d))
+          : [...prev, internalDeliverable];
+      });
       onInternalDeliverableChange(internalDeliverable);
       if (deliverable) {
         setLocalDeliverables((prev) => prev.map((d) => (d.id === deliverable.id ? deliverable : d)));
@@ -575,13 +634,17 @@ export default function OnboardingWizard({
   // something an individual checklist item sits in.
   const toggleInternalStatus = (current: string) => (current === "done" ? "pending" : "done") as "pending" | "done";
 
-  const handleUpload = async (file: File) => {
+  // folderId (task 141): the File Explorer always passes the currently-open folder's id,
+  // so a file uploaded from inside a folder lands in that folder directly — replacing the
+  // previous hardcoded `label: "Documents"` (which always landed in "Business Files"
+  // regardless of which folder was open when "Add file" was clicked).
+  const handleUpload = async (file: File, folderId: string | null) => {
     setUploading(true);
     setUploadError(null);
     try {
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("project_id", project.id);
+      formData.append("project_id", project.project_id ?? project.id);
       const uploadRes = await fetch(`/api/customers/${project.customer_id}/assets/upload`, { method: "POST", body: formData });
       if (!uploadRes.ok) {
         const json = await uploadRes.json().catch(() => ({}));
@@ -600,6 +663,7 @@ export default function OnboardingWizard({
           file_mime_type: uploaded.mimeType,
           phase_number: 1,
           project_id: project.id,
+          folder_id: folderId,
         }),
       });
       if (!res.ok) {
@@ -625,7 +689,7 @@ export default function OnboardingWizard({
     try {
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("project_id", project.id);
+      formData.append("project_id", project.project_id ?? project.id);
       const uploadRes = await fetch(`/api/customers/${project.customer_id}/assets/upload`, { method: "POST", body: formData });
       if (!uploadRes.ok) {
         const json = await uploadRes.json().catch(() => ({}));
@@ -687,7 +751,7 @@ export default function OnboardingWizard({
     try {
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("project_id", project.id);
+      formData.append("project_id", project.project_id ?? project.id);
       const uploadRes = await fetch(`/api/customers/${project.customer_id}/assets/upload`, { method: "POST", body: formData });
       if (!uploadRes.ok) {
         const json = await uploadRes.json().catch(() => ({}));
@@ -804,6 +868,147 @@ export default function OnboardingWizard({
     }
   };
 
+  // Move a single file to a different folder (task 141) — also the primitive bulk moves
+  // loop over, one PATCH per selected asset, since the small dataset here doesn't warrant
+  // a dedicated bulk endpoint.
+  const handleMoveAsset = async (assetId: string, folderId: string | null) => {
+    setMovingAssetId(assetId);
+    try {
+      const res = await fetch(`/api/customers/${project.customer_id}/assets/${assetId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ folder_id: folderId }),
+      });
+      if (!res.ok) throw new Error();
+      const updated: AssetRow = await res.json();
+      setPhase1Assets((prev) => prev.map((a) => (a.id === assetId ? updated : a)));
+    } catch {
+      setPhase1AssetsError("Failed to move file.");
+    } finally {
+      setMovingAssetId(null);
+    }
+  };
+
+  // Create a folder at root (parentFolderId: null) or nested inside any existing folder
+  // (task 141) — the new folders route provisions/backfills lazily, so this is purely
+  // additive against whatever's already in phase1Folders.
+  const handleCreateFolder = async (name: string, parentFolderId: string | null): Promise<AssetFolder | null> => {
+    setCreatingFolder(true);
+    setPhase1FoldersError(null);
+    try {
+      const res = await fetch(`/api/customers/${project.customer_id}/assets/folders`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectId: project.id, phaseNumber: 1, name, parent_folder_id: parentFolderId }),
+      });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        throw new Error(json.error ?? "Failed to create folder");
+      }
+      const created: AssetFolder = await res.json();
+      setPhase1Folders((prev) => [...prev, created]);
+      return created;
+    } catch (err) {
+      setPhase1FoldersError(err instanceof Error ? err.message : "Failed to create folder");
+      return null;
+    } finally {
+      setCreatingFolder(false);
+    }
+  };
+
+  // Folder role/user sharing (task 144) — same shape as handlePermissionsChange, targeting
+  // the folders PATCH route instead.
+  const handleFolderPermissionsChange = async (
+    folderId: string,
+    updates: { allowed_roles?: string[]; allowed_user_ids?: string[] }
+  ) => {
+    setFolderPermissionsUpdatingId(folderId);
+    try {
+      const res = await fetch(`/api/customers/${project.customer_id}/assets/folders/${folderId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      });
+      if (!res.ok) throw new Error();
+      const updated: AssetFolder = await res.json();
+      setPhase1Folders((prev) => prev.map((f) => (f.id === folderId ? updated : f)));
+    } catch {
+      setPhase1FoldersError("Failed to update folder permissions.");
+    } finally {
+      setFolderPermissionsUpdatingId(null);
+    }
+  };
+
+  // Rename is allowed on any folder, including system-provisioned ones — cosmetic only,
+  // folder membership is folder_id-based since task 141's provisioning backfill (task 144).
+  const handleRenameFolder = async (folderId: string, name: string): Promise<boolean> => {
+    setRenamingFolderId(folderId);
+    try {
+      const res = await fetch(`/api/customers/${project.customer_id}/assets/folders/${folderId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        throw new Error(json.error ?? "Failed to rename folder");
+      }
+      const updated: AssetFolder = await res.json();
+      setPhase1Folders((prev) => prev.map((f) => (f.id === folderId ? updated : f)));
+      return true;
+    } catch (err) {
+      setPhase1FoldersError(err instanceof Error ? err.message : "Failed to rename folder");
+      return false;
+    } finally {
+      setRenamingFolderId(null);
+    }
+  };
+
+  // Delete is blocked server-side on system folders and non-empty folders (task 144) —
+  // the UI also disables the button client-side for the same reasons, this is the
+  // authoritative check.
+  const handleDeleteFolder = async (folderId: string): Promise<boolean> => {
+    setDeletingFolderId(folderId);
+    try {
+      const res = await fetch(`/api/customers/${project.customer_id}/assets/folders/${folderId}`, { method: "DELETE" });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        throw new Error(json.error ?? "Failed to delete folder");
+      }
+      setPhase1Folders((prev) => prev.filter((f) => f.id !== folderId));
+      return true;
+    } catch (err) {
+      setPhase1FoldersError(err instanceof Error ? err.message : "Failed to delete folder");
+      return false;
+    } finally {
+      setDeletingFolderId(null);
+    }
+  };
+
+  // File rename (task 144) — display-name only, file_path/Storage object untouched.
+  const handleRenameAsset = async (assetId: string, fileName: string): Promise<boolean> => {
+    setRenamingAssetId(assetId);
+    try {
+      const res = await fetch(`/api/customers/${project.customer_id}/assets/${assetId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ file_name: fileName }),
+      });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        throw new Error(json.error ?? "Failed to rename file");
+      }
+      const updated: AssetRow = await res.json();
+      setPhase1Assets((prev) => prev.map((a) => (a.id === assetId ? updated : a)));
+      return true;
+    } catch (err) {
+      setPhase1AssetsError(err instanceof Error ? err.message : "Failed to rename file");
+      return false;
+    } finally {
+      setRenamingAssetId(null);
+    }
+  };
+
   const handleDeleteCredentialLink = async (assetId: string) => {
     setCredentialLinkDeleteError(null);
     try {
@@ -821,7 +1026,7 @@ export default function OnboardingWizard({
     try {
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("project_id", project.id);
+      formData.append("project_id", project.project_id ?? project.id);
       const uploadRes = await fetch(`/api/customers/${project.customer_id}/assets/upload`, { method: "POST", body: formData });
       if (!uploadRes.ok) {
         const json = await uploadRes.json().catch(() => ({}));
@@ -893,7 +1098,7 @@ export default function OnboardingWizard({
     try {
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("project_id", project.id);
+      formData.append("project_id", project.project_id ?? project.id);
       const uploadRes = await fetch(`/api/customers/${project.customer_id}/assets/upload`, { method: "POST", body: formData });
       if (!uploadRes.ok) {
         const json = await uploadRes.json().catch(() => ({}));
@@ -959,13 +1164,85 @@ export default function OnboardingWizard({
     }
   };
 
+  const handleSignoffUpload = async (file: File) => {
+    setUploadingSignoffFile(true);
+    setSignoffUploadError(null);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("project_id", project.project_id ?? project.id);
+      const uploadRes = await fetch(`/api/customers/${project.customer_id}/assets/upload`, { method: "POST", body: formData });
+      if (!uploadRes.ok) {
+        const json = await uploadRes.json().catch(() => ({}));
+        throw new Error(json.error ?? "Failed to upload file");
+      }
+      const uploaded = await uploadRes.json();
+      const res = await fetch(`/api/customers/${project.customer_id}/assets`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "file",
+          label: "Signed Agreement",
+          file_path: uploaded.path,
+          file_name: uploaded.filename,
+          file_size: uploaded.size,
+          file_mime_type: uploaded.mimeType,
+          phase_number: 1,
+          project_id: project.id,
+        }),
+      });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        throw new Error(json.error ?? "Failed to save asset");
+      }
+      const newAsset: AssetRow = await res.json();
+      setSignoffFiles((prev) => [...prev, newAsset]);
+    } catch (err) {
+      setSignoffUploadError(err instanceof Error ? err.message : "Failed to upload file");
+    } finally {
+      setUploadingSignoffFile(false);
+    }
+  };
+
+  const handleRemoveSignoffFile = async (id: string) => {
+    setSignoffFiles((prev) => prev.filter((f) => f.id !== id));
+    try {
+      await fetch(`/api/customers/${project.customer_id}/assets?id=${id}`, { method: "DELETE" });
+    } catch {
+      setSignoffUploadError("Failed to remove file");
+    }
+  };
+
+  // In-app preview — reuses the shared viewerFile/viewerUrl/viewerLoading/viewerError state,
+  // same as handleViewOutcomeFile/handleViewContentMapFile.
+  const handleViewSignoffFile = async (id: string) => {
+    const file = signoffFiles.find((f) => f.id === id);
+    if (!file) return;
+    setViewerFile(file);
+    setViewerUrl(null);
+    setViewerError(null);
+    setViewerLoading(true);
+    setViewingSignoffFileId(id);
+    try {
+      const res = await fetch(`/api/customers/${project.customer_id}/assets/${id}/file-url`);
+      if (!res.ok) throw new Error("Failed to get file URL");
+      const { url } = await res.json();
+      setViewerUrl(url);
+    } catch {
+      setViewerError("Failed to load file preview.");
+    } finally {
+      setViewerLoading(false);
+      setViewingSignoffFileId(null);
+    }
+  };
+
   const handleHtmlMockupUpload = async (file: File) => {
     setUploadingHtmlMockupFile(true);
     setHtmlMockupUploadError(null);
     try {
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("project_id", project.id);
+      formData.append("project_id", project.project_id ?? project.id);
       const uploadRes = await fetch(`/api/customers/${project.customer_id}/assets/upload`, { method: "POST", body: formData });
       if (!uploadRes.ok) {
         const json = await uploadRes.json().catch(() => ({}));
@@ -1080,6 +1357,10 @@ export default function OnboardingWizard({
         setChecklistValidationError("Upload at least one mockup file before marking this done.");
         return;
       }
+      if (key === "signoff-agreement-filed" && !isSignoffFilled) {
+        setChecklistValidationError("Add sign-off call notes or upload the signed agreement before marking this done.");
+        return;
+      }
     }
     setChecklistValidationError(null);
     setInternalStatus(key, target);
@@ -1120,6 +1401,9 @@ export default function OnboardingWizard({
     setStepIdx((s) => s + 1);
   };
 
+  // isLastStep's "Mark all as done" completes Phase 1 directly instead of advancing stepIdx —
+  // there's no next step to land on (task 135 follow-up: client-signoff routes its incomplete
+  // checklist through this same modal/bypass flow instead of a standalone inline block).
   const finalizeMarkAllDone = async (items: InternalDeliverableConfig[]) => {
     await Promise.all(items.map((item) => setInternalStatus(item.key, "done")));
     setShowIncompleteModal(false);
@@ -1128,18 +1412,24 @@ export default function OnboardingWizard({
     setChecklistValidationError(null);
     setContactsFieldError(false);
     setBusinessFactsFieldError(false);
-    setStepIdx((s) => s + 1);
+    if (isLastStep) {
+      await completePhase();
+    } else {
+      setStepIdx((s) => s + 1);
+    }
   };
 
   // "Mark all as done" from the incomplete-checklist modal — defers to the required-fields
-  // confirmation modal if any gated item (Kickoff's two, or html-mockup's file requirement)
-  // would otherwise fail the same validation handleValidatedInternalToggle applies per-item.
+  // confirmation modal if any gated item (Kickoff's two, html-mockup's file requirement, or
+  // Client Sign-off's agreement requirement) would otherwise fail the same validation
+  // handleValidatedInternalToggle applies per-item.
   const handleMarkAllDone = () => {
     const hasFailing = incompleteItems.some(
       (item) =>
         (item.key === "kickoff-contacts-confirmed" && !isContactsValid) ||
         (item.key === "kickoff-goals-timeline-filed" && !isBusinessFactsFilled) ||
-        (item.key === "html-md-files" && !isHtmlMockupFilled)
+        (item.key === "html-md-files" && !isHtmlMockupFilled) ||
+        (item.key === "signoff-agreement-filed" && !isSignoffFilled)
     );
     if (hasFailing) {
       setShowForceConfirmModal(true);
@@ -1159,7 +1449,7 @@ export default function OnboardingWizard({
     if (!isBusinessFactsFilled) setBusinessFactsFieldError(true);
   };
 
-  const handleComplete = async () => {
+  const completePhase = async () => {
     setCompleting(true);
     setCompleteError(null);
     setShowTransition(true);
@@ -1179,18 +1469,34 @@ export default function OnboardingWizard({
     }
   };
 
+  // Client sign-off is gated on its own checklist (both items marked done), not directly on the
+  // notes/file fields — a deliberate live-run correction (task 135 follow-up). Routes through
+  // the same incomplete-checklist modal / "Mark all as done" / force-confirm bypass flow as
+  // handleContinueClick, since there's no Continue button on the last step to reach it from
+  // otherwise; finalizeMarkAllDone completes Phase 1 instead of advancing stepIdx when isLastStep.
+  const handleComplete = async () => {
+    if (step.key === "client-signoff" && stepInternal.length > 0) {
+      const incomplete = stepInternal.filter((item) => {
+        const row = localInternal.find((r) => r.deliverable_key === item.key);
+        return (row?.status ?? "pending") !== "done";
+      });
+      if (incomplete.length > 0) {
+        setIncompleteItems(incomplete);
+        setShowIncompleteModal(true);
+        return;
+      }
+    }
+    await completePhase();
+  };
+
   const textPrimary = isDark ? "text-slate-200" : "text-slate-900";
   const textMuted = isDark ? "text-slate-400" : "text-slate-500";
   const cardCls = isDark ? "bg-[#121726] border border-white/[0.08] rounded-xl" : "bg-white border border-slate-200 rounded-xl";
-  const inputBase = cn(
-    "w-full text-[13px] rounded-lg px-3 py-2.5 border outline-none transition-colors font-[inherit]",
-    isDark ? "bg-transparent border-white/[0.1] text-slate-200 placeholder:text-slate-500 focus:border-brand" : "bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-brand"
-  );
   const labelCls = cn("block text-[12.5px] font-semibold mb-1.5", textPrimary);
 
   // Kickoff-step-only Field styling, matching the New Project wizard's
   // rounded-[9px]/border-[1.5px]/focus-glow look — isDark-aware pair, not a
-  // `dark:` variant. Scoped to the Kickoff step; other steps keep inputBase.
+  // `dark:` variant.
   const kickoffLabelCls = cn("block text-[13px] font-medium mb-1.5", textPrimary);
   const kickoffInputCls = cn(
     "w-full text-sm rounded-[9px] px-3.5 py-[11px] border-[1.5px] outline-none transition-[border-color,box-shadow] duration-150 font-[inherit]",
@@ -1283,6 +1589,9 @@ export default function OnboardingWizard({
           {step.key === "content-map" && (
             <SaveIndicator status={contentMapSaveStatus} lastSavedAt={contentMapLastSavedAt} error={contentMapSaveError} />
           )}
+          {step.key === "client-signoff" && (
+            <SaveIndicator status={signoffSaveStatus} lastSavedAt={signoffLastSavedAt} error={signoffSaveError} />
+          )}
         </div>
 
         {step.key === "kickoff" && (
@@ -1352,15 +1661,15 @@ export default function OnboardingWizard({
 
         {step.key === "storage-kb" && (
           <div className="flex flex-col gap-4 mb-5">
-            <div className="max-w-xl">
-              <label className={labelCls}>Documents (branding / proposals / collateral)</label>
-              <textarea rows={2} value={documentsNote} onChange={(e) => setDocumentsNote(e.target.value)} placeholder="Notes on what's provided / where it lives…" className={inputBase} />
-            </div>
             <div>
               <label className={labelCls}>Project files</label>
               <StorageFileExplorer
                 assets={phase1Assets}
                 error={phase1AssetsError}
+                folders={phase1Folders}
+                foldersError={phase1FoldersError}
+                loading={phase1Loading}
+                rootLabel={project.project_id ?? project.id}
                 isDark={isDark}
                 onView={handleViewAsset}
                 viewingId={viewerLoading ? (viewerFile?.id ?? null) : null}
@@ -1370,6 +1679,18 @@ export default function OnboardingWizard({
                 uploading={uploading}
                 uploadError={uploadError}
                 onRemove={handleRemoveFile}
+                onMove={handleMoveAsset}
+                movingAssetId={movingAssetId}
+                onCreateFolder={handleCreateFolder}
+                creatingFolder={creatingFolder}
+                onFolderPermissionsChange={handleFolderPermissionsChange}
+                folderPermissionsUpdatingId={folderPermissionsUpdatingId}
+                onRenameFolder={handleRenameFolder}
+                renamingFolderId={renamingFolderId}
+                onDeleteFolder={handleDeleteFolder}
+                deletingFolderId={deletingFolderId}
+                onRenameAsset={handleRenameAsset}
+                renamingAssetId={renamingAssetId}
                 staffDirectory={staffDirectory}
               />
             </div>
@@ -1592,6 +1913,41 @@ export default function OnboardingWizard({
           </div>
         )}
 
+        {step.key === "client-signoff" && (
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_280px] gap-x-6 gap-y-4 mb-5">
+            <div>
+              <RichTextField
+                label="Sign-off call notes"
+                value={signoffNotes}
+                onChange={setSignoffNotes}
+                placeholder="e.g. Scope, mockup, and migration plan discussed and approved; handover topics covered…"
+                isDark={isDark}
+                minHeightClass="min-h-[220px]"
+                maxHeightClass="max-h-[420px]"
+              />
+            </div>
+            <div className="hidden lg:flex flex-col items-center gap-2 px-1 pt-1">
+              <div className={cn("w-px flex-1", isDark ? "bg-white/[0.08]" : "bg-slate-200")} />
+              <span className={cn("text-[10px] font-semibold uppercase tracking-wide", textMuted)}>Or</span>
+              <div className={cn("w-px flex-1", isDark ? "bg-white/[0.08]" : "bg-slate-200")} />
+            </div>
+            <div>
+              <label className={kickoffLabelCls}>Upload the signed agreement instead</label>
+              <p className={cn("text-[11px] mb-1.5", textMuted)}>Prefer to attach the signed agreement over typing notes? Upload it here instead.</p>
+              {signoffUploadError && <p className="text-[12px] text-red-500 mb-2">{signoffUploadError}</p>}
+              <FileUploadBox
+                files={signoffFiles}
+                uploading={uploadingSignoffFile}
+                onFile={handleSignoffUpload}
+                onRemove={handleRemoveSignoffFile}
+                onView={handleViewSignoffFile}
+                viewingId={viewingSignoffFileId}
+                isDark={isDark}
+              />
+            </div>
+          </div>
+        )}
+
         {step.key === "html-mockup" && (
           <div className="max-w-xl mb-5">
             <label className={kickoffLabelCls}>Mockup file</label>
@@ -1652,37 +2008,38 @@ export default function OnboardingWizard({
                 <span><strong>{localDeliverables.length - doneCount} deliverable{localDeliverables.length - doneCount !== 1 ? "s" : ""} not yet done.</strong> You can still complete Phase 1, but outstanding items will be flagged to the PM.</span>
               </div>
             )}
-            <div className={cn("flex gap-2.5 p-3 rounded-lg border mb-4 text-[12px]", isDark ? "border-amber-500/25 bg-amber-500/10 text-amber-300" : "border-amber-200 bg-amber-50 text-amber-800")}>
+            <div className={cn("flex gap-2.5 p-3 rounded-lg border text-[12px]", isDark ? "border-amber-500/25 bg-amber-500/10 text-amber-300" : "border-amber-200 bg-amber-50 text-amber-800")}>
               <Sparkles size={14} className="shrink-0 mt-0.5" />
               <span>Marking Phase 1 complete will notify the PM, make the project visible in Customers/Projects, and start Day 16 tracking for Phase 2.</span>
             </div>
-            {completeError && <p className="text-[12px] text-red-500 mb-3">{completeError}</p>}
-            <button
-              onClick={handleComplete}
-              disabled={completing}
-              className="w-full flex items-center justify-center gap-2 text-[14px] font-semibold text-white rounded-lg py-3 border-none cursor-pointer disabled:opacity-60 bg-gradient-to-br from-green-600 to-green-700 hover:opacity-90 transition-opacity"
-            >
-              {completing ? <>Completing…</> : <><Check size={16} strokeWidth={2.5} /> Complete Phase 1 &amp; notify PM</>}
-            </button>
           </div>
         )}
       </div>
 
-      <div className={cn(cardCls, "p-4 flex items-center justify-between")}>
-        <button
-          onClick={() => (stepIdx === 0 ? onBack() : setStepIdx((s) => s - 1))}
-          className={cn("inline-flex items-center gap-1.5 text-[13px] font-medium rounded-lg px-4 py-2 border cursor-pointer transition-colors", isDark ? "border-white/[0.1] text-slate-300 bg-transparent" : "border-slate-200 text-slate-600 bg-white")}
-        >
-          <ArrowLeft size={14} /> {stepIdx === 0 ? "Cancel" : "Back"}
-        </button>
-        <span className={cn("text-[12px]", textMuted)}>Step {stepIdx + 1} of {STEPS.length}</span>
-        {!isLastStep ? (
-          <button onClick={handleContinueClick} className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-white bg-brand rounded-lg px-4 py-2 hover:opacity-90 transition-opacity border-none cursor-pointer">
-            Continue <ArrowRight size={14} />
+      <div className={cn(cardCls, "p-4")}>
+        {isLastStep && completeError && <p className="text-[12px] text-red-500 mb-3">{completeError}</p>}
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => (stepIdx === 0 ? onBack() : setStepIdx((s) => s - 1))}
+            className={cn("inline-flex items-center gap-1.5 text-[13px] font-medium rounded-lg px-4 py-2 border cursor-pointer transition-colors", isDark ? "border-white/[0.1] text-slate-300 bg-transparent" : "border-slate-200 text-slate-600 bg-white")}
+          >
+            <ArrowLeft size={14} /> {stepIdx === 0 ? "Cancel" : "Back"}
           </button>
-        ) : (
-          <div className="w-24" />
-        )}
+          <span className={cn("text-[12px]", textMuted)}>Step {stepIdx + 1} of {STEPS.length}</span>
+          {!isLastStep ? (
+            <button onClick={handleContinueClick} className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-white bg-brand rounded-lg px-4 py-2 hover:opacity-90 transition-opacity border-none cursor-pointer">
+              Continue <ArrowRight size={14} />
+            </button>
+          ) : (
+            <button
+              onClick={handleComplete}
+              disabled={completing}
+              className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-white rounded-lg px-4 py-2 border-none cursor-pointer disabled:opacity-60 bg-gradient-to-br from-green-600 to-green-700 hover:opacity-90 transition-opacity"
+            >
+              {completing ? "Completing…" : <><Check size={14} strokeWidth={2.5} /> Complete Phase 1 &amp; notify PM</>}
+            </button>
+          )}
+        </div>
       </div>
 
       {showIncompleteModal && (
@@ -2077,31 +2434,113 @@ function FileUploadBox({
 // low-traffic internal tool control) reusing the exact role-toggle-pill visual pattern from
 // the Customers → Assets tab's "Add Asset" modal.
 function StorageFileExplorer({
-  assets, error, isDark, onView, viewingId, onPermissionsChange, permissionsUpdatingId, onUpload, uploading, uploadError, onRemove, staffDirectory,
+  assets, error, folders, foldersError, loading, rootLabel, isDark, onView, viewingId,
+  onPermissionsChange, permissionsUpdatingId, onUpload, uploading, uploadError, onRemove,
+  onMove, movingAssetId, onCreateFolder, creatingFolder,
+  onFolderPermissionsChange, folderPermissionsUpdatingId,
+  onRenameFolder, renamingFolderId, onDeleteFolder, deletingFolderId,
+  onRenameAsset, renamingAssetId, staffDirectory,
 }: {
-  assets: AssetRow[]; error: string | null; isDark: boolean; onView: (asset: AssetRow) => void; viewingId: string | null;
-  onPermissionsChange: (assetId: string, updates: { allowed_roles?: string[]; allowed_user_ids?: string[] }) => void;
+  assets: AssetRow[]; error: string | null;
+  folders: AssetFolder[]; foldersError: string | null;
+  loading: boolean; rootLabel: string;
+  isDark: boolean; onView: (asset: AssetRow) => void; viewingId: string | null;
+  onPermissionsChange: (assetId: string, updates: { allowed_roles?: string[]; allowed_user_ids?: string[] }) => Promise<void>;
   permissionsUpdatingId: string | null;
-  onUpload: (file: File) => void; uploading: boolean; uploadError: string | null; onRemove: (assetId: string) => void;
+  onUpload: (file: File, folderId: string | null) => void; uploading: boolean; uploadError: string | null;
+  onRemove: (assetId: string) => Promise<void>;
+  onMove: (assetId: string, folderId: string | null) => Promise<void>; movingAssetId: string | null;
+  onCreateFolder: (name: string, parentFolderId: string | null) => Promise<AssetFolder | null>; creatingFolder: boolean;
+  onFolderPermissionsChange: (folderId: string, updates: { allowed_roles?: string[]; allowed_user_ids?: string[] }) => Promise<void>;
+  folderPermissionsUpdatingId: string | null;
+  onRenameFolder: (folderId: string, name: string) => Promise<boolean>; renamingFolderId: string | null;
+  onDeleteFolder: (folderId: string) => Promise<boolean>; deletingFolderId: string | null;
+  onRenameAsset: (assetId: string, fileName: string) => Promise<boolean>; renamingAssetId: string | null;
   staffDirectory: { id: string; full_name: string | null; role: string }[];
 }) {
   const textPrimary = isDark ? "text-slate-200" : "text-slate-900";
   const textMuted = isDark ? "text-slate-400" : "text-slate-500";
   const inputRef = useRef<HTMLInputElement>(null);
-  // No auto-select of the first folder (unlike task 134) — starts on the folder-tiles view,
-  // per the requested two-level Finder-style navigation.
-  const [activeFolder, setActiveFolder] = useState<string | null>(null);
+
+  const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [permissionsOpenId, setPermissionsOpenId] = useState<string | null>(null);
+  const [openFileMenuId, setOpenFileMenuId] = useState<string | null>(null);
+  const [openFolderMenuId, setOpenFolderMenuId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [newFolderModalOpen, setNewFolderModalOpen] = useState(false);
+  const [newFolderParentId, setNewFolderParentId] = useState<string | null>(null);
+  const [newFolderName, setNewFolderName] = useState("");
+  const [newFolderError, setNewFolderError] = useState<string | null>(null);
+  const [moveModalAssetIds, setMoveModalAssetIds] = useState<string[] | null>(null);
+  const [bulkSharePanelOpen, setBulkSharePanelOpen] = useState(false);
+  const [bulkRoles, setBulkRoles] = useState<string[]>([]);
+  const [bulkUserIds, setBulkUserIds] = useState<string[]>([]);
+  const [bulkPersonSearch, setBulkPersonSearch] = useState("");
+  const [bulkPersonDropdownOpen, setBulkPersonDropdownOpen] = useState(false);
+  const [bulkBusy, setBulkBusy] = useState(false);
+  // Per-file "Share with specific people" search — reset whenever a different file's
+  // Permissions panel is opened/closed (only one is ever open at a time via permissionsOpenId).
+  const [filePersonSearch, setFilePersonSearch] = useState("");
+  const [filePersonDropdownOpen, setFilePersonDropdownOpen] = useState(false);
+  // Folder Permissions panel (task 144) — same shape as the per-file one above, its own
+  // search state since a folder panel and a file panel could theoretically both be open.
+  const [folderPermissionsOpenId, setFolderPermissionsOpenId] = useState<string | null>(null);
+  const [folderPersonSearch, setFolderPersonSearch] = useState("");
+  const [folderPersonDropdownOpen, setFolderPersonDropdownOpen] = useState(false);
+  // Shared rename modal (task 144) — used for both folder rename and file rename.
+  const [renameTarget, setRenameTarget] = useState<{ kind: "folder" | "file"; id: string } | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const [renameError, setRenameError] = useState<string | null>(null);
 
-  const grouped = new Map<string, AssetRow[]>();
-  for (const a of assets) {
-    const folder = folderForAsset(a);
-    if (!grouped.has(folder)) grouped.set(folder, []);
-    grouped.get(folder)!.push(a);
+  const closeBulkSharePanel = () => {
+    setBulkSharePanelOpen(false);
+    setBulkPersonSearch("");
+    setBulkPersonDropdownOpen(false);
+  };
+
+  const navigateTo = (folderId: string | null) => {
+    setCurrentFolderId(folderId);
+    setSelectedIds(new Set());
+    setPermissionsOpenId(null);
+    setOpenFileMenuId(null);
+    setOpenFolderMenuId(null);
+    setFolderPermissionsOpenId(null);
+    closeBulkSharePanel();
+  };
+
+  const foldersById = new Map(folders.map((f) => [f.id, f]));
+  const childrenOf = (parentId: string | null) => folders.filter((f) => f.parent_folder_id === parentId);
+
+  const breadcrumb: AssetFolder[] = [];
+  {
+    let cur = currentFolderId ? foldersById.get(currentFolderId) ?? null : null;
+    while (cur) {
+      breadcrumb.unshift(cur);
+      cur = cur.parent_folder_id ? foldersById.get(cur.parent_folder_id) ?? null : null;
+    }
   }
-  const folders = ASSET_FOLDER_ORDER.filter((f) => grouped.has(f));
-  const filesInFolder = activeFolder ? (grouped.get(activeFolder) ?? []) : [];
+
+  const childFolders = childrenOf(currentFolderId);
+  const filesHere = assets.filter((a) => (a.folder_id ?? null) === currentFolderId);
+
+  const folderTreeFlat: { folder: AssetFolder; depth: number }[] = [];
+  const flattenTree = (parentId: string | null, depth: number) => {
+    for (const f of childrenOf(parentId)) {
+      folderTreeFlat.push({ folder: f, depth });
+      flattenTree(f.id, depth + 1);
+    }
+  };
+  flattenTree(null, 0);
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const getPermissionInfo = (f: AssetRow) => {
     const roleRestricted = !!f.allowed_roles && f.allowed_roles.length > 0;
@@ -2114,8 +2553,97 @@ function StorageFileExplorer({
     return { roleRestricted, userRestricted, restricted, permissionBadge };
   };
 
+  // Search-to-add person picker (mirrors AddCredentialLinkModal's pattern) — reused by
+  // both the per-file Permissions panel and the bulk Share panel, since listing every
+  // staff directory entry as toggle pills doesn't scale for a large directory.
+  const renderPersonPicker = (
+    selectedUserIds: string[],
+    onAdd: (personId: string) => void,
+    onRemove: (personId: string) => void,
+    search: string,
+    setSearch: (v: string) => void,
+    dropdownOpen: boolean,
+    setDropdownOpen: (v: boolean) => void
+  ) => {
+    const selectedPeople = selectedUserIds
+      .map((id) => staffDirectory.find((p) => p.id === id))
+      .filter((p): p is { id: string; full_name: string | null; role: string } => !!p);
+    const filteredPeople = staffDirectory
+      .filter((p) => !selectedUserIds.includes(p.id))
+      .filter((p) => (p.full_name ?? "").toLowerCase().includes(search.toLowerCase()));
+    return (
+      <div>
+        <div className={cn("text-[10px] font-semibold uppercase tracking-wide mb-1", textMuted)}>Share with specific people</div>
+        {selectedPeople.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-1.5">
+            {selectedPeople.map((person) => (
+              <span
+                key={person.id}
+                className={cn("inline-flex items-center gap-1 pl-2.5 pr-1.5 py-1 rounded-full text-[11px] font-medium", isDark ? "bg-brand/20 text-brand" : "bg-brand/10 text-brand")}
+              >
+                {person.full_name ?? "Unnamed"}
+                <button
+                  type="button"
+                  onClick={() => onRemove(person.id)}
+                  aria-label={`Remove ${person.full_name ?? "person"}`}
+                  className="p-0.5 rounded-full cursor-pointer border-none bg-transparent text-brand hover:bg-brand/20 transition-colors"
+                >
+                  <X size={10} />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+        <div className="relative">
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setDropdownOpen(true); }}
+            onFocus={() => setDropdownOpen(true)}
+            onBlur={() => setTimeout(() => setDropdownOpen(false), 150)}
+            placeholder="Search people…"
+            className={cn(
+              "w-full text-[11.5px] rounded-md px-2.5 py-1.5 border outline-none transition-colors font-[inherit]",
+              isDark ? "bg-transparent border-white/[0.1] text-slate-200 placeholder:text-slate-500 focus:border-brand" : "bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-brand"
+            )}
+          />
+          {dropdownOpen && (
+            <div className={cn("absolute z-30 mt-1 w-full max-h-32 overflow-y-auto rounded-lg border shadow-lg", isDark ? "bg-[#171c2c] border-white/[0.08]" : "bg-white border-slate-200")}>
+              {filteredPeople.length === 0 ? (
+                <div className={cn("px-2.5 py-1.5 text-[11.5px]", textMuted)}>{staffDirectory.length === 0 ? "No staff directory entries found." : "No matches."}</div>
+              ) : (
+                filteredPeople.map((person) => (
+                  <button
+                    key={person.id}
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => { onAdd(person.id); setSearch(""); }}
+                    className={cn("w-full text-left px-2.5 py-1.5 text-[11.5px] cursor-pointer border-none bg-transparent transition-colors", isDark ? "text-slate-200 hover:bg-white/[0.06]" : "text-slate-700 hover:bg-slate-50")}
+                  >
+                    {person.full_name ?? "Unnamed"}
+                  </button>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   const renderPermissionsPanel = (f: AssetRow, roleRestricted: boolean) => (
     <div className={cn("flex flex-col gap-2 px-2.5 py-2 rounded-lg mt-1 border", isDark ? "bg-white/[0.02] border-white/[0.06]" : "bg-slate-50 border-slate-100")}>
+      <div className="flex items-center justify-between">
+        <span className={cn("text-[10px] font-semibold uppercase tracking-wide", textMuted)}>Permissions</span>
+        <button
+          type="button"
+          onClick={() => { setPermissionsOpenId(null); setFilePersonSearch(""); setFilePersonDropdownOpen(false); }}
+          aria-label="Close permissions"
+          className={cn("p-0.5 rounded-md cursor-pointer border-none bg-transparent transition-colors", textMuted, isDark ? "hover:bg-white/[0.08]" : "hover:bg-slate-200")}
+        >
+          <X size={12} />
+        </button>
+      </div>
       <div className="flex flex-wrap gap-1.5">
         <button
           type="button"
@@ -2148,77 +2676,165 @@ function StorageFileExplorer({
           );
         })}
       </div>
-      <div>
-        <div className={cn("text-[10px] font-semibold uppercase tracking-wide mb-1", textMuted)}>Share with specific people</div>
-        <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
-          {staffDirectory.length === 0 && (
-            <span className={cn("text-[11px]", textMuted)}>No staff directory entries found.</span>
-          )}
-          {staffDirectory.map((person) => {
-            const active = f.allowed_user_ids?.includes(person.id) ?? false;
+      {renderPersonPicker(
+        f.allowed_user_ids ?? [],
+        (personId) => onPermissionsChange(f.id, { allowed_user_ids: [...(f.allowed_user_ids ?? []), personId] }),
+        (personId) => onPermissionsChange(f.id, { allowed_user_ids: (f.allowed_user_ids ?? []).filter((id) => id !== personId) }),
+        filePersonSearch, setFilePersonSearch, filePersonDropdownOpen, setFilePersonDropdownOpen
+      )}
+    </div>
+  );
+
+  // Folder Permissions panel (task 144) — same role-pill + renderPersonPicker shape as
+  // renderPermissionsPanel above, targeting a folder via onFolderPermissionsChange instead.
+  const renderFolderPermissionsPanel = (folder: AssetFolder) => {
+    const roleRestricted = !!folder.allowed_roles && folder.allowed_roles.length > 0;
+    return (
+      <div className={cn("flex flex-col gap-2 px-2.5 py-2 rounded-lg mt-1 mb-1 border", isDark ? "bg-white/[0.02] border-white/[0.06]" : "bg-slate-50 border-slate-100")}>
+        <div className="flex items-center justify-between">
+          <span className={cn("text-[10px] font-semibold uppercase tracking-wide", textMuted)}>Permissions</span>
+          <button
+            type="button"
+            onClick={() => { setFolderPermissionsOpenId(null); setFolderPersonSearch(""); setFolderPersonDropdownOpen(false); }}
+            aria-label="Close permissions"
+            className={cn("p-0.5 rounded-md cursor-pointer border-none bg-transparent transition-colors", textMuted, isDark ? "hover:bg-white/[0.08]" : "hover:bg-slate-200")}
+          >
+            <X size={12} />
+          </button>
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          <button
+            type="button"
+            onClick={() => onFolderPermissionsChange(folder.id, { allowed_roles: [] })}
+            className={cn(
+              "px-2.5 py-1 rounded-full text-[11px] font-medium border cursor-pointer transition-colors",
+              !roleRestricted ? "bg-brand text-white border-brand" : "bg-transparent text-slate-500 border-slate-200 hover:border-slate-300"
+            )}
+          >
+            All
+          </button>
+          {ASSET_ROLE_OPTIONS.map((role) => {
+            const active = folder.allowed_roles?.includes(role.value) ?? false;
             return (
               <button
-                key={person.id}
+                key={role.value}
                 type="button"
                 onClick={() => {
-                  const current = f.allowed_user_ids ?? [];
-                  const next = active ? current.filter((id) => id !== person.id) : [...current, person.id];
-                  onPermissionsChange(f.id, { allowed_user_ids: next });
+                  const current = folder.allowed_roles ?? [];
+                  const next = active ? current.filter((r) => r !== role.value) : [...current, role.value];
+                  onFolderPermissionsChange(folder.id, { allowed_roles: next });
                 }}
                 className={cn(
                   "px-2.5 py-1 rounded-full text-[11px] font-medium border cursor-pointer transition-colors",
                   active ? "bg-brand text-white border-brand" : "bg-transparent text-slate-500 border-slate-200 hover:border-slate-300"
                 )}
               >
-                {person.full_name ?? "Unnamed"}
+                {role.label}
               </button>
             );
           })}
         </div>
-      </div>
-    </div>
-  );
-
-  const fileActions = (f: AssetRow) => (
-    <>
-      <button
-        type="button"
-        onClick={() => onView(f)}
-        disabled={viewingId === f.id}
-        aria-label={`View ${f.file_name}`}
-        title="View"
-        className="shrink-0 p-1 rounded-md cursor-pointer border-none bg-transparent text-brand hover:bg-brand/10 transition-colors disabled:opacity-50"
-      >
-        <Eye size={12} />
-      </button>
-      <button
-        type="button"
-        onClick={() => setPermissionsOpenId((id) => (id === f.id ? null : f.id))}
-        aria-label={`Permissions for ${f.file_name}`}
-        title="Permissions"
-        disabled={permissionsUpdatingId === f.id}
-        className={cn(
-          "shrink-0 p-1 rounded-md cursor-pointer border-none transition-colors disabled:opacity-50",
-          permissionsOpenId === f.id ? "bg-brand/15 text-brand" : cn("bg-transparent", textMuted, "hover:bg-slate-500/10")
+        {renderPersonPicker(
+          folder.allowed_user_ids ?? [],
+          (personId) => onFolderPermissionsChange(folder.id, { allowed_user_ids: [...(folder.allowed_user_ids ?? []), personId] }),
+          (personId) => onFolderPermissionsChange(folder.id, { allowed_user_ids: (folder.allowed_user_ids ?? []).filter((id) => id !== personId) }),
+          folderPersonSearch, setFolderPersonSearch, folderPersonDropdownOpen, setFolderPersonDropdownOpen
         )}
-      >
-        <Lock size={12} />
-      </button>
+      </div>
+    );
+  };
+
+  const openRenameModal = (kind: "folder" | "file", id: string, currentName: string) => {
+    setRenameTarget({ kind, id });
+    setRenameValue(currentName);
+    setRenameError(null);
+  };
+
+  const submitRename = async () => {
+    if (!renameTarget) return;
+    const value = renameValue.trim();
+    if (!value) {
+      setRenameError("Enter a name.");
+      return;
+    }
+    const ok =
+      renameTarget.kind === "folder"
+        ? await onRenameFolder(renameTarget.id, value)
+        : await onRenameAsset(renameTarget.id, value);
+    if (ok) setRenameTarget(null);
+    else setRenameError(`Failed to rename ${renameTarget.kind === "folder" ? "folder" : "file"} — the name may already be in use.`);
+  };
+
+  const fileMenu = (f: AssetRow) => (
+    <div className="relative">
       <button
         type="button"
-        onClick={() => onRemove(f.id)}
-        aria-label={`Remove ${f.file_name}`}
-        title="Remove"
-        className="shrink-0 p-1 rounded-md cursor-pointer border-none bg-transparent text-red-500 hover:bg-red-500/10 transition-colors"
+        onClick={() => setOpenFileMenuId((id) => (id === f.id ? null : f.id))}
+        aria-label={`Actions for ${f.file_name}`}
+        title="Actions"
+        className={cn("shrink-0 p-1 rounded-md cursor-pointer border-none transition-colors", textMuted, isDark ? "hover:bg-white/[0.08]" : "hover:bg-slate-200/70")}
       >
-        <Trash2 size={12} />
+        <MoreVertical size={14} />
       </button>
-    </>
+      {openFileMenuId === f.id && (
+        <div
+          className={cn(
+            "absolute right-0 top-full mt-1 z-20 w-40 rounded-lg border shadow-lg py-1 flex flex-col",
+            isDark ? "bg-[#171c2c] border-white/[0.08]" : "bg-white border-slate-200"
+          )}
+        >
+          <button
+            type="button"
+            onClick={() => { setOpenFileMenuId(null); onView(f); }}
+            disabled={viewingId === f.id}
+            className={cn("flex items-center gap-2 px-3 py-1.5 text-[12px] text-left cursor-pointer border-none bg-transparent disabled:opacity-50", textPrimary, isDark ? "hover:bg-white/[0.06]" : "hover:bg-slate-50")}
+          >
+            <Eye size={13} /> View
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setOpenFileMenuId(null);
+              setFilePersonSearch("");
+              setFilePersonDropdownOpen(false);
+              setPermissionsOpenId((id) => (id === f.id ? null : f.id));
+            }}
+            disabled={permissionsUpdatingId === f.id}
+            className={cn("flex items-center gap-2 px-3 py-1.5 text-[12px] text-left cursor-pointer border-none bg-transparent disabled:opacity-50", textPrimary, isDark ? "hover:bg-white/[0.06]" : "hover:bg-slate-50")}
+          >
+            <Lock size={13} /> Permissions
+          </button>
+          <button
+            type="button"
+            onClick={() => { setOpenFileMenuId(null); openRenameModal("file", f.id, f.file_name ?? ""); }}
+            disabled={renamingAssetId === f.id}
+            className={cn("flex items-center gap-2 px-3 py-1.5 text-[12px] text-left cursor-pointer border-none bg-transparent disabled:opacity-50", textPrimary, isDark ? "hover:bg-white/[0.06]" : "hover:bg-slate-50")}
+          >
+            <Pencil size={13} /> Rename
+          </button>
+          <button
+            type="button"
+            onClick={() => { setOpenFileMenuId(null); setMoveModalAssetIds([f.id]); }}
+            disabled={movingAssetId === f.id}
+            className={cn("flex items-center gap-2 px-3 py-1.5 text-[12px] text-left cursor-pointer border-none bg-transparent disabled:opacity-50", textPrimary, isDark ? "hover:bg-white/[0.06]" : "hover:bg-slate-50")}
+          >
+            <FolderInput size={13} /> Move to folder
+          </button>
+          <button
+            type="button"
+            onClick={() => { setOpenFileMenuId(null); onRemove(f.id); }}
+            className="flex items-center gap-2 px-3 py-1.5 text-[12px] text-left cursor-pointer border-none bg-transparent text-red-500 hover:bg-red-500/10"
+          >
+            <Trash2 size={13} /> Remove
+          </button>
+        </div>
+      )}
+    </div>
   );
 
   const uploadInput = (
     <>
-      <input ref={inputRef} type="file" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onUpload(f); e.target.value = ""; }} />
+      <input ref={inputRef} type="file" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onUpload(f, currentFolderId); e.target.value = ""; }} />
       <button
         type="button"
         onClick={() => inputRef.current?.click()}
@@ -2230,113 +2846,385 @@ function StorageFileExplorer({
     </>
   );
 
-  return (
-    <div className={cn("rounded-lg border overflow-hidden", isDark ? "border-white/[0.08]" : "border-slate-200")}>
-      {error && <p className="text-[12px] text-red-500 px-3 pt-2.5">{error}</p>}
+  const openNewFolderModal = (parentId: string | null) => {
+    setNewFolderParentId(parentId);
+    setNewFolderName("");
+    setNewFolderError(null);
+    setNewFolderModalOpen(true);
+  };
 
-      {!activeFolder ? (
-        // Level 1: folder tiles — large folder icons, Finder/Explorer icon-view style.
-        <div className="p-4">
-          {folders.length === 0 ? (
-            <div className={cn("text-[12.5px] py-8 text-center", textMuted)}>No files yet.</div>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-              {folders.map((folder) => {
-                const count = grouped.get(folder)?.length ?? 0;
-                return (
-                  <button
-                    key={folder}
-                    type="button"
-                    onClick={() => setActiveFolder(folder)}
-                    className={cn(
-                      "flex flex-col items-center gap-1.5 p-3 rounded-lg cursor-pointer border-none transition-colors",
-                      isDark ? "bg-transparent hover:bg-white/[0.06]" : "bg-transparent hover:bg-slate-100"
-                    )}
-                  >
-                    <Folder size={40} className="text-brand" fill="currentColor" fillOpacity={0.15} />
-                    <span className={cn("text-[12px] font-medium text-center truncate w-full", textPrimary)}>{folder}</span>
-                    <span className={cn("text-[10px]", textMuted)}>{count} file{count === 1 ? "" : "s"}</span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
+  const submitNewFolder = async () => {
+    const name = newFolderName.trim();
+    if (!name) {
+      setNewFolderError("Enter a folder name.");
+      return;
+    }
+    const created = await onCreateFolder(name, newFolderParentId);
+    if (created) setNewFolderModalOpen(false);
+    else setNewFolderError("Failed to create folder — it may already exist here.");
+  };
+
+  const runMove = async (targetFolderId: string | null) => {
+    if (!moveModalAssetIds) return;
+    setBulkBusy(true);
+    await Promise.all(moveModalAssetIds.map((id) => onMove(id, targetFolderId)));
+    setBulkBusy(false);
+    setMoveModalAssetIds(null);
+    setSelectedIds(new Set());
+    closeBulkSharePanel();
+  };
+
+  const runBulkDelete = async () => {
+    closeBulkSharePanel();
+    setBulkBusy(true);
+    await Promise.all(Array.from(selectedIds).map((id) => onRemove(id)));
+    setBulkBusy(false);
+    setSelectedIds(new Set());
+  };
+
+  const runBulkShare = async () => {
+    setBulkBusy(true);
+    await Promise.all(
+      Array.from(selectedIds).map((id) => onPermissionsChange(id, { allowed_roles: bulkRoles, allowed_user_ids: bulkUserIds }))
+    );
+    setBulkBusy(false);
+    setSelectedIds(new Set());
+    closeBulkSharePanel();
+  };
+
+  return (
+    <div className={cn("rounded-lg overflow-visible", isDark ? "bg-white/[0.02]" : "bg-white")}>
+      {(openFileMenuId || openFolderMenuId) && (
+        <div className="fixed inset-0 z-10" onClick={() => { setOpenFileMenuId(null); setOpenFolderMenuId(null); }} />
+      )}
+      {(error || foldersError) && <p className="text-[12px] text-red-500 px-1 pb-2">{error || foldersError}</p>}
+
+      {selectedIds.size > 0 ? (
+        <div className={cn("flex items-center gap-1 p-2 rounded-lg mb-2", isDark ? "bg-white/[0.04]" : "bg-slate-100")}>
+          <button
+            type="button"
+            onClick={() => { setSelectedIds(new Set()); closeBulkSharePanel(); }}
+            aria-label="Clear selection"
+            className={cn("p-1.5 rounded-md cursor-pointer border-none bg-transparent transition-colors", textMuted, isDark ? "hover:bg-white/[0.08]" : "hover:bg-slate-200")}
+          >
+            <X size={14} />
+          </button>
+          <span className={cn("text-[12px] font-medium mr-1", textPrimary)}>{selectedIds.size} selected</span>
+          <div className="flex-1" />
+          <button
+            type="button"
+            onClick={() => {
+              setBulkSharePanelOpen((v) => {
+                if (v) { setBulkPersonSearch(""); setBulkPersonDropdownOpen(false); }
+                return !v;
+              });
+              setBulkRoles([]);
+              setBulkUserIds([]);
+            }}
+            disabled={bulkBusy}
+            aria-label="Share"
+            title="Share"
+            className={cn("p-1.5 rounded-md cursor-pointer border-none transition-colors disabled:opacity-50", bulkSharePanelOpen ? "bg-brand/15 text-brand" : cn(textMuted, isDark ? "hover:bg-white/[0.08]" : "hover:bg-slate-200"))}
+          >
+            <Share2 size={14} />
+          </button>
+          <button
+            type="button"
+            onClick={() => { closeBulkSharePanel(); setMoveModalAssetIds(Array.from(selectedIds)); }}
+            disabled={bulkBusy}
+            aria-label="Move to folder"
+            title="Move to folder"
+            className={cn("p-1.5 rounded-md cursor-pointer border-none transition-colors disabled:opacity-50", textMuted, isDark ? "hover:bg-white/[0.08]" : "hover:bg-slate-200")}
+          >
+            <FolderInput size={14} />
+          </button>
+          <button
+            type="button"
+            onClick={runBulkDelete}
+            disabled={bulkBusy}
+            aria-label="Delete"
+            title="Delete"
+            className="p-1.5 rounded-md cursor-pointer border-none transition-colors disabled:opacity-50 text-red-500 hover:bg-red-500/10"
+          >
+            <Trash2 size={14} />
+          </button>
         </div>
       ) : (
-        // Level 2: files inside the selected folder, with a Grid/List toggle (default Grid).
-        <div className="p-3 flex flex-col gap-2 min-h-[160px]">
-          <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap mb-2">
+          <div className="flex items-center gap-1 flex-1 min-w-0">
+            {loading ? (
+              <span className={cn("text-[12px] font-medium", textMuted)}>Loading folders…</span>
+            ) : (
+              <>
+                {currentFolderId === null ? (
+                  <span className={cn("text-[12px] font-medium px-1 py-0.5 truncate max-w-[160px] opacity-60", textMuted)}>
+                    {rootLabel}
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => navigateTo(null)}
+                    className={cn("text-[12px] font-medium cursor-pointer border-none bg-transparent px-1 py-0.5 rounded transition-colors truncate max-w-[160px]", textMuted, "hover:text-brand")}
+                  >
+                    {rootLabel}
+                  </button>
+                )}
+                {breadcrumb.map((f) => (
+                  <span key={f.id} className="flex items-center gap-1">
+                    <ChevronRight size={12} className={textMuted} />
+                    <button
+                      type="button"
+                      onClick={() => navigateTo(f.id)}
+                      className={cn(
+                        "text-[12px] font-medium cursor-pointer border-none bg-transparent px-1 py-0.5 rounded transition-colors truncate max-w-[140px]",
+                        f.id === currentFolderId ? textPrimary : cn(textMuted, "hover:text-brand")
+                      )}
+                    >
+                      {f.name}
+                    </button>
+                  </span>
+                ))}
+              </>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => openNewFolderModal(currentFolderId)}
+            disabled={loading}
+            className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-md cursor-pointer border-none transition-colors text-brand hover:bg-brand/10 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <FolderPlus size={12} /> New folder
+          </button>
+          {currentFolderId !== null && (
+            <>
+              <div className={cn("flex items-center gap-0.5 p-0.5 rounded-md", isDark ? "bg-white/[0.04]" : "bg-slate-100")}>
+                <button
+                  type="button"
+                  onClick={() => setViewMode("grid")}
+                  aria-label="Grid view"
+                  title="Grid view"
+                  className={cn("p-1 rounded cursor-pointer border-none transition-colors", viewMode === "grid" ? "bg-brand/15 text-brand" : cn("bg-transparent", textMuted))}
+                >
+                  <Grid3x3 size={13} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode("list")}
+                  aria-label="List view"
+                  title="List view"
+                  className={cn("p-1 rounded cursor-pointer border-none transition-colors", viewMode === "list" ? "bg-brand/15 text-brand" : cn("bg-transparent", textMuted))}
+                >
+                  <LayoutList size={13} />
+                </button>
+              </div>
+              {uploadInput}
+            </>
+          )}
+        </div>
+      )}
+
+      {selectedIds.size > 0 && bulkSharePanelOpen && (
+        <div className={cn("flex flex-col gap-2 px-2.5 py-2 rounded-lg mb-2 border", isDark ? "bg-white/[0.02] border-white/[0.06]" : "bg-slate-50 border-slate-100")}>
+          <div className="flex flex-wrap gap-1.5">
             <button
               type="button"
-              onClick={() => setActiveFolder(null)}
-              className={cn("inline-flex items-center gap-1 text-[11.5px] font-medium px-2 py-1 rounded-md cursor-pointer border-none transition-colors", textMuted, isDark ? "hover:bg-white/[0.06]" : "hover:bg-slate-100")}
+              onClick={() => setBulkRoles([])}
+              className={cn(
+                "px-2.5 py-1 rounded-full text-[11px] font-medium border cursor-pointer transition-colors",
+                bulkRoles.length === 0 ? "bg-brand text-white border-brand" : "bg-transparent text-slate-500 border-slate-200 hover:border-slate-300"
+              )}
             >
-              <ArrowLeft size={12} /> Folders
+              All
             </button>
-            <span className={cn("text-[11.5px] font-semibold flex-1", textPrimary)}>{activeFolder}</span>
-            <div className={cn("flex items-center gap-0.5 p-0.5 rounded-md", isDark ? "bg-white/[0.04]" : "bg-slate-100")}>
-              <button
-                type="button"
-                onClick={() => setViewMode("grid")}
-                aria-label="Grid view"
-                title="Grid view"
-                className={cn(
-                  "p-1 rounded cursor-pointer border-none transition-colors",
-                  viewMode === "grid" ? "bg-brand/15 text-brand" : cn("bg-transparent", textMuted)
-                )}
-              >
-                <Grid3x3 size={13} />
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode("list")}
-                aria-label="List view"
-                title="List view"
-                className={cn(
-                  "p-1 rounded cursor-pointer border-none transition-colors",
-                  viewMode === "list" ? "bg-brand/15 text-brand" : cn("bg-transparent", textMuted)
-                )}
-              >
-                <LayoutList size={13} />
-              </button>
-            </div>
-            {uploadInput}
+            {ASSET_ROLE_OPTIONS.map((role) => {
+              const active = bulkRoles.includes(role.value);
+              return (
+                <button
+                  key={role.value}
+                  type="button"
+                  onClick={() => setBulkRoles((prev) => (active ? prev.filter((r) => r !== role.value) : [...prev, role.value]))}
+                  className={cn(
+                    "px-2.5 py-1 rounded-full text-[11px] font-medium border cursor-pointer transition-colors",
+                    active ? "bg-brand text-white border-brand" : "bg-transparent text-slate-500 border-slate-200 hover:border-slate-300"
+                  )}
+                >
+                  {role.label}
+                </button>
+              );
+            })}
           </div>
-          {uploadError && <p className="text-[11.5px] text-red-500">{uploadError}</p>}
-          {filesInFolder.length === 0 && <div className={cn("text-[11.5px] py-6 text-center", textMuted)}>No files in this folder yet.</div>}
+          {renderPersonPicker(
+            bulkUserIds,
+            (personId) => setBulkUserIds((prev) => [...prev, personId]),
+            (personId) => setBulkUserIds((prev) => prev.filter((id) => id !== personId)),
+            bulkPersonSearch, setBulkPersonSearch, bulkPersonDropdownOpen, setBulkPersonDropdownOpen
+          )}
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={runBulkShare}
+              disabled={bulkBusy}
+              className="text-[11.5px] font-medium px-2.5 py-1 rounded-md cursor-pointer border-none bg-brand text-white disabled:opacity-60"
+            >
+              Apply to {selectedIds.size} file{selectedIds.size === 1 ? "" : "s"}
+            </button>
+          </div>
+        </div>
+      )}
 
-          {viewMode === "grid" ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
-              {filesInFolder.map((f) => {
-                const { roleRestricted, restricted, permissionBadge } = getPermissionInfo(f);
-                return (
-                  <div key={f.id} className="flex flex-col">
-                    <div className={cn("flex flex-col items-center gap-1 p-2.5 rounded-lg border", isDark ? "border-white/[0.06] bg-white/[0.02]" : "border-slate-100 bg-slate-50")}>
-                      <div className="w-11 h-11 rounded-lg bg-brand/10 flex items-center justify-center">
-                        <FileText size={20} className="text-brand" />
-                      </div>
-                      <div className={cn("text-[11px] font-medium text-center line-clamp-2 w-full break-words", textPrimary)}>{f.file_name}</div>
-                      <div className={cn("text-[9.5px]", textMuted)}>{formatFileSize(f.file_size)}</div>
-                      <span className={cn(
-                        "text-[9px] rounded-full px-1.5 py-0.5 whitespace-nowrap",
-                        restricted ? (isDark ? "bg-amber-500/15 text-amber-400" : "bg-amber-50 text-amber-700") : (isDark ? "bg-white/[0.06] text-slate-400" : "bg-slate-100 text-slate-500")
-                      )}>
-                        {permissionBadge}
-                      </span>
-                      <div className="flex items-center gap-0.5 mt-1">{fileActions(f)}</div>
+      {uploadError && <p className="text-[11.5px] text-red-500 mb-1.5">{uploadError}</p>}
+
+      {loading ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2" aria-label="Loading folders and files">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className={cn("h-11 rounded-lg animate-pulse", isDark ? "bg-white/[0.04]" : "bg-slate-100")} />
+          ))}
+        </div>
+      ) : (
+        <>
+      {childFolders.length === 0 && filesHere.length === 0 && (
+        <div className={cn("text-[12.5px] py-8 text-center", textMuted)}>
+          {currentFolderId === null ? "No folders yet." : "This folder is empty."}
+        </div>
+      )}
+
+      {childFolders.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 mb-3">
+          {childFolders.map((folder) => {
+            const isEmpty = childrenOf(folder.id).length === 0 && !assets.some((a) => a.folder_id === folder.id);
+            const deleteDisabled = folder.is_system || !isEmpty || deletingFolderId === folder.id;
+            const deleteTitle = folder.is_system ? "System folders can't be deleted" : !isEmpty ? "Folder is not empty" : "Delete";
+            return (
+              <div key={folder.id} className="flex flex-col">
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => navigateTo(folder.id)}
+                    className={cn(
+                      "w-full flex items-center gap-2 px-3 py-2.5 rounded-lg cursor-pointer border-none text-left transition-colors",
+                      isDark ? "bg-white/[0.03] hover:bg-white/[0.07]" : "bg-slate-50 hover:bg-slate-100"
+                    )}
+                  >
+                    <Folder size={18} className="text-brand shrink-0" fill="currentColor" fillOpacity={0.18} />
+                    <span className={cn("text-[12px] font-medium truncate flex-1", textPrimary)}>{folder.name}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); setOpenFolderMenuId((id) => (id === folder.id ? null : folder.id)); }}
+                    aria-label={`Actions for ${folder.name}`}
+                    title="Actions"
+                    className={cn("absolute right-1.5 top-1/2 -translate-y-1/2 p-1 rounded-md cursor-pointer border-none transition-colors", textMuted, isDark ? "hover:bg-white/[0.1]" : "hover:bg-slate-200")}
+                  >
+                    <MoreVertical size={13} />
+                  </button>
+                  {openFolderMenuId === folder.id && (
+                    <div className={cn("absolute right-1 top-full mt-1 z-20 w-44 rounded-lg border shadow-lg py-1 flex flex-col", isDark ? "bg-[#171c2c] border-white/[0.08]" : "bg-white border-slate-200")}>
+                      <button
+                        type="button"
+                        onClick={() => { setOpenFolderMenuId(null); openNewFolderModal(folder.id); }}
+                        className={cn("flex items-center gap-2 px-3 py-1.5 text-[12px] text-left w-full cursor-pointer border-none bg-transparent", textPrimary, isDark ? "hover:bg-white/[0.06]" : "hover:bg-slate-50")}
+                      >
+                        <FolderPlus size={13} /> New sub-folder
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOpenFolderMenuId(null);
+                          setFolderPersonSearch("");
+                          setFolderPersonDropdownOpen(false);
+                          setFolderPermissionsOpenId((id) => (id === folder.id ? null : folder.id));
+                        }}
+                        disabled={folderPermissionsUpdatingId === folder.id}
+                        className={cn("flex items-center gap-2 px-3 py-1.5 text-[12px] text-left w-full cursor-pointer border-none bg-transparent disabled:opacity-50", textPrimary, isDark ? "hover:bg-white/[0.06]" : "hover:bg-slate-50")}
+                      >
+                        <Lock size={13} /> Permissions
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setOpenFolderMenuId(null); openRenameModal("folder", folder.id, folder.name); }}
+                        disabled={renamingFolderId === folder.id}
+                        className={cn("flex items-center gap-2 px-3 py-1.5 text-[12px] text-left w-full cursor-pointer border-none bg-transparent disabled:opacity-50", textPrimary, isDark ? "hover:bg-white/[0.06]" : "hover:bg-slate-50")}
+                      >
+                        <Pencil size={13} /> Rename
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setOpenFolderMenuId(null); onDeleteFolder(folder.id); }}
+                        disabled={deleteDisabled}
+                        title={deleteTitle}
+                        className="flex items-center gap-2 px-3 py-1.5 text-[12px] text-left w-full cursor-pointer border-none bg-transparent text-red-500 hover:bg-red-500/10 disabled:opacity-40 disabled:hover:bg-transparent disabled:cursor-not-allowed"
+                      >
+                        <Trash2 size={13} /> Delete
+                      </button>
                     </div>
-                    {permissionsOpenId === f.id && renderPermissionsPanel(f, roleRestricted)}
+                  )}
+                </div>
+                {folderPermissionsOpenId === folder.id && renderFolderPermissionsPanel(folder)}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {filesHere.length > 0 && (
+        viewMode === "grid" ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
+            {filesHere.map((f) => {
+              const { roleRestricted, restricted, permissionBadge } = getPermissionInfo(f);
+              return (
+                <div key={f.id} className="flex flex-col">
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => toggleSelect(f.id)}
+                      aria-pressed={selectedIds.has(f.id)}
+                      aria-label={`Select ${f.file_name}`}
+                      className={cn(
+                        "w-full text-left rounded-lg overflow-hidden cursor-pointer border-none transition-colors",
+                        selectedIds.has(f.id) ? (isDark ? "bg-brand/20" : "bg-brand/10") : (isDark ? "bg-white/[0.03] hover:bg-white/[0.06]" : "bg-slate-50 hover:bg-slate-100")
+                      )}
+                    >
+                      <div className="flex items-center gap-1.5 pl-2 pr-7 py-1.5">
+                        <FileText size={14} className="text-brand shrink-0" />
+                        <span className={cn("text-[11px] font-medium truncate flex-1", textPrimary)}>{f.file_name}</span>
+                      </div>
+                      <div className={cn("flex items-center justify-center h-20 mx-2 mb-2 rounded-md", isDark ? "bg-white/[0.02]" : "bg-white")}>
+                        <FileText size={28} className={textMuted} />
+                      </div>
+                      <div className="flex items-center justify-between px-2 pb-2">
+                        <span className={cn("text-[9.5px]", textMuted)}>{formatFileSize(f.file_size)}</span>
+                        <span className={cn(
+                          "text-[9px] rounded-full px-1.5 py-0.5 whitespace-nowrap",
+                          restricted ? (isDark ? "bg-amber-500/15 text-amber-400" : "bg-amber-50 text-amber-700") : (isDark ? "bg-white/[0.06] text-slate-400" : "bg-slate-100 text-slate-500")
+                        )}>
+                          {permissionBadge}
+                        </span>
+                      </div>
+                    </button>
+                    <div className="absolute top-1.5 right-1">{fileMenu(f)}</div>
                   </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="flex flex-col gap-1.5">
-              {filesInFolder.map((f) => {
-                const { roleRestricted, restricted, permissionBadge } = getPermissionInfo(f);
-                return (
-                  <div key={f.id} className="flex flex-col">
-                    <div className={cn("flex items-center gap-2 px-2.5 py-2 rounded-lg", isDark ? "bg-white/[0.03]" : "bg-slate-50")}>
+                  {permissionsOpenId === f.id && renderPermissionsPanel(f, roleRestricted)}
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="flex flex-col gap-1.5">
+            {filesHere.map((f) => {
+              const { roleRestricted, restricted, permissionBadge } = getPermissionInfo(f);
+              return (
+                <div key={f.id} className="flex flex-col">
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => toggleSelect(f.id)}
+                      aria-pressed={selectedIds.has(f.id)}
+                      aria-label={`Select ${f.file_name}`}
+                      className={cn(
+                        "w-full flex items-center gap-2 pl-2.5 pr-9 py-2 rounded-lg text-left cursor-pointer border-none transition-colors",
+                        selectedIds.has(f.id) ? (isDark ? "bg-brand/20" : "bg-brand/10") : (isDark ? "bg-white/[0.03] hover:bg-white/[0.06]" : "bg-slate-50 hover:bg-slate-100")
+                      )}
+                    >
                       <div className="w-6 h-6 rounded-md bg-brand/10 flex items-center justify-center shrink-0">
                         <FileText size={11} className="text-brand" />
                       </div>
@@ -2350,14 +3238,112 @@ function StorageFileExplorer({
                       )}>
                         {permissionBadge}
                       </span>
-                      {fileActions(f)}
-                    </div>
-                    {permissionsOpenId === f.id && renderPermissionsPanel(f, roleRestricted)}
+                    </button>
+                    <div className="absolute right-1 top-1/2 -translate-y-1/2">{fileMenu(f)}</div>
                   </div>
-                );
-              })}
+                  {permissionsOpenId === f.id && renderPermissionsPanel(f, roleRestricted)}
+                </div>
+              );
+            })}
+          </div>
+        )
+      )}
+        </>
+      )}
+
+      {newFolderModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4" onClick={() => setNewFolderModalOpen(false)}>
+          <div className={cn("w-full max-w-sm rounded-xl shadow-xl p-4", isDark ? "bg-[#121726] border border-white/[0.08]" : "bg-white border border-slate-200")} onClick={(e) => e.stopPropagation()}>
+            <div className={cn("text-[13px] font-semibold mb-2", textPrimary)}>New folder</div>
+            <input
+              autoFocus
+              value={newFolderName}
+              onChange={(e) => { setNewFolderName(e.target.value); setNewFolderError(null); }}
+              onKeyDown={(e) => { if (e.key === "Enter") submitNewFolder(); }}
+              placeholder="Folder name"
+              className={cn(
+                "w-full text-sm rounded-[9px] px-3 py-2 border-[1.5px] outline-none transition-colors font-[inherit] mb-2",
+                isDark ? "bg-transparent border-white/[0.12] text-slate-200 placeholder:text-slate-500 focus:border-brand" : "bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-brand"
+              )}
+            />
+            {newFolderError && <p className="text-[11.5px] text-red-500 mb-2">{newFolderError}</p>}
+            <div className="flex justify-end gap-2">
+              <button type="button" onClick={() => setNewFolderModalOpen(false)} className={cn("text-[12px] font-medium px-3 py-1.5 rounded-md cursor-pointer border-none bg-transparent", textMuted)}>
+                Cancel
+              </button>
+              <button type="button" onClick={submitNewFolder} disabled={creatingFolder} className="text-[12px] font-medium px-3 py-1.5 rounded-md cursor-pointer border-none bg-brand text-white disabled:opacity-60">
+                {creatingFolder ? "Creating…" : "Create"}
+              </button>
             </div>
-          )}
+          </div>
+        </div>
+      )}
+
+      {renameTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4" onClick={() => setRenameTarget(null)}>
+          <div className={cn("w-full max-w-sm rounded-xl shadow-xl p-4", isDark ? "bg-[#121726] border border-white/[0.08]" : "bg-white border border-slate-200")} onClick={(e) => e.stopPropagation()}>
+            <div className={cn("text-[13px] font-semibold mb-2", textPrimary)}>Rename {renameTarget.kind === "folder" ? "folder" : "file"}</div>
+            <input
+              autoFocus
+              value={renameValue}
+              onChange={(e) => { setRenameValue(e.target.value); setRenameError(null); }}
+              onKeyDown={(e) => { if (e.key === "Enter") submitRename(); }}
+              placeholder={renameTarget.kind === "folder" ? "Folder name" : "File name"}
+              className={cn(
+                "w-full text-sm rounded-[9px] px-3 py-2 border-[1.5px] outline-none transition-colors font-[inherit] mb-2",
+                isDark ? "bg-transparent border-white/[0.12] text-slate-200 placeholder:text-slate-500 focus:border-brand" : "bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-brand"
+              )}
+            />
+            {renameError && <p className="text-[11.5px] text-red-500 mb-2">{renameError}</p>}
+            {(() => {
+              const renameBusy = renameTarget.kind === "folder" ? renamingFolderId === renameTarget.id : renamingAssetId === renameTarget.id;
+              return (
+                <div className="flex justify-end gap-2">
+                  <button type="button" onClick={() => setRenameTarget(null)} className={cn("text-[12px] font-medium px-3 py-1.5 rounded-md cursor-pointer border-none bg-transparent", textMuted)}>
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={submitRename}
+                    disabled={renameBusy}
+                    className="text-[12px] font-medium px-3 py-1.5 rounded-md cursor-pointer border-none bg-brand text-white disabled:opacity-60"
+                  >
+                    {renameBusy ? "Saving…" : "Save"}
+                  </button>
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      )}
+
+      {moveModalAssetIds && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4" onClick={() => setMoveModalAssetIds(null)}>
+          <div className={cn("w-full max-w-sm rounded-xl shadow-xl p-4 max-h-[70vh] overflow-y-auto", isDark ? "bg-[#121726] border border-white/[0.08]" : "bg-white border border-slate-200")} onClick={(e) => e.stopPropagation()}>
+            <div className={cn("text-[13px] font-semibold mb-2", textPrimary)}>
+              Move {moveModalAssetIds.length} file{moveModalAssetIds.length === 1 ? "" : "s"} to…
+            </div>
+            <div className="flex flex-col gap-0.5">
+              {folderTreeFlat.map(({ folder, depth }) => (
+                <button
+                  key={folder.id}
+                  type="button"
+                  onClick={() => runMove(folder.id)}
+                  disabled={bulkBusy}
+                  style={{ paddingLeft: `${8 + depth * 16}px` }}
+                  className={cn("flex items-center gap-1.5 py-1.5 pr-2 rounded-md text-left cursor-pointer border-none bg-transparent transition-colors disabled:opacity-50", textPrimary, isDark ? "hover:bg-white/[0.06]" : "hover:bg-slate-50")}
+                >
+                  <Folder size={13} className="text-brand shrink-0" />
+                  <span className="text-[12px] truncate">{folder.name}</span>
+                </button>
+              ))}
+            </div>
+            <div className="flex justify-end mt-2">
+              <button type="button" onClick={() => setMoveModalAssetIds(null)} className={cn("text-[12px] font-medium px-3 py-1.5 rounded-md cursor-pointer border-none bg-transparent", textMuted)}>
+                Cancel
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -63,7 +63,7 @@ export async function POST() {
     const { data: existing } = await adminClient
       .from("projects")
       .select("id")
-      .eq("zoho_project_id", zohoId)
+      .eq("external_project_id", zohoId)
       .maybeSingle();
 
     if (!existing) {
@@ -86,7 +86,7 @@ export async function POST() {
         status: newStatus,
         description: p.description ?? null,
         created_by: null,
-        zoho_project_id: zohoId,
+        external_project_id: zohoId,
         dedicated_developers: [],
         start_date: p.start_date ?? null,
         end_date: p.end_date ?? null,
@@ -153,7 +153,7 @@ export async function POST() {
           project_type_source: updateTypeInference.source,
         },
       })
-      .eq("zoho_project_id", zohoId);
+      .eq("external_project_id", zohoId);
 
     if (error) {
       result.errors.push(`project ${zohoId}: ${error.message}`);

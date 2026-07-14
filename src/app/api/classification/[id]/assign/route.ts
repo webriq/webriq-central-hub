@@ -62,17 +62,17 @@ export async function POST(
 
   const { data: project } = await adminClient
     .from("projects")
-    .select("zoho_project_id")
+    .select("external_project_id")
     .eq("customer_id", customer_id)
-    .not("zoho_project_id", "is", null)
+    .not("external_project_id", "is", null)
     .limit(1)
     .single();
 
-  if (!project?.zoho_project_id) {
+  if (!project?.external_project_id) {
     return NextResponse.json({ error: "no_zoho_project" }, { status: 400 });
   }
 
-  const projectId = project.zoho_project_id;
+  const projectId = project.external_project_id;
   const portalId = process.env.ZOHO_PORTAL_ID ?? "";
 
   // Resolve project-level zpuid for each developer; batch-add missing ones

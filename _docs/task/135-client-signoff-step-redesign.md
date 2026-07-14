@@ -203,3 +203,70 @@ pnpm dev
 
 - New Supabase migration (additive `INSERT ... ON CONFLICT DO NOTHING` backfill, no schema change) — apply via `supabase db push --linked` per this repo's established pattern for this exact kind of backfill (tasks 129/130).
 - No API contract changes, no new packages.
+
+## Implementation Notes
+
+### What Changed
+- `client-signoff` (Step 7 of 7) now renders a `RichTextField` ("Sign-off call notes") +
+  either/or `FileUploadBox` ("Upload the signed agreement instead"), byte-for-byte the same
+  `grid grid-cols-1 lg:grid-cols-[1fr_auto_280px]` layout as Outcome Target/Migration
+  Checklist/Content Map, autosaving to `wizard_data["client-signoff"].signoffNotes` via the
+  existing generic wizard-data PATCH route (2s debounce, skip-if-unchanged), with a
+  `SaveIndicator` in the step heading and an `Eye`-icon in-app viewer via the shared
+  `viewerFile`/`viewerUrl` state.
+- Two new internal-deliverable checklist items (`signoff-call-held`, `signoff-agreement-filed`)
+  added, mapped to `subPhaseKey: "client-signoff"` — gives the step the same
+  checklist-driven auto-status-derivation every other checklist-bearing step already has.
+- `handleComplete` now gates on `isSignoffFilled` (notes text or an attached file): if empty,
+  sets `signoffFieldError` and returns before calling `complete-phase`, showing an inline error
+  under the field — mirroring Outcome Target's `handleContinueClick` gate, adapted to the
+  terminal "Complete Phase 1 & notify PM" action per the task's explicit "harder block, not
+  routed through `showIncompleteModal`" requirement.
+- Uploads reuse the two-call `assets/upload` → `assets` flow, tagged `phase_number: 1`,
+  `project_id: project.id`, `label: "Signed Agreement"`.
+
+### Files Changed
+- `src/config/customer-phases.ts` — added `signoff-call-held`/`signoff-agreement-filed` to
+  `INTERNAL_DELIVERABLES`.
+- `supabase/migrations/069_backfill_client_signoff_internal_deliverables.sql` — created;
+  next available migration number was 069 (068 was the last applied at implementation time),
+  not the `0NN` placeholder in the original file-changes table. Structure copied verbatim from
+  migration 062's cross-join-of-values pattern (closer match for 2 new keys than migration
+  063's single-key version the task doc sketched) — same `insert ... select distinct
+  oid.project_id, k.deliverable_key from onboarding_internal_deliverables oid cross join
+  (values (...)) on conflict do nothing` shape, no `status`/`customer_phases` join (that
+  table/column combination in the task doc's sketch doesn't match the real schema — mirrored
+  the two already-applied migrations instead, per the doc's own "confirm against the live
+  schema, task 130's migration is canonical" instruction).
+- `src/app/v2/(hub)/onboarding/[projectId]/_onboarding-wizard.tsx` — added
+  `clientSignoffData` derivation, `signoffFieldError` state, the `signoffNotes`/`signoffFiles`/
+  `uploadingSignoffFile`/`signoffUploadError`/`viewingSignoffFileId`/`isSignoffFilled` state
+  block, `signoffSaveStatus`/`signoffLastSavedAt`/`signoffSaveError` +
+  `lastSignoffSavedRef`/`signoffSaveRef`, the debounced autosave `useEffect`,
+  `handleSignoffUpload`/`handleRemoveSignoffFile`/`handleViewSignoffFile` (placed right before
+  the pre-existing `handleHtmlMockupUpload`), the `handleComplete` gate, the heading
+  `SaveIndicator` condition, and the `step.key === "client-signoff"` render block (placed
+  between the `content-map` and `html-mockup` blocks — render-block order in this file doesn't
+  need to match step/day order since only one `step.key === ...` block is ever active).
+
+### Deviations From Plan
+- Migration numbered `069`, not the doc's `0NN` placeholder — determined at implementation time
+  per the doc's own instruction (068 was the latest applied migration).
+- Migration body follows migration 062's structure (cross join of a `(values ...)` list against
+  existing `onboarding_internal_deliverables` rows) rather than the doc's sketch (which joined
+  `customer_phases` and set an explicit `'pending'` status) — the sketch's shape doesn't match
+  what's actually in this repo; migrations 062/063 (both already applied and confirmed working)
+  were the real canonical examples, exactly as the doc itself flagged.
+- No effect loads previously-uploaded `signoffFiles` from `customer_assets` by label on mount —
+  this matches the existing, unchanged behavior of every other file-upload field in this same
+  file (Outcome Target/Migration Checklist/Content Map/HTML Mockup all have the identical gap;
+  see `handleContinueClick`'s own comment on this). Not introduced by this task and out of scope
+  to fix here; text-based autosave (`signoffNotes`) does reload correctly on mount as required.
+
+### Verification Run
+- `npx tsc --noEmit` — PASS
+- `pnpm lint` — PASS
+- Manual browser verification (dev server, Phase 1 project on Step 7, backfill migration
+  applied against the linked Supabase project) — SKIPPED (no test credentials/live Supabase
+  session available in this environment; left to the user per this repo's established pattern
+  for auth-gated manual QA, same as tasks 121/124/126/129 etc.)

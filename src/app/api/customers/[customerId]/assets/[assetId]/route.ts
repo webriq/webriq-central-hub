@@ -34,16 +34,26 @@ export async function PATCH(
     const body = await request.json();
     const allowedRoles = body.allowed_roles;
     const allowedUserIds = body.allowed_user_ids;
+    const folderId = body.folder_id;
+    const fileName = body.file_name;
     const hasRoles = allowedRoles !== undefined;
     const hasUserIds = allowedUserIds !== undefined;
+    const hasFolderId = folderId !== undefined;
+    const hasFileName = fileName !== undefined;
     if (hasRoles && (!Array.isArray(allowedRoles) || !allowedRoles.every((r) => typeof r === "string"))) {
       return NextResponse.json({ error: "allowed_roles must be a string[]" }, { status: 400 });
     }
     if (hasUserIds && (!Array.isArray(allowedUserIds) || !allowedUserIds.every((r) => typeof r === "string"))) {
       return NextResponse.json({ error: "allowed_user_ids must be a string[]" }, { status: 400 });
     }
-    if (!hasRoles && !hasUserIds) {
-      return NextResponse.json({ error: "allowed_roles and/or allowed_user_ids is required" }, { status: 400 });
+    if (hasFolderId && folderId !== null && typeof folderId !== "string") {
+      return NextResponse.json({ error: "folder_id must be a string or null" }, { status: 400 });
+    }
+    if (hasFileName && (typeof fileName !== "string" || !fileName.trim())) {
+      return NextResponse.json({ error: "file_name must be a non-empty string" }, { status: 400 });
+    }
+    if (!hasRoles && !hasUserIds && !hasFolderId && !hasFileName) {
+      return NextResponse.json({ error: "allowed_roles, allowed_user_ids, folder_id, and/or file_name is required" }, { status: 400 });
     }
 
     const { data: existing, error: fetchError } = await supabase
@@ -64,9 +74,14 @@ export async function PATCH(
       return NextResponse.json({ error: "Not permitted to modify this asset" }, { status: 403 });
     }
 
-    const updates: { allowed_roles?: string[] | null; allowed_user_ids?: string[] | null } = {};
+    const updates: {
+      allowed_roles?: string[] | null; allowed_user_ids?: string[] | null;
+      folder_id?: string | null; file_name?: string;
+    } = {};
     if (hasRoles) updates.allowed_roles = allowedRoles.length > 0 ? allowedRoles : null;
     if (hasUserIds) updates.allowed_user_ids = allowedUserIds.length > 0 ? allowedUserIds : null;
+    if (hasFolderId) updates.folder_id = folderId;
+    if (hasFileName) updates.file_name = fileName.trim();
 
     const { data: updated, error: updateError } = await supabase
       .from("customer_assets")

@@ -59,8 +59,8 @@ export async function POST(req: Request) {
   // Fetch all Hub projects that have a Zoho project ID
   const { data: projects, error: projectsError } = await adminClient
     .from("projects")
-    .select("id, zoho_project_id")
-    .not("zoho_project_id", "is", null);
+    .select("id, external_project_id")
+    .not("external_project_id", "is", null);
 
   if (projectsError) return NextResponse.json({ error: projectsError.message }, { status: 500 });
 
@@ -72,7 +72,7 @@ export async function POST(req: Request) {
   const errors: string[] = [];
 
   for (const project of (projects ?? [])) {
-    const zohoProjectId = String(project.zoho_project_id);
+    const zohoProjectId = String(project.external_project_id);
     const url = `${BASE}/projects/${zohoProjectId}/tasklists`;
 
     let res: Response;
