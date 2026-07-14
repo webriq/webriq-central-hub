@@ -21,6 +21,9 @@ import OnboardingWizard from "./_onboarding-wizard";
 
 interface OnboardingDetailProps {
   project: { id: string; name: string; customer_id: string; project_id: string | null; company_name: string };
+  // Task 146: pm/developer can view the Timeline read-only; pm additionally gets the Wizard
+  // (read-only on steps 1-5/7, full Step 6 file/folder access) — developer never opens it.
+  role: string | null;
 }
 
 // ─── Gantt grid constants ─────────────────────────────────────────────────────
@@ -427,7 +430,7 @@ function DeliverableCard({
 
 function Swimlane({
   phase, dbStatus, deliverableStatusMap, internalByKey, collapsed, onToggleCollapse,
-  onOpenWizardStep, expandedDeliverable, onExpandDeliverable, index, startDate,
+  onOpenWizardStep, expandedDeliverable, onExpandDeliverable, index, startDate, role,
 }: {
   phase: PhaseConfig;
   dbStatus: string;
@@ -440,9 +443,11 @@ function Swimlane({
   onExpandDeliverable: (key: string | null) => void;
   index: number;
   startDate: Date;
+  role: string | null;
 }) {
   const visual = PHASE_VISUALS[phase.number];
-  const interactive = phase.number === 1;
+  // Developer never opens the Wizard (task 146) — Phase 1 bars stay inert for that role.
+  const interactive = phase.number === 1 && role !== "developer";
   const tracks = assignTracks(phase.deliverables.map((d) => ({ dayStart: d.dayStart, dayEnd: d.dayEnd })));
   const trackCount = tracks.length > 0 ? Math.max(...tracks) + 1 : 1;
   const laneHeight = trackCount * ROW_HEIGHT + (trackCount - 1) * ROW_GAP + 8 + LANE_TOP_PADDING;
@@ -560,8 +565,13 @@ function StatChip({ label, value }: { label: string; value: string | number }) {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export default function OnboardingDetail({ project }: OnboardingDetailProps) {
+export default function OnboardingDetail({ project, role }: OnboardingDetailProps) {
   const router = useRouter();
+  // Task 146: marketing/admin/super_admin keep full phase-management actions (Start/Jump);
+  // pm/developer are view-only at the phase-status level — pm's one write surface is Step 6's
+  // file/folder actions inside the Wizard, not anything here on the Timeline.
+  const canManagePhases = role !== "pm" && role !== "developer";
+  const canOpenWizard = role !== "developer";
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -718,6 +728,7 @@ export default function OnboardingDetail({ project }: OnboardingDetailProps) {
           wizardData={(phases.find((p) => p.phase_number === 1)?.wizard_data as Record<string, unknown>) ?? {}}
           currentDay={programmeStartedAt ? getCurrentProgrammeDay(programmeStartedAt) : 1}
           isDark={false}
+          role={role}
           initialStepKey={wizardStartStepKey}
           onBack={() => { setWizardOpen(false); setWizardStartStepKey(undefined); fetchProgramme(); }}
           onDeliverableChange={(updated) => setDeliverables((prev) => prev.map((d) => (d.id === updated.id ? updated : d)))}
@@ -748,17 +759,21 @@ export default function OnboardingDetail({ project }: OnboardingDetailProps) {
             Start the 120-day programme to begin tracking Phase 1 — or jump straight to whichever phase they&apos;re actually starting from.
           </p>
           {error && <p className="mb-3 text-xs text-[#DC2626]">{error}</p>}
-          <div className="flex items-center justify-center gap-2">
-            <button
-              type="button"
-              onClick={handleStart}
-              disabled={starting}
-              className="inline-flex cursor-pointer items-center gap-1.5 rounded-[9px] border-none bg-[#2563EB] px-4 py-2 text-[13px] font-semibold text-white shadow-[0_2px_10px_rgba(37,99,235,0.3)] transition-opacity hover:opacity-90 disabled:opacity-50"
-            >
-              <PlayCircle size={15} /> {starting ? "Starting…" : "Start Onboarding"}
-            </button>
-            <JumpToPhaseMenu open={jumpOpen} setOpen={setJumpOpen} note={jumpNote} setNote={setJumpNote} onJump={handleJump} jumping={jumping} />
-          </div>
+          {canManagePhases ? (
+            <div className="flex items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={handleStart}
+                disabled={starting}
+                className="inline-flex cursor-pointer items-center gap-1.5 rounded-[9px] border-none bg-[#2563EB] px-4 py-2 text-[13px] font-semibold text-white shadow-[0_2px_10px_rgba(37,99,235,0.3)] transition-opacity hover:opacity-90 disabled:opacity-50"
+              >
+                <PlayCircle size={15} /> {starting ? "Starting…" : "Start Onboarding"}
+              </button>
+              <JumpToPhaseMenu open={jumpOpen} setOpen={setJumpOpen} note={jumpNote} setNote={setJumpNote} onJump={handleJump} jumping={jumping} />
+            </div>
+          ) : (
+            <p className="text-[12.5px] text-[#94A3B8]">Not started yet — Marketing manages the programme start date.</p>
+          )}
         </div>
       </div>
     );
@@ -822,8 +837,10 @@ export default function OnboardingDetail({ project }: OnboardingDetailProps) {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <JumpToPhaseMenu open={jumpOpen} setOpen={setJumpOpen} note={jumpNote} setNote={setJumpNote} onJump={handleJump} jumping={jumping} />
-              {!isComplete && activePhaseNumber === 1 && (
+              {canManagePhases && (
+                <JumpToPhaseMenu open={jumpOpen} setOpen={setJumpOpen} note={jumpNote} setNote={setJumpNote} onJump={handleJump} jumping={jumping} />
+              )}
+              {!isComplete && activePhaseNumber === 1 && canOpenWizard && (
                 <button
                   type="button"
                   onClick={() => { setWizardStartStepKey(undefined); setWizardOpen(true); }}
@@ -935,6 +952,7 @@ export default function OnboardingDetail({ project }: OnboardingDetailProps) {
                   onExpandDeliverable={setExpandedDeliverable}
                   index={index}
                   startDate={startDate}
+                  role={role}
                 />
               ))}
             </div>

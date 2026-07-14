@@ -85,6 +85,9 @@ interface OnboardingWizardProps {
   wizardData: Record<string, unknown>;
   currentDay: number;
   isDark: boolean;
+  // Task 146: pm gets read-only steps 1-5/7, full Step 6 file/folder access, no checklist
+  // editing anywhere, and no Complete Phase 1 action. Developer never reaches this component.
+  role: string | null;
   initialStepKey?: string;
   onBack: () => void;
   onDeliverableChange: (updated: CustomerDeliverableRow) => void;
@@ -151,7 +154,7 @@ const phase1 = getPhaseByNumber(1);
 const STEPS = phase1.deliverables; // 7 sub-phases, in day order
 
 export default function OnboardingWizard({
-  project, deliverables, internalDeliverables, wizardData, currentDay, isDark, initialStepKey,
+  project, deliverables, internalDeliverables, wizardData, currentDay, isDark, role, initialStepKey,
   onBack, onDeliverableChange, onInternalDeliverableChange,
 }: OnboardingWizardProps) {
   const [stepIdx, setStepIdx] = useState(() => {
@@ -353,6 +356,13 @@ export default function OnboardingWizard({
   const stepStatus = stepRow?.status ?? "pending";
   const stepInternal = internalDeliverablesForSubPhase(step.key);
   const isLastStep = stepIdx === STEPS.length - 1;
+
+  // Task 146: pm gets read-only fields on every step except storage-kb (Step 6, where file/
+  // folder management stays live), and can never edit any checklist item (including Step 6's
+  // own) or complete Phase 1 — that stays marketing/admin/super_admin-only.
+  const isPM = role === "pm";
+  const isStepReadOnly = isPM && step.key !== "storage-kb";
+  const canEditChecklist = !isPM;
 
   const doneCount = localDeliverables.filter((d) => d.status === "done").length;
 
@@ -1341,6 +1351,7 @@ export default function OnboardingWizard({
   // step's checklist items (not just Kickoff's original two) since it's a no-op passthrough to
   // setInternalStatus for any key it doesn't specifically validate.
   const handleValidatedInternalToggle = (key: string, currentStatus: string) => {
+    if (!canEditChecklist) return; // pm: checklist is locked on every step (task 146)
     const target = toggleInternalStatus(currentStatus);
     if (target === "done") {
       if (key === "kickoff-contacts-confirmed" && !isContactsValid) {
@@ -1375,27 +1386,31 @@ export default function OnboardingWizard({
   // text-or-file either/or, so isn't blocked by the same file-hydration gap in the common case
   // where at least some text was saved).
   const handleContinueClick = () => {
-    if (step.key === "outcome-target" && !isOutcomeFilled) {
-      setOutcomeFieldError(true);
-      return;
-    }
-    if (step.key === "migration-checklist" && !isMigrationChecklistFilled) {
-      setMigrationChecklistFieldError(true);
-      return;
-    }
-    if (step.key === "content-map" && !isContentMapFilled) {
-      setContentMapFieldError(true);
-      return;
-    }
-    if (stepInternal.length > 0) {
-      const incomplete = stepInternal.filter((item) => {
-        const row = localInternal.find((r) => r.deliverable_key === item.key);
-        return (row?.status ?? "pending") !== "done";
-      });
-      if (incomplete.length > 0) {
-        setIncompleteItems(incomplete);
-        setShowIncompleteModal(true);
+    // pm can't fill in any of these gated fields/checklists (read-only), so none of these
+    // guards can ever be satisfied for that role — skip straight to navigating (task 146).
+    if (!isPM) {
+      if (step.key === "outcome-target" && !isOutcomeFilled) {
+        setOutcomeFieldError(true);
         return;
+      }
+      if (step.key === "migration-checklist" && !isMigrationChecklistFilled) {
+        setMigrationChecklistFieldError(true);
+        return;
+      }
+      if (step.key === "content-map" && !isContentMapFilled) {
+        setContentMapFieldError(true);
+        return;
+      }
+      if (stepInternal.length > 0) {
+        const incomplete = stepInternal.filter((item) => {
+          const row = localInternal.find((r) => r.deliverable_key === item.key);
+          return (row?.status ?? "pending") !== "done";
+        });
+        if (incomplete.length > 0) {
+          setIncompleteItems(incomplete);
+          setShowIncompleteModal(true);
+          return;
+        }
       }
     }
     setStepIdx((s) => s + 1);
@@ -1597,7 +1612,7 @@ export default function OnboardingWizard({
         {step.key === "kickoff" && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-4 mb-5">
             <div className="flex flex-col gap-4">
-              <ContactsField contacts={contacts} onChange={setContacts} isDark={isDark} hasError={contactsFieldError && !isContactsValid} />
+              <ContactsField contacts={contacts} onChange={setContacts} isDark={isDark} hasError={contactsFieldError && !isContactsValid} disabled={isStepReadOnly} />
               <div>
                 <label className={kickoffLabelCls}>Current website URL</label>
                 <input
@@ -1606,6 +1621,7 @@ export default function OnboardingWizard({
                   onBlur={() => setWebsiteUrlError(websiteUrl.trim() && !isValidUrl(websiteUrl.trim()) ? "Enter a full URL starting with http:// or https://" : null)}
                   placeholder="https://client.com"
                   className={kickoffInputCls}
+                  disabled={isStepReadOnly}
                 />
                 <p className={cn("text-[11px] mt-1", textMuted)}>Leave blank if none.</p>
                 {websiteUrlError && <p className="text-[11px] text-red-500 mt-1">{websiteUrlError}</p>}
@@ -1627,6 +1643,7 @@ export default function OnboardingWizard({
                   onRemove={(i) => setCompetitorUrls((c) => c.filter((_, j) => j !== i))}
                   placeholder="https://competitor.com"
                   isDark={isDark}
+                  disabled={isStepReadOnly}
                 />
                 {competitorInputError && <p className="text-[11px] text-red-500 mt-1">{competitorInputError}</p>}
               </div>
@@ -1642,9 +1659,10 @@ export default function OnboardingWizard({
                   minHeightClass="min-h-[104px]"
                   maxHeightClass="max-h-[280px]"
                   hasError={businessFactsFieldError && !isBusinessFactsFilled}
+                  disabled={isStepReadOnly}
                 />
                 {businessFactsUploadError && <p className="text-[12px] text-red-500 mt-2">{businessFactsUploadError}</p>}
-                <FileUploadBox files={businessFactsFiles} uploading={uploadingBusinessFacts} onFile={handleBusinessFactsUpload} onRemove={handleRemoveBusinessFactsFile} isDark={isDark} />
+                <FileUploadBox files={businessFactsFiles} uploading={uploadingBusinessFacts} onFile={handleBusinessFactsUpload} onRemove={handleRemoveBusinessFactsFile} isDark={isDark} disabled={isStepReadOnly} />
               </div>
               <RichTextField
                 label="Additional Notes"
@@ -1654,6 +1672,7 @@ export default function OnboardingWizard({
                 isDark={isDark}
                 minHeightClass="min-h-[80px]"
                 maxHeightClass="max-h-[220px]"
+                disabled={isStepReadOnly}
               />
             </div>
           </div>
@@ -1808,6 +1827,7 @@ export default function OnboardingWizard({
                 minHeightClass="min-h-[220px]"
                 maxHeightClass="max-h-[420px]"
                 hasError={outcomeFieldError && !isOutcomeFilled}
+                disabled={isStepReadOnly}
               />
               {outcomeFieldError && !isOutcomeFilled && (
                 <p className="text-[11px] text-red-500 mt-1">Add the agreed measurable outcomes — text or an attached document — before continuing.</p>
@@ -1830,6 +1850,7 @@ export default function OnboardingWizard({
                 onView={handleViewOutcomeFile}
                 viewingId={viewingOutcomeFileId}
                 isDark={isDark}
+                disabled={isStepReadOnly}
               />
             </div>
           </div>
@@ -1847,6 +1868,7 @@ export default function OnboardingWizard({
                 minHeightClass="min-h-[220px]"
                 maxHeightClass="max-h-[420px]"
                 hasError={migrationChecklistFieldError && !isMigrationChecklistFilled}
+                disabled={isStepReadOnly}
               />
               {migrationChecklistFieldError && !isMigrationChecklistFilled && (
                 <p className="text-[11px] text-red-500 mt-1">Add the migration checklist / audit notes — text or an attached document — before continuing.</p>
@@ -1869,6 +1891,7 @@ export default function OnboardingWizard({
                 onView={handleViewMigrationChecklistFile}
                 viewingId={viewingMigrationChecklistFileId}
                 isDark={isDark}
+                disabled={isStepReadOnly}
               />
             </div>
           </div>
@@ -1886,6 +1909,7 @@ export default function OnboardingWizard({
                 minHeightClass="min-h-[220px]"
                 maxHeightClass="max-h-[420px]"
                 hasError={contentMapFieldError && !isContentMapFilled}
+                disabled={isStepReadOnly}
               />
               {contentMapFieldError && !isContentMapFilled && (
                 <p className="text-[11px] text-red-500 mt-1">Add the content clusters and publishing schedule — text or an attached document — before continuing.</p>
@@ -1908,6 +1932,7 @@ export default function OnboardingWizard({
                 onView={handleViewContentMapFile}
                 viewingId={viewingContentMapFileId}
                 isDark={isDark}
+                disabled={isStepReadOnly}
               />
             </div>
           </div>
@@ -1924,6 +1949,7 @@ export default function OnboardingWizard({
                 isDark={isDark}
                 minHeightClass="min-h-[220px]"
                 maxHeightClass="max-h-[420px]"
+                disabled={isStepReadOnly}
               />
             </div>
             <div className="hidden lg:flex flex-col items-center gap-2 px-1 pt-1">
@@ -1943,6 +1969,7 @@ export default function OnboardingWizard({
                 onView={handleViewSignoffFile}
                 viewingId={viewingSignoffFileId}
                 isDark={isDark}
+                disabled={isStepReadOnly}
               />
             </div>
           </div>
@@ -1962,6 +1989,7 @@ export default function OnboardingWizard({
               onEdit={handleOpenHtmlEditor}
               viewingId={viewingHtmlMockupFileId}
               isDark={isDark}
+              disabled={isStepReadOnly}
             />
           </div>
         )}
@@ -1985,8 +2013,11 @@ export default function OnboardingWizard({
                   <button
                     key={id.key}
                     onClick={() => handleValidatedInternalToggle(id.key, iStatus)}
-                    disabled={togglingKey === `internal-${id.key}`}
-                    className="w-full flex items-center gap-2 py-1 bg-transparent border-none cursor-pointer text-left disabled:opacity-60"
+                    disabled={togglingKey === `internal-${id.key}` || !canEditChecklist}
+                    className={cn(
+                      "w-full flex items-center gap-2 py-1 bg-transparent border-none text-left disabled:opacity-60",
+                      canEditChecklist ? "cursor-pointer" : "cursor-default"
+                    )}
                   >
                     {iStatus === "done" ? <CheckCircle2 size={13} className="text-green-500" /> : iStatus === "in_progress" ? <Clock size={13} className="text-blue-500" /> : <Circle size={13} className={textMuted} />}
                     <span className={cn("text-[12px]", iStatus === "done" ? cn(textMuted, "line-through") : textPrimary)}>{id.name}</span>
@@ -2000,7 +2031,7 @@ export default function OnboardingWizard({
           )}
         </div>
 
-        {isLastStep && (
+        {isLastStep && !isPM && (
           <div className="mt-5">
             {doneCount < localDeliverables.length && (
               <div className={cn("flex gap-2.5 p-3 rounded-lg border mb-4 text-[12px]", isDark ? "border-amber-500/25 bg-amber-500/10 text-amber-300" : "border-amber-200 bg-amber-50 text-amber-800")}>
@@ -2017,7 +2048,7 @@ export default function OnboardingWizard({
       </div>
 
       <div className={cn(cardCls, "p-4")}>
-        {isLastStep && completeError && <p className="text-[12px] text-red-500 mb-3">{completeError}</p>}
+        {isLastStep && !isPM && completeError && <p className="text-[12px] text-red-500 mb-3">{completeError}</p>}
         <div className="flex items-center justify-between">
           <button
             onClick={() => (stepIdx === 0 ? onBack() : setStepIdx((s) => s - 1))}
@@ -2030,6 +2061,10 @@ export default function OnboardingWizard({
             <button onClick={handleContinueClick} className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-white bg-brand rounded-lg px-4 py-2 hover:opacity-90 transition-opacity border-none cursor-pointer">
               Continue <ArrowRight size={14} />
             </button>
+          ) : isPM ? (
+            // pm can view every step but never completes Phase 1 — that's Marketing/Admin/
+            // Super Admin's call, gated server-side too (complete-phase route, task 146).
+            <span className={cn("text-[12px]", textMuted)}>Only Marketing/Admin can complete Phase 1</span>
           ) : (
             <button
               onClick={handleComplete}
@@ -2135,10 +2170,11 @@ export default function OnboardingWizard({
 }
 
 function TagField({
-  label, tags, input, setInput, onAdd, onRemove, placeholder, isDark,
+  label, tags, input, setInput, onAdd, onRemove, placeholder, isDark, disabled,
 }: {
   label: string; tags: string[]; input: string; setInput: (v: string) => void;
   onAdd: () => void; onRemove: (i: number) => void; placeholder?: string; isDark: boolean;
+  disabled?: boolean;
 }) {
   return (
     <div>
@@ -2148,47 +2184,52 @@ function TagField({
           {tags.map((t, i) => (
             <span key={i} className="inline-flex items-center gap-1.5 text-[12px] font-medium text-brand bg-brand/10 rounded-md px-2.5 py-1">
               {t}
-              <button onClick={() => onRemove(i)} className="bg-transparent border-none cursor-pointer text-brand p-0 flex" aria-label={`Remove ${t}`}>
-                <Trash2 size={10} />
-              </button>
+              {!disabled && (
+                <button onClick={() => onRemove(i)} className="bg-transparent border-none cursor-pointer text-brand p-0 flex" aria-label={`Remove ${t}`}>
+                  <Trash2 size={10} />
+                </button>
+              )}
             </span>
           ))}
         </div>
       )}
-      <div className="flex gap-2">
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); onAdd(); } }}
-          placeholder={placeholder}
-          className={cn(
-            "flex-1 text-sm rounded-[9px] px-3.5 py-[11px] border-[1.5px] outline-none transition-[border-color,box-shadow] duration-150 font-[inherit]",
-            isDark
-              ? "bg-transparent border-white/[0.12] text-slate-200 placeholder:text-slate-500 focus:border-brand focus:shadow-[0_0_0_3px_rgba(51,88,244,0.18)]"
-              : "bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-brand focus:shadow-[0_0_0_3px_rgba(51,88,244,0.1)]"
-          )}
-        />
-        <button
-          type="button"
-          onClick={onAdd}
-          title="Add"
-          aria-label="Add"
-          className={cn(
-            "inline-flex items-center justify-center w-11 h-11 shrink-0 rounded-[9px] border-[1.5px] bg-transparent cursor-pointer transition-colors",
-            isDark ? "border-brand/30 text-brand hover:bg-brand/10" : "border-brand/25 text-brand hover:bg-brand/5"
-          )}
-        >
-          <Plus size={16} />
-        </button>
-      </div>
+      {!disabled && (
+        <div className="flex gap-2">
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); onAdd(); } }}
+            placeholder={placeholder}
+            className={cn(
+              "flex-1 text-sm rounded-[9px] px-3.5 py-[11px] border-[1.5px] outline-none transition-[border-color,box-shadow] duration-150 font-[inherit]",
+              isDark
+                ? "bg-transparent border-white/[0.12] text-slate-200 placeholder:text-slate-500 focus:border-brand focus:shadow-[0_0_0_3px_rgba(51,88,244,0.18)]"
+                : "bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-brand focus:shadow-[0_0_0_3px_rgba(51,88,244,0.1)]"
+            )}
+          />
+          <button
+            type="button"
+            onClick={onAdd}
+            title="Add"
+            aria-label="Add"
+            className={cn(
+              "inline-flex items-center justify-center w-11 h-11 shrink-0 rounded-[9px] border-[1.5px] bg-transparent cursor-pointer transition-colors",
+              isDark ? "border-brand/30 text-brand hover:bg-brand/10" : "border-brand/25 text-brand hover:bg-brand/5"
+            )}
+          >
+            <Plus size={16} />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
 
 function ContactsField({
-  contacts, onChange, isDark, hasError,
+  contacts, onChange, isDark, hasError, disabled,
 }: {
   contacts: ContactEntry[]; onChange: (contacts: ContactEntry[]) => void; isDark: boolean; hasError?: boolean;
+  disabled?: boolean;
 }) {
   const textPrimary = isDark ? "text-slate-200" : "text-slate-900";
   const textMuted = isDark ? "text-slate-400" : "text-slate-500";
@@ -2228,7 +2269,7 @@ function ContactsField({
                 ) : (
                   <span className={cn("text-[10px] font-medium", textMuted)}>Contact {i + 1}</span>
                 )}
-                {i > 0 && (
+                {i > 0 && !disabled && (
                   <button
                     type="button"
                     onClick={() => removeContact(i)}
@@ -2240,16 +2281,16 @@ function ContactsField({
                 )}
               </div>
               <div className="grid grid-cols-2 gap-2">
-                <input value={c.fullName} onChange={(e) => updateContact(i, { fullName: e.target.value })} placeholder="Full name" className={miniInputCls} />
-                <input value={c.position} onChange={(e) => updateContact(i, { position: e.target.value })} placeholder="Position (optional)" className={miniInputCls} />
+                <input value={c.fullName} onChange={(e) => updateContact(i, { fullName: e.target.value })} placeholder="Full name" className={miniInputCls} disabled={disabled} />
+                <input value={c.position} onChange={(e) => updateContact(i, { position: e.target.value })} placeholder="Position (optional)" className={miniInputCls} disabled={disabled} />
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <input value={c.email} onChange={(e) => updateContact(i, { email: e.target.value })} placeholder="Email" className={cn(miniInputCls, emailInvalid && "border-red-400")} />
+                  <input value={c.email} onChange={(e) => updateContact(i, { email: e.target.value })} placeholder="Email" className={cn(miniInputCls, emailInvalid && "border-red-400")} disabled={disabled} />
                   {emailInvalid && <p className="text-[10px] text-red-500 mt-0.5">Enter a valid email.</p>}
                 </div>
                 <div>
-                  <input value={c.phone} onChange={(e) => updateContact(i, { phone: e.target.value })} placeholder="Phone (optional)" className={cn(miniInputCls, phoneInvalid && "border-red-400")} />
+                  <input value={c.phone} onChange={(e) => updateContact(i, { phone: e.target.value })} placeholder="Phone (optional)" className={cn(miniInputCls, phoneInvalid && "border-red-400")} disabled={disabled} />
                   {phoneInvalid && <p className="text-[10px] text-red-500 mt-0.5">Enter a valid phone number.</p>}
                 </div>
               </div>
@@ -2258,38 +2299,43 @@ function ContactsField({
                 onChange={(e) => updateContact(i, { socialMedia: e.target.value })}
                 placeholder="Social media accounts (optional, comma-separated)"
                 className={miniInputCls}
+                disabled={disabled}
               />
             </div>
           );
         })}
       </div>
-      <button
-        type="button"
-        onClick={addContact}
-        title="Add contact"
-        aria-label="Add contact"
-        className={cn(
-          "inline-flex items-center justify-center w-11 h-11 mt-2 rounded-[9px] border-[1.5px] bg-transparent cursor-pointer transition-colors",
-          isDark ? "border-brand/30 text-brand hover:bg-brand/10" : "border-brand/25 text-brand hover:bg-brand/5"
-        )}
-      >
-        <Plus size={16} />
-      </button>
+      {!disabled && (
+        <button
+          type="button"
+          onClick={addContact}
+          title="Add contact"
+          aria-label="Add contact"
+          className={cn(
+            "inline-flex items-center justify-center w-11 h-11 mt-2 rounded-[9px] border-[1.5px] bg-transparent cursor-pointer transition-colors",
+            isDark ? "border-brand/30 text-brand hover:bg-brand/10" : "border-brand/25 text-brand hover:bg-brand/5"
+          )}
+        >
+          <Plus size={16} />
+        </button>
+      )}
     </div>
   );
 }
 
 function RichTextField({
-  label, value, onChange, placeholder, isDark, minHeightClass = "min-h-[80px]", maxHeightClass, hasError,
+  label, value, onChange, placeholder, isDark, minHeightClass = "min-h-[80px]", maxHeightClass, hasError, disabled,
 }: {
   label: string; value: string; onChange: (html: string) => void; placeholder?: string;
   isDark: boolean; minHeightClass?: string; maxHeightClass?: string; hasError?: boolean;
+  disabled?: boolean;
 }) {
   const editor = useEditor({
     // StarterKit v3 already bundles Underline — don't add @tiptap/extension-underline
     // separately here, that causes a "Duplicate extension names" runtime warning.
     extensions: [StarterKit],
     content: value,
+    editable: !disabled,
     immediatelyRender: false,
     editorProps: {
       attributes: {
@@ -2306,6 +2352,12 @@ function RichTextField({
     },
     onUpdate: ({ editor: e }) => onChange(e.getHTML()),
   });
+
+  // Keeps the editor's editable state in sync if `disabled` changes after mount (the
+  // `editable` option above only applies at creation) — task 146's PM read-only mode.
+  useEffect(() => {
+    editor?.setEditable(!disabled);
+  }, [editor, disabled]);
 
   const textPrimary = isDark ? "text-slate-200" : "text-slate-900";
   const textMuted = isDark ? "text-slate-400" : "text-slate-500";
@@ -2330,35 +2382,37 @@ function RichTextField({
               : "border-slate-200 focus-within:border-brand focus-within:shadow-[0_0_0_3px_rgba(51,88,244,0.1)]"
         )}
       >
-        <div className={cn("flex items-center gap-0.5 px-2 py-1.5 border-b", isDark ? "border-white/[0.08] bg-white/[0.02]" : "border-slate-100 bg-slate-50/50")}>
-          {marks.map((btn) => (
+        {!disabled && (
+          <div className={cn("flex items-center gap-0.5 px-2 py-1.5 border-b", isDark ? "border-white/[0.08] bg-white/[0.02]" : "border-slate-100 bg-slate-50/50")}>
+            {marks.map((btn) => (
+              <button
+                key={btn.title}
+                type="button"
+                title={btn.title}
+                onClick={btn.action}
+                className={cn(
+                  "text-[12px] w-7 h-7 rounded-md flex items-center justify-center cursor-pointer transition-colors border-none",
+                  btn.cls,
+                  btn.active() ? "bg-brand/15 text-brand" : isDark ? "text-slate-400 hover:bg-white/[0.06]" : "text-slate-500 hover:bg-slate-100"
+                )}
+              >
+                {btn.label}
+              </button>
+            ))}
+            <span className={cn("w-px h-4 mx-0.5", isDark ? "bg-white/[0.08]" : "bg-slate-200")} />
             <button
-              key={btn.title}
               type="button"
-              title={btn.title}
-              onClick={btn.action}
+              title="Bullet List"
+              onClick={() => editor?.chain().focus().toggleBulletList().run()}
               className={cn(
-                "text-[12px] w-7 h-7 rounded-md flex items-center justify-center cursor-pointer transition-colors border-none",
-                btn.cls,
-                btn.active() ? "bg-brand/15 text-brand" : isDark ? "text-slate-400 hover:bg-white/[0.06]" : "text-slate-500 hover:bg-slate-100"
+                "text-[11px] px-2 h-7 rounded-md flex items-center justify-center cursor-pointer transition-colors border-none",
+                (editor?.isActive("bulletList") ?? false) ? "bg-brand/15 text-brand" : isDark ? "text-slate-400 hover:bg-white/[0.06]" : "text-slate-500 hover:bg-slate-100"
               )}
             >
-              {btn.label}
+              • List
             </button>
-          ))}
-          <span className={cn("w-px h-4 mx-0.5", isDark ? "bg-white/[0.08]" : "bg-slate-200")} />
-          <button
-            type="button"
-            title="Bullet List"
-            onClick={() => editor?.chain().focus().toggleBulletList().run()}
-            className={cn(
-              "text-[11px] px-2 h-7 rounded-md flex items-center justify-center cursor-pointer transition-colors border-none",
-              (editor?.isActive("bulletList") ?? false) ? "bg-brand/15 text-brand" : isDark ? "text-slate-400 hover:bg-white/[0.06]" : "text-slate-500 hover:bg-slate-100"
-            )}
-          >
-            • List
-          </button>
-        </div>
+          </div>
+        )}
         <EditorContent editor={editor} />
       </div>
       {placeholder && <p className={cn("text-[11px] mt-1", textMuted)}>{placeholder}</p>}
@@ -2367,28 +2421,32 @@ function RichTextField({
 }
 
 function FileUploadBox({
-  files, uploading, onFile, onRemove, onView, viewingId, isDark,
+  files, uploading, onFile, onRemove, onView, viewingId, isDark, disabled,
 }: {
   files: AssetRow[]; uploading: boolean; onFile: (file: File) => void; onRemove?: (id: string) => void;
-  onView?: (id: string) => void; viewingId?: string | null; isDark: boolean;
+  onView?: (id: string) => void; viewingId?: string | null; isDark: boolean; disabled?: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const textMuted = isDark ? "text-slate-400" : "text-slate-500";
   const textPrimary = isDark ? "text-slate-200" : "text-slate-900";
   return (
     <div className="mt-2.5">
-      <input ref={inputRef} type="file" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); e.target.value = ""; }} />
-      <button
-        onClick={() => inputRef.current?.click()}
-        disabled={uploading}
-        className={cn(
-          "w-full rounded-lg border-2 border-dashed py-4 text-center cursor-pointer transition-colors disabled:opacity-60",
-          isDark ? "border-white/[0.12] bg-white/[0.02] hover:border-brand" : "border-slate-200 bg-slate-50 hover:border-brand"
-        )}
-      >
-        <Upload size={16} className={cn("mx-auto mb-1.5", textMuted)} />
-        <div className={cn("text-[11.5px]", textMuted)}>{uploading ? "Uploading…" : <>Click to <span className="text-brand font-medium">upload a document</span></>}</div>
-      </button>
+      {!disabled && (
+        <>
+          <input ref={inputRef} type="file" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); e.target.value = ""; }} />
+          <button
+            onClick={() => inputRef.current?.click()}
+            disabled={uploading}
+            className={cn(
+              "w-full rounded-lg border-2 border-dashed py-4 text-center cursor-pointer transition-colors disabled:opacity-60",
+              isDark ? "border-white/[0.12] bg-white/[0.02] hover:border-brand" : "border-slate-200 bg-slate-50 hover:border-brand"
+            )}
+          >
+            <Upload size={16} className={cn("mx-auto mb-1.5", textMuted)} />
+            <div className={cn("text-[11.5px]", textMuted)}>{uploading ? "Uploading…" : <>Click to <span className="text-brand font-medium">upload a document</span></>}</div>
+          </button>
+        </>
+      )}
       {files.length > 0 && (
         <div className="mt-2 flex flex-col gap-1.5">
           {files.map((f) => (
@@ -2409,7 +2467,7 @@ function FileUploadBox({
                   <Eye size={12} />
                 </button>
               )}
-              {onRemove && (
+              {onRemove && !disabled && (
                 <button
                   type="button"
                   onClick={() => onRemove(f.id)}
@@ -3929,28 +3987,33 @@ function FileViewerModal({
 // HTML Mockup's own file list — not bare FileUploadBox, since it adds an "Edit" action
 // (text/html and text/markdown only) next to the existing View/Remove ones.
 function HtmlMockupFileList({
-  files, uploading, onFile, onRemove, onView, onEdit, viewingId, isDark,
+  files, uploading, onFile, onRemove, onView, onEdit, viewingId, isDark, disabled,
 }: {
   files: AssetRow[]; uploading: boolean; onFile: (file: File) => void; onRemove: (id: string) => void;
   onView: (id: string) => void; onEdit: (asset: AssetRow) => void; viewingId: string | null; isDark: boolean;
+  disabled?: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const textMuted = isDark ? "text-slate-400" : "text-slate-500";
   const textPrimary = isDark ? "text-slate-200" : "text-slate-900";
   return (
     <div className="mt-1">
-      <input ref={inputRef} type="file" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); e.target.value = ""; }} />
-      <button
-        onClick={() => inputRef.current?.click()}
-        disabled={uploading}
-        className={cn(
-          "w-full rounded-lg border-2 border-dashed py-4 text-center cursor-pointer transition-colors disabled:opacity-60",
-          isDark ? "border-white/[0.12] bg-white/[0.02] hover:border-brand" : "border-slate-200 bg-slate-50 hover:border-brand"
-        )}
-      >
-        <Upload size={16} className={cn("mx-auto mb-1.5", textMuted)} />
-        <div className={cn("text-[11.5px]", textMuted)}>{uploading ? "Uploading…" : <>Click to <span className="text-brand font-medium">upload the mockup</span></>}</div>
-      </button>
+      {!disabled && (
+        <>
+          <input ref={inputRef} type="file" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); e.target.value = ""; }} />
+          <button
+            onClick={() => inputRef.current?.click()}
+            disabled={uploading}
+            className={cn(
+              "w-full rounded-lg border-2 border-dashed py-4 text-center cursor-pointer transition-colors disabled:opacity-60",
+              isDark ? "border-white/[0.12] bg-white/[0.02] hover:border-brand" : "border-slate-200 bg-slate-50 hover:border-brand"
+            )}
+          >
+            <Upload size={16} className={cn("mx-auto mb-1.5", textMuted)} />
+            <div className={cn("text-[11.5px]", textMuted)}>{uploading ? "Uploading…" : <>Click to <span className="text-brand font-medium">upload the mockup</span></>}</div>
+          </button>
+        </>
+      )}
       {files.length > 0 && (
         <div className="mt-2 flex flex-col gap-1.5">
           {files.map((f) => (
@@ -3969,7 +4032,7 @@ function HtmlMockupFileList({
               >
                 <Eye size={12} />
               </button>
-              {(f.file_mime_type === "text/html" || f.file_mime_type === "text/markdown") && (
+              {!disabled && (f.file_mime_type === "text/html" || f.file_mime_type === "text/markdown") && (
                 <button
                   type="button"
                   onClick={() => onEdit(f)}
@@ -3980,15 +4043,17 @@ function HtmlMockupFileList({
                   <Pencil size={12} />
                 </button>
               )}
-              <button
-                type="button"
-                onClick={() => onRemove(f.id)}
-                aria-label={`Remove ${f.file_name}`}
-                title="Remove"
-                className="shrink-0 p-1 rounded-md cursor-pointer border-none bg-transparent text-red-500 hover:bg-red-500/10 transition-colors"
-              >
-                <Trash2 size={12} />
-              </button>
+              {!disabled && (
+                <button
+                  type="button"
+                  onClick={() => onRemove(f.id)}
+                  aria-label={`Remove ${f.file_name}`}
+                  title="Remove"
+                  className="shrink-0 p-1 rounded-md cursor-pointer border-none bg-transparent text-red-500 hover:bg-red-500/10 transition-colors"
+                >
+                  <Trash2 size={12} />
+                </button>
+              )}
             </div>
           ))}
         </div>

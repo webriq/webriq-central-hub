@@ -16,6 +16,7 @@
 
 | ID | Title | Priority | Type | Doc | Date |
 |----|-------|----------|------|-----|------|
+| 146 | Onboarding Timeline & Wizard — PM/Developer Role-Based Access | HIGH | feature | _docs/task/146-onboarding-timeline-wizard-rbac-pm-developer.md | 2026-07-14 |
 | 145 | Onboarding List — Stop Hiding Projects Once Phase 1 Is Done (Page Tracks All 5 Phases) | HIGH | bugfix | _docs/task/145-onboarding-list-show-all-phases-not-just-phase1.md | 2026-07-14 |
 | 135 | Onboarding Wizard — Client Call, Sign-Off Step (Meeting Notes + Agreement Upload) | HIGH | enhancement | _docs/task/135-client-signoff-step-redesign.md | 2026-07-13 |
 | 140 | Storage/KB — Add Credential/Link Assets (Add Asset Modal Pattern) | MEDIUM | feature | _docs/task/140-storage-kb-add-credential-link-assets.md | 2026-07-13 |

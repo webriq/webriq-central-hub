@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
-const STAFF_ROLES = ["admin", "super_admin", "marketing"];
+// Read-only route — pm/developer can view the Timeline (task 146); every write route under
+// programme/* stays admin|super_admin|marketing-only.
+const STAFF_ROLES = ["admin", "super_admin", "marketing", "pm", "developer"];
 
 export async function GET(
   _request: NextRequest,

@@ -5,7 +5,9 @@ import OnboardingDetail from "./_onboarding-detail";
 
 export const dynamic = "force-dynamic";
 
-const DETAIL_ROLES = ["marketing", "admin", "super_admin"];
+// pm/developer can view the Timeline (task 146) — Wizard access within it is further split
+// by role inside OnboardingDetail/OnboardingWizard, not here.
+const DETAIL_ROLES = ["marketing", "admin", "super_admin", "pm", "developer"];
 
 interface PageProps {
   params: Promise<{ projectId: string }>;
@@ -40,6 +42,7 @@ export default async function OnboardingProjectPage({ params }: PageProps) {
   return (
     <OnboardingDetail
       project={{ id: project.id, name: project.name, customer_id: project.customer_id, project_id: project.project_id, company_name: companyName }}
+      role={role}
     />
   );
 }
