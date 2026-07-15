@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { seedAndStartProgramme } from "@/lib/programme/seed";
 
-const WRITE_ROLES = ["admin", "super_admin", "marketing"];
+// Task 153: pm can now also start the programme (was admin/super_admin/marketing only).
+const WRITE_ROLES = ["admin", "super_admin", "marketing", "pm"];
 
 export async function POST(
   _request: NextRequest,
@@ -34,7 +35,7 @@ export async function POST(
     }
 
     const companyName = (project.customers as unknown as { company_name: string } | null)?.company_name ?? "Customer";
-    const result = await seedAndStartProgramme({ id: project.id, customer_id: project.customer_id }, companyName);
+    const result = await seedAndStartProgramme({ id: project.id, customer_id: project.customer_id }, companyName, user.id);
     if (result.error) {
       return NextResponse.json({ error: result.error }, { status: 500 });
     }

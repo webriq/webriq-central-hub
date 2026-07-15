@@ -5,8 +5,11 @@
 //
 // Phase 1's day *ranges* (vs. task 122's single due-day model) are a deliberate task-123
 // breakdown, not derived from the QBR — see task 123 doc's "Key Design Decisions". Phases 2-5
-// keep single-day semantics: dayStart === dayEnd, so the same rendering code works for both
-// without a range/non-range branch.
+// originally used single-day semantics (dayStart === dayEnd); task 148 widened them to real
+// spans that fill the gap since the previous deliverable in the same phase, since the same
+// rendering code already handled ranges generically. Per-project drag-resize/move edits are
+// stored as an override on customer_deliverables (day_start_override/day_end_override,
+// migration 071) read on top of these static defaults — never mutating this config.
 
 export type DeliverableConfig = {
   key: string;
@@ -53,11 +56,11 @@ export const PROGRAMME_PHASES: PhaseConfig[] = [
     dayEnd: 30,
     owner: "PM + Dev",
     deliverables: [
-      { key: "tech-docs", name: "Tech docs from Jun", description: "Full technical specification package for the developer.", dayStart: 16, dayEnd: 16, owner: "Jun" },
-      { key: "migration-implementation", name: "Migration / Implementation", description: "HTML mockups converted to StackShift I.", dayStart: 16, dayEnd: 16, owner: "Dev" },
-      { key: "structure-cleanup", name: "Structure cleanup", description: "URL architecture, redirects, forms, and navigation finalized.", dayStart: 24, dayEnd: 24, owner: "Dev" },
-      { key: "branding-review", name: "Branding review", description: "Brand colours, fonts, and voice applied across all pages.", dayStart: 26, dayEnd: 26, owner: "Dev" },
-      { key: "foundational-pages", name: "Foundational pages", description: "Home, About, Services, and Contact pages are launch ready.", dayStart: 28, dayEnd: 28, owner: "Dev" },
+      { key: "tech-docs", name: "Tech docs from Jun", description: "Full technical specification package for the developer.", dayStart: 16, dayEnd: 18, owner: "Jun" },
+      { key: "migration-implementation", name: "Migration / Implementation", description: "HTML mockups converted to StackShift I.", dayStart: 16, dayEnd: 23, owner: "Dev" },
+      { key: "structure-cleanup", name: "Structure cleanup", description: "URL architecture, redirects, forms, and navigation finalized.", dayStart: 20, dayEnd: 24, owner: "Dev" },
+      { key: "branding-review", name: "Branding review", description: "Brand colours, fonts, and voice applied across all pages.", dayStart: 25, dayEnd: 26, owner: "Dev" },
+      { key: "foundational-pages", name: "Foundational pages", description: "Home, About, Services, and Contact pages are launch ready.", dayStart: 27, dayEnd: 28, owner: "Dev" },
       { key: "internal-qa", name: "Internal QA", description: "Team review of build against mockup and tech docs.", dayStart: 29, dayEnd: 29, owner: "PM" },
       { key: "client-review-approval", name: "Client review + approval", description: "Client reviews dev URL and approves for launch.", dayStart: 30, dayEnd: 30, owner: "PM" },
     ],
@@ -70,11 +73,11 @@ export const PROGRAMME_PHASES: PhaseConfig[] = [
     dayEnd: 60,
     owner: "Erica + April",
     deliverables: [
-      { key: "product-publishing", name: "Product publishing", description: "Dedicated pages per product/service line published.", dayStart: 40, dayEnd: 40, owner: "Erica" },
-      { key: "industry-publishing", name: "Industry publishing", description: "Industry-specific content targeting buyer segments.", dayStart: 45, dayEnd: 45, owner: "April" },
-      { key: "location-publishing", name: "Location publishing", description: "Local and regional landing pages as per content map.", dayStart: 50, dayEnd: 50, owner: "Erica" },
-      { key: "buyer-education-content", name: "Buyer-education content", description: "Blog posts, guides, and FAQs aligned to buyer journey.", dayStart: 55, dayEnd: 55, owner: "April" },
-      { key: "publishing-report", name: "Publishing report", description: "Summary of all content published and initial traffic data.", dayStart: 60, dayEnd: 60, owner: "PM" },
+      { key: "product-publishing", name: "Product publishing", description: "Dedicated pages per product/service line published.", dayStart: 36, dayEnd: 40, owner: "Erica" },
+      { key: "industry-publishing", name: "Industry publishing", description: "Industry-specific content targeting buyer segments.", dayStart: 41, dayEnd: 45, owner: "April" },
+      { key: "location-publishing", name: "Location publishing", description: "Local and regional landing pages as per content map.", dayStart: 46, dayEnd: 50, owner: "Erica" },
+      { key: "buyer-education-content", name: "Buyer-education content", description: "Blog posts, guides, and FAQs aligned to buyer journey.", dayStart: 51, dayEnd: 55, owner: "April" },
+      { key: "publishing-report", name: "Publishing report", description: "Summary of all content published and initial traffic data.", dayStart: 56, dayEnd: 60, owner: "PM" },
     ],
   },
   {
@@ -85,10 +88,10 @@ export const PROGRAMME_PHASES: PhaseConfig[] = [
     dayEnd: 90,
     owner: "April + Eri",
     deliverables: [
-      { key: "updated-publishing-plan", name: "Updated Publishing Plan", description: "Based on metrics from the previous publishing report.", dayStart: 62, dayEnd: 62, owner: "April" },
-      { key: "gap-publishing", name: "Gap publishing", description: "Identify and fill content gaps found via AI and search data.", dayStart: 70, dayEnd: 70, owner: "Eri" },
-      { key: "conversion-refinements", name: "Conversion refinements", description: "CTA, form, and page improvements based on behaviour data.", dayStart: 80, dayEnd: 80, owner: "Dev" },
-      { key: "ai-visibility-tracking", name: "AI visibility tracking & reporting", description: "90-day outcome check and analysis.", dayStart: 90, dayEnd: 90, owner: "April + Eri" },
+      { key: "updated-publishing-plan", name: "Updated Publishing Plan", description: "Based on metrics from the previous publishing report.", dayStart: 61, dayEnd: 62, owner: "April" },
+      { key: "gap-publishing", name: "Gap publishing", description: "Identify and fill content gaps found via AI and search data.", dayStart: 63, dayEnd: 70, owner: "Eri" },
+      { key: "conversion-refinements", name: "Conversion refinements", description: "CTA, form, and page improvements based on behaviour data.", dayStart: 71, dayEnd: 80, owner: "Dev" },
+      { key: "ai-visibility-tracking", name: "AI visibility tracking & reporting", description: "90-day outcome check and analysis.", dayStart: 81, dayEnd: 90, owner: "April + Eri" },
     ],
   },
   {
@@ -99,10 +102,10 @@ export const PROGRAMME_PHASES: PhaseConfig[] = [
     dayEnd: 120,
     owner: "PM + Strategy",
     deliverables: [
-      { key: "updated-publishing-plan", name: "Updated Publishing Plan", description: "Plans for the last 30 days in this cycle.", dayStart: 92, dayEnd: 92, owner: "PM" },
-      { key: "gap-publishing", name: "Gap publishing", description: "Identify and fill remaining content gaps.", dayStart: 115, dayEnd: 115, owner: "Eri" },
-      { key: "next-90day-roadmap", name: "Next 90-day roadmap", description: "Content, technical, and strategy plan for the next quarter.", dayStart: 118, dayEnd: 118, owner: "PM" },
-      { key: "qbr-presentation", name: "QBR presentation", description: "Live review session with client covering results and next cycle roadmap.", dayStart: 120, dayEnd: 120, owner: "PM" },
+      { key: "updated-publishing-plan", name: "Updated Publishing Plan", description: "Plans for the last 30 days in this cycle.", dayStart: 91, dayEnd: 92, owner: "PM" },
+      { key: "gap-publishing", name: "Gap publishing", description: "Identify and fill remaining content gaps.", dayStart: 93, dayEnd: 115, owner: "Eri" },
+      { key: "next-90day-roadmap", name: "Next 90-day roadmap", description: "Content, technical, and strategy plan for the next quarter.", dayStart: 116, dayEnd: 118, owner: "PM" },
+      { key: "qbr-presentation", name: "QBR presentation", description: "Live review session with client covering results and next cycle roadmap.", dayStart: 119, dayEnd: 120, owner: "PM" },
     ],
   },
 ];

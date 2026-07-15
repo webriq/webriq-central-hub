@@ -21,7 +21,51 @@ export type OnboardingProjectListItem = {
   scheduled_onboarding_start_at: string | null;
   target_handover_date: string | null;
   status: "draft" | "scheduled" | "in_progress";
+  // Task 154: deduped union of project_members + Phase 1 phase_members (task 153).
+  members: { id: string; full_name: string | null }[];
 };
+
+// Mirrors OwnerChip's initials/color derivation (src/app/v2/(hub)/projects/_pm-shared.tsx) for
+// visual consistency with the Projects module's assignee chips — reimplemented locally (not
+// imported) since it needs overlap + "+N" overflow behavior OwnerChip doesn't have, and
+// Onboarding/Projects are otherwise unrelated feature areas (page-scoped UI convention).
+const AVATAR_COLORS = ["#2563EB", "#7C3AED", "#0D9488", "#DC2626", "#D97706"];
+const MAX_VISIBLE_AVATARS = 3;
+
+function initialsFor(name: string | null): string {
+  if (!name) return "?";
+  return name.split(" ").filter(Boolean).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+}
+
+function colorFor(name: string | null): string {
+  if (!name) return "#94A3B8";
+  return AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length];
+}
+
+function AvatarStack({ members }: { members: { id: string; full_name: string | null }[] }) {
+  if (members.length === 0) return null;
+  const visible = members.slice(0, MAX_VISIBLE_AVATARS);
+  const overflow = members.length - visible.length;
+  return (
+    <div className="flex items-center">
+      {visible.map((m, i) => (
+        <div
+          key={m.id}
+          title={m.full_name ?? "Unnamed"}
+          className={cn("w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-semibold text-white ring-2 ring-white shrink-0", i > 0 && "-ml-2")}
+          style={{ background: colorFor(m.full_name) }}
+        >
+          {initialsFor(m.full_name)}
+        </div>
+      ))}
+      {overflow > 0 && (
+        <div className="w-6 h-6 -ml-2 rounded-full flex items-center justify-center text-[9px] font-semibold text-slate-600 bg-slate-200 ring-2 ring-white shrink-0">
+          +{overflow}
+        </div>
+      )}
+    </div>
+  );
+}
 
 const STATUS_STYLE: Record<string, { label: string; text: string; bg: string; border: string }> = {
   draft: { label: "Draft", text: "text-slate-500", bg: "bg-slate-50", border: "border-slate-200" },
@@ -84,8 +128,11 @@ function ProjectCard({ item, editable }: { item: OnboardingProjectListItem; edit
         </div>
       )}
 
-      {item.classification && (
-        <div className="mt-2.5 pt-2.5 border-t border-slate-50 text-[11px] text-slate-400">{item.classification}</div>
+      {(item.classification || item.members.length > 0) && (
+        <div className="mt-2.5 pt-2.5 border-t border-slate-50 flex items-center justify-between gap-2">
+          <div className="text-[11px] text-slate-400 truncate">{item.classification}</div>
+          <AvatarStack members={item.members} />
+        </div>
       )}
     </div>
   );

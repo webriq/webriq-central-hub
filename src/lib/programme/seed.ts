@@ -6,9 +6,15 @@ import { PROGRAMME_PHASES, INTERNAL_DELIVERABLES } from "@/config/customer-phase
 // and the scheduled auto-start cron — all three need identical seed semantics. Uses adminClient
 // throughout (not just for the projects update) because the cron caller has no user session at
 // all; this is the documented server-only, session-less write path exception (CLAUDE.md).
+//
+// startedByUserId (task 153): the user who clicked "Start Onboarding" becomes Phase 1's owner.
+// Optional because the scheduled auto-start cron has no user session — a cron-started project's
+// Phase 1 simply has zero members, which the app treats as unrestricted (see task 153 doc's
+// "Backward compatibility" section), not an error.
 export async function seedAndStartProgramme(
   project: { id: string; customer_id: string },
-  companyName: string
+  companyName: string,
+  startedByUserId?: string | null
 ): Promise<{ error?: string }> {
   const today = new Date().toISOString().slice(0, 10);
 
@@ -55,6 +61,27 @@ export async function seedAndStartProgramme(
       phasesRes.error ?? deliverablesRes.error ?? internalRes.error
     );
     return { error: "Failed to seed programme phases" };
+  }
+
+  if (startedByUserId) {
+    await adminClient.from("phase_members").insert({
+      project_id: project.id,
+      phase_number: 1,
+      user_id: startedByUserId,
+      is_owner: true,
+      added_by: startedByUserId,
+    });
+    // Starting onboarding should never leave the starter unable to find their own project on
+    // the list afterward — ensure project-level membership too. ignoreDuplicates: the starter
+    // may already be a project member (e.g. they created it). Deliberately non-owner (task 155)
+    // — a project only gets an owner via creation or an explicit Super Admin transfer, not
+    // implicitly via starting Phase 1.
+    await adminClient
+      .from("project_members")
+      .upsert(
+        { project_id: project.id, user_id: startedByUserId, added_by: startedByUserId },
+        { onConflict: "project_id,user_id", ignoreDuplicates: true }
+      );
   }
 
   await sendCliqNotification(

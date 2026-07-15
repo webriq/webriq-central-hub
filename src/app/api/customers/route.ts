@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { generateCustomerId } from "@/lib/customers/generate-id";
 import { validateCustomerCreate } from "@/lib/customers/validate";
+import { upsertPrimaryContact } from "@/lib/customers/primary-contact";
 
 export async function GET(request: NextRequest) {
   try {
@@ -57,8 +58,6 @@ export async function POST(request: NextRequest) {
     const insertData = {
       customer_id: customerId,
       company_name: body.company_name.trim(),
-      contact_name: body.contact_name?.trim() ?? null,
-      contact_email: body.contact_email?.trim() ?? null,
       status: "onboarding",
     };
 
@@ -75,7 +74,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Failed to create customer" }, { status: 500 });
     }
 
-    return NextResponse.json(data, { status: 201 });
+    const contactName = body.contact_name?.trim() ?? null;
+    const contactEmail = body.contact_email?.trim() ?? null;
+    if (contactName || contactEmail) {
+      const { error: contactError } = await upsertPrimaryContact(adminClient, customerId, { name: contactName, email: contactEmail });
+      if (contactError) console.error("POST /api/customers primary contact error:", contactError);
+    }
+
+    return NextResponse.json({ ...data, contact_name: contactName, contact_email: contactEmail }, { status: 201 });
   } catch (err) {
     console.error("POST /api/customers unexpected error:", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

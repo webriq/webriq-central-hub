@@ -81,8 +81,18 @@ export async function POST(
         )?.contacts as { fullName?: string; position?: string; email?: string; phone?: string; socialMedia?: string }[] | undefined;
 
         if (project.customer_id && kickoffContacts?.length) {
+          // Dedupe against contacts.email (task 151) — the primary contact (index 0) will
+          // already exist by hand-off time via the Kickoff autosave sync in wizard-data/route.ts,
+          // so re-inserting it here would create a duplicate row.
+          const { data: existingContacts } = await adminClient
+            .from("contacts")
+            .select("email")
+            .eq("customer_id", project.customer_id)
+            .not("email", "is", null);
+          const existingEmails = new Set((existingContacts ?? []).map((c) => c.email!.trim().toLowerCase()));
+
           const contactRows = kickoffContacts
-            .filter((c) => c.email)
+            .filter((c) => c.email && !existingEmails.has(c.email.trim().toLowerCase()))
             .map((c) => {
               const nameParts = (c.fullName ?? "").trim().split(/\s+/);
               const firstName = nameParts[0] || null;

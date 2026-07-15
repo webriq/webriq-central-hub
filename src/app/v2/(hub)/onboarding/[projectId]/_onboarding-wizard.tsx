@@ -7,7 +7,8 @@ import {
   ArrowLeft, ArrowRight, Check, CheckCircle2, Circle, Clock, Upload,
   FileText, Plus, Trash2, Sparkles, AlertTriangle, ListChecks, X, Eye, Pencil,
   Monitor, Tablet, Smartphone, Folder, Lock, Grid3x3, LayoutList,
-  MoreVertical, FolderPlus, FolderInput, Share2, ChevronRight,
+  MoreVertical, FolderPlus, FolderInput, Share2, ChevronRight, Loader2,
+  Users, Crown, ArrowRightLeft,
 } from "lucide-react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -79,7 +80,16 @@ function markdownToHtmlDocument(md: string): string {
 }
 
 interface OnboardingWizardProps {
-  project: { id: string; name: string; customer_id: string; project_id: string | null; company_name: string };
+  project: {
+    id: string;
+    name: string;
+    customer_id: string;
+    project_id: string | null;
+    company_name: string;
+    contact_name: string | null;
+    contact_email: string | null;
+    primary_contact_phone: string | null;
+  };
   deliverables: CustomerDeliverableRow[];
   internalDeliverables: OnboardingInternalDeliverableRow[];
   wizardData: Record<string, unknown>;
@@ -92,7 +102,22 @@ interface OnboardingWizardProps {
   onBack: () => void;
   onDeliverableChange: (updated: CustomerDeliverableRow) => void;
   onInternalDeliverableChange: (updated: OnboardingInternalDeliverableRow) => void;
+  // Task 156 — Phase 1 access management moved here from the Timeline page (_onboarding-detail
+  // .tsx), which still owns the actual phase1Members state/handlers and the Wizard-entry
+  // restriction gate; this component only renders the UI and calls the passed-down handlers.
+  canManagePhase1: boolean;
+  phase1Members: WizardMemberRow[];
+  phase1Busy: boolean;
+  phase1Error: string | null;
+  onAddPhase1Member: (userId: string) => void;
+  onRemovePhase1Member: (userId: string) => void;
+  onTransferPhaseOwnership: (userId: string) => void;
 }
+
+// Mirrors _onboarding-detail.tsx's MemberRow exactly — duplicated locally (not imported) to
+// avoid a circular import between the two files (OnboardingDetail imports OnboardingWizard),
+// matching this codebase's page-scoped-UI convention of inlining small shared shapes.
+type WizardMemberRow = { id: string; user_id: string; is_owner: boolean; full_name: string | null; role: string | null };
 
 // HTML Mockup editor's preview-pane viewport presets — 768/390 are standard tablet/mobile
 // breakpoints, not on Tailwind's spacing scale, hence the arbitrary-value width classes.
@@ -135,6 +160,42 @@ function formatFileSize(bytes: number | null): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+// `finishing` covers the gap XHR's `upload.onprogress` can't see: it only tracks bytes
+// leaving the browser, so it hits 100 as soon as the request body is fully sent — before the
+// server has processed/stored the file and before the second (asset-record) request even
+// starts. Without a distinct state here, the bar sits at "100%" doing nothing for that whole
+// window, which reads as broken/frozen instead of still working.
+type UploadProgressEntry = { id: string; name: string; progress: number; finishing?: boolean };
+type UploadedAsset = { path: string; filename: string; size: number; mimeType: string };
+
+// XMLHttpRequest (not fetch) is required here specifically because it's the only browser API
+// that exposes real upload byte-progress (`upload.onprogress`) — used by every `handle*Upload`
+// step handler below to drive a live per-file progress bar.
+function uploadFileWithProgress(url: string, formData: FormData, onProgress: (pct: number) => void): Promise<UploadedAsset> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", url);
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          resolve(JSON.parse(xhr.responseText));
+        } catch {
+          reject(new Error("Failed to upload file"));
+        }
+      } else {
+        let message = "Failed to upload file";
+        try { message = JSON.parse(xhr.responseText).error ?? message; } catch { /* keep default */ }
+        reject(new Error(message));
+      }
+    };
+    xhr.onerror = () => reject(new Error("Failed to upload file"));
+    xhr.send(formData);
+  });
+}
+
 // Phase 1 completion transition — content sourced from the QBR spec's own "2.4 Phase 1
 // Checklist (Item Completion Criteria)" table. Presented as narrative context for what
 // Phase 1 covered, not as a live-validated readiness gate — none of these 6 map to a real
@@ -153,10 +214,121 @@ const PHASE1_TRANSITION_STAGGER = 0.22; // seconds between each criterion animat
 const phase1 = getPhaseByNumber(1);
 const STEPS = phase1.deliverables; // 7 sub-phases, in day order
 
+// Task 156 — Phase 1 access management, relocated here from the Timeline page's AccessPanel
+// (task 153/155) since managing who's on this specific phase belongs inside the phase's own
+// workspace. Role-filtered <select> add-pickers (small bounded pools, matching task 155's
+// scope decision for Phase 1 — search-to-add stayed project-members-only). Panel container
+// mirrors renderPermissionsPanel's existing shape in this file for visual consistency.
+function PhaseAccessPanel({
+  isDark, members, staffDirectory, busy, error, onAdd, onRemove, onTransferOwnership, onClose,
+}: {
+  isDark: boolean;
+  members: WizardMemberRow[];
+  staffDirectory: { id: string; full_name: string | null; role: string }[];
+  busy: boolean;
+  error: string | null;
+  onAdd: (userId: string) => void;
+  onRemove: (userId: string) => void;
+  onTransferOwnership: (userId: string) => void;
+  onClose: () => void;
+}) {
+  const textMuted = isDark ? "text-slate-400" : "text-slate-500";
+  const textPrimary = isDark ? "text-slate-200" : "text-slate-900";
+  const memberIds = new Set(members.map((m) => m.user_id));
+
+  const marketingOptions = staffDirectory
+    .filter((p) => p.role === "marketing" && !memberIds.has(p.id))
+    .map((p) => ({ id: p.id, label: p.full_name ?? "Unnamed" }));
+  const pmOptions = staffDirectory
+    .filter((p) => p.role === "pm" && !memberIds.has(p.id))
+    .map((p) => ({ id: p.id, label: p.full_name ?? "Unnamed" }));
+
+  const renderSelect = (options: { id: string; label: string }[], placeholder: string) => (
+    <select
+      value=""
+      disabled={busy || options.length === 0}
+      onChange={(e) => { if (e.target.value) onAdd(e.target.value); e.target.value = ""; }}
+      className={cn(
+        "rounded-full border border-dashed px-2.5 py-1 text-[11px] disabled:opacity-50",
+        isDark ? "bg-transparent border-white/[0.15] text-slate-400" : "bg-white border-slate-300 text-slate-500"
+      )}
+    >
+      <option value="">{options.length === 0 ? "No one available" : placeholder}</option>
+      {options.map((o) => (
+        <option key={o.id} value={o.id}>{o.label}</option>
+      ))}
+    </select>
+  );
+
+  return (
+    <div className={cn("flex flex-col gap-2 px-3 py-2.5 rounded-lg mb-3 border", isDark ? "bg-white/[0.02] border-white/[0.06]" : "bg-slate-50 border-slate-100")}>
+      <div className="flex items-center justify-between">
+        <span className={cn("text-[10px] font-semibold uppercase tracking-wide", textMuted)}>Phase 1 access — owner + assigned Marketing/PM</span>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close access management"
+          title="Close"
+          className={cn("p-0.5 rounded-md cursor-pointer border-none bg-transparent transition-colors", textMuted, isDark ? "hover:bg-white/[0.08]" : "hover:bg-slate-200")}
+        >
+          <X size={12} />
+        </button>
+      </div>
+      {error && <p className="text-[11px] text-red-500">{error}</p>}
+      <div className="flex flex-wrap items-center gap-1.5">
+        {members.length === 0 && <span className={cn("text-[11.5px]", textMuted)}>No members yet — open to any Marketing/PM.</span>}
+        {members.map((m) => (
+          <div key={m.user_id} className={cn("inline-flex items-center gap-1.5 rounded-full border py-1 pl-1 pr-2 text-[11.5px]", isDark ? "border-white/[0.1] bg-white/[0.03]" : "border-slate-200 bg-white")}>
+            <div className="flex h-5 w-5 items-center justify-center rounded-full bg-brand/10 text-[9px] font-bold text-brand">
+              {(m.full_name ?? "?").slice(0, 1).toUpperCase()}
+            </div>
+            <span className={cn("font-medium", textPrimary)}>{m.full_name ?? "Unnamed"}</span>
+            <span className={textMuted}>{m.role ?? ""}</span>
+            {m.is_owner && <Crown size={11} className="text-amber-500" aria-label="Owner" />}
+            {!m.is_owner && (m.role === "marketing" || m.role === "admin" || m.role === "super_admin") && (
+              <button
+                type="button"
+                onClick={() => onTransferOwnership(m.user_id)}
+                disabled={busy}
+                title="Transfer ownership to this person"
+                aria-label="Transfer ownership to this person"
+                className={cn("cursor-pointer rounded-full border-none bg-transparent p-0.5 transition-colors disabled:opacity-50", textMuted, "hover:text-brand")}
+              >
+                <ArrowRightLeft size={11} />
+              </button>
+            )}
+            {!m.is_owner && (
+              <button
+                type="button"
+                onClick={() => onRemove(m.user_id)}
+                disabled={busy}
+                title="Remove"
+                aria-label={`Remove ${m.full_name ?? "person"}`}
+                className={cn("cursor-pointer rounded-full border-none bg-transparent p-0.5 transition-colors disabled:opacity-50", textMuted, "hover:text-red-500")}
+              >
+                <X size={11} />
+              </button>
+            )}
+          </div>
+        ))}
+        {renderSelect(marketingOptions, "+ Add marketing agent")}
+        {renderSelect(pmOptions, "+ Add PM")}
+      </div>
+      <p className={cn("flex items-center gap-1 text-[10.5px]", textMuted)}>
+        Adding a PM unlocks Step 6 (Storage folder + KB) for them, and adds them as a project
+        member (visible on the Onboarding list) automatically.
+      </p>
+    </div>
+  );
+}
+
 export default function OnboardingWizard({
   project, deliverables, internalDeliverables, wizardData, currentDay, isDark, role, initialStepKey,
   onBack, onDeliverableChange, onInternalDeliverableChange,
+  canManagePhase1, phase1Members, phase1Busy, phase1Error,
+  onAddPhase1Member, onRemovePhase1Member, onTransferPhaseOwnership,
 }: OnboardingWizardProps) {
+  const [phase1AccessOpen, setPhase1AccessOpen] = useState(false);
   const [stepIdx, setStepIdx] = useState(() => {
     const idx = STEPS.findIndex((s) => s.key === initialStepKey);
     return idx >= 0 ? idx : 0;
@@ -174,7 +346,15 @@ export default function OnboardingWizard({
 
   const initialContacts = (kickoffData.contacts as ContactEntry[] | undefined) ?? [];
   const defaultContacts: ContactEntry[] =
-    initialContacts.length > 0 ? initialContacts : [{ fullName: "", position: "", email: "", phone: "", socialMedia: "" }];
+    initialContacts.length > 0
+      ? initialContacts
+      : [{
+          fullName: project.contact_name ?? "",
+          position: "",
+          email: project.contact_email ?? "",
+          phone: project.primary_contact_phone ?? "",
+          socialMedia: "",
+        }];
   const [contacts, setContacts] = useState<ContactEntry[]>(defaultContacts);
   // additionalNotes replaces directAccess (task 129) — fall back to the old key so already-saved
   // "Direct access notes" content isn't silently lost for in-progress projects.
@@ -189,8 +369,9 @@ export default function OnboardingWizard({
   const [competitorInputError, setCompetitorInputError] = useState<string | null>(null);
 
   const [businessFactsFiles, setBusinessFactsFiles] = useState<AssetRow[]>([]);
-  const [uploadingBusinessFacts, setUploadingBusinessFacts] = useState(false);
   const [businessFactsUploadError, setBusinessFactsUploadError] = useState<string | null>(null);
+  const [businessFactsUploadProgress, setBusinessFactsUploadProgress] = useState<UploadProgressEntry[]>([]);
+  const [viewingBusinessFactsFileId, setViewingBusinessFactsFileId] = useState<string | null>(null);
 
   const [checklistValidationError, setChecklistValidationError] = useState<string | null>(null);
   const [contactsFieldError, setContactsFieldError] = useState(false);
@@ -260,8 +441,8 @@ export default function OnboardingWizard({
 
   const [outcomeText, setOutcomeText] = useState((outcomeTargetData.outcomeText as string) ?? "");
   const [outcomeFiles, setOutcomeFiles] = useState<AssetRow[]>([]);
-  const [uploadingOutcomeFile, setUploadingOutcomeFile] = useState(false);
   const [outcomeUploadError, setOutcomeUploadError] = useState<string | null>(null);
+  const [outcomeUploadProgress, setOutcomeUploadProgress] = useState<UploadProgressEntry[]>([]);
   const [viewingOutcomeFileId, setViewingOutcomeFileId] = useState<string | null>(null);
   const [viewerFile, setViewerFile] = useState<AssetRow | null>(null);
   const [viewerUrl, setViewerUrl] = useState<string | null>(null);
@@ -280,8 +461,8 @@ export default function OnboardingWizard({
 
   const [migrationChecklistText, setMigrationChecklistText] = useState((migrationChecklistData.checklistText as string) ?? "");
   const [migrationChecklistFiles, setMigrationChecklistFiles] = useState<AssetRow[]>([]);
-  const [uploadingMigrationChecklistFile, setUploadingMigrationChecklistFile] = useState(false);
   const [migrationChecklistUploadError, setMigrationChecklistUploadError] = useState<string | null>(null);
+  const [migrationChecklistUploadProgress, setMigrationChecklistUploadProgress] = useState<UploadProgressEntry[]>([]);
   const [viewingMigrationChecklistFileId, setViewingMigrationChecklistFileId] = useState<string | null>(null);
   // Satisfied by either typed text or an uploaded document — same either/or pattern as Outcome Target.
   const isMigrationChecklistFilled = stripHtml(migrationChecklistText).length > 0 || migrationChecklistFiles.length > 0;
@@ -296,8 +477,8 @@ export default function OnboardingWizard({
 
   const [contentMapText, setContentMapText] = useState((contentMapData.contentMapText as string) ?? "");
   const [contentMapFiles, setContentMapFiles] = useState<AssetRow[]>([]);
-  const [uploadingContentMapFile, setUploadingContentMapFile] = useState(false);
   const [contentMapUploadError, setContentMapUploadError] = useState<string | null>(null);
+  const [contentMapUploadProgress, setContentMapUploadProgress] = useState<UploadProgressEntry[]>([]);
   const [viewingContentMapFileId, setViewingContentMapFileId] = useState<string | null>(null);
   // Satisfied by either typed text or an uploaded document — same either/or pattern as Outcome Target.
   const isContentMapFilled = stripHtml(contentMapText).length > 0 || contentMapFiles.length > 0;
@@ -312,8 +493,8 @@ export default function OnboardingWizard({
 
   // HTML Mockup — file-only, no rich text alternative (a mockup is inherently a file).
   const [htmlMockupFiles, setHtmlMockupFiles] = useState<AssetRow[]>([]);
-  const [uploadingHtmlMockupFile, setUploadingHtmlMockupFile] = useState(false);
   const [htmlMockupUploadError, setHtmlMockupUploadError] = useState<string | null>(null);
+  const [htmlMockupUploadProgress, setHtmlMockupUploadProgress] = useState<UploadProgressEntry[]>([]);
   const [viewingHtmlMockupFileId, setViewingHtmlMockupFileId] = useState<string | null>(null);
   const isHtmlMockupFilled = htmlMockupFiles.length > 0;
   const [editingHtmlAsset, setEditingHtmlAsset] = useState<AssetRow | null>(null);
@@ -322,8 +503,8 @@ export default function OnboardingWizard({
 
   const [signoffNotes, setSignoffNotes] = useState((clientSignoffData.signoffNotes as string) ?? "");
   const [signoffFiles, setSignoffFiles] = useState<AssetRow[]>([]);
-  const [uploadingSignoffFile, setUploadingSignoffFile] = useState(false);
   const [signoffUploadError, setSignoffUploadError] = useState<string | null>(null);
+  const [signoffUploadProgress, setSignoffUploadProgress] = useState<UploadProgressEntry[]>([]);
   const [viewingSignoffFileId, setViewingSignoffFileId] = useState<string | null>(null);
   // Gates the "signoff-agreement-filed" checklist item only (handleValidatedInternalToggle) —
   // not the Complete Phase 1 button itself, which is gated on the checklist being marked done,
@@ -694,18 +875,19 @@ export default function OnboardingWizard({
   };
 
   const handleBusinessFactsUpload = async (file: File) => {
-    setUploadingBusinessFacts(true);
+    const tempId = crypto.randomUUID();
+    setBusinessFactsUploadProgress((prev) => [...prev, { id: tempId, name: file.name, progress: 0 }]);
     setBusinessFactsUploadError(null);
     try {
       const formData = new FormData();
       formData.append("file", file);
       formData.append("project_id", project.project_id ?? project.id);
-      const uploadRes = await fetch(`/api/customers/${project.customer_id}/assets/upload`, { method: "POST", body: formData });
-      if (!uploadRes.ok) {
-        const json = await uploadRes.json().catch(() => ({}));
-        throw new Error(json.error ?? "Failed to upload file");
-      }
-      const uploaded = await uploadRes.json();
+      const uploaded = await uploadFileWithProgress(
+        `/api/customers/${project.customer_id}/assets/upload`,
+        formData,
+        (pct) => setBusinessFactsUploadProgress((prev) => prev.map((p) => (p.id === tempId ? { ...p, progress: pct, finishing: pct >= 100 } : p)))
+      );
+      setBusinessFactsUploadProgress((prev) => prev.map((p) => (p.id === tempId ? { ...p, finishing: true } : p)));
       const res = await fetch(`/api/customers/${project.customer_id}/assets`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -729,7 +911,7 @@ export default function OnboardingWizard({
     } catch (err) {
       setBusinessFactsUploadError(err instanceof Error ? err.message : "Failed to upload file");
     } finally {
-      setUploadingBusinessFacts(false);
+      setBusinessFactsUploadProgress((prev) => prev.filter((p) => p.id !== tempId));
     }
   };
 
@@ -755,19 +937,43 @@ export default function OnboardingWizard({
     }
   };
 
+  // In-app preview — reuses the shared viewerFile/viewerUrl/viewerLoading/viewerError state,
+  // same as handleViewOutcomeFile.
+  const handleViewBusinessFactsFile = async (id: string) => {
+    const file = businessFactsFiles.find((f) => f.id === id);
+    if (!file) return;
+    setViewerFile(file);
+    setViewerUrl(null);
+    setViewerError(null);
+    setViewerLoading(true);
+    setViewingBusinessFactsFileId(id);
+    try {
+      const res = await fetch(`/api/customers/${project.customer_id}/assets/${id}/file-url`);
+      if (!res.ok) throw new Error("Failed to get file URL");
+      const { url } = await res.json();
+      setViewerUrl(url);
+    } catch {
+      setViewerError("Failed to load file preview.");
+    } finally {
+      setViewerLoading(false);
+      setViewingBusinessFactsFileId(null);
+    }
+  };
+
   const handleOutcomeFileUpload = async (file: File) => {
-    setUploadingOutcomeFile(true);
+    const tempId = crypto.randomUUID();
+    setOutcomeUploadProgress((prev) => [...prev, { id: tempId, name: file.name, progress: 0 }]);
     setOutcomeUploadError(null);
     try {
       const formData = new FormData();
       formData.append("file", file);
       formData.append("project_id", project.project_id ?? project.id);
-      const uploadRes = await fetch(`/api/customers/${project.customer_id}/assets/upload`, { method: "POST", body: formData });
-      if (!uploadRes.ok) {
-        const json = await uploadRes.json().catch(() => ({}));
-        throw new Error(json.error ?? "Failed to upload file");
-      }
-      const uploaded = await uploadRes.json();
+      const uploaded = await uploadFileWithProgress(
+        `/api/customers/${project.customer_id}/assets/upload`,
+        formData,
+        (pct) => setOutcomeUploadProgress((prev) => prev.map((p) => (p.id === tempId ? { ...p, progress: pct, finishing: pct >= 100 } : p)))
+      );
+      setOutcomeUploadProgress((prev) => prev.map((p) => (p.id === tempId ? { ...p, finishing: true } : p)));
       const res = await fetch(`/api/customers/${project.customer_id}/assets`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -791,7 +997,7 @@ export default function OnboardingWizard({
     } catch (err) {
       setOutcomeUploadError(err instanceof Error ? err.message : "Failed to upload file");
     } finally {
-      setUploadingOutcomeFile(false);
+      setOutcomeUploadProgress((prev) => prev.filter((p) => p.id !== tempId));
     }
   };
 
@@ -1031,18 +1237,19 @@ export default function OnboardingWizard({
   };
 
   const handleMigrationChecklistUpload = async (file: File) => {
-    setUploadingMigrationChecklistFile(true);
+    const tempId = crypto.randomUUID();
+    setMigrationChecklistUploadProgress((prev) => [...prev, { id: tempId, name: file.name, progress: 0 }]);
     setMigrationChecklistUploadError(null);
     try {
       const formData = new FormData();
       formData.append("file", file);
       formData.append("project_id", project.project_id ?? project.id);
-      const uploadRes = await fetch(`/api/customers/${project.customer_id}/assets/upload`, { method: "POST", body: formData });
-      if (!uploadRes.ok) {
-        const json = await uploadRes.json().catch(() => ({}));
-        throw new Error(json.error ?? "Failed to upload file");
-      }
-      const uploaded = await uploadRes.json();
+      const uploaded = await uploadFileWithProgress(
+        `/api/customers/${project.customer_id}/assets/upload`,
+        formData,
+        (pct) => setMigrationChecklistUploadProgress((prev) => prev.map((p) => (p.id === tempId ? { ...p, progress: pct, finishing: pct >= 100 } : p)))
+      );
+      setMigrationChecklistUploadProgress((prev) => prev.map((p) => (p.id === tempId ? { ...p, finishing: true } : p)));
       const res = await fetch(`/api/customers/${project.customer_id}/assets`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1066,7 +1273,7 @@ export default function OnboardingWizard({
     } catch (err) {
       setMigrationChecklistUploadError(err instanceof Error ? err.message : "Failed to upload file");
     } finally {
-      setUploadingMigrationChecklistFile(false);
+      setMigrationChecklistUploadProgress((prev) => prev.filter((p) => p.id !== tempId));
     }
   };
 
@@ -1103,18 +1310,19 @@ export default function OnboardingWizard({
   };
 
   const handleContentMapUpload = async (file: File) => {
-    setUploadingContentMapFile(true);
+    const tempId = crypto.randomUUID();
+    setContentMapUploadProgress((prev) => [...prev, { id: tempId, name: file.name, progress: 0 }]);
     setContentMapUploadError(null);
     try {
       const formData = new FormData();
       formData.append("file", file);
       formData.append("project_id", project.project_id ?? project.id);
-      const uploadRes = await fetch(`/api/customers/${project.customer_id}/assets/upload`, { method: "POST", body: formData });
-      if (!uploadRes.ok) {
-        const json = await uploadRes.json().catch(() => ({}));
-        throw new Error(json.error ?? "Failed to upload file");
-      }
-      const uploaded = await uploadRes.json();
+      const uploaded = await uploadFileWithProgress(
+        `/api/customers/${project.customer_id}/assets/upload`,
+        formData,
+        (pct) => setContentMapUploadProgress((prev) => prev.map((p) => (p.id === tempId ? { ...p, progress: pct, finishing: pct >= 100 } : p)))
+      );
+      setContentMapUploadProgress((prev) => prev.map((p) => (p.id === tempId ? { ...p, finishing: true } : p)));
       const res = await fetch(`/api/customers/${project.customer_id}/assets`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1138,7 +1346,7 @@ export default function OnboardingWizard({
     } catch (err) {
       setContentMapUploadError(err instanceof Error ? err.message : "Failed to upload file");
     } finally {
-      setUploadingContentMapFile(false);
+      setContentMapUploadProgress((prev) => prev.filter((p) => p.id !== tempId));
     }
   };
 
@@ -1175,18 +1383,19 @@ export default function OnboardingWizard({
   };
 
   const handleSignoffUpload = async (file: File) => {
-    setUploadingSignoffFile(true);
+    const tempId = crypto.randomUUID();
+    setSignoffUploadProgress((prev) => [...prev, { id: tempId, name: file.name, progress: 0 }]);
     setSignoffUploadError(null);
     try {
       const formData = new FormData();
       formData.append("file", file);
       formData.append("project_id", project.project_id ?? project.id);
-      const uploadRes = await fetch(`/api/customers/${project.customer_id}/assets/upload`, { method: "POST", body: formData });
-      if (!uploadRes.ok) {
-        const json = await uploadRes.json().catch(() => ({}));
-        throw new Error(json.error ?? "Failed to upload file");
-      }
-      const uploaded = await uploadRes.json();
+      const uploaded = await uploadFileWithProgress(
+        `/api/customers/${project.customer_id}/assets/upload`,
+        formData,
+        (pct) => setSignoffUploadProgress((prev) => prev.map((p) => (p.id === tempId ? { ...p, progress: pct, finishing: pct >= 100 } : p)))
+      );
+      setSignoffUploadProgress((prev) => prev.map((p) => (p.id === tempId ? { ...p, finishing: true } : p)));
       const res = await fetch(`/api/customers/${project.customer_id}/assets`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1210,7 +1419,7 @@ export default function OnboardingWizard({
     } catch (err) {
       setSignoffUploadError(err instanceof Error ? err.message : "Failed to upload file");
     } finally {
-      setUploadingSignoffFile(false);
+      setSignoffUploadProgress((prev) => prev.filter((p) => p.id !== tempId));
     }
   };
 
@@ -1247,18 +1456,19 @@ export default function OnboardingWizard({
   };
 
   const handleHtmlMockupUpload = async (file: File) => {
-    setUploadingHtmlMockupFile(true);
+    const tempId = crypto.randomUUID();
+    setHtmlMockupUploadProgress((prev) => [...prev, { id: tempId, name: file.name, progress: 0 }]);
     setHtmlMockupUploadError(null);
     try {
       const formData = new FormData();
       formData.append("file", file);
       formData.append("project_id", project.project_id ?? project.id);
-      const uploadRes = await fetch(`/api/customers/${project.customer_id}/assets/upload`, { method: "POST", body: formData });
-      if (!uploadRes.ok) {
-        const json = await uploadRes.json().catch(() => ({}));
-        throw new Error(json.error ?? "Failed to upload file");
-      }
-      const uploaded = await uploadRes.json();
+      const uploaded = await uploadFileWithProgress(
+        `/api/customers/${project.customer_id}/assets/upload`,
+        formData,
+        (pct) => setHtmlMockupUploadProgress((prev) => prev.map((p) => (p.id === tempId ? { ...p, progress: pct, finishing: pct >= 100 } : p)))
+      );
+      setHtmlMockupUploadProgress((prev) => prev.map((p) => (p.id === tempId ? { ...p, finishing: true } : p)));
       const res = await fetch(`/api/customers/${project.customer_id}/assets`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1282,7 +1492,7 @@ export default function OnboardingWizard({
     } catch (err) {
       setHtmlMockupUploadError(err instanceof Error ? err.message : "Failed to upload file");
     } finally {
-      setUploadingHtmlMockupFile(false);
+      setHtmlMockupUploadProgress((prev) => prev.filter((p) => p.id !== tempId));
     }
   };
 
@@ -1562,13 +1772,44 @@ export default function OnboardingWizard({
           <div className={cn("text-[12px]", textMuted)}>{project.company_name} · Day {currentDay} of 15</div>
         </div>
         <div className="flex items-center justify-between mb-3">
-          <div className={cn("text-base font-bold", textPrimary)}>Onboarding Wizard</div>
+          <div className="flex items-center gap-2">
+            <div className={cn("text-base font-bold", textPrimary)}>Onboarding Wizard</div>
+            {canManagePhase1 && (
+              <button
+                type="button"
+                onClick={() => setPhase1AccessOpen((v) => !v)}
+                className={cn(
+                  "inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-medium cursor-pointer transition-colors",
+                  phase1AccessOpen
+                    ? "border-brand text-brand bg-brand/10"
+                    : cn("border-transparent", textMuted, isDark ? "hover:bg-white/[0.06]" : "hover:bg-slate-100")
+                )}
+              >
+                <Users size={12} /> Access
+              </button>
+            )}
+          </div>
           <div className={cn("rounded-lg px-3 py-1.5 border text-center", isDark ? "border-blue-500/25 bg-blue-500/10" : "border-blue-100 bg-blue-50")}>
             <div className="text-[15px] font-bold text-brand leading-none">{doneCount}/{localDeliverables.length}</div>
             <div className={cn("text-[10px] mt-0.5", textMuted)}>complete</div>
           </div>
         </div>
-        <div className="flex items-center gap-1 overflow-x-auto">
+        {phase1AccessOpen && canManagePhase1 && (
+          <PhaseAccessPanel
+            isDark={isDark}
+            members={phase1Members}
+            staffDirectory={staffDirectory}
+            busy={phase1Busy}
+            error={phase1Error}
+            onAdd={onAddPhase1Member}
+            onRemove={onRemovePhase1Member}
+            onTransferOwnership={onTransferPhaseOwnership}
+            onClose={() => setPhase1AccessOpen(false)}
+          />
+        )}
+        {/* px-1 keeps the active step's ring-4 glow from being clipped by the scroll
+            container's edge on the first/last circle. */}
+        <div className="flex items-center gap-1 overflow-x-auto px-1 -mx-1">
           {STEPS.map((s, i) => (
             <div key={s.key} className="flex items-center flex-1 last:flex-none min-w-8">
               <div className="flex flex-col items-center gap-1">
@@ -1662,7 +1903,17 @@ export default function OnboardingWizard({
                   disabled={isStepReadOnly}
                 />
                 {businessFactsUploadError && <p className="text-[12px] text-red-500 mt-2">{businessFactsUploadError}</p>}
-                <FileUploadBox files={businessFactsFiles} uploading={uploadingBusinessFacts} onFile={handleBusinessFactsUpload} onRemove={handleRemoveBusinessFactsFile} isDark={isDark} disabled={isStepReadOnly} />
+                <FileUploadBox
+                  files={businessFactsFiles}
+                  uploading={businessFactsUploadProgress.length > 0}
+                  uploadProgress={businessFactsUploadProgress}
+                  onFile={handleBusinessFactsUpload}
+                  onRemove={handleRemoveBusinessFactsFile}
+                  onView={handleViewBusinessFactsFile}
+                  viewingId={viewingBusinessFactsFileId}
+                  isDark={isDark}
+                  disabled={isStepReadOnly}
+                />
               </div>
               <RichTextField
                 label="Additional Notes"
@@ -1844,7 +2095,8 @@ export default function OnboardingWizard({
               {outcomeUploadError && <p className="text-[12px] text-red-500 mb-2">{outcomeUploadError}</p>}
               <FileUploadBox
                 files={outcomeFiles}
-                uploading={uploadingOutcomeFile}
+                uploading={outcomeUploadProgress.length > 0}
+                uploadProgress={outcomeUploadProgress}
                 onFile={handleOutcomeFileUpload}
                 onRemove={handleRemoveOutcomeFile}
                 onView={handleViewOutcomeFile}
@@ -1885,7 +2137,8 @@ export default function OnboardingWizard({
               {migrationChecklistUploadError && <p className="text-[12px] text-red-500 mb-2">{migrationChecklistUploadError}</p>}
               <FileUploadBox
                 files={migrationChecklistFiles}
-                uploading={uploadingMigrationChecklistFile}
+                uploading={migrationChecklistUploadProgress.length > 0}
+                uploadProgress={migrationChecklistUploadProgress}
                 onFile={handleMigrationChecklistUpload}
                 onRemove={handleRemoveMigrationChecklistFile}
                 onView={handleViewMigrationChecklistFile}
@@ -1926,7 +2179,8 @@ export default function OnboardingWizard({
               {contentMapUploadError && <p className="text-[12px] text-red-500 mb-2">{contentMapUploadError}</p>}
               <FileUploadBox
                 files={contentMapFiles}
-                uploading={uploadingContentMapFile}
+                uploading={contentMapUploadProgress.length > 0}
+                uploadProgress={contentMapUploadProgress}
                 onFile={handleContentMapUpload}
                 onRemove={handleRemoveContentMapFile}
                 onView={handleViewContentMapFile}
@@ -1963,7 +2217,8 @@ export default function OnboardingWizard({
               {signoffUploadError && <p className="text-[12px] text-red-500 mb-2">{signoffUploadError}</p>}
               <FileUploadBox
                 files={signoffFiles}
-                uploading={uploadingSignoffFile}
+                uploading={signoffUploadProgress.length > 0}
+                uploadProgress={signoffUploadProgress}
                 onFile={handleSignoffUpload}
                 onRemove={handleRemoveSignoffFile}
                 onView={handleViewSignoffFile}
@@ -1982,7 +2237,8 @@ export default function OnboardingWizard({
             {htmlMockupUploadError && <p className="text-[12px] text-red-500 mb-2">{htmlMockupUploadError}</p>}
             <HtmlMockupFileList
               files={htmlMockupFiles}
-              uploading={uploadingHtmlMockupFile}
+              uploading={htmlMockupUploadProgress.length > 0}
+              uploadProgress={htmlMockupUploadProgress}
               onFile={handleHtmlMockupUpload}
               onRemove={handleRemoveHtmlMockupFile}
               onView={handleViewHtmlMockupFile}
@@ -2421,31 +2677,76 @@ function RichTextField({
 }
 
 function FileUploadBox({
-  files, uploading, onFile, onRemove, onView, viewingId, isDark, disabled,
+  files, uploading, uploadProgress, onFile, onRemove, onView, viewingId, isDark, disabled,
 }: {
-  files: AssetRow[]; uploading: boolean; onFile: (file: File) => void; onRemove?: (id: string) => void;
+  files: AssetRow[]; uploading: boolean; uploadProgress?: UploadProgressEntry[]; onFile: (file: File) => void; onRemove?: (id: string) => void;
   onView?: (id: string) => void; viewingId?: string | null; isDark: boolean; disabled?: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
   const textMuted = isDark ? "text-slate-400" : "text-slate-500";
   const textPrimary = isDark ? "text-slate-200" : "text-slate-900";
+
+  function handleFiles(fileList: FileList | null) {
+    if (!fileList) return;
+    Array.from(fileList).forEach((f) => onFile(f));
+  }
+
   return (
     <div className="mt-2.5">
       {!disabled && (
         <>
-          <input ref={inputRef} type="file" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); e.target.value = ""; }} />
+          <input
+            ref={inputRef}
+            type="file"
+            multiple
+            className="hidden"
+            onChange={(e) => { handleFiles(e.target.files); e.target.value = ""; }}
+          />
           <button
             onClick={() => inputRef.current?.click()}
             disabled={uploading}
+            onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+            onDragLeave={() => setIsDragOver(false)}
+            onDrop={(e) => { e.preventDefault(); setIsDragOver(false); handleFiles(e.dataTransfer.files); }}
             className={cn(
               "w-full rounded-lg border-2 border-dashed py-4 text-center cursor-pointer transition-colors disabled:opacity-60",
-              isDark ? "border-white/[0.12] bg-white/[0.02] hover:border-brand" : "border-slate-200 bg-slate-50 hover:border-brand"
+              isDark
+                ? isDragOver ? "border-brand bg-brand/[0.06]" : "border-white/[0.12] bg-white/[0.02] hover:border-brand"
+                : isDragOver ? "border-brand bg-brand/[0.04]" : "border-slate-200 bg-slate-50 hover:border-brand"
             )}
           >
             <Upload size={16} className={cn("mx-auto mb-1.5", textMuted)} />
-            <div className={cn("text-[11.5px]", textMuted)}>{uploading ? "Uploading…" : <>Click to <span className="text-brand font-medium">upload a document</span></>}</div>
+            <div className={cn("text-[11.5px]", textMuted)}>{uploading ? "Uploading…" : <>Drag files here or <span className="text-brand font-medium">click to upload</span></>}</div>
           </button>
         </>
+      )}
+      {uploadProgress && uploadProgress.length > 0 && (
+        <div className="mt-2 flex flex-col gap-1.5">
+          {uploadProgress.map((p) => (
+            <div key={p.id} className={cn("flex flex-col gap-1.5 px-2.5 py-2 rounded-lg", isDark ? "bg-white/[0.03]" : "bg-slate-50")}>
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-md bg-brand/10 flex items-center justify-center shrink-0">
+                  <FileText size={11} className="text-brand" />
+                </div>
+                <div className={cn("text-[11.5px] font-medium truncate flex-1", textPrimary)}>{p.name}</div>
+                <div className={cn("flex items-center gap-1 text-[10.5px] tabular-nums shrink-0", textMuted)}>
+                  {p.finishing ? (
+                    <>
+                      <Loader2 size={10} className="animate-spin" />
+                      Finishing…
+                    </>
+                  ) : (
+                    `${p.progress}%`
+                  )}
+                </div>
+              </div>
+              <div className={cn("h-1.5 rounded-full overflow-hidden", isDark ? "bg-white/[0.08]" : "bg-slate-200")}>
+                <div className="h-full rounded-full bg-brand transition-[width]" style={{ width: `${p.progress}%` }} />
+              </div>
+            </div>
+          ))}
+        </div>
       )}
       {files.length > 0 && (
         <div className="mt-2 flex flex-col gap-1.5">
@@ -3987,32 +4288,77 @@ function FileViewerModal({
 // HTML Mockup's own file list — not bare FileUploadBox, since it adds an "Edit" action
 // (text/html and text/markdown only) next to the existing View/Remove ones.
 function HtmlMockupFileList({
-  files, uploading, onFile, onRemove, onView, onEdit, viewingId, isDark, disabled,
+  files, uploading, uploadProgress, onFile, onRemove, onView, onEdit, viewingId, isDark, disabled,
 }: {
-  files: AssetRow[]; uploading: boolean; onFile: (file: File) => void; onRemove: (id: string) => void;
+  files: AssetRow[]; uploading: boolean; uploadProgress?: UploadProgressEntry[]; onFile: (file: File) => void; onRemove: (id: string) => void;
   onView: (id: string) => void; onEdit: (asset: AssetRow) => void; viewingId: string | null; isDark: boolean;
   disabled?: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
   const textMuted = isDark ? "text-slate-400" : "text-slate-500";
   const textPrimary = isDark ? "text-slate-200" : "text-slate-900";
+
+  function handleFiles(fileList: FileList | null) {
+    if (!fileList) return;
+    Array.from(fileList).forEach((f) => onFile(f));
+  }
+
   return (
     <div className="mt-1">
       {!disabled && (
         <>
-          <input ref={inputRef} type="file" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); e.target.value = ""; }} />
+          <input
+            ref={inputRef}
+            type="file"
+            multiple
+            className="hidden"
+            onChange={(e) => { handleFiles(e.target.files); e.target.value = ""; }}
+          />
           <button
             onClick={() => inputRef.current?.click()}
             disabled={uploading}
+            onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+            onDragLeave={() => setIsDragOver(false)}
+            onDrop={(e) => { e.preventDefault(); setIsDragOver(false); handleFiles(e.dataTransfer.files); }}
             className={cn(
               "w-full rounded-lg border-2 border-dashed py-4 text-center cursor-pointer transition-colors disabled:opacity-60",
-              isDark ? "border-white/[0.12] bg-white/[0.02] hover:border-brand" : "border-slate-200 bg-slate-50 hover:border-brand"
+              isDark
+                ? isDragOver ? "border-brand bg-brand/[0.06]" : "border-white/[0.12] bg-white/[0.02] hover:border-brand"
+                : isDragOver ? "border-brand bg-brand/[0.04]" : "border-slate-200 bg-slate-50 hover:border-brand"
             )}
           >
             <Upload size={16} className={cn("mx-auto mb-1.5", textMuted)} />
-            <div className={cn("text-[11.5px]", textMuted)}>{uploading ? "Uploading…" : <>Click to <span className="text-brand font-medium">upload the mockup</span></>}</div>
+            <div className={cn("text-[11.5px]", textMuted)}>{uploading ? "Uploading…" : <>Drag files here or <span className="text-brand font-medium">click to upload</span></>}</div>
           </button>
         </>
+      )}
+      {uploadProgress && uploadProgress.length > 0 && (
+        <div className="mt-2 flex flex-col gap-1.5">
+          {uploadProgress.map((p) => (
+            <div key={p.id} className={cn("flex flex-col gap-1.5 px-2.5 py-2 rounded-lg", isDark ? "bg-white/[0.03]" : "bg-slate-50")}>
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-md bg-brand/10 flex items-center justify-center shrink-0">
+                  <FileText size={11} className="text-brand" />
+                </div>
+                <div className={cn("text-[11.5px] font-medium truncate flex-1", textPrimary)}>{p.name}</div>
+                <div className={cn("flex items-center gap-1 text-[10.5px] tabular-nums shrink-0", textMuted)}>
+                  {p.finishing ? (
+                    <>
+                      <Loader2 size={10} className="animate-spin" />
+                      Finishing…
+                    </>
+                  ) : (
+                    `${p.progress}%`
+                  )}
+                </div>
+              </div>
+              <div className={cn("h-1.5 rounded-full overflow-hidden", isDark ? "bg-white/[0.08]" : "bg-slate-200")}>
+                <div className="h-full rounded-full bg-brand transition-[width]" style={{ width: `${p.progress}%` }} />
+              </div>
+            </div>
+          ))}
+        </div>
       )}
       {files.length > 0 && (
         <div className="mt-2 flex flex-col gap-1.5">

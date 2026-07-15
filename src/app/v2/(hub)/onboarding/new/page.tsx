@@ -5,7 +5,8 @@ import NewProjectWizard from "./_content";
 
 export const dynamic = "force-dynamic";
 
-const CREATE_ROLES = ["admin", "super_admin", "marketing"];
+// Task 153: pm can now also create projects (was admin/super_admin/marketing only).
+const CREATE_ROLES = ["admin", "super_admin", "marketing", "pm"];
 
 export default async function NewProjectPage() {
   const supabase = await createClient();

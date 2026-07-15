@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { adminClient } from "@/lib/supabase/admin";
+import { upsertPrimaryContact } from "@/lib/customers/primary-contact";
 
 const WRITE_ROLES = ["admin", "super_admin", "marketing"];
 
@@ -59,10 +61,12 @@ export async function PATCH(
       return NextResponse.json({ error: "Failed to save wizard data" }, { status: 500 });
     }
 
-    // Sync the Kickoff step's first (primary) contact to customers.contact_name/contact_email on
-    // every save (task 129) — non-fatal, the wizard-data save itself must not fail because of it.
+    // Sync the Kickoff step's first (primary) contact into contacts.is_primary on every save
+    // (task 129, retargeted to contacts by task 151) — non-fatal, the wizard-data save itself
+    // must not fail because of it. Uses adminClient: marketing (a valid WRITE_ROLES value
+    // above) isn't covered by contacts_pm_write RLS (admin|super_admin|pm only, migration 056).
     if (subPhaseKey === "kickoff") {
-      const primaryContact = (mergedSubPhase.contacts as { fullName?: string; email?: string }[] | undefined)?.[0];
+      const primaryContact = (mergedSubPhase.contacts as { fullName?: string; email?: string; phone?: string }[] | undefined)?.[0];
       if (primaryContact?.email) {
         try {
           const { data: projectRow } = await supabase
@@ -71,10 +75,11 @@ export async function PATCH(
             .eq("id", projectId)
             .single();
           if (projectRow?.customer_id) {
-            const { error: syncError } = await supabase
-              .from("customers")
-              .update({ contact_name: primaryContact.fullName ?? "", contact_email: primaryContact.email })
-              .eq("customer_id", projectRow.customer_id);
+            const { error: syncError } = await upsertPrimaryContact(adminClient, projectRow.customer_id, {
+              name: primaryContact.fullName,
+              email: primaryContact.email,
+              phone: primaryContact.phone,
+            });
             if (syncError) console.error("PATCH .../wizard-data primary contact sync error:", syncError);
           }
         } catch (syncErr) {

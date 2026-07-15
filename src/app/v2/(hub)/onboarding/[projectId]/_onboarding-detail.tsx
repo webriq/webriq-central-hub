@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
 import {
   CalendarClock, Flag, Bell, CheckCircle2, Check, Clock, ChevronDown, ChevronRight, PlayCircle,
-  Users, AlertTriangle, Info, ArrowLeft, ListChecks, Locate,
+  Users, AlertTriangle, Info, ArrowLeft, ListChecks, Locate, Crown, X, ShieldAlert,
+  Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -16,14 +17,37 @@ import {
   internalDeliverablesForSubPhase, type PhaseConfig, type DeliverableConfig,
 } from "@/config/customer-phases";
 import type { CustomerPhaseRow, CustomerDeliverableRow, OnboardingInternalDeliverableRow } from "@/types/database";
+import { isRoleGatedByMembership, canManageProjectMembers, canSetProjectOwner, canManagePhase1Membership } from "@/lib/programme/membership-rules";
 import { spaceGrotesk, inter, jetBrainsMono } from "../_fonts";
 import OnboardingWizard from "./_onboarding-wizard";
 
+// Shared shape for both project_members and phase_members rows (task 155 gave both an
+// is_owner column, mirroring each other exactly).
+type MemberRow = { id: string; user_id: string; is_owner: boolean; full_name: string | null; role: string | null };
+
 interface OnboardingDetailProps {
-  project: { id: string; name: string; customer_id: string; project_id: string | null; company_name: string };
+  project: {
+    id: string;
+    name: string;
+    customer_id: string;
+    project_id: string | null;
+    company_name: string;
+    contact_name: string | null;
+    contact_email: string | null;
+    primary_contact_phone: string | null;
+    // Task 157: real owner display (replacing the static "Owner: Bert" config label) +
+    // canManageProjectMembers/canSetProjectOwner's "is this caller the creator" check.
+    created_by: string | null;
+    created_by_name: string | null;
+  };
   // Task 146: pm/developer can view the Timeline read-only; pm additionally gets the Wizard
   // (read-only on steps 1-5/7, full Step 6 file/folder access) — developer never opens it.
   role: string | null;
+  // Task 153/155/157: project/phase membership — gates Wizard entry for marketing/pm, drives
+  // the owner/collaborator management UI, and who can manage project members/ownership.
+  currentUserId: string;
+  phase1Members: MemberRow[];
+  projectMembers: MemberRow[];
 }
 
 // ─── Gantt grid constants ─────────────────────────────────────────────────────
@@ -206,9 +230,31 @@ function ProgressRing({ percentage, colorClass, size = 22 }: { percentage: numbe
   );
 }
 
+// Drag-resize/move (task 148) — resize-left/resize-right change one edge only; move shifts both.
+// Custom onPointerDown/pointermove/pointerup (not @dnd-kit, which this file already avoids —
+// see task 148 doc's rationale) with pointer capture so move/up keep firing on the captor even
+// if the cursor leaves it, clamped to the deliverable's own phase day range every frame.
+type DragMode = "resize-left" | "resize-right" | "move";
+type DragState = { mode: DragMode; startClientX: number; startDayStart: number; startDayEnd: number; moved: boolean };
+
+function clampDragToPhase(mode: DragMode, dayStart: number, dayEnd: number, phaseDayStart: number, phaseDayEnd: number): { dayStart: number; dayEnd: number } {
+  if (mode === "move") {
+    const span = dayEnd - dayStart;
+    let s = dayStart;
+    let e = dayEnd;
+    if (s < phaseDayStart) { s = phaseDayStart; e = s + span; }
+    if (e > phaseDayEnd) { e = phaseDayEnd; s = e - span; }
+    return { dayStart: Math.max(phaseDayStart, s), dayEnd: Math.min(phaseDayEnd, e) };
+  }
+  const s = Math.max(phaseDayStart, dayStart);
+  const e = Math.min(phaseDayEnd, dayEnd);
+  if (mode === "resize-left") return { dayStart: Math.min(s, e), dayEnd: e };
+  return { dayStart: s, dayEnd: Math.max(s, e) };
+}
+
 function DeliverableCard({
   d, track, status, interactive, internalItems, internalByKey, expanded, onToggleExpand,
-  phaseNumber, phaseVisual, startDate, onOpenWizardStep,
+  phaseNumber, phaseVisual, startDate, onOpenWizardStep, canEditSchedule, phaseDayStart, phaseDayEnd, onScheduleChange,
 }: {
   d: DeliverableConfig;
   track: number;
@@ -222,10 +268,60 @@ function DeliverableCard({
   phaseVisual: PhaseVisual;
   startDate: Date;
   onOpenWizardStep?: () => void;
+  canEditSchedule: boolean;
+  phaseDayStart: number;
+  phaseDayEnd: number;
+  onScheduleChange?: (dayStart: number, dayEnd: number) => void;
 }) {
-  const left = (d.dayStart - 1) * DAY_WIDTH;
-  const width = (d.dayEnd - d.dayStart + 1) * DAY_WIDTH - 4;
+  const [dragState, setDragState] = useState<DragState | null>(null);
+  const [livePreview, setLivePreview] = useState<{ dayStart: number; dayEnd: number } | null>(null);
+  const suppressClickRef = useRef(false);
+
+  const effectiveDayStart = livePreview?.dayStart ?? d.dayStart;
+  const effectiveDayEnd = livePreview?.dayEnd ?? d.dayEnd;
+  const left = (effectiveDayStart - 1) * DAY_WIDTH;
+  const width = (effectiveDayEnd - effectiveDayStart + 1) * DAY_WIDTH - 4;
   const top = track * (ROW_HEIGHT + ROW_GAP) + CARD_INSET;
+
+  function beginDrag(mode: DragMode, e: React.PointerEvent) {
+    if (!canEditSchedule) return;
+    e.stopPropagation();
+    (e.currentTarget as Element).setPointerCapture(e.pointerId);
+    setDragState({ mode, startClientX: e.clientX, startDayStart: d.dayStart, startDayEnd: d.dayEnd, moved: false });
+    setLivePreview({ dayStart: d.dayStart, dayEnd: d.dayEnd });
+  }
+
+  function handleDragMove(e: React.PointerEvent) {
+    if (!dragState) return;
+    const deltaPx = e.clientX - dragState.startClientX;
+    const deltaDays = Math.round(deltaPx / DAY_WIDTH);
+    let newStart = dragState.startDayStart;
+    let newEnd = dragState.startDayEnd;
+    if (dragState.mode === "resize-right") newEnd = dragState.startDayEnd + deltaDays;
+    else if (dragState.mode === "resize-left") newStart = dragState.startDayStart + deltaDays;
+    else { newStart = dragState.startDayStart + deltaDays; newEnd = dragState.startDayEnd + deltaDays; }
+    setLivePreview(clampDragToPhase(dragState.mode, newStart, newEnd, phaseDayStart, phaseDayEnd));
+    if (!dragState.moved && Math.abs(deltaPx) > 4) {
+      suppressClickRef.current = true;
+      setDragState((prev) => (prev ? { ...prev, moved: true } : prev));
+    }
+  }
+
+  function endDrag() {
+    if (!dragState) return;
+    const changed = dragState.moved && livePreview && (livePreview.dayStart !== d.dayStart || livePreview.dayEnd !== d.dayEnd);
+    if (changed && livePreview) onScheduleChange?.(livePreview.dayStart, livePreview.dayEnd);
+    setDragState(null);
+    setLivePreview(null);
+  }
+
+  function handleCardClick() {
+    if (suppressClickRef.current) {
+      suppressClickRef.current = false;
+      return;
+    }
+    if (interactive) onOpenWizardStep?.();
+  }
   const compact = width < 90;
   const doneInternal = internalItems.filter((item) => (internalByKey.get(item.key)?.status ?? "pending") === "done").length;
   const percentage = internalItems.length > 0
@@ -305,20 +401,36 @@ function DeliverableCard({
       style={{ left, width, top, height: ROW_HEIGHT - CARD_INSET * 2 }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      onPointerMove={handleDragMove}
+      onPointerUp={endDrag}
+      onPointerCancel={endDrag}
     >
       <button
         ref={buttonRef}
         type="button"
-        onClick={interactive ? onOpenWizardStep : undefined}
-        disabled={!interactive}
+        onClick={handleCardClick}
+        onPointerDown={(e) => beginDrag("move", e)}
         title={d.name}
         style={barStyle}
         className={cn(
           "relative flex h-full w-full items-center gap-2 overflow-hidden rounded-[10px] border-[1.5px] px-2.5 text-left transition-colors",
           percentage >= 100 ? "border-transparent" : "border-[#E2E8F0]",
-          interactive ? "cursor-pointer hover:border-[#CBD5E1]" : "cursor-default"
+          interactive && "hover:border-[#CBD5E1]",
+          canEditSchedule ? (dragState ? "cursor-grabbing" : "cursor-grab") : interactive ? "cursor-pointer" : "cursor-default"
         )}
       >
+        {canEditSchedule && (
+          <>
+            <div
+              onPointerDown={(e) => beginDrag("resize-left", e)}
+              className="absolute inset-y-0 left-0 z-10 w-1.5 cursor-ew-resize bg-black/0 transition-colors hover:bg-black/15"
+            />
+            <div
+              onPointerDown={(e) => beginDrag("resize-right", e)}
+              className="absolute inset-y-0 right-0 z-10 w-1.5 cursor-ew-resize bg-black/0 transition-colors hover:bg-black/15"
+            />
+          </>
+        )}
         <ProgressRing percentage={percentage} colorClass={percentage >= 100 ? "text-white/50" : phaseVisual.text} />
         <span
           ref={titleRef}
@@ -429,12 +541,13 @@ function DeliverableCard({
 // ─── Swimlane ──────────────────────────────────────────────────────────────────
 
 function Swimlane({
-  phase, dbStatus, deliverableStatusMap, internalByKey, collapsed, onToggleCollapse,
-  onOpenWizardStep, expandedDeliverable, onExpandDeliverable, index, startDate, role,
+  phase, dbStatus, deliverableStatusMap, deliverableOverrideMap, internalByKey, collapsed, onToggleCollapse,
+  onOpenWizardStep, expandedDeliverable, onExpandDeliverable, index, startDate, role, canEditSchedule, onScheduleChange,
 }: {
   phase: PhaseConfig;
   dbStatus: string;
   deliverableStatusMap: Map<string, string>;
+  deliverableOverrideMap: Map<string, { dayStart: number; dayEnd: number }>;
   internalByKey: Map<string, OnboardingInternalDeliverableRow>;
   collapsed: boolean;
   onToggleCollapse: () => void;
@@ -444,11 +557,19 @@ function Swimlane({
   index: number;
   startDate: Date;
   role: string | null;
+  canEditSchedule: boolean;
+  onScheduleChange: (phaseNumber: number, deliverableKey: string, dayStart: number, dayEnd: number) => void;
 }) {
   const visual = PHASE_VISUALS[phase.number];
   // Developer never opens the Wizard (task 146) — Phase 1 bars stay inert for that role.
   const interactive = phase.number === 1 && role !== "developer";
-  const tracks = assignTracks(phase.deliverables.map((d) => ({ dayStart: d.dayStart, dayEnd: d.dayEnd })));
+  // Effective span = per-project override (migration 071) ?? the static config default — never
+  // mutates PROGRAMME_PHASES, which is shared by every customer.
+  const effectiveDeliverables = phase.deliverables.map((d) => {
+    const override = deliverableOverrideMap.get(d.key);
+    return override ? { ...d, dayStart: override.dayStart, dayEnd: override.dayEnd } : d;
+  });
+  const tracks = assignTracks(effectiveDeliverables.map((d) => ({ dayStart: d.dayStart, dayEnd: d.dayEnd })));
   const trackCount = tracks.length > 0 ? Math.max(...tracks) + 1 : 1;
   const laneHeight = trackCount * ROW_HEIGHT + (trackCount - 1) * ROW_GAP + 8 + LANE_TOP_PADDING;
   const doneCount = phase.deliverables.filter((d) => (deliverableStatusMap.get(d.key) ?? "pending") === "done").length;
@@ -482,7 +603,7 @@ function Swimlane({
         className="relative overflow-visible"
         style={{ width: TOTAL_DAYS * DAY_WIDTH, height: collapsed ? 0 : laneHeight, paddingTop: collapsed ? 0 : LANE_TOP_PADDING }}
       >
-        {!collapsed && phase.deliverables.map((d, i) => {
+        {!collapsed && effectiveDeliverables.map((d, i) => {
           const subInternal = phase.number === 1 ? internalDeliverablesForSubPhase(d.key) : [];
           return (
             <DeliverableCard
@@ -499,6 +620,10 @@ function Swimlane({
               phaseVisual={visual}
               startDate={startDate}
               onOpenWizardStep={interactive ? () => onOpenWizardStep(d.key) : undefined}
+              canEditSchedule={canEditSchedule}
+              phaseDayStart={phase.dayStart}
+              phaseDayEnd={phase.dayEnd}
+              onScheduleChange={(dayStart, dayEnd) => onScheduleChange(phase.number, d.key, dayStart, dayEnd)}
             />
           );
         })}
@@ -563,15 +688,229 @@ function StatChip({ label, value }: { label: string; value: string | number }) {
   );
 }
 
+// ─── Project settings: owner + collaborators (task 153/155/157) ───────────────────────────────
+// Task 157: split into two independently-triggered panels (Set Project Owner / Add
+// Collaborators) behind a Gear "Project Settings" menu, replacing the single merged panel
+// behind an "Access" text button. Read-only avatar display lives in the header row itself
+// (AvatarCircle/CollaboratorAvatars below); these panels are the management surfaces.
+
+function AvatarCircle({ name, size = 22, ring }: { name: string | null; size?: number; ring?: boolean }) {
+  const initials = (name ?? "?").split(" ").filter(Boolean).map((w) => w[0]).join("").slice(0, 2).toUpperCase() || "?";
+  const colors = ["#2563EB", "#7C3AED", "#0D9488", "#DC2626", "#D97706"];
+  const bg = colors[(name ?? "?").charCodeAt(0) % colors.length];
+  return (
+    <div
+      title={name ?? "Unnamed"}
+      className={cn("flex shrink-0 items-center justify-center rounded-full font-bold text-white", ring && "ring-2 ring-white")}
+      style={{ width: size, height: size, fontSize: Math.max(8, size * 0.4), background: bg }}
+    >
+      {initials}
+    </div>
+  );
+}
+
+function CollaboratorAvatars({ members, max = 4 }: { members: MemberRow[]; max?: number }) {
+  if (members.length === 0) return <span className="text-[11.5px] text-[#94A3B8]">None yet</span>;
+  const visible = members.slice(0, max);
+  const overflow = members.length - visible.length;
+  return (
+    <div className="flex items-center">
+      {visible.map((m, i) => (
+        <div key={m.user_id} className={cn(i > 0 && "-ml-1.5")}>
+          <AvatarCircle name={m.full_name} size={22} ring />
+        </div>
+      ))}
+      {overflow > 0 && (
+        <div className="-ml-1.5 flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full bg-[#E2E8F0] text-[9px] font-bold text-[#64748B] ring-2 ring-white">
+          +{overflow}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PersonChip({ label, sublabel, isOwner, onRemove, disabled }: {
+  label: string; sublabel: string; isOwner?: boolean; onRemove?: () => void; disabled?: boolean;
+}) {
+  return (
+    <div className="inline-flex items-center gap-1.5 rounded-full border border-[#E2E8F0] bg-white py-1 pl-1 pr-2 text-[11.5px]">
+      <div className="flex h-5 w-5 items-center justify-center rounded-full bg-[#2563EB]/10 text-[9px] font-bold text-[#2563EB]">
+        {(label || "?").slice(0, 1).toUpperCase()}
+      </div>
+      <span className="font-medium text-[#334155]">{label}</span>
+      <span className="text-[10px] text-[#94A3B8]">{sublabel}</span>
+      {isOwner && <Crown size={11} className="text-[#D97706]" aria-label="Owner" />}
+      {onRemove && (
+        <button
+          type="button"
+          onClick={onRemove}
+          disabled={disabled}
+          title="Remove"
+          aria-label={`Remove ${label}`}
+          className="cursor-pointer rounded-full border-none bg-transparent p-0.5 text-[#94A3B8] transition-colors hover:text-[#DC2626] disabled:opacity-50"
+        >
+          <X size={11} />
+        </button>
+      )}
+    </div>
+  );
+}
+
+function PanelHeader({ label, onClose }: { label: string; onClose: () => void }) {
+  return (
+    <div className="flex items-start justify-between gap-2">
+      <div className="text-[11px] font-semibold uppercase tracking-wide text-[#94A3B8]">{label}</div>
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="Close"
+        title="Close"
+        className="shrink-0 cursor-pointer rounded-md border-none bg-transparent p-0.5 text-[#94A3B8] transition-colors hover:bg-white hover:text-[#334155]"
+      >
+        <X size={14} />
+      </button>
+    </div>
+  );
+}
+
+// Task 157 — "Set Project Owner": pick a new owner from existing project members (super_admin/
+// admin/creator only). Transfer target must already be a collaborator — add them via "Add
+// Collaborators" first if they aren't one yet.
+function OwnerPanel({ projectMembers, busy, error, onTransferOwnership, onClose }: {
+  projectMembers: MemberRow[];
+  busy: boolean;
+  error: string | null;
+  onTransferOwnership: (userId: string) => void;
+  onClose: () => void;
+}) {
+  const owner = projectMembers.find((m) => m.is_owner) ?? null;
+  const candidates = projectMembers.filter((m) => !m.is_owner);
+
+  return (
+    <div className="mt-4 flex flex-col gap-2 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
+      <PanelHeader label="Set project owner" onClose={onClose} />
+      {error && <p className="text-[11.5px] text-[#DC2626]">{error}</p>}
+      <div className="flex flex-wrap items-center gap-2">
+        {owner ? (
+          <div className="inline-flex items-center gap-1.5 rounded-full border border-[#E2E8F0] bg-white py-1 pl-1 pr-2.5 text-[11.5px]">
+            <AvatarCircle name={owner.full_name} size={20} />
+            <span className="font-medium text-[#334155]">{owner.full_name ?? "Unnamed"}</span>
+            <Crown size={11} className="text-[#D97706]" aria-label="Current owner" />
+          </div>
+        ) : (
+          <span className="text-[11.5px] text-[#94A3B8]">No owner set yet.</span>
+        )}
+        <select
+          value=""
+          disabled={busy || candidates.length === 0}
+          onChange={(e) => { if (e.target.value) onTransferOwnership(e.target.value); e.target.value = ""; }}
+          className="rounded-full border border-dashed border-[#CBD5E1] bg-white px-2.5 py-1 text-[11px] text-[#64748B] disabled:opacity-50"
+        >
+          <option value="">{candidates.length === 0 ? "No other collaborators yet" : "Transfer to…"}</option>
+          {candidates.map((m) => (
+            <option key={m.user_id} value={m.user_id}>{m.full_name ?? "Unnamed"} ({m.role})</option>
+          ))}
+        </select>
+      </div>
+      <p className="text-[10.5px] text-[#94A3B8]">
+        The new owner must already be a collaborator — add them first if they aren&apos;t listed.
+      </p>
+    </div>
+  );
+}
+
+// Task 155/157 — search-to-add UI mirrors _onboarding-wizard.tsx's renderPersonPicker shape
+// (search input + filtered dropdown, immediate-add-on-click, onMouseDown preventDefault so the
+// click survives the input's onBlur).
+function CollaboratorsPanel({
+  projectMembers, staffDirectory, busy, error, onAdd, onRemove, onClose,
+}: {
+  projectMembers: MemberRow[];
+  staffDirectory: { id: string; full_name: string | null; role: string }[];
+  busy: boolean;
+  error: string | null;
+  onAdd: (userId: string) => void;
+  onRemove: (userId: string) => void;
+  onClose: () => void;
+}) {
+  const [search, setSearch] = useState("");
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  const memberIds = new Set(projectMembers.map((m) => m.user_id));
+  // Task 155: any staff role is addable as a project collaborator (was marketing/pm only).
+  const candidates = staffDirectory
+    .filter((p) => !memberIds.has(p.id))
+    .filter((p) => (p.full_name ?? "").toLowerCase().includes(search.toLowerCase()));
+
+  return (
+    <div className="mt-4 mb-6 flex flex-col gap-2.5 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
+      <PanelHeader label="Add collaborators — who sees this on the Onboarding list" onClose={onClose} />
+      {error && <p className="text-[11.5px] text-[#DC2626]">{error}</p>}
+      {/* Search sits above the collaborator chips, not beside them. */}
+      <div className="relative max-w-xs">
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => { setSearch(e.target.value); setDropdownOpen(true); }}
+          onFocus={() => setDropdownOpen(true)}
+          onBlur={() => setTimeout(() => setDropdownOpen(false), 150)}
+          disabled={busy}
+          placeholder="Search people to add…"
+          className="w-full rounded-md border border-[#E2E8F0] bg-white px-2.5 py-1.5 text-[11.5px] text-[#0F172A] outline-none transition-colors placeholder:text-[#94A3B8] focus:border-[#2563EB] disabled:opacity-50"
+        />
+        {dropdownOpen && (
+          <div className="absolute z-30 mt-1 w-full max-h-40 overflow-y-auto rounded-lg border border-[#E2E8F0] bg-white shadow-lg">
+            {candidates.length === 0 ? (
+              <div className="px-2.5 py-1.5 text-[11.5px] text-[#94A3B8]">
+                {staffDirectory.length === 0 ? "No staff directory entries found." : "No matches."}
+              </div>
+            ) : (
+              candidates.map((person) => (
+                <button
+                  key={person.id}
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => { onAdd(person.id); setSearch(""); }}
+                  className="block w-full cursor-pointer border-none bg-transparent px-2.5 py-1.5 text-left text-[11.5px] text-[#334155] transition-colors hover:bg-[#F8FAFC]"
+                >
+                  {person.full_name ?? "Unnamed"} <span className="text-[#94A3B8]">({person.role})</span>
+                </button>
+              ))
+            )}
+          </div>
+        )}
+      </div>
+      <div className="flex flex-wrap items-center gap-1.5">
+        {projectMembers.length === 0 && <span className="text-[11.5px] text-[#94A3B8]">No collaborators added yet.</span>}
+        {projectMembers.map((m) => (
+          <PersonChip
+            key={m.user_id}
+            label={m.full_name ?? "Unnamed"}
+            sublabel={m.role ?? ""}
+            isOwner={m.is_owner}
+            onRemove={!m.is_owner ? () => onRemove(m.user_id) : undefined}
+            disabled={busy}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export default function OnboardingDetail({ project, role }: OnboardingDetailProps) {
+export default function OnboardingDetail({
+  project, role, currentUserId, phase1Members: initialPhase1Members, projectMembers: initialProjectMembers,
+}: OnboardingDetailProps) {
   const router = useRouter();
   // Task 146: marketing/admin/super_admin keep full phase-management actions (Start/Jump);
   // pm/developer are view-only at the phase-status level — pm's one write surface is Step 6's
   // file/folder actions inside the Wizard, not anything here on the Timeline.
   const canManagePhases = role !== "pm" && role !== "developer";
   const canOpenWizard = role !== "developer";
+  // Task 148: schedule drag-resize/move follows customer_deliverables' own write RLS
+  // (migration 070/071) — admin/super_admin/marketing only, independent of canManagePhases.
+  const canEditSchedule = role === "admin" || role === "super_admin" || role === "marketing";
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -590,6 +929,182 @@ export default function OnboardingDetail({ project, role }: OnboardingDetailProp
   const isMountedRef = useRef(true);
   const scrollRef = useRef<HTMLDivElement>(null);
   const scrolledToTodayRef = useRef(false);
+
+  // ─── Task 153/155/157: project/phase membership ────────────────────────────
+  const [phase1Members, setPhase1Members] = useState<MemberRow[]>(initialPhase1Members);
+  const [projectMembers, setProjectMembers] = useState<MemberRow[]>(initialProjectMembers);
+  const [staffDirectory, setStaffDirectory] = useState<{ id: string; full_name: string | null; role: string }[]>([]);
+  const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
+  const [ownerPanelOpen, setOwnerPanelOpen] = useState(false);
+  const [collaboratorsPanelOpen, setCollaboratorsPanelOpen] = useState(false);
+  const [membershipBusy, setMembershipBusy] = useState(false);
+  const [membershipError, setMembershipError] = useState<string | null>(null);
+
+  const myPhase1Membership = phase1Members.find((m) => m.user_id === currentUserId) ?? null;
+  const isPhase1Member = !!myPhase1Membership;
+  const isPhase1Owner = !!myPhase1Membership?.is_owner;
+  const phase1HasMembers = phase1Members.length > 0;
+  // Gated per requirement 4: marketing/pm without membership are blocked once the phase actually
+  // has members; a phase with zero members is unrestricted (backward compatibility, see task
+  // 153 doc — avoids locking out every already-in-progress onboarding on ship).
+  const isPhase1Restricted = isRoleGatedByMembership(role) && phase1HasMembers && !isPhase1Member;
+  const canManagePhase1 = canManagePhase1Membership(role, { isMember: isPhase1Member, isOwner: isPhase1Owner });
+  // Task 157: both keyed off "is this caller the project creator" rather than plain membership
+  // — super_admin/admin/pm/creator can add collaborators; super_admin/admin/creator can set the
+  // owner (narrower — no pm).
+  const isCreator = !!project.created_by && project.created_by === currentUserId;
+  const canManageProjMembers = canManageProjectMembers(role, isCreator);
+  const canSetOwner = canSetProjectOwner(role, isCreator);
+  const projectOwner = projectMembers.find((m) => m.is_owner) ?? null;
+  // "Default to the creator of the project if any" — legacy projects that predate task 153 may
+  // have created_by set but no project_members row (and therefore no is_owner match) yet.
+  const ownerDisplayName = projectOwner?.full_name ?? project.created_by_name ?? null;
+  const collaborators = projectMembers.filter((m) => !m.is_owner);
+
+  // Task 156: only needed for the project-members picker now — Phase 1's own staffDirectory
+  // fetch lives inside OnboardingWizard, where that management UI moved to.
+  useEffect(() => {
+    if (!canManageProjMembers) return;
+    let cancelled = false;
+    fetch("/api/staff-directory")
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data: { id: string; full_name: string | null; role: string }[]) => {
+        if (!cancelled) setStaffDirectory(Array.isArray(data) ? data : []);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [canManageProjMembers]);
+
+  const refetchPhase1Members = async () => {
+    try {
+      const res = await fetch(`/api/projects/${project.id}/programme/phases/1/members`);
+      if (!res.ok) return;
+      const data: { id: string; user_id: string; is_owner: boolean; profiles: { full_name: string | null; role: string } | null }[] = await res.json();
+      setPhase1Members(
+        data.map((m) => ({ id: m.id, user_id: m.user_id, is_owner: m.is_owner, full_name: m.profiles?.full_name ?? null, role: m.profiles?.role ?? null }))
+      );
+    } catch { /* leave current state */ }
+  };
+
+  const refetchProjectMembers = async () => {
+    try {
+      const res = await fetch(`/api/projects/${project.id}/members`);
+      if (!res.ok) return;
+      const data: { id: string; user_id: string; is_owner: boolean; profiles: { full_name: string | null; role: string } | null }[] = await res.json();
+      setProjectMembers(
+        data.map((m) => ({ id: m.id, user_id: m.user_id, is_owner: m.is_owner, full_name: m.profiles?.full_name ?? null, role: m.profiles?.role ?? null }))
+      );
+    } catch { /* leave current state */ }
+  };
+
+  const handleAddProjectMember = async (userId: string) => {
+    setMembershipBusy(true);
+    setMembershipError(null);
+    try {
+      const res = await fetch(`/api/projects/${project.id}/members`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: userId }),
+      });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        throw new Error(json.error ?? "Failed to add project member");
+      }
+      await refetchProjectMembers();
+    } catch (err) {
+      setMembershipError(err instanceof Error ? err.message : "Failed to add project member.");
+    } finally {
+      setMembershipBusy(false);
+    }
+  };
+
+  const handleRemoveProjectMember = async (userId: string) => {
+    setMembershipBusy(true);
+    setMembershipError(null);
+    try {
+      const res = await fetch(`/api/projects/${project.id}/members?user_id=${userId}`, { method: "DELETE" });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        throw new Error(json.error ?? "Failed to remove project member");
+      }
+      await refetchProjectMembers();
+    } catch (err) {
+      setMembershipError(err instanceof Error ? err.message : "Failed to remove project member.");
+    } finally {
+      setMembershipBusy(false);
+    }
+  };
+
+  const handleTransferProjectOwnership = async (userId: string) => {
+    setMembershipBusy(true);
+    setMembershipError(null);
+    try {
+      const res = await fetch(`/api/projects/${project.id}/members`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: userId }),
+      });
+      if (!res.ok) throw new Error();
+      await refetchProjectMembers();
+    } catch {
+      setMembershipError("Failed to transfer project ownership.");
+    } finally {
+      setMembershipBusy(false);
+    }
+  };
+
+  const handleAddPhase1Member = async (userId: string) => {
+    setMembershipBusy(true);
+    setMembershipError(null);
+    try {
+      const res = await fetch(`/api/projects/${project.id}/programme/phases/1/members`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: userId }),
+      });
+      if (!res.ok) throw new Error();
+      await refetchPhase1Members();
+    } catch {
+      setMembershipError("Failed to add phase member.");
+    } finally {
+      setMembershipBusy(false);
+    }
+  };
+
+  const handleRemovePhase1Member = async (userId: string) => {
+    setMembershipBusy(true);
+    setMembershipError(null);
+    try {
+      const res = await fetch(`/api/projects/${project.id}/programme/phases/1/members?user_id=${userId}`, { method: "DELETE" });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        throw new Error(json.error ?? "Failed to remove phase member");
+      }
+      await refetchPhase1Members();
+    } catch (err) {
+      setMembershipError(err instanceof Error ? err.message : "Failed to remove phase member.");
+    } finally {
+      setMembershipBusy(false);
+    }
+  };
+
+  const handleTransferPhaseOwnership = async (userId: string) => {
+    setMembershipBusy(true);
+    setMembershipError(null);
+    try {
+      const res = await fetch(`/api/projects/${project.id}/programme/phases/1/members`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: userId }),
+      });
+      if (!res.ok) throw new Error();
+      await refetchPhase1Members();
+    } catch {
+      setMembershipError("Failed to transfer phase ownership.");
+    } finally {
+      setMembershipBusy(false);
+    }
+  };
 
   const fetchProgramme = async () => {
     try {
@@ -707,6 +1222,28 @@ export default function OnboardingDetail({ project, role }: OnboardingDetailProp
     setWizardOpen(true);
   };
 
+  const handleScheduleChange = async (phaseNumber: number, deliverableKey: string, dayStart: number, dayEnd: number) => {
+    const previous = deliverables;
+    setDeliverables((prev) =>
+      prev.map((d) =>
+        d.phase_number === phaseNumber && d.deliverable_key === deliverableKey
+          ? { ...d, day_start_override: dayStart, day_end_override: dayEnd }
+          : d
+      )
+    );
+    try {
+      const res = await fetch(`/api/projects/${project.id}/programme/deliverables/${deliverableKey}/schedule`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phase_number: phaseNumber, day_start: dayStart, day_end: dayEnd }),
+      });
+      if (!res.ok) throw new Error();
+    } catch {
+      setDeliverables(previous);
+      setError("Failed to save the schedule change — reverted.");
+    }
+  };
+
   const backLink = (
     <button
       type="button"
@@ -716,6 +1253,29 @@ export default function OnboardingDetail({ project, role }: OnboardingDetailProp
       <ArrowLeft size={13} /> Back to Onboarding
     </button>
   );
+
+  if (wizardOpen && isPhase1Restricted) {
+    return (
+      <div className={cn(inter.className, "min-h-full bg-[#F8FAFC] px-7 py-8")}>
+        {backLink}
+        <div className="mx-auto max-w-[560px] rounded-2xl border border-[#FECACA] bg-white p-10 text-center shadow-[0_4px_24px_rgba(15,23,42,0.07)]">
+          <ShieldAlert size={32} className="mx-auto mb-4 text-[#DC2626]" />
+          <div className={cn(spaceGrotesk.className, "mb-2 text-lg font-bold text-[#0F172A]")}>Restricted</div>
+          <p className="mx-auto max-w-md text-[13px] text-[#64748B]">
+            You are restricted from accessing this phase. If this is an error, please contact
+            your administrator.
+          </p>
+          <button
+            type="button"
+            onClick={() => setWizardOpen(false)}
+            className="mt-6 inline-flex cursor-pointer items-center gap-1.5 rounded-[9px] border border-[#E2E8F0] bg-white px-4 py-2 text-[13px] font-semibold text-[#334155] transition-colors hover:bg-[#F8FAFC]"
+          >
+            <ArrowLeft size={14} /> Back to Timeline
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (wizardOpen) {
     return (
@@ -730,9 +1290,25 @@ export default function OnboardingDetail({ project, role }: OnboardingDetailProp
           isDark={false}
           role={role}
           initialStepKey={wizardStartStepKey}
-          onBack={() => { setWizardOpen(false); setWizardStartStepKey(undefined); fetchProgramme(); }}
+          onBack={() => {
+            setWizardOpen(false);
+            setWizardStartStepKey(undefined);
+            fetchProgramme();
+            // Task 157 fix: adding a phase member inside the Wizard's own PhaseAccessPanel
+            // also auto-adds a project_members row (task 156) — without this, the Timeline's
+            // own projectMembers/phase1Members state went stale until a full page reload.
+            refetchPhase1Members();
+            refetchProjectMembers();
+          }}
           onDeliverableChange={(updated) => setDeliverables((prev) => prev.map((d) => (d.id === updated.id ? updated : d)))}
           onInternalDeliverableChange={(updated) => setInternalDeliverables((prev) => prev.map((d) => (d.id === updated.id ? updated : d)))}
+          canManagePhase1={canManagePhase1}
+          phase1Members={phase1Members}
+          phase1Busy={membershipBusy}
+          phase1Error={membershipError}
+          onAddPhase1Member={handleAddPhase1Member}
+          onRemovePhase1Member={handleRemovePhase1Member}
+          onTransferPhaseOwnership={handleTransferPhaseOwnership}
         />
       </div>
     );
@@ -787,6 +1363,11 @@ export default function OnboardingDetail({ project, role }: OnboardingDetailProp
   const progressPct = Math.min(100, Math.round((currentDay / 120) * 100));
   const phaseStatusMap = new Map(phases.map((p) => [p.phase_number, p.status]));
   const deliverableStatusMap = new Map(deliverables.map((d) => [d.deliverable_key, d.status]));
+  const deliverableOverrideMap = new Map(
+    deliverables
+      .filter((d) => d.day_start_override != null && d.day_end_override != null)
+      .map((d) => [d.deliverable_key, { dayStart: d.day_start_override as number, dayEnd: d.day_end_override as number }])
+  );
   const remindersDeliverableMap = new Map(deliverables.filter((d) => d.phase_number === 1).map((d) => [d.deliverable_key, d.status]));
   const reminders = buildReminders(currentDay, phaseStatusMap, remindersDeliverableMap);
   const visual = PHASE_VISUALS[activePhaseNumber] ?? PHASE_VISUALS[1];
@@ -829,14 +1410,56 @@ export default function OnboardingDetail({ project, role }: OnboardingDetailProp
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-3 text-xs text-[#64748B]">
-                <span className="inline-flex items-center gap-1">
-                  <Users size={12} /> Owner: {activePhase.owner}
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs text-[#64748B]">
+                <span className="inline-flex items-center gap-1.5">
+                  {ownerDisplayName ? <AvatarCircle name={ownerDisplayName} size={18} /> : <Users size={12} />}
+                  Owner: <span className="font-medium text-[#334155]">{ownerDisplayName ?? "Unassigned"}</span>
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  Collaborators: <CollaboratorAvatars members={collaborators} />
                 </span>
                 {isManualOverride && <span className="text-[#7C3AED]">Manually tagged</span>}
               </div>
             </div>
             <div className="flex items-center gap-2">
+              {(canManageProjMembers || canSetOwner) && (
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setSettingsMenuOpen((v) => !v)}
+                    aria-label="Project Settings"
+                    title="Project Settings"
+                    className={cn(
+                      "inline-flex cursor-pointer items-center justify-center rounded-lg border p-2.5 transition-colors",
+                      settingsMenuOpen ? "border-[#2563EB] bg-[#EFF6FF] text-[#2563EB]" : "border-[#E2E8F0] bg-white text-[#475569] hover:border-[#CBD5E1]"
+                    )}
+                  >
+                    <Settings size={13} />
+                  </button>
+                  {settingsMenuOpen && (
+                    <div className="absolute right-0 z-30 mt-1.5 w-48 overflow-hidden rounded-lg border border-[#E2E8F0] bg-white py-1 shadow-lg">
+                      {canSetOwner && (
+                        <button
+                          type="button"
+                          onClick={() => { setOwnerPanelOpen(true); setCollaboratorsPanelOpen(false); setSettingsMenuOpen(false); }}
+                          className="flex w-full cursor-pointer items-center gap-2 border-none bg-transparent px-3 py-2 text-left text-[12.5px] text-[#334155] transition-colors hover:bg-[#F8FAFC]"
+                        >
+                          <Crown size={13} className="text-[#94A3B8]" /> Set Project Owner
+                        </button>
+                      )}
+                      {canManageProjMembers && (
+                        <button
+                          type="button"
+                          onClick={() => { setCollaboratorsPanelOpen(true); setOwnerPanelOpen(false); setSettingsMenuOpen(false); }}
+                          className="flex w-full cursor-pointer items-center gap-2 border-none bg-transparent px-3 py-2 text-left text-[12.5px] text-[#334155] transition-colors hover:bg-[#F8FAFC]"
+                        >
+                          <Users size={13} className="text-[#94A3B8]" /> Add Collaborators
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
               {canManagePhases && (
                 <JumpToPhaseMenu open={jumpOpen} setOpen={setJumpOpen} note={jumpNote} setNote={setJumpNote} onJump={handleJump} jumping={jumping} />
               )}
@@ -852,6 +1475,26 @@ export default function OnboardingDetail({ project, role }: OnboardingDetailProp
             </div>
           </div>
           {error && <p className="mb-2 text-xs text-[#DC2626]">{error}</p>}
+          {ownerPanelOpen && canSetOwner && (
+            <OwnerPanel
+              projectMembers={projectMembers}
+              busy={membershipBusy}
+              error={membershipError}
+              onTransferOwnership={handleTransferProjectOwnership}
+              onClose={() => setOwnerPanelOpen(false)}
+            />
+          )}
+          {collaboratorsPanelOpen && canManageProjMembers && (
+            <CollaboratorsPanel
+              projectMembers={projectMembers}
+              staffDirectory={staffDirectory}
+              busy={membershipBusy}
+              error={membershipError}
+              onAdd={handleAddProjectMember}
+              onRemove={handleRemoveProjectMember}
+              onClose={() => setCollaboratorsPanelOpen(false)}
+            />
+          )}
           <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
             <div className="flex min-w-[240px] flex-1 items-center gap-3">
               <div className="h-2 flex-1 overflow-hidden rounded-full bg-[#F1F5F9]">
@@ -937,6 +1580,7 @@ export default function OnboardingDetail({ project, role }: OnboardingDetailProp
                   phase={phase}
                   dbStatus={phaseStatusMap.get(phase.number) ?? "not_started"}
                   deliverableStatusMap={deliverableStatusMap}
+                  deliverableOverrideMap={deliverableOverrideMap}
                   internalByKey={internalByKey}
                   collapsed={collapsedPhases.has(phase.number)}
                   onToggleCollapse={() =>
@@ -950,6 +1594,8 @@ export default function OnboardingDetail({ project, role }: OnboardingDetailProp
                   onOpenWizardStep={handleOpenWizardStep}
                   expandedDeliverable={expandedDeliverable}
                   onExpandDeliverable={setExpandedDeliverable}
+                  canEditSchedule={canEditSchedule}
+                  onScheduleChange={handleScheduleChange}
                   index={index}
                   startDate={startDate}
                   role={role}

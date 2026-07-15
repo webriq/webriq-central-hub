@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { adminClient } from "@/lib/supabase/admin";
 import { generateCustomerId } from "@/lib/customers/generate-id";
+import { upsertPrimaryContact } from "@/lib/customers/primary-contact";
 import {
   CLASSIFICATIONS,
   type Classification,
@@ -10,9 +12,11 @@ import {
   getPhaseByNumber,
 } from "@/config/customer-phases";
 import { seedAndStartProgramme } from "@/lib/programme/seed";
+import { addProjectMember, isRoleGatedByMembership } from "@/lib/programme/phase-membership";
 
 const STAFF_ROLES = ["admin", "super_admin", "marketing", "pm", "developer", "hr"];
-const CREATE_ROLES = ["admin", "super_admin", "marketing"];
+// Task 153: pm can now also create projects (was admin/super_admin/marketing only).
+const CREATE_ROLES = ["admin", "super_admin", "marketing", "pm"];
 
 // GET — role-conditional list of every project that has started onboarding, tracked for its
 // full 120-day programme (Phases 1-5), not just Phase 1. Projects don't roll off this list
@@ -33,7 +37,7 @@ export async function GET() {
       return NextResponse.json({ error: "Not permitted to view onboarding projects" }, { status: 403 });
     }
 
-    const { data: projects, error } = await supabase
+    const { data: rawProjects, error } = await supabase
   .from("projects")
   .select(`
     id,
@@ -53,7 +57,24 @@ export async function GET() {
       return NextResponse.json({ error: "Failed to fetch onboarding projects" }, { status: 500 });
     }
 
-    const projectIds = (projects ?? []).map((p) => p.id);
+    // Task 153: marketing/pm only see projects they're a member of. A project with zero
+    // project_members rows is unrestricted (backward compatibility for already in-progress
+    // projects that predate this feature) — see task 153 doc. admin/super_admin/developer/hr
+    // are untouched, matching the confirmed scope (developer/hr's list access isn't part of
+    // this task; they already reach this point via STAFF_ROLES above, unfiltered).
+    let projects = rawProjects ?? [];
+    if (isRoleGatedByMembership(profile.role)) {
+      const allProjectIds = projects.map((p) => p.id);
+      const { data: memberRows } = await supabase
+        .from("project_members")
+        .select("project_id, user_id")
+        .in("project_id", allProjectIds.length > 0 ? allProjectIds : ["00000000-0000-0000-0000-000000000000"]);
+      const projectsWithMembers = new Set((memberRows ?? []).map((r) => r.project_id));
+      const myMemberProjectIds = new Set((memberRows ?? []).filter((r) => r.user_id === user.id).map((r) => r.project_id));
+      projects = projects.filter((p) => !projectsWithMembers.has(p.id) || myMemberProjectIds.has(p.id));
+    }
+
+    const projectIds = projects.map((p) => p.id);
     const activePhaseByProject = new Map<string, number>();
     if (projectIds.length > 0) {
       const { data: phases } = await supabase
@@ -62,6 +83,26 @@ export async function GET() {
         .in("project_id", projectIds)
         .eq("status", "active");
       for (const row of phases ?? []) activePhaseByProject.set(row.project_id, row.phase_number);
+    }
+
+    // Task 154: member avatar chips on each card — the deduped union of project_members and
+    // Phase 1 phase_members (only phase with real membership use today, per task 153's scope).
+    const memberIdsByProject = new Map<string, Set<string>>();
+    if (projectIds.length > 0) {
+      const [projMembersRes, phase1MembersRes] = await Promise.all([
+        supabase.from("project_members").select("project_id, user_id").in("project_id", projectIds),
+        supabase.from("phase_members").select("project_id, user_id").eq("phase_number", 1).in("project_id", projectIds),
+      ]);
+      for (const row of [...(projMembersRes.data ?? []), ...(phase1MembersRes.data ?? [])]) {
+        if (!memberIdsByProject.has(row.project_id)) memberIdsByProject.set(row.project_id, new Set());
+        memberIdsByProject.get(row.project_id)!.add(row.user_id);
+      }
+    }
+    const allMemberIds = [...new Set([...memberIdsByProject.values()].flatMap((s) => [...s]))];
+    const memberFullNameById = new Map<string, string | null>();
+    if (allMemberIds.length > 0) {
+      const { data: memberProfiles } = await supabase.from("profiles").select("id, full_name").in("id", allMemberIds);
+      for (const row of memberProfiles ?? []) memberFullNameById.set(row.id, row.full_name);
     }
 
     const items = (projects ?? []).map((p) => {
@@ -89,6 +130,7 @@ export async function GET() {
         scheduled_onboarding_start_at: p.scheduled_onboarding_start_at,
         target_handover_date: targetHandoverDate,
         status: p.programme_started_at ? "in_progress" : p.scheduled_onboarding_start_at ? "scheduled" : "draft",
+        members: [...(memberIdsByProject.get(p.id) ?? [])].map((id) => ({ id, full_name: memberFullNameById.get(id) ?? null })),
       };
     });
 
@@ -161,8 +203,6 @@ export async function POST(request: NextRequest) {
       const { error: createError } = await supabase.from("customers").insert({
         customer_id: customerId,
         company_name: companyName,
-        contact_name: body.contact?.name?.trim() || null,
-        contact_email: body.contact?.email?.trim() || null,
         status: "onboarding",
       });
       if (createError) {
@@ -171,15 +211,17 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // If reusing an existing customer, still apply the submitted primary contact fields.
-    if ("existing_customer_id" in body.customer && (body.contact?.name || body.contact?.email)) {
-      await supabase
-        .from("customers")
-        .update({
-          ...(body.contact.name ? { contact_name: body.contact.name.trim() } : {}),
-          ...(body.contact.email ? { contact_email: body.contact.email.trim() } : {}),
-        })
-        .eq("customer_id", customerId);
+    // Upsert the submitted primary contact into `contacts` (task 151) — covers both the
+    // new-customer and existing-customer-reuse branches identically. Uses adminClient: the
+    // marketing role can create onboarding projects (CREATE_ROLES above) but isn't covered by
+    // contacts_pm_write RLS (admin|super_admin|pm only, migration 056).
+    if (body.contact?.name || body.contact?.email || body.contact?.phone) {
+      const { error: contactError } = await upsertPrimaryContact(adminClient, customerId, {
+        name: body.contact?.name,
+        email: body.contact?.email,
+        phone: body.contact?.phone,
+      });
+      if (contactError) console.error("POST /api/onboarding/projects primary contact error:", contactError);
     }
 
     const productName = deriveProductName(body.classification);
@@ -207,9 +249,9 @@ export async function POST(request: NextRequest) {
         name: body.project_name.trim(),
         project_type: deriveProjectType(body.classification),
         customer_product_id: product.id,
+        created_by: user.id,
         onboarding_visible_at: null,
         scheduled_onboarding_start_at: body.mode === "save_scheduled" ? body.scheduled_start_at : null,
-        source_meta: body.contact?.phone ? { primary_contact_phone: body.contact.phone.trim() } : {},
       })
       .select("id, customer_id")
       .single();
@@ -218,8 +260,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Failed to create project" }, { status: 500 });
     }
 
+    // Task 153/155: the creator becomes the project owner — sees it on their own list
+    // immediately, without needing anyone to add them.
+    const { error: memberError } = await addProjectMember(project.id, user.id, user.id, true);
+    if (memberError) console.error("POST /api/onboarding/projects project_members insert error:", memberError);
+
     if (body.mode === "start") {
-      const result = await seedAndStartProgramme({ id: project.id, customer_id: project.customer_id }, companyName);
+      const result = await seedAndStartProgramme({ id: project.id, customer_id: project.customer_id }, companyName, user.id);
       if (result.error) {
         return NextResponse.json({ error: result.error }, { status: 500 });
       }

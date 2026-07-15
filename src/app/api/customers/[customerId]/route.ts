@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { validateCustomerUpdate } from "@/lib/customers/validate";
+import { upsertPrimaryContact, demotePrimaryContact } from "@/lib/customers/primary-contact";
 import type { Database } from "@/types/database";
 
 export async function GET(
@@ -47,28 +48,40 @@ export async function PATCH(
       return NextResponse.json({ error: "Validation failed", details: validation.errors }, { status: 400 });
     }
 
-    // Build update object with only provided fields
+    // Build update object with only provided fields. contact_name/contact_email are handled
+    // separately below — they now route through contacts.is_primary (task 151), not a direct
+    // customers column write.
     type CustomerUpdate = Database["public"]["Tables"]["customers"]["Update"];
     const updateData: CustomerUpdate = {};
     if (body.company_name !== undefined) updateData.company_name = body.company_name.trim();
-    if (body.contact_name !== undefined) updateData.contact_name = body.contact_name?.trim() ?? null;
-    if (body.contact_email !== undefined) updateData.contact_email = body.contact_email?.trim() ?? null;
     if (body.communication_tone !== undefined) updateData.communication_tone = body.communication_tone?.trim() ?? "";
     if (body.status !== undefined) updateData.status = body.status as CustomerUpdate["status"];
     if (body.automation_toggle !== undefined) updateData.automation_toggle = body.automation_toggle;
     if (body.llm_excluded !== undefined) updateData.llm_excluded = body.llm_excluded;
     if (body.daily_token_budget !== undefined) updateData.daily_token_budget = body.daily_token_budget;
 
-    if (Object.keys(updateData).length === 0) {
+    const hasContactUpdate = body.contact_name !== undefined || body.contact_email !== undefined;
+    if (Object.keys(updateData).length === 0 && !hasContactUpdate) {
       return NextResponse.json({ error: "No fields to update" }, { status: 400 });
     }
 
-    const { data, error } = await adminClient
-      .from("customers")
-      .update(updateData)
-      .eq("customer_id", customerId)
-      .select()
-      .single();
+    if (hasContactUpdate) {
+      const name = body.contact_name?.trim() ?? null;
+      const email = body.contact_email?.trim() ?? null;
+      const contactResult = name === null && email === null
+        ? await demotePrimaryContact(adminClient, customerId)
+        : await upsertPrimaryContact(adminClient, customerId, { name, email });
+      if (contactResult.error) {
+        console.error("PATCH /api/customers/[customerId] primary contact error:", contactResult.error);
+        return NextResponse.json({ error: "Failed to update primary contact" }, { status: 500 });
+      }
+    }
+
+    // If only the primary contact changed, fetch the current row instead of a no-op update —
+    // the primary-contact write above already synced contact_name/contact_email onto it.
+    const { data, error } = Object.keys(updateData).length > 0
+      ? await adminClient.from("customers").update(updateData).eq("customer_id", customerId).select().single()
+      : await adminClient.from("customers").select().eq("customer_id", customerId).single();
 
     if (error) {
       if (error.code === "PGRST116") {

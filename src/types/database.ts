@@ -641,6 +641,93 @@ export interface Database {
           }
         ];
       };
+      project_members: {
+        Row: {
+          id: string;
+          project_id: string;
+          user_id: string;
+          is_owner: boolean;
+          added_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          project_id: string;
+          user_id: string;
+          is_owner?: boolean;
+          added_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          project_id?: string;
+          user_id?: string;
+          is_owner?: boolean;
+          added_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "project_members_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "project_members_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      phase_members: {
+        Row: {
+          id: string;
+          project_id: string;
+          phase_number: number;
+          user_id: string;
+          is_owner: boolean;
+          added_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          project_id: string;
+          phase_number: number;
+          user_id: string;
+          is_owner?: boolean;
+          added_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          project_id?: string;
+          phase_number?: number;
+          user_id?: string;
+          is_owner?: boolean;
+          added_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "phase_members_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "phase_members_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
       tasklists: {
         Row: {
           id: string;
@@ -770,12 +857,14 @@ export interface Database {
           external_account_id: string | null;
           first_name: string | null;
           last_name: string | null;
+          full_name: string | null;
           email: string | null;
           secondary_email: string | null;
           phone: string | null;
           mobile: string | null;
           title: string | null;
           match_method: string | null;
+          is_primary: boolean;
           created_at: string;
           updated_at: string;
           source_meta: Record<string, unknown>;
@@ -787,12 +876,14 @@ export interface Database {
           external_account_id?: string | null;
           first_name?: string | null;
           last_name?: string | null;
+          full_name?: string | null;
           email?: string | null;
           secondary_email?: string | null;
           phone?: string | null;
           mobile?: string | null;
           title?: string | null;
           match_method?: string | null;
+          is_primary?: boolean;
           created_at?: string;
           updated_at?: string;
           source_meta?: Record<string, unknown>;
@@ -804,12 +895,14 @@ export interface Database {
           external_account_id?: string | null;
           first_name?: string | null;
           last_name?: string | null;
+          full_name?: string | null;
           email?: string | null;
           secondary_email?: string | null;
           phone?: string | null;
           mobile?: string | null;
           title?: string | null;
           match_method?: string | null;
+          is_primary?: boolean;
           updated_at?: string;
           source_meta?: Record<string, unknown>;
         };
@@ -1680,6 +1773,8 @@ export interface Database {
           deliverable_key: string;
           status: string;
           completed_at: string | null;
+          day_start_override: number | null;
+          day_end_override: number | null;
           created_at: string;
           updated_at: string;
         };
@@ -1691,6 +1786,8 @@ export interface Database {
           deliverable_key: string;
           status?: string;
           completed_at?: string | null;
+          day_start_override?: number | null;
+          day_end_override?: number | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -1702,6 +1799,8 @@ export interface Database {
           deliverable_key?: string;
           status?: string;
           completed_at?: string | null;
+          day_start_override?: number | null;
+          day_end_override?: number | null;
           updated_at?: string;
         };
         Relationships: [
