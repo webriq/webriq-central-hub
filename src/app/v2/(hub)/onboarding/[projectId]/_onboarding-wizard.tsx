@@ -98,6 +98,10 @@ interface OnboardingWizardProps {
   // Task 146: pm gets read-only steps 1-5/7, full Step 6 file/folder access, no checklist
   // editing anywhere, and no Complete Phase 1 action. Developer never reaches this component.
   role: string | null;
+  // Task 160: whether Phase 1 is still the project's DB-active phase. false once Phase 1 has
+  // been jumped past (status becomes "skipped"/"completed") — locks every step, including
+  // storage-kb (no PM carve-out), for every role. Viewing existing content/files stays available.
+  isPhaseActive: boolean;
   initialStepKey?: string;
   onBack: () => void;
   onDeliverableChange: (updated: CustomerDeliverableRow) => void;
@@ -323,7 +327,7 @@ function PhaseAccessPanel({
 }
 
 export default function OnboardingWizard({
-  project, deliverables, internalDeliverables, wizardData, currentDay, isDark, role, initialStepKey,
+  project, deliverables, internalDeliverables, wizardData, currentDay, isDark, role, isPhaseActive, initialStepKey,
   onBack, onDeliverableChange, onInternalDeliverableChange,
   canManagePhase1, phase1Members, phase1Busy, phase1Error,
   onAddPhase1Member, onRemovePhase1Member, onTransferPhaseOwnership,
@@ -541,9 +545,11 @@ export default function OnboardingWizard({
   // Task 146: pm gets read-only fields on every step except storage-kb (Step 6, where file/
   // folder management stays live), and can never edit any checklist item (including Step 6's
   // own) or complete Phase 1 — that stays marketing/admin/super_admin-only.
+  // Task 160: the PM storage-kb carve-out only applies while Phase 1 is still the DB's active
+  // phase — once jumped past, every step (including storage-kb) is read-only for every role.
   const isPM = role === "pm";
-  const isStepReadOnly = isPM && step.key !== "storage-kb";
-  const canEditChecklist = !isPM;
+  const isStepReadOnly = (isPM && step.key !== "storage-kb") || !isPhaseActive;
+  const canEditChecklist = !isPM && isPhaseActive;
 
   const doneCount = localDeliverables.filter((d) => d.status === "done").length;
 
@@ -2287,7 +2293,7 @@ export default function OnboardingWizard({
           )}
         </div>
 
-        {isLastStep && !isPM && (
+        {isLastStep && !isPM && isPhaseActive && (
           <div className="mt-5">
             {doneCount < localDeliverables.length && (
               <div className={cn("flex gap-2.5 p-3 rounded-lg border mb-4 text-[12px]", isDark ? "border-amber-500/25 bg-amber-500/10 text-amber-300" : "border-amber-200 bg-amber-50 text-amber-800")}>
@@ -2304,7 +2310,7 @@ export default function OnboardingWizard({
       </div>
 
       <div className={cn(cardCls, "p-4")}>
-        {isLastStep && !isPM && completeError && <p className="text-[12px] text-red-500 mb-3">{completeError}</p>}
+        {isLastStep && !isPM && isPhaseActive && completeError && <p className="text-[12px] text-red-500 mb-3">{completeError}</p>}
         <div className="flex items-center justify-between">
           <button
             onClick={() => (stepIdx === 0 ? onBack() : setStepIdx((s) => s - 1))}
@@ -2317,10 +2323,14 @@ export default function OnboardingWizard({
             <button onClick={handleContinueClick} className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-white bg-brand rounded-lg px-4 py-2 hover:opacity-90 transition-opacity border-none cursor-pointer">
               Continue <ArrowRight size={14} />
             </button>
-          ) : isPM ? (
+          ) : isPM || !isPhaseActive ? (
             // pm can view every step but never completes Phase 1 — that's Marketing/Admin/
             // Super Admin's call, gated server-side too (complete-phase route, task 146).
-            <span className={cn("text-[12px]", textMuted)}>Only Marketing/Admin can complete Phase 1</span>
+            // Task 160: an inactive (jumped-past) phase can't be marked complete either, for
+            // any role — there's nothing left to "complete" once the jump moved past it.
+            <span className={cn("text-[12px]", textMuted)}>
+              {isPM ? "Only Marketing/Admin can complete Phase 1" : "Phase 1 is no longer active"}
+            </span>
           ) : (
             <button
               onClick={handleComplete}

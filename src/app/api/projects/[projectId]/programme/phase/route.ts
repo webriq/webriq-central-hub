@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { sendCliqNotification } from "@/lib/zoho";
-import { PROGRAMME_PHASES, INTERNAL_DELIVERABLES, getPhaseByNumber } from "@/config/customer-phases";
+import { PROGRAMME_PHASES, getPhaseByNumber } from "@/config/customer-phases";
 import { cancelProjectAutostart } from "@/lib/qstash";
+import { seedProgrammeAtPhase } from "@/lib/programme/seed";
 
 const WRITE_ROLES = ["admin", "super_admin", "marketing"];
 
@@ -11,7 +12,8 @@ const WRITE_ROLES = ["admin", "super_admin", "marketing"];
 // phases instead of always Day 1. Works whether or not the programme has been started yet:
 //   - Not started: this call also starts it, back-dating programme_started_at so "today" lands
 //     on the target phase's first day.
-//   - Already started: programme_started_at is untouched; only which phase is "active" changes.
+//   - Already started: programme_started_at is also backdated the same way, so the calendar-day
+//     -driven "Day N" marker moves into the newly-active phase's range instead of staying frozen.
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ projectId: string }> }
@@ -53,37 +55,11 @@ export async function PATCH(
     if (!wasStarted) {
       const backdated = new Date();
       backdated.setDate(backdated.getDate() - (targetPhase.dayStart - 1));
-      const { error: updateError } = await adminClient
-        .from("projects")
-        .update({ programme_started_at: backdated.toISOString() })
-        .eq("id", projectId);
-      if (updateError) {
-        console.error("PATCH /api/projects/[projectId]/programme/phase start error:", updateError);
-        return NextResponse.json({ error: "Failed to start programme" }, { status: 500 });
-      }
 
-      const phaseRows = PROGRAMME_PHASES.map((p) => ({
-        customer_id: project.customer_id,
-        project_id: projectId,
-        phase_number: p.number,
-        status: p.number === phaseNumber ? "active" : p.number < phaseNumber ? "skipped" : "not_started",
-        actual_start_date: p.number === phaseNumber ? today : null,
-        is_manual_override: p.number === phaseNumber,
-        override_note: p.number === phaseNumber ? note : null,
-      }));
-      const deliverableRows = PROGRAMME_PHASES.flatMap((p) =>
-        p.deliverables.map((d) => ({ customer_id: project.customer_id, project_id: projectId, phase_number: p.number, deliverable_key: d.key }))
-      );
-      const internalDeliverableRows = INTERNAL_DELIVERABLES.map((d) => ({ project_id: projectId, deliverable_key: d.key }));
-
-      const [phasesRes, deliverablesRes, internalRes] = await Promise.all([
-        supabase.from("customer_phases").insert(phaseRows).select(),
-        supabase.from("customer_deliverables").insert(deliverableRows).select(),
-        supabase.from("onboarding_internal_deliverables").insert(internalDeliverableRows).select(),
-      ]);
-      if (phasesRes.error || deliverablesRes.error || internalRes.error) {
-        console.error("PATCH /api/projects/[projectId]/programme/phase seed error:", phasesRes.error ?? deliverablesRes.error ?? internalRes.error);
-        return NextResponse.json({ error: "Failed to seed programme phases" }, { status: 500 });
+      const seedResult = await seedProgrammeAtPhase({ id: projectId, customer_id: project.customer_id }, phaseNumber, backdated, note);
+      if (seedResult.error) {
+        console.error("PATCH /api/projects/[projectId]/programme/phase seed error:", seedResult.error);
+        return NextResponse.json({ error: seedResult.error }, { status: 500 });
       }
 
       // This manual jump beat any scheduled QStash message to it — cancel the now-redundant
@@ -97,10 +73,24 @@ export async function PATCH(
         `${companyName}: manually tagged to start at Phase ${phaseNumber} (${targetPhase.name}).${note ? ` Note: ${note}` : ""}`,
         "pm"
       );
-      return NextResponse.json({ phases: phasesRes.data, deliverables: deliverablesRes.data });
+
+      const { data: seededPhases } = await supabase.from("customer_phases").select("*").eq("project_id", projectId).order("phase_number");
+      return NextResponse.json({ phases: seededPhases ?? [] });
     }
 
-    // Already started — only re-status the existing phase rows.
+    // Already started — backdate programme_started_at so "today" lands inside the target phase's
+    // day range (mirrors the not-started branch's own calculation), then re-status the phase rows.
+    const backdated = new Date();
+    backdated.setDate(backdated.getDate() - (targetPhase.dayStart - 1));
+    const { error: dateUpdateError } = await adminClient
+      .from("projects")
+      .update({ programme_started_at: backdated.toISOString() })
+      .eq("id", projectId);
+    if (dateUpdateError) {
+      console.error("PATCH /api/projects/[projectId]/programme/phase already-started date backdate error:", dateUpdateError);
+      return NextResponse.json({ error: "Failed to update programme start date" }, { status: 500 });
+    }
+
     const updates = PROGRAMME_PHASES.map(async (p) => {
       if (p.number === phaseNumber) {
         return supabase

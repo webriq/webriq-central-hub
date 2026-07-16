@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Rocket, Plus, Building2, CalendarClock, ChevronRight, Clock3 } from "lucide-react";
+import { Rocket, Plus, Upload, Building2, CalendarClock, ChevronRight, Clock3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { V2_ROUTES } from "@/config/constants";
 
@@ -184,12 +184,20 @@ export default function OnboardingList({ role }: { role: string | null }) {
           </p>
         </div>
         {canCreate && (
-          <Link
-            href={`${V2_ROUTES.ONBOARDING}/new`}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-slate-900 text-white text-[13px] font-medium hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
-          >
-            <Plus size={16} /> New Project
-          </Link>
+          <div className="flex items-center gap-2 shrink-0">
+            <Link
+              href={V2_ROUTES.ONBOARDING_IMPORT}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-slate-200 text-slate-700 text-[13px] font-medium hover:bg-slate-50 transition-colors cursor-pointer"
+            >
+              <Upload size={16} /> Import Project
+            </Link>
+            <Link
+              href={`${V2_ROUTES.ONBOARDING}/new`}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-slate-900 text-white text-[13px] font-medium hover:bg-slate-800 transition-colors cursor-pointer"
+            >
+              <Plus size={16} /> New Project
+            </Link>
+          </div>
         )}
       </div>
 

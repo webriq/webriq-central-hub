@@ -236,3 +236,51 @@ content/files still render; jump back to Phase 1 and confirm editing is restored
 
 - No migration required — only behavior of the existing `PATCH .../programme/phase` route and the
   Wizard's existing read-only mechanism change.
+
+## Implementation Notes
+
+### What Changed
+- Bug 1: the already-started branch of `PATCH .../programme/phase` now backdates
+  `projects.programme_started_at` the same way the not-started branch already does, so
+  `getCurrentProgrammeDay()` recomputes into the newly-active phase's day range immediately after
+  a jump, whether the programme had already started or not.
+- Bug 2: `OnboardingWizard` gained a required `isPhaseActive: boolean` prop. `isStepReadOnly`
+  and `canEditChecklist` now both fold in `!isPhaseActive`, so once Phase 1 is jumped past, every
+  step (including storage-kb, with no PM carve-out) is read-only and the checklist is locked for
+  every role. The "Complete Phase 1" action and its surrounding banners/error text are similarly
+  gated off when the phase is inactive (new "Phase 1 is no longer active" message alongside the
+  existing PM-only message). The Timeline's "Onboarding Wizard" CTA button now shows whenever
+  Phase 1 has been seeded at all (not just while it's active), relabeling to "View Onboarding
+  Wizard" when Phase 1 isn't the active phase.
+
+### Files Changed
+- `src/app/api/projects/[projectId]/programme/phase/route.ts` - added the `programme_started_at`
+  backdate (via `adminClient`, matching `seedProgrammeAtPhase`'s existing convention for this
+  table) to the already-started branch, before re-statusing phase rows.
+- `src/app/v2/(hub)/onboarding/[projectId]/_onboarding-wizard.tsx` - added `isPhaseActive` prop;
+  updated `isStepReadOnly`/`canEditChecklist`; gated the completion banners, completion error text,
+  and the Complete-Phase-1 button/message on `isPhaseActive`.
+- `src/app/v2/(hub)/onboarding/[projectId]/_onboarding-detail.tsx` - computed `isPhaseActive`
+  from `phases` directly (not the later `phaseStatusMap`, which is declared after the early-return
+  branches that need this value and would otherwise hit a `const` temporal-dead-zone error); passed
+  it to `<OnboardingWizard>`; widened the CTA button's visibility condition and added the
+  conditional "View Onboarding Wizard" label.
+
+### Deviations From Plan
+- The Code Context snippet for the CTA button/prop pass-through matched exactly. The
+  `isPhaseActive` computation itself deviated from the doc's suggested
+  `phaseStatusMap.get(1) === "active"` — `phaseStatusMap` is declared later in `OnboardingDetail`
+  (for the main-render branch) and is unreachable from the `wizardOpen` early-return branches that
+  render `<OnboardingWizard>`, since referencing a `const` before its declaration point throws
+  (temporal dead zone), not just a lint issue. Used an equivalent inline lookup against `phases`
+  instead, computed once above `backLink`, before any early return.
+- Left `PhaseAccessPanel` (membership add/remove) unlocked regardless of `isPhaseActive`, per the
+  task doc's own stated default assumption — not blocked on this, flagged as an easy follow-up if
+  the user wants it locked too.
+
+### Verification Run
+- `npx tsc --noEmit` - PASS
+- `pnpm lint` - PASS
+- Manual/browser verification (jump an in-progress project, confirm Day-N marker + read-only
+  Wizard behavior) - SKIPPED (no live browser session this run; logic traced and typechecked
+  against the exact code paths described in Requirements/Code Context).

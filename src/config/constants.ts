@@ -42,6 +42,7 @@ export const V2_ROUTES = {
   CUSTOMERS: "/v2/customers",
   ONBOARDING: "/v2/onboarding",
   ONBOARDING_NEW: "/v2/onboarding/new",
+  ONBOARDING_IMPORT: "/v2/onboarding/import",
   DASHBOARD_TASKS: "/v2/dashboard/tasks",
   DASHBOARD_PIPELINE: "/v2/dashboard/pipeline",
   DASHBOARD_CHAT: "/v2/dashboard/chat",

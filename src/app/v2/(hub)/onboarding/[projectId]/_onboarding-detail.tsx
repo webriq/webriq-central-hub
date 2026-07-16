@@ -109,7 +109,18 @@ function buildReminders(day: number, phaseStatus: Map<number, string>, deliverab
   const activePhaseNumber = [...phaseStatus.entries()].find(([, status]) => status === "active")?.[0];
   const phase = activePhaseNumber ? getPhaseByNumber(activePhaseNumber) : getPhaseForDay(day);
   const items: ReminderItem[] = [];
-  if (phase.number === 1) {
+  // Phase 1 is a fixed 15-day window — if it's still active well past Day 15, this project
+  // should already be in a later phase (e.g. a CSV-imported Kickoff Date that's more than 15
+  // days old). One clear phase-level warning here is more useful than 5+ individual
+  // "Overdue: {deliverable}" entries competing for the reminder strip's slots.
+  if (phase.number === 1 && day > 15) {
+    items.push({
+      key: "phase1-overdue",
+      type: "warning",
+      title: "Phase 1 Overdue",
+      body: `Day ${day} — past the 15-day Onboarding window. This project should already be in a later phase.`,
+    });
+  } else if (phase.number === 1) {
     for (const d of phase.deliverables) {
       if (deliverableStatus.get(d.key) === "done") continue;
       const diff = d.dayEnd - day;
@@ -1257,6 +1268,11 @@ export default function OnboardingDetail({
     }
   };
 
+  // Task 160: whether Phase 1 is still the DB's active phase — computed from `phases` directly
+  // (not the later `phaseStatusMap`, which is declared further down and unreachable from the
+  // early-return branches below due to `const` temporal-dead-zone rules).
+  const isPhaseActive = phases.find((p) => p.phase_number === 1)?.status === "active";
+
   const backLink = (
     <button
       type="button"
@@ -1302,6 +1318,7 @@ export default function OnboardingDetail({
           currentDay={programmeStartedAt ? getCurrentProgrammeDay(programmeStartedAt) : 1}
           isDark={false}
           role={role}
+          isPhaseActive={isPhaseActive}
           initialStepKey={wizardStartStepKey}
           onBack={() => {
             setWizardOpen(false);
@@ -1559,13 +1576,13 @@ export default function OnboardingDetail({
               {canManagePhases && (
                 <JumpToPhaseMenu open={jumpOpen} setOpen={setJumpOpen} note={jumpNote} setNote={setJumpNote} onJump={handleJump} jumping={jumping} />
               )}
-              {!isComplete && activePhaseNumber === 1 && canOpenWizard && (
+              {!isComplete && phases.some((p) => p.phase_number === 1) && canOpenWizard && (
                 <button
                   type="button"
                   onClick={() => { setWizardStartStepKey(undefined); setWizardOpen(true); }}
                   className="inline-flex cursor-pointer items-center gap-1.5 rounded-[9px] border-none bg-gradient-to-br from-[#2563EB] to-[#1D4ED8] px-3.5 py-2 text-[13px] font-semibold text-white shadow-[0_2px_10px_rgba(37,99,235,0.3)]"
                 >
-                  <PlayCircle size={14} /> Onboarding Wizard
+                  <PlayCircle size={14} /> {activePhaseNumber === 1 ? "Onboarding Wizard" : "View Onboarding Wizard"}
                 </button>
               )}
             </div>

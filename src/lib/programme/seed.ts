@@ -1,6 +1,6 @@
 import { adminClient } from "@/lib/supabase/admin";
 import { sendCliqNotification } from "@/lib/zoho";
-import { PROGRAMME_PHASES, INTERNAL_DELIVERABLES, getPhaseByNumber } from "@/config/customer-phases";
+import { PROGRAMME_PHASES, INTERNAL_DELIVERABLES, getPhaseByNumber, getCurrentProgrammeDay } from "@/config/customer-phases";
 
 // Shared by the manual "Start Onboarding" route, the New Project intake's `mode: "start"` path,
 // and the scheduled auto-start cron — all three need identical seed semantics. Uses adminClient
@@ -104,5 +104,72 @@ export async function seedAndStartProgramme(
       : `120-Day Programme started for ${companyName} at Phase ${phaseNumber}: ${targetPhase.name}.`,
     "pm"
   );
+  return {};
+}
+
+// Task 159 — shared by the manual "Jump to phase" override's not-started branch (PATCH
+// .../programme/phase) and the CSV/Excel bulk-import route, which both need to seed all 5
+// phases at an explicit, caller-supplied start date/phase rather than "now"/"today" (that's
+// seedAndStartProgramme's job, above). is_manual_override mirrors seedAndStartProgramme's own
+// convention: landing on Phase 1 is a normal onboarding start, not a manual override; only
+// landing on Phase 2-5 counts as one.
+export async function seedProgrammeAtPhase(
+  project: { id: string; customer_id: string },
+  phaseNumber: number,
+  startedAt: Date,
+  note?: string | null
+): Promise<{ error?: string }> {
+  const today = startedAt.toISOString().slice(0, 10);
+
+  const { error: updateError } = await adminClient
+    .from("projects")
+    .update({ programme_started_at: startedAt.toISOString() })
+    .eq("id", project.id);
+  if (updateError) {
+    console.error("seedProgrammeAtPhase: projects update error:", updateError);
+    return { error: "Failed to set programme start date" };
+  }
+
+  const phaseRows = PROGRAMME_PHASES.map((p) => ({
+    customer_id: project.customer_id,
+    project_id: project.id,
+    phase_number: p.number,
+    status: p.number === phaseNumber ? "active" : p.number < phaseNumber ? "skipped" : "not_started",
+    actual_start_date: p.number === phaseNumber ? today : null,
+    is_manual_override: phaseNumber !== 1 && p.number === phaseNumber,
+    override_note: p.number === phaseNumber ? note ?? null : null,
+  }));
+  // Which sub-phase is "active" — the one whose day range contains the programme's current
+  // elapsed day (from `startedAt`, which may be backdated: a CSV import's real Kickoff Date, or
+  // a Jump-to-Phase landing) — generalizes seedAndStartProgramme's hardcoded "kickoff starts
+  // in_progress on Day 1" convention to work for any starting day, not just Day 1.
+  const currentDay = getCurrentProgrammeDay(startedAt);
+  const deliverableRows = PROGRAMME_PHASES.flatMap((p) =>
+    p.deliverables.map((d) => ({
+      customer_id: project.customer_id,
+      project_id: project.id,
+      phase_number: p.number,
+      deliverable_key: d.key,
+      status: currentDay >= d.dayStart && currentDay <= d.dayEnd ? "in_progress" : "pending",
+    }))
+  );
+  const internalDeliverableRows = INTERNAL_DELIVERABLES.map((d) => ({
+    project_id: project.id,
+    deliverable_key: d.key,
+  }));
+
+  const [phasesRes, deliverablesRes, internalRes] = await Promise.all([
+    adminClient.from("customer_phases").insert(phaseRows),
+    adminClient.from("customer_deliverables").insert(deliverableRows),
+    adminClient.from("onboarding_internal_deliverables").insert(internalDeliverableRows),
+  ]);
+  if (phasesRes.error || deliverablesRes.error || internalRes.error) {
+    console.error(
+      "seedProgrammeAtPhase: seed error:",
+      phasesRes.error ?? deliverablesRes.error ?? internalRes.error
+    );
+    return { error: "Failed to seed programme phases" };
+  }
+
   return {};
 }
