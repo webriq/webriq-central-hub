@@ -4,7 +4,7 @@
 **Priority:** LOW
 **Type:** enhancement
 **Recommended Tier:** fast
-**Status:** Planned
+**Status:** Testing
 
 ---
 
@@ -152,3 +152,38 @@ screen); repeat clicking without filling a date to confirm the error path.
 ## Compatibility Touchpoints
 
 - None — pure client-side UI reflow, no API/schema change.
+
+## Implementation Notes
+
+### What Changed
+- Removed the step-2 "Scheduled start" `Field` + helper text block; step 2 now only shows
+  "Project name". `scheduledAt`/`setScheduledAt` state kept as-is, per the plan.
+- Added `scheduleExpanded` boolean state (default `false`). Step 3's "Save + Set Schedule" button
+  now branches on it: first click sets `scheduleExpanded` true and returns (no submit); once
+  expanded, the same button (relabeled "Confirm & schedule") calls `submit("save_scheduled")`
+  exactly as before.
+- The expanded datetime `Field` renders directly above the two-button row, paired with an "×"
+  icon button that collapses it back (resets `scheduleExpanded`, clears `scheduledAt`, and clears
+  any stale `submitError`) — satisfies the doc's "must be collapsible/cancelable" requirement.
+- `goBack()` now resets `scheduleExpanded` to `false` whenever leaving step 3, so navigating back
+  to step 2 and returning to step 3 doesn't leave the field stuck expanded from a prior visit.
+- `submit()`'s existing `mode === "save_scheduled" && !scheduledAt` guard, the review step's
+  conditional "Scheduled start" `ReviewRow`, and the "Just save"/"Start onboarding" buttons were
+  left untouched, per Out of Scope.
+- Added `X` to the `lucide-react` import for the collapse button's icon.
+
+### Files Changed
+- `src/app/v2/(hub)/onboarding/new/_content.tsx` - moved scheduled-start field from step 2 to an expand-on-click field on step 3
+
+### Deviations From Plan
+- None — implementation matches the task doc's Code Context, including its own flagged
+  interpretation of "expand on click" as a two-click confirm flow (not blocked on user
+  confirmation per the doc's own note that this is easily tweaked post-implementation).
+
+### Verification Run
+- `npx tsc --noEmit` - PASS
+- `pnpm lint` - PASS
+- Manual/browser verification - SKIPPED (Claude in Chrome extension not connected this session).
+  The doc's walkthrough — click "Save + Set Schedule" once (field appears, no network call), fill
+  a date, click again (submits and redirects), then repeat without filling a date to confirm the
+  existing error path — still needs to be exercised in the browser before this ships.

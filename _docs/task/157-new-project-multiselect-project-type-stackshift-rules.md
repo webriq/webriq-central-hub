@@ -5,9 +5,12 @@
 **Type:** feature
 **Recommended Tier:** deep
 
-**Status:** Planned — contains open design questions the user should confirm before
-implementation starts (see "Design Decisions Needing Confirmation" below). Do not begin
-implementation until these are resolved; treat this doc as a proposal, not a final spec.
+**Status:** Testing — all 4 Design Decisions confirmed by the user on 2026-07-16, each as the
+doc's originally-proposed default: (1) array column `classifications` alongside the existing
+`classification` scalar; (2) preserve today's Discrete-Development-only fallback to "StackShift"
+in `deriveProductNamesMulti`; (3) "Custom App wins" precedence in `deriveProjectTypeMulti`; (4)
+this task implements picker/validation/storage/derivation only — phase content variation by
+classification is deferred to a separate follow-up task.
 
 ---
 
@@ -294,3 +297,63 @@ list.
   `_content.tsx` (no external consumers), both are updated together in the same task — no
   versioning/back-compat shim needed.
 - Does not affect Sanity, GitHub, or Zoho integration surfaces.
+
+## Implementation Notes
+
+### What Changed
+- Added migration `075_customer_products_classifications_array.sql` — new
+  `customer_products.classifications text[] not null default '{}'` column + one-time backfill
+  from the existing `classification` scalar for pre-migration rows.
+- Added `classifications: string[]` to `customer_products` Row/Insert/Update in `database.ts`.
+- Added `STACKSHIFT_VARIANTS`, `isValidClassificationCombo`, `deriveProductNamesMulti`,
+  `deriveProjectSuffixMulti`, `deriveProjectTypeMulti` to `customer-phases.ts` — the existing
+  single-value `deriveProductName`/`deriveProjectSuffix`/`deriveProjectType` are kept untouched
+  (no other call sites reference them outside the two files this task modifies, confirmed by grep).
+- `_content.tsx`: `classification` state (`Classification`) became `classifications`
+  (`Classification[]`), with a `toggleClassification()` handler implementing the
+  swap-on-StackShift-conflict rule. `ClassificationCard`'s `selected`/`onSelect` wiring updated to
+  `classifications.includes(c)` / `() => toggleClassification(c)` — the card component itself
+  needed no changes. `goNext()`'s step-2 guard now requires `classifications.length > 0`
+  (new `classificationError` state, rendered under the card grid). Project name suffix now
+  derives via `deriveProjectSuffixMulti`. Step 3's review row renders the full selected list
+  (`classifications.join(", ")`, falling back to "—"). Submit body now sends `classifications`
+  instead of `classification`.
+- `POST /api/onboarding/projects`: body type changed to `classifications: Classification[]`;
+  validation now checks array non-empty, every entry is a known `Classification`, and
+  `isValidClassificationCombo` (≤1 StackShift variant) — server-side, not just the client's swap
+  UI. `customer_products` insert now writes both `classifications` (full array) and `classification`
+  (single fallback: the selected StackShift variant if any, else the first selected entry) plus
+  `product_name: productNames[0]` from `deriveProductNamesMulti` (resolves to `"StackShift"`
+  whenever any StackShift variant is selected — including combos with PipelineForge — else
+  `"PipelineForge"`, preserving today's Discrete-Development-only fallback). `projects.project_type`
+  now derives via `deriveProjectTypeMulti`.
+- Verified via grep that `GET /api/onboarding/projects` and the Onboarding list's classification
+  badge (`_onboarding-list.tsx:131-133`) read only the untouched single `classification` column —
+  no changes needed there. Verified the v1 `(public)/onboarding/[customerId]` form-engine's
+  `SCHEMAS` map (keyed by `product_name`) is unaffected since `deriveProductNamesMulti` still only
+  ever produces `"StackShift"`/`"PipelineForge"`, the same two values `deriveProductName` always
+  produced.
+
+### Files Changed
+- `supabase/migrations/075_customer_products_classifications_array.sql` - new array column + backfill
+- `src/types/database.ts` - added `classifications: string[]` to `customer_products` types
+- `src/config/customer-phases.ts` - added multi-aware derive functions + combo validator
+- `src/app/v2/(hub)/onboarding/new/_content.tsx` - multi-select picker, swap logic, validation, review row, submit body
+- `src/app/api/onboarding/projects/route.ts` - accept `classifications[]`, server-side combo validation, dual-column insert
+
+### Deviations From Plan
+- None — implementation matches the task doc's Code Context and the 4 confirmed Design Decisions
+  (array column storage shape; preserved Discrete-Development-only product-name fallback; "Custom
+  App wins" project_type precedence; picker/storage/derivation scope only, no phase-content
+  variation).
+
+### Verification Run
+- `npx tsc --noEmit` - PASS
+- `pnpm lint` - PASS
+- Manual/browser verification - SKIPPED (Claude in Chrome extension not connected this session).
+  The task doc's manual checks — StackShift+StackShift swap, valid multi-combos submitting
+  successfully, zero-selection client-side block, server-side rejection of a two-StackShift
+  payload via direct `fetch`, and an existing pre-migration project's classification badge still
+  rendering correctly — still need to be exercised in the browser before this ships. Migration
+  `075` also has not been applied to the database yet; needs to be applied before any of the above
+  can be tested end-to-end.

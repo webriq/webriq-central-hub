@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { sendCliqNotification } from "@/lib/zoho";
 import { PROGRAMME_PHASES, INTERNAL_DELIVERABLES, getPhaseByNumber } from "@/config/customer-phases";
+import { cancelProjectAutostart } from "@/lib/qstash";
 
 const WRITE_ROLES = ["admin", "super_admin", "marketing"];
 
@@ -38,7 +39,7 @@ export async function PATCH(
 
     const { data: project, error: projectError } = await supabase
       .from("projects")
-      .select("id, customer_id, programme_started_at, customers(company_name)")
+      .select("id, customer_id, programme_started_at, qstash_message_id, customers(company_name)")
       .eq("id", projectId)
       .single();
     if (projectError || !project) {
@@ -83,6 +84,13 @@ export async function PATCH(
       if (phasesRes.error || deliverablesRes.error || internalRes.error) {
         console.error("PATCH /api/projects/[projectId]/programme/phase seed error:", phasesRes.error ?? deliverablesRes.error ?? internalRes.error);
         return NextResponse.json({ error: "Failed to seed programme phases" }, { status: 500 });
+      }
+
+      // This manual jump beat any scheduled QStash message to it — cancel the now-redundant
+      // pending message (best-effort; the qstash-start route is idempotent regardless).
+      if (project.qstash_message_id) {
+        await cancelProjectAutostart(project.qstash_message_id);
+        await supabase.from("projects").update({ qstash_message_id: null }).eq("id", projectId);
       }
 
       await sendCliqNotification(

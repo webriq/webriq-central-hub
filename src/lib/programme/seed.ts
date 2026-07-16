@@ -1,6 +1,6 @@
 import { adminClient } from "@/lib/supabase/admin";
 import { sendCliqNotification } from "@/lib/zoho";
-import { PROGRAMME_PHASES, INTERNAL_DELIVERABLES } from "@/config/customer-phases";
+import { PROGRAMME_PHASES, INTERNAL_DELIVERABLES, getPhaseByNumber } from "@/config/customer-phases";
 
 // Shared by the manual "Start Onboarding" route, the New Project intake's `mode: "start"` path,
 // and the scheduled auto-start cron — all three need identical seed semantics. Uses adminClient
@@ -11,16 +11,28 @@ import { PROGRAMME_PHASES, INTERNAL_DELIVERABLES } from "@/config/customer-phase
 // Optional because the scheduled auto-start cron has no user session — a cron-started project's
 // Phase 1 simply has zero members, which the app treats as unrestricted (see task 153 doc's
 // "Backward compatibility" section), not an error.
+//
+// phaseNumber (chat follow-up to task 157): lets a scheduled start land on Phase 2-5 instead of
+// always Day 1/Phase 1 — mirrors the Timeline's existing manual "Jump to phase" override
+// (PATCH .../programme/phase) exactly: earlier phases marked "skipped", the target phase
+// "active" and backdated so "today" lands on its first day, later phases "not_started". Phase
+// membership (phase_members) stays Phase-1-only, matching every other phase_members call site in
+// this codebase — phases 2-5 have no Wizard/membership-gated entry concept to assign.
 export async function seedAndStartProgramme(
   project: { id: string; customer_id: string },
   companyName: string,
-  startedByUserId?: string | null
+  startedByUserId?: string | null,
+  phaseNumber: 1 | 2 | 3 | 4 | 5 = 1
 ): Promise<{ error?: string }> {
+  const targetPhase = getPhaseByNumber(phaseNumber);
   const today = new Date().toISOString().slice(0, 10);
+
+  const startedAt = new Date();
+  startedAt.setDate(startedAt.getDate() - (targetPhase.dayStart - 1));
 
   const { error: updateError } = await adminClient
     .from("projects")
-    .update({ programme_started_at: new Date().toISOString() })
+    .update({ programme_started_at: startedAt.toISOString() })
     .eq("id", project.id);
   if (updateError) {
     console.error("seedAndStartProgramme: projects update error:", updateError);
@@ -31,8 +43,9 @@ export async function seedAndStartProgramme(
     customer_id: project.customer_id,
     project_id: project.id,
     phase_number: p.number,
-    status: p.number === 1 ? "active" : "not_started",
-    actual_start_date: p.number === 1 ? today : null,
+    status: p.number === phaseNumber ? "active" : p.number < phaseNumber ? "skipped" : "not_started",
+    actual_start_date: p.number === phaseNumber ? today : null,
+    is_manual_override: phaseNumber !== 1 && p.number === phaseNumber,
   }));
   const deliverableRows = PROGRAMME_PHASES.flatMap((p) =>
     p.deliverables.map((d) => ({
@@ -42,7 +55,8 @@ export async function seedAndStartProgramme(
       deliverable_key: d.key,
       // Kickoff is Phase 1's first sub-phase — it starts "in_progress" the moment onboarding
       // begins, rather than sitting at "pending" until the first checklist item is touched.
-      status: p.number === 1 && d.key === "kickoff" ? "in_progress" : "pending",
+      // Only ever matches when phaseNumber is 1, since "kickoff" only exists in Phase 1's list.
+      status: p.number === phaseNumber && d.key === "kickoff" ? "in_progress" : "pending",
     }))
   );
   const internalDeliverableRows = INTERNAL_DELIVERABLES.map((d) => ({
@@ -63,7 +77,7 @@ export async function seedAndStartProgramme(
     return { error: "Failed to seed programme phases" };
   }
 
-  if (startedByUserId) {
+  if (startedByUserId && phaseNumber === 1) {
     await adminClient.from("phase_members").insert({
       project_id: project.id,
       phase_number: 1,
@@ -85,7 +99,9 @@ export async function seedAndStartProgramme(
   }
 
   await sendCliqNotification(
-    `120-Day Programme started for ${companyName} — Day 1, Phase 1: Onboard (owner: Bert).`,
+    phaseNumber === 1
+      ? `120-Day Programme started for ${companyName} — Day 1, Phase 1: Onboard (owner: Bert).`
+      : `120-Day Programme started for ${companyName} at Phase ${phaseNumber}: ${targetPhase.name}.`,
     "pm"
   );
   return {};

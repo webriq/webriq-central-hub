@@ -1,5 +1,5 @@
 // Zoho → Hub tasklists sync.
-// Callable by admin session or pg_cron via x-digest-secret header.
+// Callable by admin session or pg_cron via x-cron-secret header.
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
@@ -39,10 +39,10 @@ async function fetchWithRateLimitRetry(url: string, headers: HeadersInit): Promi
 }
 
 export async function POST(req: Request) {
-  // Accept cron calls via x-digest-secret or authenticated admin session
-  const digestSecret = process.env.DIGEST_SECRET;
-  const incomingSecret = req.headers.get("x-digest-secret");
-  const isCronCall = digestSecret && incomingSecret === digestSecret;
+  // Accept cron calls via x-cron-secret or authenticated admin session
+  const cronSecret = process.env.CRONJOB_SECRET_KEY;
+  const incomingSecret = req.headers.get("x-cron-secret");
+  const isCronCall = cronSecret && incomingSecret === cronSecret;
 
   if (!isCronCall) {
     const supabase = await createClient();

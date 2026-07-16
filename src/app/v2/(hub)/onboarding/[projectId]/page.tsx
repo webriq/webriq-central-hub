@@ -30,7 +30,7 @@ export default async function OnboardingProjectPage({ params }: PageProps) {
 
   const { data: project, error } = await supabase
     .from("projects")
-    .select("id, name, customer_id, project_id, created_by, customers(company_name)")
+    .select("id, name, customer_id, project_id, created_by, scheduled_onboarding_start_at, scheduled_start_phase, customers(company_name)")
     .eq("id", projectId)
     .single();
 
@@ -113,6 +113,8 @@ export default async function OnboardingProjectPage({ params }: PageProps) {
         primary_contact_phone: primaryContact?.phone ?? null,
         created_by: project.created_by,
         created_by_name: createdByName,
+        scheduled_onboarding_start_at: project.scheduled_onboarding_start_at,
+        scheduled_start_phase: project.scheduled_start_phase,
       }}
       role={role}
       currentUserId={userId}

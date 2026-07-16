@@ -8,9 +8,9 @@ import { seedAndStartProgramme } from "@/lib/programme/seed";
 // manual "Start Onboarding" button. Secret-gated the same way /api/digest and
 // /api/programme/reminders are.
 export async function POST(req: NextRequest) {
-  const digestSecret = process.env.DIGEST_SECRET;
-  const incomingSecret = req.headers.get("x-digest-secret");
-  const isCronCall = digestSecret && incomingSecret === digestSecret;
+  const cronSecret = process.env.CRONJOB_SECRET_KEY;
+  const incomingSecret = req.headers.get("x-cron-secret");
+  const isCronCall = cronSecret && incomingSecret === cronSecret;
 
   if (!isCronCall) {
     const supabase = await createClient();
@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
   try {
     const { data: dueProjects, error } = await adminClient
       .from("projects")
-      .select("id, customer_id, programme_started_at, scheduled_onboarding_start_at, customers(company_name)")
+      .select("id, customer_id, programme_started_at, scheduled_onboarding_start_at, scheduled_start_phase, customers(company_name)")
       .not("scheduled_onboarding_start_at", "is", null)
       .is("programme_started_at", null)
       .lte("scheduled_onboarding_start_at", new Date().toISOString());
@@ -34,7 +34,10 @@ export async function POST(req: NextRequest) {
     let started = 0;
     for (const project of dueProjects ?? []) {
       const companyName = (project.customers as unknown as { company_name: string } | null)?.company_name ?? "Customer";
-      const result = await seedAndStartProgramme({ id: project.id, customer_id: project.customer_id }, companyName);
+      // scheduled_start_phase null (every project scheduled before this column existed, or a
+      // plain Phase-1 schedule) defaults to Phase 1 — unchanged behavior for those rows.
+      const phaseNumber = (project.scheduled_start_phase ?? 1) as 1 | 2 | 3 | 4 | 5;
+      const result = await seedAndStartProgramme({ id: project.id, customer_id: project.customer_id }, companyName, undefined, phaseNumber);
       if (!result.error) started++;
     }
 

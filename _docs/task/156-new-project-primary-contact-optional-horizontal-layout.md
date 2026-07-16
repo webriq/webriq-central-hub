@@ -4,7 +4,7 @@
 **Priority:** MEDIUM
 **Type:** enhancement
 **Recommended Tier:** fast
-**Status:** Planned
+**Status:** Completed
 
 ---
 
@@ -147,3 +147,29 @@ error. Resize the browser to confirm the email/phone row layout responds correct
 ## Compatibility Touchpoints
 
 - No migration, no API contract change — server already accepted an optional/absent `contact`.
+
+## Implementation Notes
+
+### What Changed
+- Step 1's `goNext()` no longer requires `contactName`/`contactEmail`; the email regex check now
+  only runs when `contactEmail` is non-empty.
+- Removed `required` from the "Primary contact" and "Contact email" `Field`s; softened the
+  "Primary contact" placeholder to hint it can be added later at Kickoff.
+- Wrapped "Contact email" and "Phone" in a `grid grid-cols-1 sm:grid-cols-2 gap-3` div so they sit
+  side-by-side on desktop and stack on mobile. "Primary contact" stays its own full-width row above.
+
+### Files Changed
+- `src/app/v2/(hub)/onboarding/new/_content.tsx` - dropped step-1 required checks, removed
+  `required` props, added the 2-col grid wrapper for email/phone.
+
+### Deviations From Plan
+- None — implementation matches the task doc's Code Context exactly.
+
+### Verification Run
+- `npx tsc --noEmit` - PASS
+- `pnpm lint` - PASS
+- Manual/browser verification - SKIPPED (Claude in Chrome extension not connected in this session;
+  static verification passed but the golden-path click-through, invalid-email block, and
+  responsive-layout check described in the task doc's Verification section were not exercised.
+  Review-step fallback (`contactName || "—"`, `contactEmail || "—"`) confirmed correct by reading
+  `_content.tsx:781-782` — no code change needed there, as anticipated in the task doc.)

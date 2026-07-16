@@ -39,6 +39,11 @@ interface OnboardingDetailProps {
     // canManageProjectMembers/canSetProjectOwner's "is this caller the creator" check.
     created_by: string | null;
     created_by_name: string | null;
+    // Chat follow-up to task 157: surfaces the New Project intake's "Save + Set Schedule" state
+    // on the not-started card — when to expect auto-start and which phase, plus a way to
+    // override it (start now, at the scheduled phase or a different one).
+    scheduled_onboarding_start_at: string | null;
+    scheduled_start_phase: number | null;
   };
   // Task 146: pm/developer can view the Timeline read-only; pm additionally gets the Wizard
   // (read-only on steps 1-5/7, full Step 6 file/folder access) — developer never opens it.
@@ -926,6 +931,8 @@ export default function OnboardingDetail({
   const [jumpOpen, setJumpOpen] = useState(false);
   const [jumpNote, setJumpNote] = useState("");
   const [jumping, setJumping] = useState(false);
+  // Scheduled-start card's "Select Phase" alternative — excludes the already-scheduled phase.
+  const [altPhase, setAltPhase] = useState<1 | 2 | 3 | 4 | 5 | null>(null);
   const isMountedRef = useRef(true);
   const scrollRef = useRef<HTMLDivElement>(null);
   const scrolledToTodayRef = useRef(false);
@@ -1217,6 +1224,12 @@ export default function OnboardingDetail({
     }
   };
 
+  // Scheduled-start card's "Start ... Anyway" and "Proceed" both need this: Phase 1 goes
+  // through handleStart (assigns the starter as Phase 1 owner, task 153) same as the normal
+  // Start Onboarding button; any other phase goes through the existing Jump-to-phase override,
+  // which never assigns phase ownership — phase_members only has a concept for Phase 1.
+  const startAtPhase = (phaseNumber: 1 | 2 | 3 | 4 | 5) => (phaseNumber === 1 ? handleStart() : handleJump(phaseNumber));
+
   const handleOpenWizardStep = (deliverableKey: string) => {
     setWizardStartStepKey(deliverableKey);
     setWizardOpen(true);
@@ -1324,6 +1337,12 @@ export default function OnboardingDetail({
   }
 
   if (!programmeStartedAt) {
+    const hasSchedule = !!project.scheduled_onboarding_start_at;
+    const scheduledPhaseNumber = (project.scheduled_start_phase ?? 1) as 1 | 2 | 3 | 4 | 5;
+    const scheduledPhase = getPhaseByNumber(scheduledPhaseNumber);
+    const scheduledDate = project.scheduled_onboarding_start_at ? new Date(project.scheduled_onboarding_start_at) : null;
+    const busy = starting || jumping;
+
     return (
       <div className={cn(inter.className, "min-h-full bg-[#F8FAFC] px-7 py-8")}>
         {backLink}
@@ -1331,22 +1350,99 @@ export default function OnboardingDetail({
           <CalendarClock size={32} className="mx-auto mb-4 text-[#94A3B8]" />
           <div className={cn(spaceGrotesk.className, "text-lg font-bold text-[#0F172A]")}>{project.name}</div>
           <div className="mb-3 text-[13px] text-[#64748B]">{project.company_name}</div>
-          <p className="mx-auto mb-6 max-w-md text-[13px] text-[#64748B]">
-            Start the 120-day programme to begin tracking Phase 1 — or jump straight to whichever phase they&apos;re actually starting from.
-          </p>
-          {error && <p className="mb-3 text-xs text-[#DC2626]">{error}</p>}
-          {canManagePhases ? (
-            <div className="flex items-center justify-center gap-2">
-              <button
-                type="button"
-                onClick={handleStart}
-                disabled={starting}
-                className="inline-flex cursor-pointer items-center gap-1.5 rounded-[9px] border-none bg-[#2563EB] px-4 py-2 text-[13px] font-semibold text-white shadow-[0_2px_10px_rgba(37,99,235,0.3)] transition-opacity hover:opacity-90 disabled:opacity-50"
-              >
-                <PlayCircle size={15} /> {starting ? "Starting…" : "Start Onboarding"}
-              </button>
-              <JumpToPhaseMenu open={jumpOpen} setOpen={setJumpOpen} note={jumpNote} setNote={setJumpNote} onJump={handleJump} jumping={jumping} />
+
+          {hasSchedule ? (
+            <div className="mx-auto mb-6 max-w-md rounded-[10px] border border-[#FDE68A] bg-[#FFFBEB] px-4 py-3 text-left">
+              <div className="flex items-center gap-1.5 text-[13px] font-semibold text-[#92400E]">
+                <CalendarClock size={14} /> Scheduled to auto-start
+              </div>
+              <p className="mt-1 text-[12.5px] leading-relaxed text-[#92400E]">
+                Phase {scheduledPhaseNumber}: {scheduledPhase.name} will start automatically on{" "}
+                {scheduledDate?.toLocaleString("en-US", {
+                  weekday: "long",
+                  month: "long",
+                  day: "numeric",
+                  year: "numeric",
+                  hour: "numeric",
+                  minute: "2-digit",
+                  timeZoneName: "short",
+                })}
+                .
+              </p>
             </div>
+          ) : (
+            <p className="mx-auto mb-6 max-w-md text-[13px] text-[#64748B]">
+              Start the 120-day programme to begin tracking Phase 1 — or jump straight to whichever phase they&apos;re actually starting from.
+            </p>
+          )}
+
+          {error && <p className="mb-3 text-xs text-[#DC2626]">{error}</p>}
+
+          {canManagePhases ? (
+            hasSchedule ? (
+              <div className="flex flex-col items-center gap-4">
+                <button
+                  type="button"
+                  onClick={() => startAtPhase(scheduledPhaseNumber)}
+                  disabled={busy}
+                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-[9px] border-none bg-[#2563EB] px-4 py-2 text-[13px] font-semibold text-white shadow-[0_2px_10px_rgba(37,99,235,0.3)] transition-opacity hover:opacity-90 disabled:opacity-50"
+                >
+                  <PlayCircle size={15} /> {busy ? "Starting…" : `Start Phase ${scheduledPhaseNumber}: ${scheduledPhase.name} Anyway`}
+                </button>
+
+                <div className="flex w-full items-center gap-3">
+                  <div className="h-px flex-1 bg-[#E2E8F0]" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">OR</span>
+                  <div className="h-px flex-1 bg-[#E2E8F0]" />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <div className="relative">
+                    <select
+                      value={altPhase ?? ""}
+                      onChange={(e) => setAltPhase(e.target.value ? (Number(e.target.value) as 1 | 2 | 3 | 4 | 5) : null)}
+                      disabled={busy}
+                      className="h-9 cursor-pointer appearance-none rounded-[9px] border-[1.5px] border-[#E2E8F0] bg-white py-1.5 pl-3 pr-8 text-[13px] text-[#0F172A] outline-none transition-colors focus:border-[#2563EB] disabled:cursor-not-allowed disabled:opacity-60"
+                      style={{
+                        backgroundImage:
+                          "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2394a3b8'/%3E%3C/svg%3E\")",
+                        backgroundRepeat: "no-repeat",
+                        backgroundPosition: "right 12px center",
+                      }}
+                    >
+                      <option value="">Select Phase</option>
+                      {PROGRAMME_PHASES.filter((p) => p.number !== scheduledPhaseNumber).map((p) => (
+                        <option key={p.number} value={p.number}>
+                          Phase {p.number}: {p.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {altPhase && (
+                    <button
+                      type="button"
+                      onClick={() => startAtPhase(altPhase)}
+                      disabled={busy}
+                      className="inline-flex cursor-pointer items-center gap-1.5 rounded-[9px] border-none bg-[#2563EB] px-4 py-2 text-[13px] font-semibold text-white shadow-[0_2px_10px_rgba(37,99,235,0.3)] transition-opacity hover:opacity-90 disabled:opacity-50"
+                    >
+                      <PlayCircle size={15} /> {busy ? "Starting…" : "Proceed"}
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleStart}
+                  disabled={starting}
+                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-[9px] border-none bg-[#2563EB] px-4 py-2 text-[13px] font-semibold text-white shadow-[0_2px_10px_rgba(37,99,235,0.3)] transition-opacity hover:opacity-90 disabled:opacity-50"
+                >
+                  <PlayCircle size={15} /> {starting ? "Starting…" : "Start Onboarding"}
+                </button>
+                <JumpToPhaseMenu open={jumpOpen} setOpen={setJumpOpen} note={jumpNote} setNote={setJumpNote} onJump={handleJump} jumping={jumping} />
+              </div>
+            )
           ) : (
             <p className="text-[12.5px] text-[#94A3B8]">Not started yet — Marketing manages the programme start date.</p>
           )}

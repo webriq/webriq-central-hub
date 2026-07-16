@@ -202,3 +202,36 @@ export function deriveProjectSuffix(classification: Classification): "Website" |
 export function deriveProjectType(classification: Classification): "Content Site" | "Custom App" {
   return classification === "Discrete Development" ? "Custom App" : "Content Site";
 }
+
+// Task 157: multi-select classification support. At most one StackShift variant may be
+// selected at a time (swap, not blocked, on the picker's UI side); PipelineForge and Discrete
+// Development are free to combine with it or with each other. These *Multi functions generalize
+// the single-value ones above to arrays — the single-value functions are kept for any other call
+// sites, not removed.
+export const STACKSHIFT_VARIANTS: Classification[] = ["StackShift I", "StackShift II", "StackShift Access", "StackShift Access Plus"];
+
+export function isValidClassificationCombo(selected: Classification[]): boolean {
+  if (selected.length === 0) return false;
+  return selected.filter((c) => STACKSHIFT_VARIANTS.includes(c)).length <= 1;
+}
+
+// Preserves today's single-value fallback (a Discrete-Development-only selection resolves to
+// "StackShift", same pre-existing quirk as deriveProductName) — confirmed with the user rather
+// than silently changed.
+export function deriveProductNamesMulti(selected: Classification[]): ("StackShift" | "PipelineForge")[] {
+  const hasStackShift = selected.some((c) => STACKSHIFT_VARIANTS.includes(c));
+  const hasPipelineForge = selected.includes("PipelineForge");
+  const names: ("StackShift" | "PipelineForge")[] = [];
+  if (hasStackShift) names.push("StackShift");
+  if (hasPipelineForge) names.push("PipelineForge");
+  if (names.length === 0) names.push("StackShift");
+  return names;
+}
+
+export function deriveProjectSuffixMulti(selected: Classification[]): "Website" | "App" {
+  return selected.includes("Discrete Development") ? "App" : "Website";
+}
+
+export function deriveProjectTypeMulti(selected: Classification[]): "Content Site" | "Custom App" {
+  return selected.includes("Discrete Development") ? "Custom App" : "Content Site";
+}

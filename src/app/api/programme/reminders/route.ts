@@ -32,9 +32,9 @@ async function notifyOnce(projectId: string, customerId: string, key: string, me
 // Daily cron target (pg_cron -> pg_net, see migration 059). Secret-gated the same way /api/digest is.
 // Project-scoped (task 123) — a customer can now run multiple simultaneous onboardings.
 export async function POST(req: NextRequest) {
-  const digestSecret = process.env.DIGEST_SECRET;
-  const incomingSecret = req.headers.get("x-digest-secret");
-  const isCronCall = digestSecret && incomingSecret === digestSecret;
+  const cronSecret = process.env.CRONJOB_SECRET_KEY;
+  const incomingSecret = req.headers.get("x-cron-secret");
+  const isCronCall = cronSecret && incomingSecret === cronSecret;
 
   if (!isCronCall) {
     const supabase = await createClient();

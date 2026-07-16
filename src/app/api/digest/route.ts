@@ -8,10 +8,10 @@ const BodySchema = z.object({
 });
 
 export async function POST(req: Request) {
-  // Accept cron calls via x-digest-secret header or authenticated user sessions
-  const digestSecret = process.env.DIGEST_SECRET;
-  const incomingSecret = req.headers.get("x-digest-secret");
-  const isCronCall = digestSecret && incomingSecret === digestSecret;
+  // Accept cron calls via x-cron-secret header or authenticated user sessions
+  const cronSecret = process.env.CRONJOB_SECRET_KEY;
+  const incomingSecret = req.headers.get("x-cron-secret");
+  const isCronCall = cronSecret && incomingSecret === cronSecret;
 
   if (!isCronCall) {
     const supabase = await createClient();

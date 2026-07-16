@@ -6,10 +6,10 @@ import { getModel, getModelConfig } from "@/lib/ai/model-config";
 import { logLLMInvocation } from "@/lib/ai/logger";
 
 export async function POST(req: NextRequest) {
-  // Accept cron calls via x-digest-secret or authenticated session
-  const digestSecret = process.env.DIGEST_SECRET;
-  const incomingSecret = req.headers.get("x-digest-secret");
-  const isCronCall = digestSecret && incomingSecret === digestSecret;
+  // Accept cron calls via x-cron-secret or authenticated session
+  const cronSecret = process.env.CRONJOB_SECRET_KEY;
+  const incomingSecret = req.headers.get("x-cron-secret");
+  const isCronCall = cronSecret && incomingSecret === cronSecret;
 
   if (!isCronCall) {
     const supabase = await createClient();

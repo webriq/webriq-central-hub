@@ -19,5 +19,5 @@ export default async function NewProjectPage() {
 
   if (!role || !CREATE_ROLES.includes(role)) redirect(V2_ROUTES.ONBOARDING);
 
-  return <NewProjectWizard />;
+  return <NewProjectWizard role={role} />;
 }

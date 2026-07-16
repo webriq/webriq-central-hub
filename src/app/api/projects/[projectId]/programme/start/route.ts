@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { seedAndStartProgramme } from "@/lib/programme/seed";
+import { cancelProjectAutostart } from "@/lib/qstash";
 
 // Task 153: pm can now also start the programme (was admin/super_admin/marketing only).
 const WRITE_ROLES = ["admin", "super_admin", "marketing", "pm"];
@@ -23,7 +24,7 @@ export async function POST(
 
     const { data: project, error: projectError } = await supabase
       .from("projects")
-      .select("id, customer_id, programme_started_at, customers(company_name)")
+      .select("id, customer_id, programme_started_at, qstash_message_id, customers(company_name)")
       .eq("id", projectId)
       .single();
 
@@ -38,6 +39,13 @@ export async function POST(
     const result = await seedAndStartProgramme({ id: project.id, customer_id: project.customer_id }, companyName, user.id);
     if (result.error) {
       return NextResponse.json({ error: result.error }, { status: 500 });
+    }
+
+    // Starting manually beat any scheduled QStash message to it — cancel the now-redundant
+    // pending message (best-effort; the qstash-start route is idempotent regardless).
+    if (project.qstash_message_id) {
+      await cancelProjectAutostart(project.qstash_message_id);
+      await supabase.from("projects").update({ qstash_message_id: null }).eq("id", projectId);
     }
 
     const [phasesRes, deliverablesRes] = await Promise.all([

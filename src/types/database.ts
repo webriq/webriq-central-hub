@@ -455,6 +455,7 @@ export interface Database {
           product_name: string;
           product_instance_id: string | null;
           classification: string | null;
+          classifications: string[];
           status: string;
           onboarding_complete: boolean;
           onboarding_data: Json;
@@ -468,6 +469,7 @@ export interface Database {
           product_name: string;
           product_instance_id?: string | null;
           classification?: string | null;
+          classifications?: string[];
           status?: string;
           onboarding_complete?: boolean;
           onboarding_data?: Json;
@@ -481,6 +483,7 @@ export interface Database {
           product_name?: string;
           product_instance_id?: string | null;
           classification?: string | null;
+          classifications?: string[];
           status?: string;
           onboarding_complete?: boolean;
           onboarding_data?: Json;
@@ -562,6 +565,8 @@ export interface Database {
           programme_started_at: string | null;
           onboarding_visible_at: string | null;
           scheduled_onboarding_start_at: string | null;
+          scheduled_start_phase: number | null;
+          qstash_message_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -592,6 +597,8 @@ export interface Database {
           programme_started_at?: string | null;
           onboarding_visible_at?: string | null;
           scheduled_onboarding_start_at?: string | null;
+          scheduled_start_phase?: number | null;
+          qstash_message_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -622,6 +629,8 @@ export interface Database {
           programme_started_at?: string | null;
           onboarding_visible_at?: string | null;
           scheduled_onboarding_start_at?: string | null;
+          scheduled_start_phase?: number | null;
+          qstash_message_id?: string | null;
           updated_at?: string;
         };
         Relationships: [

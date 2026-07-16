@@ -6,15 +6,22 @@ import { upsertPrimaryContact } from "@/lib/customers/primary-contact";
 import {
   CLASSIFICATIONS,
   type Classification,
-  deriveProductName,
-  deriveProjectType,
+  STACKSHIFT_VARIANTS,
+  isValidClassificationCombo,
+  deriveProductNamesMulti,
+  deriveProjectTypeMulti,
   getCurrentProgrammeDay,
   getPhaseByNumber,
 } from "@/config/customer-phases";
 import { seedAndStartProgramme } from "@/lib/programme/seed";
 import { addProjectMember, isRoleGatedByMembership } from "@/lib/programme/phase-membership";
+import { scheduleProjectAutostart } from "@/lib/qstash";
 
 const STAFF_ROLES = ["admin", "super_admin", "marketing", "pm", "developer", "hr"];
+// Mirrors programme/phase/route.ts's WRITE_ROLES exactly — jumping straight to a later phase
+// (immediately, or via a scheduled start) is admin/super_admin/marketing-only everywhere else in
+// the app (canManagePhases in _onboarding-detail.tsx excludes pm/developer the same way).
+const PHASE_WRITE_ROLES = ["admin", "super_admin", "marketing"];
 // Task 153: pm can now also create projects (was admin/super_admin/marketing only).
 const CREATE_ROLES = ["admin", "super_admin", "marketing", "pm"];
 
@@ -144,9 +151,10 @@ export async function GET() {
 type NewProjectBody = {
   mode: "save" | "save_scheduled" | "start";
   scheduled_start_at?: string;
+  start_phase?: number;
   customer: { existing_customer_id: string } | { company_name: string };
   contact: { name: string; email?: string; phone?: string };
-  classification: Classification;
+  classifications: Classification[];
   project_name: string;
 };
 
@@ -170,14 +178,33 @@ export async function POST(request: NextRequest) {
     if (!["save", "save_scheduled", "start"].includes(body.mode)) {
       return NextResponse.json({ error: "mode must be one of save, save_scheduled, start" }, { status: 400 });
     }
-    if (!CLASSIFICATIONS.includes(body.classification)) {
-      return NextResponse.json({ error: "Invalid classification" }, { status: 400 });
+    if (
+      !Array.isArray(body.classifications) ||
+      body.classifications.length === 0 ||
+      !body.classifications.every((c) => CLASSIFICATIONS.includes(c)) ||
+      !isValidClassificationCombo(body.classifications)
+    ) {
+      return NextResponse.json({ error: "Invalid classification combination" }, { status: 400 });
     }
     if (!body.project_name?.trim()) {
       return NextResponse.json({ error: "project_name is required" }, { status: 400 });
     }
     if (body.mode === "save_scheduled" && !body.scheduled_start_at) {
       return NextResponse.json({ error: "scheduled_start_at is required when mode is save_scheduled" }, { status: 400 });
+    }
+
+    // Task 157 follow-up: which phase a scheduled start should land on. Undefined/1 is always
+    // fine (the existing default); anything else requires the same phase-management permission
+    // the immediate "Start at phase" flow already gates on client-side — never trust that alone.
+    let scheduledStartPhase: number | null = null;
+    if (body.mode === "save_scheduled" && body.start_phase !== undefined) {
+      if (!Number.isInteger(body.start_phase) || body.start_phase < 1 || body.start_phase > 5) {
+        return NextResponse.json({ error: "start_phase must be an integer between 1 and 5" }, { status: 400 });
+      }
+      if (body.start_phase !== 1 && !PHASE_WRITE_ROLES.includes(profile.role)) {
+        return NextResponse.json({ error: "Not permitted to schedule a start at this phase" }, { status: 403 });
+      }
+      scheduledStartPhase = body.start_phase !== 1 ? body.start_phase : null;
     }
 
     // Resolve or create the customer.
@@ -224,13 +251,20 @@ export async function POST(request: NextRequest) {
       if (contactError) console.error("POST /api/onboarding/projects primary contact error:", contactError);
     }
 
-    const productName = deriveProductName(body.classification);
+    // Task 157: multi-select classifications. `classification` (scalar) keeps a single
+    // backward-compatible value for existing read sites — the selected StackShift variant if
+    // one was chosen, else the first selected classification. `product_name` also keeps a
+    // single value (DB check constraint); productNames[0] is "StackShift" whenever any
+    // StackShift variant is selected (including combos with PipelineForge), else "PipelineForge".
+    const productNames = deriveProductNamesMulti(body.classifications);
+    const primaryClassification = body.classifications.find((c) => STACKSHIFT_VARIANTS.includes(c)) ?? body.classifications[0];
     const { data: product, error: productError } = await supabase
       .from("customer_products")
       .insert({
         customer_id: customerId,
-        product_name: productName,
-        classification: body.classification,
+        product_name: productNames[0],
+        classification: primaryClassification,
+        classifications: body.classifications,
         status: "active",
         onboarding_complete: false,
         onboarding_data: {},
@@ -247,11 +281,12 @@ export async function POST(request: NextRequest) {
       .insert({
         customer_id: customerId,
         name: body.project_name.trim(),
-        project_type: deriveProjectType(body.classification),
+        project_type: deriveProjectTypeMulti(body.classifications),
         customer_product_id: product.id,
         created_by: user.id,
         onboarding_visible_at: null,
         scheduled_onboarding_start_at: body.mode === "save_scheduled" ? body.scheduled_start_at : null,
+        scheduled_start_phase: scheduledStartPhase,
       })
       .select("id, customer_id")
       .single();
@@ -269,6 +304,16 @@ export async function POST(request: NextRequest) {
       const result = await seedAndStartProgramme({ id: project.id, customer_id: project.customer_id }, companyName, user.id);
       if (result.error) {
         return NextResponse.json({ error: result.error }, { status: 500 });
+      }
+    }
+
+    // One-shot QStash message fires exactly at the scheduled instant (chat follow-up to task
+    // 157) — best-effort, never blocks project creation. If QStash isn't configured or the
+    // publish fails, the 5-minute cron poll (migration 079) still catches it, just later.
+    if (body.mode === "save_scheduled" && body.scheduled_start_at) {
+      const messageId = await scheduleProjectAutostart(project.id, (scheduledStartPhase ?? 1) as 1 | 2 | 3 | 4 | 5, body.scheduled_start_at);
+      if (messageId) {
+        await supabase.from("projects").update({ qstash_message_id: messageId }).eq("id", project.id);
       }
     }
 
