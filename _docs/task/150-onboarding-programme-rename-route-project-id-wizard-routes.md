@@ -4,7 +4,7 @@
 **Priority:** HIGH
 **Type:** feature
 **Recommended Tier:** deep
-**Status:** Planned
+**Status:** Completed (2026-07-17)
 
 ---
 
@@ -43,12 +43,13 @@ their defaults, dropping the user onto the timeline root regardless of what they
 
 ### (a) Rename
 
-- [ ] Sidebar label changes from "Onboarding" to **"120-Day Programme"** — the name already
-      used consistently in code comments/task titles across this module (`customer-phases.ts`
-      header, migration 059's own title, etc.), so this aligns the user-facing label with
-      established internal terminology rather than inventing a new one.
-- [ ] List page `<title>` becomes "120-Day Programme" (via `export const metadata`); detail
-      page `<title>` becomes `"{companyName} — 120-Day Programme"`.
+- [ ] Sidebar label changes from "Onboarding" to **"Tracker"** — a shorter nav label than the
+      full page title, per explicit user request; the underlying route/constant names still use
+      "programme"/"onboarding" internal terminology (`customer-phases.ts` header, migration
+      059's own title, etc.) — only the two user-facing display strings (sidebar label, page
+      title) change.
+- [ ] List page `<title>` becomes "Portfolio Tracker" (via `export const metadata`); detail
+      page `<title>` becomes `"{companyName} — Portfolio Tracker"`.
 - [ ] Route path changes from `/v2/onboarding` to **`/v2/programme`** (and
       `/v2/onboarding/new` → `/v2/programme/new`) — this also aligns the URL with the
       already-established API namespace (`/api/projects/[projectId]/programme/...`), which
@@ -127,9 +128,9 @@ their defaults, dropping the user onto the timeline root regardless of what they
 | File | Action | Purpose |
 |------|--------|---------|
 | `src/config/constants.ts` | Modify | Rename `ONBOARDING`/`ONBOARDING_NEW` → `PROGRAMME`/`PROGRAMME_NEW`, update path values to `/v2/programme`, `/v2/programme/new` |
-| `src/app/v2/(hub)/_components/v2-hub-sidebar.tsx` | Modify | Label "Onboarding" → "120-Day Programme"; `href` uses renamed constant |
+| `src/app/v2/(hub)/_components/v2-hub-sidebar.tsx` | Modify | Label "Onboarding" → "Tracker"; `href` uses renamed constant |
 | `src/app/v2/(hub)/onboarding/` → `src/app/v2/(hub)/programme/` | Rename (dir) | Move the whole route folder tree to match the new path |
-| `src/app/v2/(hub)/programme/page.tsx` | Modify | Add `export const metadata` (title "120-Day Programme") |
+| `src/app/v2/(hub)/programme/page.tsx` | Modify | Add `export const metadata` (title "Portfolio Tracker") |
 | `src/app/v2/(hub)/programme/new/page.tsx`, `_content.tsx` | Rename (no logic change) | Path only, via the directory move |
 | `src/app/v2/(hub)/programme/[projectId]/page.tsx` | Modify | Query by `project_id` instead of `id`; add `export const metadata` with company name |
 | `src/app/v2/(hub)/programme/[projectId]/wizard/[stepKey]/page.tsx` | Create | New nested route rendering the same detail component pre-opened to the given wizard step |
@@ -261,12 +262,13 @@ of only calling `setState`.
    file contents unchanged except where noted below).
 2. Update `constants.ts`: rename `ONBOARDING`/`ONBOARDING_NEW` → `PROGRAMME`/`PROGRAMME_NEW`,
    new path values.
-3. Update `v2-hub-sidebar.tsx`: label → "120-Day Programme", href → `V2_ROUTES.PROGRAMME`.
-4. Add `export const metadata = { title: "120-Day Programme" }` to `programme/page.tsx`.
+3. Update `v2-hub-sidebar.tsx`: label → "Tracker", href → `V2_ROUTES.PROGRAMME`.
+4. Add `export const metadata = { title: "Portfolio Tracker" }` to `programme/page.tsx`.
 5. In `programme/[projectId]/page.tsx`: switch the query to `.eq("project_id", projectId)`;
    add `export const metadata` computed from the fetched `companyName` (Next.js allows a
    dynamic-per-request title by exporting an async `generateMetadata` function instead of a
-   static `metadata` object when the title depends on fetched data — use that form here).
+   static `metadata` object when the title depends on fetched data — use that form here),
+   producing `"{companyName} — Portfolio Tracker"`.
 6. Update `GET /api/onboarding/projects/route.ts`: select `project_id`, expose `id` +
    `project_id` distinctly in the response (keep the route path itself as-is — task explicitly
    scopes the `/api/onboarding/*` route *names* as out-of-scope; only this route's response
@@ -292,11 +294,11 @@ of only calling `setState`.
 
 ## Acceptance Criteria
 
-- [ ] Sidebar shows "120-Day Programme" linking to `/v2/programme`; the old `/v2/onboarding`
+- [ ] Sidebar shows "Tracker" linking to `/v2/programme`; the old `/v2/onboarding`
       path is gone (or, if a redirect is preferred for any bookmarked links, that's an
       explicit implementer decision to flag — not required by this spec).
-- [ ] List and detail page browser tab titles reflect "120-Day Programme" /
-      "{Company} — 120-Day Programme" instead of the generic "WebriQ Central Hub" fallback.
+- [ ] List and detail page browser tab titles reflect "Portfolio Tracker" /
+      "{Company} — Portfolio Tracker" instead of the generic "WebriQ Central Hub" fallback.
 - [ ] Opening a project from the list navigates to `/v2/programme/{project_id}` (the
       human-readable code, e.g. `2EBA-PROJ-04BA`), not a UUID.
 - [ ] Opening a specific wizard step (e.g. via a `DeliverableCard` click) updates the URL to
@@ -320,7 +322,8 @@ Manual/browser: click into a project from `/v2/programme`, confirm the URL shows
 human-readable `project_id`. Open a wizard step (e.g. Migration Checklist), confirm the URL
 updates, then hard-refresh the browser and confirm you land back on that same step instead of
 the timeline. Navigate Back to the timeline and confirm the URL and view both revert correctly.
-Confirm the sidebar tab label and both page titles read "120-Day Programme".
+Confirm the sidebar tab label reads "Tracker" and both page titles read "Portfolio Tracker"
+(detail page: "{Company} — Portfolio Tracker").
 
 ## Compatibility Touchpoints
 
@@ -333,3 +336,193 @@ Confirm the sidebar tab label and both page titles read "120-Day Programme".
 - Any external bookmarks/links to `/v2/onboarding/...` will 404 after the rename — acceptable
   per the user's explicit request to change the route; not treated as a backwards-compatibility
   concern to preserve.
+
+## Implementation Notes
+
+### What Changed
+- Directory `src/app/v2/(hub)/onboarding/` moved to `src/app/v2/(hub)/programme/` (whole tree:
+  list, `new/`, `import/`, `[projectId]/`).
+- `V2_ROUTES.ONBOARDING`/`ONBOARDING_NEW`/`ONBOARDING_IMPORT` renamed to `PROGRAMME`/
+  `PROGRAMME_NEW`/`PROGRAMME_IMPORT`, values updated to `/v2/programme*`; every call site
+  (sidebar, list page, new/import wizards, detail page, redirects) updated to match.
+- Sidebar label "Onboarding" → "Tracker"; list page `<title>` → "Portfolio Tracker" (static
+  `metadata`); detail page `<title>` → `"{companyName} — Portfolio Tracker"` (`generateMetadata`,
+  new nested wizard-step page shares the same title logic).
+- `[projectId]/page.tsx` now queries `projects` by `.eq("project_id", projectId)` instead of
+  `.eq("id", projectId)`. The page's own downstream `phase_members`/`project_members` queries
+  (which filter by the UUID FK) were switched from the raw route param to the fetched
+  `project.id`, since those child tables are still keyed by the UUID, not the display code —
+  this wasn't called out in the task's Code Context but is required for those queries to keep
+  matching real rows once the route param stopped being the UUID.
+- `GET /api/onboarding/projects`: now selects and exposes `project_id` distinctly from `id`
+  (previously mis-named the UUID as `project_id`, per the task's own bug note).
+- `POST /api/onboarding/projects`: same UUID-mislabeled-as-`project_id` bug existed in the
+  creation response (used by the "New Project" success screen's View button) — not named in the
+  task's Proposed File Changes table, but it's the same bug category already documented for the
+  GET route, and leaving it unfixed would have sent that button to a 404 once the detail route
+  started requiring the real `project_id`. Fixed alongside the GET route with the same
+  null-safe fallback (`project.project_id ?? project.id`).
+- `_onboarding-list.tsx`: `OnboardingProjectListItem.project_id` (mis-typed UUID field) renamed
+  to `id`; added real `project_id: string | null`; card link-building and the list's `key` prop
+  updated accordingly (`key` now uses `id`, always non-null, instead of the nullable
+  `project_id`).
+- New nested route `programme/[projectId]/wizard/[stepKey]/page.tsx`, sharing a new
+  `_load-detail-data.ts` helper (`loadOnboardingDetailData`, `getCompanyNameForMetadata`) with
+  the plain `[projectId]/page.tsx` — both call the same auth/role guard + Supabase fetch,
+  differing only in whether `initialWizardStepKey` is passed to `OnboardingDetail`. This
+  extraction was flagged as worth considering in the task's own Implementation Steps (step 8)
+  to avoid duplicating the `DETAIL_ROLES` check and Supabase query, and was applied.
+- `_onboarding-detail.tsx`: `wizardOpen`/`wizardStartStepKey` now initialize from the new
+  `initialWizardStepKey` prop; every place that opens or closes the wizard (`handleOpenWizardStep`,
+  the "Onboarding Wizard" button, the wizard's `onBack`, and the Phase-1-restricted screen's
+  "Back to Timeline" button) now also `router.push`es to the matching `/v2/programme/{project_id}`
+  or `/v2/programme/{project_id}/wizard/{stepKey}` URL (`scroll: false`).
+- `_onboarding-wizard.tsx`: added a `stepIdx`-watching `useEffect` (with a ref tracking the last
+  URL-synced step key, so mount never fires a redundant push) that calls `router.push` to the
+  matching `/wizard/{stepKey}` URL on every step change — covers Continue, Back-within-wizard,
+  and Steps-indicator jumps from one place instead of touching each of those 6 `setStepIdx` call
+  sites individually.
+- `CLAUDE.md`: amended the `project_id` convention paragraph with a one-line carve-out for
+  `/v2/programme/[projectId]` (and its `/wizard/[stepKey]` nested route) as the documented
+  exception.
+- Fixed a stale code comment in `customers/[customerId]/_programme-tab.tsx` referencing the old
+  `/v2/onboarding` path.
+
+### Files Changed
+- `src/config/constants.ts` — route constant rename
+- `src/app/v2/(hub)/_components/v2-hub-sidebar.tsx` — label + href
+- `src/app/v2/(hub)/onboarding/` → `src/app/v2/(hub)/programme/` — directory rename (whole tree)
+- `src/app/v2/(hub)/programme/page.tsx` — metadata title, route constant refs
+- `src/app/v2/(hub)/programme/new/page.tsx`, `new/_content.tsx` — route constant refs
+- `src/app/v2/(hub)/programme/import/page.tsx`, `import/_content.tsx` — route constant refs
+- `src/app/v2/(hub)/programme/_onboarding-list.tsx` — type fix, link-building, route constants
+- `src/app/v2/(hub)/programme/[projectId]/page.tsx` — rewritten to use the shared data-loader;
+  `generateMetadata` added
+- `src/app/v2/(hub)/programme/[projectId]/_load-detail-data.ts` — new shared helper
+- `src/app/v2/(hub)/programme/[projectId]/_onboarding-detail.tsx` — URL-driven wizard open/step
+  state, `initialWizardStepKey` prop, `project.id`-based phase/project member queries (see What
+  Changed)
+- `src/app/v2/(hub)/programme/[projectId]/_onboarding-wizard.tsx` — step-URL sync effect
+- `src/app/v2/(hub)/programme/[projectId]/wizard/[stepKey]/page.tsx` — new route
+- `src/app/api/onboarding/projects/route.ts` — GET select/response fix, POST response fix
+- `CLAUDE.md` — convention carve-out
+- `src/app/v2/(hub)/customers/[customerId]/_programme-tab.tsx` — stale comment fix
+
+### Deviations From Plan
+- Renamed `V2_ROUTES.ONBOARDING_IMPORT` → `PROGRAMME_IMPORT` and updated its call sites, even
+  though the task doc's grep note only confirmed `ONBOARDING`/`ONBOARDING_NEW` usage sites. The
+  `import/` route lives under the same directory being moved, so leaving `ONBOARDING_IMPORT`
+  pointed at the old `/v2/onboarding/import` path would have 404'd it post-rename — required for
+  the directory move itself to work, not a scope expansion.
+- Fixed the same UUID-mislabeled-as-`project_id` bug in `POST /api/onboarding/projects`'s
+  response (not just the `GET` route the task named) — see What Changed. Left unfixed, the
+  "New Project" success screen's View button would 404 against the now-`project_id`-keyed
+  detail route.
+- Fixed `[projectId]/page.tsx`'s `phase_members`/`project_members` queries to filter by
+  `project.id` instead of the raw route `projectId` param — required once the route param
+  stopped being the UUID those child tables are actually keyed by; not called out in the task's
+  Code Context, which only showed the top-level `projects` query changing.
+- Extracted `_load-detail-data.ts` as the shared fetch-and-guard helper the task's Implementation
+  Steps suggested considering (step 8) — applied rather than duplicating the query/guard in the
+  new wizard-step route.
+- Chose a ref-gated `useEffect` inside the wizard (keyed on `stepIdx`) to sync the step URL,
+  rather than editing each of the 6 internal `setStepIdx` call sites individually — same
+  observable behavior, smaller diff, and guarantees the URL and rendered step can't drift no
+  matter which internal control changed `stepIdx`.
+
+### Verification Run
+- `npx tsc --noEmit` - PASS (after clearing a stale `.next/types` cache from before the
+  directory rename, which otherwise reported unrelated `Cannot find module '.../onboarding/...'`
+  errors against the old path)
+- `pnpm lint` - FAIL (pre-existing, unrelated to this task: `_onboarding-wizard.tsx:591`,
+  `react-hooks/set-state-in-effect` on a `useEffect` that clears `checklistValidationError` on
+  step change — this code was not touched by this task and the violation predates it)
+
+## Implementation Notes — Follow-Up Revision (post-Testing)
+
+User feedback while task 150 was already in Testing asked for a different URL shape than what
+was originally implemented: the route segment/label moves from `programme` to
+`portfolio-tracker`, and the nested `/wizard/[stepKey]` route is replaced with `?phase=&
+deliverable=` query params (1-based deliverable index, not the string key) so future deliverable
+insertions/reorders in `customer-phases.ts` don't require another URL change. Also requested:
+breadcrumb header text and the detail page's back-link label.
+
+### What Changed
+- Directory `src/app/v2/(hub)/programme/` → `src/app/v2/(hub)/portfolio-tracker/`. The nested
+  `[projectId]/wizard/[stepKey]/` route added earlier this task is deleted — the single
+  `[projectId]/page.tsx` now handles both the closed-timeline and open-wizard-on-a-step cases via
+  `searchParams`.
+- `V2_ROUTES.PROGRAMME`/`PROGRAMME_NEW`/`PROGRAMME_IMPORT` renamed to `PORTFOLIO_TRACKER`/
+  `PORTFOLIO_TRACKER_NEW`/`PORTFOLIO_TRACKER_IMPORT`, values `/v2/portfolio-tracker*`. Every call
+  site updated (sidebar, list/new/import pages, detail page, wizard).
+- New `[projectId]/_wizard-step-params.ts`: `stepKeyToWizardParams(stepKey)` /
+  `wizardParamsToStepKey(phase, deliverable)` / `FIRST_WIZARD_STEP_PARAMS`, converting between
+  the wizard's internal deliverable *key* (e.g. `"outcome-target"`) and a `{ phase, deliverable }`
+  pair where `deliverable` is the 1-based index into `getPhaseByNumber(phase).deliverables`. The
+  Wizard only covers Phase 1 today, so `phase` is currently always `1`, but the param is real
+  (not hardcoded past this one module) so a future multi-phase wizard doesn't need another URL
+  redesign. `wizardParamsToStepKey` validates `phase` against the one supported phase number
+  before calling `getPhaseByNumber` — that function throws on an unknown phase number, and `phase`
+  here comes from an untrusted URL query string.
+- `[projectId]/page.tsx`: reads `searchParams: { phase?, deliverable? }`, resolves them to
+  `initialWizardStepKey` via `wizardParamsToStepKey`, passed to `OnboardingDetail` exactly as the
+  now-deleted `wizard/[stepKey]/page.tsx` did.
+- `_onboarding-detail.tsx`: every wizard open/close call site (`handleOpenWizardStep`, the
+  "Onboarding Wizard" open button, the Wizard's own `onBack`, and the Phase-1-restricted screen's
+  "Back to Timeline" button) now pushes `?phase=&deliverable=` (open) or the plain project URL
+  (close) instead of a `/wizard/{key}` path segment. Back-link label "Back to Onboarding" →
+  "Back to Projects" (same destination, `V2_ROUTES.PORTFOLIO_TRACKER` — only the label changed;
+  no explicit new destination was given, and re-pointing it to the separate Projects module
+  wasn't requested).
+- `_onboarding-wizard.tsx`: the `stepIdx`-watching URL-sync effect (added earlier this task) now
+  builds `?phase=&deliverable=` via `stepKeyToWizardParams` instead of a `/wizard/{key}` path —
+  same ref-gated, mount-skipping design as before, just a different URL shape.
+- `v2-hub-header.tsx`: added a `BREADCRUMB_MAP` entry for `V2_ROUTES.PORTFOLIO_TRACKER` →
+  `{ section: "Work", page: "Portfolio Tracker" }`. Before this, the route matched no prefix and
+  fell through to the header's default `{ section: "WebriQ", page: "Hub" }` — this is what the
+  screenshot showed. The map is prefix-matched (`pathname.startsWith(prefix + "/")`), so detail
+  pages inherit the same "Work / Portfolio Tracker" breadcrumb automatically.
+- `CLAUDE.md`: updated the task 150 carve-out to the new `/v2/portfolio-tracker/[projectId]` path
+  (dropped the now-nonexistent `/wizard/[stepKey]` mention, noted the query-param step addressing
+  instead).
+- Fixed two more stale `/v2/programme` mentions surfaced by a repo-wide grep after the rename:
+  a comment in `customers/[customerId]/_programme-tab.tsx` and one in
+  `api/onboarding/projects/route.ts`.
+
+### Files Changed
+- `src/config/constants.ts` — route constant rename
+- `src/app/v2/(hub)/programme/` → `src/app/v2/(hub)/portfolio-tracker/` — directory rename;
+  `[projectId]/wizard/[stepKey]/` subtree deleted
+- `src/app/v2/(hub)/portfolio-tracker/[projectId]/_wizard-step-params.ts` — new shared helper
+- `src/app/v2/(hub)/portfolio-tracker/[projectId]/page.tsx` — searchParams-driven wizard state
+- `src/app/v2/(hub)/portfolio-tracker/[projectId]/_onboarding-detail.tsx` — query-param push
+  URLs, back-link label
+- `src/app/v2/(hub)/portfolio-tracker/[projectId]/_onboarding-wizard.tsx` — query-param push URL
+- `src/app/v2/(hub)/portfolio-tracker/_onboarding-list.tsx`, `new/*`, `import/*` — route constant
+  rename call sites
+- `src/app/v2/(hub)/_components/v2-hub-sidebar.tsx` — route constant rename
+- `src/app/v2/(hub)/_components/v2-hub-header.tsx` — breadcrumb map entry
+- `CLAUDE.md` — carve-out path update
+- `src/app/v2/(hub)/customers/[customerId]/_programme-tab.tsx`,
+  `src/app/api/onboarding/projects/route.ts` — stale comment fixes
+
+### Deviations From Plan
+- Implemented the new top-level path as `/v2/portfolio-tracker/[projectId]` rather than a literal
+  root-level `/portfolio-tracker/[projectId]` as the request's example URLs showed. Everything in
+  this app's v2 build (sidebar, header/breadcrumb, auth guard) lives under `/v2/*`; a true
+  root-level route would sit outside that shell and need its own duplicated layout/auth-guard.
+  Flagged to the user for confirmation rather than assumed silently.
+- Left the list page's `<h1>🚀 Onboarding</h1>` heading and subtitle text unchanged — the request's
+  screenshot showed them, but the explicit ask was only the breadcrumb and the back-link label.
+  Flagged to the user in case that heading should change too.
+
+### Verification Run
+- `npx tsc --noEmit` - PASS (after clearing `.next/types` again post-rename)
+- `pnpm lint` - FAIL (same pre-existing, unrelated `_onboarding-wizard.tsx` line — see above;
+  line number shifted slightly with this revision's edits but it's the same violation)
+
+### Follow-up: list page heading
+User confirmed the flagged item — `_onboarding-list.tsx`'s `<h1>🚀 Onboarding</h1>` now reads
+"🚀 Portfolio Tracker". The unrelated fallback string `"Onboarding"` used inside `ProjectCard` for
+a project with no `current_phase_name` yet (line ~116) was left as-is — different string, not the
+page heading. `npx tsc --noEmit` - PASS.

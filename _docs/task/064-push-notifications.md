@@ -172,3 +172,35 @@ Pass — `adminClient` used for the subscription write (authenticated user but w
 - `NEXT_PUBLIC_VAPID_PUBLIC_KEY` must be the same value as `VAPID_PUBLIC_KEY` — one is exposed to the browser for `PushManager.subscribe()`, the other stays server-side for signing.
 - Do NOT import `web-push` in any Client Component — it's a Node.js-only module. Keep it in `src/lib/push/index.ts` which is server-only.
 - The `push_subscriptions` table uses `profile_id` (from `profiles` table), which is the same as `auth.users.id`. Fetch it from `user.id` after the auth guard.
+
+---
+
+## Post-Testing Fix — VAPID Subject Crash (found during task 163/164 testing)
+
+### What Broke
+`sendPushNotification()` had zero callers from this task's completion until task 163 wired it in. The first time any route actually imported `src/lib/push/index.ts` at request time in local dev, it crashed at **module evaluation** (not inside a function — top-level code), taking down the entire importing module graph. Reported error:
+```
+Error: Vapid subject is not an https: or mailto: URL. http://localhost:3000
+  at module evaluation (src/lib/push/index.ts:9:11)
+```
+
+### Root Cause
+`webpush.setVapidDetails(subject, publicKey, privateKey)` validates `subject` and throws synchronously if it isn't an `https:` or `mailto:` URL. This module passed `process.env.NEXT_PUBLIC_APP_URL` as the subject — which is `http://localhost:3000` in any standard local dev setup. The VAPID subject is a contact point for the push service to reach the app operator, not "the app's own URL" — using the app URL was a category error from day one, just never exercised because nothing called this module until task 163.
+
+Confirmed empirically (isolated `web-push` test, not the actual app):
+```
+webpush.setVapidDetails('http://localhost:3000', ...) → throws "Vapid subject is not an https: or mailto: URL."
+webpush.setVapidDetails('mailto:noreply@webriq.com', ...) → no error
+```
+
+### Fix
+Decoupled the VAPID subject from `NEXT_PUBLIC_APP_URL` entirely. Now built as `mailto:${process.env.MAIL_FROM ?? "noreply@webriq.com"}` — a `mailto:` URL is valid in every environment (dev, staging, prod) regardless of whether the app is served over https, so this can never hit the same failure mode again. Reused the existing `MAIL_FROM` env var + fallback pattern already established in `src/lib/email/mailer.ts`, rather than introducing a new env var.
+
+### Files Changed
+- `src/lib/push/index.ts` - VAPID subject now `mailto:${MAIL_FROM ?? "noreply@webriq.com"}` instead of `NEXT_PUBLIC_APP_URL`; presence guard no longer checks `NEXT_PUBLIC_APP_URL`
+
+### Verification Run
+- `npx tsc --noEmit` - PASS
+- `pnpm lint` - PASS (2 pre-existing, unrelated errors remain elsewhere, confirmed present before this change too)
+- Isolated `web-push` reproduction — confirmed the exact reported scenario (`NEXT_PUBLIC_APP_URL=http://localhost:3000`, `MAIL_FROM` unset) no longer throws with the fixed subject logic - PASS
+- Full dev-server re-run of the originally failing request - SKIPPED (requires the user's local `.env.local` with real VAPID keys; recommended as final confirmation)

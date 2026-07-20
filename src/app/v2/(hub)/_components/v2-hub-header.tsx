@@ -2,8 +2,9 @@
 
 import { useState, useRef } from "react";
 import { usePathname } from "next/navigation";
-import { Bell, HelpCircle, Sparkles } from "lucide-react";
+import { HelpCircle, Sparkles } from "lucide-react";
 import { V2_ROUTES } from "@/config/constants";
+import NotificationBell from "./notification-bell";
 
 // Breadcrumb map — path prefix → label hierarchy
 const BREADCRUMB_MAP: Record<string, { section: string; page: string }> = {
@@ -15,6 +16,7 @@ const BREADCRUMB_MAP: Record<string, { section: string; page: string }> = {
   [V2_ROUTES.DASHBOARD_CHAT]:      { section: "Work",      page: "AI Chat" },
   [V2_ROUTES.ORCHESTRATION]:       { section: "Work",      page: "Orchestration" },
   [V2_ROUTES.DASHBOARD_TIMELOGS]:  { section: "Work",      page: "Time Logs" },
+  [V2_ROUTES.PORTFOLIO_TRACKER]:   { section: "Work",      page: "Portfolio Tracker" },
   [V2_ROUTES.DASHBOARD_SETTINGS]:  { section: "Admin",     page: "Settings" },
   [V2_ROUTES.DASHBOARD_USERS]:     { section: "Admin",     page: "Users" },
   [V2_ROUTES.KB]:                  { section: "Knowledge", page: "Wiki" },
@@ -114,7 +116,7 @@ export default function V2HubHeader({ chatOpen, onOpenChat, onOpenWithMessage }:
       {/* Right controls */}
       <div className="flex items-center gap-3 flex-1 justify-end">
         {/* Presence avatars */}
-        <div className="flex items-center">
+        {/* <div className="flex items-center">
           {PRESENCE.map((av, i) => (
             <div
               key={i}
@@ -131,16 +133,13 @@ export default function V2HubHeader({ chatOpen, onOpenChat, onOpenWithMessage }:
           >
             +5
           </div>
-        </div>
+        </div> */}
 
         {/* Notification bell */}
-        <button className="relative p-1.5 rounded-lg text-slate-500 hover:bg-slate-50 transition-colors cursor-pointer">
-          <Bell size={18} />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 border-2 border-white" />
-        </button>
+        <NotificationBell />
 
         {/* Help */}
-        <button className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-50 transition-colors cursor-pointer">
+        <button aria-label="Help" className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-50 transition-colors cursor-pointer">
           <HelpCircle size={18} />
         </button>
 

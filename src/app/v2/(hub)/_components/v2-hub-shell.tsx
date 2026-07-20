@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from "react";
 import V2HubSidebar from "./v2-hub-sidebar";
 import V2HubHeader from "./v2-hub-header";
 import OpsChat from "./ops-chat";
+import PushPermissionPrompt from "@/components/hub/push-permission-prompt";
 
 interface V2HubShellProps {
   userRole: string | null;
@@ -37,6 +38,7 @@ export default function V2HubShell({ userRole, displayName, children }: V2HubShe
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50">
+      <PushPermissionPrompt />
       {/* Sidebar */}
       <V2HubSidebar userRole={userRole} displayName={displayName} />
 

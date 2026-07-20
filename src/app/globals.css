@@ -214,6 +214,16 @@
 ::-webkit-scrollbar-thumb { background: oklch(1 0 0 / 12%); border-radius: 99px; }
 ::-webkit-scrollbar-thumb:hover { background: oklch(1 0 0 / 20%); }
 
+/* The default thumb above is a translucent WHITE tuned for the Hub's dark surfaces — invisible
+   (white-on-white) on genuinely light/white content, e.g. the CSV/file preview modal. Opt into
+   this class on any such surface so its scrollbar is actually visible when content overflows.
+   Written as plain CSS (not Tailwind's [&::-webkit-scrollbar-thumb]:bg-* arbitrary-variant
+   syntax) because Tailwind v4 doesn't generate output for that selector — confirmed empty in the
+   compiled stylesheet; only raw CSS reaches ::-webkit-scrollbar-* pseudo-elements. */
+.scrollbar-light::-webkit-scrollbar-track { background: #f1f5f9; }
+.scrollbar-light::-webkit-scrollbar-thumb { background: #cbd5e1; }
+.scrollbar-light::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
 /* ─── PM Dashboard theme tokens ─────────────────────────────────────────── */
 /* Applied as a class on each pm-tab root div; children reference var(--c-xxx) */
 .pm-light {

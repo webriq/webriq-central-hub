@@ -461,10 +461,14 @@ export async function updateZohoTaskStatus(
   return true;
 }
 
+const CLIQ_NOTIFICATIONS_ENABLED = false;
+
 export async function sendCliqNotification(
   message: string,
   channel: "pm" | "dev" = "pm"
 ): Promise<void> {
+  if (!CLIQ_NOTIFICATIONS_ENABLED) return;
+
   const webhookUrl =
     channel === "dev"
       ? process.env.ZOHO_CLIQ_DEV_WEBHOOK_URL

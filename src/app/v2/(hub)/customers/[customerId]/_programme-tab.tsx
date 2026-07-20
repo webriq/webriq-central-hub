@@ -24,7 +24,7 @@ type ProgrammeState = { phases: CustomerPhaseRow[]; deliverables: CustomerDelive
 
 // Read-only history view — only ever shows a project once it's been handed over
 // (onboarding_visible_at set). Phase-1 editing (Start/Jump-to-phase/wizard) now lives
-// exclusively in the gated /v2/onboarding module; this tab never writes anything.
+// exclusively in the gated /v2/portfolio-tracker module (task 150); this tab never writes anything.
 export default function ProgrammeTab({ customerId, isDark }: ProgrammeTabProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

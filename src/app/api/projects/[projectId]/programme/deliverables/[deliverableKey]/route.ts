@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getDeliverable } from "@/config/customer-phases";
+import { notifyProjectMembers } from "@/lib/notifications";
 
 const WRITE_ROLES = ["admin", "super_admin", "marketing"];
 const STATUSES = ["pending", "in_progress", "done"];
@@ -14,7 +15,7 @@ export async function PATCH(
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+    const { data: profile } = await supabase.from("profiles").select("role, full_name").eq("id", user.id).maybeSingle();
     if (!profile?.role || !WRITE_ROLES.includes(profile.role)) {
       return NextResponse.json({ error: "Not permitted to update programme deliverables" }, { status: 403 });
     }
@@ -31,9 +32,18 @@ export async function PATCH(
     }
 
     const { projectId, deliverableKey } = await params;
-    if (!getDeliverable(phaseNumber, deliverableKey)) {
+    const deliverableConfig = getDeliverable(phaseNumber, deliverableKey);
+    if (!deliverableConfig) {
       return NextResponse.json({ error: "Unknown deliverable for that phase" }, { status: 400 });
     }
+
+    const { data: previous } = await supabase
+      .from("customer_deliverables")
+      .select("status")
+      .eq("project_id", projectId)
+      .eq("phase_number", phaseNumber)
+      .eq("deliverable_key", deliverableKey)
+      .maybeSingle();
 
     const { data, error } = await supabase
       .from("customer_deliverables")
@@ -47,6 +57,20 @@ export async function PATCH(
     if (error) {
       console.error("PATCH /api/projects/[projectId]/programme/deliverables/[deliverableKey] error:", error);
       return NextResponse.json({ error: "Failed to update deliverable" }, { status: 500 });
+    }
+
+    // Notify only on the transition into "done" — not on every touch of an already-done
+    // deliverable, and not on the "in_progress" transition (not requested).
+    if (status === "done" && previous?.status !== "done") {
+      const { data: project } = await supabase.from("projects").select("project_id, name").eq("id", projectId).maybeSingle();
+      const actorName = profile.full_name ?? "Someone";
+      await notifyProjectMembers(projectId, {
+        type: "deliverable_complete",
+        title: "Deliverable complete",
+        body: `${actorName} marked "${deliverableConfig.name}" done — Phase ${phaseNumber}${project?.name ? ` · ${project.name}` : ""}.`,
+        url: project?.project_id ? `/v2/portfolio-tracker/${project.project_id}` : undefined,
+        actorId: user.id,
+      });
     }
 
     return NextResponse.json(data);

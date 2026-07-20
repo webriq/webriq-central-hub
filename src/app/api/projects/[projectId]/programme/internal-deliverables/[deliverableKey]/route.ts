@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getInternalDeliverable, internalDeliverablesForSubPhase } from "@/config/customer-phases";
+import { getInternalDeliverable, internalDeliverablesForSubPhase, getDeliverable } from "@/config/customer-phases";
+import { notifyProjectMembers } from "@/lib/notifications";
 
 const WRITE_ROLES = ["admin", "super_admin", "marketing"];
 const STATUSES = ["pending", "in_progress", "done"];
@@ -15,7 +16,7 @@ export async function PATCH(
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+    const { data: profile } = await supabase.from("profiles").select("role, full_name").eq("id", user.id).maybeSingle();
     if (!profile?.role || !WRITE_ROLES.includes(profile.role)) {
       return NextResponse.json({ error: "Not permitted to update internal deliverables" }, { status: 403 });
     }
@@ -84,6 +85,22 @@ export async function PATCH(
         console.error("PATCH .../internal-deliverables/[deliverableKey] auto-status error:", deliverableError);
       } else {
         updatedDeliverable = newDeliverable;
+
+        // Notify only on the transition into "done" — mirrors the external deliverables route.
+        // The internal checklist itself stays Bert-only; this fires on the parent deliverable
+        // it derives (e.g. "kickoff"), which PM/dev already see, so it's safe to surface.
+        if (computedStatus === "done") {
+          const deliverableConfig = getDeliverable(1, internalConfig.subPhaseKey);
+          const { data: project } = await supabase.from("projects").select("project_id, name").eq("id", projectId).maybeSingle();
+          const actorName = profile.full_name ?? "Someone";
+          await notifyProjectMembers(projectId, {
+            type: "deliverable_complete",
+            title: "Deliverable complete",
+            body: `${actorName} marked "${deliverableConfig?.name ?? internalConfig.subPhaseKey}" done — Phase 1${project?.name ? ` · ${project.name}` : ""}.`,
+            url: project?.project_id ? `/v2/portfolio-tracker/${project.project_id}` : undefined,
+            actorId: user.id,
+          });
+        }
       }
     }
 

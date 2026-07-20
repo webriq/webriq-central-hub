@@ -104,9 +104,9 @@ function DecisionCard({ plans, loading }: { plans: PendingPlan[]; loading: boole
         plans.map((plan, idx) => (
           <div
             key={plan.id}
-            className="flex items-start gap-4 px-5 py-4 border-b border-slate-50 last:border-0 hover:bg-slate-50 transition-colors cursor-pointer"
+            className="flex items-start gap-4 px-5 py-4 border-b border-slate-50 last:border-0 hover:bg-slate-50 transition-colors"
           >
-            <div className="flex-1 min-w-0">
+            <Link href={V2_ROUTES.ORCHESTRATION} className="flex-1 min-w-0 block">
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-[10px] font-mono text-slate-400">{planLabel(idx)}</span>
                 <span className="text-[11px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500">{plan.customer_id}</span>
@@ -115,7 +115,7 @@ function DecisionCard({ plans, loading }: { plans: PendingPlan[]; loading: boole
                 Plan for {plan.customer_id}
               </div>
               <ConfidenceBar pct={plan.confidence_score != null ? plan.confidence_score * 100 : 0} />
-            </div>
+            </Link>
             <div className="flex items-center gap-2 shrink-0 mt-1">
               <AIChip />
               <Link
@@ -169,25 +169,27 @@ function TasksTable({ tasks, loading }: { tasks: ClassRecord[]; loading: boolean
         priorityTasks.map((task, idx) => (
           <div
             key={task.id}
-            className="grid items-center border-b border-slate-50 last:border-0 hover:bg-slate-50/60 transition-colors cursor-pointer"
+            className="grid items-center border-b border-slate-50 last:border-0 hover:bg-slate-50/60 transition-colors"
             style={{ gridTemplateColumns: "28px 1fr 110px 52px 90px 100px" }}
           >
             {/* Checkbox */}
             <div className="px-2 py-2.5 flex items-center justify-center">
               <button
                 onClick={e => { e.stopPropagation(); setChecked(c => ({ ...c, [task.id]: !c[task.id] })); }}
+                aria-label={checked[task.id] ? "Deselect task" : "Select task"}
+                aria-pressed={!!checked[task.id]}
                 className="text-slate-300 hover:text-blue-500 transition-colors cursor-pointer"
               >
                 {checked[task.id] ? <CheckSquare size={14} className="text-blue-500" /> : <Square size={14} />}
               </button>
             </div>
             {/* Task */}
-            <div className="px-3 py-2.5 flex flex-col gap-0.5 min-w-0">
+            <Link href={V2_ROUTES.DASHBOARD_TASKS} className="px-3 py-2.5 flex flex-col gap-0.5 min-w-0">
               <span className="text-[10px] font-mono text-blue-600 leading-none">
                 {task.customer_id.slice(-8).toUpperCase()}
               </span>
               <span className="text-[12px] text-slate-800 truncate">{task.title}</span>
-            </div>
+            </Link>
             {/* Customer */}
             <div className="px-3 py-2.5">
               <span className="text-[11px] text-slate-500 truncate block">{task.customer_id.split("-").slice(-1)[0]}</span>
@@ -262,16 +264,17 @@ function DeskPulse({ statusCounts, slaItems, loading }: {
             <span className="text-[11px] font-semibold text-red-600">SLA breaching</span>
           </div>
           {slaItems.slice(0, 3).map(item => (
-            <div
+            <Link
               key={item.id}
-              className="flex items-center justify-between px-5 py-2 border-t border-red-100/50 hover:bg-red-50 transition-colors cursor-pointer"
+              href={V2_ROUTES.DASHBOARD_TASKS}
+              className="flex items-center justify-between px-5 py-2 border-t border-red-100/50 hover:bg-red-50 transition-colors"
             >
               <div>
                 <div className="text-[10px] font-mono text-red-500">{item.customer_id.slice(-8).toUpperCase()}</div>
                 <div className="text-[11px] text-slate-700">{item.customer_id}</div>
               </div>
               <span className="text-[10px] font-mono text-red-400">{formatRelativeTime(item.created_at)} overdue</span>
-            </div>
+            </Link>
           ))}
         </div>
       )}

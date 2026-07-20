@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-17T00:00:00.000Z",
+  "title": "Design System: WebriQ Central Hub",
+  "extensions": {
+    "colorMeta": {
+      "void-navy": { "role": "neutral", "displayName": "Void Navy", "canonical": "oklch(0.09 0.02 264)", "tonalRamp": ["oklch(0.05 0.015 264)", "oklch(0.09 0.02 264)", "oklch(0.12 0.018 264)", "oklch(0.16 0.018 264)", "oklch(0.32 0.02 264)", "oklch(0.58 0.02 264)", "oklch(0.80 0.01 264)", "oklch(0.97 0.004 264)"] },
+      "console-panel": { "role": "neutral", "displayName": "Console Panel", "canonical": "oklch(0.12 0.018 264)", "tonalRamp": ["oklch(0.09 0.02 264)", "oklch(0.12 0.018 264)", "oklch(0.16 0.018 264)", "oklch(0.22 0.018 264)", "oklch(0.32 0.018 264)", "oklch(0.5 0.02 264)", "oklch(0.75 0.01 264)", "oklch(0.95 0.004 264)"] },
+      "hairline-white": { "role": "neutral", "displayName": "Hairline White", "canonical": "oklch(1 0 0 / 7%)" },
+      "ink": { "role": "neutral", "displayName": "Ink", "canonical": "oklch(0.97 0.004 264)" },
+      "ink-muted": { "role": "neutral", "displayName": "Ink Muted", "canonical": "oklch(0.58 0.02 264)" },
+      "signal-blue": { "role": "primary", "displayName": "Signal Blue", "canonical": "oklch(0.75 0.18 215)", "tonalRamp": ["oklch(0.25 0.09 215)", "oklch(0.35 0.12 215)", "oklch(0.45 0.15 215)", "oklch(0.58 0.17 215)", "oklch(0.68 0.18 215)", "oklch(0.75 0.18 215)", "oklch(0.85 0.12 215)", "oklch(0.94 0.05 215)"] },
+      "deep-cobalt": { "role": "secondary", "displayName": "Deep Cobalt", "canonical": "#3358F4" },
+      "ember-orange": { "role": "tertiary", "displayName": "Ember Orange", "canonical": "#F97316" },
+      "alert-red": { "role": "destructive", "displayName": "Alert Red", "canonical": "oklch(0.65 0.22 25)" },
+      "chart-violet": { "role": "chart", "displayName": "Chart Violet", "canonical": "oklch(0.70 0.20 280)" },
+      "chart-magenta": { "role": "chart", "displayName": "Chart Magenta", "canonical": "oklch(0.72 0.20 300)" },
+      "chart-teal": { "role": "chart", "displayName": "Chart Teal", "canonical": "oklch(0.68 0.18 165)" }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Page-level headings, dashboard section titles." },
+      "headline": { "displayName": "Headline", "purpose": "Card titles, modal headers." },
+      "body": { "displayName": "Body", "purpose": "Default UI copy, descriptions." },
+      "label": { "displayName": "Label", "purpose": "10-11px pill badges and micro-labels for status indicators." },
+      "data": { "displayName": "Data", "purpose": "Timestamps, IDs, counts, code-like content — Geist Mono for instrument-panel precision." }
+    },
+    "shadows": [
+      { "name": "ambient-card", "value": "0 1px 3px rgba(0,0,0,0.05)", "purpose": "The only shadow role in the system — a barely-there lift on light-mode dashboard cards, never a structural depth cue." }
+    ],
+    "motion": [
+      { "name": "state-transition", "value": "all 0.15s ease", "purpose": "Default transition for hover/focus/active state changes on buttons, nav items, and interactive rows." },
+      { "name": "aurora-drift", "value": "22s-34s ease-in-out infinite", "purpose": "Slow ambient background drift animation used on select hero/marketing-adjacent surfaces (e.g. onboarding), not general UI." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Default action button — Signal Blue fill, Void Navy text, used for the primary action in any view.",
+      "html": "<button class=\"ds-btn-primary\">Save changes</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 32px; padding: 0 10px; background: oklch(0.75 0.18 215); color: oklch(0.09 0.02 264); font-family: Sora, ui-sans-serif, system-ui; font-size: 0.875rem; font-weight: 500; border: 1px solid transparent; border-radius: 0.6rem; cursor: pointer; transition: all 0.15s ease; } .ds-btn-primary:hover { background: oklch(0.75 0.18 215 / 80%); } .ds-btn-primary:focus-visible { outline: none; border-color: oklch(0.75 0.18 215); box-shadow: 0 0 0 3px oklch(0.75 0.18 215 / 50%); } .ds-btn-primary:active { transform: translateY(1px); }"
+    },
+    {
+      "name": "Outline Button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Secondary action button — hairline border, transparent fill, one-step tonal hover shift.",
+      "html": "<button class=\"ds-btn-outline\">Cancel</button>",
+      "css": ".ds-btn-outline { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 32px; padding: 0 10px; background: transparent; color: oklch(0.97 0.004 264); font-family: Sora, ui-sans-serif, system-ui; font-size: 0.875rem; font-weight: 500; border: 1px solid oklch(1 0 0 / 15%); border-radius: 0.6rem; cursor: pointer; transition: all 0.15s ease; } .ds-btn-outline:hover { background: oklch(1 0 0 / 6%); } .ds-btn-outline:focus-visible { outline: none; border-color: oklch(0.75 0.18 215); box-shadow: 0 0 0 3px oklch(0.75 0.18 215 / 50%); }"
+    },
+    {
+      "name": "Status Pill",
+      "kind": "chip",
+      "refersTo": "badge-pill",
+      "description": "Small rounded status badge — low-opacity hue tint plus a short text label, never color alone.",
+      "html": "<span class=\"ds-pill\">Pending review</span>",
+      "css": ".ds-pill { display: inline-flex; align-items: center; font-family: Sora, ui-sans-serif, system-ui; font-size: 10px; font-weight: 600; letter-spacing: 0.01em; padding: 2px 8px; border-radius: 9999px; background: oklch(0.75 0.18 90 / 12%); color: oklch(0.75 0.18 90); border: 1px solid oklch(0.75 0.18 90 / 25%); }"
+    },
+    {
+      "name": "Dashboard Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Standard console panel card — flat in dark mode, tonal border, no shadow.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card-title\">Open tasks</div><div class=\"ds-card-body\">14 items need review</div></div>",
+      "css": ".ds-card { background: oklch(0.12 0.018 264); border: 1px solid oklch(1 0 0 / 6%); border-radius: 1.05rem; padding: 16px; } .ds-card-title { font-family: Sora, ui-sans-serif, system-ui; font-size: 1.125rem; font-weight: 600; color: oklch(0.97 0.004 264); margin-bottom: 8px; } .ds-card-body { font-family: Sora, ui-sans-serif, system-ui; font-size: 0.875rem; color: oklch(0.58 0.02 264); }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input-field",
+      "description": "Standard text field — hairline border, translucent fill, matches button focus ring treatment.",
+      "html": "<input class=\"ds-input\" type=\"text\" placeholder=\"Search tasks…\" />",
+      "css": ".ds-input { width: 100%; height: 32px; padding: 0 10px; background: oklch(1 0 0 / 4%); color: oklch(0.97 0.004 264); font-family: Sora, ui-sans-serif, system-ui; font-size: 0.875rem; border: 1px solid oklch(1 0 0 / 10%); border-radius: 0.6rem; } .ds-input::placeholder { color: oklch(0.58 0.02 264); } .ds-input:focus-visible { outline: none; border-color: oklch(0.75 0.18 215); box-shadow: 0 0 0 3px oklch(0.75 0.18 215 / 50%); }"
+    },
+    {
+      "name": "Data Value",
+      "kind": "custom",
+      "refersTo": "data-label",
+      "description": "Monospace data label for counts, timestamps, and IDs — the 'instrument panel' precision cue.",
+      "html": "<span class=\"ds-data\">WRQ-CUST-4821 &middot; 2h ago</span>",
+      "css": ".ds-data { font-family: 'Geist Mono', ui-monospace, monospace; font-size: 0.75rem; font-weight: 500; color: oklch(0.58 0.02 264); letter-spacing: 0; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Night Ops Console",
+    "overview": "The Hub is a dark-first mission-control surface, not a bright SaaS dashboard. The default view is a deep navy void with a single glowing accent, Signal Blue, doing almost all of the attention-directing work. Everything else sits in muted navy tones so that when something needs a decision, it's the only thing that reads as \"on.\" This is deliberate: the Hub sits above Zoho, Sanity, GitHub, and Supabase and exists to shorten the human decision loop, not to compete for visual attention with the systems of record underneath it. Light mode exists but the console is dark-first by convention. Depth comes from tonal layering, never heavy drop shadows or glassmorphism. This system explicitly rejects generic SaaS dashboard clichés in favor of something that reads as built specifically for how PMs and developers actually triage work here.",
+    "keyCharacteristics": [
+      "Dark-first navy void with one glowing accent color, not a rainbow of equally-loud UI colors.",
+      "Flat, tonal depth — hairline borders and near-invisible shadows, no glassmorphism, no heavy elevation.",
+      "Precise, mono-tinged data (Geist Mono) paired with a warm geometric sans (Sora) for everything else.",
+      "Small, quiet pill badges (10-11px, rounded-full) carry status, not color-blocked banners.",
+      "Every themed surface pairs an explicit light/dark class via an isDark boolean prop — no dark: Tailwind variant."
+    ],
+    "rules": [
+      { "name": "The One Glow Rule", "body": "Signal Blue (or Deep Cobalt in light contexts) is the only color allowed to read as \"lit up\" on a screen. Status pills borrow hue at low opacity, but none of them compete with the primary accent for visual weight.", "section": "colors" },
+      { "name": "The No-Shout Rule", "body": "Nothing in the console uses uppercase-tracked eyebrow labels or oversized hero numbers to perform importance. Hierarchy comes from weight and size steps in the type scale, not decoration.", "section": "typography" },
+      { "name": "The Flat-By-Default Rule", "body": "Surfaces are flat at rest. If a shadow is being reached for to fix a hierarchy problem, that's a signal to fix spacing, border, or tonal contrast first — not add elevation.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do keep Signal Blue (dark) / Deep Cobalt (light) as the only \"glowing\" color on any given screen.",
+      "Do use the isDark boolean prop with paired explicit light/dark Tailwind classes for any new themed v2 component.",
+      "Do use Geist Mono for numbers, IDs, and timestamps; use Sora for everything else.",
+      "Do communicate status with hue + short text label together, never color alone.",
+      "Do keep shadows near-invisible — depth comes from tonal layering and hairline borders, not elevation."
+    ],
+    "donts": [
+      "Don't ship generic SaaS dashboard clichés — no gradient hero-metric cards, no cookie-cutter icon-in-a-box grids.",
+      "Don't use border-left/border-right accent stripes on cards or list items as a status indicator.",
+      "Don't use gradient text for emphasis.",
+      "Don't introduce glassmorphism or backdrop-blur as decoration.",
+      "Don't use uppercase-tracked eyebrow labels above sections as default scaffolding.",
+      "Don't reach for a shadow to fix a hierarchy problem — fix spacing, border, or tonal contrast first."
+    ]
+  }
+}

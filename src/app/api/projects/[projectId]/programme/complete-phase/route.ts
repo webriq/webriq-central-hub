@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { sendCliqNotification } from "@/lib/zoho";
+import { notifyProjectMembers } from "@/lib/notifications";
 import { getPhaseByNumber } from "@/config/customer-phases";
 
 const WRITE_ROLES = ["admin", "super_admin", "marketing"];
@@ -19,10 +20,11 @@ export async function POST(
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+    const { data: profile } = await supabase.from("profiles").select("role, full_name").eq("id", user.id).maybeSingle();
     if (!profile?.role || !WRITE_ROLES.includes(profile.role)) {
       return NextResponse.json({ error: "Not permitted to complete a programme phase" }, { status: 403 });
     }
+    const actorName = profile.full_name ?? "Someone";
 
     const body = await request.json();
     const phaseNumber = Number(body?.phase_number);
@@ -34,7 +36,7 @@ export async function POST(
 
     const { data: project, error: projectError } = await supabase
       .from("projects")
-      .select("id, customer_id, customers(company_name)")
+      .select("id, project_id, name, customer_id, customers(company_name)")
       .eq("id", projectId)
       .single();
     if (projectError || !project) {
@@ -130,12 +132,25 @@ export async function POST(
         return NextResponse.json({ error: "Failed to advance to next phase" }, { status: 500 });
       }
       const nextPhase = getPhaseByNumber(nextPhaseNumber);
-      await sendCliqNotification(
-        `${companyName}: Phase ${phaseNumber} (${currentPhase.name}) complete — handed over to Phase ${nextPhaseNumber}: ${nextPhase.name} (owner: ${nextPhase.owner}).`,
-        "pm"
-      );
+      const handoffMessage = `${companyName}: Phase ${phaseNumber} (${currentPhase.name}) complete — handed over to Phase ${nextPhaseNumber}: ${nextPhase.name} (owner: ${nextPhase.owner}).`;
+      await sendCliqNotification(handoffMessage, "pm");
+      await notifyProjectMembers(projectId, {
+        type: "programme_phase_complete",
+        title: "Programme phase complete",
+        body: `${actorName} completed Phase ${phaseNumber} (${currentPhase.name}) — handed over to ${nextPhase.name}${project.name ? ` · ${project.name}` : ""}.`,
+        url: project.project_id ? `/v2/portfolio-tracker/${project.project_id}` : undefined,
+        actorId: user.id,
+      });
     } else {
-      await sendCliqNotification(`${companyName}: 120-Day Programme complete — all 5 phases delivered.`, "pm");
+      const completeMessage = `${companyName}: 120-Day Programme complete — all 5 phases delivered.`;
+      await sendCliqNotification(completeMessage, "pm");
+      await notifyProjectMembers(projectId, {
+        type: "programme_complete",
+        title: "120-Day Programme complete",
+        body: `${actorName} completed the final phase — all 5 phases delivered${project.name ? ` · ${project.name}` : ""}.`,
+        url: project.project_id ? `/v2/portfolio-tracker/${project.project_id}` : undefined,
+        actorId: user.id,
+      });
     }
 
     const { data: phases } = await supabase.from("customer_phases").select("*").eq("project_id", projectId).order("phase_number");

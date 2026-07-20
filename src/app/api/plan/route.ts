@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { generatePlan } from "@/lib/ai/plan";
 import { syncTaskToZoho } from "@/lib/zoho";
+import { createNotification } from "@/lib/notifications";
 
 const PostSchema = z.object({
   classificationId: z.string().uuid(),
@@ -16,6 +17,23 @@ const PatchSchema = z.object({
   action: z.enum(["approve", "reject"]),
   rejectionReason: z.string().optional(),
 });
+
+// In-app + push notification to whoever reviewed/classified this ticket — non-blocking.
+async function notifyReviewer(classificationId: string, type: string, title: string, body: (recordTitle: string) => string, actorId: string): Promise<void> {
+  const { data: classRecord } = await adminClient
+    .from("classification_records")
+    .select("title, reviewed_by")
+    .eq("id", classificationId)
+    .maybeSingle();
+  if (classRecord?.reviewed_by) {
+    await createNotification(classRecord.reviewed_by, { type, title, body: body(classRecord.title), actorId });
+  }
+}
+
+async function getActorName(userId: string): Promise<string> {
+  const { data: actorProfile } = await adminClient.from("profiles").select("full_name").eq("id", userId).maybeSingle();
+  return actorProfile?.full_name ?? "Someone";
+}
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -99,6 +117,9 @@ export async function PATCH(req: NextRequest) {
       .update({ status: "approved" })
       .eq("id", classificationId);
 
+    const approverName = await getActorName(user.id);
+    await notifyReviewer(classificationId, "plan_approved", "Plan approved", (recordTitle) => `${approverName} approved the implementation plan for "${recordTitle}".`, user.id);
+
     // Push to Zoho — non-blocking; failure does not fail the approve.
     // If the plan already has a zoho_task_id (retry scenario), skip creation.
     const planRecord = plan as { id: string; assessment_id: string; customer_id: string; zoho_task_id: string | null };
@@ -161,6 +182,14 @@ export async function PATCH(req: NextRequest) {
         ? adminClient.from("classification_records").update({ status: "pending" }).eq("id", classificationId)
         : Promise.resolve(),
     ]);
+
+    const rejecterName = await getActorName(user.id);
+    await notifyReviewer(classificationId, "plan_rejected", "Plan rejected", (recordTitle) =>
+      rejectionReason
+        ? `${rejecterName} rejected the plan for "${recordTitle}": ${rejectionReason}`
+        : `${rejecterName} rejected the implementation plan for "${recordTitle}".`,
+      user.id
+    );
   }
 
   return NextResponse.json({ ok: true, zohoTaskId });

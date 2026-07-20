@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { sendCliqNotification } from "@/lib/zoho";
+import { notifyProjectMembers } from "@/lib/notifications";
 import { PROGRAMME_PHASES, getCurrentProgrammeDay } from "@/config/customer-phases";
 
 const PAGE = 1000; // Supabase/PostgREST default response cap — see CLAUDE.md's pagination convention.
@@ -22,10 +23,24 @@ async function fetchAllPaginated<T>(
   return all;
 }
 
-async function notifyOnce(projectId: string, customerId: string, key: string, message: string, channel: "pm" | "dev" = "pm"): Promise<boolean> {
+async function notifyOnce(
+  projectId: string,
+  customerId: string,
+  key: string,
+  message: string,
+  channel: "pm" | "dev" = "pm",
+  publicProjectId?: string,
+  projectName?: string
+): Promise<boolean> {
   const { error } = await adminClient.from("programme_notifications").insert({ project_id: projectId, customer_id: customerId, notification_key: key });
   if (error) return false; // unique violation (already sent) or a real DB error — either way, don't send
   await sendCliqNotification(message, channel);
+  await notifyProjectMembers(projectId, {
+    type: `programme_reminder_${key}`,
+    title: "Programme update",
+    body: projectName ? `${message} · ${projectName}` : message,
+    url: publicProjectId ? `/v2/portfolio-tracker/${publicProjectId}` : undefined,
+  });
   return true;
 }
 
@@ -43,11 +58,11 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const projects = await fetchAllPaginated<{ id: string; customer_id: string; programme_started_at: string; customers: { company_name: string } | null }>(
+    const projects = await fetchAllPaginated<{ id: string; project_id: string | null; name: string | null; customer_id: string; programme_started_at: string; customers: { company_name: string } | null }>(
       async (from, to) =>
         adminClient
           .from("projects")
-          .select("id, customer_id, programme_started_at, customers(company_name)")
+          .select("id, project_id, name, customer_id, programme_started_at, customers(company_name)")
           .not("programme_started_at", "is", null)
           .range(from, to)
     );
@@ -102,30 +117,30 @@ export async function POST(req: NextRequest) {
           if (deliverableStatus.get(d.key) === "done") continue;
           const diff = d.dayEnd - day;
           if (diff > 0 && diff <= 5) {
-            if (await notifyOnce(project.id, project.customer_id, `due-${d.key}`, `${companyName}: due in ${diff} day${diff === 1 ? "" : "s"} — ${d.name}.`)) sent++;
+            if (await notifyOnce(project.id, project.customer_id, `due-${d.key}`, `${companyName}: due in ${diff} day${diff === 1 ? "" : "s"} — ${d.name}.`, "pm", project.project_id ?? undefined, project.name ?? undefined)) sent++;
           } else if (diff <= 0) {
-            if (await notifyOnce(project.id, project.customer_id, `overdue-${d.key}`, `${companyName}: overdue — ${d.name} (was due Day ${d.dayEnd}).`)) sent++;
+            if (await notifyOnce(project.id, project.customer_id, `overdue-${d.key}`, `${companyName}: overdue — ${d.name} (was due Day ${d.dayEnd}).`, "pm", project.project_id ?? undefined, project.name ?? undefined)) sent++;
           }
         }
       }
 
       // Calendar-only checks, independent of deliverable completion — cover all 5 phases.
       if (day === 16) {
-        if (await notifyOnce(project.id, project.customer_id, "day16-handover", `${companyName}: Day 16 — Phase 2 (Migrate & Rebrand) begins.`)) sent++;
+        if (await notifyOnce(project.id, project.customer_id, "day16-handover", `${companyName}: Day 16 — Phase 2 (Migrate & Rebrand) begins.`, "pm", project.project_id ?? undefined, project.name ?? undefined)) sent++;
       }
       if (day === 16 || day === 21 || day === 26) {
-        if (await notifyOnce(project.id, project.customer_id, `dev5day-${day}`, `${companyName}: 5-day status check — please update your Phase 2 progress.`, "dev")) sent++;
+        if (await notifyOnce(project.id, project.customer_id, `dev5day-${day}`, `${companyName}: 5-day status check — please update your Phase 2 progress.`, "dev", project.project_id ?? undefined, project.name ?? undefined)) sent++;
       }
       if (day === 15) {
-        if (await notifyOnce(project.id, project.customer_id, "gate15", `${companyName}: Day 15 gate — client sign-off due.`)) sent++;
+        if (await notifyOnce(project.id, project.customer_id, "gate15", `${companyName}: Day 15 gate — client sign-off due.`, "pm", project.project_id ?? undefined, project.name ?? undefined)) sent++;
       }
       if (day === 30) {
-        if (await notifyOnce(project.id, project.customer_id, "gate30", `${companyName}: Day 30 gate — client approval due.`)) sent++;
+        if (await notifyOnce(project.id, project.customer_id, "gate30", `${companyName}: Day 30 gate — client approval due.`, "pm", project.project_id ?? undefined, project.name ?? undefined)) sent++;
       }
       for (const phase of PROGRAMME_PHASES) {
         const status = phaseStatus.get(phase.number);
         if (day > phase.dayEnd && status !== "completed" && status !== "skipped") {
-          if (await notifyOnce(project.id, project.customer_id, `phase-late-${phase.number}`, `${companyName}: Phase ${phase.number} (${phase.name}) is running late — was due by Day ${phase.dayEnd}.`)) sent++;
+          if (await notifyOnce(project.id, project.customer_id, `phase-late-${phase.number}`, `${companyName}: Phase ${phase.number} (${phase.name}) is running late — was due by Day ${phase.dayEnd}.`, "pm", project.project_id ?? undefined, project.name ?? undefined)) sent++;
         }
       }
     }

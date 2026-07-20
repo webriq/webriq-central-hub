@@ -84,3 +84,35 @@ self.addEventListener('sync', (event: Event) => {
 self.addEventListener('online', () => {
   replayQueue().catch(() => {});
 });
+
+// Push notifications (task 064) had no receiving-side handler until now — sendPushNotification()
+// succeeded at the network layer but nothing ever displayed on the device. Payload shape matches
+// PushPayload in src/lib/push/index.ts: { title, body, url? }.
+self.addEventListener('push', (event: PushEvent) => {
+  let data: { title?: string; body?: string; url?: string } = {};
+  try {
+    data = event.data?.json() ?? {};
+  } catch {
+    data = { title: 'Notification', body: '' };
+  }
+  event.waitUntil(
+    self.registration.showNotification(data.title ?? 'WebriQ Central Hub', {
+      body: data.body ?? '',
+      icon: '/logo.png',
+      data: { url: data.url },
+    })
+  );
+});
+
+self.addEventListener('notificationclick', (event: NotificationEvent) => {
+  event.notification.close();
+  const url = event.notification.data?.url;
+  if (!url) return;
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientsArr) => {
+      const existing = clientsArr.find((c) => c.url === url);
+      if (existing) return existing.focus();
+      return self.clients.openWindow(url);
+    })
+  );
+});

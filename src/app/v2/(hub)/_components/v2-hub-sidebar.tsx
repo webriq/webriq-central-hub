@@ -5,7 +5,8 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, FolderKanban, Inbox, Cpu, Users,
   Megaphone, BookOpen, Settings, ChevronLeft,
-  Circle, LogOut, Building2, Rocket,
+  Circle, LogOut, Building2,
+  ChartGantt,
 } from "lucide-react";
 import { V2_ROUTES } from "@/config/constants";
 import { cn } from "@/lib/utils";
@@ -35,7 +36,7 @@ function getNavGroups(role: string | null): NavGroup[] {
       { label: "Customers",   icon: <Building2 size={18} />,       href: V2_ROUTES.CUSTOMERS },
     ] : []),
     ...(role !== "client" ? [
-      { label: "Onboarding",  icon: <Rocket size={18} />,          href: V2_ROUTES.ONBOARDING },
+      { label: "Tracker",     icon: <ChartGantt size={18} />,          href: V2_ROUTES.PORTFOLIO_TRACKER },
     ] : []),
     { label: "Projects",      icon: <FolderKanban size={18} />,   href: V2_ROUTES.PROJECTS },
     { label: "Desk",          icon: <Inbox size={18} />,           href: V2_ROUTES.DASHBOARD_TASKS },
@@ -114,6 +115,7 @@ export default function V2HubSidebar({ userRole, displayName }: V2HubSidebarProp
             onClick={() => setCollapsed(false)}
             className="flex items-center justify-center cursor-pointer"
             title="Expand sidebar"
+            aria-label="Expand sidebar"
           >
             <Image src="/logo.png" alt="W" width={32} height={32} />
           </button>
@@ -132,6 +134,7 @@ export default function V2HubSidebar({ userRole, displayName }: V2HubSidebarProp
               onMouseEnter={e => (e.currentTarget.style.color = "#94A3B8")}
               onMouseLeave={e => (e.currentTarget.style.color = "#64748B")}
               title="Collapse sidebar"
+              aria-label="Collapse sidebar"
             >
               <ChevronLeft size={16} />
             </button>
@@ -253,6 +256,7 @@ export default function V2HubSidebar({ userRole, displayName }: V2HubSidebarProp
             onMouseEnter={e => (e.currentTarget.style.color = "#94A3B8")}
             onMouseLeave={e => (e.currentTarget.style.color = "#64748B")}
             title="Sign out"
+            aria-label="Sign out"
           >
             <LogOut size={14} />
           </button>

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminClient } from "@/lib/supabase/admin";
+import { notifyProjectMembers } from "@/lib/notifications";
 import type { ProductName } from "@/types/hub";
 import type { Database } from "@/types/database";
 
@@ -82,6 +83,21 @@ export async function PATCH(
             await sendCliqNotification(
               `✅ ${customer?.company_name ?? customerId} has completed all onboarding forms. Ready for Zoho project creation.`
             );
+
+            // Notify project members in-app + push — best-effort, alongside the Cliq broadcast above.
+            // All onboarding forms are done customer-wide, so notify every project this customer has.
+            const { data: linkedProjects } = await adminClient
+              .from("projects")
+              .select("id, project_id, name")
+              .eq("customer_id", customerId);
+            for (const linkedProject of linkedProjects ?? []) {
+              await notifyProjectMembers(linkedProject.id, {
+                type: "onboarding_complete",
+                title: "Onboarding complete",
+                body: `${customer?.company_name ?? customerId} has completed all onboarding forms${linkedProject.name ? ` · ${linkedProject.name}` : ""}.`,
+                url: linkedProject.project_id ? `/v2/portfolio-tracker/${linkedProject.project_id}` : undefined,
+              });
+            }
           }
         }
       } catch (completionErr) {

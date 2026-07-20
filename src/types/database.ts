@@ -1439,6 +1439,7 @@ export interface Database {
         Row: {
           id: string;
           recipient_id: string;
+          actor_id: string | null;
           event_type: string;
           title: string;
           body: string;
@@ -1450,6 +1451,7 @@ export interface Database {
         Insert: {
           id?: string;
           recipient_id: string;
+          actor_id?: string | null;
           event_type: string;
           title: string;
           body: string;
@@ -1461,6 +1463,7 @@ export interface Database {
         Update: {
           id?: string;
           recipient_id?: string;
+          actor_id?: string | null;
           event_type?: string;
           title?: string;
           body?: string;
@@ -1472,6 +1475,13 @@ export interface Database {
           {
             foreignKeyName: "notifications_recipient_id_fkey";
             columns: ["recipient_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "notifications_actor_id_fkey";
+            columns: ["actor_id"];
             isOneToOne: false;
             referencedRelation: "profiles";
             referencedColumns: ["id"];

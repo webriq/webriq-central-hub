@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Sora, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 const sora = Sora({ subsets: ["latin"], variable: "--font-sans", weight: ["300","400","500","600","700","800"] });
 
@@ -29,7 +30,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={cn("h-full dark", sora.variable, geistMono.variable)}>
       <body className={cn("font-sans noise-overlay min-h-full bg-background text-foreground antialiased")}>
-        {children}
+        <TooltipProvider>{children}</TooltipProvider>
       </body>
     </html>
   );

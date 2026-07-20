@@ -48,6 +48,7 @@ export async function GET() {
   .from("projects")
   .select(`
     id,
+    project_id,
     name,
     customer_id,
     programme_started_at,
@@ -124,7 +125,8 @@ export async function GET() {
           : null;
 
       return {
-        project_id: p.id,
+        id: p.id,
+        project_id: p.project_id, // real human-readable code, may be null on legacy rows
         project_name: p.name,
         company_name: companyName,
         customer_id: p.customer_id,
@@ -288,7 +290,7 @@ export async function POST(request: NextRequest) {
         scheduled_onboarding_start_at: body.mode === "save_scheduled" ? body.scheduled_start_at : null,
         scheduled_start_phase: scheduledStartPhase,
       })
-      .select("id, customer_id")
+      .select("id, project_id, customer_id")
       .single();
     if (projectError || !project) {
       console.error("POST /api/onboarding/projects project create error:", projectError);
@@ -317,7 +319,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ project_id: project.id, customer_id: customerId }, { status: 201 });
+    // project_id may be null immediately post-insert only if the display-code trigger somehow
+    // didn't fire (shouldn't happen per migration 066) — fall back to the UUID rather than
+    // sending the "New Project" success screen's View link into a broken /v2/portfolio-tracker/null.
+    return NextResponse.json({ project_id: project.project_id ?? project.id, customer_id: customerId }, { status: 201 });
   } catch (err) {
     console.error("POST /api/onboarding/projects unexpected error:", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
