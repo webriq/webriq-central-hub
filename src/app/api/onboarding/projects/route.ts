@@ -84,13 +84,21 @@ export async function GET() {
 
     const projectIds = projects.map((p) => p.id);
     const activePhaseByProject = new Map<string, number>();
+    // Task 168 follow-up: a project whose Phase 5 (Optimize) is marked `completed` has finished
+    // the full 120-day programme — the `status` field below distinguishes this from `in_progress`
+    // so completed programmes graduate out of "currently in the programme" views (Programme
+    // board/Clients table on `/v2/dashboard`, stat tiles) instead of appearing active forever.
+    const completedProjectIds = new Set<string>();
     if (projectIds.length > 0) {
       const { data: phases } = await supabase
         .from("customer_phases")
-        .select("project_id, phase_number")
+        .select("project_id, phase_number, status")
         .in("project_id", projectIds)
-        .eq("status", "active");
-      for (const row of phases ?? []) activePhaseByProject.set(row.project_id, row.phase_number);
+        .in("status", ["active", "completed"]);
+      for (const row of phases ?? []) {
+        if (row.status === "active") activePhaseByProject.set(row.project_id, row.phase_number);
+        if (row.status === "completed" && row.phase_number === 5) completedProjectIds.add(row.project_id);
+      }
     }
 
     // Task 154: member avatar chips on each card — the deduped union of project_members and
@@ -138,7 +146,9 @@ export async function GET() {
         programme_started_at: p.programme_started_at,
         scheduled_onboarding_start_at: p.scheduled_onboarding_start_at,
         target_handover_date: targetHandoverDate,
-        status: p.programme_started_at ? "in_progress" : p.scheduled_onboarding_start_at ? "scheduled" : "draft",
+        status: completedProjectIds.has(p.id)
+          ? "completed"
+          : p.programme_started_at ? "in_progress" : p.scheduled_onboarding_start_at ? "scheduled" : "draft",
         members: [...(memberIdsByProject.get(p.id) ?? [])].map((id) => ({ id, full_name: memberFullNameById.get(id) ?? null })),
       };
     });

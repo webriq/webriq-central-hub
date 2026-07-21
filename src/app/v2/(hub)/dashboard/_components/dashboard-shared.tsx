@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { TrendingUp, TrendingDown, Sparkles } from "lucide-react";
+import { TrendingUp, TrendingDown, Sparkles, Check } from "lucide-react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
@@ -241,22 +241,46 @@ export function PhaseChip({ phaseNumber, phaseName }: { phaseNumber: number; pha
 // instead of re-declaring its own copy. `isDark` stays optional — Dev/Marketing keep their
 // dark-mode toggle (dark hex unchanged from before); PM dashboard is fixed-light and never
 // passes it, defaulting to the v2.0 light values.
+// DESIGN.md's "Status chip" spec (5px radius, 700 weight, leading dot, ok/warn/late tints only —
+// never blue, which is reserved for interactive elements) — reuses `Chip` directly for the light
+// (v2.0) case instead of a second, drifted pill implementation. `in_progress`/`scheduled`/`draft`/
+// `completed` aren't a literal ok/warn/late programme-health read, but map onto the same tones by
+// closest fit (actively running = ok, upcoming = warn, not started = neutral/no dot) rather than
+// inventing new, undocumented chip tones. `completed` reuses `ok` too — deliberately: DESIGN.md's
+// `--ok` and `--ph-optimize` tokens are the identical hex (#177E48/#E3F5EA), so "done" and the
+// programme's final phase already converge on the same green in this system — a checkmark (not
+// the plain dot) is what actually distinguishes "completed" from "in progress" at a glance,
+// mirroring the same dot-vs-checkmark pattern `_onboarding-detail.tsx`'s `ProgressRing` already
+// uses for 100%-vs-partial progress.
 const ONBOARDING_STATUS_STYLE: Record<
   string,
-  { label: string; lightBg: string; lightText: string; darkBg: string; darkText: string }
+  { label: string; tone: "neutral" | "warn" | "ok"; dot: boolean; darkBg: string; darkText: string }
 > = {
-  draft: { label: "Draft", lightBg: "bg-[#EDF0F7]", lightText: "text-[#5F6A88]", darkBg: "bg-white/[0.06]", darkText: "text-slate-400" },
-  scheduled: { label: "Scheduled", lightBg: "bg-[#FFF3D6]", lightText: "text-[#8A5A00]", darkBg: "bg-amber-500/15", darkText: "text-amber-400" },
-  in_progress: { label: "In progress", lightBg: "bg-[#E5F1FF]", lightText: "text-[#0063D6]", darkBg: "bg-blue-500/15", darkText: "text-blue-400" },
+  draft: { label: "Draft", tone: "neutral", dot: false, darkBg: "bg-white/[0.06]", darkText: "text-slate-400" },
+  scheduled: { label: "Scheduled", tone: "warn", dot: true, darkBg: "bg-amber-500/15", darkText: "text-amber-400" },
+  in_progress: { label: "In progress", tone: "ok", dot: true, darkBg: "bg-blue-500/15", darkText: "text-blue-400" },
+  completed: { label: "Completed", tone: "ok", dot: false, darkBg: "bg-green-500/15", darkText: "text-green-400" },
 };
 
 export function OnboardingStatusPill({ status, isDark = false }: { status: string; isDark?: boolean }) {
   const s = ONBOARDING_STATUS_STYLE[status] ?? ONBOARDING_STATUS_STYLE.draft;
-  return (
-    <span className={`inline-flex items-center text-[10px] font-medium px-2 py-0.5 rounded-full ${isDark ? `${s.darkBg} ${s.darkText}` : `${s.lightBg} ${s.lightText}`}`}>
-      {s.label}
-    </span>
-  );
+  // Dev/Marketing dashboards' own dark-mode system (untouched — v2.0 has no dark-mode spec).
+  if (isDark) {
+    return (
+      <span className={`inline-flex items-center text-[10px] font-medium px-2 py-0.5 rounded-full ${s.darkBg} ${s.darkText}`}>
+        {s.label}
+      </span>
+    );
+  }
+  if (status === "completed") {
+    return (
+      <Chip tone={s.tone}>
+        <Check size={9} strokeWidth={3} className="shrink-0" />
+        {s.label}
+      </Chip>
+    );
+  }
+  return <Chip tone={s.tone} dot={s.dot}>{s.label}</Chip>;
 }
 
 // ─── Programme track — DESIGN.md Section 5 "Programme track" (signature element) ──

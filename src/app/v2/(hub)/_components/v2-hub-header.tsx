@@ -33,13 +33,6 @@ function getBreadcrumb(pathname: string): { section: string; page: string } {
   return { section: "WebriQ", page: "Hub" };
 }
 
-// Static presence avatars (visual only — real presence is a future feature)
-const PRESENCE = [
-  { initials: "RJ", bg: "#7C3AED" },
-  { initials: "KL", bg: "#0D9488" },
-  { initials: "TM", bg: "#DC2626" },
-];
-
 interface V2HubHeaderProps {
   chatOpen: boolean;
   onOpenChat: () => void;
@@ -115,26 +108,6 @@ export default function V2HubHeader({ chatOpen, onOpenChat, onOpenWithMessage }:
 
       {/* Right controls */}
       <div className="flex items-center gap-3 flex-1 justify-end">
-        {/* Presence avatars */}
-        {/* <div className="flex items-center">
-          {PRESENCE.map((av, i) => (
-            <div
-              key={i}
-              title={av.initials}
-              className="w-7 h-7 rounded-full border-2 border-white flex items-center justify-center text-[10px] font-semibold text-white"
-              style={{ background: av.bg, marginLeft: i > 0 ? -8 : 0 }}
-            >
-              {av.initials}
-            </div>
-          ))}
-          <div
-            className="w-7 h-7 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center text-[10px] font-semibold text-slate-500"
-            style={{ marginLeft: -8 }}
-          >
-            +5
-          </div>
-        </div> */}
-
         {/* Notification bell */}
         <NotificationBell />
 

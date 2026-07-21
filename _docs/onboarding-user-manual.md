@@ -102,7 +102,7 @@ Click **New Project**. This opens a guided, 3-step form. A progress indicator at
 You'll see a success screen:
 
 - If this was a new company, the **Customer ID** is shown with a **Copy** button, so you can paste it elsewhere (e.g. into Zoho).
-- **Back to onboarding** returns you to the main Onboarding list.
+- **Back to projects** returns you to the main Projects list or Portfolio Tracker.
 - **View project** takes you straight into the new project's Timeline.
 
 ---
@@ -374,7 +374,7 @@ Click **Back to Onboarding Timeline** to return. The project now shows Phase 2 a
 | New Project — Step 3 | **Just save** | Create the project as a draft; clock not started. |
 | New Project — Step 3 | **Save + set schedule** | Create the project; clock starts automatically on the chosen date. |
 | Success screen | **Copy** | Copies the new Customer ID to your clipboard. |
-| Success screen | **Back to onboarding / View project** | Return to the list, or open the new project. |
+| Success screen | **Back to projects / View project** | Return to the list, or open the new project. |
 | Timeline (not started) | **Start Onboarding** | Begin Day 1 right now. Marketing/Admin/Super Admin only. |
 | Timeline (not started) | **Jump to phase** | Manually tag the project's starting phase. Marketing/Admin/Super Admin only. |
 | Timeline | **Onboarding Wizard** | Open the step-by-step wizard for Phase 1. Marketing/Admin/Super Admin/PM — not Developer. |

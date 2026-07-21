@@ -539,9 +539,9 @@ export default function ImportProjectWizard() {
   }
 
   return (
-    <div className={cn("flex min-h-full flex-col items-center px-6 py-10", isDark ? "bg-[#070E1F]" : "bg-[#F8FAFC]")}>
+    <div className={cn("flex min-h-full flex-col items-center px-6 py-10", isDark ? "bg-sidebar-dark" : "bg-[#F8FAFC]")}>
       {!result && (
-        <div className="mb-2 w-full max-w-[1200px]">
+        <div className="mb-2 w-full max-w-300">
           <button
             type="button"
             onClick={goBack}
@@ -551,14 +551,14 @@ export default function ImportProjectWizard() {
             )}
           >
             <ArrowLeft size={13} />
-            {step === 1 ? "Back to onboarding" : "Choose a different file"}
+            {step === 1 ? "Back to projects" : "Choose a different file"}
           </button>
         </div>
       )}
 
       <div className={cn(
-        "w-full max-w-[1200px] rounded-2xl border px-10 py-9",
-        isDark ? "border-white/[0.08] bg-[#121726]" : "border-[#E2E8F0] bg-white shadow-[0_4px_24px_rgba(15,23,42,0.07)]"
+        "w-full max-w-300 rounded-2xl border px-10 py-9",
+        isDark ? "border-white/8 bg-[#121726]" : "border-[#E2E8F0] bg-white shadow-[0_4px_24px_rgba(15,23,42,0.07)]"
       )}>
         {result ? (
           <motion.div
@@ -572,8 +572,8 @@ export default function ImportProjectWizard() {
               animate={{ scale: 1 }}
               transition={{ delay: 0.1, type: "spring", stiffness: 300, damping: 18 }}
               className={cn(
-                "mx-auto mb-6 flex h-[72px] w-[72px] items-center justify-center rounded-full shadow-[0_4px_20px_rgba(34,197,94,0.35)]",
-                result.imported > 0 ? "bg-gradient-to-br from-[#22C55E] to-[#16A34A]" : "bg-gradient-to-br from-[#F97316] to-[#EA580C]"
+                "mx-auto mb-6 flex h-18 w-18 items-center justify-center rounded-full shadow-[0_4px_20px_rgba(34,197,94,0.35)]",
+                result.imported > 0 ? "bg-linear-to-br from-[#22C55E] to-[#16A34A]" : "bg-linear-to-br from-brand-orange to-[#EA580C]"
               )}
             >
               {result.imported > 0 ? (
@@ -583,7 +583,7 @@ export default function ImportProjectWizard() {
               )}
             </motion.div>
 
-            <h2 className={cn("mb-1.5 text-2xl font-bold tracking-[-0.025em]", isDark ? "text-slate-100" : "text-[#0F172A]")}>
+            <h2 className={cn("mb-1.5 text-2xl font-bold tracking-tight", isDark ? "text-slate-100" : "text-[#0F172A]")}>
               {result.imported} project{result.imported === 1 ? "" : "s"} imported
             </h2>
             <p className={cn("mb-7 text-sm leading-relaxed", isDark ? "text-slate-400" : "text-[#64748B]")}>
@@ -593,14 +593,14 @@ export default function ImportProjectWizard() {
             </p>
 
             {result.errors.length > 0 && (
-              <div className={cn("mb-6 max-h-[280px] overflow-y-auto rounded-[10px] border text-left", isDark ? "border-white/[0.08]" : "border-[#E2E8F0]")}>
+              <div className={cn("mb-6 max-h-70 overflow-y-auto rounded-[10px] border text-left", isDark ? "border-white/8" : "border-[#E2E8F0]")}>
                 {result.errors.map((e, i) => (
                   <div
                     key={i}
                     className={cn(
                       "px-4 py-2.5 text-[12.5px]",
                       isDark ? "text-slate-300" : "text-[#475569]",
-                      i > 0 && (isDark ? "border-t border-white/[0.06]" : "border-t border-[#F1F5F9]")
+                      i > 0 && (isDark ? "border-t border-white/6" : "border-t border-[#F1F5F9]")
                     )}
                   >
                     <span className={cn("font-semibold", isDark ? "text-slate-100" : "text-[#0F172A]")}>
@@ -617,8 +617,8 @@ export default function ImportProjectWizard() {
                 type="button"
                 onClick={resetToUpload}
                 className={cn(
-                  "flex-1 cursor-pointer rounded-[9px] border-[1.5px] px-4 py-[11px] text-[13px] font-medium transition-colors",
-                  isDark ? "border-white/[0.1] bg-transparent text-slate-100 hover:bg-white/[0.06]" : "border-[#E2E8F0] bg-white text-[#0F172A] hover:border-[#CBD5E1] hover:bg-[#F8FAFC]"
+                  "flex-1 cursor-pointer rounded-[9px] border-[1.5px] px-4 py-2.75 text-[13px] font-medium transition-colors",
+                  isDark ? "border-white/10 bg-transparent text-slate-100 hover:bg-white/6" : "border-[#E2E8F0] bg-white text-[#0F172A] hover:border-[#CBD5E1] hover:bg-[#F8FAFC]"
                 )}
               >
                 Import another file
@@ -626,9 +626,9 @@ export default function ImportProjectWizard() {
               <button
                 type="button"
                 onClick={() => router.push(V2_ROUTES.PORTFOLIO_TRACKER)}
-                className="flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-[9px] border-none bg-[#2563EB] px-4 py-[11px] text-[13px] font-semibold text-white shadow-[0_2px_8px_rgba(37,99,235,0.3)] transition-colors hover:bg-[#1D4ED8]"
+                className="flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-[9px] border-none bg-[#2563EB] px-4 py-2.75 text-[13px] font-semibold text-white shadow-[0_2px_8px_rgba(37,99,235,0.3)] transition-colors hover:bg-[#1D4ED8]"
               >
-                Back to onboarding <ArrowRight size={13} />
+                Back to projects <ArrowRight size={13} />
               </button>
             </div>
           </motion.div>
@@ -685,7 +685,7 @@ export default function ImportProjectWizard() {
                         "flex cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-[1.5px] border-dashed px-6 py-16 text-center transition-colors",
                         dragOver
                           ? isDark ? "border-[#2563EB] bg-blue-500/10" : "border-[#2563EB] bg-[#EFF6FF]"
-                          : isDark ? "border-white/[0.12] bg-white/[0.03] hover:border-white/[0.25]" : "border-[#E2E8F0] bg-[#F8FAFC] hover:border-[#CBD5E1]"
+                          : isDark ? "border-white/12 bg-white/3 hover:border-white/25" : "border-[#E2E8F0] bg-[#F8FAFC] hover:border-[#CBD5E1]"
                       )}
                     >
                       <div className={cn("flex h-12 w-12 items-center justify-center rounded-[12px] text-[#2563EB]", isDark ? "bg-[#2563EB]/20" : "bg-[#2563EB]/10")}>
@@ -734,13 +734,13 @@ export default function ImportProjectWizard() {
                     </div>
 
                     {rows.length === 0 ? (
-                      <div className={cn("rounded-xl border px-6 py-12 text-center text-sm", isDark ? "border-white/[0.08] bg-white/[0.03] text-slate-400" : "border-[#E2E8F0] bg-[#F8FAFC] text-[#64748B]")}>
+                      <div className={cn("rounded-xl border px-6 py-12 text-center text-sm", isDark ? "border-white/8 bg-white/3 text-slate-400" : "border-[#E2E8F0] bg-[#F8FAFC] text-[#64748B]")}>
                         No rows left. Choose a different file to continue.
                       </div>
                     ) : (
-                      <div className={cn("overflow-x-auto rounded-xl border", isDark ? "border-white/[0.08]" : "border-[#E2E8F0]")}>
+                      <div className={cn("overflow-x-auto rounded-xl border", isDark ? "border-white/8" : "border-[#E2E8F0]")}>
                         <table className="w-full border-collapse text-[12.5px]">
-                          <thead className={cn(isDark ? "bg-white/[0.03] text-slate-400" : "bg-[#F8FAFC] text-[#64748B]")}>
+                          <thead className={cn(isDark ? "bg-white/3 text-slate-400" : "bg-[#F8FAFC] text-[#64748B]")}>
                             <tr>
                               <th className="px-3 py-2.5 text-left font-medium">Customer</th>
                               <th className="px-3 py-2.5 text-left font-medium">Project Type</th>
@@ -755,8 +755,8 @@ export default function ImportProjectWizard() {
                               const attention = needsAttention(row);
                               return (
                                 <tr key={row.id} className={cn(
-                                  isDark ? "border-t border-white/[0.06]" : "border-t border-[#F1F5F9]",
-                                  attention && (isDark ? "bg-orange-500/[0.08]" : "bg-[#FFF7ED]/40")
+                                  isDark ? "border-t border-white/6" : "border-t border-[#F1F5F9]",
+                                  attention && (isDark ? "bg-orange-500/8" : "bg-[#FFF7ED]/40")
                                 )}>
                                   <td className="px-3 py-2.5 align-top">
                                     <input
@@ -765,11 +765,11 @@ export default function ImportProjectWizard() {
                                       placeholder="Customer name"
                                       aria-label={`Customer name for row ${rowIdx + 1}`}
                                       className={cn(
-                                        "w-[160px] rounded-[7px] border-[1.5px] px-2.5 py-1.5 text-[12.5px] outline-none transition-colors",
+                                        "w-40 rounded-[7px] border-[1.5px] px-2.5 py-1.5 text-[12.5px] outline-none transition-colors",
                                         isDark ? "bg-transparent text-slate-100" : "bg-white text-[#0F172A]",
                                         !row.account.trim()
                                           ? isDark ? "border-red-500/50" : "border-[#FCA5A5]"
-                                          : isDark ? "border-white/[0.12] focus:border-[#2563EB]" : "border-[#E2E8F0] focus:border-[#2563EB]"
+                                          : isDark ? "border-white/12 focus:border-[#2563EB]" : "border-[#E2E8F0] focus:border-[#2563EB]"
                                       )}
                                     />
                                   </td>

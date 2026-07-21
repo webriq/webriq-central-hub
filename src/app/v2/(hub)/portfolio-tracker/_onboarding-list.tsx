@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { motion } from "framer-motion";
 import {
   ChartGantt, Plus, Upload, Building2, CalendarClock, Clock3, Search, X,
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
@@ -10,6 +11,7 @@ import {
 import { cn } from "@/lib/utils";
 import { V2_ROUTES } from "@/config/constants";
 import { PROGRAMME_PHASES } from "@/config/customer-phases";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Chip, PhaseChip, OnboardingStatusPill } from "../dashboard/_components/dashboard-shared";
 
 export type OnboardingProjectListItem = {
@@ -26,7 +28,8 @@ export type OnboardingProjectListItem = {
   programme_started_at: string | null;
   scheduled_onboarding_start_at: string | null;
   target_handover_date: string | null;
-  status: "draft" | "scheduled" | "in_progress";
+  // "completed" (task 168 follow-up) = Phase 5 (Optimize) status is `completed` in `customer_phases`.
+  status: "draft" | "scheduled" | "in_progress" | "completed";
   // Task 154: deduped union of project_members + Phase 1 phase_members (task 153).
   members: { id: string; full_name: string | null }[];
 };
@@ -36,7 +39,8 @@ export type OnboardingProjectListItem = {
 // imported) since it needs overlap + "+N" overflow behavior OwnerChip doesn't have, and
 // Onboarding/Projects are otherwise unrelated feature areas (page-scoped UI convention).
 const AVATAR_COLORS = ["#0063D6", "#6A48E0", "#0B8A93", "#B85512", "#177E48", "#44508A"];
-const MAX_VISIBLE_AVATARS = 3;
+// Only collapse into a "+N" overflow badge past 5 visible avatars — below that, show everyone.
+const MAX_VISIBLE_AVATARS = 5;
 
 function initialsFor(name: string | null): string {
   if (!name) return "?";
@@ -48,21 +52,51 @@ function colorFor(name: string | null): string {
   return AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length];
 }
 
+// Real shadcn/Base UI Tooltip (not a native `title` attribute) for the member's name — mirrors
+// `_onboarding-wizard.tsx`'s `IconTip` pattern (a thin wrapper around Tooltip/TooltipTrigger's
+// `render` prop) rather than duplicating the 3-component composition at every avatar.
+function AvatarTip({ label, children }: { label: string; children: React.ReactElement }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger render={children} />
+      <TooltipContent side="top">{label}</TooltipContent>
+    </Tooltip>
+  );
+}
+
 function AvatarStack({ members }: { members: { id: string; full_name: string | null }[] }) {
   if (members.length === 0) return null;
+
+  // A single member has nothing to lift above — tooltip only, no hover animation.
+  if (members.length === 1) {
+    const m = members[0];
+    return (
+      <AvatarTip label={m.full_name ?? "Unnamed"}>
+        <div
+          className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-semibold text-white ring-2 ring-white shrink-0"
+          style={{ background: colorFor(m.full_name) }}
+        >
+          {initialsFor(m.full_name)}
+        </div>
+      </AvatarTip>
+    );
+  }
+
   const visible = members.slice(0, MAX_VISIBLE_AVATARS);
   const overflow = members.length - visible.length;
   return (
     <div className="flex items-center">
       {visible.map((m, i) => (
-        <div
-          key={m.id}
-          title={m.full_name ?? "Unnamed"}
-          className={cn("w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-semibold text-white ring-2 ring-white shrink-0", i > 0 && "-ml-2")}
-          style={{ background: colorFor(m.full_name) }}
-        >
-          {initialsFor(m.full_name)}
-        </div>
+        <AvatarTip key={m.id} label={m.full_name ?? "Unnamed"}>
+          <motion.div
+            className={cn("w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-semibold text-white ring-2 ring-white shrink-0 cursor-default", i > 0 && "-ml-2")}
+            style={{ background: colorFor(m.full_name) }}
+            whileHover={{ y: -4, zIndex: 10 }}
+            transition={{ type: "spring", stiffness: 500, damping: 20 }}
+          >
+            {initialsFor(m.full_name)}
+          </motion.div>
+        </AvatarTip>
       ))}
       {overflow > 0 && (
         <div className="w-6 h-6 -ml-2 rounded-full flex items-center justify-center text-[9px] font-semibold ring-2 ring-white shrink-0 text-[#5F6A88] bg-[#EDF0F7]">
@@ -113,7 +147,7 @@ function ProjectCard({ item, editable }: { item: OnboardingProjectListItem; edit
       </div>
 
       {/* Phase / status line — always present, one line */}
-      <div className="flex items-center gap-1.5 text-[11.5px] text-[#5F6A88] min-h-[17px]">
+      <div className="flex items-center gap-1.5 text-[11.5px] text-[#5F6A88] min-h-[17px] mb-3">
         {item.current_day ? (
           <>
             {item.current_phase_number && item.current_phase_name ? (
@@ -276,19 +310,21 @@ export default function OnboardingList({ role }: { role: string | null }) {
               }, 300);
             }}
             placeholder="Search clients or projects…"
-            className="w-full pl-8 pr-3 py-2 rounded-[10px] border text-[13px] outline-none transition-colors border-[#E2E7F2] bg-[#F4F6FB] text-[#3A4565] focus:border-[#007BFF] focus:bg-white placeholder:text-[#5F6A88]"
+            className="w-full pl-8 pr-3 py-2 rounded-[10px] border text-[13px] outline-none transition-colors border-[#E2E7F2] bg-[#F4F6FB] text-[#3A4565] focus:border-[#007BFF] focus:bg-white focus:ring-[3px] focus:ring-[#007BFF]/[0.14] placeholder:text-[#5F6A88]"
           />
         </div>
 
-        <div className="flex items-center gap-1 bg-white border border-[#E2E7F2] rounded-lg p-1 shrink-0">
+        {/* Filter pills — DESIGN.md: individual floating pills, active fills navy (never blue,
+            so filters read as selection state, not an action) — not a segmented-control group. */}
+        <div className="flex items-center gap-1.5 flex-wrap shrink-0">
           {STATUS_FILTERS.map((s) => (
             <button
               key={s}
               onClick={() => router.push(buildUrl({ status: s === "all" ? null : s, page: 1 }))}
               aria-pressed={statusValue === s}
               className={cn(
-                "px-3 py-1.5 rounded-md text-[11px] font-semibold transition-colors cursor-pointer",
-                statusValue === s ? "bg-[#071133] text-white" : "text-[#5F6A88] hover:text-[#0B1533]"
+                "px-3 py-[4.5px] rounded-full border text-[11px] font-semibold transition-colors cursor-pointer",
+                statusValue === s ? "bg-[#071133] border-[#071133] text-white" : "bg-white border-[#E2E7F2] text-[#5F6A88] hover:border-[#A8C6F5] hover:text-[#0B1533]"
               )}
             >
               {STATUS_FILTER_LABELS[s]}
@@ -299,7 +335,7 @@ export default function OnboardingList({ role }: { role: string | null }) {
         {isFiltered && (
           <button
             onClick={() => { setSearchInput(""); router.push(V2_ROUTES.PORTFOLIO_TRACKER); }}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#E2E7F2] bg-white text-[12px] text-[#3A4565] hover:bg-[#F0F7FF] cursor-pointer shrink-0 transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#E2E7F2] bg-white text-[12px] text-[#3A4565] hover:bg-[#F0F7FF] cursor-pointer shrink-0 transition-colors"
           >
             <X size={13} /> Clear filters
           </button>
@@ -312,7 +348,7 @@ export default function OnboardingList({ role }: { role: string | null }) {
             <select
               value={pageSize}
               onChange={(e) => router.push(buildUrl({ pageSize: Number(e.target.value), page: 1 }))}
-              className="h-8 px-2.5 pr-6 rounded-lg border border-[#E2E7F2] bg-white text-[12px] text-[#3A4565] outline-none focus:border-[#007BFF] cursor-pointer"
+              className="h-8 px-2.5 pr-6 rounded-lg border border-[#E2E7F2] bg-white text-[12px] text-[#3A4565] outline-none focus:border-[#007BFF] focus:ring-[3px] focus:ring-[#007BFF]/[0.14] cursor-pointer"
             >
               {PAGE_SIZES.map((n) => <option key={n} value={n}>{n} per page</option>)}
             </select>
@@ -320,16 +356,16 @@ export default function OnboardingList({ role }: { role: string | null }) {
               {from + 1}–{Math.min(from + pageSize, total)} of {total}
             </span>
             <div className="flex items-center gap-1 text-[#5F6A88]">
-              <button onClick={() => router.push(buildUrl({ page: 1 }))} disabled={!hasPrev} className="flex items-center justify-center w-7 h-7 rounded-md border border-[#E2E7F2] bg-white hover:bg-[#F0F7FF] disabled:opacity-30 disabled:cursor-default cursor-pointer transition-colors" title="First page">
+              <button onClick={() => router.push(buildUrl({ page: 1 }))} disabled={!hasPrev} className="flex items-center justify-center w-7 h-7 rounded-full border border-[#E2E7F2] bg-white hover:bg-[#F0F7FF] disabled:opacity-30 disabled:cursor-default cursor-pointer transition-colors" title="First page">
                 <ChevronsLeft size={14} />
               </button>
-              <button onClick={() => router.push(buildUrl({ page: page - 1 }))} disabled={!hasPrev} className="flex items-center justify-center w-7 h-7 rounded-md border border-[#E2E7F2] bg-white hover:bg-[#F0F7FF] disabled:opacity-30 disabled:cursor-default cursor-pointer transition-colors" title="Previous page">
+              <button onClick={() => router.push(buildUrl({ page: page - 1 }))} disabled={!hasPrev} className="flex items-center justify-center w-7 h-7 rounded-full border border-[#E2E7F2] bg-white hover:bg-[#F0F7FF] disabled:opacity-30 disabled:cursor-default cursor-pointer transition-colors" title="Previous page">
                 <ChevronLeft size={14} />
               </button>
-              <button onClick={() => router.push(buildUrl({ page: page + 1 }))} disabled={!hasNext} className="flex items-center justify-center w-7 h-7 rounded-md border border-[#E2E7F2] bg-white hover:bg-[#F0F7FF] disabled:opacity-30 disabled:cursor-default cursor-pointer transition-colors" title="Next page">
+              <button onClick={() => router.push(buildUrl({ page: page + 1 }))} disabled={!hasNext} className="flex items-center justify-center w-7 h-7 rounded-full border border-[#E2E7F2] bg-white hover:bg-[#F0F7FF] disabled:opacity-30 disabled:cursor-default cursor-pointer transition-colors" title="Next page">
                 <ChevronRight size={14} />
               </button>
-              <button onClick={() => router.push(buildUrl({ page: Math.ceil(total / pageSize) }))} disabled={!hasNext} className="flex items-center justify-center w-7 h-7 rounded-md border border-[#E2E7F2] bg-white hover:bg-[#F0F7FF] disabled:opacity-30 disabled:cursor-default cursor-pointer transition-colors" title="Last page">
+              <button onClick={() => router.push(buildUrl({ page: Math.ceil(total / pageSize) }))} disabled={!hasNext} className="flex items-center justify-center w-7 h-7 rounded-full border border-[#E2E7F2] bg-white hover:bg-[#F0F7FF] disabled:opacity-30 disabled:cursor-default cursor-pointer transition-colors" title="Last page">
                 <ChevronsRight size={14} />
               </button>
             </div>
@@ -379,7 +415,7 @@ export default function OnboardingList({ role }: { role: string | null }) {
           </div>
           <button
             onClick={() => { setSearchInput(""); router.push(V2_ROUTES.PORTFOLIO_TRACKER); }}
-            className="inline-flex items-center gap-1.5 mt-1 px-3 py-1.5 rounded-lg border border-[#E2E7F2] bg-white text-[12px] text-[#3A4565] hover:bg-[#F0F7FF] cursor-pointer transition-colors"
+            className="inline-flex items-center gap-1.5 mt-1 px-3 py-1.5 rounded-full border border-[#E2E7F2] bg-white text-[12px] text-[#3A4565] hover:bg-[#F0F7FF] cursor-pointer transition-colors"
           >
             <X size={13} /> Clear filters
           </button>

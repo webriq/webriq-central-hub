@@ -670,7 +670,7 @@ function SuccessScreen({
             isDark ? "border-white/[0.1] bg-transparent text-slate-100 hover:border-white/[0.2] hover:bg-white/[0.06]" : "border-[#E2E8F0] bg-white text-[#0F172A] hover:border-[#CBD5E1] hover:bg-[#F8FAFC]"
           )}
         >
-          Back to onboarding
+          Back to projects
         </button>
         <button
           type="button"
@@ -962,7 +962,7 @@ export default function NewProjectWizard({ role }: { role: string | null }) {
             className={cn("flex cursor-pointer items-center gap-1.5 border-none bg-transparent p-0 text-xs transition-colors hover:text-[#2563EB]", isDark ? "text-slate-400" : "text-[#64748B]")}
           >
             <ArrowLeft size={13} />
-            {step === 1 ? "Back to onboarding" : "Previous step"}
+            {step === 1 ? "Back to projects" : "Previous step"}
           </button>
         </div>
       )}

@@ -602,10 +602,14 @@ export default function OnboardingWizard({
 
   // checklistValidationError renders unconditionally under whichever step's checklist is
   // currently on screen — without this it kept showing a previous step's validation message
-  // (e.g. Outcome target's) after navigating away to a different, unrelated step.
-  useEffect(() => {
+  // (e.g. Outcome target's) after navigating away to a different, unrelated step. Resetting
+  // during render (React's "adjusting state when a prop changes" pattern) instead of in an
+  // effect avoids the extra commit-then-cascade render a useEffect setState would trigger.
+  const [prevStepIdxForValidation, setPrevStepIdxForValidation] = useState(stepIdx);
+  if (stepIdx !== prevStepIdxForValidation) {
+    setPrevStepIdxForValidation(stepIdx);
     setChecklistValidationError(null);
-  }, [stepIdx]);
+  }
 
   // Task 146: pm gets read-only fields on every step except storage-kb (Step 6, where file/
   // folder management stays live), and can never edit any checklist item (including Step 6's

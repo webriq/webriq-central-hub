@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, forwardRef, type HTMLAttributes } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import {
   CalendarClock, Flag, Bell, CheckCircle2, Check, Clock, ChevronDown, ChevronRight, PlayCircle,
   Users, AlertTriangle, Info, ArrowLeft, ListChecks, Locate, Crown, X, ShieldAlert,
@@ -672,7 +673,7 @@ function JumpToPhaseMenu({
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[#E2E7F2] bg-white px-3 py-2 text-xs font-medium text-[#3A4565] transition-colors hover:border-[#A8C6F5]"
+        className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-[#E2E7F2] bg-white px-3.5 py-2 text-xs font-medium text-[#3A4565] transition-colors hover:border-[#A8C6F5]"
       >
         <Flag size={13} /> Jump to phase <ChevronDown size={12} className={cn("transition-transform", open && "rotate-180")} />
       </button>
@@ -695,7 +696,7 @@ function JumpToPhaseMenu({
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder="Optional note…"
-              className="w-full rounded-lg border border-[#E2E7F2] bg-white px-2.5 py-1.5 text-xs text-[#0B1533] outline-none focus:border-[#007BFF]"
+              className="w-full rounded-lg border border-[#E2E7F2] bg-white px-2.5 py-1.5 text-xs text-[#0B1533] outline-none focus:border-[#007BFF] focus:ring-[3px] focus:ring-[#007BFF]/[0.14]"
             />
           </div>
         </div>
@@ -721,31 +722,66 @@ function StatChip({ label, value }: { label: string; value: string | number }) {
 // behind an "Access" text button. Read-only avatar display lives in the header row itself
 // (AvatarCircle/CollaboratorAvatars below); these panels are the management surfaces.
 
-function AvatarCircle({ name, size = 22, ring }: { name: string | null; size?: number; ring?: boolean }) {
-  const initials = (name ?? "?").split(" ").filter(Boolean).map((w) => w[0]).join("").slice(0, 2).toUpperCase() || "?";
-  const colors = ["#0063D6", "#6A48E0", "#0B8A93", "#B85512", "#177E48", "#44508A"];
-  const bg = colors[(name ?? "?").charCodeAt(0) % colors.length];
+// Real shadcn/Base UI Tooltip (not a native `title` attribute) — mirrors `_onboarding-wizard.tsx`'s
+// `IconTip` pattern (thin wrapper around Tooltip/TooltipTrigger's `render` prop).
+function AvatarTip({ label, children }: { label: string; children: React.ReactElement }) {
   return (
-    <div
-      title={name ?? "Unnamed"}
-      className={cn("flex shrink-0 items-center justify-center rounded-full font-bold text-white", ring && "ring-2 ring-white")}
-      style={{ width: size, height: size, fontSize: Math.max(8, size * 0.4), background: bg }}
-    >
-      {initials}
-    </div>
+    <Tooltip>
+      <TooltipTrigger render={children} />
+      <TooltipContent side="top">{label}</TooltipContent>
+    </Tooltip>
   );
 }
 
-function CollaboratorAvatars({ members, max = 4 }: { members: MemberRow[]; max?: number }) {
+// forwardRef so this can be used directly as an AvatarTip/TooltipTrigger render target (Base UI
+// clones the child and attaches a ref + event handlers — a plain function component can't
+// receive either) for the single-avatar call sites (Owner row, OwnerPanel's current owner).
+const AvatarCircle = forwardRef<HTMLDivElement, { name: string | null; size?: number; ring?: boolean } & HTMLAttributes<HTMLDivElement>>(
+  ({ name, size = 22, ring, className, style, ...props }, ref) => {
+    const initials = (name ?? "?").split(" ").filter(Boolean).map((w) => w[0]).join("").slice(0, 2).toUpperCase() || "?";
+    const colors = ["#0063D6", "#6A48E0", "#0B8A93", "#B85512", "#177E48", "#44508A"];
+    const bg = colors[(name ?? "?").charCodeAt(0) % colors.length];
+    return (
+      <div
+        ref={ref}
+        className={cn("flex shrink-0 items-center justify-center rounded-full font-bold text-white", ring && "ring-2 ring-white", className)}
+        style={{ width: size, height: size, fontSize: Math.max(8, size * 0.4), background: bg, ...style }}
+        {...props}
+      >
+        {initials}
+      </div>
+    );
+  }
+);
+AvatarCircle.displayName = "AvatarCircle";
+
+function CollaboratorAvatars({ members, max = 5 }: { members: MemberRow[]; max?: number }) {
   if (members.length === 0) return <span className="text-[11.5px] text-[#5F6A88]">None yet</span>;
+
+  // A single collaborator has nothing to lift above — tooltip only, no hover animation.
+  if (members.length === 1) {
+    const m = members[0];
+    return (
+      <AvatarTip label={m.full_name ?? "Unnamed"}>
+        <AvatarCircle name={m.full_name} size={22} ring />
+      </AvatarTip>
+    );
+  }
+
   const visible = members.slice(0, max);
   const overflow = members.length - visible.length;
   return (
     <div className="flex items-center">
       {visible.map((m, i) => (
-        <div key={m.user_id} className={cn(i > 0 && "-ml-1.5")}>
-          <AvatarCircle name={m.full_name} size={22} ring />
-        </div>
+        <AvatarTip key={m.user_id} label={m.full_name ?? "Unnamed"}>
+          <motion.div
+            className={cn("cursor-default", i > 0 && "-ml-1.5")}
+            whileHover={{ y: -4, zIndex: 10 }}
+            transition={{ type: "spring", stiffness: 500, damping: 20 }}
+          >
+            <AvatarCircle name={m.full_name} size={22} ring />
+          </motion.div>
+        </AvatarTip>
       ))}
       {overflow > 0 && (
         <div className="-ml-1.5 flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full bg-[#E2E7F2] text-[9px] font-bold text-[#5F6A88] ring-2 ring-white">
@@ -883,7 +919,7 @@ function CollaboratorsPanel({
           onBlur={() => setTimeout(() => setDropdownOpen(false), 150)}
           disabled={busy}
           placeholder="Search people to add…"
-          className="w-full rounded-md border border-[#E2E7F2] bg-white px-2.5 py-1.5 text-[11.5px] text-[#0B1533] outline-none transition-colors placeholder:text-[#5F6A88] focus:border-[#007BFF] disabled:opacity-50"
+          className="w-full rounded-md border border-[#E2E7F2] bg-white px-2.5 py-1.5 text-[11.5px] text-[#0B1533] outline-none transition-colors placeholder:text-[#5F6A88] focus:border-[#007BFF] focus:ring-[3px] focus:ring-[#007BFF]/[0.14] disabled:opacity-50"
         />
         {dropdownOpen && (
           <div className="absolute z-30 mt-1 w-full max-h-40 overflow-y-auto rounded-lg border border-[#E2E7F2] bg-white shadow-lg">
@@ -1319,7 +1355,7 @@ export default function OnboardingDetail({
           <button
             type="button"
             onClick={() => { setWizardOpen(false); router.push(`${V2_ROUTES.PORTFOLIO_TRACKER}/${projectUrlKey}`, { scroll: false }); }}
-            className={cn("mt-6 inline-flex cursor-pointer items-center gap-1.5 rounded-[9px] border px-4 py-2 text-[13px] font-semibold transition-colors", "border-[#E2E7F2] bg-white text-[#3A4565] hover:bg-[#F4F6FB]")}
+            className={cn("mt-6 inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-4 py-2 text-[13px] font-semibold transition-colors", "border-[#E2E7F2] bg-white text-[#3A4565] hover:bg-[#F4F6FB]")}
           >
             <ArrowLeft size={14} /> Back to Timeline
           </button>
@@ -1425,7 +1461,7 @@ export default function OnboardingDetail({
                   type="button"
                   onClick={() => startAtPhase(scheduledPhaseNumber)}
                   disabled={busy}
-                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-[9px] border-none bg-[#007BFF] px-4 py-2 text-[13px] font-semibold text-white shadow-[0_2px_10px_rgba(0,123,255,0.3)] transition-opacity hover:opacity-90 disabled:opacity-50"
+                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border-none bg-[#007BFF] px-4 py-2 text-[13px] font-semibold text-white shadow-[0_2px_10px_rgba(0,123,255,0.3)] transition-opacity hover:opacity-90 disabled:opacity-50"
                 >
                   <PlayCircle size={15} /> {busy ? "Starting…" : `Start Phase ${scheduledPhaseNumber}: ${scheduledPhase.name} Anyway`}
                 </button>
@@ -1442,7 +1478,7 @@ export default function OnboardingDetail({
                       value={altPhase ?? ""}
                       onChange={(e) => setAltPhase(e.target.value ? (Number(e.target.value) as 1 | 2 | 3 | 4 | 5) : null)}
                       disabled={busy}
-                      className="h-9 cursor-pointer appearance-none rounded-[9px] border-[1.5px] border-[#E2E7F2] bg-white py-1.5 pl-3 pr-8 text-[13px] text-[#0B1533] outline-none transition-colors focus:border-[#007BFF] disabled:cursor-not-allowed disabled:opacity-60"
+                      className="h-9 cursor-pointer appearance-none rounded-[9px] border-[1.5px] border-[#E2E7F2] bg-white py-1.5 pl-3 pr-8 text-[13px] text-[#0B1533] outline-none transition-colors focus:border-[#007BFF] focus:ring-[3px] focus:ring-[#007BFF]/[0.14] disabled:cursor-not-allowed disabled:opacity-60"
                       style={{
                         backgroundImage:
                           "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2394a3b8'/%3E%3C/svg%3E\")",
@@ -1463,7 +1499,7 @@ export default function OnboardingDetail({
                       type="button"
                       onClick={() => startAtPhase(altPhase)}
                       disabled={busy}
-                      className="inline-flex cursor-pointer items-center gap-1.5 rounded-[9px] border-none bg-[#007BFF] px-4 py-2 text-[13px] font-semibold text-white shadow-[0_2px_10px_rgba(0,123,255,0.3)] transition-opacity hover:opacity-90 disabled:opacity-50"
+                      className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border-none bg-[#007BFF] px-4 py-2 text-[13px] font-semibold text-white shadow-[0_2px_10px_rgba(0,123,255,0.3)] transition-opacity hover:opacity-90 disabled:opacity-50"
                     >
                       <PlayCircle size={15} /> {busy ? "Starting…" : "Proceed"}
                     </button>
@@ -1476,7 +1512,7 @@ export default function OnboardingDetail({
                   type="button"
                   onClick={handleStart}
                   disabled={starting}
-                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-[9px] border-none bg-[#007BFF] px-4 py-2 text-[13px] font-semibold text-white shadow-[0_2px_10px_rgba(0,123,255,0.3)] transition-opacity hover:opacity-90 disabled:opacity-50"
+                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border-none bg-[#007BFF] px-4 py-2 text-[13px] font-semibold text-white shadow-[0_2px_10px_rgba(0,123,255,0.3)] transition-opacity hover:opacity-90 disabled:opacity-50"
                 >
                   <PlayCircle size={15} /> {starting ? "Starting…" : "Start Onboarding"}
                 </button>
@@ -1566,7 +1602,7 @@ export default function OnboardingDetail({
                     aria-label="Project Settings"
                     title="Project Settings"
                     className={cn(
-                      "inline-flex cursor-pointer items-center justify-center rounded-lg border p-2.5 transition-colors",
+                      "inline-flex cursor-pointer items-center justify-center rounded-full border p-2.5 transition-colors",
                       settingsMenuOpen ? "border-[#007BFF] bg-[#E5F1FF] text-[#007BFF]" : "border-[#E2E7F2] bg-white text-[#3A4565] hover:border-[#A8C6F5]"
                     )}
                   >
@@ -1607,7 +1643,7 @@ export default function OnboardingDetail({
                     setWizardOpen(true);
                     router.push(`${V2_ROUTES.PORTFOLIO_TRACKER}/${projectUrlKey}?phase=${FIRST_WIZARD_STEP_PARAMS.phase}&deliverable=${FIRST_WIZARD_STEP_PARAMS.deliverable}`, { scroll: false });
                   }}
-                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-[9px] border-none bg-gradient-to-br from-[#007BFF] to-[#0063D6] px-3.5 py-2 text-[13px] font-semibold text-white shadow-[0_2px_10px_rgba(0,123,255,0.3)]"
+                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border-none bg-[#007BFF] px-4 py-2 text-[13px] font-semibold text-white shadow-[0_2px_10px_rgba(0,123,255,0.3)] transition-colors hover:bg-[#0063D6]"
                 >
                   <PlayCircle size={14} /> {activePhaseNumber === 1 ? "Onboarding Wizard" : "View Onboarding Wizard"}
                 </button>

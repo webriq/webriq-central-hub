@@ -19,7 +19,7 @@ type ClassRecord = {
   created_at: string;
 };
 
-type OnboardingProject = { status: "draft" | "scheduled" | "in_progress" };
+type OnboardingProject = { status: "draft" | "scheduled" | "in_progress" | "completed" };
 
 // No assigned_developer_id column yet — show all open/active records as the kanban
 // TODO: Add assigned_developer_id to classification_records for per-dev task assignment
