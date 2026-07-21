@@ -1954,14 +1954,16 @@ export default function OnboardingWizard({
                 >
                   <div className={cn(
                     "w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0",
-                    i < stepIdx ? "bg-brand text-white" : i === stepIdx ? "bg-brand text-white ring-4 ring-brand/15" : isDark ? "bg-white/[0.08] text-slate-500" : "bg-slate-100 text-slate-500"
+                    // v2.0 step-indicator shell (task 168) — light branch only, dark branch untouched
+                    // since it sits beside untouched step content that still honors isDark.
+                    i < stepIdx ? "bg-[#007BFF] text-white" : i === stepIdx ? "bg-[#007BFF] text-white ring-4 ring-[#007BFF]/15" : isDark ? "bg-white/[0.08] text-slate-500" : "bg-[#EDF0F7] text-slate-500"
                   )}>
                     {i < stepIdx ? <Check size={11} /> : i + 1}
                   </div>
                   <span className={cn("text-[9px] whitespace-nowrap max-w-16 truncate", i === stepIdx ? cn("font-semibold", textPrimary) : textMuted)}>{s.name}</span>
                 </button>
               </IconTip>
-              {i < STEPS.length - 1 && <div className={cn("flex-1 h-0.5 mx-1.5 -mt-4", i < stepIdx ? "bg-brand" : isDark ? "bg-white/[0.08]" : "bg-slate-200")} />}
+              {i < STEPS.length - 1 && <div className={cn("flex-1 h-0.5 mx-1.5 -mt-4", i < stepIdx ? "bg-[#007BFF]" : isDark ? "bg-white/[0.08]" : "bg-[#E2E7F2]")} />}
             </div>
           ))}
         </div>

@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WebriQ Central Hub — Operations Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ── Tokens ─────────────────────────────────────────── */
+  :root{
+    --navy:#071133;            /* brand chrome + ink anchor */
+    --navy-800:#0C1B4A;
+    --navy-700:#122459;        /* sidebar hover */
+    --navy-active:#16296B;     /* sidebar active */
+    --blue:#007BFF;            /* brand interactive */
+    --blue-700:#0063D6;
+    --blue-100:#E5F1FF;
+    --blue-50:#F0F7FF;
+    --orange:#FB914E;          /* brand CTA */
+    --orange-600:#E2762F;
+    --orange-700:#B85512;
+    --orange-100:#FFEFE3;
+
+    --bg:#F4F6FB;
+    --surface:#FFFFFF;
+    --line:#E2E7F2;
+    --line-soft:#EDF0F7;
+    --ink:#0B1533;
+    --body:#3A4565;
+    --muted:#5F6A88;
+
+    /* Phase hues — one per 120-day phase */
+    --ph-onboard:#E2762F;   --ph-onboard-bg:#FFEFE3;
+    --ph-migrate:#0063D6;   --ph-migrate-bg:#E5F1FF;
+    --ph-publish:#6A48E0;   --ph-publish-bg:#EFEAFD;
+    --ph-ai:#0B8A93;        --ph-ai-bg:#E2F6F7;
+    --ph-optimize:#177E48;  --ph-optimize-bg:#E3F5EA;
+
+    --ok:#177E48;    --ok-bg:#E3F5EA;
+    --warn:#8A5A00;  --warn-bg:#FFF3D6;
+    --late:#C0392B;  --late-bg:#FDE8E6;
+
+    --r-lg:14px; --r-md:10px; --r-sm:7px;
+    --sh-sm:0 1px 2px rgba(7,17,51,.05);
+    --sh-md:0 8px 24px rgba(7,17,51,.10);
+    --ease:cubic-bezier(.22,1,.36,1);
+
+    --z-sticky:20; --z-popover:40;
+
+    --font-ui:'Inter',system-ui,-apple-system,sans-serif;
+    --font-display:'Space Grotesk',var(--font-ui);
+    --font-mono:'JetBrains Mono',ui-monospace,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:16px}
+  body{
+    font-family:var(--font-ui);
+    background:var(--bg);
+    color:var(--body);
+    font-size:.8125rem;      /* 13px base — dense product UI */
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  button{font:inherit;cursor:pointer;border:none;background:none;color:inherit;text-align:left}
+  a{color:var(--blue-700);text-decoration:none}
+  a:hover{text-decoration:underline}
+  :focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:4px}
+
+  .app{display:grid;grid-template-columns:236px 1fr;min-height:100vh}
+
+  /* ── Sidebar ─────────────────────────────────────────── */
+  .sidebar{
+    background:var(--navy);
+    color:#B9C2E0;
+    display:flex;flex-direction:column;
+    padding:20px 14px;
+    position:sticky;top:0;height:100vh;overflow-y:auto;
+  }
+  .logo{display:flex;align-items:center;gap:10px;padding:2px 8px 22px}
+  .logo-mark{
+    width:34px;height:34px;border-radius:9px;flex:none;
+    background:var(--blue);
+    display:grid;place-items:center;
+    box-shadow:0 0 0 2px rgba(0,123,255,.28);
+  }
+  .logo-name{font-family:var(--font-display);font-weight:700;font-size:.9375rem;color:#fff;letter-spacing:-.01em;line-height:1.15}
+  .logo-name small{display:block;font-family:var(--font-ui);font-weight:500;font-size:.625rem;color:#7E8BB8;letter-spacing:.08em;text-transform:uppercase}
+
+  .nav-group{margin-top:14px}
+  .nav-label{font-size:.5625rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#5E6C9E;padding:0 10px 6px}
+  .nav-item{
+    display:flex;align-items:center;gap:10px;width:100%;
+    padding:8px 10px;border-radius:8px;
+    font-size:.8125rem;font-weight:500;color:#B9C2E0;
+    transition:background .16s var(--ease),color .16s var(--ease);
+  }
+  .nav-item svg{flex:none;opacity:.75}
+  .nav-item:hover{background:var(--navy-700);color:#fff}
+  .nav-item[aria-current="page"]{background:var(--navy-active);color:#fff;font-weight:600}
+  .nav-item[aria-current="page"] svg{opacity:1;color:#5EB0FF}
+  .nav-count{
+    margin-left:auto;font-family:var(--font-mono);font-size:.625rem;font-weight:600;
+    background:rgba(0,123,255,.22);color:#8FC4FF;
+    padding:1px 7px;border-radius:999px;
+  }
+  .nav-count.hot{background:rgba(251,145,78,.22);color:#FFB27F}
+
+  .sidebar-foot{margin-top:auto;border-top:1px solid rgba(185,194,224,.14);padding-top:12px}
+  .side-user{display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:8px;width:100%}
+  .side-user:hover{background:var(--navy-700)}
+  .avatar{width:30px;height:30px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:.625rem;font-weight:700;color:#fff}
+  .side-user .u-name{font-size:.75rem;font-weight:600;color:#fff;line-height:1.2}
+  .side-user .u-role{font-size:.625rem;color:#7E8BB8}
+
+  /* ── Header ──────────────────────────────────────────── */
+  .main{display:flex;flex-direction:column;min-width:0}
+  .topbar{
+    height:60px;flex:none;
+    background:var(--surface);border-bottom:1px solid var(--line);
+    display:flex;align-items:center;gap:12px;
+    padding:0 24px;
+    position:sticky;top:0;z-index:var(--z-sticky);
+  }
+  .crumb{font-size:.75rem;color:var(--muted)}
+  .crumb b{color:var(--ink);font-weight:600}
+  .search{
+    margin-left:auto;
+    display:flex;align-items:center;gap:8px;
+    width:min(320px,30vw);
+    background:var(--bg);border:1px solid var(--line);border-radius:9px;
+    padding:7px 12px;color:var(--muted);font-size:.75rem;
+    transition:border-color .16s var(--ease);
+  }
+  .search:hover,.search:focus-within{border-color:#A8C6F5}
+  .search input{border:none;background:none;outline:none;flex:1;font:inherit;color:var(--ink);min-width:0}
+  .search input::placeholder{color:var(--muted)}
+  .search kbd{
+    font-family:var(--font-mono);font-size:.5625rem;font-weight:600;color:var(--muted);
+    border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;
+    padding:1px 5px;background:var(--surface);
+  }
+  .icon-btn{
+    width:34px;height:34px;flex:none;border:1px solid var(--line);border-radius:9px;
+    display:grid;place-items:center;color:var(--muted);position:relative;
+    transition:border-color .16s var(--ease),color .16s var(--ease);
+  }
+  .icon-btn:hover{border-color:#A8C6F5;color:var(--ink)}
+  .icon-btn .dot{
+    position:absolute;top:7px;right:8px;width:7px;height:7px;border-radius:50%;
+    background:var(--orange-600);border:1.5px solid #fff;
+  }
+  .btn{
+    display:inline-flex;align-items:center;gap:7px;
+    padding:8px 15px;border-radius:999px;
+    font-size:.75rem;font-weight:600;white-space:nowrap;
+    transition:background .16s var(--ease),transform .12s var(--ease),border-color .16s var(--ease),color .16s var(--ease);
+  }
+  .btn:active{transform:translateY(1px)}
+  .btn-cta{background:var(--orange);color:#471F02}
+  .btn-cta:hover{background:var(--orange-600);color:#fff}
+  .btn-ghost{border:1px solid var(--line);color:var(--body);background:var(--surface)}
+  .btn-ghost:hover{border-color:#A8C6F5;color:var(--ink)}
+</style>
+</head>
+<body>
+<style>
+  /* ── Content shell ───────────────────────────────────── */
+  .content{padding:22px 24px 40px;display:flex;flex-direction:column;gap:18px;max-width:1440px;width:100%;margin:0 auto}
+  .page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
+  .page-title{font-family:var(--font-display);font-size:1.375rem;font-weight:700;color:var(--ink);letter-spacing:-.015em;text-wrap:balance}
+  .page-sub{font-size:.75rem;color:var(--muted);margin-top:3px}
+  .page-sub .mono{font-family:var(--font-mono);font-size:.6875rem;color:var(--body)}
+  .head-actions{display:flex;gap:8px;align-items:center}
+
+  /* ── Stat tiles ──────────────────────────────────────── */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+  .stat{
+    background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);
+    padding:15px 17px;box-shadow:var(--sh-sm);
+    display:flex;flex-direction:column;gap:6px;min-width:0;
+  }
+  .stat-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .stat-label{font-size:.6875rem;font-weight:600;color:var(--muted)}
+  .stat-num{font-family:var(--font-display);font-size:1.75rem;font-weight:700;color:var(--ink);letter-spacing:-.02em;line-height:1}
+  .stat-num sub{font-family:var(--font-ui);font-size:.6875rem;font-weight:500;color:var(--muted);vertical-align:baseline;margin-left:4px}
+  .stat-note{font-size:.6875rem;color:var(--muted)}
+  .stat-note b{font-weight:600}
+  .stat-note .up{color:var(--ok)}
+  .stat-note .down{color:var(--late)}
+  .stat-ico{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;flex:none}
+
+  /* ── Panels ──────────────────────────────────────────── */
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--sh-sm);min-width:0}
+  .panel-head{
+    display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+    padding:14px 18px;border-bottom:1px solid var(--line-soft);
+  }
+  .panel-title{font-family:var(--font-display);font-size:.9375rem;font-weight:600;color:var(--ink);letter-spacing:-.01em}
+  .panel-hint{font-size:.6875rem;color:var(--muted)}
+  .panel-link{margin-left:auto;font-size:.75rem;font-weight:600;color:var(--blue-700)}
+
+  /* ── 120-Day Programme board (signature) ─────────────── */
+  .board{padding:16px 18px 18px}
+  .board-scale{position:relative;margin:0 0 6px}
+  .scale-track{display:grid;grid-template-columns:12.5% 12.5% 25% 25% 25%;gap:3px}
+  .scale-seg{border-radius:6px;padding:6px 9px 7px;min-width:0}
+  .scale-seg .s-name{font-size:.6875rem;font-weight:700;letter-spacing:.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .scale-seg .s-days{font-family:var(--font-mono);font-size:.5625rem;font-weight:500;opacity:.85}
+  .seg-onboard{background:var(--ph-onboard-bg)} .seg-onboard .s-name,.seg-onboard .s-days{color:var(--ph-onboard)}
+  .seg-migrate{background:var(--ph-migrate-bg)} .seg-migrate .s-name,.seg-migrate .s-days{color:var(--ph-migrate)}
+  .seg-publish{background:var(--ph-publish-bg)} .seg-publish .s-name,.seg-publish .s-days{color:var(--ph-publish)}
+  .seg-ai{background:var(--ph-ai-bg)}           .seg-ai .s-name,.seg-ai .s-days{color:var(--ph-ai)}
+  .seg-optimize{background:var(--ph-optimize-bg)} .seg-optimize .s-name,.seg-optimize .s-days{color:var(--ph-optimize)}
+
+  .board-rows{display:flex;flex-direction:column}
+  .b-row{
+    display:grid;grid-template-columns:210px 1fr 128px;gap:16px;align-items:center;
+    padding:9px 0;border-bottom:1px solid var(--line-soft);
+    border-radius:8px;
+  }
+  .b-row:last-child{border-bottom:none}
+  .b-row:hover{background:var(--blue-50)}
+  .b-client{display:flex;align-items:center;gap:10px;min-width:0;padding-left:6px}
+  .b-client .c-name{font-size:.8125rem;font-weight:600;color:var(--ink);line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .b-client .c-class{font-size:.625rem;color:var(--muted)}
+  .b-track{position:relative;height:22px;border-radius:999px;background:var(--line-soft);overflow:visible}
+  /* phase boundary ticks at day 15 / 30 / 60 / 90 */
+  .b-track::before{
+    content:"";position:absolute;inset:0;border-radius:999px;pointer-events:none;
+    background:
+      linear-gradient(var(--line) 0 0) 12.5% 0/1px 100% no-repeat,
+      linear-gradient(var(--line) 0 0) 25%   0/1px 100% no-repeat,
+      linear-gradient(var(--line) 0 0) 50%   0/1px 100% no-repeat,
+      linear-gradient(var(--line) 0 0) 75%   0/1px 100% no-repeat;
+  }
+  .b-fill{position:absolute;inset:0 auto 0 0;border-radius:999px}
+  .b-fill.f-onboard{background:linear-gradient(90deg,#FFDDC2,var(--orange))}
+  .b-fill.f-migrate{background:linear-gradient(90deg,#BBDCFF,var(--blue))}
+  .b-fill.f-publish{background:linear-gradient(90deg,#D9CDFB,#7C5CFC)}
+  .b-fill.f-ai{background:linear-gradient(90deg,#BCE9EC,#12A5B0)}
+  .b-fill.f-optimize{background:linear-gradient(90deg,#C4EBD3,#23A05C)}
+  .b-day{
+    position:absolute;top:50%;transform:translate(-50%,-50%);
+    font-family:var(--font-mono);font-size:.5625rem;font-weight:600;
+    background:var(--navy);color:#fff;
+    padding:2px 7px;border-radius:999px;white-space:nowrap;
+    box-shadow:0 1px 3px rgba(7,17,51,.35);
+  }
+  .b-meta{display:flex;align-items:center;justify-content:flex-end;gap:8px;padding-right:6px}
+
+  /* ── Chips / badges ──────────────────────────────────── */
+  .chip{
+    display:inline-flex;align-items:center;gap:5px;
+    font-size:.625rem;font-weight:700;letter-spacing:.02em;
+    padding:2.5px 8px;border-radius:5px;white-space:nowrap;
+  }
+  .chip .cdot{width:5px;height:5px;border-radius:50%;background:currentColor}
+  .chip-ok{background:var(--ok-bg);color:var(--ok)}
+  .chip-warn{background:var(--warn-bg);color:var(--warn)}
+  .chip-late{background:var(--late-bg);color:var(--late)}
+  .chip-onboard{background:var(--ph-onboard-bg);color:var(--ph-onboard)}
+  .chip-migrate{background:var(--ph-migrate-bg);color:var(--ph-migrate)}
+  .chip-publish{background:var(--ph-publish-bg);color:var(--ph-publish)}
+  .chip-ai{background:var(--ph-ai-bg);color:var(--ph-ai)}
+  .chip-optimize{background:var(--ph-optimize-bg);color:var(--ph-optimize)}
+  .chip-neutral{background:var(--line-soft);color:var(--muted)}
+
+  /* ── Filter pills ────────────────────────────────────── */
+  .filters{display:flex;gap:6px;flex-wrap:wrap}
+  .fpill{
+    font-size:.6875rem;font-weight:600;color:var(--muted);
+    border:1px solid var(--line);border-radius:999px;
+    padding:4.5px 12px;background:var(--surface);
+    transition:all .16s var(--ease);
+  }
+  .fpill:hover{border-color:#A8C6F5;color:var(--ink)}
+  .fpill[aria-pressed="true"]{background:var(--navy);border-color:var(--navy);color:#fff}
+  .fpill .fnum{font-family:var(--font-mono);font-size:.625rem;opacity:.65;margin-left:4px}
+
+  /* ── Grid rows ───────────────────────────────────────── */
+  .grid-2{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:18px;align-items:start}
+  .grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;align-items:start}
+
+  /* ── Client table ────────────────────────────────────── */
+  table{width:100%;border-collapse:collapse}
+  thead th{
+    font-size:.5938rem;font-weight:700;color:var(--muted);
+    letter-spacing:.09em;text-transform:uppercase;text-align:left;
+    padding:9px 12px;border-bottom:1px solid var(--line-soft);
+    background:#FAFBFE;
+  }
+  thead th:first-child{padding-left:18px}
+  tbody td{padding:11px 12px;border-bottom:1px solid var(--line-soft);vertical-align:middle;font-size:.8125rem}
+  tbody td:first-child{padding-left:18px}
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr{transition:background .14s var(--ease)}
+  tbody tr:hover{background:var(--blue-50)}
+  .t-client{display:flex;align-items:center;gap:10px;min-width:0}
+  .t-client b{font-weight:600;color:var(--ink);display:block;line-height:1.25}
+  .t-client small{font-size:.625rem;color:var(--muted)}
+  .t-mono{font-family:var(--font-mono);font-size:.6875rem;color:var(--body)}
+  .t-owner{display:flex;align-items:center;gap:7px;font-size:.75rem;color:var(--body)}
+</style>
+<style>
+  /* ── Reminders / lists ───────────────────────────────── */
+  .list{display:flex;flex-direction:column}
+  .l-item{
+    display:flex;gap:11px;padding:12px 18px;
+    border-bottom:1px solid var(--line-soft);
+    transition:background .14s var(--ease);
+  }
+  .l-item:last-child{border-bottom:none}
+  .l-item:hover{background:var(--blue-50)}
+  .l-ico{
+    width:30px;height:30px;border-radius:8px;flex:none;
+    display:grid;place-items:center;margin-top:1px;
+  }
+  .l-body{min-width:0;flex:1}
+  .l-title{font-size:.75rem;font-weight:600;color:var(--ink);line-height:1.35}
+  .l-sub{font-size:.6875rem;color:var(--muted);margin-top:1px}
+  .l-sub a{font-weight:600}
+  .l-when{font-family:var(--font-mono);font-size:.5938rem;font-weight:500;color:var(--muted);white-space:nowrap;margin-top:2px}
+
+  /* ── Dev queue ───────────────────────────────────────── */
+  .dq-item{display:flex;flex-direction:column;gap:7px;padding:12px 18px;border-bottom:1px solid var(--line-soft)}
+  .dq-item:last-child{border-bottom:none}
+  .dq-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+  .dq-name{font-size:.75rem;font-weight:600;color:var(--ink);line-height:1.35}
+  .dq-name small{display:block;font-weight:400;font-size:.6875rem;color:var(--muted)}
+  .dq-due{font-family:var(--font-mono);font-size:.5938rem;font-weight:600;white-space:nowrap;padding:2.5px 8px;border-radius:5px}
+  .dq-due.soon{background:var(--warn-bg);color:var(--warn)}
+  .dq-due.ok{background:var(--line-soft);color:var(--muted)}
+  .dq-due.over{background:var(--late-bg);color:var(--late)}
+  .dq-bar{height:5px;border-radius:999px;background:var(--line-soft);overflow:hidden}
+  .dq-bar i{display:block;height:100%;border-radius:999px;background:var(--blue)}
+  .dq-foot{display:flex;align-items:center;justify-content:space-between;font-size:.6563rem;color:var(--muted)}
+  .dq-foot .cadence{display:inline-flex;align-items:center;gap:5px}
+  .dq-foot .cadence svg{color:var(--muted)}
+
+  /* ── Intake checklist ────────────────────────────────── */
+  .ck-item{display:flex;align-items:center;gap:10px;padding:9px 18px;border-bottom:1px solid var(--line-soft);font-size:.75rem}
+  .ck-item:last-child{border-bottom:none}
+  .ck-box{
+    width:17px;height:17px;flex:none;border-radius:5px;
+    border:1.5px solid #C4CCE0;display:grid;place-items:center;color:#fff;
+  }
+  .ck-item.done .ck-box{background:var(--ok);border-color:var(--ok)}
+  .ck-item.done .ck-name{color:var(--muted);text-decoration:line-through;text-decoration-color:#C4CCE0}
+  .ck-name{color:var(--ink);font-weight:500;flex:1;min-width:0}
+  .ck-tag{font-family:var(--font-mono);font-size:.5625rem;color:var(--muted)}
+  .intake-foot{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:12px 18px;border-top:1px solid var(--line-soft);
+    background:#FAFBFE;border-radius:0 0 var(--r-lg) var(--r-lg);
+  }
+  .files-note{display:flex;align-items:center;gap:8px;font-size:.6875rem;color:var(--muted)}
+  .files-note b{color:var(--ink);font-weight:600}
+  .link-btn{font-size:.6875rem;font-weight:600;color:var(--blue-700);white-space:nowrap}
+  .link-btn:hover{text-decoration:underline}
+
+  /* Progress ring in intake header */
+  .ring{--p:62;width:34px;height:34px;border-radius:50%;flex:none;display:grid;place-items:center;
+    background:conic-gradient(var(--orange-600) calc(var(--p)*1%), var(--line-soft) 0)}
+  .ring i{width:26px;height:26px;border-radius:50%;background:var(--surface);display:grid;place-items:center;
+    font-family:var(--font-mono);font-style:normal;font-size:.5313rem;font-weight:600;color:var(--ink)}
+
+  /* ── Avatars palette ─────────────────────────────────── */
+  .av-a{background:#0063D6}.av-b{background:#6A48E0}.av-c{background:#0B8A93}
+  .av-d{background:#B85512}.av-e{background:#177E48}.av-f{background:#44508A}
+  .av-stack{display:flex}
+  .av-stack .avatar{width:24px;height:24px;font-size:.5313rem;border:2px solid #fff;margin-left:-7px}
+  .av-stack .avatar:first-child{margin-left:0}
+
+  /* ── Responsive ──────────────────────────────────────── */
+  @media (max-width:1240px){
+    .stats{grid-template-columns:repeat(2,1fr)}
+    .grid-3{grid-template-columns:1fr 1fr}
+    .grid-3 .panel:last-child{grid-column:1/-1}
+  }
+  @media (max-width:1080px){
+    .app{grid-template-columns:64px 1fr}
+    .logo-name,.nav-label,.nav-item span,.nav-count,.side-user div{display:none}
+    .sidebar{padding:20px 12px;align-items:center}
+    .nav-item{justify-content:center;padding:9px}
+    .grid-2{grid-template-columns:1fr}
+  }
+  @media (max-width:760px){
+    .stats,.grid-3{grid-template-columns:1fr}
+    .b-row{grid-template-columns:1fr;gap:8px}
+    .b-meta{justify-content:flex-start;padding-left:6px}
+    .content{padding:16px 14px 32px}
+    .scale-track{display:flex;flex-wrap:wrap;gap:5px}
+    .scale-seg{flex:0 1 auto}
+    .topbar{padding:0 14px}
+    .search{display:none}
+    .hide-m{display:none}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{transition:none!important;animation:none!important}
+  }
+</style>
+
+<div class="app">
+  <!-- ═══════════ SIDEBAR ═══════════ -->
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-mark" aria-hidden="true">
+        <svg width="19" height="19" viewBox="0 0 20 20" fill="none"><path d="M3.5 14 L7 6 L10 12 L13 8 L16.5 14" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="logo-name">WebriQ<small>Central Hub</small></div>
+    </div>
+
+    <nav aria-label="Main">
+      <div class="nav-group">
+        <div class="nav-label">Workspace</div>
+        <a class="nav-item" href="#" aria-current="page">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+          <span>Dashboard</span>
+        </a>
+        <a class="nav-item" href="#">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <span>Clients</span><em class="nav-count">42</em>
+        </a>
+        <a class="nav-item" href="#">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+          <span>Onboarding</span><em class="nav-count hot">7</em>
+        </a>
+        <a class="nav-item" href="#">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+          <span>Projects</span>
+        </a>
+        <a class="nav-item" href="#">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          <span>Tasks</span><em class="nav-count">18</em>
+        </a>
+        <a class="nav-item" href="#">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+          <span>Files</span>
+        </a>
+      </div>
+      <div class="nav-group">
+        <div class="nav-label">Intelligence</div>
+        <a class="nav-item" href="#">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <span>Ops Chat</span>
+        </a>
+        <a class="nav-item" href="#">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+          <span>Knowledge Base</span>
+        </a>
+      </div>
+      <div class="nav-group">
+        <div class="nav-label">Admin</div>
+        <a class="nav-item" href="#">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          <span>Settings</span>
+        </a>
+      </div>
+    </nav>
+
+    <div class="sidebar-foot">
+      <button class="side-user">
+        <span class="avatar av-f">BR</span>
+        <div>
+          <div class="u-name">Brandon R.</div>
+          <div class="u-role">Super Admin</div>
+        </div>
+      </button>
+    </div>
+  </aside>
+  <!-- ═══════════ MAIN ═══════════ -->
+  <div class="main">
+    <header class="topbar">
+      <div class="crumb"><b>Operations</b> / Overview</div>
+      <label class="search">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+        <input type="search" placeholder="Search clients, projects, files…" aria-label="Search">
+        <kbd>⌘K</kbd>
+      </label>
+      <button class="icon-btn" aria-label="Notifications — 4 unread">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+        <span class="dot" aria-hidden="true"></span>
+      </button>
+      <button class="btn btn-ghost hide-m">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Ask Ops Chat
+      </button>
+      <button class="btn btn-cta">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        Add client
+      </button>
+    </header>
+
+    <main class="content">
+      <!-- Page head -->
+      <div class="page-head">
+        <div>
+          <h1 class="page-title">Good morning, Brandon</h1>
+          <p class="page-sub">Tuesday, July 21 · <span class="mono">7 clients</span> in the 120-day programme · <span class="mono">2</span> running late</p>
+        </div>
+        <div class="head-actions">
+          <button class="btn btn-ghost">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+            Export weekly report
+          </button>
+        </div>
+      </div>
+
+      <!-- Stat tiles -->
+      <section class="stats" aria-label="Key numbers">
+        <div class="stat">
+          <div class="stat-top">
+            <span class="stat-label">Clients in programme</span>
+            <span class="stat-ico" style="background:var(--blue-100);color:var(--blue-700)">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+            </span>
+          </div>
+          <div class="stat-num">7<sub>of 42 active</sub></div>
+          <div class="stat-note"><b class="up">+2</b> started this month</div>
+        </div>
+        <div class="stat">
+          <div class="stat-top">
+            <span class="stat-label">Running late</span>
+            <span class="stat-ico" style="background:var(--late-bg);color:var(--late)">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+            </span>
+          </div>
+          <div class="stat-num">2<sub>projects</sub></div>
+          <div class="stat-note">Ferro Group · Kalinaw Resorts</div>
+        </div>
+        <div class="stat">
+          <div class="stat-top">
+            <span class="stat-label">Handover due</span>
+            <span class="stat-ico" style="background:var(--orange-100);color:var(--orange-700)">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M8 21H3v-5"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/></svg>
+            </span>
+          </div>
+          <div class="stat-num">1<sub>this week</sub></div>
+          <div class="stat-note">Coastal Dental reaches <b>Day 16</b> Thursday</div>
+        </div>
+        <div class="stat">
+          <div class="stat-top">
+            <span class="stat-label">Publishing this week</span>
+            <span class="stat-ico" style="background:var(--ph-publish-bg);color:var(--ph-publish)">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>
+            </span>
+          </div>
+          <div class="stat-num">11<sub>pages</sub></div>
+          <div class="stat-note">Wk 5–6 wave · <b>4 clients</b> in Publish</div>
+        </div>
+      </section>
+
+      <!-- ── Signature: 120-Day Programme board ── -->
+      <section class="panel" aria-label="120-day programme board">
+        <div class="panel-head">
+          <h2 class="panel-title">120-Day Programme</h2>
+          <span class="panel-hint">Each client plotted at their current day · phase widths to scale</span>
+          <a class="panel-link" href="#">Open programme view →</a>
+        </div>
+        <div class="board">
+          <div class="board-scale" aria-hidden="true">
+            <div class="scale-track">
+              <div class="scale-seg seg-onboard"><div class="s-name">Onboard</div><div class="s-days">DAY 1–15 · BERT</div></div>
+              <div class="scale-seg seg-migrate"><div class="s-name">Migrate &amp; Rebrand</div><div class="s-days">DAY 16–30 · PM + DEV</div></div>
+              <div class="scale-seg seg-publish"><div class="s-name">Publish</div><div class="s-days">DAY 31–60 · ERICA + APRIL</div></div>
+              <div class="scale-seg seg-ai"><div class="s-name">AI Visibility</div><div class="s-days">DAY 61–90 · APRIL + ERI</div></div>
+              <div class="scale-seg seg-optimize"><div class="s-name">Optimize</div><div class="s-days">DAY 91–120 · PM + STRATEGY</div></div>
+            </div>
+          </div>
+
+          <div class="board-rows">
+            <!-- Day 8 -->
+            <div class="b-row">
+              <div class="b-client">
+                <span class="avatar av-a" aria-hidden="true">HV</span>
+                <div><div class="c-name">Harbor View Legal</div><div class="c-class">StackShift Access Plus</div></div>
+              </div>
+              <div class="b-track"><span class="b-fill f-onboard" style="width:6.7%"></span><span class="b-day" style="left:6.7%">DAY 8</span></div>
+              <div class="b-meta"><span class="chip chip-onboard">Onboard</span><span class="chip chip-ok"><i class="cdot"></i>On track</span></div>
+            </div>
+            <!-- Day 14 -->
+            <div class="b-row">
+              <div class="b-client">
+                <span class="avatar av-b" aria-hidden="true">CD</span>
+                <div><div class="c-name">Coastal Dental Group</div><div class="c-class">StackShift I</div></div>
+              </div>
+              <div class="b-track"><span class="b-fill f-onboard" style="width:11.7%"></span><span class="b-day" style="left:11.7%">DAY 14</span></div>
+              <div class="b-meta"><span class="chip chip-onboard">Onboard</span><span class="chip chip-warn"><i class="cdot"></i>Sign-off due</span></div>
+            </div>
+            <!-- Day 22 -->
+            <div class="b-row">
+              <div class="b-client">
+                <span class="avatar av-c" aria-hidden="true">NT</span>
+                <div><div class="c-name">Northtrail Logistics</div><div class="c-class">StackShift Access</div></div>
+              </div>
+              <div class="b-track"><span class="b-fill f-migrate" style="width:18.3%"></span><span class="b-day" style="left:18.3%">DAY 22</span></div>
+              <div class="b-meta"><span class="chip chip-migrate">Migrate</span><span class="chip chip-ok"><i class="cdot"></i>On track</span></div>
+            </div>
+            <!-- Day 34 late -->
+            <div class="b-row">
+              <div class="b-client">
+                <span class="avatar av-d" aria-hidden="true">FG</span>
+                <div><div class="c-name">Ferro Group Manufacturing</div><div class="c-class">StackShift Access Plus</div></div>
+              </div>
+              <div class="b-track"><span class="b-fill f-migrate" style="width:28.3%"></span><span class="b-day" style="left:28.3%">DAY 34</span></div>
+              <div class="b-meta"><span class="chip chip-migrate">Migrate</span><span class="chip chip-late"><i class="cdot"></i>4 days late</span></div>
+            </div>
+            <!-- Day 47 -->
+            <div class="b-row">
+              <div class="b-client">
+                <span class="avatar av-e" aria-hidden="true">SL</span>
+                <div><div class="c-name">Solara Landscaping</div><div class="c-class">StackShift I</div></div>
+              </div>
+              <div class="b-track"><span class="b-fill f-publish" style="width:39.2%"></span><span class="b-day" style="left:39.2%">DAY 47</span></div>
+              <div class="b-meta"><span class="chip chip-publish">Publish</span><span class="chip chip-ok"><i class="cdot"></i>On track</span></div>
+            </div>
+            <!-- Day 72 -->
+            <div class="b-row">
+              <div class="b-client">
+                <span class="avatar av-f" aria-hidden="true">KR</span>
+                <div><div class="c-name">Kalinaw Resorts</div><div class="c-class">Legacy client</div></div>
+              </div>
+              <div class="b-track"><span class="b-fill f-ai" style="width:60%"></span><span class="b-day" style="left:60%">DAY 72</span></div>
+              <div class="b-meta"><span class="chip chip-ai">AI Visibility</span><span class="chip chip-late"><i class="cdot"></i>Gap plan late</span></div>
+            </div>
+            <!-- Day 104 -->
+            <div class="b-row">
+              <div class="b-client">
+                <span class="avatar av-a" aria-hidden="true">MV</span>
+                <div><div class="c-name">Meridian Veterinary</div><div class="c-class">StackShift Access</div></div>
+              </div>
+              <div class="b-track"><span class="b-fill f-optimize" style="width:86.7%"></span><span class="b-day" style="left:86.7%">DAY 104</span></div>
+              <div class="b-meta"><span class="chip chip-optimize">Optimize</span><span class="chip chip-ok"><i class="cdot"></i>QBR Day 120</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+      <!-- ── Row: client table + reminders ── -->
+      <section class="grid-2">
+        <!-- Client table -->
+        <div class="panel" aria-label="Client list">
+          <div class="panel-head">
+            <h2 class="panel-title">Clients</h2>
+            <div class="filters" role="group" aria-label="Filter by classification">
+              <button class="fpill" aria-pressed="true">All<span class="fnum">42</span></button>
+              <button class="fpill" aria-pressed="false">StackShift I<span class="fnum">11</span></button>
+              <button class="fpill" aria-pressed="false">Access<span class="fnum">9</span></button>
+              <button class="fpill" aria-pressed="false">Access Plus<span class="fnum">6</span></button>
+              <button class="fpill" aria-pressed="false">Legacy<span class="fnum">16</span></button>
+            </div>
+            <a class="panel-link" href="#">All clients →</a>
+          </div>
+          <div style="overflow-x:auto">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Client</th>
+                <th scope="col">Classification</th>
+                <th scope="col">Phase</th>
+                <th scope="col">Day</th>
+                <th scope="col">Owner</th>
+                <th scope="col">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><div class="t-client"><span class="avatar av-b" style="width:26px;height:26px;font-size:.5625rem">CD</span><div><b>Coastal Dental Group</b><small>coastaldental.com</small></div></div></td>
+                <td><span class="chip chip-neutral">StackShift I</span></td>
+                <td><span class="chip chip-onboard">Onboard</span></td>
+                <td><span class="t-mono">14 / 120</span></td>
+                <td><div class="t-owner"><span class="avatar av-d" style="width:20px;height:20px;font-size:.5rem">BT</span>Bert</div></td>
+                <td><span class="chip chip-warn"><i class="cdot"></i>Sign-off due</span></td>
+              </tr>
+              <tr>
+                <td><div class="t-client"><span class="avatar av-c" style="width:26px;height:26px;font-size:.5625rem">NT</span><div><b>Northtrail Logistics</b><small>northtrail.io</small></div></div></td>
+                <td><span class="chip chip-neutral">Access</span></td>
+                <td><span class="chip chip-migrate">Migrate</span></td>
+                <td><span class="t-mono">22 / 120</span></td>
+                <td><div class="t-owner"><span class="avatar av-a" style="width:20px;height:20px;font-size:.5rem">JM</span>Jun M.</div></td>
+                <td><span class="chip chip-ok"><i class="cdot"></i>On track</span></td>
+              </tr>
+              <tr>
+                <td><div class="t-client"><span class="avatar av-d" style="width:26px;height:26px;font-size:.5625rem">FG</span><div><b>Ferro Group Manufacturing</b><small>ferrogroup.ph</small></div></div></td>
+                <td><span class="chip chip-neutral">Access Plus</span></td>
+                <td><span class="chip chip-migrate">Migrate</span></td>
+                <td><span class="t-mono">34 / 120</span></td>
+                <td><div class="t-owner"><span class="avatar av-e" style="width:20px;height:20px;font-size:.5rem">MR</span>Marlon</div></td>
+                <td><span class="chip chip-late"><i class="cdot"></i>4 days late</span></td>
+              </tr>
+              <tr>
+                <td><div class="t-client"><span class="avatar av-e" style="width:26px;height:26px;font-size:.5625rem">SL</span><div><b>Solara Landscaping</b><small>solarascapes.com</small></div></div></td>
+                <td><span class="chip chip-neutral">StackShift I</span></td>
+                <td><span class="chip chip-publish">Publish</span></td>
+                <td><span class="t-mono">47 / 120</span></td>
+                <td><div class="t-owner"><span class="avatar av-b" style="width:20px;height:20px;font-size:.5rem">AP</span>April</div></td>
+                <td><span class="chip chip-ok"><i class="cdot"></i>On track</span></td>
+              </tr>
+              <tr>
+                <td><div class="t-client"><span class="avatar av-f" style="width:26px;height:26px;font-size:.5625rem">KR</span><div><b>Kalinaw Resorts</b><small>kalinawresorts.ph</small></div></div></td>
+                <td><span class="chip chip-neutral">Legacy</span></td>
+                <td><span class="chip chip-ai">AI Visibility</span></td>
+                <td><span class="t-mono">72 / 120</span></td>
+                <td><div class="t-owner"><span class="avatar av-b" style="width:20px;height:20px;font-size:.5rem">AP</span>April</div></td>
+                <td><span class="chip chip-late"><i class="cdot"></i>Gap plan late</span></td>
+              </tr>
+              <tr>
+                <td><div class="t-client"><span class="avatar av-a" style="width:26px;height:26px;font-size:.5625rem">MV</span><div><b>Meridian Veterinary</b><small>meridianvet.com</small></div></div></td>
+                <td><span class="chip chip-neutral">Access</span></td>
+                <td><span class="chip chip-optimize">Optimize</span></td>
+                <td><span class="t-mono">104 / 120</span></td>
+                <td><div class="t-owner"><span class="avatar av-f" style="width:20px;height:20px;font-size:.5rem">DN</span>Dannea</div></td>
+                <td><span class="chip chip-ok"><i class="cdot"></i>QBR booked</span></td>
+              </tr>
+            </tbody>
+          </table>
+          </div>
+        </div>
+
+        <!-- Reminders -->
+        <div class="panel" aria-label="Reminders">
+          <div class="panel-head">
+            <h2 class="panel-title">Reminders</h2>
+            <span class="panel-hint">Timeline engine</span>
+            <a class="panel-link" href="#">Settings →</a>
+          </div>
+          <div class="list">
+            <div class="l-item">
+              <span class="l-ico" style="background:var(--orange-100);color:var(--orange-700)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M8 21H3v-5"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/></svg>
+              </span>
+              <div class="l-body">
+                <div class="l-title">Day 16 handover — Coastal Dental</div>
+                <div class="l-sub">Brief the developer and confirm Jun's tech docs are filed. <a href="#">Start handover</a></div>
+                <div class="l-when">DUE THU · JUL 23</div>
+              </div>
+            </div>
+            <div class="l-item">
+              <span class="l-ico" style="background:var(--blue-100);color:var(--blue-700)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+              </span>
+              <div class="l-body">
+                <div class="l-title">Status update due — Marlon</div>
+                <div class="l-sub">5-day cadence on Ferro Group build. Last update Jul 16.</div>
+                <div class="l-when">DUE TODAY</div>
+              </div>
+            </div>
+            <div class="l-item">
+              <span class="l-ico" style="background:var(--late-bg);color:var(--late)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+              </span>
+              <div class="l-body">
+                <div class="l-title">Running late — Kalinaw Resorts</div>
+                <div class="l-sub">Gap publishing plan overdue since Day 70. Escalated to PM + Super Admin.</div>
+                <div class="l-when">OVERDUE · 2 DAYS</div>
+              </div>
+            </div>
+            <div class="l-item">
+              <span class="l-ico" style="background:var(--warn-bg);color:var(--warn)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>
+              </span>
+              <div class="l-body">
+                <div class="l-title">Client sign-off pending — Coastal Dental</div>
+                <div class="l-sub">Scope, mockup, and migration plan need written approval by Day 15.</div>
+                <div class="l-when">DUE WED · JUL 22</div>
+              </div>
+            </div>
+            <div class="l-item">
+              <span class="l-ico" style="background:var(--ph-optimize-bg);color:var(--ph-optimize)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+              </span>
+              <div class="l-body">
+                <div class="l-title">QBR presentation — Meridian Veterinary</div>
+                <div class="l-sub">Day 120 review with next 90-day roadmap. Deck owner: Dannea.</div>
+                <div class="l-when">AUG 6 · DAY 120</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      <!-- ── Row: dev queue + phase-1 intake + publishing wave ── -->
+      <section class="grid-3">
+        <!-- Developer queue -->
+        <div class="panel" aria-label="Developer queue">
+          <div class="panel-head">
+            <h2 class="panel-title">Developer queue</h2>
+            <span class="panel-hint">Auto Day-30 deadlines</span>
+          </div>
+          <div>
+            <div class="dq-item">
+              <div class="dq-top">
+                <div class="dq-name">Ferro Group — migration build<small>Assigned to Marlon · from Day 16 handover</small></div>
+                <span class="dq-due over">DUE DAY 30 · JUL 17</span>
+              </div>
+              <div class="dq-bar"><i style="width:78%"></i></div>
+              <div class="dq-foot">
+                <span>Structure cleanup in QA</span>
+                <span class="cadence">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+                  Update due today
+                </span>
+              </div>
+            </div>
+            <div class="dq-item">
+              <div class="dq-top">
+                <div class="dq-name">Northtrail — StackShift I conversion<small>Assigned to Jun M. · started Day 16</small></div>
+                <span class="dq-due ok">DUE DAY 30 · JUL 29</span>
+              </div>
+              <div class="dq-bar"><i style="width:42%"></i></div>
+              <div class="dq-foot">
+                <span>Foundational pages in progress</span>
+                <span class="cadence">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+                  Next update Jul 24
+                </span>
+              </div>
+            </div>
+            <div class="dq-item">
+              <div class="dq-top">
+                <div class="dq-name">Coastal Dental — awaiting handover<small>Queued · brief scheduled for Day 16</small></div>
+                <span class="dq-due soon">STARTS DAY 16 · JUL 23</span>
+              </div>
+              <div class="dq-bar"><i style="width:0%"></i></div>
+              <div class="dq-foot">
+                <span>StackShift I instance created ✓</span>
+                <span class="cadence">Awaiting sign-off gate</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Phase 1 intake -->
+        <div class="panel" aria-label="Phase 1 intake — Coastal Dental">
+          <div class="panel-head">
+            <div class="ring" style="--p:62" role="img" aria-label="62 percent complete"><i>62%</i></div>
+            <div>
+              <h2 class="panel-title" style="font-size:.875rem">Phase 1 intake</h2>
+              <span class="panel-hint">Coastal Dental · Bert's deliverables</span>
+            </div>
+            <a class="panel-link" href="#">Open folder →</a>
+          </div>
+          <div>
+            <div class="ck-item done"><span class="ck-box"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span><span class="ck-name">Implementation file</span><span class="ck-tag">DAY 5</span></div>
+            <div class="ck-item done"><span class="ck-box"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span><span class="ck-name">HTML &amp; MD mockup files</span><span class="ck-tag">DAY 12</span></div>
+            <div class="ck-item done"><span class="ck-box"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span><span class="ck-name">Branding guides</span><span class="ck-tag">DAY 12</span></div>
+            <div class="ck-item done"><span class="ck-box"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span><span class="ck-name">Cluster topics &amp; schedules</span><span class="ck-tag">DAY 10</span></div>
+            <div class="ck-item done"><span class="ck-box"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span><span class="ck-name">Publishing plan</span><span class="ck-tag">DAY 14</span></div>
+            <div class="ck-item"><span class="ck-box"></span><span class="ck-name">KB info (raw)</span><span class="ck-tag">PENDING</span></div>
+            <div class="ck-item"><span class="ck-box"></span><span class="ck-name">DNS details</span><span class="ck-tag">PENDING</span></div>
+            <div class="ck-item"><span class="ck-box"></span><span class="ck-name">Credentials — external tools</span><span class="ck-tag">PENDING</span></div>
+          </div>
+          <div class="intake-foot">
+            <span class="files-note">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+              <b>12 files</b> uploaded · shared with 4 people
+            </span>
+            <button class="link-btn">Manage permissions</button>
+          </div>
+        </div>
+
+        <!-- Publishing wave -->
+        <div class="panel" aria-label="Publishing schedule">
+          <div class="panel-head">
+            <h2 class="panel-title">Publishing waves</h2>
+            <span class="panel-hint">Solara Landscaping · Wk 5–9</span>
+            <a class="panel-link" href="#">Content map →</a>
+          </div>
+          <div class="list">
+            <div class="l-item">
+              <span class="l-ico" style="background:var(--ph-publish-bg);color:var(--ph-publish)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg>
+              </span>
+              <div class="l-body">
+                <div class="l-title">Wk 5–6 · Product &amp; service pages</div>
+                <div class="l-sub">5 of 6 pages published · Erica</div>
+                <div class="dq-bar" style="margin-top:6px"><i style="width:83%;background:#7C5CFC"></i></div>
+              </div>
+              <span class="chip chip-ok" style="align-self:flex-start"><i class="cdot"></i>On track</span>
+            </div>
+            <div class="l-item">
+              <span class="l-ico" style="background:var(--ph-publish-bg);color:var(--ph-publish)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/></svg>
+              </span>
+              <div class="l-body">
+                <div class="l-title">Wk 7 · Industry pages</div>
+                <div class="l-sub">Drafts in review · target 3–4 pages</div>
+                <div class="dq-bar" style="margin-top:6px"><i style="width:35%;background:#7C5CFC"></i></div>
+              </div>
+              <span class="chip chip-neutral" style="align-self:flex-start">Up next</span>
+            </div>
+            <div class="l-item">
+              <span class="l-ico" style="background:var(--ph-publish-bg);color:var(--ph-publish)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              </span>
+              <div class="l-body">
+                <div class="l-title">Wk 8 · Location landing pages</div>
+                <div class="l-sub">Awaiting client approval on locations list</div>
+                <div class="dq-bar" style="margin-top:6px"><i style="width:10%;background:#7C5CFC"></i></div>
+              </div>
+              <span class="chip chip-warn" style="align-self:flex-start"><i class="cdot"></i>Blocked</span>
+            </div>
+            <div class="l-item">
+              <span class="l-ico" style="background:var(--ph-publish-bg);color:var(--ph-publish)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+              </span>
+              <div class="l-body">
+                <div class="l-title">Wk 9 · Buyer-education blog</div>
+                <div class="l-sub">Outline stage · 4–6 posts planned</div>
+                <div class="dq-bar" style="margin-top:6px"><i style="width:0%;background:#7C5CFC"></i></div>
+              </div>
+              <span class="chip chip-neutral" style="align-self:flex-start">Planned</span>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script>
+  // Filter pills — single-select behaviour (mock interaction)
+  document.querySelectorAll('.fpill').forEach(function(p){
+    p.addEventListener('click', function(){
+      document.querySelectorAll('.fpill').forEach(function(x){ x.setAttribute('aria-pressed','false'); });
+      p.setAttribute('aria-pressed','true');
+    });
+  });
+</script>
+</body>
+</html>

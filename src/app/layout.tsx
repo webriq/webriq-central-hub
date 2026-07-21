@@ -1,12 +1,17 @@
 import type { Metadata, Viewport } from "next";
-import { Sora, Geist_Mono } from "next/font/google";
+import { Space_Grotesk, JetBrains_Mono, Inter } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
-const sora = Sora({ subsets: ["latin"], variable: "--font-sans", weight: ["300","400","500","600","700","800"] });
+// Inter carries the body-wide default (labels, section titles, descriptions, pills) — the
+// "balancer" font. Space Grotesk is an opt-in accent (`font-heading`) reserved for page
+// titles and KPI numbers only; trimmed to the 2 weights those roles actually use.
+const inter = Inter({ subsets: ["latin"], variable: "--font-sans", weight: ["400","500","600","700"] });
 
-const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-mono" });
+const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-display", weight: ["600","700"] });
+
+const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono" });
 
 export const metadata: Metadata = {
   title: "WebriQ Central Hub",
@@ -28,7 +33,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={cn("h-full dark", sora.variable, geistMono.variable)}>
+    <html lang="en" className={cn("h-full dark", inter.variable, spaceGrotesk.variable, jetbrainsMono.variable)}>
       <body className={cn("font-sans noise-overlay min-h-full bg-background text-foreground antialiased")}>
         <TooltipProvider>{children}</TooltipProvider>
       </body>

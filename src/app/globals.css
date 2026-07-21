@@ -8,8 +8,8 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --font-heading: var(--font-display);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -226,18 +226,19 @@
 
 /* ─── PM Dashboard theme tokens ─────────────────────────────────────────── */
 /* Applied as a class on each pm-tab root div; children reference var(--c-xxx) */
+/* v2.0 brand hex (task 166) — navy/blue/orange, matching DESIGN.md's frontmatter exactly. */
 .pm-light {
-  --c-text: rgba(10,12,30,0.90); --c-sub: rgba(10,12,30,0.50); --c-muted: rgba(10,12,30,0.28);
-  --c-card: #ffffff; --c-border: rgba(0,0,0,0.08);
-  --c-blue: #3358F4; --c-orange: #d45e09; --c-sky: #1565c0;
-  --c-violet: #4f46e5; --c-green: #15803d; --c-amber: #a16207; --c-red: #b91c1c;
-  --c-track: rgba(0,0,0,0.06); --c-seg-bg: rgba(0,0,0,0.05);
-  --c-blue-tint: #3358F412; --c-blue-tint-border: #3358F430; --c-blue-border: #3358F430; --c-blue-bd: #3358F420;
-  --c-sky-tint: #1565c00d; --c-sky-tint2: #1565c00e; --c-sky-border: #1565c020;
-  --c-sky-border2: #1565c022; --c-sky-border3: #1565c025; --c-sky-bd: #1565c020;
-  --c-violet-tint: #4f46e512; --c-violet-bd: #4f46e520;
-  --c-orange-tint: #d45e0912; --c-orange-bd: #d45e0920;
-  --c-green-tint: #15803d12; --c-green-bd: #15803d20;
+  --c-text: #0B1533; --c-sub: #3A4565; --c-muted: #5F6A88;
+  --c-card: #ffffff; --c-border: #E2E7F2;
+  --c-blue: #007BFF; --c-orange: #FB914E; --c-sky: #0063D6;
+  --c-violet: #6A48E0; --c-green: #177E48; --c-amber: #8A5A00; --c-red: #C0392B;
+  --c-track: #EDF0F7; --c-seg-bg: #EDF0F7;
+  --c-blue-tint: #007BFF12; --c-blue-tint-border: #007BFF30; --c-blue-border: #007BFF30; --c-blue-bd: #007BFF20;
+  --c-sky-tint: #0063D60d; --c-sky-tint2: #0063D60e; --c-sky-border: #0063D620;
+  --c-sky-border2: #0063D622; --c-sky-border3: #0063D625; --c-sky-bd: #0063D620;
+  --c-violet-tint: #6A48E012; --c-violet-bd: #6A48E020;
+  --c-orange-tint: #FB914E12; --c-orange-bd: #FB914E20;
+  --c-green-tint: #177E4812; --c-green-bd: #177E4820;
 }
 
 .pm-dark {

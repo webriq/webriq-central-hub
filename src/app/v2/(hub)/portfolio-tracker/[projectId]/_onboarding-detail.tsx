@@ -74,26 +74,30 @@ const LANE_TOP_PADDING = 8;
 // by 2x this amount so it sits centered in its row instead of flush against the top edge.
 const CARD_INSET = 8;
 
-// ─── Per-phase palette (from _design/customers/CustomerTimeline.tsx's color system) ──
+// ─── Per-phase palette — DESIGN.md's fixed 5-phase-hue vocabulary (task 168), matching the same
+// values already shipped in dashboard-shared.tsx's PHASE_TONE/PHASE_GRADIENT (tasks 166/167):
+// Onboard=orange, Migrate & Rebrand=blue, Publish=violet, AI Visibility=teal, Optimize=green.
+// A phase hue is never reused for a non-phase meaning — this replaces the old, unrelated
+// blue/violet/teal/amber/slate mapping this file used before v2.0.
 
 type PhaseVisual = { border: string; bg: string; ring: string; text: string; solid: string; iconBg: string; iconText: string };
 
 const PHASE_VISUALS: Record<number, PhaseVisual> = {
-  1: { border: "border-[#2563EB]", bg: "bg-[#EFF6FF]", ring: "shadow-[0_0_0_3px_rgba(37,99,235,0.09)]", text: "text-[#2563EB]", solid: "bg-[#2563EB]", iconBg: "bg-[#2563EB]/15", iconText: "text-[#2563EB]" },
-  2: { border: "border-[#7C3AED]", bg: "bg-[#F5F3FF]", ring: "shadow-[0_0_0_3px_rgba(124,58,237,0.09)]", text: "text-[#7C3AED]", solid: "bg-[#7C3AED]", iconBg: "bg-[#7C3AED]/15", iconText: "text-[#7C3AED]" },
-  3: { border: "border-[#0D9488]", bg: "bg-[#F0FDFA]", ring: "shadow-[0_0_0_3px_rgba(13,148,136,0.09)]", text: "text-[#0D9488]", solid: "bg-[#0D9488]", iconBg: "bg-[#0D9488]/15", iconText: "text-[#0D9488]" },
-  4: { border: "border-[#D97706]", bg: "bg-[#FFFBEB]", ring: "shadow-[0_0_0_3px_rgba(217,119,6,0.09)]", text: "text-[#D97706]", solid: "bg-[#D97706]", iconBg: "bg-[#D97706]/15", iconText: "text-[#D97706]" },
-  5: { border: "border-[#0F172A]", bg: "bg-[#F1F5F9]", ring: "shadow-[0_0_0_3px_rgba(15,23,42,0.09)]", text: "text-[#0F172A]", solid: "bg-[#0F172A]", iconBg: "bg-[#0F172A]/10", iconText: "text-[#0F172A]" },
+  1: { border: "border-[#E2762F]", bg: "bg-[#FFEFE3]", ring: "shadow-[0_0_0_3px_rgba(226,118,47,0.12)]", text: "text-[#E2762F]", solid: "bg-[#E2762F]", iconBg: "bg-[#E2762F]/15", iconText: "text-[#E2762F]" },
+  2: { border: "border-[#0063D6]", bg: "bg-[#E5F1FF]", ring: "shadow-[0_0_0_3px_rgba(0,99,214,0.12)]", text: "text-[#0063D6]", solid: "bg-[#0063D6]", iconBg: "bg-[#0063D6]/15", iconText: "text-[#0063D6]" },
+  3: { border: "border-[#6A48E0]", bg: "bg-[#EFEAFD]", ring: "shadow-[0_0_0_3px_rgba(106,72,224,0.12)]", text: "text-[#6A48E0]", solid: "bg-[#6A48E0]", iconBg: "bg-[#6A48E0]/15", iconText: "text-[#6A48E0]" },
+  4: { border: "border-[#0B8A93]", bg: "bg-[#E2F6F7]", ring: "shadow-[0_0_0_3px_rgba(11,138,147,0.12)]", text: "text-[#0B8A93]", solid: "bg-[#0B8A93]", iconBg: "bg-[#0B8A93]/15", iconText: "text-[#0B8A93]" },
+  5: { border: "border-[#177E48]", bg: "bg-[#E3F5EA]", ring: "shadow-[0_0_0_3px_rgba(23,126,72,0.12)]", text: "text-[#177E48]", solid: "bg-[#177E48]", iconBg: "bg-[#177E48]/15", iconText: "text-[#177E48]" },
 };
 
 // Raw hex twins of PHASE_VISUALS' colors — needed for the DeliverableCard progress-fill/stripe
 // gradients, which are computed dynamically (percentage-driven) and can't be static Tailwind classes.
 const PHASE_HEX: Record<number, string> = {
-  1: "#2563EB",
-  2: "#7C3AED",
-  3: "#0D9488",
-  4: "#D97706",
-  5: "#0F172A",
+  1: "#E2762F",
+  2: "#0063D6",
+  3: "#6A48E0",
+  4: "#0B8A93",
+  5: "#177E48",
 };
 
 // ─── Reminder chip palette ─────────────────────────────────────────────────────
@@ -101,10 +105,10 @@ const PHASE_HEX: Record<number, string> = {
 type ReminderItem = { key: string; type: "warning" | "reminder" | "info" | "success"; title: string; body: string };
 
 const REMINDER_STYLE: Record<ReminderItem["type"], { bg: string; border: string; title: string; icon: React.ReactNode }> = {
-  warning: { bg: "bg-[#FFF7ED]", border: "border-[#FED7AA]", title: "text-[#92400E]", icon: <AlertTriangle size={13} className="text-[#D97706]" /> },
-  reminder: { bg: "bg-[#EFF6FF]", border: "border-[#BFDBFE]", title: "text-[#1E40AF]", icon: <Bell size={13} className="text-[#2563EB]" /> },
-  info: { bg: "bg-[#F8FAFC]", border: "border-[#E2E8F0]", title: "text-[#0F172A]", icon: <Info size={13} className="text-[#64748B]" /> },
-  success: { bg: "bg-[#F0FDF4]", border: "border-[#BBF7D0]", title: "text-[#166534]", icon: <CheckCircle2 size={13} className="text-[#16A34A]" /> },
+  warning: { bg: "bg-[#FFF3D6]", border: "border-[#F0D896]", title: "text-[#8A5A00]", icon: <AlertTriangle size={13} className="text-[#8A5A00]" /> },
+  reminder: { bg: "bg-[#E5F1FF]", border: "border-[#BBDCFF]", title: "text-[#0063D6]", icon: <Bell size={13} className="text-[#007BFF]" /> },
+  info: { bg: "bg-[#EDF0F7]", border: "border-[#E2E7F2]", title: "text-[#0B1533]", icon: <Info size={13} className="text-[#5F6A88]" /> },
+  success: { bg: "bg-[#E3F5EA]", border: "border-[#BEE7CD]", title: "text-[#177E48]", icon: <CheckCircle2 size={13} className="text-[#177E48]" /> },
 };
 
 function buildReminders(day: number, phaseStatus: Map<number, string>, deliverableStatus: Map<string, string>): ReminderItem[] {
@@ -146,11 +150,13 @@ function buildReminders(day: number, phaseStatus: Map<number, string>, deliverab
 
 // ─── Owner avatar chips (small, fixed enumerable set — no computed inline colors) ──
 
+// DESIGN.md's fixed 6-color avatar rotation, matching AVATAR_COLORS already used in
+// pm-dashboard.tsx / _onboarding-list.tsx (tasks 166/167) for app-wide consistency.
 const PERSON_COLOR: Record<string, string> = {
-  Bert: "bg-[#2563EB]", PM: "bg-[#7C3AED]", Dev: "bg-[#0D9488]", Jun: "bg-[#DB2777]",
-  Erica: "bg-[#D97706]", April: "bg-[#0EA5E9]", Eri: "bg-[#16A34A]", Strategy: "bg-[#DC2626]",
+  Bert: "bg-[#0063D6]", PM: "bg-[#6A48E0]", Dev: "bg-[#0B8A93]", Jun: "bg-[#B85512]",
+  Erica: "bg-[#177E48]", April: "bg-[#44508A]", Eri: "bg-[#0063D6]", Strategy: "bg-[#B85512]",
 };
-const DEFAULT_PERSON_COLOR = "bg-[#64748B]";
+const DEFAULT_PERSON_COLOR = "bg-[#5F6A88]";
 
 function ownerChips(owner: string): { label: string; colorClass: string }[] {
   const names = owner.split(/\s*\+\s*/).filter(Boolean);
@@ -196,13 +202,13 @@ function formatDeliverableDateRange(startDate: Date, dayStart: number, dayEnd: n
 function DateColumnHeader({ date, isToday }: { date: Date; isToday: boolean }) {
   return (
     <div
-      className={cn("flex h-12 shrink-0 flex-col items-center justify-center border-r border-[#F1F5F9]", isToday && "bg-[#FFF7ED]")}
+      className={cn("flex h-12 shrink-0 flex-col items-center justify-center border-r border-[#EDF0F7]", isToday && "bg-[#FFEFE3]")}
       style={{ width: DAY_WIDTH }}
     >
-      <div className={cn("font-mono text-[9px] tracking-wide", isToday ? "font-bold text-[#F97316]" : "text-[#64748B]")}>
+      <div className={cn("font-mono text-[9px] tracking-wide", isToday ? "font-bold text-[#FB914E]" : "text-[#5F6A88]")}>
         {date.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase()}
       </div>
-      <div className={cn("text-[11px] font-semibold", isToday ? "text-[#F97316]" : "text-[#475569]")}>{date.getDate()}</div>
+      <div className={cn("text-[11px] font-semibold", isToday ? "text-[#FB914E]" : "text-[#3A4565]")}>{date.getDate()}</div>
     </div>
   );
 }
@@ -245,7 +251,7 @@ function ProgressRing({ percentage, colorClass, size = 22 }: { percentage: numbe
           shows through, making the ring invisible against itself. */}
       <circle cx={cx} cy={cx} r={outerR} className="fill-white" />
       <circle cx={cx} cy={cx} r={outerR} fill="none" strokeWidth={1.25} className={cn("stroke-current", colorClass)} />
-      <circle cx={cx} cy={cx} r={pieR} strokeWidth={1} className="fill-white stroke-[#E2E8F0]" />
+      <circle cx={cx} cy={cx} r={pieR} strokeWidth={1} className="fill-white stroke-[#E2E7F2]" />
       {wedgePath && <path d={wedgePath} className={cn("fill-current", colorClass, "opacity-50")} />}
     </svg>
   );
@@ -435,8 +441,8 @@ function DeliverableCard({
         style={barStyle}
         className={cn(
           "relative flex h-full w-full items-center gap-2 overflow-hidden rounded-[10px] border-[1.5px] px-2.5 text-left transition-colors",
-          percentage >= 100 ? "border-transparent" : "border-[#E2E8F0]",
-          interactive && "hover:border-[#CBD5E1]",
+          percentage >= 100 ? "border-transparent" : "border-[#E2E7F2]",
+          interactive && "hover:border-[#A8C6F5]",
           canEditSchedule ? (dragState ? "cursor-grabbing" : "cursor-grab") : interactive ? "cursor-pointer" : "cursor-default"
         )}
       >
@@ -457,13 +463,13 @@ function DeliverableCard({
           ref={titleRef}
           className={cn(
             "min-w-0 flex-1 truncate text-[11.5px] font-medium",
-            percentage >= 100 ? "text-white" : textSplitPct === null ? "text-[#0F172A]" : undefined
+            percentage >= 100 ? "text-white" : textSplitPct === null ? "text-[#0B1533]" : undefined
           )}
           style={
             textSplitPct === null
               ? undefined
               : {
-                  backgroundImage: `linear-gradient(to right, #ffffff 0%, #ffffff ${textSplitPct}%, #0F172A ${textSplitPct}%, #0F172A 100%)`,
+                  backgroundImage: `linear-gradient(to right, #ffffff 0%, #ffffff ${textSplitPct}%, #0B1533 ${textSplitPct}%, #0B1533 100%)`,
                   WebkitBackgroundClip: "text",
                   backgroundClip: "text",
                   color: "transparent",
@@ -482,7 +488,7 @@ function DeliverableCard({
           ref={badgeRef}
           type="button"
           onClick={onToggleExpand}
-          className="absolute -right-1.5 -top-1.5 z-9 flex h-4.5 cursor-pointer items-center gap-0.5 rounded-full border border-[#E2E8F0] bg-white px-1.5 text-[8px] font-bold text-[#64748B] shadow-sm"
+          className="absolute -right-1.5 -top-1.5 z-9 flex h-4.5 cursor-pointer items-center gap-0.5 rounded-full border border-[#E2E7F2] bg-white px-1.5 text-[8px] font-bold text-[#5F6A88] shadow-sm"
         >
           <ListChecks size={8} /> {doneInternal}/{internalItems.length}
         </button>
@@ -497,17 +503,17 @@ function DeliverableCard({
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -4, scale: 0.97 }}
               transition={{ duration: 0.15 }}
-              className="fixed z-50 w-56 rounded-xl border border-[#E2E8F0] bg-white p-1.5 shadow-lg"
+              className="fixed z-50 w-56 rounded-xl border border-[#E2E7F2] bg-white p-1.5 shadow-lg"
               style={{ top: popoverPos.top, left: popoverPos.left }}
             >
-              <div className="px-2 pb-1 pt-1 text-[9px] font-bold uppercase tracking-wide text-[#64748B]">Checklist</div>
+              <div className="px-2 pb-1 pt-1 text-[9px] font-bold uppercase tracking-wide text-[#5F6A88]">Checklist</div>
               {internalItems.map((item) => {
                 const iStatus = internalByKey.get(item.key)?.status ?? "pending";
                 const iIcon = iStatus === "done"
-                  ? <CheckCircle2 size={11} className="text-[#16A34A]" />
+                  ? <CheckCircle2 size={11} className="text-[#177E48]" />
                   : iStatus === "in_progress"
-                    ? <Clock size={11} className="text-[#2563EB]" />
-                    : <span className="inline-block h-2.5 w-2.5 rounded-full border-2 border-[#CBD5E1]" />;
+                    ? <Clock size={11} className="text-[#007BFF]" />
+                    : <span className="inline-block h-2.5 w-2.5 rounded-full border-2 border-[#A8C6F5]" />;
                 return (
                   <button
                     key={item.key}
@@ -516,12 +522,12 @@ function DeliverableCard({
                     onClick={interactive ? onOpenWizardStep : undefined}
                     disabled={!interactive}
                     className={cn(
-                      "flex w-full items-center gap-2 rounded-md border-none bg-transparent px-1.5 py-1 text-left transition-colors hover:bg-[#F8FAFC] disabled:opacity-60",
+                      "flex w-full items-center gap-2 rounded-md border-none bg-transparent px-1.5 py-1 text-left transition-colors hover:bg-[#F4F6FB] disabled:opacity-60",
                       interactive ? "cursor-pointer" : "cursor-default"
                     )}
                   >
                     {iIcon}
-                    <span className={cn("text-[11px]", iStatus === "done" ? "text-[#64748B] line-through" : "text-[#334155]")}>{item.name}</span>
+                    <span className={cn("text-[11px]", iStatus === "done" ? "text-[#5F6A88] line-through" : "text-[#3A4565]")}>{item.name}</span>
                   </button>
                 );
               })}
@@ -533,23 +539,23 @@ function DeliverableCard({
       {hovered && hoverPos && typeof document !== "undefined" &&
         createPortal(
           <div
-            className="fixed z-50 w-64 pointer-events-none rounded-xl border border-[#E2E8F0] bg-white p-3 shadow-lg"
+            className="fixed z-50 w-64 pointer-events-none rounded-xl border border-[#E2E7F2] bg-white p-3 shadow-lg"
             style={{ top: hoverPos.top, left: hoverPos.left }}
           >
             <div className="flex items-center justify-between gap-2">
-              <div className="min-w-0 truncate text-[12.5px] font-bold text-[#0F172A]">{d.name}</div>
+              <div className="min-w-0 truncate text-[12.5px] font-bold text-[#0B1533]">{d.name}</div>
               <span className={cn("font-mono shrink-0 text-[10px] font-bold", phaseVisual.text)}>{percentage}%</span>
             </div>
-            <p className="mt-1 text-[11px] leading-snug text-[#64748B]">{d.description}</p>
+            <p className="mt-1 text-[11px] leading-snug text-[#5F6A88]">{d.description}</p>
             <div className="mt-2.5 flex items-center gap-1.5">
               {ownerChips(d.owner).map((c, idx) => (
                 <span key={idx} className={cn("flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[7px] font-bold text-white", c.colorClass)}>
                   {c.label}
                 </span>
               ))}
-              <span className="text-[10.5px] text-[#475569]">{d.owner}</span>
+              <span className="text-[10.5px] text-[#3A4565]">{d.owner}</span>
             </div>
-            <div className={cn("font-mono mt-2 flex items-center gap-1 text-[10px] text-[#64748B]")}>
+            <div className={cn("font-mono mt-2 flex items-center gap-1 text-[10px] text-[#5F6A88]")}>
               <CalendarClock size={11} /> {formatDeliverableDateRange(startDate, d.dayStart, d.dayEnd)}
             </div>
           </div>,
@@ -600,23 +606,23 @@ function Swimlane({
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05, duration: 0.25 }}
-      className="flex border-b border-[#E2E8F0]"
+      className="flex border-b border-[#E2E7F2]"
     >
-      <div className={cn("sticky left-0  z-2 shrink-0 border-r border-[#E2E8F0] px-3.5 py-3", visual.bg)} style={{ width: LABEL_WIDTH }}>
+      <div className={cn("sticky left-0  z-2 shrink-0 border-r border-[#E2E7F2] px-3.5 py-3", visual.bg)} style={{ width: LABEL_WIDTH }}>
         <button type="button" onClick={onToggleCollapse} className="flex w-full cursor-pointer items-center gap-2 border-none bg-transparent p-0 text-left">
           <div className={cn("flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[12px] font-bold", visual.iconBg, visual.iconText)}>
             {dbStatus === "completed" ? <CheckCircle2 size={13} /> : phase.number}
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
-              <span className={cn("truncate text-[12.5px] font-bold text-[#0F172A]")}>{phase.name}</span>
-              {dbStatus === "active" && <span className="h-1.5 w-1.5 shrink-0 animate-pulse motion-reduce:animate-none rounded-full bg-[#2563EB]" />}
+              <span className={cn("truncate text-[12.5px] font-bold text-[#0B1533]")}>{phase.name}</span>
+              {dbStatus === "active" && <span className="h-1.5 w-1.5 shrink-0 animate-pulse motion-reduce:animate-none rounded-full bg-[#007BFF]" />}
             </div>
-            <div className={cn("font-mono truncate text-[10px] text-[#64748B]")}>
+            <div className={cn("font-mono truncate text-[10px] text-[#5F6A88]")}>
               D{phase.dayStart}–{phase.dayEnd} · {doneCount}/{phase.deliverables.length}
             </div>
           </div>
-          {collapsed ? <ChevronRight size={14} className="shrink-0 text-[#64748B]" /> : <ChevronDown size={14} className="shrink-0 text-[#64748B]" />}
+          {collapsed ? <ChevronRight size={14} className="shrink-0 text-[#5F6A88]" /> : <ChevronDown size={14} className="shrink-0 text-[#5F6A88]" />}
         </button>
       </div>
 
@@ -666,20 +672,20 @@ function JumpToPhaseMenu({
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-xs font-medium text-[#475569] transition-colors hover:border-[#CBD5E1]"
+        className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[#E2E7F2] bg-white px-3 py-2 text-xs font-medium text-[#3A4565] transition-colors hover:border-[#A8C6F5]"
       >
         <Flag size={13} /> Jump to phase <ChevronDown size={12} className={cn("transition-transform", open && "rotate-180")} />
       </button>
       {open && (
-        <div className="absolute right-0 top-[calc(100%+6px)] z-30 min-w-64 overflow-hidden rounded-xl border border-[#E2E8F0] bg-white shadow-lg">
-          <div className="px-3.5 pb-1.5 pt-3 text-[10px] font-bold uppercase tracking-wider text-[#64748B]">Manually tag starting phase</div>
+        <div className="absolute right-0 top-[calc(100%+6px)] z-30 min-w-64 overflow-hidden rounded-xl border border-[#E2E7F2] bg-white shadow-lg">
+          <div className="px-3.5 pb-1.5 pt-3 text-[10px] font-bold uppercase tracking-wider text-[#5F6A88]">Manually tag starting phase</div>
           {PROGRAMME_PHASES.map((p) => (
             <button
               key={p.number}
               type="button"
               onClick={() => onJump(p.number)}
               disabled={jumping}
-              className="w-full cursor-pointer border-none bg-transparent px-3.5 py-2 text-left text-[13px] text-[#0F172A] transition-colors hover:bg-[#F8FAFC] disabled:opacity-50"
+              className="w-full cursor-pointer border-none bg-transparent px-3.5 py-2 text-left text-[13px] text-[#0B1533] transition-colors hover:bg-[#F4F6FB] disabled:opacity-50"
             >
               {p.name} (Day {p.dayStart}–{p.dayEnd})
             </button>
@@ -689,7 +695,7 @@ function JumpToPhaseMenu({
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder="Optional note…"
-              className="w-full rounded-lg border border-[#E2E8F0] bg-white px-2.5 py-1.5 text-xs text-[#0F172A] outline-none focus:border-[#2563EB]"
+              className="w-full rounded-lg border border-[#E2E7F2] bg-white px-2.5 py-1.5 text-xs text-[#0B1533] outline-none focus:border-[#007BFF]"
             />
           </div>
         </div>
@@ -702,9 +708,9 @@ function JumpToPhaseMenu({
 
 function StatChip({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-1.5 text-center">
-      <div className={cn("text-sm font-bold text-[#0F172A]")}>{value}</div>
-      <div className="whitespace-nowrap text-[9px] uppercase tracking-wide text-[#64748B]">{label}</div>
+    <div className="rounded-lg border border-[#E2E7F2] bg-[#F4F6FB] px-3 py-1.5 text-center">
+      <div className={cn("text-sm font-bold text-[#0B1533]")}>{value}</div>
+      <div className="whitespace-nowrap text-[9px] uppercase tracking-wide text-[#5F6A88]">{label}</div>
     </div>
   );
 }
@@ -717,7 +723,7 @@ function StatChip({ label, value }: { label: string; value: string | number }) {
 
 function AvatarCircle({ name, size = 22, ring }: { name: string | null; size?: number; ring?: boolean }) {
   const initials = (name ?? "?").split(" ").filter(Boolean).map((w) => w[0]).join("").slice(0, 2).toUpperCase() || "?";
-  const colors = ["#2563EB", "#7C3AED", "#0D9488", "#DC2626", "#D97706"];
+  const colors = ["#0063D6", "#6A48E0", "#0B8A93", "#B85512", "#177E48", "#44508A"];
   const bg = colors[(name ?? "?").charCodeAt(0) % colors.length];
   return (
     <div
@@ -731,7 +737,7 @@ function AvatarCircle({ name, size = 22, ring }: { name: string | null; size?: n
 }
 
 function CollaboratorAvatars({ members, max = 4 }: { members: MemberRow[]; max?: number }) {
-  if (members.length === 0) return <span className="text-[11.5px] text-[#64748B]">None yet</span>;
+  if (members.length === 0) return <span className="text-[11.5px] text-[#5F6A88]">None yet</span>;
   const visible = members.slice(0, max);
   const overflow = members.length - visible.length;
   return (
@@ -742,7 +748,7 @@ function CollaboratorAvatars({ members, max = 4 }: { members: MemberRow[]; max?:
         </div>
       ))}
       {overflow > 0 && (
-        <div className="-ml-1.5 flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full bg-[#E2E8F0] text-[9px] font-bold text-[#64748B] ring-2 ring-white">
+        <div className="-ml-1.5 flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full bg-[#E2E7F2] text-[9px] font-bold text-[#5F6A88] ring-2 ring-white">
           +{overflow}
         </div>
       )}
@@ -754,13 +760,13 @@ function PersonChip({ label, sublabel, isOwner, onRemove, disabled }: {
   label: string; sublabel: string; isOwner?: boolean; onRemove?: () => void; disabled?: boolean;
 }) {
   return (
-    <div className="inline-flex items-center gap-1.5 rounded-full border border-[#E2E8F0] bg-white py-1 pl-1 pr-2 text-[11.5px]">
-      <div className="flex h-5 w-5 items-center justify-center rounded-full bg-[#2563EB]/10 text-[9px] font-bold text-[#2563EB]">
+    <div className="inline-flex items-center gap-1.5 rounded-full border border-[#E2E7F2] bg-white py-1 pl-1 pr-2 text-[11.5px]">
+      <div className="flex h-5 w-5 items-center justify-center rounded-full bg-[#007BFF]/10 text-[9px] font-bold text-[#007BFF]">
         {(label || "?").slice(0, 1).toUpperCase()}
       </div>
-      <span className="font-medium text-[#334155]">{label}</span>
-      <span className="text-[10px] text-[#64748B]">{sublabel}</span>
-      {isOwner && <Crown size={11} className="text-[#D97706]" aria-label="Owner" />}
+      <span className="font-medium text-[#3A4565]">{label}</span>
+      <span className="text-[10px] text-[#5F6A88]">{sublabel}</span>
+      {isOwner && <Crown size={11} className="text-[#B85512]" aria-label="Owner" />}
       {onRemove && (
         <button
           type="button"
@@ -768,7 +774,7 @@ function PersonChip({ label, sublabel, isOwner, onRemove, disabled }: {
           disabled={disabled}
           title="Remove"
           aria-label={`Remove ${label}`}
-          className="cursor-pointer rounded-full border-none bg-transparent p-0.5 text-[#64748B] transition-colors hover:text-[#DC2626] disabled:opacity-50"
+          className="cursor-pointer rounded-full border-none bg-transparent p-0.5 text-[#5F6A88] transition-colors hover:text-[#C0392B] disabled:opacity-50"
         >
           <X size={11} />
         </button>
@@ -780,13 +786,13 @@ function PersonChip({ label, sublabel, isOwner, onRemove, disabled }: {
 function PanelHeader({ label, onClose }: { label: string; onClose: () => void }) {
   return (
     <div className="flex items-start justify-between gap-2">
-      <div className="text-[11px] font-semibold uppercase tracking-wide text-[#64748B]">{label}</div>
+      <div className="text-[11px] font-semibold uppercase tracking-wide text-[#5F6A88]">{label}</div>
       <button
         type="button"
         onClick={onClose}
         aria-label="Close"
         title="Close"
-        className="shrink-0 cursor-pointer rounded-md border-none bg-transparent p-0.5 text-[#64748B] transition-colors hover:bg-white hover:text-[#334155]"
+        className="shrink-0 cursor-pointer rounded-md border-none bg-transparent p-0.5 text-[#5F6A88] transition-colors hover:bg-white hover:text-[#3A4565]"
       >
         <X size={14} />
       </button>
@@ -808,24 +814,24 @@ function OwnerPanel({ projectMembers, busy, error, onTransferOwnership, onClose 
   const candidates = projectMembers.filter((m) => !m.is_owner);
 
   return (
-    <div className="mt-4 flex flex-col gap-2 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
+    <div className="mt-4 flex flex-col gap-2 rounded-xl border border-[#E2E7F2] bg-[#F4F6FB] p-4">
       <PanelHeader label="Set project owner" onClose={onClose} />
-      {error && <p className="text-[11.5px] text-[#DC2626]">{error}</p>}
+      {error && <p className="text-[11.5px] text-[#C0392B]">{error}</p>}
       <div className="flex flex-wrap items-center gap-2">
         {owner ? (
-          <div className="inline-flex items-center gap-1.5 rounded-full border border-[#E2E8F0] bg-white py-1 pl-1 pr-2.5 text-[11.5px]">
+          <div className="inline-flex items-center gap-1.5 rounded-full border border-[#E2E7F2] bg-white py-1 pl-1 pr-2.5 text-[11.5px]">
             <AvatarCircle name={owner.full_name} size={20} />
-            <span className="font-medium text-[#334155]">{owner.full_name ?? "Unnamed"}</span>
-            <Crown size={11} className="text-[#D97706]" aria-label="Current owner" />
+            <span className="font-medium text-[#3A4565]">{owner.full_name ?? "Unnamed"}</span>
+            <Crown size={11} className="text-[#B85512]" aria-label="Current owner" />
           </div>
         ) : (
-          <span className="text-[11.5px] text-[#64748B]">No owner set yet.</span>
+          <span className="text-[11.5px] text-[#5F6A88]">No owner set yet.</span>
         )}
         <select
           value=""
           disabled={busy || candidates.length === 0}
           onChange={(e) => { if (e.target.value) onTransferOwnership(e.target.value); e.target.value = ""; }}
-          className="rounded-full border border-dashed border-[#CBD5E1] bg-white px-2.5 py-1 text-[11px] text-[#64748B] disabled:opacity-50"
+          className="rounded-full border border-dashed border-[#A8C6F5] bg-white px-2.5 py-1 text-[11px] text-[#5F6A88] disabled:opacity-50"
         >
           <option value="">{candidates.length === 0 ? "No other collaborators yet" : "Transfer to…"}</option>
           {candidates.map((m) => (
@@ -833,7 +839,7 @@ function OwnerPanel({ projectMembers, busy, error, onTransferOwnership, onClose 
           ))}
         </select>
       </div>
-      <p className="text-[10.5px] text-[#64748B]">
+      <p className="text-[10.5px] text-[#5F6A88]">
         The new owner must already be a collaborator — add them first if they aren&apos;t listed.
       </p>
     </div>
@@ -864,9 +870,9 @@ function CollaboratorsPanel({
     .filter((p) => (p.full_name ?? "").toLowerCase().includes(search.toLowerCase()));
 
   return (
-    <div className="mt-4 mb-6 flex flex-col gap-2.5 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
+    <div className="mt-4 mb-6 flex flex-col gap-2.5 rounded-xl border border-[#E2E7F2] bg-[#F4F6FB] p-4">
       <PanelHeader label="Add collaborators — who sees this on the Onboarding list" onClose={onClose} />
-      {error && <p className="text-[11.5px] text-[#DC2626]">{error}</p>}
+      {error && <p className="text-[11.5px] text-[#C0392B]">{error}</p>}
       {/* Search sits above the collaborator chips, not beside them. */}
       <div className="relative max-w-xs">
         <input
@@ -877,12 +883,12 @@ function CollaboratorsPanel({
           onBlur={() => setTimeout(() => setDropdownOpen(false), 150)}
           disabled={busy}
           placeholder="Search people to add…"
-          className="w-full rounded-md border border-[#E2E8F0] bg-white px-2.5 py-1.5 text-[11.5px] text-[#0F172A] outline-none transition-colors placeholder:text-[#64748B] focus:border-[#2563EB] disabled:opacity-50"
+          className="w-full rounded-md border border-[#E2E7F2] bg-white px-2.5 py-1.5 text-[11.5px] text-[#0B1533] outline-none transition-colors placeholder:text-[#5F6A88] focus:border-[#007BFF] disabled:opacity-50"
         />
         {dropdownOpen && (
-          <div className="absolute z-30 mt-1 w-full max-h-40 overflow-y-auto rounded-lg border border-[#E2E8F0] bg-white shadow-lg">
+          <div className="absolute z-30 mt-1 w-full max-h-40 overflow-y-auto rounded-lg border border-[#E2E7F2] bg-white shadow-lg">
             {candidates.length === 0 ? (
-              <div className="px-2.5 py-1.5 text-[11.5px] text-[#64748B]">
+              <div className="px-2.5 py-1.5 text-[11.5px] text-[#5F6A88]">
                 {staffDirectory.length === 0 ? "No staff directory entries found." : "No matches."}
               </div>
             ) : (
@@ -892,9 +898,9 @@ function CollaboratorsPanel({
                   type="button"
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => { onAdd(person.id); setSearch(""); }}
-                  className="block w-full cursor-pointer border-none bg-transparent px-2.5 py-1.5 text-left text-[11.5px] text-[#334155] transition-colors hover:bg-[#F8FAFC]"
+                  className="block w-full cursor-pointer border-none bg-transparent px-2.5 py-1.5 text-left text-[11.5px] text-[#3A4565] transition-colors hover:bg-[#F4F6FB]"
                 >
-                  {person.full_name ?? "Unnamed"} <span className="text-[#64748B]">({person.role})</span>
+                  {person.full_name ?? "Unnamed"} <span className="text-[#5F6A88]">({person.role})</span>
                 </button>
               ))
             )}
@@ -902,7 +908,7 @@ function CollaboratorsPanel({
         )}
       </div>
       <div className="flex flex-wrap items-center gap-1.5">
-        {projectMembers.length === 0 && <span className="text-[11.5px] text-[#64748B]">No collaborators added yet.</span>}
+        {projectMembers.length === 0 && <span className="text-[11.5px] text-[#5F6A88]">No collaborators added yet.</span>}
         {projectMembers.map((m) => (
           <PersonChip
             key={m.user_id}
@@ -1290,27 +1296,30 @@ export default function OnboardingDetail({
     <button
       type="button"
       onClick={() => router.push(V2_ROUTES.PORTFOLIO_TRACKER)}
-      className={cn("mb-3 flex cursor-pointer items-center gap-1.5 border-none bg-transparent p-0 text-xs text-[#64748B] transition-colors hover:text-[#2563EB]")}
+      className={cn("mb-3 flex cursor-pointer items-center gap-1.5 border-none bg-transparent p-0 text-xs text-[#5F6A88] transition-colors hover:text-[#007BFF]")}
     >
       <ArrowLeft size={13} /> Back to Projects
     </button>
   );
 
+  // Timeline chrome is fixed-light v2.0 (task 168) — `isDark` is still computed above and passed
+  // to <OnboardingWizard isDark={isDark} .../> below unchanged, since Wizard step content (out of
+  // scope for this task) still depends on it; only this file's own rendering stops branching on it.
   if (wizardOpen && isPhase1Restricted) {
     return (
-      <div className={cn("min-h-full px-7 py-8", isDark ? "bg-[#070E1F]" : "bg-[#F8FAFC]")}>
+      <div className={cn("min-h-full px-7 py-8", "bg-[#F4F6FB]")}>
         {backLink}
-        <div className={cn("mx-auto max-w-[560px] rounded-2xl border p-10 text-center", isDark ? "border-[#7F1D1D] bg-[#12172A] shadow-none" : "border-[#FECACA] bg-white shadow-[0_4px_24px_rgba(15,23,42,0.07)]")}>
-          <ShieldAlert size={32} className="mx-auto mb-4 text-[#DC2626]" />
-          <div className={cn("mb-2 text-lg font-bold", isDark ? "text-white" : "text-[#0F172A]")}>Restricted</div>
-          <p className={cn("mx-auto max-w-md text-[13px]", isDark ? "text-[#94A3B8]" : "text-[#64748B]")}>
+        <div className={cn("mx-auto max-w-[560px] rounded-2xl border p-10 text-center", "border-[#F5C6C2] bg-white shadow-[0_4px_24px_rgba(15,23,42,0.07)]")}>
+          <ShieldAlert size={32} className="mx-auto mb-4 text-[#C0392B]" />
+          <div className={cn("mb-2 text-lg font-bold", "text-[#0B1533]")}>Restricted</div>
+          <p className={cn("mx-auto max-w-md text-[13px]", "text-[#5F6A88]")}>
             You are restricted from accessing this phase. If this is an error, please contact
             your administrator.
           </p>
           <button
             type="button"
             onClick={() => { setWizardOpen(false); router.push(`${V2_ROUTES.PORTFOLIO_TRACKER}/${projectUrlKey}`, { scroll: false }); }}
-            className={cn("mt-6 inline-flex cursor-pointer items-center gap-1.5 rounded-[9px] border px-4 py-2 text-[13px] font-semibold transition-colors", isDark ? "border-white/10 bg-transparent text-[#E2E8F0] hover:bg-white/5" : "border-[#E2E8F0] bg-white text-[#334155] hover:bg-[#F8FAFC]")}
+            className={cn("mt-6 inline-flex cursor-pointer items-center gap-1.5 rounded-[9px] border px-4 py-2 text-[13px] font-semibold transition-colors", "border-[#E2E7F2] bg-white text-[#3A4565] hover:bg-[#F4F6FB]")}
           >
             <ArrowLeft size={14} /> Back to Timeline
           </button>
@@ -1321,7 +1330,7 @@ export default function OnboardingDetail({
 
   if (wizardOpen) {
     return (
-      <div className={cn("min-h-full px-7 py-8", isDark ? "bg-[#070E1F]" : "bg-[#F8FAFC]")}>
+      <div className={cn("min-h-full px-7 py-8", "bg-[#F4F6FB]")}>
         {backLink}
         <OnboardingWizard
           project={project}
@@ -1360,9 +1369,9 @@ export default function OnboardingDetail({
 
   if (loading) {
     return (
-      <div className={cn("min-h-full bg-[#F8FAFC] px-7 py-8")}>
+      <div className={cn("min-h-full bg-[#F4F6FB] px-7 py-8")}>
         {backLink}
-        <div className="py-12 text-center text-[13px] text-[#64748B]">Loading onboarding programme…</div>
+        <div className="py-12 text-center text-[13px] text-[#5F6A88]">Loading onboarding programme…</div>
       </div>
     );
   }
@@ -1375,19 +1384,19 @@ export default function OnboardingDetail({
     const busy = starting || jumping;
 
     return (
-      <div className={cn("min-h-full bg-[#F8FAFC] px-7 py-8")}>
+      <div className={cn("min-h-full bg-[#F4F6FB] px-7 py-8")}>
         {backLink}
-        <div className="mx-auto max-w-[560px] rounded-2xl border border-[#E2E8F0] bg-white p-10 text-center shadow-[0_4px_24px_rgba(15,23,42,0.07)]">
-          <CalendarClock size={32} className="mx-auto mb-4 text-[#64748B]" />
-          <div className={cn("text-lg font-bold text-[#0F172A]")}>{project.name}</div>
-          <div className="mb-3 text-[13px] text-[#64748B]">{project.company_name}</div>
+        <div className="mx-auto max-w-[560px] rounded-2xl border border-[#E2E7F2] bg-white p-10 text-center shadow-[0_4px_24px_rgba(15,23,42,0.07)]">
+          <CalendarClock size={32} className="mx-auto mb-4 text-[#5F6A88]" />
+          <div className={cn("text-lg font-bold text-[#0B1533]")}>{project.name}</div>
+          <div className="mb-3 text-[13px] text-[#5F6A88]">{project.company_name}</div>
 
           {hasSchedule ? (
-            <div className="mx-auto mb-6 max-w-md rounded-[10px] border border-[#FDE68A] bg-[#FFFBEB] px-4 py-3 text-left">
-              <div className="flex items-center gap-1.5 text-[13px] font-semibold text-[#92400E]">
+            <div className="mx-auto mb-6 max-w-md rounded-[10px] border border-[#F0D896] bg-[#FFF3D6] px-4 py-3 text-left">
+              <div className="flex items-center gap-1.5 text-[13px] font-semibold text-[#8A5A00]">
                 <CalendarClock size={14} /> Scheduled to auto-start
               </div>
-              <p className="mt-1 text-[12.5px] leading-relaxed text-[#92400E]">
+              <p className="mt-1 text-[12.5px] leading-relaxed text-[#8A5A00]">
                 Phase {scheduledPhaseNumber}: {scheduledPhase.name} will start automatically on{" "}
                 {scheduledDate?.toLocaleString("en-US", {
                   weekday: "long",
@@ -1402,12 +1411,12 @@ export default function OnboardingDetail({
               </p>
             </div>
           ) : (
-            <p className="mx-auto mb-6 max-w-md text-[13px] text-[#64748B]">
+            <p className="mx-auto mb-6 max-w-md text-[13px] text-[#5F6A88]">
               Start the 120-day programme to begin tracking Phase 1 — or jump straight to whichever phase they&apos;re actually starting from.
             </p>
           )}
 
-          {error && <p className="mb-3 text-xs text-[#DC2626]">{error}</p>}
+          {error && <p className="mb-3 text-xs text-[#C0392B]">{error}</p>}
 
           {canManagePhases ? (
             hasSchedule ? (
@@ -1416,15 +1425,15 @@ export default function OnboardingDetail({
                   type="button"
                   onClick={() => startAtPhase(scheduledPhaseNumber)}
                   disabled={busy}
-                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-[9px] border-none bg-[#2563EB] px-4 py-2 text-[13px] font-semibold text-white shadow-[0_2px_10px_rgba(37,99,235,0.3)] transition-opacity hover:opacity-90 disabled:opacity-50"
+                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-[9px] border-none bg-[#007BFF] px-4 py-2 text-[13px] font-semibold text-white shadow-[0_2px_10px_rgba(0,123,255,0.3)] transition-opacity hover:opacity-90 disabled:opacity-50"
                 >
                   <PlayCircle size={15} /> {busy ? "Starting…" : `Start Phase ${scheduledPhaseNumber}: ${scheduledPhase.name} Anyway`}
                 </button>
 
                 <div className="flex w-full items-center gap-3">
-                  <div className="h-px flex-1 bg-[#E2E8F0]" />
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#64748B]">OR</span>
-                  <div className="h-px flex-1 bg-[#E2E8F0]" />
+                  <div className="h-px flex-1 bg-[#E2E7F2]" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#5F6A88]">OR</span>
+                  <div className="h-px flex-1 bg-[#E2E7F2]" />
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -1433,7 +1442,7 @@ export default function OnboardingDetail({
                       value={altPhase ?? ""}
                       onChange={(e) => setAltPhase(e.target.value ? (Number(e.target.value) as 1 | 2 | 3 | 4 | 5) : null)}
                       disabled={busy}
-                      className="h-9 cursor-pointer appearance-none rounded-[9px] border-[1.5px] border-[#E2E8F0] bg-white py-1.5 pl-3 pr-8 text-[13px] text-[#0F172A] outline-none transition-colors focus:border-[#2563EB] disabled:cursor-not-allowed disabled:opacity-60"
+                      className="h-9 cursor-pointer appearance-none rounded-[9px] border-[1.5px] border-[#E2E7F2] bg-white py-1.5 pl-3 pr-8 text-[13px] text-[#0B1533] outline-none transition-colors focus:border-[#007BFF] disabled:cursor-not-allowed disabled:opacity-60"
                       style={{
                         backgroundImage:
                           "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2394a3b8'/%3E%3C/svg%3E\")",
@@ -1454,7 +1463,7 @@ export default function OnboardingDetail({
                       type="button"
                       onClick={() => startAtPhase(altPhase)}
                       disabled={busy}
-                      className="inline-flex cursor-pointer items-center gap-1.5 rounded-[9px] border-none bg-[#2563EB] px-4 py-2 text-[13px] font-semibold text-white shadow-[0_2px_10px_rgba(37,99,235,0.3)] transition-opacity hover:opacity-90 disabled:opacity-50"
+                      className="inline-flex cursor-pointer items-center gap-1.5 rounded-[9px] border-none bg-[#007BFF] px-4 py-2 text-[13px] font-semibold text-white shadow-[0_2px_10px_rgba(0,123,255,0.3)] transition-opacity hover:opacity-90 disabled:opacity-50"
                     >
                       <PlayCircle size={15} /> {busy ? "Starting…" : "Proceed"}
                     </button>
@@ -1467,7 +1476,7 @@ export default function OnboardingDetail({
                   type="button"
                   onClick={handleStart}
                   disabled={starting}
-                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-[9px] border-none bg-[#2563EB] px-4 py-2 text-[13px] font-semibold text-white shadow-[0_2px_10px_rgba(37,99,235,0.3)] transition-opacity hover:opacity-90 disabled:opacity-50"
+                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-[9px] border-none bg-[#007BFF] px-4 py-2 text-[13px] font-semibold text-white shadow-[0_2px_10px_rgba(0,123,255,0.3)] transition-opacity hover:opacity-90 disabled:opacity-50"
                 >
                   <PlayCircle size={15} /> {starting ? "Starting…" : "Start Onboarding"}
                 </button>
@@ -1475,7 +1484,7 @@ export default function OnboardingDetail({
               </div>
             )
           ) : (
-            <p className="text-[12.5px] text-[#64748B]">Not started yet — Marketing manages the programme start date.</p>
+            <p className="text-[12.5px] text-[#5F6A88]">Not started yet — Marketing manages the programme start date.</p>
           )}
         </div>
       </div>
@@ -1515,19 +1524,19 @@ export default function OnboardingDetail({
   const days = Array.from({ length: TOTAL_DAYS }, (_, i) => i + 1);
 
   return (
-    <div className={cn("min-h-full bg-[#F8FAFC] px-7 py-8")}>
+    <div className={cn("min-h-full bg-[#F4F6FB] px-7 py-8")}>
       {backLink}
 
       <div className="flex flex-col gap-4">
         {/* Header card */}
-        <div className="rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
+        <div className="rounded-2xl border border-[#E2E7F2] bg-white p-6 shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
           <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
             <div>
-              <div className="mb-1 text-xs text-[#64748B]">{project.company_name}</div>
+              <div className="mb-1 text-xs text-[#5F6A88]">{project.company_name}</div>
               <div className="mb-1.5 flex items-center gap-2">
-                <span className={cn("text-lg font-bold text-[#0F172A]")}>{project.name}</span>
+                <span className={cn("text-lg font-bold text-[#0B1533]")}>{project.name}</span>
                 {isComplete ? (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-[#F0FDF4] px-2.5 py-0.5 text-[11px] font-semibold text-[#16A34A]">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-[#E3F5EA] px-2.5 py-0.5 text-[11px] font-semibold text-[#177E48]">
                     <CheckCircle2 size={11} /> Complete
                   </span>
                 ) : (
@@ -1537,15 +1546,15 @@ export default function OnboardingDetail({
                   </span>
                 )}
               </div>
-              <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs text-[#64748B]">
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs text-[#5F6A88]">
                 <span className="inline-flex items-center gap-1.5">
                   Owner: {ownerDisplayName ? <AvatarCircle name={ownerDisplayName} size={18} /> : <Users size={12} />}
-                   <span className="font-medium text-[#334155]">{ownerDisplayName ?? "Unassigned"}</span>
+                   <span className="font-medium text-[#3A4565]">{ownerDisplayName ?? "Unassigned"}</span>
                 </span>
                 <span className="inline-flex items-center gap-1.5">
                   Collaborators: <CollaboratorAvatars members={collaborators} />
                 </span>
-                {isManualOverride && <span className="text-[#7C3AED]">Manually tagged</span>}
+                {isManualOverride && <span className="text-[#6A48E0]">Manually tagged</span>}
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -1558,29 +1567,29 @@ export default function OnboardingDetail({
                     title="Project Settings"
                     className={cn(
                       "inline-flex cursor-pointer items-center justify-center rounded-lg border p-2.5 transition-colors",
-                      settingsMenuOpen ? "border-[#2563EB] bg-[#EFF6FF] text-[#2563EB]" : "border-[#E2E8F0] bg-white text-[#475569] hover:border-[#CBD5E1]"
+                      settingsMenuOpen ? "border-[#007BFF] bg-[#E5F1FF] text-[#007BFF]" : "border-[#E2E7F2] bg-white text-[#3A4565] hover:border-[#A8C6F5]"
                     )}
                   >
                     <Settings size={13} />
                   </button>
                   {settingsMenuOpen && (
-                    <div className="absolute right-0 z-30 mt-1.5 w-48 overflow-hidden rounded-lg border border-[#E2E8F0] bg-white py-1 shadow-lg">
+                    <div className="absolute right-0 z-30 mt-1.5 w-48 overflow-hidden rounded-lg border border-[#E2E7F2] bg-white py-1 shadow-lg">
                       {canSetOwner && (
                         <button
                           type="button"
                           onClick={() => { setOwnerPanelOpen(true); setCollaboratorsPanelOpen(false); setSettingsMenuOpen(false); }}
-                          className="flex w-full cursor-pointer items-center gap-2 border-none bg-transparent px-3 py-2 text-left text-[12.5px] text-[#334155] transition-colors hover:bg-[#F8FAFC]"
+                          className="flex w-full cursor-pointer items-center gap-2 border-none bg-transparent px-3 py-2 text-left text-[12.5px] text-[#3A4565] transition-colors hover:bg-[#F4F6FB]"
                         >
-                          <Crown size={13} className="text-[#64748B]" /> Set Project Owner
+                          <Crown size={13} className="text-[#5F6A88]" /> Set Project Owner
                         </button>
                       )}
                       {canManageProjMembers && (
                         <button
                           type="button"
                           onClick={() => { setCollaboratorsPanelOpen(true); setOwnerPanelOpen(false); setSettingsMenuOpen(false); }}
-                          className="flex w-full cursor-pointer items-center gap-2 border-none bg-transparent px-3 py-2 text-left text-[12.5px] text-[#334155] transition-colors hover:bg-[#F8FAFC]"
+                          className="flex w-full cursor-pointer items-center gap-2 border-none bg-transparent px-3 py-2 text-left text-[12.5px] text-[#3A4565] transition-colors hover:bg-[#F4F6FB]"
                         >
-                          <Users size={13} className="text-[#64748B]" /> Add Collaborators
+                          <Users size={13} className="text-[#5F6A88]" /> Add Collaborators
                         </button>
                       )}
                     </div>
@@ -1598,14 +1607,14 @@ export default function OnboardingDetail({
                     setWizardOpen(true);
                     router.push(`${V2_ROUTES.PORTFOLIO_TRACKER}/${projectUrlKey}?phase=${FIRST_WIZARD_STEP_PARAMS.phase}&deliverable=${FIRST_WIZARD_STEP_PARAMS.deliverable}`, { scroll: false });
                   }}
-                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-[9px] border-none bg-gradient-to-br from-[#2563EB] to-[#1D4ED8] px-3.5 py-2 text-[13px] font-semibold text-white shadow-[0_2px_10px_rgba(37,99,235,0.3)]"
+                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-[9px] border-none bg-gradient-to-br from-[#007BFF] to-[#0063D6] px-3.5 py-2 text-[13px] font-semibold text-white shadow-[0_2px_10px_rgba(0,123,255,0.3)]"
                 >
                   <PlayCircle size={14} /> {activePhaseNumber === 1 ? "Onboarding Wizard" : "View Onboarding Wizard"}
                 </button>
               )}
             </div>
           </div>
-          {error && <p className="mb-2 text-xs text-[#DC2626]">{error}</p>}
+          {error && <p className="mb-2 text-xs text-[#C0392B]">{error}</p>}
           {ownerPanelOpen && canSetOwner && (
             <OwnerPanel
               projectMembers={projectMembers}
@@ -1628,15 +1637,15 @@ export default function OnboardingDetail({
           )}
           <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
             <div className="flex min-w-[240px] flex-1 items-center gap-3">
-              <div className="h-2 flex-1 overflow-hidden rounded-full bg-[#F1F5F9]">
+              <div className="h-2 flex-1 overflow-hidden rounded-full bg-[#EDF0F7]">
                 <div
-                  className={cn("h-full rounded-full transition-[width] duration-700", isComplete ? "bg-[#16A34A]" : visual.solid)}
+                  className={cn("h-full rounded-full transition-[width] duration-700", isComplete ? "bg-[#177E48]" : visual.solid)}
                   style={{ width: `${progressPct}%` }}
                 />
               </div>
-              <div className={cn("shrink-0 text-lg font-bold text-[#0F172A]")}>
+              <div className={cn("shrink-0 text-lg font-bold text-[#0B1533]")}>
                 Day {currentDay}
-                <span className="ml-1 text-xs font-normal text-[#64748B]">/ 120</span>
+                <span className="ml-1 text-xs font-normal text-[#5F6A88]">/ 120</span>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -1657,7 +1666,7 @@ export default function OnboardingDetail({
                   <div className="mt-0.5 shrink-0">{s.icon}</div>
                   <div className="min-w-0">
                     <div className={cn("text-[11.5px] font-semibold", s.title)}>{r.title}</div>
-                    <div className="text-[11px] text-[#64748B]">{r.body}</div>
+                    <div className="text-[11px] text-[#5F6A88]">{r.body}</div>
                   </div>
                 </div>
               );
@@ -1666,7 +1675,7 @@ export default function OnboardingDetail({
         )}
 
         {/* Gantt grid */}
-        <div className="relative rounded-2xl border border-[#E2E8F0] bg-white pt-3 shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
+        <div className="relative rounded-2xl border border-[#E2E7F2] bg-white pt-3 shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
           <div
             ref={(node) => {
               // Runs on every render where this callback ref's identity changes (i.e. every
@@ -1687,8 +1696,8 @@ export default function OnboardingDetail({
             className="overflow-x-auto rounded-2xl"
           >
             <div className="relative" style={{ width: LABEL_WIDTH + TOTAL_DAYS * DAY_WIDTH }}>
-              <div className="flex border-b border-[#E2E8F0]">
-                <div className="sticky left-0 shrink-0 border-r z-3 border-[#E2E8F0] bg-white" style={{ width: LABEL_WIDTH }} />
+              <div className="flex border-b border-[#E2E7F2]">
+                <div className="sticky left-0 shrink-0 border-r z-3 border-[#E2E7F2] bg-white" style={{ width: LABEL_WIDTH }} />
                 {days.map((day) => (
                   <DateColumnHeader key={day} date={addDays(startDate, day - 1)} isToday={day === currentDay} />
                 ))}
@@ -1696,10 +1705,10 @@ export default function OnboardingDetail({
 
               {currentDay <= TOTAL_DAYS && (
                 <div
-                  className="pointer-events-none absolute bottom-0 top-0 z-2 w-0 border-l-2 border-dashed border-brand-orange"
+                  className="pointer-events-none absolute bottom-0 top-0 z-2 w-0 border-l-2 border-dashed border-[#FB914E]"
                   style={{ left: LABEL_WIDTH + (currentDay - 1) * DAY_WIDTH + DAY_WIDTH / 2 }}
                 >
-                  <div className="absolute -top-0.5 left-1/2 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded border border-[#FED7AA] bg-[#FFF7ED] px-1.5 py-0.5 text-[9px] font-bold text-brand-orange">
+                  <div className="absolute -top-0.5 left-1/2 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded border border-[#F9C9A0] bg-[#FFEFE3] px-1.5 py-0.5 text-[9px] font-bold text-[#FB914E]">
                     Day {currentDay}
                   </div>
                 </div>
@@ -1741,7 +1750,7 @@ export default function OnboardingDetail({
         type="button"
         onClick={() => scrollToToday("smooth")}
         aria-label="Jump to today"
-        className="fixed bottom-8 right-8 z-40 flex h-12 w-12 cursor-pointer items-center justify-center rounded-full border-none bg-[#F97316] text-white shadow-[0_4px_16px_rgba(249,115,22,0.4)] transition-transform hover:scale-105"
+        className="fixed bottom-8 right-8 z-40 flex h-12 w-12 cursor-pointer items-center justify-center rounded-full border-none bg-[#FB914E] text-white shadow-[0_4px_16px_rgba(251,145,78,0.4)] transition-transform hover:scale-105"
       >
         <Locate size={20} />
       </button>

@@ -314,4 +314,81 @@ Added after the initial quality gate pass, per user follow-up: deliverable statu
 - `npx tsc --noEmit` - PASS
 - `pnpm lint` - PASS for both touched files (same 2 pre-existing, unrelated errors as before remain in untouched files)
 - Manual browser verification - SKIPPED (not run this session)
+
+---
+
+## Addendum — Bell UI Polish + Actor/Project Enrichment (post-testing, via /impeccable)
+
+User flagged the shipped bell's UI (screenshot) and asked for the actor and project name to be visible on each notification, so it's clear "what and who."
+
+### What Changed
+- `notification-bell.tsx`: replaced the plain unread dot with a per-category icon in a tinted circle (green check for completions, red X for rejections, amber clock for reminders, gray bell fallback); added `focus-visible` rings to the bell trigger, "Mark all read," and every item button — none had any before.
+- Enriched every notification body with the acting teammate's name (where a real staff actor exists) and the project name, reusing data already available in each route (`profiles.full_name`, `projects.name`) — no schema change needed for this pass.
+- Routes touched: `plan/route.ts` (approve/reject → actor name via a new `getActorName()` helper), `complete-phase/route.ts`, both deliverable routes, `programme/reminders/route.ts` (project name only — cron-triggered, no staff actor), and the onboarding-submit route (project name only — customer-triggered, no staff actor).
+
+### Files Changed
+- `src/app/v2/(hub)/_components/notification-bell.tsx` - icon-per-category, focus-visible states
+- `src/app/api/plan/route.ts` - actor name in approve/reject notifications
+- `src/app/api/projects/[projectId]/programme/complete-phase/route.ts` - actor + project name
+- `src/app/api/projects/[projectId]/programme/deliverables/[deliverableKey]/route.ts` - actor + project name
+- `src/app/api/projects/[projectId]/programme/internal-deliverables/[deliverableKey]/route.ts` - actor + project name
+- `src/app/api/programme/reminders/route.ts` - project name (no actor — cron-triggered)
+- `src/app/api/customers/[customerId]/products/[productName]/onboarding/route.ts` - project name (no actor — customer-triggered)
+
+### Deviations From Plan
+- None — additive text/visual enrichment only, no behavior change to when/who gets notified.
+
+### Verification Run
+- `npx tsc --noEmit` - PASS
+- `pnpm lint` - PASS (same 2 pre-existing, unrelated errors only)
+
+---
+
+## Addendum — Drawer Conversion + Actor Avatars (post-testing, via /impeccable)
+
+User asked to convert the dropdown into a full drawer (reference: a dark-themed Cliq-style notification panel) showing the actor's profile picture, not just their name in text.
+
+### What Changed
+- Converted the anchored dropdown to a fixed, full-height slide-in drawer from the right edge, with a click-to-close backdrop, Escape-to-close, and a `motion-reduce`-safe transition. Restyled to this app's existing light-mode header/OpsChat palette (white/slate, amber accent for "Mark all read") rather than the reference's dark theme — no precedent anywhere in this shell (header, sidebar, or the existing OpsChat side-panel) for a dark drawer mounted from this light header, so matching the reference's literal color scheme would have broken visual continuity with its own trigger.
+- Added `actor_id` to the `notifications` table (new migration, nullable — cron/customer-triggered events have no staff actor) and extended `NotificationPayload`/`createNotification()` to store it. `GET /api/notifications` now joins `profiles(full_name, avatar_url)` via that FK.
+- Every route with a real staff actor (both deliverable routes, plan approve/reject, complete-phase) now passes `actorId` alongside the existing actor-name-in-text change from the prior addendum.
+- The drawer renders the actor's real avatar photo when set, else a deterministic colored-initials circle (same visual language as the header's existing presence avatars); falls back to the category icon when there's no actor at all.
+- Deliberately did **not** implement the reference's "Participants" (stacked multi-avatar) row — there's no data model here for "multiple people on one event" the way the reference's shared-document-update notifications have; faking it would have been an invented affordance.
+
+### Files Changed
+- `supabase/migrations/082_notifications_actor_id.sql` - new `actor_id` column + index
+- `src/types/database.ts` - `notifications` type updated with `actor_id`
+- `src/lib/notifications/index.ts` - `NotificationPayload.actorId`, written on insert
+- `src/app/api/notifications/route.ts` - joins actor `full_name`/`avatar_url`
+- `src/app/api/plan/route.ts`, `complete-phase/route.ts`, both deliverable routes - pass `actorId: user.id`
+- `src/app/v2/(hub)/_components/notification-bell.tsx` - full drawer rewrite (backdrop, slide transition, avatar rendering)
+
+### Deviations From Plan
+- Skipped the reference's "Participants" row (see above) — a deliberate scope cut, not an oversight.
+
+### Verification Run
+- `npx tsc --noEmit` - PASS
+- `pnpm lint` - PASS (same 2 pre-existing, unrelated errors only)
+- Manual browser check: confirmed drawer opens/closes correctly (slide-in, backdrop, empty state) against a live logged-in session. Did not confirm the populated-list avatar rendering end-to-end — user opted to verify that independently.
+
+---
+
+## Addendum — Missing Index Performance Fix (post-testing)
+
+User asked whether the bell's 30s polling was causing lag.
+
+### What Changed
+- Root-caused: the `notifications` table has had **zero indexes** since its original creation (migration 025) — not even on `recipient_id`, which both of the bell's queries filter on (Postgres doesn't auto-index foreign key columns). Every poll was running a full sequential scan across every user's rows, not just the caller's, and would only get slower as the table grows.
+- Added a composite index `(recipient_id, created_at desc)` for the list query, and a partial index `(recipient_id) where read_at is null` for the unread-count query.
+
+### Files Changed
+- `supabase/migrations/083_notifications_indexes.sql` - two new indexes, no query changes needed
+
+### Deviations From Plan
+- None — pure additive migration.
+
+### Verification Run
+- Confirmed via migration history that no index on `recipient_id` ever existed - PASS (verified, not assumed)
+- Migration not yet applied to the user's Supabase instance as of this writing — flagged that this is required for the fix to take effect
+- Honest caveat recorded: at current (low) data volume, this may not fully explain any perceived lag on its own; noted as a real defect worth having regardless
 - No new deviations found beyond what Implementation Notes already recorded (recipient resolution via `reviewed_by`, `project_id`-based routing, customer-wide onboarding notification scope, scoped lint disable). All were reviewed against the task doc's Out-of-Scope boundaries and none cross them.

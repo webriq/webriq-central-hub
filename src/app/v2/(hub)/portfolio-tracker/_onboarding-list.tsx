@@ -1,12 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ChartGantt, Plus, Upload, Building2, CalendarClock, ChevronRight, Clock3 } from "lucide-react";
+import {
+  ChartGantt, Plus, Upload, Building2, CalendarClock, Clock3, Search, X,
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
-import { usePMSettings } from "@/hooks/use-pm-settings";
 import { V2_ROUTES } from "@/config/constants";
+import { PROGRAMME_PHASES } from "@/config/customer-phases";
+import { Chip, PhaseChip, OnboardingStatusPill } from "../dashboard/_components/dashboard-shared";
 
 export type OnboardingProjectListItem = {
   id: string;
@@ -31,7 +35,7 @@ export type OnboardingProjectListItem = {
 // visual consistency with the Projects module's assignee chips — reimplemented locally (not
 // imported) since it needs overlap + "+N" overflow behavior OwnerChip doesn't have, and
 // Onboarding/Projects are otherwise unrelated feature areas (page-scoped UI convention).
-const AVATAR_COLORS = ["#2563EB", "#7C3AED", "#0D9488", "#DC2626", "#D97706"];
+const AVATAR_COLORS = ["#0063D6", "#6A48E0", "#0B8A93", "#B85512", "#177E48", "#44508A"];
 const MAX_VISIBLE_AVATARS = 3;
 
 function initialsFor(name: string | null): string {
@@ -40,29 +44,28 @@ function initialsFor(name: string | null): string {
 }
 
 function colorFor(name: string | null): string {
-  if (!name) return "#64748B";
+  if (!name) return "#5F6A88";
   return AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length];
 }
 
-function AvatarStack({ members, isDark }: { members: { id: string; full_name: string | null }[]; isDark: boolean }) {
+function AvatarStack({ members }: { members: { id: string; full_name: string | null }[] }) {
   if (members.length === 0) return null;
   const visible = members.slice(0, MAX_VISIBLE_AVATARS);
   const overflow = members.length - visible.length;
-  const ringCls = isDark ? "ring-[#121726]" : "ring-white";
   return (
     <div className="flex items-center">
       {visible.map((m, i) => (
         <div
           key={m.id}
           title={m.full_name ?? "Unnamed"}
-          className={cn("w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-semibold text-white ring-2 shrink-0", ringCls, i > 0 && "-ml-2")}
+          className={cn("w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-semibold text-white ring-2 ring-white shrink-0", i > 0 && "-ml-2")}
           style={{ background: colorFor(m.full_name) }}
         >
           {initialsFor(m.full_name)}
         </div>
       ))}
       {overflow > 0 && (
-        <div className={cn("w-6 h-6 -ml-2 rounded-full flex items-center justify-center text-[9px] font-semibold ring-2 shrink-0", ringCls, isDark ? "text-slate-300 bg-white/[0.12]" : "text-slate-600 bg-slate-200")}>
+        <div className="w-6 h-6 -ml-2 rounded-full flex items-center justify-center text-[9px] font-semibold ring-2 ring-white shrink-0 text-[#5F6A88] bg-[#EDF0F7]">
           +{overflow}
         </div>
       )}
@@ -70,104 +73,121 @@ function AvatarStack({ members, isDark }: { members: { id: string; full_name: st
   );
 }
 
-const STATUS_STYLE: Record<string, { label: string; text: string; bg: string; border: string; darkText: string; darkBg: string; darkBorder: string }> = {
-  draft: { label: "Draft", text: "text-slate-500", bg: "bg-slate-50", border: "border-slate-200", darkText: "text-slate-400", darkBg: "bg-white/[0.06]", darkBorder: "border-white/[0.1]" },
-  scheduled: { label: "Scheduled", text: "text-amber-600", bg: "bg-amber-50", border: "border-amber-200", darkText: "text-amber-400", darkBg: "bg-amber-500/15", darkBorder: "border-amber-500/25" },
-  in_progress: { label: "In Progress", text: "text-blue-600", bg: "bg-blue-50", border: "border-blue-200", darkText: "text-blue-400", darkBg: "bg-blue-500/15", darkBorder: "border-blue-500/25" },
-};
-
 function formatDate(iso: string | null): string {
   if (!iso) return "—";
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-function ProjectCard({ item, editable, isDark }: { item: OnboardingProjectListItem; editable: boolean; isDark: boolean }) {
+// Fixed 4-slot layout — header / company / progress-or-status row / phase row / footer — always
+// rendered (never conditionally omitted) so every card in a grid row is the same height
+// regardless of project state. See task 167.
+function ProjectCard({ item, editable }: { item: OnboardingProjectListItem; editable: boolean }) {
   const router = useRouter();
-  const style = STATUS_STYLE[item.status] ?? STATUS_STYLE.draft;
-  const textPrimary = isDark ? "text-slate-100" : "text-slate-900";
-  const textMuted = isDark ? "text-slate-400" : "text-slate-500";
 
   const content = (
     <div
       className={cn(
-        "rounded-xl border p-4 transition-colors",
-        isDark ? "bg-[#121726]" : "bg-white",
-        editable
-          ? isDark ? "border-white/[0.08] hover:border-white/[0.15] cursor-pointer" : "border-slate-200 hover:border-slate-300 cursor-pointer"
-          : isDark ? "border-white/[0.06]" : "border-slate-100"
+        "h-full flex flex-col rounded-[14px] border bg-white p-4 transition-colors",
+        editable ? "border-[#E2E7F2] hover:border-[#A8C6F5] cursor-pointer" : "border-[#EDF0F7]"
       )}
     >
+      {/* Header: title + status */}
       <div className="flex items-start justify-between gap-3 mb-2.5">
         <div className="min-w-0">
-          <div className={cn("text-[13px] font-semibold truncate", textPrimary)}>{item.project_name}</div>
-          <div className={cn("inline-flex items-center gap-1 text-[12px] truncate", textMuted)}>
+          <div className="text-[13px] font-semibold text-[#0B1533] truncate">{item.project_name}</div>
+          <div className="inline-flex items-center gap-1 text-[12px] text-[#5F6A88] truncate">
             <Building2 size={11} /> {item.company_name}
           </div>
         </div>
-        <span className={cn(
-          "shrink-0 inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded-full border whitespace-nowrap",
-          isDark ? [style.darkText, style.darkBg, style.darkBorder] : [style.text, style.bg, style.border]
-        )}>
-          {style.label}
+        <OnboardingStatusPill status={item.status} />
+      </div>
+
+      {/* Progress row — always present */}
+      <div className="flex items-center gap-2 mb-1.5">
+        <div className="flex-1 h-1.5 rounded-full overflow-hidden bg-[#EDF0F7]">
+          <div className="h-full rounded-full bg-[#007BFF] transition-[width] duration-300" style={{ width: `${item.current_day ? item.progress_pct : 0}%` }} />
+        </div>
+        <span className="text-[11px] font-mono shrink-0 text-[#5F6A88]">
+          {item.current_day ? `Day ${item.current_day}/120` : "Day —/120"}
         </span>
       </div>
 
-      {item.current_day ? (
-        <>
-          <div className="flex items-center gap-2 mb-1.5">
-            <div className={cn("flex-1 h-1.5 rounded-full overflow-hidden", isDark ? "bg-white/[0.08]" : "bg-slate-100")}>
-              <div className="h-full rounded-full bg-brand transition-[width] duration-300" style={{ width: `${item.progress_pct}%` }} />
-            </div>
-            <span className={cn("text-[11px] font-mono shrink-0", textMuted)}>Day {item.current_day}/120</span>
-          </div>
-          <div className={cn("text-[11.5px]", textMuted)}>
-            {item.current_phase_name
-              ? `Phase ${item.current_phase_number}: ${item.current_phase_name}`
-              : "Onboarding"}
-            {item.current_phase_number === 1 && item.target_handover_date && (
-              <span className={textMuted}> · Handover ~{formatDate(item.target_handover_date)}</span>
+      {/* Phase / status line — always present, one line */}
+      <div className="flex items-center gap-1.5 text-[11.5px] text-[#5F6A88] min-h-[17px]">
+        {item.current_day ? (
+          <>
+            {item.current_phase_number && item.current_phase_name ? (
+              <PhaseChip phaseNumber={item.current_phase_number} phaseName={item.current_phase_name} />
+            ) : (
+              <span>Onboarding</span>
             )}
-          </div>
-        </>
-      ) : item.scheduled_onboarding_start_at ? (
-        <div className={cn("inline-flex items-center gap-1.5 text-[11.5px]", isDark ? "text-amber-400" : "text-amber-600")}>
-          <CalendarClock size={12} /> Starts {new Date(item.scheduled_onboarding_start_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
-        </div>
-      ) : (
-        <div className={cn("inline-flex items-center gap-1.5 text-[11.5px]", textMuted)}>
-          <Clock3 size={12} /> Not started
-        </div>
-      )}
+            {item.current_phase_number === 1 && item.target_handover_date && (
+              <span>· Handover ~{formatDate(item.target_handover_date)}</span>
+            )}
+          </>
+        ) : item.scheduled_onboarding_start_at ? (
+          <span className="inline-flex items-center gap-1.5 text-[#B85512]">
+            <CalendarClock size={12} /> Starts {new Date(item.scheduled_onboarding_start_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1.5">
+            <Clock3 size={12} /> Awaiting kickoff
+          </span>
+        )}
+      </div>
 
-      {(item.classification || item.members.length > 0) && (
-        <div className={cn("mt-2.5 pt-2.5 border-t flex items-center justify-between gap-2", isDark ? "border-white/[0.06]" : "border-slate-50")}>
-          <div className={cn("text-[11px] truncate", textMuted)}>{item.classification}</div>
-          <AvatarStack members={item.members} isDark={isDark} />
-        </div>
-      )}
+      {/* Footer — always present */}
+      <div className="mt-auto pt-2.5 border-t border-[#EDF0F7] flex items-center justify-between gap-2">
+        {item.classification ? <Chip tone="neutral">{item.classification}</Chip> : <span className="text-[11px] text-[#5F6A88]">Unclassified</span>}
+        <AvatarStack members={item.members} />
+      </div>
     </div>
   );
 
-  if (!editable) return content;
+  if (!editable) return <div className="h-full">{content}</div>;
   return (
-    <button onClick={() => router.push(`${V2_ROUTES.PORTFOLIO_TRACKER}/${item.project_id ?? item.id}`)} className="text-left w-full bg-transparent border-none p-0 cursor-pointer">
+    <button
+      onClick={() => router.push(`${V2_ROUTES.PORTFOLIO_TRACKER}/${item.project_id ?? item.id}`)}
+      className="h-full text-left w-full bg-transparent border-none p-0 cursor-pointer"
+    >
       {content}
     </button>
   );
 }
 
+// ─── Search / status filter / pagination — client-side over the already-fetched list, URL-synced
+// to match /v2/projects' UX (see task 167's "second scope decision" for why this isn't server-side
+// like /v2/projects: GET /api/onboarding/projects does role/membership filtering in application
+// code, after the DB fetch, and is shared by 3 other dashboards — DB-side pagination there is a
+// separate, riskier follow-up, out of proportion to this task's realistic dataset size).
+
+const STATUS_FILTERS = ["all", "draft", "scheduled", "in_progress"] as const;
+const STATUS_FILTER_LABELS: Record<(typeof STATUS_FILTERS)[number], string> = {
+  all: "All", draft: "Draft", scheduled: "Scheduled", in_progress: "In Progress",
+};
+const PAGE_SIZES = [9, 18, 36] as const;
+
 export default function OnboardingList({ role }: { role: string | null }) {
-  const { settings } = usePMSettings();
-  const isDark = settings.theme === "dark";
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [projects, setProjects] = useState<OnboardingProjectListItem[]>([]);
   const [canCreate, setCanCreate] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState(0);
 
+  const [searchInput, setSearchInput] = useState(searchParams.get("search") ?? "");
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const statusValue = (searchParams.get("status") ?? "all") as (typeof STATUS_FILTERS)[number];
+  const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10) || 1);
+  const pageSize = Math.max(1, parseInt(searchParams.get("pageSize") ?? String(PAGE_SIZES[0]), 10) || PAGE_SIZES[0]);
+
   useEffect(() => {
     let ignore = false;
-    setLoading(true);
+    // `loading` already starts `true` (initial state) — re-fetches triggered by `retryKey`
+    // flip it back to `true` from the Retry button's own click handler, not here, since a
+    // synchronous setState call in an effect body triggers cascading renders.
     fetch("/api/onboarding/projects")
       .then(async (res) => {
         if (!res.ok) throw new Error();
@@ -183,20 +203,43 @@ export default function OnboardingList({ role }: { role: string | null }) {
     return () => { ignore = true; };
   }, [retryKey]);
 
+  function buildUrl(overrides: Record<string, string | number | null>) {
+    const p = new URLSearchParams(searchParams.toString());
+    for (const [k, v] of Object.entries(overrides)) {
+      if (v === null) { p.delete(k); } else { p.set(k, String(v)); }
+    }
+    return `${V2_ROUTES.PORTFOLIO_TRACKER}?${p.toString()}`;
+  }
+
+  const searchQ = (searchParams.get("search") ?? "").trim().toLowerCase();
+  const filtered = projects.filter((p) => {
+    const matchesSearch = !searchQ || `${p.project_name} ${p.company_name}`.toLowerCase().includes(searchQ);
+    const matchesStatus = statusValue === "all" || p.status === statusValue;
+    return matchesSearch && matchesStatus;
+  });
+
+  const total = filtered.length;
+  const from = (page - 1) * pageSize;
+  const paginated = filtered.slice(from, from + pageSize);
+  const hasNext = from + pageSize < total;
+  const hasPrev = page > 1;
+  const isFiltered = searchQ.length > 0 || statusValue !== "all";
+
   const editable = role === "marketing" || role === "admin" || role === "super_admin";
-  const textPrimary = isDark ? "text-slate-100" : "text-slate-900";
-  const textMuted = isDark ? "text-slate-400" : "text-slate-500";
+
+  const totalDays = PROGRAMME_PHASES[PROGRAMME_PHASES.length - 1].dayEnd;
+  const phaseCount = PROGRAMME_PHASES.length;
 
   return (
     <div className="max-w-350 mx-auto px-8 py-6">
-      <div className="flex items-center justify-between gap-4 mb-6">
+      <div className="flex items-center justify-between gap-4 mb-5 flex-wrap">
         <div>
-          <h1 className={cn("text-[22px] font-bold tracking-[-0.02em] flex items-center gap-2", textPrimary)}>
-            <ChartGantt size={20} className={textMuted} /> Portfolio Tracker
+          <h1 className="font-heading text-[22px] font-bold tracking-[-0.02em] flex items-center gap-2 text-[#0B1533]">
+            <ChartGantt size={20} className="text-[#5F6A88]" /> Portfolio Tracker
           </h1>
-          <p className={cn("text-[13px] mt-0.5", textMuted)}>
+          <p className="text-[13px] mt-0.5 text-[#5F6A88]">
             {editable
-              ? "120-day programme intake and progress, Phase 1–5 — Phase 1 is hidden from PM/staff view until handover."
+              ? `${total} client${total === 1 ? "" : "s"} · programme intake and progress across all ${phaseCount} phases (${totalDays}-day full cycle) — Phase 1 is hidden from PM/staff view until handover.`
               : "Projects currently going through Phase 1 onboarding."}
           </p>
         </div>
@@ -204,36 +247,103 @@ export default function OnboardingList({ role }: { role: string | null }) {
           <div className="flex items-center gap-2 shrink-0">
             <Link
               href={V2_ROUTES.PORTFOLIO_TRACKER_IMPORT}
-              className={cn(
-                "inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border text-[13px] font-medium transition-colors cursor-pointer",
-                isDark ? "border-white/[0.1] text-slate-200 hover:bg-white/[0.06]" : "border-slate-200 text-slate-700 hover:bg-slate-50"
-              )}
+              className="inline-flex items-center gap-2 px-[15px] py-2 rounded-full border text-[12px] font-semibold transition-colors cursor-pointer border-[#E2E7F2] bg-white text-[#3A4565] hover:border-[#A8C6F5] hover:text-[#0B1533]"
             >
-              <Upload size={16} /> Import Project
+              <Upload size={14} /> Import Project
             </Link>
             <Link
-              href={`${V2_ROUTES.PORTFOLIO_TRACKER}/new`}
+              href={V2_ROUTES.PORTFOLIO_TRACKER_NEW}
+              className="inline-flex items-center gap-2 px-[15px] py-2 rounded-full text-[12px] font-semibold transition-colors cursor-pointer bg-[#FB914E] text-[#471F02] hover:bg-[#E2762F] hover:text-white"
+            >
+              <Plus size={14} /> New Project
+            </Link>
+          </div>
+        )}
+      </div>
+
+      {/* Toolbar: search + status filter + pagination */}
+      <div className="flex items-center gap-3 flex-wrap mb-4">
+        <div className="relative min-w-[220px] max-w-xs flex-shrink-0">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#5F6A88]" />
+          <input
+            value={searchInput}
+            onChange={(e) => {
+              const q = e.target.value;
+              setSearchInput(q);
+              if (debounceRef.current) clearTimeout(debounceRef.current);
+              debounceRef.current = setTimeout(() => {
+                router.push(buildUrl({ search: q || null, page: 1 }));
+              }, 300);
+            }}
+            placeholder="Search clients or projects…"
+            className="w-full pl-8 pr-3 py-2 rounded-[10px] border text-[13px] outline-none transition-colors border-[#E2E7F2] bg-[#F4F6FB] text-[#3A4565] focus:border-[#007BFF] focus:bg-white placeholder:text-[#5F6A88]"
+          />
+        </div>
+
+        <div className="flex items-center gap-1 bg-white border border-[#E2E7F2] rounded-lg p-1 shrink-0">
+          {STATUS_FILTERS.map((s) => (
+            <button
+              key={s}
+              onClick={() => router.push(buildUrl({ status: s === "all" ? null : s, page: 1 }))}
+              aria-pressed={statusValue === s}
               className={cn(
-                "inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-white text-[13px] font-medium transition-colors cursor-pointer",
-                isDark ? "bg-brand hover:opacity-90" : "bg-slate-900 hover:bg-slate-800"
+                "px-3 py-1.5 rounded-md text-[11px] font-semibold transition-colors cursor-pointer",
+                statusValue === s ? "bg-[#071133] text-white" : "text-[#5F6A88] hover:text-[#0B1533]"
               )}
             >
-              <Plus size={16} /> New Project
-            </Link>
+              {STATUS_FILTER_LABELS[s]}
+            </button>
+          ))}
+        </div>
+
+        {isFiltered && (
+          <button
+            onClick={() => { setSearchInput(""); router.push(V2_ROUTES.PORTFOLIO_TRACKER); }}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#E2E7F2] bg-white text-[12px] text-[#3A4565] hover:bg-[#F0F7FF] cursor-pointer shrink-0 transition-colors"
+          >
+            <X size={13} /> Clear filters
+          </button>
+        )}
+
+        <div className="flex-1 min-w-0" />
+
+        {total > 0 && (
+          <div className="flex items-center gap-2 shrink-0">
+            <select
+              value={pageSize}
+              onChange={(e) => router.push(buildUrl({ pageSize: Number(e.target.value), page: 1 }))}
+              className="h-8 px-2.5 pr-6 rounded-lg border border-[#E2E7F2] bg-white text-[12px] text-[#3A4565] outline-none focus:border-[#007BFF] cursor-pointer"
+            >
+              {PAGE_SIZES.map((n) => <option key={n} value={n}>{n} per page</option>)}
+            </select>
+            <span className="text-[12px] font-mono text-[#5F6A88]">
+              {from + 1}–{Math.min(from + pageSize, total)} of {total}
+            </span>
+            <div className="flex items-center gap-1 text-[#5F6A88]">
+              <button onClick={() => router.push(buildUrl({ page: 1 }))} disabled={!hasPrev} className="flex items-center justify-center w-7 h-7 rounded-md border border-[#E2E7F2] bg-white hover:bg-[#F0F7FF] disabled:opacity-30 disabled:cursor-default cursor-pointer transition-colors" title="First page">
+                <ChevronsLeft size={14} />
+              </button>
+              <button onClick={() => router.push(buildUrl({ page: page - 1 }))} disabled={!hasPrev} className="flex items-center justify-center w-7 h-7 rounded-md border border-[#E2E7F2] bg-white hover:bg-[#F0F7FF] disabled:opacity-30 disabled:cursor-default cursor-pointer transition-colors" title="Previous page">
+                <ChevronLeft size={14} />
+              </button>
+              <button onClick={() => router.push(buildUrl({ page: page + 1 }))} disabled={!hasNext} className="flex items-center justify-center w-7 h-7 rounded-md border border-[#E2E7F2] bg-white hover:bg-[#F0F7FF] disabled:opacity-30 disabled:cursor-default cursor-pointer transition-colors" title="Next page">
+                <ChevronRight size={14} />
+              </button>
+              <button onClick={() => router.push(buildUrl({ page: Math.ceil(total / pageSize) }))} disabled={!hasNext} className="flex items-center justify-center w-7 h-7 rounded-md border border-[#E2E7F2] bg-white hover:bg-[#F0F7FF] disabled:opacity-30 disabled:cursor-default cursor-pointer transition-colors" title="Last page">
+                <ChevronsRight size={14} />
+              </button>
+            </div>
           </div>
         )}
       </div>
 
       {error && (
         <div className="flex items-center gap-3 mb-4">
-          <p className={cn("text-[13px]", isDark ? "text-red-400" : "text-red-500")}>{error}</p>
+          <p className="text-[13px] text-[#C0392B]">{error}</p>
           <button
             type="button"
-            onClick={() => setRetryKey((k) => k + 1)}
-            className={cn(
-              "text-[13px] font-medium underline underline-offset-2 transition-colors cursor-pointer bg-transparent border-none p-0",
-              isDark ? "text-slate-300 hover:text-white" : "text-slate-700 hover:text-slate-900"
-            )}
+            onClick={() => { setLoading(true); setRetryKey((k) => k + 1); }}
+            className="text-[13px] font-medium underline underline-offset-2 transition-colors cursor-pointer bg-transparent border-none p-0 text-[#3A4565] hover:text-[#0B1533]"
           >
             Retry
           </button>
@@ -243,42 +353,47 @@ export default function OnboardingList({ role }: { role: string | null }) {
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {[...Array(6)].map((_, i) => (
-            <div key={i} className={cn("h-32 rounded-xl animate-pulse motion-reduce:animate-none", isDark ? "bg-white/[0.04]" : "bg-slate-100")} />
+            <div key={i} className="h-40 rounded-[14px] animate-pulse motion-reduce:animate-none bg-[#EDF0F7]" />
           ))}
         </div>
       ) : projects.length === 0 ? (
-        <div className={cn("flex flex-col items-center justify-center py-20 gap-3 rounded-xl border", isDark ? "border-white/[0.08] bg-[#121726]" : "border-slate-200 bg-white")}>
-          <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center", isDark ? "bg-white/[0.06]" : "bg-slate-100")}>
-            <ChartGantt size={26} className={textMuted} />
+        <div className="flex flex-col items-center justify-center py-20 gap-3 rounded-[14px] border border-[#E2E7F2] bg-white">
+          <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-[#F0F7FF]">
+            <ChartGantt size={26} className="text-[#007BFF]" />
           </div>
           <div className="text-center">
-            <div className={cn("text-[15px] font-semibold", isDark ? "text-slate-200" : "text-slate-700")}>No projects in onboarding</div>
-            <p className={cn("text-[13px] mt-1", textMuted)}>
-              {canCreate ? "Start a new intake to begin a 120-day onboarding." : "Nothing is currently gated behind Phase 1."}
+            <div className="text-[15px] font-semibold text-[#0B1533]">No projects in onboarding</div>
+            <p className="text-[13px] mt-1 text-[#5F6A88]">
+              {canCreate ? "Start a new intake to begin an onboarding programme." : "Nothing is currently gated behind Phase 1."}
             </p>
           </div>
-          {canCreate && (
-            <Link
-              href={`${V2_ROUTES.PORTFOLIO_TRACKER}/new`}
-              className={cn(
-                "inline-flex items-center gap-2 mt-2 px-4 py-2 rounded-lg text-white text-[13px] font-medium transition-colors cursor-pointer",
-                isDark ? "bg-brand hover:opacity-90" : "bg-slate-900 hover:bg-slate-800"
-              )}
-            >
-              <Plus size={15} /> New Project
-            </Link>
-          )}
+        </div>
+      ) : paginated.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 gap-3 rounded-[14px] border border-[#E2E7F2] bg-white">
+          <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-[#FFF3D6]">
+            <Search size={24} className="text-[#8A5A00]" />
+          </div>
+          <div className="text-center">
+            <div className="text-[15px] font-semibold text-[#0B1533]">No clients match your search</div>
+            <p className="text-[13px] mt-1 text-[#5F6A88]">Try a different search term or clear the status filter.</p>
+          </div>
+          <button
+            onClick={() => { setSearchInput(""); router.push(V2_ROUTES.PORTFOLIO_TRACKER); }}
+            className="inline-flex items-center gap-1.5 mt-1 px-3 py-1.5 rounded-lg border border-[#E2E7F2] bg-white text-[12px] text-[#3A4565] hover:bg-[#F0F7FF] cursor-pointer transition-colors"
+          >
+            <X size={13} /> Clear filters
+          </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {projects.map((p) => (
-            <ProjectCard key={p.id} item={p} editable={editable} isDark={isDark} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 items-stretch">
+          {paginated.map((p) => (
+            <ProjectCard key={p.id} item={p} editable={editable} />
           ))}
         </div>
       )}
 
       {!editable && projects.length > 0 && (
-        <p className={cn("text-[11.5px] mt-4 inline-flex items-center gap-1", textMuted)}>
+        <p className="text-[11.5px] mt-4 inline-flex items-center gap-1 text-[#5F6A88]">
           <ChevronRight size={11} /> Status only — content and file access are restricted to Marketing.
         </p>
       )}

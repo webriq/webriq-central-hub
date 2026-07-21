@@ -18,6 +18,7 @@ const eslintConfig = defineConfig([
     "public/fallback-*.js",
     "_backup (DO NOT READ)/**",
     "_design/**",
+    "_design_(OLD)/**",
     "_docs/**",
     "_WebriQ_Central_Hub_SCRUM_Tracker/**",
     ".claude/**",

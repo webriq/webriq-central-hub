@@ -49,6 +49,7 @@ next-env.d.ts
 _backup (DO NOT READ)/
 
 _design/
+_design_(OLD)
 appstore-images/
 
 supabase/.temp/

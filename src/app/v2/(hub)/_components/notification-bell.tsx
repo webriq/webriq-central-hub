@@ -169,12 +169,12 @@ export default function NotificationBell() {
           <div
             aria-hidden="true"
             onClick={closeDrawer}
-            className={`fixed inset-0 bg-slate-900/20 z-99999 transition-opacity motion-reduce:transition-none duration-200 ${open ? "opacity-100" : "opacity-0"}`}
+            className={`fixed inset-0 bg-slate-900/20 z-[99999] transition-opacity motion-reduce:transition-none duration-200 ${open ? "opacity-100" : "opacity-0"}`}
           />
           <div
             role="dialog"
             aria-label="Notifications"
-            className={`fixed right-0 top-0 h-full w-full max-w-100 bg-white z-99999 shadow-[0_8px_32px_rgba(15,23,42,0.18)] flex flex-col transition-transform ease-out motion-reduce:transition-none duration-200 ${open ? "translate-x-0" : "translate-x-full"}`}
+            className={`fixed right-0 top-0 h-full w-full max-w-100 bg-white z-[99999] shadow-[0_8px_32px_rgba(15,23,42,0.18)] flex flex-col transition-transform ease-out motion-reduce:transition-none duration-200 ${open ? "translate-x-0" : "translate-x-full"}`}
           >
             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 shrink-0">
               <span className="text-[14px] font-semibold text-slate-900">Notifications</span>

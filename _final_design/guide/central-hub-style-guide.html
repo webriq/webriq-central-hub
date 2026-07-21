@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WebriQ Central Hub — Design System v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ═══ Central Hub tokens (source of truth) ═══ */
+  :root{
+    --navy:#071133; --navy-800:#0C1B4A; --navy-700:#122459; --navy-active:#16296B;
+    --blue:#007BFF; --blue-700:#0063D6; --blue-100:#E5F1FF; --blue-50:#F0F7FF;
+    --orange:#FB914E; --orange-600:#E2762F; --orange-700:#B85512; --orange-100:#FFEFE3;
+
+    --bg:#F4F6FB; --surface:#FFFFFF;
+    --line:#E2E7F2; --line-soft:#EDF0F7;
+    --ink:#0B1533; --body:#3A4565; --muted:#5F6A88;
+
+    --ph-onboard:#E2762F;  --ph-onboard-bg:#FFEFE3;
+    --ph-migrate:#0063D6;  --ph-migrate-bg:#E5F1FF;
+    --ph-publish:#6A48E0;  --ph-publish-bg:#EFEAFD;
+    --ph-ai:#0B8A93;       --ph-ai-bg:#E2F6F7;
+    --ph-optimize:#177E48; --ph-optimize-bg:#E3F5EA;
+
+    --ok:#177E48;   --ok-bg:#E3F5EA;
+    --warn:#8A5A00; --warn-bg:#FFF3D6;
+    --late:#C0392B; --late-bg:#FDE8E6;
+
+    --r-lg:14px; --r-md:10px; --r-sm:7px;
+    --sh-sm:0 1px 2px rgba(7,17,51,.05);
+    --sh-md:0 8px 24px rgba(7,17,51,.10);
+    --ease:cubic-bezier(.22,1,.36,1);
+
+    --font-ui:'Inter',system-ui,-apple-system,sans-serif;
+    --font-display:'Space Grotesk',var(--font-ui);
+    --font-mono:'JetBrains Mono',ui-monospace,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:var(--font-ui);background:var(--bg);color:var(--body);
+    font-size:.8125rem;line-height:1.55;-webkit-font-smoothing:antialiased;
+  }
+  button{font:inherit;cursor:pointer;border:none;background:none;color:inherit}
+  :focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:4px}
+
+  /* ═══ Guide chrome ═══ */
+  .guide{max-width:1060px;margin:0 auto;padding:0 28px 90px}
+  .guide-hero{
+    background:var(--navy);color:#B9C2E0;border-radius:0 0 18px 18px;
+    padding:44px 40px 40px;margin:0 -28px 40px;
+  }
+  .gh-eyebrow{font-family:var(--font-mono);font-size:.625rem;font-weight:600;letter-spacing:.12em;color:#5EB0FF;text-transform:uppercase}
+  .gh-title{font-family:var(--font-display);font-size:2rem;font-weight:700;color:#fff;letter-spacing:-.02em;margin:10px 0 8px;text-wrap:balance}
+  .gh-sub{font-size:.875rem;max-width:62ch;color:#B9C2E0}
+  .gh-meta{display:flex;gap:18px;margin-top:22px;flex-wrap:wrap}
+  .gh-meta span{font-family:var(--font-mono);font-size:.625rem;color:#7E8BB8}
+  .gh-meta b{color:#fff;font-weight:600}
+
+  section{margin-bottom:54px}
+  .sec-title{font-family:var(--font-display);font-size:1.25rem;font-weight:700;color:var(--ink);letter-spacing:-.015em;margin-bottom:6px}
+  .sec-sub{font-size:.8125rem;color:var(--muted);max-width:70ch;margin-bottom:20px}
+  .group-label{font-size:.6563rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:26px 0 10px}
+  .group-label:first-of-type{margin-top:0}
+  .rule{border:none;border-top:1px solid var(--line);margin:0 0 54px}
+
+  .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--sh-sm)}
+  .pad{padding:20px}
+
+  /* swatches */
+  .sw-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));gap:12px}
+  .sw{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden;box-shadow:var(--sh-sm)}
+  .sw-chip{height:64px;display:flex;align-items:flex-end;padding:8px 10px}
+  .sw-usage{font-size:.5938rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+  .sw-info{padding:9px 11px 11px}
+  .sw-name{font-size:.75rem;font-weight:600;color:var(--ink)}
+  .sw-token{font-family:var(--font-mono);font-size:.625rem;color:var(--muted)}
+  .sw-hex{font-family:var(--font-mono);font-size:.625rem;font-weight:600;color:var(--body)}
+
+  /* type specimens */
+  .type-spec{display:grid;grid-template-columns:190px 1fr;gap:18px;align-items:baseline;padding:16px 0;border-bottom:1px solid var(--line-soft)}
+  .type-spec:last-child{border-bottom:none}
+  .ts-meta{font-family:var(--font-mono);font-size:.625rem;color:var(--muted);line-height:1.7}
+  .ts-meta b{color:var(--ink);font-weight:600;font-family:var(--font-ui);font-size:.6875rem;display:block;letter-spacing:.04em;text-transform:uppercase}
+
+  /* spacing / radius / shadow demos */
+  .sp-row{display:flex;align-items:flex-end;gap:18px;flex-wrap:wrap}
+  .sp-demo{display:flex;flex-direction:column;align-items:center;gap:7px}
+  .sp-box{background:var(--blue-100);border:1px dashed #A8C6F5;border-radius:4px}
+  .sp-val{font-family:var(--font-mono);font-size:.625rem;color:var(--muted)}
+  .rad-demo,.sh-demo{width:130px;height:78px;background:var(--surface);border:1px solid var(--line);display:flex;align-items:flex-end;padding:9px 11px}
+
+  /* chips (shared with dashboard) */
+  .chip{display:inline-flex;align-items:center;gap:5px;font-size:.625rem;font-weight:700;letter-spacing:.02em;padding:2.5px 8px;border-radius:5px;white-space:nowrap}
+  .chip .cdot{width:5px;height:5px;border-radius:50%;background:currentColor}
+  .chip-ok{background:var(--ok-bg);color:var(--ok)}
+  .chip-warn{background:var(--warn-bg);color:var(--warn)}
+  .chip-late{background:var(--late-bg);color:var(--late)}
+  .chip-onboard{background:var(--ph-onboard-bg);color:var(--ph-onboard)}
+  .chip-migrate{background:var(--ph-migrate-bg);color:var(--ph-migrate)}
+  .chip-publish{background:var(--ph-publish-bg);color:var(--ph-publish)}
+  .chip-ai{background:var(--ph-ai-bg);color:var(--ph-ai)}
+  .chip-optimize{background:var(--ph-optimize-bg);color:var(--ph-optimize)}
+  .chip-neutral{background:var(--line-soft);color:var(--muted)}
+
+  /* buttons */
+  .btn{display:inline-flex;align-items:center;gap:7px;padding:8px 15px;border-radius:999px;font-size:.75rem;font-weight:600;white-space:nowrap;transition:background .16s var(--ease),transform .12s var(--ease),border-color .16s var(--ease),color .16s var(--ease)}
+  .btn:active{transform:translateY(1px)}
+  .btn-cta{background:var(--orange);color:#471F02}
+  .btn-cta:hover{background:var(--orange-600);color:#fff}
+  .btn-blue{background:var(--blue);color:#fff}
+  .btn-blue:hover{background:var(--blue-700)}
+  .btn-ghost{border:1px solid var(--line);color:var(--body);background:var(--surface)}
+  .btn-ghost:hover{border-color:#A8C6F5;color:var(--ink)}
+  .btn-sm{padding:5.5px 12px;font-size:.6875rem}
+  .btn[disabled]{opacity:.45;cursor:not-allowed;transform:none}
+  .link-btn{font-size:.75rem;font-weight:600;color:var(--blue-700)}
+  .link-btn:hover{text-decoration:underline}
+  .dark-strip{background:var(--navy);border-radius:var(--r-md);padding:18px 20px;display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+  .btn-ghost-dark{border:1px solid rgba(185,194,224,.35);color:#DCE3F7;background:transparent}
+  .btn-ghost-dark:hover{border-color:#5EB0FF;color:#fff}
+
+  .fpill{font-size:.6875rem;font-weight:600;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:4.5px 12px;background:var(--surface);transition:all .16s var(--ease)}
+  .fpill:hover{border-color:#A8C6F5;color:var(--ink)}
+  .fpill[aria-pressed="true"]{background:var(--navy);border-color:var(--navy);color:#fff}
+  .fpill .fnum{font-family:var(--font-mono);font-size:.625rem;opacity:.65;margin-left:4px}
+
+  .avatar{width:30px;height:30px;border-radius:50%;display:inline-grid;place-items:center;font-size:.625rem;font-weight:700;color:#fff}
+  .av-a{background:#0063D6}.av-b{background:#6A48E0}.av-c{background:#0B8A93}
+  .av-d{background:#B85512}.av-e{background:#177E48}.av-f{background:#44508A}
+
+  .demo-note{font-size:.6875rem;color:var(--muted);margin-top:10px}
+  .demo-note code{font-family:var(--font-mono);font-size:.625rem;background:var(--line-soft);padding:1px 5px;border-radius:4px;color:var(--body)}
+
+  /* dos & don'ts */
+  .dd-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .dd{border-radius:var(--r-md);padding:16px 18px;border:1px solid var(--line);background:var(--surface)}
+  .dd h4{font-size:.75rem;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:7px}
+  .dd.do h4{color:var(--ok)} .dd.dont h4{color:var(--late)}
+  .dd ul{list-style:none}
+  .dd li{font-size:.75rem;padding:4px 0;color:var(--body)}
+  .dd li::before{content:"·";margin-right:7px;color:var(--muted)}
+
+  @media (max-width:860px){
+    .type-spec{grid-template-columns:1fr;gap:4px}
+    .dd-grid{grid-template-columns:1fr}
+    .guide-hero{padding:34px 24px}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="guide">
+
+  <header class="guide-hero">
+    <div class="gh-eyebrow">Design System · v2.0</div>
+    <h1 class="gh-title">WebriQ Central Hub Style Guide</h1>
+    <p class="gh-sub">Source of truth for every screen in the Hub — the operations dashboard, onboarding module, client views, and future modules. Reference this document before building any new component or page.</p>
+    <div class="gh-meta">
+      <span>BRAND <b>#007BFF · #071133 · #FB914E</b></span>
+      <span>REGISTER <b>Product UI — dense, data-rich</b></span>
+      <span>UPDATED <b>JUL 21 2026</b></span>
+    </div>
+  </header>
+
+  <!-- ═══ 1. BRAND FOUNDATIONS ═══ -->
+  <section id="brand">
+    <h2 class="sec-title">1 · Brand foundations</h2>
+    <p class="sec-sub">The Hub is an internal tool people live in all day. It borrows WebriQ's official website colors but expresses them as a working surface: navy is chrome and ink, blue means "interactive," orange means "act now." Color always carries meaning — never decoration.</p>
+
+    <div class="row" style="gap:14px">
+      <div class="card pad" style="display:flex;align-items:center;gap:14px">
+        <span style="width:44px;height:44px;border-radius:11px;background:var(--blue);display:grid;place-items:center;box-shadow:0 0 0 2px rgba(0,123,255,.28)">
+          <svg width="24" height="24" viewBox="0 0 20 20" fill="none"><path d="M3.5 14 L7 6 L10 12 L13 8 L16.5 14" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+        <div>
+          <div style="font-family:var(--font-display);font-weight:700;font-size:1rem;color:var(--ink);letter-spacing:-.01em">WebriQ <span style="color:var(--muted);font-weight:500">Central Hub</span></div>
+          <div style="font-size:.6875rem;color:var(--muted)">Mark: W-path on <code style="font-family:var(--font-mono);font-size:.625rem">#007BFF</code>, 2px blue ring at 28% opacity</div>
+        </div>
+      </div>
+      <div class="card pad" style="flex:1;min-width:260px">
+        <div style="font-size:.75rem;color:var(--body)"><b style="color:var(--ink)">Color roles at a glance.</b> Navy <span class="sw-hex">#071133</span> = chrome, headings, ink anchor · Blue <span class="sw-hex">#007BFF</span> = every interactive element · Orange <span class="sw-hex">#FB914E</span> = primary CTA and the Onboard phase only. If orange appears, it asks for action.</div>
+      </div>
+    </div>
+  </section>
+  <hr class="rule">
+
+  <!-- ═══ 2. COLOR ═══ -->
+  <section id="color">
+    <h2 class="sec-title">2 · Color</h2>
+    <p class="sec-sub">Restrained strategy: neutral surfaces carry the interface; brand hues appear only with intent. Body text on white must hit ≥ 4.5:1 — <code style="font-family:var(--font-mono)">--body</code> and <code style="font-family:var(--font-mono)">--muted</code> both pass.</p>
+
+    <div class="group-label">Brand</div>
+    <div class="sw-grid">
+      <div class="sw"><div class="sw-chip" style="background:#071133"><span class="sw-usage" style="color:#7E8BB8">Chrome · Ink</span></div><div class="sw-info"><div class="sw-name">Navy</div><div class="sw-token">--navy</div><div class="sw-hex">#071133</div></div></div>
+      <div class="sw"><div class="sw-chip" style="background:#122459"><span class="sw-usage" style="color:#8FA0D6">Sidebar hover</span></div><div class="sw-info"><div class="sw-name">Navy 700</div><div class="sw-token">--navy-700</div><div class="sw-hex">#122459</div></div></div>
+      <div class="sw"><div class="sw-chip" style="background:#16296B"><span class="sw-usage" style="color:#9DB0E8">Sidebar active</span></div><div class="sw-info"><div class="sw-name">Navy active</div><div class="sw-token">--navy-active</div><div class="sw-hex">#16296B</div></div></div>
+      <div class="sw"><div class="sw-chip" style="background:#007BFF"><span class="sw-usage" style="color:#DCEEFF">Interactive</span></div><div class="sw-info"><div class="sw-name">Blue</div><div class="sw-token">--blue</div><div class="sw-hex">#007BFF</div></div></div>
+      <div class="sw"><div class="sw-chip" style="background:#0063D6"><span class="sw-usage" style="color:#CBE3FF">Links · Pressed</span></div><div class="sw-info"><div class="sw-name">Blue 700</div><div class="sw-token">--blue-700</div><div class="sw-hex">#0063D6</div></div></div>
+      <div class="sw"><div class="sw-chip" style="background:#E5F1FF"><span class="sw-usage" style="color:#0063D6">Tints · Icon bg</span></div><div class="sw-info"><div class="sw-name">Blue 100</div><div class="sw-token">--blue-100</div><div class="sw-hex">#E5F1FF</div></div></div>
+      <div class="sw"><div class="sw-chip" style="background:#FB914E"><span class="sw-usage" style="color:#471F02">Primary CTA</span></div><div class="sw-info"><div class="sw-name">Orange</div><div class="sw-token">--orange</div><div class="sw-hex">#FB914E</div></div></div>
+      <div class="sw"><div class="sw-chip" style="background:#E2762F"><span class="sw-usage" style="color:#FFEFE3">CTA hover</span></div><div class="sw-info"><div class="sw-name">Orange 600</div><div class="sw-token">--orange-600</div><div class="sw-hex">#E2762F</div></div></div>
+    </div>
+
+    <div class="group-label">Neutrals &amp; ink</div>
+    <div class="sw-grid">
+      <div class="sw"><div class="sw-chip" style="background:#F4F6FB;border-bottom:1px solid var(--line)"><span class="sw-usage" style="color:#5F6A88">Page bg</span></div><div class="sw-info"><div class="sw-name">Background</div><div class="sw-token">--bg</div><div class="sw-hex">#F4F6FB</div></div></div>
+      <div class="sw"><div class="sw-chip" style="background:#FFFFFF;border-bottom:1px solid var(--line)"><span class="sw-usage" style="color:#5F6A88">Cards · Panels</span></div><div class="sw-info"><div class="sw-name">Surface</div><div class="sw-token">--surface</div><div class="sw-hex">#FFFFFF</div></div></div>
+      <div class="sw"><div class="sw-chip" style="background:#E2E7F2"><span class="sw-usage" style="color:#3A4565">Borders</span></div><div class="sw-info"><div class="sw-name">Line</div><div class="sw-token">--line</div><div class="sw-hex">#E2E7F2</div></div></div>
+      <div class="sw"><div class="sw-chip" style="background:#EDF0F7"><span class="sw-usage" style="color:#3A4565">Row dividers</span></div><div class="sw-info"><div class="sw-name">Line soft</div><div class="sw-token">--line-soft</div><div class="sw-hex">#EDF0F7</div></div></div>
+      <div class="sw"><div class="sw-chip" style="background:#0B1533"><span class="sw-usage" style="color:#8FA0D6">Headings</span></div><div class="sw-info"><div class="sw-name">Ink</div><div class="sw-token">--ink</div><div class="sw-hex">#0B1533</div></div></div>
+      <div class="sw"><div class="sw-chip" style="background:#3A4565"><span class="sw-usage" style="color:#C9D1E6">Body text</span></div><div class="sw-info"><div class="sw-name">Body</div><div class="sw-token">--body</div><div class="sw-hex">#3A4565</div></div></div>
+      <div class="sw"><div class="sw-chip" style="background:#5F6A88"><span class="sw-usage" style="color:#E2E7F2">Labels · Hints</span></div><div class="sw-info"><div class="sw-name">Muted</div><div class="sw-token">--muted</div><div class="sw-hex">#5F6A88</div></div></div>
+    </div>
+  </section>
+    <div class="group-label">Phase hues — 120-day programme</div>
+    <div class="sw-grid">
+      <div class="sw"><div class="sw-chip" style="background:#FFEFE3"><span class="sw-usage" style="color:#E2762F">Day 1–15</span></div><div class="sw-info"><div class="sw-name">Onboard</div><div class="sw-token">--ph-onboard</div><div class="sw-hex">#E2762F / #FFEFE3</div></div></div>
+      <div class="sw"><div class="sw-chip" style="background:#E5F1FF"><span class="sw-usage" style="color:#0063D6">Day 16–30</span></div><div class="sw-info"><div class="sw-name">Migrate &amp; Rebrand</div><div class="sw-token">--ph-migrate</div><div class="sw-hex">#0063D6 / #E5F1FF</div></div></div>
+      <div class="sw"><div class="sw-chip" style="background:#EFEAFD"><span class="sw-usage" style="color:#6A48E0">Day 31–60</span></div><div class="sw-info"><div class="sw-name">Publish</div><div class="sw-token">--ph-publish</div><div class="sw-hex">#6A48E0 / #EFEAFD</div></div></div>
+      <div class="sw"><div class="sw-chip" style="background:#E2F6F7"><span class="sw-usage" style="color:#0B8A93">Day 61–90</span></div><div class="sw-info"><div class="sw-name">AI Visibility</div><div class="sw-token">--ph-ai</div><div class="sw-hex">#0B8A93 / #E2F6F7</div></div></div>
+      <div class="sw"><div class="sw-chip" style="background:#E3F5EA"><span class="sw-usage" style="color:#177E48">Day 91–120</span></div><div class="sw-info"><div class="sw-name">Optimize</div><div class="sw-token">--ph-optimize</div><div class="sw-hex">#177E48 / #E3F5EA</div></div></div>
+    </div>
+    <p class="demo-note">Phase hues are a fixed vocabulary. A phase color is never reused for anything else — seeing violet anywhere in the Hub always means "Publish."</p>
+
+    <div class="group-label">Semantic states</div>
+    <div class="sw-grid">
+      <div class="sw"><div class="sw-chip" style="background:#E3F5EA"><span class="sw-usage" style="color:#177E48">On track · Done</span></div><div class="sw-info"><div class="sw-name">Success</div><div class="sw-token">--ok</div><div class="sw-hex">#177E48 / #E3F5EA</div></div></div>
+      <div class="sw"><div class="sw-chip" style="background:#FFF3D6"><span class="sw-usage" style="color:#8A5A00">Due soon · Blocked</span></div><div class="sw-info"><div class="sw-name">Warning</div><div class="sw-token">--warn</div><div class="sw-hex">#8A5A00 / #FFF3D6</div></div></div>
+      <div class="sw"><div class="sw-chip" style="background:#FDE8E6"><span class="sw-usage" style="color:#C0392B">Late · Overdue</span></div><div class="sw-info"><div class="sw-name">Late / Error</div><div class="sw-token">--late</div><div class="sw-hex">#C0392B / #FDE8E6</div></div></div>
+    </div>
+  </section>
+  <hr class="rule">
+
+  <!-- ═══ 3. TYPOGRAPHY ═══ -->
+  <section id="type">
+    <h2 class="sec-title">3 · Typography</h2>
+    <p class="sec-sub">Three faces, three jobs. Space Grotesk gives the Hub its voice but appears only at display sizes. Inter does all UI work. JetBrains Mono is reserved for machine values — day counters, dates, IDs, keyboard shortcuts — so scannable data always looks like data.</p>
+
+    <div class="card" style="padding:6px 22px">
+      <div class="type-spec">
+        <div class="ts-meta"><b>Page title</b>Space Grotesk 700<br>22px · −0.015em · ink</div>
+        <div style="font-family:var(--font-display);font-size:1.375rem;font-weight:700;color:var(--ink);letter-spacing:-.015em">Good morning, Brandon</div>
+      </div>
+      <div class="type-spec">
+        <div class="ts-meta"><b>Panel title</b>Space Grotesk 600<br>15px · −0.01em · ink</div>
+        <div style="font-family:var(--font-display);font-size:.9375rem;font-weight:600;color:var(--ink);letter-spacing:-.01em">120-Day Programme</div>
+      </div>
+      <div class="type-spec">
+        <div class="ts-meta"><b>Stat number</b>Space Grotesk 700<br>28px · −0.02em · ink</div>
+        <div style="font-family:var(--font-display);font-size:1.75rem;font-weight:700;color:var(--ink);letter-spacing:-.02em;line-height:1">42</div>
+      </div>
+      <div class="type-spec">
+        <div class="ts-meta"><b>Body / UI</b>Inter 400–600<br>13px · body</div>
+        <div style="font-size:.8125rem;color:var(--body)">Brief the developer and confirm the tech docs are filed before the Day 16 handover.</div>
+      </div>
+      <div class="type-spec">
+        <div class="ts-meta"><b>Small label</b>Inter 600<br>11px · muted</div>
+        <div style="font-size:.6875rem;font-weight:600;color:var(--muted)">Clients in programme</div>
+      </div>
+      <div class="type-spec">
+        <div class="ts-meta"><b>Table header</b>Inter 700 caps<br>9.5px · +0.09em · muted</div>
+        <div style="font-size:.5938rem;font-weight:700;color:var(--muted);letter-spacing:.09em;text-transform:uppercase">Client &nbsp;&nbsp; Classification &nbsp;&nbsp; Phase &nbsp;&nbsp; Status</div>
+      </div>
+      <div class="type-spec">
+        <div class="ts-meta"><b>Data / mono</b>JetBrains Mono 500–600<br>9–11px · body</div>
+        <div style="font-family:var(--font-mono);font-size:.6875rem;color:var(--body)">DAY 34 &nbsp;·&nbsp; 14 / 120 &nbsp;·&nbsp; DUE THU · JUL 23 &nbsp;·&nbsp; ⌘K</div>
+      </div>
+    </div>
+    <p class="demo-note">Scale ratio ≈ 1.15–1.2 (fixed rem, never fluid). Space Grotesk is banned from buttons, labels, table cells, and form controls — display face at display sizes only.</p>
+  </section>
+  <hr class="rule">
+
+  <!-- ═══ 4. SPACING · RADIUS · ELEVATION ═══ -->
+  <section id="layout">
+    <h2 class="sec-title">4 · Spacing, radius &amp; elevation</h2>
+    <p class="sec-sub">A 4px base grid. Panels breathe at 18px padding; rows are dense (9–12px vertical). Depth comes from borders first — shadows are whispers, not statements.</p>
+
+    <div class="group-label">Spacing scale</div>
+    <div class="card pad">
+      <div class="sp-row">
+        <div class="sp-demo"><div class="sp-box" style="width:4px;height:24px"></div><span class="sp-val">4</span></div>
+        <div class="sp-demo"><div class="sp-box" style="width:8px;height:24px"></div><span class="sp-val">8</span></div>
+        <div class="sp-demo"><div class="sp-box" style="width:12px;height:24px"></div><span class="sp-val">12</span></div>
+        <div class="sp-demo"><div class="sp-box" style="width:16px;height:24px"></div><span class="sp-val">16</span></div>
+        <div class="sp-demo"><div class="sp-box" style="width:18px;height:24px"></div><span class="sp-val">18 · panel pad</span></div>
+        <div class="sp-demo"><div class="sp-box" style="width:24px;height:24px"></div><span class="sp-val">24 · page pad</span></div>
+        <div class="sp-demo"><div class="sp-box" style="width:40px;height:24px"></div><span class="sp-val">40 · section</span></div>
+      </div>
+    </div>
+
+    <div class="group-label">Radius</div>
+    <div class="row">
+      <div class="rad-demo" style="border-radius:7px"><span class="sp-val">--r-sm · 7px · chips, kbd</span></div>
+      <div class="rad-demo" style="border-radius:10px"><span class="sp-val">--r-md · 10px · inputs, inner</span></div>
+      <div class="rad-demo" style="border-radius:14px"><span class="sp-val">--r-lg · 14px · panels, tiles</span></div>
+      <div class="rad-demo" style="border-radius:999px;width:150px"><span class="sp-val">999 · buttons, pills, tracks</span></div>
+    </div>
+
+    <div class="group-label">Elevation</div>
+    <div class="row">
+      <div class="sh-demo" style="border-radius:12px;box-shadow:var(--sh-sm)"><span class="sp-val">--sh-sm · default card</span></div>
+      <div class="sh-demo" style="border-radius:12px;box-shadow:var(--sh-md)"><span class="sp-val">--sh-md · dropdown, modal</span></div>
+      <div class="sh-demo" style="border-radius:12px;box-shadow:0 0 0 2px rgba(0,123,255,.28)"><span class="sp-val">blue ring · logo, focus</span></div>
+    </div>
+    <p class="demo-note">Every raised surface pairs a 1px <code>--line</code> border with <code>--sh-sm</code>. Never shadow without a border on light surfaces.</p>
+  </section>
+  <hr class="rule">
+  <!-- ═══ 5. COMPONENTS ═══ -->
+  <section id="components">
+    <h2 class="sec-title">5 · Components</h2>
+    <p class="sec-sub">The working vocabulary. Every interactive element ships with default, hover, focus-visible, active, and disabled states — transitions at 160ms ease-out.</p>
+
+    <div class="group-label">Buttons — pill radius, one job each</div>
+    <div class="card pad">
+      <div class="row">
+        <button class="btn btn-cta">+ Add client</button>
+        <button class="btn btn-cta">Start handover</button>
+        <button class="btn btn-blue">Save changes</button>
+        <button class="btn btn-ghost">Export weekly report</button>
+        <button class="btn btn-ghost btn-sm">Cancel</button>
+        <button class="btn btn-blue" disabled>Save changes</button>
+        <button class="link-btn">Manage permissions</button>
+      </div>
+      <div class="dark-strip" style="margin-top:14px">
+        <button class="btn btn-cta">Request audit</button>
+        <button class="btn btn-ghost-dark">See how it works</button>
+        <span class="sp-val" style="color:#7E8BB8">on navy surfaces</span>
+      </div>
+      <p class="demo-note">Orange = the one primary action per screen. Blue = confirm / navigate. Ghost = secondary. Text link = tertiary. Labels say exactly what happens: "Start handover," never "Submit."</p>
+    </div>
+
+    <div class="group-label">Status &amp; phase chips</div>
+    <div class="card pad">
+      <div class="row" style="margin-bottom:10px">
+        <span class="chip chip-ok"><i class="cdot"></i>On track</span>
+        <span class="chip chip-warn"><i class="cdot"></i>Sign-off due</span>
+        <span class="chip chip-late"><i class="cdot"></i>4 days late</span>
+        <span class="chip chip-neutral">Legacy</span>
+        <span class="chip chip-neutral">StackShift I</span>
+      </div>
+      <div class="row">
+        <span class="chip chip-onboard">Onboard</span>
+        <span class="chip chip-migrate">Migrate</span>
+        <span class="chip chip-publish">Publish</span>
+        <span class="chip chip-ai">AI Visibility</span>
+        <span class="chip chip-optimize">Optimize</span>
+      </div>
+      <p class="demo-note">Status chips carry a leading dot; phase and classification chips don't. 5px radius, 10px/700 type. Chips are read-only — they never behave like buttons.</p>
+    </div>
+
+    <div class="group-label">Filter pills — classification filtering</div>
+    <div class="card pad">
+      <div class="row">
+        <button class="fpill" aria-pressed="true">All<span class="fnum">42</span></button>
+        <button class="fpill" aria-pressed="false">StackShift I<span class="fnum">11</span></button>
+        <button class="fpill" aria-pressed="false">Access<span class="fnum">9</span></button>
+        <button class="fpill" aria-pressed="false">Access Plus<span class="fnum">6</span></button>
+        <button class="fpill" aria-pressed="false">Legacy<span class="fnum">16</span></button>
+      </div>
+      <p class="demo-note">Single-select. Active pill fills with navy — never blue, so filters can't be mistaken for actions. Counts in mono at 65% opacity. New classifications added by Super Admin inherit this style automatically.</p>
+    </div>
+
+    <div class="group-label">Programme track — the signature element</div>
+    <div class="card pad">
+      <div style="display:grid;grid-template-columns:190px 1fr 120px;gap:16px;align-items:center">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="avatar av-d">FG</span>
+          <div><div style="font-size:.8125rem;font-weight:600;color:var(--ink)">Ferro Group</div><div style="font-size:.625rem;color:var(--muted)">StackShift Access Plus</div></div>
+        </div>
+        <div style="position:relative;height:22px;border-radius:999px;background:var(--line-soft)">
+          <span style="content:'';position:absolute;inset:0;border-radius:999px;pointer-events:none;background:linear-gradient(var(--line) 0 0) 12.5% 0/1px 100% no-repeat,linear-gradient(var(--line) 0 0) 25% 0/1px 100% no-repeat,linear-gradient(var(--line) 0 0) 50% 0/1px 100% no-repeat,linear-gradient(var(--line) 0 0) 75% 0/1px 100% no-repeat"></span>
+          <span style="position:absolute;inset:0 auto 0 0;width:28.3%;border-radius:999px;background:linear-gradient(90deg,#BBDCFF,var(--blue))"></span>
+          <span style="position:absolute;top:50%;left:28.3%;transform:translate(-50%,-50%);font-family:var(--font-mono);font-size:.5625rem;font-weight:600;background:var(--navy);color:#fff;padding:2px 7px;border-radius:999px;box-shadow:0 1px 3px rgba(7,17,51,.35)">DAY 34</span>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:8px"><span class="chip chip-late"><i class="cdot"></i>4 days late</span></div>
+      </div>
+      <p class="demo-note">Anatomy: 22px pill track · phase-boundary ticks at Days 15/30/60/90 (12.5% / 25% / 50% / 75%) · fill tinted with the current phase hue · navy mono day pill at <code>left: day/120 × 100%</code>. Widths are always to true day scale — never equal fifths.</p>
+    </div>
+
+    <div class="group-label">Checklist row — intake deliverables</div>
+    <div class="card" style="max-width:460px">
+      <div style="display:flex;align-items:center;gap:10px;padding:9px 18px;border-bottom:1px solid var(--line-soft);font-size:.75rem">
+        <span style="width:17px;height:17px;border-radius:5px;background:var(--ok);border:1.5px solid var(--ok);display:grid;place-items:center;color:#fff"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
+        <span style="color:var(--muted);font-weight:500;flex:1;text-decoration:line-through;text-decoration-color:#C4CCE0">Branding guides</span>
+        <span style="font-family:var(--font-mono);font-size:.5625rem;color:var(--muted)">DAY 12</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;padding:9px 18px;font-size:.75rem">
+        <span style="width:17px;height:17px;border-radius:5px;border:1.5px solid #C4CCE0"></span>
+        <span style="color:var(--ink);font-weight:500;flex:1">DNS details</span>
+        <span style="font-family:var(--font-mono);font-size:.5625rem;color:var(--muted)">PENDING</span>
+      </div>
+    </div>
+
+    <div class="group-label">Form controls</div>
+    <div class="card pad" style="max-width:560px">
+      <label style="display:block;font-size:.6875rem;font-weight:600;color:var(--ink);margin-bottom:5px">Client name</label>
+      <input type="text" placeholder="e.g. Coastal Dental Group" style="width:100%;font:inherit;font-size:.8125rem;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 12px;outline:none" onfocus="this.style.borderColor='#007BFF';this.style.boxShadow='0 0 0 3px rgba(0,123,255,.14)';this.style.background='#fff'" onblur="this.style.borderColor='';this.style.boxShadow='';this.style.background=''">
+      <div style="display:flex;gap:12px;margin-top:12px">
+        <div style="flex:1">
+          <label style="display:block;font-size:.6875rem;font-weight:600;color:var(--ink);margin-bottom:5px">Classification</label>
+          <select style="width:100%;font:inherit;font-size:.8125rem;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 12px">
+            <option>StackShift I</option><option>StackShift Access</option><option>StackShift Access Plus</option><option>Legacy client</option>
+          </select>
+        </div>
+        <div style="flex:1">
+          <label style="display:block;font-size:.6875rem;font-weight:600;color:var(--ink);margin-bottom:5px">Starting phase</label>
+          <select style="width:100%;font:inherit;font-size:.8125rem;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 12px">
+            <option>Onboard · Day 1</option><option>Migrate &amp; Rebrand · Day 16</option><option>Publish · Day 31</option><option>Other…</option>
+          </select>
+        </div>
+      </div>
+      <p class="demo-note">Inputs sit on <code>--bg</code> and lift to white on focus with a 3px blue ring at 14% opacity. Labels 11px/600 ink. Errors use <code>--late</code> border + a plain-language message below: what went wrong, how to fix it.</p>
+    </div>
+
+    <div class="group-label">Avatars</div>
+    <div class="card pad">
+      <div class="row">
+        <span class="avatar av-a">JM</span>
+        <span class="avatar av-b">AP</span>
+        <span class="avatar av-c">NT</span>
+        <span class="avatar av-d">BT</span>
+        <span class="avatar av-e">MR</span>
+        <span class="avatar av-f">BR</span>
+        <span style="display:flex;margin-left:10px">
+          <span class="avatar av-a" style="width:24px;height:24px;font-size:.5313rem;border:2px solid #fff">JM</span>
+          <span class="avatar av-b" style="width:24px;height:24px;font-size:.5313rem;border:2px solid #fff;margin-left:-7px">AP</span>
+          <span class="avatar av-e" style="width:24px;height:24px;font-size:.5313rem;border:2px solid #fff;margin-left:-7px">MR</span>
+        </span>
+      </div>
+      <p class="demo-note">Initials on a fixed 6-color rotation (blue-700, violet, teal, rust, green, slate-navy) — assigned per person, stable across screens. Stacks overlap −7px with a 2px white keyline.</p>
+    </div>
+  </section>
+  <hr class="rule">
+  <!-- ═══ 6. MOTION & INTERACTION ═══ -->
+  <section id="motion">
+    <h2 class="sec-title">6 · Motion &amp; interaction</h2>
+    <p class="sec-sub">Motion conveys state, never decorates. People load the Hub into a task — no page-load choreography, no staggered entrances.</p>
+    <div class="card pad">
+      <ul style="list-style:none;font-size:.75rem;color:var(--body)">
+        <li style="padding:4px 0">· Transitions: <code style="font-family:var(--font-mono);font-size:.625rem;background:var(--line-soft);padding:1px 5px;border-radius:4px">160ms cubic-bezier(.22,1,.36,1)</code> on background, color, border-color. 120ms on press (1px translateY).</li>
+        <li style="padding:4px 0">· Animate only compositor-friendly properties — never layout (width, height, top).</li>
+        <li style="padding:4px 0">· Hover on rows: background tint to <code style="font-family:var(--font-mono);font-size:.625rem;background:var(--line-soft);padding:1px 5px;border-radius:4px">--blue-50</code>. No lifts, no scale.</li>
+        <li style="padding:4px 0">· Focus: 2px blue outline, 2px offset — visible on every interactive element, always.</li>
+        <li style="padding:4px 0">· Loading: skeleton rows in place, never a centered spinner.</li>
+        <li style="padding:4px 0">· <code style="font-family:var(--font-mono);font-size:.625rem;background:var(--line-soft);padding:1px 5px;border-radius:4px">prefers-reduced-motion</code>: all transitions collapse to instant. Non-negotiable.</li>
+      </ul>
+    </div>
+  </section>
+  <hr class="rule">
+
+  <!-- ═══ 7. VOICE ═══ -->
+  <section id="voice">
+    <h2 class="sec-title">7 · Voice &amp; tone</h2>
+    <p class="sec-sub">The Hub speaks like a reliable coworker: direct, specific, calm under deadline pressure.</p>
+    <div class="card pad">
+      <ul style="list-style:none;font-size:.75rem;color:var(--body)">
+        <li style="padding:4px 0">· <b style="color:var(--ink)">Sentence case</b> everywhere except table headers and mono data labels (caps).</li>
+        <li style="padding:4px 0">· Buttons name the outcome: "Start handover," "Manage permissions," "Export weekly report."</li>
+        <li style="padding:4px 0">· Reminders state the who + what + when: "Day 16 handover — Coastal Dental · Due Thu, Jul 23."</li>
+        <li style="padding:4px 0">· Programme vocabulary is fixed: Onboard, Migrate &amp; Rebrand, Publish, AI Visibility, Optimize. Days are "Day 34," never "d34" or "34th day."</li>
+        <li style="padding:4px 0">· Empty states invite action: "No clients in Publish yet — they'll appear here from Day 31."</li>
+        <li style="padding:4px 0">· No exclamation points in primary UI. No apologies in errors — state what happened and the fix.</li>
+      </ul>
+    </div>
+  </section>
+  <hr class="rule">
+
+  <!-- ═══ 8. DO / DON'T ═══ -->
+  <section id="rules">
+    <h2 class="sec-title">8 · Do's &amp; don'ts</h2>
+    <div class="dd-grid">
+      <div class="dd do">
+        <h4>✓ Do</h4>
+        <ul>
+          <li>One orange CTA per screen, maximum</li>
+          <li>Border + soft shadow on every raised surface</li>
+          <li>Mono face for any day count, date, ID, or shortcut</li>
+          <li>Phase widths always to true day scale (15/15/30/30/30)</li>
+          <li>Navy for filter/selection states, blue for actions</li>
+          <li>Full-radius pills for buttons and tracks</li>
+          <li>Skeletons over spinners; empty states that teach</li>
+        </ul>
+      </div>
+      <div class="dd dont">
+        <h4>✕ Don't</h4>
+        <ul>
+          <li>No colored left-border accent stripes on cards or list items</li>
+          <li>No gradient text, no glassmorphism, no decorative blur</li>
+          <li>No Space Grotesk in buttons, labels, or table cells</li>
+          <li>No phase hue reused for a non-phase meaning</li>
+          <li>No orange for anything that isn't a call to action</li>
+          <li>No nested cards; no shadow-only elevation</li>
+          <li>No page-load animation sequences</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <footer style="border-top:1px solid var(--line);padding-top:18px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap">
+    <span style="font-size:.6875rem;color:var(--muted)">WebriQ Central Hub · Design System v2.0 · Supersedes v1 (#3358F4 / #F97316 palette)</span>
+    <span style="font-family:var(--font-mono);font-size:.625rem;color:var(--muted)">PAIRS WITH webriq-central-hub-dashboard.html</span>
+  </footer>
+</div>
+</body>
+</html>

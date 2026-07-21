@@ -1,15 +1,14 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import dynamic from "next/dynamic";
+import Link from "next/link";
+import { AnimatePresence, motion } from "framer-motion";
+import { FolderKanban, ChartGantt, ChevronRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { usePMSettings } from "@/hooks/use-pm-settings";
+import { useGreeting } from "@/hooks/use-greeting";
+import { V2_ROUTES } from "@/config/constants";
 import { KpiCard, SectionCard, PriorityDot, StatusChip } from "./dashboard-shared";
-
-const WeeklyHoursChart = dynamic(
-  () => import("./weekly-hours-chart"),
-  { ssr: false, loading: () => <div className="h-40 animate-pulse bg-(--c-track) rounded-lg" /> }
-);
 
 type ClassRecord = {
   id: string;
@@ -19,6 +18,8 @@ type ClassRecord = {
   status: string;
   created_at: string;
 };
+
+type OnboardingProject = { status: "draft" | "scheduled" | "in_progress" };
 
 // No assigned_developer_id column yet — show all open/active records as the kanban
 // TODO: Add assigned_developer_id to classification_records for per-dev task assignment
@@ -30,6 +31,36 @@ function groupByKanban(records: ClassRecord[]) {
   };
 }
 
+function WorkspaceCard({ trackerInProgress, projectsCount, loading, isDark }: {
+  trackerInProgress: number;
+  projectsCount: number;
+  loading: boolean;
+  isDark: boolean;
+}) {
+  return (
+    <SectionCard title="Your workspace" noPad>
+      <div className="divide-y divide-(--c-border)">
+        <Link href={V2_ROUTES.PORTFOLIO_TRACKER} className="group flex items-center gap-3 px-5 py-3 hover:bg-(--c-track) transition-colors">
+          <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${isDark ? "bg-white/[0.06]" : "bg-slate-50"}`}>
+            <ChartGantt size={14} className="text-(--c-violet)" />
+          </div>
+          <span className="text-[12px] text-(--c-sub) flex-1">Tracker · in progress</span>
+          <span className="text-[13px] font-semibold text-(--c-text)">{loading ? "—" : trackerInProgress}</span>
+          <ChevronRight size={13} className="text-(--c-muted) shrink-0 transition-transform group-hover:translate-x-0.5" />
+        </Link>
+        <Link href={V2_ROUTES.PROJECTS} className="group flex items-center gap-3 px-5 py-3 hover:bg-(--c-track) transition-colors">
+          <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${isDark ? "bg-white/[0.06]" : "bg-slate-50"}`}>
+            <FolderKanban size={14} className="text-(--c-blue)" />
+          </div>
+          <span className="text-[12px] text-(--c-sub) flex-1">Projects</span>
+          <span className="text-[13px] font-semibold text-(--c-text)">{loading ? "—" : projectsCount}</span>
+          <ChevronRight size={13} className="text-(--c-muted) shrink-0 transition-transform group-hover:translate-x-0.5" />
+        </Link>
+      </div>
+    </SectionCard>
+  );
+}
+
 interface Props {
   userId: string;
   displayName: string | null;
@@ -38,9 +69,12 @@ interface Props {
 export default function DevDashboard({ displayName }: Props) {
   const { settings } = usePMSettings();
   const isDark = settings.theme === "dark";
+  const { visible, text, dateLabel, dismiss } = useGreeting(displayName);
 
   const [records, setRecords] = useState<ClassRecord[]>([]);
   const [unassigned, setUnassigned] = useState<ClassRecord[]>([]);
+  const [trackerInProgress, setTrackerInProgress] = useState(0);
+  const [projectsCount, setProjectsCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -58,9 +92,14 @@ export default function DevDashboard({ displayName }: Props) {
         .eq("status", "open")
         .order("created_at", { ascending: false })
         .limit(5),
-    ]).then(([myResult, unassignedResult]) => {
+      supabase.from("projects").select("id", { count: "exact", head: true }),
+      fetch("/api/onboarding/projects").then(r => r.json()).catch(() => ({ projects: [] })),
+    ]).then(([myResult, unassignedResult, projectsResult, trackerResult]) => {
       setRecords((myResult.data ?? []) as ClassRecord[]);
       setUnassigned((unassignedResult.data ?? []) as ClassRecord[]);
+      setProjectsCount(projectsResult.count ?? 0);
+      const trackerProjects = (trackerResult.projects ?? []) as OnboardingProject[];
+      setTrackerInProgress(trackerProjects.filter(p => p.status === "in_progress").length);
       setLoading(false);
     });
   }, []);
@@ -71,8 +110,6 @@ export default function DevDashboard({ displayName }: Props) {
     { label: "Open",       value: todo.length,       accentClass: "" },
     { label: "In Progress", value: inProgress.length, accentClass: "text-(--c-blue)" },
     { label: "For Review",  value: forReview.length,  accentClass: "text-(--c-amber)" },
-    { label: "Due Today",   value: "—",               accentClass: "" },
-    { label: "Hours Billed", value: "—",              accentClass: "text-(--c-green)" },
   ];
 
   const kanbanCols = [
@@ -83,18 +120,26 @@ export default function DevDashboard({ displayName }: Props) {
 
   return (
     <div className={`py-6.5 px-8 flex flex-col gap-6 ${isDark ? "pm-dark" : "pm-light"}`}>
-      {/* Header */}
-      <div>
-        <h1 className={`text-xl font-bold ${isDark ? "text-white" : "text-slate-900"}`}>
-          Developer Dashboard
-        </h1>
-        <p className="text-sm text-(--c-sub) mt-0.5">
-          {displayName ? `Welcome back, ${displayName}` : "Welcome back"}
-        </p>
-      </div>
+      {/* Greeting */}
+      <AnimatePresence>
+        {visible && text && (
+          <motion.div
+            className="cursor-pointer select-none"
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.35 }}
+            onClick={dismiss}
+            title="Click to dismiss"
+          >
+            <h1 className="font-heading text-[22px] font-bold text-(--c-text) tracking-[-0.02em]">{text}</h1>
+            <p className="text-[13px] text-(--c-sub) mt-0.5">{dateLabel} · Developer workspace</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* KPI Row */}
-      <div className="grid grid-cols-5 gap-4">
+      <div className="grid grid-cols-3 gap-4">
         {kpis.map(k => (
           <KpiCard
             key={k.label}
@@ -151,11 +196,7 @@ export default function DevDashboard({ displayName }: Props) {
 
         {/* Right rail */}
         <div className="w-72 shrink-0 flex flex-col gap-4">
-          {/* Weekly Hours */}
-          <SectionCard title="Weekly Hours">
-            <WeeklyHoursChart isDark={isDark} />
-            <p className="text-[10px] text-(--c-muted) mt-2 text-center">Stub data — HR timesheets integration pending</p>
-          </SectionCard>
+          <WorkspaceCard trackerInProgress={trackerInProgress} projectsCount={projectsCount} loading={loading} isDark={isDark} />
 
           {/* Team Pool */}
           <SectionCard
