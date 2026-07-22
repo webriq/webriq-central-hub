@@ -1,21 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { runOrchestration } from "@/lib/pipeline/orchestrate";
+import { adminClient } from "@/lib/supabase/admin";
+import { runOrchestration, type OrchestrationProject } from "@/lib/pipeline/orchestrate";
 
-const ProjectSchema = z.object({
-  id: z.string().uuid(),
-  sanity_project_id: z.string().optional(),
-  dataset: z.string().optional(),
-  vercel_project_id: z.string().optional(),
-  github_repo: z.string().optional(),
-});
-
+// Only task_id/title/description come from the caller — project config (sanity_project_id,
+// github_repo, etc.) is always re-derived from the DB row for project.id below, never trusted
+// from the request body, so a caller can't redirect execution at an arbitrary Sanity/GitHub target.
 const PostSchema = z.object({
   task_id: z.string().min(1),
   title: z.string().min(1),
   description: z.string().min(1),
-  project: ProjectSchema,
+  project: z.object({ id: z.string().uuid() }),
 });
 
 export async function POST(req: NextRequest) {
@@ -27,6 +23,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const { data: callerProfile } = await adminClient.from("profiles").select("role").eq("id", user.id).maybeSingle();
+  if (!["pm", "admin", "super_admin"].includes(callerProfile?.role ?? "")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const body = await req.json().catch(() => null);
   const parsed = PostSchema.safeParse(body);
   if (!parsed.success) {
@@ -36,7 +37,25 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { task_id, title, description, project } = parsed.data;
+  const { task_id, title, description, project: projectInput } = parsed.data;
+
+  const { data: projectRow, error: projectErr } = await adminClient
+    .from("projects")
+    .select("id, sanity_project_id, dataset, vercel_project_id, github_repo")
+    .eq("id", projectInput.id)
+    .maybeSingle();
+
+  if (projectErr || !projectRow) {
+    return NextResponse.json({ error: "Project not found" }, { status: 404 });
+  }
+
+  const project: OrchestrationProject = {
+    id: projectRow.id,
+    sanity_project_id: projectRow.sanity_project_id ?? undefined,
+    dataset: projectRow.dataset ?? undefined,
+    vercel_project_id: projectRow.vercel_project_id ?? undefined,
+    github_repo: projectRow.github_repo ?? undefined,
+  };
 
   const result = await runOrchestration({
     task_id,

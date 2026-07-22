@@ -242,7 +242,7 @@ export default function NewCustomerPage() {
                 ))}
               </div>
               <div className="bg-indigo-50 border border-brand/15 rounded-lg px-4 py-3 text-[13px] text-brand">
-                A unique <strong>WRQ-CUST-XXXX</strong> ID and login-free onboarding URL will be generated. You can share this with the customer immediately.
+                A unique <strong>WRQ-CUST-XXXXXXXX</strong> ID and login-free onboarding URL will be generated. You can share this with the customer immediately.
               </div>
             </div>
           )}

@@ -1,18 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminClient } from "@/lib/supabase/admin";
+import type { ProductName } from "@/types/hub";
 
 const ALLOWED_MIME_TYPES = [
   "image/jpeg",
   "image/png",
   "image/gif",
   "image/webp",
-  "image/svg+xml",
+  // image/svg+xml intentionally excluded — SVGs can carry embedded <script>, a stored-XSS
+  // vector when served back at the storage domain.
   "application/pdf",
   "application/msword",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "application/vnd.ms-excel",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 ];
+
+const VALID_PRODUCTS: ProductName[] = ["StackShift", "PublishForge", "PipelineForge"];
 
 const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
 
@@ -33,6 +37,22 @@ export async function POST(request: NextRequest) {
 
     if (!productName) {
       return NextResponse.json({ error: "productName is required" }, { status: 400 });
+    }
+
+    if (!VALID_PRODUCTS.includes(productName as ProductName)) {
+      return NextResponse.json({ error: "Invalid product name" }, { status: 400 });
+    }
+
+    // This endpoint is intentionally public (no session — onboarding customers aren't
+    // logged in), so it can't role-gate. It can at least confirm the target customer is
+    // real, closing off anonymous storage abuse under arbitrary customerId paths.
+    const { data: customer } = await adminClient
+      .from("customers")
+      .select("customer_id")
+      .eq("customer_id", customerId)
+      .maybeSingle();
+    if (!customer) {
+      return NextResponse.json({ error: "Unknown customerId" }, { status: 404 });
     }
 
     // Validate file type

@@ -57,15 +57,18 @@ export async function POST(req: Request) {
 
   const role = (profileResult.data?.role ?? "client") as
     | "admin" | "pm" | "hr" | "developer" | "client";
+  const isStaff = role === "admin" || role === "pm";
   const fullName = profileResult.data?.full_name ?? null;
   const [model, config] = modelResult;
 
   const body = await req.json().catch(() => ({}));
   const messages: UIMessage[] = Array.isArray(body.messages) ? body.messages : [];
 
-  // Open Sanity MCP client (only if token is configured)
+  // Open Sanity MCP client (only if token is configured AND the caller is staff — these
+  // tools include create_documents/patch_documents against a shared global write token, and
+  // the system prompt's "admin/pm only" instruction is not itself an access control).
   const token = process.env.SANITY_GLOBAL_TOKEN;
-  const sanityMCP = token
+  const sanityMCP = token && isStaff
     ? await createMCPClient({
         transport: {
           type: "http",

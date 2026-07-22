@@ -73,21 +73,29 @@ function parsePayload(contentType: string, rawText: string, url: string): ZohoPa
 export async function POST(req: NextRequest) {
   const contentType = req.headers.get("content-type") ?? "";
   const rawText = await req.text().catch(() => "");
-  console.log("[webhook] incoming request", { contentType, rawText });
-  const body: ZohoPayload = parsePayload(contentType, rawText, req.url);
+  console.log("[webhook] incoming request", { contentType, bodyLength: rawText.length });
 
+  // HMAC verification is mandatory — without it this endpoint would accept unauthenticated
+  // requests that trigger paid LLM classification calls and can flip implementation_plans
+  // status by guessing a zoho_task_id. A missing secret is a misconfiguration, not an
+  // "allow all" fallback.
   const hmacSecret = process.env.ZOHO_WEBHOOK_SECRET;
-  if (hmacSecret) {
-    const signature = req.headers.get("x-zp-webhook-signature") ?? "";
-    const expected = createHmac("sha256", hmacSecret).update(rawText).digest("base64");
-    const sigBuf = Buffer.from(signature);
-    const expBuf = Buffer.from(expected);
-    const valid = sigBuf.length === expBuf.length && timingSafeEqual(sigBuf, expBuf);
-    if (!valid) {
-      console.warn("[webhook] unauthorized — HMAC mismatch");
-      return NextResponse.json({ received: true }); // 200 so Zoho doesn't retry
-    }
+  if (!hmacSecret) {
+    console.error("[webhook] ZOHO_WEBHOOK_SECRET is not configured — rejecting request");
+    return NextResponse.json({ received: true }); // 200 so Zoho doesn't retry
   }
+
+  const signature = req.headers.get("x-zp-webhook-signature") ?? "";
+  const expected = createHmac("sha256", hmacSecret).update(rawText).digest("base64");
+  const sigBuf = Buffer.from(signature);
+  const expBuf = Buffer.from(expected);
+  const valid = sigBuf.length === expBuf.length && timingSafeEqual(sigBuf, expBuf);
+  if (!valid) {
+    console.warn("[webhook] unauthorized — HMAC mismatch");
+    return NextResponse.json({ received: true }); // 200 so Zoho doesn't retry
+  }
+
+  const body: ZohoPayload = parsePayload(contentType, rawText, req.url);
 
   const source: WebhookSource = body.ticketId ? "zoho_desk" : "zoho_projects";
   const title = body.subject ?? body.taskName ?? "(no title)";

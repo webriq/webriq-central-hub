@@ -7,9 +7,11 @@ import { readFromZoho, adminClient, ImportResult, extractZohoCustomerName } from
 
 type ZohoProjectName = { name?: string };
 
+// Kept in sync with generateCustomerId() in @/lib/customers/generate-id — 8 hex chars,
+// since this ID is also the sole guard on the public, unauthenticated onboarding endpoints.
 async function generateCustomerIdAdmin(): Promise<string> {
   for (let i = 0; i < 10; i++) {
-    const suffix = crypto.randomUUID().replace(/-/g, "").slice(0, 4).toUpperCase();
+    const suffix = crypto.randomUUID().replace(/-/g, "").slice(0, 8).toUpperCase();
     const id = `WRQ-CUST-${suffix}`;
     const { data } = await adminClient
       .from("customers")
@@ -18,7 +20,7 @@ async function generateCustomerIdAdmin(): Promise<string> {
       .maybeSingle();
     if (!data) return id;
   }
-  return `WRQ-CUST-${crypto.randomUUID().replace(/-/g, "").slice(0, 6).toUpperCase()}`;
+  return `WRQ-CUST-${crypto.randomUUID().replace(/-/g, "").slice(0, 10).toUpperCase()}`;
 }
 
 export async function POST() {

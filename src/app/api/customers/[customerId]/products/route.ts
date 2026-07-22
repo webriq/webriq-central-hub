@@ -1,14 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import type { ProductName } from "@/types/hub";
 
 const VALID_PRODUCTS: ProductName[] = ["StackShift", "PublishForge", "PipelineForge", "CiteForge"];
+
+async function requireStaff(): Promise<{ user: { id: string } } | NextResponse> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const { data: profile } = await adminClient.from("profiles").select("role").eq("id", user.id).maybeSingle();
+  if (!["pm", "admin", "super_admin"].includes(profile?.role ?? "")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+  return { user };
+}
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ customerId: string }> }
 ) {
   try {
+    const auth = await requireStaff();
+    if (auth instanceof NextResponse) return auth;
+
     const { customerId } = await params;
     const body = await request.json();
     const productName = body.product_name as string;
@@ -73,6 +88,9 @@ export async function DELETE(
   { params }: { params: Promise<{ customerId: string }> }
 ) {
   try {
+    const auth = await requireStaff();
+    if (auth instanceof NextResponse) return auth;
+
     const { customerId } = await params;
     const { searchParams } = new URL(request.url);
     const productName = searchParams.get("product_name");

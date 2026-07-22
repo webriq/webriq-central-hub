@@ -45,6 +45,7 @@ next-env.d.ts
 
 .vexp/index.db-shm
 .vexp/index.db-wal
+.vexpignore
 
 _backup (DO NOT READ)/
 

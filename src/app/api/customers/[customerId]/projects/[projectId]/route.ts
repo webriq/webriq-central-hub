@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { updateZohoProject } from "@/lib/zoho";
 import type { Database } from "@/types/database";
@@ -12,6 +13,16 @@ export async function PATCH(
   { params }: { params: Promise<{ customerId: string; projectId: string }> }
 ) {
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const { data: callerProfile } = await adminClient.from("profiles").select("role").eq("id", user.id).maybeSingle();
+    if (!["pm", "admin", "super_admin"].includes(callerProfile?.role ?? "")) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const { customerId, projectId } = await params;
     const body = await request.json();
     const { project_name, project_type, sanity_project_id, github_repo, dedicated_developers } = body;

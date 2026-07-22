@@ -1,14 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { createZohoProject } from "@/lib/zoho";
 
 const VALID_PROJECT_TYPES = ["Content Site", "Ecommerce (B2C)", "Ecommerce (B2B)", "Custom App"] as const;
+
+const STAFF_READ_ROLES = ["admin", "super_admin", "pm", "developer", "hr", "marketing"];
+const STAFF_WRITE_ROLES = ["admin", "super_admin", "pm"];
+
+async function requireRole(allowed: string[]): Promise<{ user: { id: string } } | NextResponse> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const { data: profile } = await adminClient.from("profiles").select("role").eq("id", user.id).maybeSingle();
+  if (!allowed.includes(profile?.role ?? "")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+  return { user };
+}
 
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ customerId: string }> }
 ) {
   try {
+    const auth = await requireRole(STAFF_READ_ROLES);
+    if (auth instanceof NextResponse) return auth;
+
     const { customerId } = await params;
     // Individually-hidden projects (in-progress onboarding on an otherwise-visible customer)
     // never appear in the profile's Projects tab or count, per task 123's visibility gate.
@@ -36,6 +54,9 @@ export async function POST(
   { params }: { params: Promise<{ customerId: string }> }
 ) {
   try {
+    const auth = await requireRole(STAFF_WRITE_ROLES);
+    if (auth instanceof NextResponse) return auth;
+
     const { customerId } = await params;
     const body = await request.json();
     const {

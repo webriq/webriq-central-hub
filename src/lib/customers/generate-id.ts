@@ -1,9 +1,14 @@
 import { createClient } from "@/lib/supabase/server";
 
 /**
- * Generates a unique customer ID in WRQ-CUST-XXXX format.
- * Uses crypto.randomUUID() → first 4 alphanumeric chars → uppercase.
+ * Generates a unique customer ID in WRQ-CUST-XXXXXXXX format.
+ * Uses crypto.randomUUID() → first 8 alphanumeric chars → uppercase.
  * Checks uniqueness against the customers table, retries up to 5 times on collision.
+ *
+ * 8 hex chars (16^8 ≈ 4.3 billion combinations) is deliberate — this ID is the sole
+ * guard on the public, unauthenticated onboarding endpoints (no session, no separate
+ * token), so it must not be brute-forceable. A prior 4-char version (65,536 values)
+ * was walkable over HTTP in seconds.
  */
 export async function generateCustomerId(): Promise<string> {
   const supabase = await createClient();
@@ -11,8 +16,8 @@ export async function generateCustomerId(): Promise<string> {
 
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     const raw = crypto.randomUUID().replace(/-/g, "");
-    // Extract first 4 alphanumeric characters and uppercase them
-    const suffix = raw.slice(0, 4).toUpperCase();
+    // Extract first 8 alphanumeric characters and uppercase them
+    const suffix = raw.slice(0, 8).toUpperCase();
     const customerId = `WRQ-CUST-${suffix}`;
 
     // Check uniqueness
@@ -37,6 +42,6 @@ export async function generateCustomerId(): Promise<string> {
 
   // Final fallback: use more chars to guarantee uniqueness
   const raw = crypto.randomUUID().replace(/-/g, "");
-  const suffix = raw.slice(0, 6).toUpperCase();
+  const suffix = raw.slice(0, 10).toUpperCase();
   return `WRQ-CUST-${suffix}`;
 }

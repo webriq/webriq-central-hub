@@ -39,6 +39,16 @@ export async function PATCH(
   { params }: { params: Promise<{ customerId: string }> }
 ) {
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const { data: callerProfile } = await adminClient.from("profiles").select("role").eq("id", user.id).maybeSingle();
+    if (!["pm", "admin", "super_admin"].includes(callerProfile?.role ?? "")) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const { customerId } = await params;
     const body = await request.json();
 

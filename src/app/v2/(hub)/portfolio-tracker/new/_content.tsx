@@ -1266,7 +1266,7 @@ export default function NewProjectWizard({ role }: { role: string | null }) {
                       )}>
                         <Sparkles size={14} className="shrink-0 text-[#F97316]" />
                         <span className={cn("text-xs leading-snug", isDark ? "text-amber-300" : "text-[#92400E]")}>
-                          A unique customer ID (<span className="font-mono">WRQ-CUST-XXXX</span>) will be generated for this new company.
+                          A unique customer ID (<span className="font-mono">WRQ-CUST-XXXXXXXX</span>) will be generated for this new company.
                         </span>
                       </div>
                     )}
