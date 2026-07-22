@@ -93,6 +93,14 @@ interface IssueAttachmentMetaExportState {
   error: string | null;
 }
 
+interface CommentAttachmentMetaExportState {
+  from: string;
+  to: string;
+  progress: { current: number; total: number } | null;
+  done: { count: number; failed: string[] } | null;
+  error: string | null;
+}
+
 interface AttachmentsImportState {
   progress: { current: number; total: number } | null;
   done: { imported: number; skipped: number; errors: string[] } | null;
@@ -117,6 +125,7 @@ const EXPORT_LEVELS = [
   { key: "issue-timelogs", label: "Issue Time Logs", desc: "All time logged against issues (paginated per issue, all 1049 queried — no pre-filter available) — requires Issues exported first" },
   { key: "attachment-meta", label: "Attachment Metadata", desc: "Attachment list per task — requires tasks.json exported first" },
   { key: "issue-attachment-meta", label: "Issue Attachment Metadata", desc: "Attachment list per issue (entity_type: bug) — requires issues-*.json exported first" },
+  { key: "comment-attachment-meta", label: "Comment Attachment Metadata", desc: "Attachment list per task comment (entity_type: task_comment) — requires comments.json exported first" },
   { key: "desk-accounts", label: "Desk Accounts", desc: "All Zoho Desk accounts (companies) — requires the Desk.accounts.READ OAuth scope; export before Desk Contacts for account-name matching" },
   { key: "desk-contacts", label: "Desk Contacts", desc: "All Zoho Desk contacts — can run independently, but export Desk Accounts first for customer matching" },
 ] as const;
@@ -235,6 +244,15 @@ export default function MigratePage() {
   const [issueAttachmentMetaExport, setIssueAttachmentMetaExport] = useState<IssueAttachmentMetaExportState>({
     from: "0",
     to: "100",
+    progress: null,
+    done: null,
+    error: null,
+  });
+  // "200" is a placeholder starter — no grounded task-comment count exists yet;
+  // confirm against the real downloaded comments.json length and adjust.
+  const [commentAttachmentMetaExport, setCommentAttachmentMetaExport] = useState<CommentAttachmentMetaExportState>({
+    from: "0",
+    to: "200",
     progress: null,
     done: null,
     error: null,
@@ -834,6 +852,77 @@ export default function MigratePage() {
       setIssueAttachmentMetaExport((s) => ({ ...s, error: String(e), progress: null }));
       setExportStates((s) => ({ ...s, "issue-attachment-meta": "error" }));
       console.error("[export/issue-attachment-meta]", e);
+    } finally {
+      setAnyRunning(false);
+    }
+  }
+
+  async function handleCommentAttachmentMetaExport() {
+    if (anyRunning) return;
+    setAnyRunning(true);
+    setExportStates((s) => ({ ...s, "comment-attachment-meta": "running" }));
+    setCommentAttachmentMetaExport((s) => ({ ...s, progress: null, done: null, error: null }));
+
+    try {
+      const qp = new URLSearchParams({ from: commentAttachmentMetaExport.from || "0" });
+      if (commentAttachmentMetaExport.to) qp.set("to", commentAttachmentMetaExport.to);
+      const res = await fetch(`/api/admin/zoho-export/comment-attachment-meta?${qp}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      const accumulated: unknown[] = [];
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const frames = buffer.split("\n\n");
+        buffer = frames.pop() ?? "";
+
+        for (const frame of frames) {
+          if (!frame.startsWith("data: ")) continue;
+          const evt = JSON.parse(frame.slice(6)) as {
+            type: string;
+            current?: number;
+            total?: number;
+            items?: unknown[];
+            total_attachments?: number;
+            failed_comment_ids?: string[];
+          };
+
+          if (evt.type === "progress") {
+            setCommentAttachmentMetaExport((s) => ({
+              ...s,
+              progress: { current: evt.current!, total: evt.total! },
+            }));
+          }
+          if (evt.type === "attachments" && evt.items) {
+            accumulated.push(...evt.items);
+          }
+          if (evt.type === "done") {
+            const blob = new Blob([JSON.stringify(accumulated, null, 2)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            const toLabel = commentAttachmentMetaExport.to || "end";
+            a.download = `comment-attachment-meta-${commentAttachmentMetaExport.from || "0"}-${toLabel}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            setCommentAttachmentMetaExport((s) => ({
+              ...s,
+              done: { count: evt.total_attachments!, failed: evt.failed_comment_ids ?? [] },
+              progress: null,
+            }));
+            setExportStates((s) => ({ ...s, "comment-attachment-meta": "done" }));
+          }
+        }
+      }
+    } catch (e) {
+      setCommentAttachmentMetaExport((s) => ({ ...s, error: String(e), progress: null }));
+      setExportStates((s) => ({ ...s, "comment-attachment-meta": "error" }));
+      console.error("[export/comment-attachment-meta]", e);
     } finally {
       setAnyRunning(false);
     }
@@ -1790,6 +1879,85 @@ export default function MigratePage() {
                   ) : null}
                   {issueAttachmentMetaExport.error !== null ? (
                     <div className="mt-1 text-[11px] text-red-600">{issueAttachmentMetaExport.error}</div>
+                  ) : null}
+                </div>
+              );
+            }
+
+            if (key === "comment-attachment-meta") {
+              const isRunning = exportStates["comment-attachment-meta"] === "running";
+              const pct = commentAttachmentMetaExport.progress
+                ? Math.round((commentAttachmentMetaExport.progress.current / commentAttachmentMetaExport.progress.total) * 100)
+                : 0;
+
+              return (
+                <div key="comment-attachment-meta" className="py-2 border-b border-slate-100 last:border-0">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[13px] font-medium text-slate-800 flex items-center gap-2">
+                        {label}
+                        <StateIcon state={exportStates["comment-attachment-meta"] ?? "idle"} />
+                      </div>
+                      <div className="text-[11px] text-slate-500 mt-0.5 truncate">{desc}</div>
+                      {!isRunning && (
+                        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                          <label className="text-[11px] text-slate-500">From</label>
+                          <input
+                            type="number"
+                            min={0}
+                            value={commentAttachmentMetaExport.from}
+                            onChange={(e) => setCommentAttachmentMetaExport((s) => ({ ...s, from: e.target.value }))}
+                            className="w-16 text-[11px] text-slate-800 border border-slate-200 rounded px-1.5 py-0.5 focus:outline-none focus:border-slate-400"
+                          />
+                          <label className="text-[11px] text-slate-500">To</label>
+                          <input
+                            type="number"
+                            min={0}
+                            value={commentAttachmentMetaExport.to}
+                            placeholder="all"
+                            onChange={(e) => setCommentAttachmentMetaExport((s) => ({ ...s, to: e.target.value }))}
+                            className="w-16 text-[11px] text-slate-800 border border-slate-200 rounded px-1.5 py-0.5 focus:outline-none focus:border-slate-400"
+                          />
+                          <span className="text-[11px] text-slate-400">comments</span>
+                        </div>
+                      )}
+                    </div>
+                    {!isRunning && (
+                      <button
+                        onClick={handleCommentAttachmentMetaExport}
+                        disabled={anyRunning}
+                        className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium bg-slate-900 text-white hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <Download size={11} />
+                        Export
+                      </button>
+                    )}
+                  </div>
+                  {isRunning && commentAttachmentMetaExport.progress !== null ? (
+                    <div className="mt-2">
+                      <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-blue-500 rounded-full transition-all"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      <div className="text-[11px] text-slate-500 mt-1 truncate">
+                        Comment {commentAttachmentMetaExport.progress.current} of {commentAttachmentMetaExport.progress.total}
+                      </div>
+                    </div>
+                  ) : null}
+                  {exportStates["comment-attachment-meta"] === "done" && commentAttachmentMetaExport.done !== null ? (
+                    <div className="mt-1 text-[11px]">
+                      <div className="text-green-600">{commentAttachmentMetaExport.done.count} attachments downloaded</div>
+                      {commentAttachmentMetaExport.done.failed.length > 0 ? (
+                        <div className="text-amber-600 mt-0.5 truncate" title={commentAttachmentMetaExport.done.failed.join(", ")}>
+                          {commentAttachmentMetaExport.done.failed.length} comment(s) failed after retries — re-run with from/to to retry
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
+                  {commentAttachmentMetaExport.error !== null ? (
+                    <div className="mt-1 text-[11px] text-red-600">{commentAttachmentMetaExport.error}</div>
                   ) : null}
                 </div>
               );

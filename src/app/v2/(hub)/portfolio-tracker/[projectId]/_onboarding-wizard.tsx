@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
 import {
-  ArrowLeft, ArrowRight, Check, CheckCircle2, Circle, Clock, Upload,
+  ArrowLeft, ArrowRight, Check, CheckCircle2, Circle, Clock, CloudUpload,
   FileText, Plus, Trash2, Sparkles, AlertTriangle, ListChecks, X, Eye, Pencil,
   Monitor, Tablet, Smartphone, Folder, Lock, Grid3x3, LayoutList,
   MoreVertical, FolderPlus, FolderInput, Share2, ChevronRight, Loader2,
@@ -15,7 +15,7 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { html as htmlLang } from "@codemirror/lang-html";
 import { markdown as markdownLang } from "@codemirror/lang-markdown";
-import { githubLight, githubDark } from "@uiw/codemirror-theme-github";
+import { githubLight } from "@uiw/codemirror-theme-github";
 import { marked } from "marked";
 import { cn } from "@/lib/utils";
 import { V2_ROUTES } from "@/config/constants";
@@ -112,7 +112,6 @@ interface OnboardingWizardProps {
   internalDeliverables: OnboardingInternalDeliverableRow[];
   wizardData: Record<string, unknown>;
   currentDay: number;
-  isDark: boolean;
   // Task 146: pm gets read-only steps 1-5/7, full Step 6 file/folder access, no checklist
   // editing anywhere, and no Complete Phase 1 action. Developer never reaches this component.
   role: string | null;
@@ -171,9 +170,8 @@ const ASSET_ROLE_LABELS: Record<string, string> = Object.fromEntries(ASSET_ROLE_
 // Assets tab (src/app/v2/(hub)/customers/[customerId]/client.tsx) per the page-scoped UI
 // convention, same as ASSET_ROLE_OPTIONS above.
 const ASSET_TYPE_LABELS: Record<"link" | "credential", string> = { link: "LINK", credential: "CRED" };
-const ASSET_TYPE_CLS_LIGHT: Record<"link" | "credential", string> = { link: "bg-indigo-50 text-indigo-600", credential: "bg-amber-50 text-amber-600" };
-const ASSET_TYPE_CLS_DARK: Record<"link" | "credential", string> = { link: "text-indigo-400 bg-indigo-500/15", credential: "text-amber-400 bg-amber-500/15" };
-const assetTypeCls = (type: "link" | "credential", isDark: boolean) => (isDark ? ASSET_TYPE_CLS_DARK : ASSET_TYPE_CLS_LIGHT)[type];
+const ASSET_TYPE_CLS: Record<"link" | "credential", string> = { link: "bg-[#E5F1FF] text-[#007BFF]", credential: "bg-[#FFF3D6] text-[#8A5A00]" };
+const assetTypeCls = (type: "link" | "credential") => ASSET_TYPE_CLS[type];
 
 function formatFileSize(bytes: number | null): string {
   if (!bytes) return "";
@@ -242,9 +240,8 @@ const STEPS = phase1.deliverables; // 7 sub-phases, in day order
 // scope decision for Phase 1 — search-to-add stayed project-members-only). Panel container
 // mirrors renderPermissionsPanel's existing shape in this file for visual consistency.
 function PhaseAccessPanel({
-  isDark, members, staffDirectory, busy, error, onAdd, onRemove, onTransferOwnership, onClose,
+  members, staffDirectory, busy, error, onAdd, onRemove, onTransferOwnership, onClose,
 }: {
-  isDark: boolean;
   members: WizardMemberRow[];
   staffDirectory: { id: string; full_name: string | null; role: string }[];
   busy: boolean;
@@ -254,8 +251,8 @@ function PhaseAccessPanel({
   onTransferOwnership: (userId: string) => void;
   onClose: () => void;
 }) {
-  const textMuted = isDark ? "text-slate-400" : "text-slate-500";
-  const textPrimary = isDark ? "text-slate-200" : "text-slate-900";
+  const textMuted = "text-[#5F6A88]";
+  const textPrimary = "text-[#0B1533]";
   const memberIds = new Set(members.map((m) => m.user_id));
 
   const marketingOptions = staffDirectory
@@ -272,7 +269,7 @@ function PhaseAccessPanel({
       onChange={(e) => { if (e.target.value) onAdd(e.target.value); e.target.value = ""; }}
       className={cn(
         "rounded-full border border-dashed px-2.5 py-1 text-[11px] disabled:opacity-50",
-        isDark ? "bg-transparent border-white/[0.15] text-slate-400" : "bg-white border-slate-300 text-slate-500"
+        "bg-white border-[#E2E7F2] text-[#5F6A88]"
       )}
     >
       <option value="">{options.length === 0 ? "No one available" : placeholder}</option>
@@ -283,7 +280,7 @@ function PhaseAccessPanel({
   );
 
   return (
-    <div className={cn("flex flex-col gap-2 px-3 py-2.5 rounded-lg mb-3 border", isDark ? "bg-white/[0.02] border-white/[0.06]" : "bg-slate-50 border-slate-100")}>
+    <div className={cn("flex flex-col gap-2 px-3 py-2.5 rounded-lg mb-3 border", "bg-[#F4F6FB] border-[#EDF0F7]")}>
       <div className="flex items-center justify-between">
         <span className={cn("text-[10px] font-semibold uppercase tracking-wide", textMuted)}>Phase 1 access — owner + assigned Marketing/PM</span>
         <IconTip label="Close">
@@ -291,23 +288,23 @@ function PhaseAccessPanel({
             type="button"
             onClick={onClose}
             aria-label="Close access management"
-            className={cn("p-2 rounded-md cursor-pointer border-none bg-transparent transition-colors", textMuted, isDark ? "hover:bg-white/[0.08]" : "hover:bg-slate-200")}
+            className={cn("p-2 rounded-md cursor-pointer border-none bg-transparent transition-colors", textMuted, "hover:bg-[#E2E7F2]")}
           >
             <X size={12} />
           </button>
         </IconTip>
       </div>
-      {error && <p className="text-[11px] text-red-500">{error}</p>}
+      {error && <p className="text-[11px] text-[#C0392B]">{error}</p>}
       <div className="flex flex-wrap items-center gap-1.5">
         {members.length === 0 && <span className={cn("text-[11.5px]", textMuted)}>No members yet — open to any Marketing/PM.</span>}
         {members.map((m) => (
-          <div key={m.user_id} className={cn("inline-flex items-center gap-1.5 rounded-full border py-1 pl-1 pr-2 text-[11.5px]", isDark ? "border-white/[0.1] bg-white/[0.03]" : "border-slate-200 bg-white")}>
-            <div className="flex h-5 w-5 items-center justify-center rounded-full bg-brand/10 text-[9px] font-bold text-brand">
+          <div key={m.user_id} className={cn("inline-flex items-center gap-1.5 rounded-full border py-1 pl-1 pr-2 text-[11.5px]", "border-[#E2E7F2] bg-white")}>
+            <div className="flex h-5 w-5 items-center justify-center rounded-full bg-[#E5F1FF] text-[9px] font-bold text-[#007BFF]">
               {(m.full_name ?? "?").slice(0, 1).toUpperCase()}
             </div>
             <span className={cn("font-medium", textPrimary)}>{m.full_name ?? "Unnamed"}</span>
             <span className={textMuted}>{m.role ?? ""}</span>
-            {m.is_owner && <Crown size={11} className="text-amber-500" aria-label="Owner" />}
+            {m.is_owner && <Crown size={11} className="text-[#8A5A00]" aria-label="Owner" />}
             {!m.is_owner && (m.role === "marketing" || m.role === "admin" || m.role === "super_admin") && (
               <IconTip label="Transfer ownership to this person">
                 <button
@@ -315,7 +312,7 @@ function PhaseAccessPanel({
                   onClick={() => onTransferOwnership(m.user_id)}
                   disabled={busy}
                   aria-label="Transfer ownership to this person"
-                  className={cn("cursor-pointer rounded-full border-none bg-transparent p-2 transition-colors disabled:opacity-50", textMuted, "hover:text-brand")}
+                  className={cn("cursor-pointer rounded-full border-none bg-transparent p-2 transition-colors disabled:opacity-50", textMuted, "hover:text-[#007BFF]")}
                 >
                   <ArrowRightLeft size={11} />
                 </button>
@@ -328,7 +325,7 @@ function PhaseAccessPanel({
                   onClick={() => onRemove(m.user_id)}
                   disabled={busy}
                   aria-label={`Remove ${m.full_name ?? "person"}`}
-                  className={cn("cursor-pointer rounded-full border-none bg-transparent p-2 transition-colors disabled:opacity-50", textMuted, "hover:text-red-500")}
+                  className={cn("cursor-pointer rounded-full border-none bg-transparent p-2 transition-colors disabled:opacity-50", textMuted, "hover:text-[#C0392B]")}
                 >
                   <X size={11} />
                 </button>
@@ -348,7 +345,7 @@ function PhaseAccessPanel({
 }
 
 export default function OnboardingWizard({
-  project, deliverables, internalDeliverables, wizardData, currentDay, isDark, role, isPhaseActive, initialStepKey,
+  project, deliverables, internalDeliverables, wizardData, currentDay, role, isPhaseActive, initialStepKey,
   onBack, onDeliverableChange, onInternalDeliverableChange,
   canManagePhase1, phase1Members, phase1Busy, phase1Error,
   onAddPhase1Member, onRemovePhase1Member, onTransferPhaseOwnership,
@@ -559,6 +556,7 @@ export default function OnboardingWizard({
   const [htmlMockupUploadProgress, setHtmlMockupUploadProgress] = useState<UploadProgressEntry[]>([]);
   const [viewingHtmlMockupFileId, setViewingHtmlMockupFileId] = useState<string | null>(null);
   const isHtmlMockupFilled = htmlMockupFiles.length > 0;
+  const [htmlMockupFieldError, setHtmlMockupFieldError] = useState(false);
   const [editingHtmlAsset, setEditingHtmlAsset] = useState<AssetRow | null>(null);
   const [editingHtmlContent, setEditingHtmlContent] = useState<string | null>(null);
   const [editingHtmlLoadError, setEditingHtmlLoadError] = useState<string | null>(null);
@@ -572,6 +570,7 @@ export default function OnboardingWizard({
   // not the Complete Phase 1 button itself, which is gated on the checklist being marked done,
   // not on this field directly (task 135 follow-up).
   const isSignoffFilled = stripHtml(signoffNotes).length > 0 || signoffFiles.length > 0;
+  const [signoffFieldError, setSignoffFieldError] = useState(false);
 
   const [signoffSaveStatus, setSignoffSaveStatus] = useState<SaveStatus>("idle");
   const [signoffLastSavedAt, setSignoffLastSavedAt] = useState<Date | null>(null);
@@ -583,6 +582,69 @@ export default function OnboardingWizard({
   const [localDeliverables, setLocalDeliverables] = useState(deliverables);
   const [localInternal, setLocalInternal] = useState(internalDeliverables);
   const [togglingKey, setTogglingKey] = useState<string | null>(null);
+
+  // Real bug found during Round 3 QA: when the Wizard opens directly from a URL that already
+  // carries ?phase=&deliverable= (a deep link, a bookmark, or a browser refresh while the
+  // Wizard was open), `_onboarding-detail.tsx` renders it before its own `deliverables`/
+  // `internalDeliverables` fetch resolves, so this component first mounts with empty arrays.
+  // useState only captures that initial (empty) snapshot — without this sync, every step's
+  // status chip is permanently stuck on "Pending" (0/0 complete) for the rest of the session,
+  // even after every real toggle succeeds server-side, because `.map`-based updates elsewhere
+  // in this file have nothing to match against in an array that never received the real data.
+  // Adjusts state during render (React's documented pattern for this — matches
+  // prevStepIdxForValidation's own use of the same idiom further below in this file) rather
+  // than a useEffect, so it can't trigger the extra commit-then-cascade render a setState-in-
+  // effect would, and it can't loop: it only ever fires on the one empty→populated transition,
+  // never again afterward, so it can't clobber a later optimistic local update either.
+  const [prevDeliverablesProp, setPrevDeliverablesProp] = useState(deliverables);
+  if (deliverables !== prevDeliverablesProp) {
+    setPrevDeliverablesProp(deliverables);
+    if (localDeliverables.length === 0 && deliverables.length > 0) setLocalDeliverables(deliverables);
+  }
+  const [prevInternalDeliverablesProp, setPrevInternalDeliverablesProp] = useState(internalDeliverables);
+  if (internalDeliverables !== prevInternalDeliverablesProp) {
+    setPrevInternalDeliverablesProp(internalDeliverables);
+    if (localInternal.length === 0 && internalDeliverables.length > 0) setLocalInternal(internalDeliverables);
+  }
+
+  // Task 172: each step's own uploaded-file list (businessFactsFiles, outcomeFiles,
+  // migrationChecklistFiles, contentMapFiles, htmlMockupFiles, signoffFiles) is
+  // useState<AssetRow[]>([]) with no seeding from server data — unlike this same step's text
+  // fields, which correctly initialize from kickoffData/outcomeTargetData/etc. The files
+  // themselves ARE persisted correctly (a real Storage upload + a customer_assets row tagged
+  // with a step-specific `label`) and already show up in phase1Assets (fetched further below,
+  // and already powering the Storage/KB File Explorer's correct post-refresh view) — nothing
+  // connected the two, so a refresh always showed every step's own upload widget as empty
+  // regardless of what's actually in the database. Seeded here from phase1Assets, filtered by
+  // label, using the same "only fire on the one empty→populated transition" idiom as
+  // localDeliverables/localInternal above (no extra prevProp tracking needed — phase1Assets is
+  // this component's own state, and only these six handlers ever add rows carrying these exact
+  // labels, each already keeping its own list in sync on upload/remove) so a later optimistic
+  // upload/removal is never clobbered by a stale phase1Assets snapshot.
+  if (businessFactsFiles.length === 0 && phase1Assets.length > 0) {
+    const seeded = phase1Assets.filter((a) => a.label === "Business Facts").sort((a, b) => a.created_at.localeCompare(b.created_at));
+    if (seeded.length > 0) setBusinessFactsFiles(seeded);
+  }
+  if (outcomeFiles.length === 0 && phase1Assets.length > 0) {
+    const seeded = phase1Assets.filter((a) => a.label === "Outcome Target").sort((a, b) => a.created_at.localeCompare(b.created_at));
+    if (seeded.length > 0) setOutcomeFiles(seeded);
+  }
+  if (migrationChecklistFiles.length === 0 && phase1Assets.length > 0) {
+    const seeded = phase1Assets.filter((a) => a.label === "Migration Checklist").sort((a, b) => a.created_at.localeCompare(b.created_at));
+    if (seeded.length > 0) setMigrationChecklistFiles(seeded);
+  }
+  if (contentMapFiles.length === 0 && phase1Assets.length > 0) {
+    const seeded = phase1Assets.filter((a) => a.label === "Content Map").sort((a, b) => a.created_at.localeCompare(b.created_at));
+    if (seeded.length > 0) setContentMapFiles(seeded);
+  }
+  if (htmlMockupFiles.length === 0 && phase1Assets.length > 0) {
+    const seeded = phase1Assets.filter((a) => a.label === "HTML Mockup").sort((a, b) => a.created_at.localeCompare(b.created_at));
+    if (seeded.length > 0) setHtmlMockupFiles(seeded);
+  }
+  if (signoffFiles.length === 0 && phase1Assets.length > 0) {
+    const seeded = phase1Assets.filter((a) => a.label === "Signed Agreement").sort((a, b) => a.created_at.localeCompare(b.created_at));
+    if (seeded.length > 0) setSignoffFiles(seeded);
+  }
 
   const kickoffSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const outcomeSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -599,6 +661,36 @@ export default function OnboardingWizard({
   const stepStatus = stepRow?.status ?? "pending";
   const stepInternal = internalDeliverablesForSubPhase(step.key);
   const isLastStep = stepIdx === STEPS.length - 1;
+
+  // Display-only status for the header chip (task 171 Round 3) — `stepStatus` above stays the
+  // real, server-persisted value used for navigation gating and doneCount; this layers three
+  // additional "in progress" triggers on top of it purely for what the chip shows, so the user
+  // sees intent immediately without waiting on a network round-trip:
+  //   1. Today's programme day has reached the step's scheduled start day, even with nothing
+  //      filled in yet.
+  //   2. The step's own field (RTE text or an uploaded file) has content, even before today's
+  //      programme day reaches the step's start.
+  //   3. Some (but not all) checklist items are already checked — some items don't require a
+  //      field at all, so this can be true independent of triggers 1/2.
+  // "Done" always wins outright once every checklist item is checked (unaffected by this).
+  const stepOwnFieldFilled = (): boolean => {
+    switch (step.key) {
+      case "kickoff": return isBusinessFactsFilled;
+      case "outcome-target": return isOutcomeFilled;
+      case "migration-checklist": return isMigrationChecklistFilled;
+      case "content-map": return isContentMapFilled;
+      case "html-mockup": return isHtmlMockupFilled;
+      case "client-signoff": return isSignoffFilled;
+      default: return false; // storage-kb has no single "own field" — file explorer only
+    }
+  };
+  const anyChecklistItemDone = stepInternal.some((item) => (localInternal.find((r) => r.deliverable_key === item.key)?.status ?? "pending") === "done");
+  const displayStepStatus: "pending" | "in_progress" | "done" =
+    stepStatus === "done"
+      ? "done"
+      : (currentDay >= step.dayStart || stepOwnFieldFilled() || anyChecklistItemDone)
+        ? "in_progress"
+        : "pending";
 
   // checklistValidationError renders unconditionally under whichever step's checklist is
   // currently on screen — without this it kept showing a previous step's validation message
@@ -819,23 +911,6 @@ export default function OnboardingWizard({
     return () => { if (signoffSaveRef.current) clearTimeout(signoffSaveRef.current); };
   }, [project.id, signoffNotes]);
 
-  const setDeliverableStatus = async (key: string, status: "pending" | "in_progress" | "done") => {
-    setTogglingKey(key);
-    try {
-      const res = await fetch(`/api/projects/${project.id}/programme/deliverables/${key}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phase_number: 1, status }),
-      });
-      if (!res.ok) return;
-      const updated: CustomerDeliverableRow = await res.json();
-      setLocalDeliverables((prev) => prev.map((d) => (d.id === updated.id ? updated : d)));
-      onDeliverableChange(updated);
-    } finally {
-      setTogglingKey(null);
-    }
-  };
-
   const setInternalStatus = async (key: string, status: "pending" | "in_progress" | "done") => {
     setTogglingKey(`internal-${key}`);
     try {
@@ -894,7 +969,6 @@ export default function OnboardingWizard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step.key, step.dayStart, currentDay, isOutcomeFilled, localInternal]);
 
-  const cycle = (current: string) => (current === "pending" ? "in_progress" : current === "in_progress" ? "done" : "pending") as "pending" | "in_progress" | "done";
   // Internal-deliverable checklist items are a simple pending/done toggle — "in_progress" is
   // reserved for the parent step/phase's own status (auto-derived from these items), not
   // something an individual checklist item sits in.
@@ -1654,12 +1728,24 @@ export default function OnboardingWizard({
         setOutcomeFieldError(true);
         return;
       }
+      if (key === "implementation-file" && !isMigrationChecklistFilled) {
+        setChecklistValidationError("Fill in the migration checklist / audit notes — text or an attached document — before marking this done.");
+        setMigrationChecklistFieldError(true);
+        return;
+      }
+      if ((key === "cluster-topics-schedules" || key === "publishing-plan") && !isContentMapFilled) {
+        setChecklistValidationError("Fill in the content clusters and publishing schedule — text or an attached document — before marking this done.");
+        setContentMapFieldError(true);
+        return;
+      }
       if (key === "html-md-files" && !isHtmlMockupFilled) {
         setChecklistValidationError("Upload at least one mockup file before marking this done.");
+        setHtmlMockupFieldError(true);
         return;
       }
       if (key === "signoff-agreement-filed" && !isSignoffFilled) {
         setChecklistValidationError("Add sign-off call notes or upload the signed agreement before marking this done.");
+        setSignoffFieldError(true);
         return;
       }
     }
@@ -1749,6 +1835,8 @@ export default function OnboardingWizard({
         (item.key === "kickoff-contacts-confirmed" && !isContactsValid) ||
         (item.key === "kickoff-goals-timeline-filed" && !isBusinessFactsFilled) ||
         (item.key === "outcome-target-filed" && !isOutcomeFilled) ||
+        (item.key === "implementation-file" && !isMigrationChecklistFilled) ||
+        ((item.key === "cluster-topics-schedules" || item.key === "publishing-plan") && !isContentMapFilled) ||
         (item.key === "html-md-files" && !isHtmlMockupFilled) ||
         (item.key === "signoff-agreement-filed" && !isSignoffFilled)
     );
@@ -1771,6 +1859,8 @@ export default function OnboardingWizard({
     if (!isOutcomeFilled) setOutcomeFieldError(true);
     if (!isMigrationChecklistFilled) setMigrationChecklistFieldError(true);
     if (!isContentMapFilled) setContentMapFieldError(true);
+    if (!isHtmlMockupFilled) setHtmlMockupFieldError(true);
+    if (!isSignoffFilled) setSignoffFieldError(true);
   };
 
   // Per-step checklist header's "Mark All as Done" button — reuses the same incomplete-items
@@ -1790,15 +1880,20 @@ export default function OnboardingWizard({
   };
 
   // Steps indicator — clicking a circle jumps straight to that step. Already-reached steps
-  // (i <= stepIdx) are always open to revisit; jumping ahead to a step never reached is only
-  // allowed once the *currently viewed* step is done, or that step is overdue (today's
-  // programme day is past its own dayEnd) — otherwise it's blocked with an explanatory message,
-  // matching Continue's own gate. PM mirrors handleContinueClick's own pm bypass (read-only
-  // viewing, no data at risk) — never gated, can jump anywhere.
+  // (i <= stepIdx) are always open to revisit. Jumping forward is capped to exactly the next
+  // step (i === stepIdx + 1) — never further ahead, even past-overdue or already-done steps
+  // can't be skipped over — and only once the *currently viewed* step is done, or that step is
+  // overdue (today's programme day is past its own dayEnd), matching Continue's own gate. PM
+  // mirrors handleContinueClick's own pm bypass (read-only viewing, no data at risk) — never
+  // gated, can jump anywhere.
   const handleStepIndicatorClick = (i: number) => {
     if (i === stepIdx) return;
     if (i < stepIdx || isPM) {
       setStepIdx(i);
+      return;
+    }
+    if (i !== stepIdx + 1) {
+      setStepGateAlert(`Complete "${step.name}" first — steps can only be advanced one at a time.`);
       return;
     }
     const isCurrentOverdue = currentDay > step.dayEnd;
@@ -1849,33 +1944,30 @@ export default function OnboardingWizard({
     await completePhase();
   };
 
-  const textPrimary = isDark ? "text-slate-200" : "text-slate-900";
-  const textMuted = isDark ? "text-slate-400" : "text-slate-500";
-  const cardCls = isDark ? "bg-[#121726] border border-white/[0.08] rounded-xl" : "bg-white border border-slate-200 rounded-xl";
+  const textPrimary = "text-[#0B1533]";
+  const textMuted = "text-[#5F6A88]";
+  const cardCls = "bg-white border border-[#E2E7F2] rounded-xl";
   const labelCls = cn("block text-[12.5px] font-semibold mb-1.5", textPrimary);
 
   // Kickoff-step-only Field styling, matching the New Project wizard's
-  // rounded-[9px]/border-[1.5px]/focus-glow look — isDark-aware pair, not a
-  // `dark:` variant.
+  // rounded-[9px]/border-[1.5px]/focus-glow look — fixed-light v2.0 tokens.
   const kickoffLabelCls = cn("block text-[13px] font-medium mb-1.5", textPrimary);
   const kickoffInputCls = cn(
-    "w-full text-sm rounded-[9px] px-3.5 py-[11px] border-[1.5px] outline-none transition-[border-color,box-shadow] duration-150 font-[inherit]",
-    isDark
-      ? "bg-transparent border-white/[0.12] text-slate-200 placeholder:text-slate-500 focus:border-brand focus:shadow-[0_0_0_3px_rgba(51,88,244,0.18)]"
-      : "bg-white border-slate-200 text-slate-900 placeholder:text-slate-500 focus:border-brand focus:shadow-[0_0_0_3px_rgba(51,88,244,0.1)]"
+    "w-full text-sm rounded-[10px] px-3.5 py-[11px] border-[1.5px] outline-none transition-[border-color,box-shadow] duration-150 font-[inherit]",
+    "bg-white border-[#E2E7F2] text-[#0B1533] placeholder:text-[#5F6A88] focus:border-[#007BFF] focus:shadow-[0_0_0_3px_rgba(0,123,255,0.14)]"
   );
 
   if (showTransition && !done) {
-    return <PhaseCompletionTransition isDark={isDark} />;
+    return <PhaseCompletionTransition />;
   }
 
   if (done) {
     return (
       <div className={cn(cardCls, "max-w-lg mx-auto p-8 text-center mt-8")}>
-        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center mx-auto mb-5">
+        <div className="w-16 h-16 rounded-full bg-[#177E48] flex items-center justify-center mx-auto mb-5">
           <Check size={30} className="text-white" strokeWidth={2.5} />
         </div>
-        <div className={cn("text-lg font-bold mb-1.5", textPrimary)}>Phase 1 complete!</div>
+        <div className={cn("text-lg font-bold mb-1.5 font-heading", textPrimary)}>Phase 1 complete</div>
         <p className={cn("text-[13px] mb-5", textMuted)}>{project.company_name} has been handed over to the PM — the project is now visible in Customers/Projects.</p>
         <div className="flex flex-col gap-2 mb-5 text-left">
           {[
@@ -1884,12 +1976,12 @@ export default function OnboardingWizard({
             `${uploadedFiles.length} files uploaded to project folder`,
             `PM notified — Phase 2 begins`,
           ].map((label, i) => (
-            <div key={i} className={cn("flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg border text-[12px] font-medium", isDark ? "border-green-500/25 bg-green-500/10 text-slate-200" : "border-green-200 bg-green-50 text-slate-900")}>
-              <CheckCircle2 size={14} className="text-green-500 shrink-0" /> {label}
+            <div key={i} className={cn("flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg border text-[12px] font-medium", "border-[#177E48]/25 bg-[#E3F5EA] text-[#0B1533]")}>
+              <CheckCircle2 size={14} className="text-[#177E48] shrink-0" /> {label}
             </div>
           ))}
         </div>
-        <button onClick={onBack} className="w-full text-[13px] font-semibold text-white bg-brand rounded-lg py-2.5 hover:opacity-90 transition-opacity border-none cursor-pointer">
+        <button onClick={onBack} className="w-full text-[13px] font-semibold text-white bg-[#007BFF] rounded-lg py-2.5 hover:opacity-90 transition-opacity border-none cursor-pointer">
           Back to Onboarding Timeline
         </button>
       </div>
@@ -1904,34 +1996,33 @@ export default function OnboardingWizard({
             <ArrowLeft size={13} /> {stepIdx === 0 ? "Back to timeline" : "Previous step"}
           </button>
           <div className="flex-1" />
-          <div className={cn("text-[12px]", textMuted)}>{project.company_name} · Day {currentDay} of 15</div>
+          <div className={cn("text-[12px] font-mono", textMuted)}>{project.company_name} · Day {currentDay} of 15</div>
         </div>
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <div className={cn("text-base font-bold", textPrimary)}>Onboarding Wizard</div>
+            <div className={cn("text-base font-bold font-heading", textPrimary)}>Onboarding Wizard</div>
             {canManagePhase1 && (
               <button
                 type="button"
                 onClick={() => setPhase1AccessOpen((v) => !v)}
                 className={cn(
-                  "inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-medium cursor-pointer transition-colors",
+                  "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium cursor-pointer transition-colors",
                   phase1AccessOpen
-                    ? "border-brand text-brand bg-brand/10"
-                    : cn("border-transparent", textMuted, isDark ? "hover:bg-white/[0.06]" : "hover:bg-slate-100")
+                    ? "border-[#007BFF] text-[#007BFF] bg-[#E5F1FF]"
+                    : cn("border-[#E2E7F2]", textMuted, "hover:border-[#A8C6F5]")
                 )}
               >
                 <Users size={12} /> Access
               </button>
             )}
           </div>
-          <div className={cn("rounded-lg px-3 py-1.5 border text-center", isDark ? "border-blue-500/25 bg-blue-500/10" : "border-blue-100 bg-blue-50")}>
-            <div className="text-[15px] font-bold text-brand leading-none">{doneCount}/{localDeliverables.length}</div>
+          <div className={cn("rounded-lg px-3 py-1.5 border text-center", "border-[#E5F1FF] bg-[#F0F7FF]")}>
+            <div className="text-[15px] font-bold font-mono text-[#007BFF] leading-none">{doneCount}/{localDeliverables.length}</div>
             <div className={cn("text-[10px] mt-0.5", textMuted)}>complete</div>
           </div>
         </div>
         {phase1AccessOpen && canManagePhase1 && (
           <PhaseAccessPanel
-            isDark={isDark}
             members={phase1Members}
             staffDirectory={staffDirectory}
             busy={phase1Busy}
@@ -1949,7 +2040,7 @@ export default function OnboardingWizard({
         <div className="flex items-center gap-1 overflow-x-auto p-1 -m-1">
           {STEPS.map((s, i) => (
             <div key={s.key} className="flex items-center flex-1 last:flex-none min-w-8">
-              <IconTip label={s.name} side="bottom">
+              <IconTip label={`${s.name} · Day ${s.dayStart === s.dayEnd ? s.dayStart : `${s.dayStart}–${s.dayEnd}`}`} side="bottom">
                 <button
                   type="button"
                   onClick={() => handleStepIndicatorClick(i)}
@@ -1958,16 +2049,14 @@ export default function OnboardingWizard({
                 >
                   <div className={cn(
                     "w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0",
-                    // v2.0 step-indicator shell (task 168) — light branch only, dark branch untouched
-                    // since it sits beside untouched step content that still honors isDark.
-                    i < stepIdx ? "bg-[#007BFF] text-white" : i === stepIdx ? "bg-[#007BFF] text-white ring-4 ring-[#007BFF]/15" : isDark ? "bg-white/[0.08] text-slate-500" : "bg-[#EDF0F7] text-slate-500"
+                    i < stepIdx ? "bg-[#007BFF] text-white" : i === stepIdx ? "bg-[#007BFF] text-white ring-4 ring-[#007BFF]/15" : "bg-[#EDF0F7] text-[#5F6A88]"
                   )}>
                     {i < stepIdx ? <Check size={11} /> : i + 1}
                   </div>
                   <span className={cn("text-[9px] whitespace-nowrap max-w-16 truncate", i === stepIdx ? cn("font-semibold", textPrimary) : textMuted)}>{s.name}</span>
                 </button>
               </IconTip>
-              {i < STEPS.length - 1 && <div className={cn("flex-1 h-0.5 mx-1.5 -mt-4", i < stepIdx ? "bg-[#007BFF]" : isDark ? "bg-white/[0.08]" : "bg-[#E2E7F2]")} />}
+              {i < STEPS.length - 1 && <div className={cn("flex-1 h-0.5 mx-1.5 -mt-4", i < stepIdx ? "bg-[#007BFF]" : "bg-[#E2E7F2]")} />}
             </div>
           ))}
         </div>
@@ -1976,7 +2065,42 @@ export default function OnboardingWizard({
       <div className={cn(cardCls, "p-6")}>
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
-            <div className={cn("text-base font-bold mb-1", textPrimary)}>{step.name} <span className={cn("text-[12px] font-normal", textMuted)}>· Day {step.dayStart === step.dayEnd ? step.dayStart : `${step.dayStart}–${step.dayEnd}`}</span></div>
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
+              <div className={cn("text-base font-bold font-heading", textPrimary)}>{step.name}</div>
+              {(() => {
+                // Status chip (task 171 feedback round) — replaces the old full-width
+                // WizardDeliverableRow "quoted title" row; same pending/in_progress/done
+                // vocabulary and tones, now living beside the step title instead of its own
+                // section.
+                const cfg: Record<string, { cls: string; icon: React.ReactNode; label: string }> = {
+                  done: { cls: "text-[#177E48] bg-[#E3F5EA]", icon: <CheckCircle2 size={11} />, label: "Done" },
+                  in_progress: { cls: "text-[#007BFF] bg-[#F0F7FF]", icon: <Clock size={11} />, label: "In progress" },
+                  pending: { cls: "text-[#5F6A88] bg-[#EDF0F7]", icon: <Circle size={11} />, label: "Pending" },
+                };
+                const c = cfg[displayStepStatus] ?? cfg.pending;
+                return (
+                  <span className={cn("inline-flex items-center gap-1 text-[10px] font-semibold rounded-[7px] px-1.5 py-0.5", c.cls)}>
+                    {c.icon} {c.label}
+                  </span>
+                );
+              })()}
+              {(() => {
+                // Deadline badge (task 171, Requirement B) — status-tinted, mono, per
+                // DESIGN.md's day-counter typography convention. "Done" is now conveyed by the
+                // status chip above, so this only needs to carry the day/urgency information.
+                const dayRange = step.dayStart === step.dayEnd ? `DAY ${step.dayStart}` : `DAY ${step.dayStart}–${step.dayEnd}`;
+                if (stepStatus === "done") {
+                  return <span className="font-mono text-[10px] font-semibold uppercase tracking-wide rounded-[7px] px-1.5 py-0.5 text-[#177E48] bg-[#E3F5EA]">{dayRange}</span>;
+                }
+                if (currentDay > step.dayEnd) {
+                  return <span className="font-mono text-[10px] font-semibold uppercase tracking-wide rounded-[7px] px-1.5 py-0.5 text-[#C0392B] bg-[#FDE8E6]">OVERDUE · DUE DAY {step.dayEnd}</span>;
+                }
+                if (currentDay >= step.dayStart) {
+                  return <span className="font-mono text-[10px] font-semibold uppercase tracking-wide rounded-[7px] px-1.5 py-0.5 text-[#8A5A00] bg-[#FFF3D6]">DUE DAY {step.dayEnd}</span>;
+                }
+                return <span className="font-mono text-[10px] font-semibold uppercase tracking-wide rounded-[7px] px-1.5 py-0.5 text-[#5F6A88] bg-[#EDF0F7]">{dayRange}</span>;
+              })()}
+            </div>
             <p className={cn("text-[12.5px]", textMuted)}>{step.description}</p>
           </div>
           {step.key === "kickoff" && (
@@ -1996,10 +2120,16 @@ export default function OnboardingWizard({
           )}
         </div>
 
+        {/* Main content (left) + checklist sidebar (right) — task 171 feedback round: the
+            checklist used to be a full-width section below all step content, forcing a scroll
+            to reach it; it's now a sticky side column so it stays in view alongside whichever
+            field the user is filling in. */}
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_1px_272px] gap-6 items-start">
+        <div className="min-w-0">
         {step.key === "kickoff" && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-4 mb-5">
             <div className="flex flex-col gap-4">
-              <ContactsField contacts={contacts} onChange={setContacts} isDark={isDark} hasError={contactsFieldError && !isContactsValid} disabled={isStepReadOnly} />
+              <ContactsField contacts={contacts} onChange={setContacts} hasError={contactsFieldError && !isContactsValid} disabled={isStepReadOnly} />
               <div>
                 <label className={kickoffLabelCls}>Current website URL</label>
                 <input
@@ -2011,7 +2141,7 @@ export default function OnboardingWizard({
                   disabled={isStepReadOnly}
                 />
                 <p className={cn("text-[11px] mt-1", textMuted)}>Leave blank if none.</p>
-                {websiteUrlError && <p className="text-[11px] text-red-500 mt-1">{websiteUrlError}</p>}
+                {websiteUrlError && <p className="text-[11px] text-[#C0392B] mt-1">{websiteUrlError}</p>}
               </div>
               <div>
                 <TagField
@@ -2029,10 +2159,9 @@ export default function OnboardingWizard({
                   }}
                   onRemove={(i) => setCompetitorUrls((c) => c.filter((_, j) => j !== i))}
                   placeholder="https://competitor.com"
-                  isDark={isDark}
                   disabled={isStepReadOnly}
                 />
-                {competitorInputError && <p className="text-[11px] text-red-500 mt-1">{competitorInputError}</p>}
+                {competitorInputError && <p className="text-[11px] text-[#C0392B] mt-1">{competitorInputError}</p>}
               </div>
             </div>
             <div className="flex flex-col gap-4">
@@ -2042,13 +2171,12 @@ export default function OnboardingWizard({
                   value={businessFacts}
                   onChange={setBusinessFacts}
                   placeholder="History, services, value proposition, service areas, target customers… (required — text or an attachment)"
-                  isDark={isDark}
                   minHeightClass="min-h-[104px]"
                   maxHeightClass="max-h-[280px]"
                   hasError={businessFactsFieldError && !isBusinessFactsFilled}
                   disabled={isStepReadOnly}
                 />
-                {businessFactsUploadError && <p className="text-[12px] text-red-500 mt-2">{businessFactsUploadError}</p>}
+                {businessFactsUploadError && <p className="text-[12px] text-[#C0392B] mt-2">{businessFactsUploadError}</p>}
                 <FileUploadBox
                   files={businessFactsFiles}
                   uploading={businessFactsUploadProgress.length > 0}
@@ -2057,8 +2185,9 @@ export default function OnboardingWizard({
                   onRemove={handleRemoveBusinessFactsFile}
                   onView={handleViewBusinessFactsFile}
                   viewingId={viewingBusinessFactsFileId}
-                  isDark={isDark}
+                  hasError={businessFactsFieldError && !isBusinessFactsFilled}
                   disabled={isStepReadOnly}
+                  loading={phase1Loading}
                 />
               </div>
               <RichTextField
@@ -2066,7 +2195,6 @@ export default function OnboardingWizard({
                 value={additionalNotes}
                 onChange={setAdditionalNotes}
                 placeholder="Leave blank if none."
-                isDark={isDark}
                 minHeightClass="min-h-[80px]"
                 maxHeightClass="max-h-[220px]"
                 disabled={isStepReadOnly}
@@ -2086,7 +2214,6 @@ export default function OnboardingWizard({
                 foldersError={phase1FoldersError}
                 loading={phase1Loading}
                 rootLabel={project.project_id ?? project.id}
-                isDark={isDark}
                 onView={handleViewAsset}
                 viewingId={viewerLoading ? (viewerFile?.id ?? null) : null}
                 onPermissionsChange={handlePermissionsChange}
@@ -2116,12 +2243,12 @@ export default function OnboardingWizard({
                 <button
                   type="button"
                   onClick={() => setShowAddCredentialLink(true)}
-                  className="inline-flex items-center gap-1 text-[11.5px] font-medium px-2 py-1 rounded-md cursor-pointer border-none transition-colors text-brand hover:bg-brand/10"
+                  className="inline-flex items-center gap-1 text-[11.5px] font-medium px-2 py-1 rounded-md cursor-pointer border-none transition-colors text-[#007BFF] hover:bg-[#E5F1FF]"
                 >
                   <Plus size={12} /> Add
                 </button>
               </div>
-              {credentialLinkDeleteError && <p className="text-[11.5px] text-red-500 mb-1.5">{credentialLinkDeleteError}</p>}
+              {credentialLinkDeleteError && <p className="text-[11.5px] text-[#C0392B] mb-1.5">{credentialLinkDeleteError}</p>}
               {(() => {
                 const credentialsAndLinks = phase1Assets.filter((a): a is AssetRow & { type: "link" | "credential" } => a.type === "link" || a.type === "credential");
                 if (credentialsAndLinks.length === 0) {
@@ -2138,8 +2265,8 @@ export default function OnboardingWizard({
                         ? (asset.fields as { label: string; value: string; masked?: boolean }[])
                         : [];
                       return (
-                        <div key={asset.id} className={cn("flex items-start gap-3 px-3 py-2.5 rounded-lg", isDark ? "bg-white/[0.03]" : "bg-slate-50")}>
-                          <span className={cn("text-[10px] font-bold rounded px-1.5 py-px shrink-0 mt-0.5", assetTypeCls(asset.type, isDark))}>
+                        <div key={asset.id} className={cn("flex items-start gap-3 px-3 py-2.5 rounded-lg", "bg-[#F4F6FB]")}>
+                          <span className={cn("text-[10px] font-bold rounded px-1.5 py-px shrink-0 mt-0.5", assetTypeCls(asset.type))}>
                             {ASSET_TYPE_LABELS[asset.type]}
                           </span>
                           <span className={cn("text-[12px] font-semibold shrink-0 w-32 truncate mt-0.5", textPrimary)}>{asset.label}</span>
@@ -2163,7 +2290,7 @@ export default function OnboardingWizard({
                                           if (fieldRevealed) next.delete(fieldKey); else next.add(fieldKey);
                                           return next;
                                         })}
-                                        className="text-[10.5px] font-medium text-brand bg-transparent border-none cursor-pointer shrink-0"
+                                        className="text-[10.5px] font-medium text-[#007BFF] bg-transparent border-none cursor-pointer shrink-0"
                                       >
                                         {fieldRevealed ? "Hide" : "Show"}
                                       </button>
@@ -2177,7 +2304,7 @@ export default function OnboardingWizard({
                           </div>
                           <div className="flex items-center gap-2 shrink-0 mt-0.5">
                             {asset.type === "link" && (
-                              <a href={asset.value ?? "#"} target="_blank" rel="noopener noreferrer" className="text-[11px] font-medium text-brand hover:opacity-70 transition-opacity">
+                              <a href={asset.value ?? "#"} target="_blank" rel="noopener noreferrer" className="text-[11px] font-medium text-[#007BFF] hover:opacity-70 transition-opacity">
                                 Open
                               </a>
                             )}
@@ -2186,7 +2313,7 @@ export default function OnboardingWizard({
                                 type="button"
                                 onClick={() => handleDeleteCredentialLink(asset.id)}
                                 aria-label={`Remove ${asset.label}`}
-                                className="p-2 rounded-md cursor-pointer border-none bg-transparent text-red-500 hover:bg-red-500/10 transition-colors"
+                                className="p-2 rounded-md cursor-pointer border-none bg-transparent text-[#C0392B] hover:bg-[#FDE8E6] transition-colors"
                               >
                                 <Trash2 size={12} />
                               </button>
@@ -2204,7 +2331,6 @@ export default function OnboardingWizard({
 
         {showAddCredentialLink && (
           <AddCredentialLinkModal
-            isDark={isDark}
             customerId={project.customer_id}
             projectId={project.id}
             staffDirectory={staffDirectory}
@@ -2214,174 +2340,110 @@ export default function OnboardingWizard({
         )}
 
         {step.key === "outcome-target" && (
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_280px] gap-x-6 gap-y-4 mb-5">
-            <div>
-              <RichTextField
-                label="Agreed measurable outcomes"
-                value={outcomeText}
-                onChange={setOutcomeText}
-                placeholder="e.g. Increase organic traffic 40% by Day 90, 3x qualified leads by Day 120… (required — text or an attached document)"
-                isDark={isDark}
-                minHeightClass="min-h-[220px]"
-                maxHeightClass="max-h-[420px]"
-                hasError={outcomeFieldError && !isOutcomeFilled}
-                disabled={isStepReadOnly}
-              />
-              {outcomeFieldError && !isOutcomeFilled && (
-                <p className="text-[11px] text-red-500 mt-1">Add the agreed measurable outcomes — text or an attached document — before continuing.</p>
-              )}
-            </div>
-            <div className="hidden lg:flex flex-col items-center gap-2 px-1 pt-1">
-              <div className={cn("w-px flex-1", isDark ? "bg-white/[0.08]" : "bg-slate-200")} />
-              <span className={cn("text-[10px] font-semibold uppercase tracking-wide", textMuted)}>Or</span>
-              <div className={cn("w-px flex-1", isDark ? "bg-white/[0.08]" : "bg-slate-200")} />
-            </div>
-            <div>
-              <label className={kickoffLabelCls}>Upload a document instead</label>
-              <p className={cn("text-[11px] mb-1.5", textMuted)}>Prefer to attach a file (e.g. a KPI or targets sheet) over typing? Upload it here instead.</p>
-              {outcomeUploadError && <p className="text-[12px] text-red-500 mb-2">{outcomeUploadError}</p>}
-              <FileUploadBox
-                files={outcomeFiles}
-                uploading={outcomeUploadProgress.length > 0}
-                uploadProgress={outcomeUploadProgress}
-                onFile={handleOutcomeFileUpload}
-                onRemove={handleRemoveOutcomeFile}
-                onView={handleViewOutcomeFile}
-                viewingId={viewingOutcomeFileId}
-                isDark={isDark}
-                disabled={isStepReadOnly}
-              />
-            </div>
+          <div className="mb-5">
+            <UploadFirstField
+              richTextLabel="Agreed measurable outcomes"
+              richTextPlaceholder="e.g. Increase organic traffic 40% by Day 90, 3x qualified leads by Day 120…"
+              textValue={outcomeText}
+              onTextChange={setOutcomeText}
+              hasError={outcomeFieldError && !isOutcomeFilled}
+              errorMessage="Add the agreed measurable outcomes — text or an attached document — before continuing."
+              uploadLabel="Agreed measurable outcomes"
+              uploadHint="Upload a KPI or targets sheet — or add typed notes below instead. One of the two is required."
+              uploadError={outcomeUploadError}
+              files={outcomeFiles}
+              uploading={outcomeUploadProgress.length > 0}
+              uploadProgress={outcomeUploadProgress}
+              onFile={handleOutcomeFileUpload}
+              onRemove={handleRemoveOutcomeFile}
+              onView={handleViewOutcomeFile}
+              viewingId={viewingOutcomeFileId}
+              disabled={isStepReadOnly}
+              loading={phase1Loading}
+            />
           </div>
         )}
 
         {step.key === "migration-checklist" && (
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_280px] gap-x-6 gap-y-4 mb-5">
-            <div>
-              <RichTextField
-                label="Migration checklist / audit notes"
-                value={migrationChecklistText}
-                onChange={setMigrationChecklistText}
-                placeholder="e.g. Pages to migrate, redirects needed, content gaps found in the audit… (required — text or an attached document)"
-                isDark={isDark}
-                minHeightClass="min-h-[220px]"
-                maxHeightClass="max-h-[420px]"
-                hasError={migrationChecklistFieldError && !isMigrationChecklistFilled}
-                disabled={isStepReadOnly}
-              />
-              {migrationChecklistFieldError && !isMigrationChecklistFilled && (
-                <p className="text-[11px] text-red-500 mt-1">Add the migration checklist / audit notes — text or an attached document — before continuing.</p>
-              )}
-            </div>
-            <div className="hidden lg:flex flex-col items-center gap-2 px-1 pt-1">
-              <div className={cn("w-px flex-1", isDark ? "bg-white/[0.08]" : "bg-slate-200")} />
-              <span className={cn("text-[10px] font-semibold uppercase tracking-wide", textMuted)}>Or</span>
-              <div className={cn("w-px flex-1", isDark ? "bg-white/[0.08]" : "bg-slate-200")} />
-            </div>
-            <div>
-              <label className={kickoffLabelCls}>Upload a document instead</label>
-              <p className={cn("text-[11px] mb-1.5", textMuted)}>Prefer to attach a file (e.g. a site audit spreadsheet) over typing? Upload it here instead.</p>
-              {migrationChecklistUploadError && <p className="text-[12px] text-red-500 mb-2">{migrationChecklistUploadError}</p>}
-              <FileUploadBox
-                files={migrationChecklistFiles}
-                uploading={migrationChecklistUploadProgress.length > 0}
-                uploadProgress={migrationChecklistUploadProgress}
-                onFile={handleMigrationChecklistUpload}
-                onRemove={handleRemoveMigrationChecklistFile}
-                onView={handleViewMigrationChecklistFile}
-                viewingId={viewingMigrationChecklistFileId}
-                isDark={isDark}
-                disabled={isStepReadOnly}
-              />
-            </div>
+          <div className="mb-5">
+            <UploadFirstField
+              richTextLabel="Migration checklist / audit notes"
+              richTextPlaceholder="e.g. Pages to migrate, redirects needed, content gaps found in the audit…"
+              textValue={migrationChecklistText}
+              onTextChange={setMigrationChecklistText}
+              hasError={migrationChecklistFieldError && !isMigrationChecklistFilled}
+              errorMessage="Add the migration checklist / audit notes — text or an attached document — before continuing."
+              uploadLabel="Migration checklist / audit notes"
+              uploadHint="Upload a site audit spreadsheet — or add typed notes below instead. One of the two is required."
+              uploadError={migrationChecklistUploadError}
+              files={migrationChecklistFiles}
+              uploading={migrationChecklistUploadProgress.length > 0}
+              uploadProgress={migrationChecklistUploadProgress}
+              onFile={handleMigrationChecklistUpload}
+              onRemove={handleRemoveMigrationChecklistFile}
+              onView={handleViewMigrationChecklistFile}
+              viewingId={viewingMigrationChecklistFileId}
+              disabled={isStepReadOnly}
+              loading={phase1Loading}
+            />
           </div>
         )}
 
         {step.key === "content-map" && (
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_280px] gap-x-6 gap-y-4 mb-5">
-            <div>
-              <RichTextField
-                label="Content clusters & 90-day publishing schedule"
-                value={contentMapText}
-                onChange={setContentMapText}
-                placeholder="e.g. Topic clusters, target keywords, publishing cadence through Day 90… (required — text or an attached document)"
-                isDark={isDark}
-                minHeightClass="min-h-[220px]"
-                maxHeightClass="max-h-[420px]"
-                hasError={contentMapFieldError && !isContentMapFilled}
-                disabled={isStepReadOnly}
-              />
-              {contentMapFieldError && !isContentMapFilled && (
-                <p className="text-[11px] text-red-500 mt-1">Add the content clusters and publishing schedule — text or an attached document — before continuing.</p>
-              )}
-            </div>
-            <div className="hidden lg:flex flex-col items-center gap-2 px-1 pt-1">
-              <div className={cn("w-px flex-1", isDark ? "bg-white/[0.08]" : "bg-slate-200")} />
-              <span className={cn("text-[10px] font-semibold uppercase tracking-wide", textMuted)}>Or</span>
-              <div className={cn("w-px flex-1", isDark ? "bg-white/[0.08]" : "bg-slate-200")} />
-            </div>
-            <div>
-              <label className={kickoffLabelCls}>Upload a document instead</label>
-              <p className={cn("text-[11px] mb-1.5", textMuted)}>Prefer to attach a file (e.g. a content calendar spreadsheet) over typing? Upload it here instead.</p>
-              {contentMapUploadError && <p className="text-[12px] text-red-500 mb-2">{contentMapUploadError}</p>}
-              <FileUploadBox
-                files={contentMapFiles}
-                uploading={contentMapUploadProgress.length > 0}
-                uploadProgress={contentMapUploadProgress}
-                onFile={handleContentMapUpload}
-                onRemove={handleRemoveContentMapFile}
-                onView={handleViewContentMapFile}
-                viewingId={viewingContentMapFileId}
-                isDark={isDark}
-                disabled={isStepReadOnly}
-              />
-            </div>
+          <div className="mb-5">
+            <UploadFirstField
+              richTextLabel="Content clusters & 90-day publishing schedule"
+              richTextPlaceholder="e.g. Topic clusters, target keywords, publishing cadence through Day 90…"
+              textValue={contentMapText}
+              onTextChange={setContentMapText}
+              hasError={contentMapFieldError && !isContentMapFilled}
+              errorMessage="Add the content clusters and publishing schedule — text or an attached document — before continuing."
+              uploadLabel="Content clusters & 90-day publishing schedule"
+              uploadHint="Upload a content calendar spreadsheet — or add typed notes below instead. One of the two is required."
+              uploadError={contentMapUploadError}
+              files={contentMapFiles}
+              uploading={contentMapUploadProgress.length > 0}
+              uploadProgress={contentMapUploadProgress}
+              onFile={handleContentMapUpload}
+              onRemove={handleRemoveContentMapFile}
+              onView={handleViewContentMapFile}
+              viewingId={viewingContentMapFileId}
+              disabled={isStepReadOnly}
+              loading={phase1Loading}
+            />
           </div>
         )}
 
         {step.key === "client-signoff" && (
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_280px] gap-x-6 gap-y-4 mb-5">
-            <div>
-              <RichTextField
-                label="Sign-off call notes"
-                value={signoffNotes}
-                onChange={setSignoffNotes}
-                placeholder="e.g. Scope, mockup, and migration plan discussed and approved; handover topics covered…"
-                isDark={isDark}
-                minHeightClass="min-h-[220px]"
-                maxHeightClass="max-h-[420px]"
-                disabled={isStepReadOnly}
-              />
-            </div>
-            <div className="hidden lg:flex flex-col items-center gap-2 px-1 pt-1">
-              <div className={cn("w-px flex-1", isDark ? "bg-white/[0.08]" : "bg-slate-200")} />
-              <span className={cn("text-[10px] font-semibold uppercase tracking-wide", textMuted)}>Or</span>
-              <div className={cn("w-px flex-1", isDark ? "bg-white/[0.08]" : "bg-slate-200")} />
-            </div>
-            <div>
-              <label className={kickoffLabelCls}>Upload the signed agreement instead</label>
-              <p className={cn("text-[11px] mb-1.5", textMuted)}>Prefer to attach the signed agreement over typing notes? Upload it here instead.</p>
-              {signoffUploadError && <p className="text-[12px] text-red-500 mb-2">{signoffUploadError}</p>}
-              <FileUploadBox
-                files={signoffFiles}
-                uploading={signoffUploadProgress.length > 0}
-                uploadProgress={signoffUploadProgress}
-                onFile={handleSignoffUpload}
-                onRemove={handleRemoveSignoffFile}
-                onView={handleViewSignoffFile}
-                viewingId={viewingSignoffFileId}
-                isDark={isDark}
-                disabled={isStepReadOnly}
-              />
-            </div>
+          <div className="mb-5">
+            <UploadFirstField
+              richTextLabel="Sign-off call notes"
+              richTextPlaceholder="e.g. Scope, mockup, and migration plan discussed and approved; handover topics covered…"
+              textValue={signoffNotes}
+              onTextChange={setSignoffNotes}
+              hasError={signoffFieldError && !isSignoffFilled}
+              errorMessage="Add sign-off call notes or upload the signed agreement before continuing."
+              uploadLabel="Sign-off call notes"
+              uploadHint="Upload the signed agreement — or add typed notes below instead. One of the two is required."
+              uploadError={signoffUploadError}
+              files={signoffFiles}
+              uploading={signoffUploadProgress.length > 0}
+              uploadProgress={signoffUploadProgress}
+              onFile={handleSignoffUpload}
+              onRemove={handleRemoveSignoffFile}
+              onView={handleViewSignoffFile}
+              viewingId={viewingSignoffFileId}
+              disabled={isStepReadOnly}
+              loading={phase1Loading}
+            />
           </div>
         )}
 
         {step.key === "html-mockup" && (
-          <div className="max-w-xl mb-5">
+          <div className="mb-5">
             <label className={kickoffLabelCls}>Mockup file</label>
             <p className={cn("text-[11px] mb-1.5", textMuted)}>Upload the HTML mockup for client approval — HTML files can be edited directly in-app.</p>
-            {htmlMockupUploadError && <p className="text-[12px] text-red-500 mb-2">{htmlMockupUploadError}</p>}
+            {htmlMockupUploadError && <p className="text-[12px] text-[#C0392B] mb-2">{htmlMockupUploadError}</p>}
             <HtmlMockupFileList
               files={htmlMockupFiles}
               uploading={htmlMockupUploadProgress.length > 0}
@@ -2391,109 +2453,156 @@ export default function OnboardingWizard({
               onView={handleViewHtmlMockupFile}
               onEdit={handleOpenHtmlEditor}
               viewingId={viewingHtmlMockupFileId}
-              isDark={isDark}
               disabled={isStepReadOnly}
+              hasError={htmlMockupFieldError && !isHtmlMockupFilled}
+              loading={phase1Loading}
             />
+            {htmlMockupFieldError && !isHtmlMockupFilled && (
+              <p className="text-[11px] text-[#C0392B] mt-1">Upload at least one mockup file before continuing.</p>
+            )}
           </div>
         )}
 
-        {/* Sub-phase deliverable + its internal deliverables */}
-        <div className={cn("rounded-lg border p-3", isDark ? "border-white/[0.08]" : "border-slate-200")}>
-          <WizardDeliverableRow
-            name={step.name} description={step.description}
-            status={stepStatus} isDark={isDark} toggling={togglingKey === step.key}
-            onClick={stepInternal.length > 0 ? undefined : () => setDeliverableStatus(step.key, cycle(stepStatus))}
-          />
-          {stepInternal.length > 0 && (
-            <div className="mt-2.5 pt-2.5 border-t border-dashed border-slate-200 flex flex-col gap-1.5">
-              <div className="flex items-center justify-between gap-2">
-                <div className={cn("text-[10.5px] font-semibold uppercase tracking-wide flex items-center gap-1.5", textMuted)}>
-                  <ListChecks size={11} /> Checklist
-                </div>
-                {canEditChecklist && stepInternal.some((item) => (localInternal.find((r) => r.deliverable_key === item.key)?.status ?? "pending") !== "done") && (
-                  <button
-                    onClick={handleMarkAllChecklistDone}
-                    className={cn(
-                      "text-[10.5px] font-semibold rounded-md px-2 py-1 border cursor-pointer transition-colors",
-                      isDark ? "border-white/[0.1] text-slate-300 bg-white/[0.03] hover:bg-white/[0.08]" : "border-slate-200 text-slate-600 bg-white hover:bg-slate-50"
-                    )}
-                  >
-                    Mark All as Done
-                  </button>
-                )}
+        </div>
+
+        {/* Light vertical divider between the main content and the checklist sidebar — visible
+            at the lg breakpoint only, matching the columns it separates. */}
+        {stepInternal.length > 0 && <div className="hidden lg:block self-stretch w-px bg-[#E2E7F2]" />}
+
+        {/* Checklist sidebar (task 171 feedback round) — sticky so it stays visible while the
+            main column (which can be much taller, e.g. Storage/KB's file explorer) is scrolled.
+            The old WizardDeliverableRow "quoted title" row was removed; the step's own
+            pending/in_progress/done status now lives in the header next to the step name. */}
+        {stepInternal.length > 0 && (
+          <div className={cn("rounded-2xl border p-3.5 lg:sticky lg:top-4", "border-[#E2E7F2] bg-white")}>
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <div className={cn("text-[10.5px] font-semibold uppercase tracking-wide flex items-center gap-1.5", textMuted)}>
+                <ListChecks size={11} /> Checklist
               </div>
+              {canEditChecklist && stepInternal.some((item) => (localInternal.find((r) => r.deliverable_key === item.key)?.status ?? "pending") !== "done") && (
+                <button
+                  onClick={handleMarkAllChecklistDone}
+                  className={cn(
+                    "text-[10px] font-semibold rounded-full px-2 py-1 border cursor-pointer transition-colors focus-visible:outline-2 focus-visible:outline-[#007BFF] focus-visible:outline-offset-2",
+                    "border-[#E2E7F2] text-[#3A4565] bg-white hover:border-[#A8C6F5]"
+                  )}
+                >
+                  Mark all
+                </button>
+              )}
+            </div>
+            <div className="flex flex-col gap-1">
               {stepInternal.map((id) => {
                 const row = localInternal.find((r) => r.deliverable_key === id.key);
                 const iStatus = row?.status ?? "pending";
                 const isDone = iStatus === "done";
                 const itemLabel = (
-                  <span className={cn("text-[12px]", isDone ? cn(textMuted, "line-through") : textPrimary)}>{id.name}</span>
+                  <span className={cn("text-[12px] leading-snug", isDone ? cn(textMuted, "line-through") : textPrimary)}>{id.name}</span>
                 );
+                // Deadline tag (task 171, Requirement C) — every item in `stepInternal` belongs
+                // to the current step (internalDeliverablesForSubPhase(step.key)), so they all
+                // share step.dayStart/dayEnd; individual checklist items carry no day of their
+                // own. Matches DESIGN.md's "Checklist row" spec: right-aligned mono DAY N / PENDING.
+                const itemNotStarted = currentDay < step.dayStart;
+                const itemOverdue = currentDay > step.dayEnd;
+                const tagCls = itemNotStarted
+                  ? "text-[#5F6A88] bg-[#EDF0F7]"
+                  : itemOverdue
+                    ? "text-[#C0392B] bg-[#FDE8E6]"
+                    : "text-[#8A5A00] bg-[#FFF3D6]";
                 return (
                   <button
                     key={id.key}
                     onClick={() => handleValidatedInternalToggle(id.key, iStatus)}
                     disabled={togglingKey === `internal-${id.key}` || !canEditChecklist}
                     className={cn(
-                      "w-full flex items-center gap-2 py-1 rounded-md bg-transparent border-none text-left transition-colors disabled:opacity-60",
+                      "w-full flex items-start gap-2 p-1.5 rounded-md bg-transparent border-none text-left transition-colors disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-[#007BFF] focus-visible:outline-offset-2",
                       canEditChecklist ? "cursor-pointer" : "cursor-default",
-                      canEditChecklist && (isDark ? "hover:bg-white/[0.04]" : "hover:bg-slate-50")
+                      canEditChecklist && "hover:bg-[#F0F7FF]"
                     )}
                   >
                     <span
                       className={cn(
-                        "shrink-0 h-5 w-5 rounded border flex items-center justify-center transition-colors",
-                        isDone ? "bg-green-500 border-green-500" : isDark ? "border-white/[0.2] bg-white/[0.02]" : "border-slate-300 bg-white"
+                        "shrink-0 mt-0.5 h-[17px] w-[17px] rounded-[5px] border flex items-center justify-center transition-colors",
+                        isDone ? "bg-[#177E48] border-[#177E48]" : "border-[#E2E7F2] bg-white"
                       )}
                     >
-                      {isDone && <Check size={11} strokeWidth={3} className="text-white" />}
+                      {isDone && <Check size={10} strokeWidth={3} className="text-white" />}
                     </span>
-                    {canEditChecklist ? (
-                      <Tooltip>
-                        <TooltipTrigger render={itemLabel} />
-                        <TooltipContent side="right">{isDone ? "Uncheck" : "Mark as Done"}</TooltipContent>
-                      </Tooltip>
-                    ) : (
-                      itemLabel
-                    )}
+                    <span className="flex-1 min-w-0 flex flex-col gap-1">
+                      {canEditChecklist ? (
+                        <Tooltip>
+                          <TooltipTrigger render={itemLabel} />
+                          <TooltipContent side="left">{isDone ? "Uncheck" : "Mark as Done"}</TooltipContent>
+                        </Tooltip>
+                      ) : (
+                        itemLabel
+                      )}
+                      {!isDone && (
+                        <span className={cn("self-start font-mono text-[9px] font-semibold uppercase tracking-wide rounded-[7px] px-1.5 py-0.5", tagCls)}>
+                          {itemNotStarted ? "PENDING" : `DAY ${step.dayEnd}`}
+                        </span>
+                      )}
+                    </span>
                   </button>
                 );
               })}
               {checklistValidationError && (
-                <p className="text-[11px] text-red-500 mt-1">{checklistValidationError}</p>
+                <p className="text-[11px] text-[#C0392B] mt-1">{checklistValidationError}</p>
               )}
-            </div>
-          )}
-        </div>
-
-        {isLastStep && !isPM && isPhaseActive && (
-          <div className="mt-5">
-            {doneCount < localDeliverables.length && (
-              <div className={cn("flex gap-2.5 p-3 rounded-lg border mb-4 text-[12px]", isDark ? "border-amber-500/25 bg-amber-500/10 text-amber-300" : "border-amber-200 bg-amber-50 text-amber-800")}>
-                <AlertTriangle size={14} className="shrink-0 mt-0.5" />
-                <span><strong>{localDeliverables.length - doneCount} deliverable{localDeliverables.length - doneCount !== 1 ? "s" : ""} not yet done.</strong> You can still complete Phase 1, but outstanding items will be flagged to the PM.</span>
-              </div>
-            )}
-            <div className={cn("flex gap-2.5 p-3 rounded-lg border text-[12px]", isDark ? "border-amber-500/25 bg-amber-500/10 text-amber-300" : "border-amber-200 bg-amber-50 text-amber-800")}>
-              <Sparkles size={14} className="shrink-0 mt-0.5" />
-              <span>Marking Phase 1 complete will notify the PM, make the project visible in Customers/Projects, and start Day 16 tracking for Phase 2.</span>
             </div>
           </div>
         )}
+        </div>
       </div>
 
+      {/* Complete-Phase-1 context cards (task 171 feedback round) — deliberately outside the
+          step panel above (they're not part of "Client call — sign-off", they're context about
+          finishing the whole phase) and above the footer nav, as their own equal-width row
+          instead of one long stacked banner. */}
+      {isLastStep && !isPM && isPhaseActive && (
+        <div className={cn("grid gap-4", doneCount < localDeliverables.length ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1")}>
+          {doneCount < localDeliverables.length && (
+            <div className={cn("rounded-2xl border p-4 flex flex-col gap-2", "border-[#FBE4B0] bg-[#FFFAF0]")}>
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#FFF3D6] text-[#8A5A00]">
+                <AlertTriangle size={16} />
+              </div>
+              <div className="text-[12.5px] font-semibold text-[#8A5A00]">
+                {localDeliverables.length - doneCount} deliverable{localDeliverables.length - doneCount !== 1 ? "s" : ""} not yet done
+              </div>
+              <p className="text-[12px] leading-relaxed text-[#8A5A00]/90">
+                You can still complete Phase 1, but outstanding items will be flagged to the PM.
+              </p>
+            </div>
+          )}
+          <div className={cn("rounded-2xl border p-4 flex flex-col gap-2", "border-[#E5F1FF] bg-[#F0F7FF]")}>
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#E5F1FF] text-[#007BFF]">
+              <Sparkles size={16} />
+            </div>
+            <div className="text-[12.5px] font-semibold text-[#007BFF]">What happens when you complete</div>
+            <p className="text-[12px] leading-relaxed text-[#3A4565]">
+              Marking Phase 1 complete will notify the PM, make the project visible in Customers/Projects, and start Day 16 tracking for Phase 2.
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className={cn(cardCls, "p-4")}>
-        {isLastStep && !isPM && isPhaseActive && completeError && <p className="text-[12px] text-red-500 mb-3">{completeError}</p>}
+        {isLastStep && !isPM && isPhaseActive && completeError && <p className="text-[12px] text-[#C0392B] mb-3">{completeError}</p>}
         <div className="flex items-center justify-between">
           <button
             onClick={() => (stepIdx === 0 ? onBack() : setStepIdx((s) => s - 1))}
-            className={cn("inline-flex items-center gap-1.5 text-[13px] font-medium rounded-lg px-4 py-2 border cursor-pointer transition-colors", isDark ? "border-white/[0.1] text-slate-300 bg-transparent" : "border-slate-200 text-slate-600 bg-white")}
+            className={cn(
+              "inline-flex items-center gap-1.5 text-[13px] font-medium rounded-full px-4 py-2 border cursor-pointer transition-colors focus-visible:outline-2 focus-visible:outline-[#007BFF] focus-visible:outline-offset-2",
+              "border-[#E2E7F2] text-[#3A4565] bg-white hover:border-[#A8C6F5]"
+            )}
           >
             <ArrowLeft size={14} /> {stepIdx === 0 ? "Cancel" : "Back"}
           </button>
-          <span className={cn("text-[12px]", textMuted)}>Step {stepIdx + 1} of {STEPS.length}</span>
+          <span className={cn("text-[12px] font-mono", textMuted)}>Step {stepIdx + 1} of {STEPS.length}</span>
           {!isLastStep ? (
-            <button onClick={handleContinueClick} className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-white bg-brand rounded-lg px-4 py-2 hover:opacity-90 transition-opacity border-none cursor-pointer">
+            // Confirm/navigate — v2.0 blue, per DESIGN.md's Buttons spec.
+            <button onClick={handleContinueClick} className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-white bg-[#007BFF] rounded-full px-4 py-2 hover:bg-[#0063D6] transition-colors border-none cursor-pointer focus-visible:outline-2 focus-visible:outline-[#007BFF] focus-visible:outline-offset-2">
               Continue <ArrowRight size={14} />
             </button>
           ) : isPM || !isPhaseActive ? (
@@ -2505,10 +2614,12 @@ export default function OnboardingWizard({
               {isPM ? "Only Marketing/Admin can complete Phase 1" : "Phase 1 is no longer active"}
             </span>
           ) : (
+            // CTA — v2.0 orange, one per screen (task 171, Requirement E). Flat fill, no
+            // gradient, per DESIGN.md's "no gradient text/glassmorphism/decorative blur" rule.
             <button
               onClick={handleComplete}
               disabled={completing}
-              className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-white rounded-lg px-4 py-2 border-none cursor-pointer disabled:opacity-60 bg-gradient-to-br from-green-600 to-green-700 hover:opacity-90 transition-opacity"
+              className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#471F02] rounded-full px-4 py-2 border-none cursor-pointer disabled:opacity-45 bg-[#FB914E] hover:bg-[#E2762F] hover:text-white transition-colors focus-visible:outline-2 focus-visible:outline-[#007BFF] focus-visible:outline-offset-2"
             >
               {completing ? "Completing…" : <><Check size={14} strokeWidth={2.5} /> Complete Phase 1 &amp; notify PM</>}
             </button>
@@ -2517,9 +2628,9 @@ export default function OnboardingWizard({
       </div>
 
       {showIncompleteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4" onClick={() => setShowIncompleteModal(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#071133]/40 p-4" onClick={() => setShowIncompleteModal(false)}>
           <div role="dialog" aria-modal="true" aria-labelledby="incomplete-checklist-title" className={cn(cardCls, "w-full max-w-md shadow-xl overflow-hidden")} onClick={(e) => e.stopPropagation()}>
-            <div className={cn("flex items-center justify-between px-5 py-4 border-b", isDark ? "border-white/[0.08]" : "border-slate-100")}>
+            <div className={cn("flex items-center justify-between px-5 py-4 border-b", "border-[#EDF0F7]")}>
               <h2 id="incomplete-checklist-title" className={cn("text-[15px] font-semibold", textPrimary)}>Incomplete checklist items</h2>
               <IconTip label="Close" side="bottom">
                 <button onClick={() => setShowIncompleteModal(false)} aria-label="Close" className={cn("p-2 rounded-md cursor-pointer border-none bg-transparent", textMuted)}>
@@ -2530,22 +2641,22 @@ export default function OnboardingWizard({
             <div className="p-5 flex flex-col gap-2">
               <p className={cn("text-[13px] mb-1", textMuted)}>The following items in &quot;{step.name}&quot; haven&apos;t been marked done yet:</p>
               {incompleteItems.map((item) => (
-                <div key={item.key} className={cn("flex items-center gap-2 text-[13px] px-3 py-2 rounded-lg", isDark ? "bg-white/[0.03]" : "bg-slate-50")}>
+                <div key={item.key} className={cn("flex items-center gap-2 text-[13px] px-3 py-2 rounded-lg", "bg-[#F4F6FB]")}>
                   <Circle size={13} className={textMuted} />
                   <span className={textPrimary}>{item.name}</span>
                 </div>
               ))}
             </div>
-            <div className={cn("flex items-center justify-end gap-2 px-5 py-4 border-t", isDark ? "border-white/[0.08]" : "border-slate-100 bg-slate-50")}>
+            <div className={cn("flex items-center justify-end gap-2 px-5 py-4 border-t", "border-[#EDF0F7] bg-[#F4F6FB]")}>
               <button
                 onClick={() => setShowIncompleteModal(false)}
-                className={cn("px-4 py-2 rounded-lg text-[13px] font-medium cursor-pointer border-none bg-transparent", isDark ? "text-slate-300 hover:bg-white/[0.06]" : "text-slate-600 hover:bg-slate-100")}
+                className={cn("px-4 py-2 rounded-lg text-[13px] font-medium cursor-pointer border-none bg-transparent", "text-[#3A4565] hover:bg-[#EDF0F7]")}
               >
                 Cancel
               </button>
               <button
                 onClick={handleMarkAllDone}
-                className="px-4 py-2 rounded-lg bg-brand text-white text-[13px] font-semibold cursor-pointer border-none hover:opacity-90 transition-opacity"
+                className="px-4 py-2 rounded-lg bg-[#007BFF] text-white text-[13px] font-semibold cursor-pointer border-none hover:opacity-90 transition-opacity"
               >
                 Mark all as done
               </button>
@@ -2555,27 +2666,27 @@ export default function OnboardingWizard({
       )}
 
       {showForceConfirmModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4" onClick={handleReview}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#071133]/40 p-4" onClick={handleReview}>
           <div role="dialog" aria-modal="true" aria-labelledby="force-confirm-title" className={cn(cardCls, "w-full max-w-sm shadow-xl overflow-hidden")} onClick={(e) => e.stopPropagation()}>
             <div className="p-5">
               <div className="flex items-center gap-2 mb-2">
-                <AlertTriangle size={16} className="text-amber-500 shrink-0" />
+                <AlertTriangle size={16} className="text-[#8A5A00] shrink-0" />
                 <h2 id="force-confirm-title" className={cn("text-[15px] font-semibold", textPrimary)}>Missing required fields</h2>
               </div>
               <p className={cn("text-[13px]", textMuted)}>
                 There are still required data or fields to fill out. You can proceed anyway and mark these items as done, or go back and review what&apos;s missing.
               </p>
             </div>
-            <div className={cn("flex items-center justify-end gap-2 px-5 py-4 border-t", isDark ? "border-white/[0.08]" : "border-slate-100 bg-slate-50")}>
+            <div className={cn("flex items-center justify-end gap-2 px-5 py-4 border-t", "border-[#EDF0F7] bg-[#F4F6FB]")}>
               <button
                 onClick={handleReview}
-                className={cn("px-4 py-2 rounded-lg text-[13px] font-medium cursor-pointer border-none bg-transparent", isDark ? "text-slate-300 hover:bg-white/[0.06]" : "text-slate-600 hover:bg-slate-100")}
+                className={cn("px-4 py-2 rounded-lg text-[13px] font-medium cursor-pointer border-none bg-transparent", "text-[#3A4565] hover:bg-[#EDF0F7]")}
               >
                 Review
               </button>
               <button
                 onClick={handleForceProceed}
-                className="px-4 py-2 rounded-lg bg-brand text-white text-[13px] font-semibold cursor-pointer border-none hover:opacity-90 transition-opacity"
+                className="px-4 py-2 rounded-lg bg-[#007BFF] text-white text-[13px] font-semibold cursor-pointer border-none hover:opacity-90 transition-opacity"
               >
                 Yes, proceed
               </button>
@@ -2585,19 +2696,19 @@ export default function OnboardingWizard({
       )}
 
       {stepGateAlert && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4" onClick={() => setStepGateAlert(null)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#071133]/40 p-4" onClick={() => setStepGateAlert(null)}>
           <div role="dialog" aria-modal="true" aria-labelledby="step-gate-title" className={cn(cardCls, "w-full max-w-sm shadow-xl overflow-hidden")} onClick={(e) => e.stopPropagation()}>
             <div className="p-5">
               <div className="flex items-center gap-2 mb-2">
-                <AlertTriangle size={16} className="text-amber-500 shrink-0" />
+                <AlertTriangle size={16} className="text-[#8A5A00] shrink-0" />
                 <h2 id="step-gate-title" className={cn("text-[15px] font-semibold", textPrimary)}>Step not available yet</h2>
               </div>
               <p className={cn("text-[13px]", textMuted)}>{stepGateAlert}</p>
             </div>
-            <div className={cn("flex items-center justify-end gap-2 px-5 py-4 border-t", isDark ? "border-white/[0.08]" : "border-slate-100 bg-slate-50")}>
+            <div className={cn("flex items-center justify-end gap-2 px-5 py-4 border-t", "border-[#EDF0F7] bg-[#F4F6FB]")}>
               <button
                 onClick={() => setStepGateAlert(null)}
-                className="px-4 py-2 rounded-lg bg-brand text-white text-[13px] font-semibold cursor-pointer border-none hover:opacity-90 transition-opacity"
+                className="px-4 py-2 rounded-lg bg-[#007BFF] text-white text-[13px] font-semibold cursor-pointer border-none hover:opacity-90 transition-opacity"
               >
                 OK
               </button>
@@ -2612,7 +2723,6 @@ export default function OnboardingWizard({
           url={viewerUrl}
           loading={viewerLoading}
           error={viewerError}
-          isDark={isDark}
           onClose={closeFileViewer}
         />
       )}
@@ -2622,7 +2732,6 @@ export default function OnboardingWizard({
           file={editingHtmlAsset}
           initialHtml={editingHtmlContent}
           loadError={editingHtmlLoadError}
-          isDark={isDark}
           customerId={project.customer_id}
           onClose={closeHtmlEditor}
           onSaved={handleHtmlEditorSaved}
@@ -2633,23 +2742,23 @@ export default function OnboardingWizard({
 }
 
 function TagField({
-  label, tags, input, setInput, onAdd, onRemove, placeholder, isDark, disabled,
+  label, tags, input, setInput, onAdd, onRemove, placeholder, disabled,
 }: {
   label: string; tags: string[]; input: string; setInput: (v: string) => void;
-  onAdd: () => void; onRemove: (i: number) => void; placeholder?: string; isDark: boolean;
+  onAdd: () => void; onRemove: (i: number) => void; placeholder?: string;
   disabled?: boolean;
 }) {
   return (
     <div>
-      <label className={cn("block text-[13px] font-medium mb-1.5", isDark ? "text-slate-200" : "text-slate-900")}>{label}</label>
+      <label className={cn("block text-[13px] font-medium mb-1.5", "text-[#0B1533]")}>{label}</label>
       {tags.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mb-2">
           {tags.map((t, i) => (
-            <span key={i} className="inline-flex items-center gap-1.5 text-[12px] font-medium text-brand bg-brand/10 rounded-md px-2.5 py-1">
+            <span key={i} className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#007BFF] bg-[#E5F1FF] rounded-md px-2.5 py-1">
               {t}
               {!disabled && (
                 <IconTip label="Remove">
-                  <button onClick={() => onRemove(i)} className="bg-transparent border-none cursor-pointer text-brand p-0 flex" aria-label={`Remove ${t}`}>
+                  <button onClick={() => onRemove(i)} className="bg-transparent border-none cursor-pointer text-[#007BFF] p-0 flex" aria-label={`Remove ${t}`}>
                     <Trash2 size={10} />
                   </button>
                 </IconTip>
@@ -2667,9 +2776,7 @@ function TagField({
             placeholder={placeholder}
             className={cn(
               "flex-1 text-sm rounded-[9px] px-3.5 py-[11px] border-[1.5px] outline-none transition-[border-color,box-shadow] duration-150 font-[inherit]",
-              isDark
-                ? "bg-transparent border-white/[0.12] text-slate-200 placeholder:text-slate-500 focus:border-brand focus:shadow-[0_0_0_3px_rgba(51,88,244,0.18)]"
-                : "bg-white border-slate-200 text-slate-900 placeholder:text-slate-500 focus:border-brand focus:shadow-[0_0_0_3px_rgba(51,88,244,0.1)]"
+              "bg-white border-[#E2E7F2] text-[#0B1533] placeholder:text-[#5F6A88] focus:border-[#007BFF] focus:shadow-[0_0_0_3px_rgba(0,123,255,0.14)]"
             )}
           />
           <IconTip label="Add" side="bottom">
@@ -2679,7 +2786,7 @@ function TagField({
               aria-label="Add"
               className={cn(
                 "inline-flex items-center justify-center w-11 h-11 shrink-0 rounded-[9px] border-[1.5px] bg-transparent cursor-pointer transition-colors",
-                isDark ? "border-brand/30 text-brand hover:bg-brand/10" : "border-brand/25 text-brand hover:bg-brand/5"
+                "border-[#007BFF]/25 text-[#007BFF] hover:bg-[#007BFF]/5"
               )}
             >
               <Plus size={16} />
@@ -2692,18 +2799,16 @@ function TagField({
 }
 
 function ContactsField({
-  contacts, onChange, isDark, hasError, disabled,
+  contacts, onChange, hasError, disabled,
 }: {
-  contacts: ContactEntry[]; onChange: (contacts: ContactEntry[]) => void; isDark: boolean; hasError?: boolean;
+  contacts: ContactEntry[]; onChange: (contacts: ContactEntry[]) => void; hasError?: boolean;
   disabled?: boolean;
 }) {
-  const textPrimary = isDark ? "text-slate-200" : "text-slate-900";
-  const textMuted = isDark ? "text-slate-400" : "text-slate-500";
+  const textPrimary = "text-[#0B1533]";
+  const textMuted = "text-[#5F6A88]";
   const miniInputCls = cn(
     "w-full text-[13px] rounded-[9px] px-3 py-2.5 border-[1.5px] outline-none transition-[border-color,box-shadow] duration-150 font-[inherit]",
-    isDark
-      ? "bg-transparent border-white/[0.12] text-slate-200 placeholder:text-slate-500 focus:border-brand focus:shadow-[0_0_0_3px_rgba(51,88,244,0.18)]"
-      : "bg-white border-slate-200 text-slate-900 placeholder:text-slate-500 focus:border-brand focus:shadow-[0_0_0_3px_rgba(51,88,244,0.1)]"
+    "bg-white border-[#E2E7F2] text-[#0B1533] placeholder:text-[#5F6A88] focus:border-[#007BFF] focus:shadow-[0_0_0_3px_rgba(0,123,255,0.14)]"
   );
 
   const updateContact = (i: number, patch: Partial<ContactEntry>) => {
@@ -2725,13 +2830,13 @@ function ContactsField({
               key={i}
               className={cn(
                 "rounded-[9px] border-[1.5px] p-3 flex flex-col gap-2 transition-[border-color,box-shadow] duration-150",
-                isDark ? "border-white/[0.12] bg-transparent" : "border-slate-200 bg-white",
-                cardHasError && "border-red-500 shadow-[0_0_0_3px_rgba(239,68,68,0.25)]"
+                "border-[#E2E7F2] bg-white",
+                cardHasError && "border-[#C0392B] shadow-[0_0_0_3px_rgba(239,68,68,0.25)]"
               )}
             >
               <div className="flex items-center justify-between">
                 {i === 0 ? (
-                  <span className="inline-flex items-center text-[10px] font-semibold text-brand bg-brand/10 rounded-full px-2 py-0.5">Primary Contact</span>
+                  <span className="inline-flex items-center text-[10px] font-semibold text-[#007BFF] bg-[#E5F1FF] rounded-full px-2 py-0.5">Primary Contact</span>
                 ) : (
                   <span className={cn("text-[10px] font-medium", textMuted)}>Contact {i + 1}</span>
                 )}
@@ -2739,7 +2844,7 @@ function ContactsField({
                   <button
                     type="button"
                     onClick={() => removeContact(i)}
-                    className="bg-transparent border-none cursor-pointer text-red-500 p-0 flex items-center gap-1 text-[11px]"
+                    className="bg-transparent border-none cursor-pointer text-[#C0392B] p-0 flex items-center gap-1 text-[11px]"
                     aria-label={`Remove contact ${i + 1}`}
                   >
                     <Trash2 size={11} /> Remove
@@ -2752,12 +2857,12 @@ function ContactsField({
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <input value={c.email} onChange={(e) => updateContact(i, { email: e.target.value })} placeholder="Email" className={cn(miniInputCls, emailInvalid && "border-red-400")} disabled={disabled} />
-                  {emailInvalid && <p className="text-[10px] text-red-500 mt-0.5">Enter a valid email.</p>}
+                  <input value={c.email} onChange={(e) => updateContact(i, { email: e.target.value })} placeholder="Email" className={cn(miniInputCls, emailInvalid && "border-[#C0392B]")} disabled={disabled} />
+                  {emailInvalid && <p className="text-[10px] text-[#C0392B] mt-0.5">Enter a valid email.</p>}
                 </div>
                 <div>
-                  <input value={c.phone} onChange={(e) => updateContact(i, { phone: e.target.value })} placeholder="Phone (optional)" className={cn(miniInputCls, phoneInvalid && "border-red-400")} disabled={disabled} />
-                  {phoneInvalid && <p className="text-[10px] text-red-500 mt-0.5">Enter a valid phone number.</p>}
+                  <input value={c.phone} onChange={(e) => updateContact(i, { phone: e.target.value })} placeholder="Phone (optional)" className={cn(miniInputCls, phoneInvalid && "border-[#C0392B]")} disabled={disabled} />
+                  {phoneInvalid && <p className="text-[10px] text-[#C0392B] mt-0.5">Enter a valid phone number.</p>}
                 </div>
               </div>
               <input
@@ -2779,7 +2884,7 @@ function ContactsField({
             aria-label="Add contact"
             className={cn(
               "inline-flex items-center justify-center w-11 h-11 mt-2 rounded-[9px] border-[1.5px] bg-transparent cursor-pointer transition-colors",
-              isDark ? "border-brand/30 text-brand hover:bg-brand/10" : "border-brand/25 text-brand hover:bg-brand/5"
+              "border-[#007BFF]/25 text-[#007BFF] hover:bg-[#007BFF]/5"
             )}
           >
             <Plus size={16} />
@@ -2790,11 +2895,104 @@ function ContactsField({
   );
 }
 
+// Module-scope pill toggle switch (task 171) — promoted from AddCredentialLinkModal's local
+// copy so UploadFirstField (below) and AddCredentialLinkModal's "Sensitive" toggle share one
+// implementation, matching this file's page-scoped-UI convention of one shared component per
+// file rather than per-usage duplicates.
+function Switch({ checked, onChange, label: ariaLabel }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={ariaLabel}
+      onClick={() => onChange(!checked)}
+      className={cn(
+        "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors cursor-pointer border-none focus-visible:outline-2 focus-visible:outline-[#007BFF] focus-visible:outline-offset-2",
+        checked ? "bg-[#007BFF]" : "bg-[#E2E7F2]"
+      )}
+    >
+      <span className={cn("inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform", checked ? "translate-x-[18px]" : "translate-x-[3px]")} />
+    </button>
+  );
+}
+
+// Upload-first, RTE-optional field (task 171, Requirement D) — used by Outcome Target,
+// Migration Checklist, and 90-day Content Map only. The file upload is the primary, full-width
+// action; the RichTextField is hidden behind a labeled Switch, defaulting open only when the
+// field already has saved text content (existing projects don't lose visibility of prior notes).
+// The "either text or a file satisfies this field" validation logic (isOutcomeFilled, etc.) is
+// unchanged by this component — it only controls what's visible, not what counts as filled.
+function UploadFirstField({
+  richTextLabel, richTextPlaceholder, textValue, onTextChange, hasError, errorMessage,
+  uploadLabel, uploadHint, uploadError, files, uploading, uploadProgress, onFile, onRemove, onView, viewingId, disabled, loading,
+}: {
+  richTextLabel: string; richTextPlaceholder: string; textValue: string; onTextChange: (html: string) => void;
+  hasError?: boolean; errorMessage?: string;
+  uploadLabel: string; uploadHint: string; uploadError: string | null;
+  files: AssetRow[]; uploading: boolean; uploadProgress: UploadProgressEntry[]; onFile: (file: File) => void;
+  onRemove: (id: string) => void; onView: (id: string) => void; viewingId: string | null; disabled?: boolean; loading?: boolean;
+}) {
+  const hasExistingText = stripHtml(textValue).length > 0;
+  const [notesOpen, setNotesOpen] = useState(hasExistingText);
+  const textMuted = "text-[#5F6A88]";
+  const textPrimary = "text-[#0B1533]";
+  // Nothing to reveal and typing isn't available — hide the toggle entirely rather than
+  // offering a control that opens onto an empty, non-editable editor.
+  const showToggle = !disabled || hasExistingText;
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div>
+        <label className={cn("block text-[13px] font-medium mb-1.5", textPrimary)}>{uploadLabel}</label>
+        <p className={cn("text-[11px] mb-1.5", textMuted)}>{uploadHint}</p>
+        {uploadError && <p className="text-[12px] text-[#C0392B] mb-2">{uploadError}</p>}
+        <FileUploadBox
+          files={files}
+          uploading={uploading}
+          uploadProgress={uploadProgress}
+          onFile={onFile}
+          onRemove={onRemove}
+          onView={onView}
+          viewingId={viewingId}
+          disabled={disabled}
+          hasError={hasError}
+          loading={loading}
+        />
+      </div>
+      {showToggle && (
+        <div className="flex items-center gap-2">
+          <Switch checked={notesOpen} onChange={setNotesOpen} label={`Show typed notes editor for ${uploadLabel}`} />
+          <span className={cn("text-[12px] font-medium", textPrimary)}>
+            Prefer to type notes instead of uploading a document? Add typed notes
+          </span>
+        </div>
+      )}
+      {notesOpen && (
+        <RichTextField
+          label={richTextLabel}
+          value={textValue}
+          onChange={onTextChange}
+          placeholder={richTextPlaceholder}
+          minHeightClass="min-h-[160px]"
+          maxHeightClass="max-h-[360px]"
+          hasError={hasError}
+          disabled={disabled}
+        />
+      )}
+      {/* Error message lives outside the notesOpen block (task 171 Round 3 fix) — it must stay
+          visible even when the RTE toggle is off, since the upload box (always visible) is
+          equally a valid way to satisfy this field. */}
+      {hasError && errorMessage && <p className="text-[11px] text-[#C0392B]">{errorMessage}</p>}
+    </div>
+  );
+}
+
 function RichTextField({
-  label, value, onChange, placeholder, isDark, minHeightClass = "min-h-[80px]", maxHeightClass, hasError, disabled,
+  label, value, onChange, placeholder, minHeightClass = "min-h-[80px]", maxHeightClass, hasError, disabled,
 }: {
   label: string; value: string; onChange: (html: string) => void; placeholder?: string;
-  isDark: boolean; minHeightClass?: string; maxHeightClass?: string; hasError?: boolean;
+  minHeightClass?: string; maxHeightClass?: string; hasError?: boolean;
   disabled?: boolean;
 }) {
   const editor = useEditor({
@@ -2813,7 +3011,7 @@ function RichTextField({
           // maxHeightClass caps growth and scrolls internally once content exceeds it —
           // opt-in per field (undefined = unbounded growth, the original behavior).
           maxHeightClass && cn(maxHeightClass, "overflow-y-auto"),
-          isDark ? "text-slate-200" : "text-slate-900"
+          "text-[#0B1533]"
         ),
       },
     },
@@ -2826,8 +3024,8 @@ function RichTextField({
     editor?.setEditable(!disabled);
   }, [editor, disabled]);
 
-  const textPrimary = isDark ? "text-slate-200" : "text-slate-900";
-  const textMuted = isDark ? "text-slate-400" : "text-slate-500";
+  const textPrimary = "text-[#0B1533]";
+  const textMuted = "text-[#5F6A88]";
 
   const marks: { label: string; title: string; cls: string; action: () => void; active: () => boolean }[] = [
     { label: "B", title: "Bold", cls: "font-bold", action: () => editor?.chain().focus().toggleBold().run(), active: () => editor?.isActive("bold") ?? false },
@@ -2841,16 +3039,14 @@ function RichTextField({
       <div
         className={cn(
           "rounded-[9px] border-[1.5px] overflow-hidden transition-[border-color,box-shadow] duration-150",
-          isDark ? "bg-transparent" : "bg-white",
+          "bg-white",
           hasError
-            ? "border-red-500 shadow-[0_0_0_3px_rgba(239,68,68,0.25)] focus-within:border-red-500 focus-within:shadow-[0_0_0_3px_rgba(239,68,68,0.35)]"
-            : isDark
-              ? "border-white/[0.12] focus-within:border-brand focus-within:shadow-[0_0_0_3px_rgba(51,88,244,0.18)]"
-              : "border-slate-200 focus-within:border-brand focus-within:shadow-[0_0_0_3px_rgba(51,88,244,0.1)]"
+            ? "border-[#C0392B] shadow-[0_0_0_3px_rgba(192,57,43,0.25)] focus-within:border-[#C0392B] focus-within:shadow-[0_0_0_3px_rgba(192,57,43,0.35)]"
+            : "border-[#E2E7F2] focus-within:border-[#007BFF] focus-within:shadow-[0_0_0_3px_rgba(0,123,255,0.14)]"
         )}
       >
         {!disabled && (
-          <div className={cn("flex items-center gap-0.5 px-2 py-1.5 border-b", isDark ? "border-white/[0.08] bg-white/[0.02]" : "border-slate-100 bg-slate-50/50")}>
+          <div className={cn("flex items-center gap-0.5 px-2 py-1.5 border-b", "border-[#EDF0F7] bg-[#F4F6FB]/50")}>
             {marks.map((btn) => (
               <IconTip key={btn.title} label={btn.title} side="bottom">
                 <button
@@ -2859,21 +3055,21 @@ function RichTextField({
                   className={cn(
                     "text-[12px] w-7 h-7 rounded-md flex items-center justify-center cursor-pointer transition-colors border-none",
                     btn.cls,
-                    btn.active() ? "bg-brand/15 text-brand" : isDark ? "text-slate-400 hover:bg-white/[0.06]" : "text-slate-500 hover:bg-slate-100"
+                    btn.active() ? "bg-[#E5F1FF] text-[#007BFF]" : "text-[#5F6A88] hover:bg-[#EDF0F7]"
                   )}
                 >
                   {btn.label}
                 </button>
               </IconTip>
             ))}
-            <span className={cn("w-px h-4 mx-0.5", isDark ? "bg-white/[0.08]" : "bg-slate-200")} />
+            <span className={cn("w-px h-4 mx-0.5", "bg-[#E2E7F2]")} />
             <IconTip label="Bullet List" side="bottom">
               <button
                 type="button"
                 onClick={() => editor?.chain().focus().toggleBulletList().run()}
                 className={cn(
                   "text-[11px] px-2 h-7 rounded-md flex items-center justify-center cursor-pointer transition-colors border-none",
-                  (editor?.isActive("bulletList") ?? false) ? "bg-brand/15 text-brand" : isDark ? "text-slate-400 hover:bg-white/[0.06]" : "text-slate-500 hover:bg-slate-100"
+                  (editor?.isActive("bulletList") ?? false) ? "bg-[#E5F1FF] text-[#007BFF]" : "text-[#5F6A88] hover:bg-[#EDF0F7]"
                 )}
               >
                 • List
@@ -2889,15 +3085,15 @@ function RichTextField({
 }
 
 function FileUploadBox({
-  files, uploading, uploadProgress, onFile, onRemove, onView, viewingId, isDark, disabled,
+  files, uploading, uploadProgress, onFile, onRemove, onView, viewingId, disabled, hasError, loading,
 }: {
   files: AssetRow[]; uploading: boolean; uploadProgress?: UploadProgressEntry[]; onFile: (file: File) => void; onRemove?: (id: string) => void;
-  onView?: (id: string) => void; viewingId?: string | null; isDark: boolean; disabled?: boolean;
+  onView?: (id: string) => void; viewingId?: string | null; disabled?: boolean; hasError?: boolean; loading?: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
-  const textMuted = isDark ? "text-slate-400" : "text-slate-500";
-  const textPrimary = isDark ? "text-slate-200" : "text-slate-900";
+  const textMuted = "text-[#5F6A88]";
+  const textPrimary = "text-[#0B1533]";
 
   function handleFiles(fileList: FileList | null) {
     if (!fileList) return;
@@ -2922,24 +3118,32 @@ function FileUploadBox({
             onDragLeave={() => setIsDragOver(false)}
             onDrop={(e) => { e.preventDefault(); setIsDragOver(false); handleFiles(e.dataTransfer.files); }}
             className={cn(
-              "w-full rounded-lg border-2 border-dashed py-4 text-center cursor-pointer transition-colors disabled:opacity-60",
-              isDark
-                ? isDragOver ? "border-brand bg-brand/[0.06]" : "border-white/[0.12] bg-white/[0.02] hover:border-brand"
-                : isDragOver ? "border-brand bg-brand/[0.04]" : "border-slate-200 bg-slate-50 hover:border-brand"
+              "group w-full min-h-[168px] flex flex-col items-center justify-center gap-2.5 rounded-2xl border border-dashed py-8 text-center cursor-pointer transition-colors duration-150 disabled:opacity-60",
+              hasError
+                ? "border-[#C0392B] shadow-[0_0_0_3px_rgba(192,57,43,0.25)] bg-[#FDE8E6]/30"
+                : isDragOver ? "border-[#007BFF] bg-[#F0F7FF]" : "border-[#C7D2E8] bg-[#F9FAFD] hover:border-[#007BFF] hover:bg-[#F0F7FF]"
             )}
           >
-            <Upload size={16} className={cn("mx-auto mb-1.5", textMuted)} />
-            <div className={cn("text-[11.5px]", textMuted)}>{uploading ? "Uploading…" : <>Drag files here or <span className="text-brand font-medium">click to upload</span></>}</div>
+            <div className={cn(
+              "flex h-12 w-12 items-center justify-center rounded-full transition-all duration-150 group-hover:scale-105",
+              hasError ? "bg-[#C0392B] text-white" : isDragOver ? "bg-[#007BFF] text-white" : "bg-[#E5F1FF] text-[#007BFF]"
+            )}>
+              <CloudUpload size={22} strokeWidth={1.75} />
+            </div>
+            <div className={cn("text-[13px] font-medium", textPrimary)}>
+              {uploading ? "Uploading…" : <>Drag &amp; drop a file, or <span className="text-[#007BFF]">browse</span></>}
+            </div>
+            {!uploading && <div className={cn("text-[11px]", textMuted)}>Any document, spreadsheet, or image</div>}
           </button>
         </>
       )}
       {uploadProgress && uploadProgress.length > 0 && (
         <div className="mt-2 flex flex-col gap-1.5">
           {uploadProgress.map((p) => (
-            <div key={p.id} className={cn("flex flex-col gap-1.5 px-2.5 py-2 rounded-lg", isDark ? "bg-white/[0.03]" : "bg-slate-50")}>
+            <div key={p.id} className={cn("flex flex-col gap-1.5 px-2.5 py-2 rounded-lg", "bg-[#F4F6FB]")}>
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-md bg-brand/10 flex items-center justify-center shrink-0">
-                  <FileText size={11} className="text-brand" />
+                <div className="w-6 h-6 rounded-md bg-[#E5F1FF] flex items-center justify-center shrink-0">
+                  <FileText size={11} className="text-[#007BFF]" />
                 </div>
                 <div className={cn("text-[11.5px] font-medium truncate flex-1", textPrimary)}>{p.name}</div>
                 <div className={cn("flex items-center gap-1 text-[10.5px] tabular-nums shrink-0", textMuted)}>
@@ -2953,19 +3157,23 @@ function FileUploadBox({
                   )}
                 </div>
               </div>
-              <div className={cn("h-1.5 rounded-full overflow-hidden", isDark ? "bg-white/[0.08]" : "bg-slate-200")}>
-                <div className="h-full rounded-full bg-brand transition-[width]" style={{ width: `${p.progress}%` }} />
+              <div className={cn("h-1.5 rounded-full overflow-hidden", "bg-[#E2E7F2]")}>
+                <div className="h-full rounded-full bg-[#007BFF] transition-[width]" style={{ width: `${p.progress}%` }} />
               </div>
             </div>
           ))}
         </div>
       )}
-      {files.length > 0 && (
+      {loading ? (
+        <div className="mt-2 flex flex-col gap-1.5" aria-label="Checking for previously uploaded files">
+          <div className={cn("h-11 rounded-lg animate-pulse motion-reduce:animate-none", "bg-[#EDF0F7]")} />
+        </div>
+      ) : files.length > 0 && (
         <div className="mt-2 flex flex-col gap-1.5">
           {files.map((f) => (
-            <div key={f.id} className={cn("flex items-center gap-2 px-2.5 py-2 rounded-lg", isDark ? "bg-white/[0.03]" : "bg-slate-50")}>
-              <div className="w-6 h-6 rounded-md bg-brand/10 flex items-center justify-center shrink-0">
-                <FileText size={11} className="text-brand" />
+            <div key={f.id} className={cn("flex items-center gap-2 px-2.5 py-2 rounded-lg", "bg-[#F4F6FB]")}>
+              <div className="w-6 h-6 rounded-md bg-[#E5F1FF] flex items-center justify-center shrink-0">
+                <FileText size={11} className="text-[#007BFF]" />
               </div>
               <div className={cn("text-[11.5px] font-medium truncate flex-1", textPrimary)}>{f.file_name}</div>
               {onView && (
@@ -2975,7 +3183,7 @@ function FileUploadBox({
                     onClick={() => onView(f.id)}
                     disabled={viewingId === f.id}
                     aria-label={`View ${f.file_name}`}
-                    className="shrink-0 p-2 rounded-md cursor-pointer border-none bg-transparent text-brand hover:bg-brand/10 transition-colors disabled:opacity-50"
+                    className="shrink-0 p-2 rounded-md cursor-pointer border-none bg-transparent text-[#007BFF] hover:bg-[#E5F1FF] transition-colors disabled:opacity-50"
                   >
                     <Eye size={12} />
                   </button>
@@ -2987,7 +3195,7 @@ function FileUploadBox({
                     type="button"
                     onClick={() => onRemove(f.id)}
                     aria-label={`Remove ${f.file_name}`}
-                    className="shrink-0 p-2 rounded-md cursor-pointer border-none bg-transparent text-red-500 hover:bg-red-500/10 transition-colors"
+                    className="shrink-0 p-2 rounded-md cursor-pointer border-none bg-transparent text-[#C0392B] hover:bg-[#FDE8E6] transition-colors"
                   >
                     <Trash2 size={12} />
                   </button>
@@ -3007,7 +3215,7 @@ function FileUploadBox({
 // low-traffic internal tool control) reusing the exact role-toggle-pill visual pattern from
 // the Customers → Assets tab's "Add Asset" modal.
 function StorageFileExplorer({
-  assets, error, folders, foldersError, loading, rootLabel, isDark, onView, viewingId,
+  assets, error, folders, foldersError, loading, rootLabel, onView, viewingId,
   onPermissionsChange, permissionsUpdatingId, onUpload, uploading, uploadError, onRemove,
   onMove, movingAssetId, onCreateFolder, creatingFolder,
   onFolderPermissionsChange, folderPermissionsUpdatingId,
@@ -3017,7 +3225,7 @@ function StorageFileExplorer({
   assets: AssetRow[]; error: string | null;
   folders: AssetFolder[]; foldersError: string | null;
   loading: boolean; rootLabel: string;
-  isDark: boolean; onView: (asset: AssetRow) => void; viewingId: string | null;
+  onView: (asset: AssetRow) => void; viewingId: string | null;
   onPermissionsChange: (assetId: string, updates: { allowed_roles?: string[]; allowed_user_ids?: string[] }) => Promise<void>;
   permissionsUpdatingId: string | null;
   onUpload: (file: File, folderId: string | null) => void; uploading: boolean; uploadError: string | null;
@@ -3031,8 +3239,8 @@ function StorageFileExplorer({
   onRenameAsset: (assetId: string, fileName: string) => Promise<boolean>; renamingAssetId: string | null;
   staffDirectory: { id: string; full_name: string | null; role: string }[];
 }) {
-  const textPrimary = isDark ? "text-slate-200" : "text-slate-900";
-  const textMuted = isDark ? "text-slate-400" : "text-slate-500";
+  const textPrimary = "text-[#0B1533]";
+  const textMuted = "text-[#5F6A88]";
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
@@ -3152,7 +3360,7 @@ function StorageFileExplorer({
             {selectedPeople.map((person) => (
               <span
                 key={person.id}
-                className={cn("inline-flex items-center gap-1 pl-2.5 pr-1.5 py-1 rounded-full text-[11px] font-medium", isDark ? "bg-brand/20 text-brand" : "bg-brand/10 text-brand")}
+                className={cn("inline-flex items-center gap-1 pl-2.5 pr-1.5 py-1 rounded-full text-[11px] font-medium", "bg-[#E5F1FF] text-[#007BFF]")}
               >
                 {person.full_name ?? "Unnamed"}
                 <IconTip label="Remove">
@@ -3160,7 +3368,7 @@ function StorageFileExplorer({
                     type="button"
                     onClick={() => onRemove(person.id)}
                     aria-label={`Remove ${person.full_name ?? "person"}`}
-                    className="p-2 rounded-full cursor-pointer border-none bg-transparent text-brand hover:bg-brand/20 transition-colors"
+                    className="p-2 rounded-full cursor-pointer border-none bg-transparent text-[#007BFF] hover:bg-[#E5F1FF] transition-colors"
                   >
                     <X size={10} />
                   </button>
@@ -3179,11 +3387,11 @@ function StorageFileExplorer({
             placeholder="Search people…"
             className={cn(
               "w-full text-[11.5px] rounded-md px-2.5 py-1.5 border outline-none transition-colors font-[inherit]",
-              isDark ? "bg-transparent border-white/[0.1] text-slate-200 placeholder:text-slate-500 focus:border-brand" : "bg-white border-slate-200 text-slate-900 placeholder:text-slate-500 focus:border-brand"
+              "bg-white border-[#E2E7F2] text-[#0B1533] placeholder:text-[#5F6A88] focus:border-[#007BFF]"
             )}
           />
           {dropdownOpen && (
-            <div className={cn("absolute z-30 mt-1 w-full max-h-32 overflow-y-auto rounded-lg border shadow-lg", isDark ? "bg-[#171c2c] border-white/[0.08]" : "bg-white border-slate-200")}>
+            <div className={cn("absolute z-30 mt-1 w-full max-h-32 overflow-y-auto rounded-lg border shadow-lg", "bg-white border-[#E2E7F2]")}>
               {filteredPeople.length === 0 ? (
                 <div className={cn("px-2.5 py-1.5 text-[11.5px]", textMuted)}>{staffDirectory.length === 0 ? "No staff directory entries found." : "No matches."}</div>
               ) : (
@@ -3193,7 +3401,7 @@ function StorageFileExplorer({
                     type="button"
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => { onAdd(person.id); setSearch(""); }}
-                    className={cn("w-full text-left px-2.5 py-1.5 text-[11.5px] cursor-pointer border-none bg-transparent transition-colors", isDark ? "text-slate-200 hover:bg-white/[0.06]" : "text-slate-700 hover:bg-slate-50")}
+                    className={cn("w-full text-left px-2.5 py-1.5 text-[11.5px] cursor-pointer border-none bg-transparent transition-colors", "text-[#3A4565] hover:bg-[#EDF0F7]")}
                   >
                     {person.full_name ?? "Unnamed"}
                   </button>
@@ -3207,7 +3415,7 @@ function StorageFileExplorer({
   };
 
   const renderPermissionsPanel = (f: AssetRow, roleRestricted: boolean) => (
-    <div className={cn("flex flex-col gap-2 px-2.5 py-2 rounded-lg mt-1 border", isDark ? "bg-white/[0.02] border-white/[0.06]" : "bg-slate-50 border-slate-100")}>
+    <div className={cn("flex flex-col gap-2 px-2.5 py-2 rounded-lg mt-1 border", "bg-[#F4F6FB] border-[#EDF0F7]")}>
       <div className="flex items-center justify-between">
         <span className={cn("text-[10px] font-semibold uppercase tracking-wide", textMuted)}>Permissions</span>
         <IconTip label="Close" side="bottom">
@@ -3215,7 +3423,7 @@ function StorageFileExplorer({
             type="button"
             onClick={() => { setPermissionsOpenId(null); setFilePersonSearch(""); setFilePersonDropdownOpen(false); }}
             aria-label="Close permissions"
-            className={cn("p-2 rounded-md cursor-pointer border-none bg-transparent transition-colors", textMuted, isDark ? "hover:bg-white/[0.08]" : "hover:bg-slate-200")}
+            className={cn("p-2 rounded-md cursor-pointer border-none bg-transparent transition-colors", textMuted, "hover:bg-[#E2E7F2]")}
           >
             <X size={12} />
           </button>
@@ -3227,7 +3435,7 @@ function StorageFileExplorer({
           onClick={() => onPermissionsChange(f.id, { allowed_roles: [] })}
           className={cn(
             "px-2.5 py-1 rounded-full text-[11px] font-medium border cursor-pointer transition-colors",
-            !roleRestricted ? "bg-brand text-white border-brand" : "bg-transparent text-slate-500 border-slate-200 hover:border-slate-300"
+            !roleRestricted ? "bg-[#007BFF] text-white border-[#007BFF]" : "bg-transparent text-[#5F6A88] border-[#E2E7F2] hover:border-[#E2E7F2]"
           )}
         >
           All
@@ -3245,7 +3453,7 @@ function StorageFileExplorer({
               }}
               className={cn(
                 "px-2.5 py-1 rounded-full text-[11px] font-medium border cursor-pointer transition-colors",
-                active ? "bg-brand text-white border-brand" : "bg-transparent text-slate-500 border-slate-200 hover:border-slate-300"
+                active ? "bg-[#007BFF] text-white border-[#007BFF]" : "bg-transparent text-[#5F6A88] border-[#E2E7F2] hover:border-[#E2E7F2]"
               )}
             >
               {role.label}
@@ -3267,7 +3475,7 @@ function StorageFileExplorer({
   const renderFolderPermissionsPanel = (folder: AssetFolder) => {
     const roleRestricted = !!folder.allowed_roles && folder.allowed_roles.length > 0;
     return (
-      <div className={cn("flex flex-col gap-2 px-2.5 py-2 rounded-lg mt-1 mb-1 border", isDark ? "bg-white/[0.02] border-white/[0.06]" : "bg-slate-50 border-slate-100")}>
+      <div className={cn("flex flex-col gap-2 px-2.5 py-2 rounded-lg mt-1 mb-1 border", "bg-[#F4F6FB] border-[#EDF0F7]")}>
         <div className="flex items-center justify-between">
           <span className={cn("text-[10px] font-semibold uppercase tracking-wide", textMuted)}>Permissions</span>
           <IconTip label="Close" side="bottom">
@@ -3275,7 +3483,7 @@ function StorageFileExplorer({
               type="button"
               onClick={() => { setFolderPermissionsOpenId(null); setFolderPersonSearch(""); setFolderPersonDropdownOpen(false); }}
               aria-label="Close permissions"
-              className={cn("p-2 rounded-md cursor-pointer border-none bg-transparent transition-colors", textMuted, isDark ? "hover:bg-white/[0.08]" : "hover:bg-slate-200")}
+              className={cn("p-2 rounded-md cursor-pointer border-none bg-transparent transition-colors", textMuted, "hover:bg-[#E2E7F2]")}
             >
               <X size={12} />
             </button>
@@ -3287,7 +3495,7 @@ function StorageFileExplorer({
             onClick={() => onFolderPermissionsChange(folder.id, { allowed_roles: [] })}
             className={cn(
               "px-2.5 py-1 rounded-full text-[11px] font-medium border cursor-pointer transition-colors",
-              !roleRestricted ? "bg-brand text-white border-brand" : "bg-transparent text-slate-500 border-slate-200 hover:border-slate-300"
+              !roleRestricted ? "bg-[#007BFF] text-white border-[#007BFF]" : "bg-transparent text-[#5F6A88] border-[#E2E7F2] hover:border-[#E2E7F2]"
             )}
           >
             All
@@ -3305,7 +3513,7 @@ function StorageFileExplorer({
                 }}
                 className={cn(
                   "px-2.5 py-1 rounded-full text-[11px] font-medium border cursor-pointer transition-colors",
-                  active ? "bg-brand text-white border-brand" : "bg-transparent text-slate-500 border-slate-200 hover:border-slate-300"
+                  active ? "bg-[#007BFF] text-white border-[#007BFF]" : "bg-transparent text-[#5F6A88] border-[#E2E7F2] hover:border-[#E2E7F2]"
                 )}
               >
                 {role.label}
@@ -3351,7 +3559,7 @@ function StorageFileExplorer({
           type="button"
           onClick={() => setOpenFileMenuId((id) => (id === f.id ? null : f.id))}
           aria-label={`Actions for ${f.file_name}`}
-          className={cn("shrink-0 p-2 rounded-md cursor-pointer border-none transition-colors", textMuted, isDark ? "hover:bg-white/[0.08]" : "hover:bg-slate-200/70")}
+          className={cn("shrink-0 p-2 rounded-md cursor-pointer border-none transition-colors", textMuted, "hover:bg-[#E2E7F2]")}
         >
           <MoreVertical size={14} />
         </button>
@@ -3360,14 +3568,14 @@ function StorageFileExplorer({
         <div
           className={cn(
             "absolute right-0 top-full mt-1 z-20 w-40 rounded-lg border shadow-lg py-1 flex flex-col",
-            isDark ? "bg-[#171c2c] border-white/[0.08]" : "bg-white border-slate-200"
+            "bg-white border-[#E2E7F2]"
           )}
         >
           <button
             type="button"
             onClick={() => { setOpenFileMenuId(null); onView(f); }}
             disabled={viewingId === f.id}
-            className={cn("flex items-center gap-2 px-3 py-1.5 text-[12px] text-left cursor-pointer border-none bg-transparent disabled:opacity-50", textPrimary, isDark ? "hover:bg-white/[0.06]" : "hover:bg-slate-50")}
+            className={cn("flex items-center gap-2 px-3 py-1.5 text-[12px] text-left cursor-pointer border-none bg-transparent disabled:opacity-50", textPrimary, "hover:bg-[#EDF0F7]")}
           >
             <Eye size={13} /> View
           </button>
@@ -3380,7 +3588,7 @@ function StorageFileExplorer({
               setPermissionsOpenId((id) => (id === f.id ? null : f.id));
             }}
             disabled={permissionsUpdatingId === f.id}
-            className={cn("flex items-center gap-2 px-3 py-1.5 text-[12px] text-left cursor-pointer border-none bg-transparent disabled:opacity-50", textPrimary, isDark ? "hover:bg-white/[0.06]" : "hover:bg-slate-50")}
+            className={cn("flex items-center gap-2 px-3 py-1.5 text-[12px] text-left cursor-pointer border-none bg-transparent disabled:opacity-50", textPrimary, "hover:bg-[#EDF0F7]")}
           >
             <Lock size={13} /> Permissions
           </button>
@@ -3388,7 +3596,7 @@ function StorageFileExplorer({
             type="button"
             onClick={() => { setOpenFileMenuId(null); openRenameModal("file", f.id, f.file_name ?? ""); }}
             disabled={renamingAssetId === f.id}
-            className={cn("flex items-center gap-2 px-3 py-1.5 text-[12px] text-left cursor-pointer border-none bg-transparent disabled:opacity-50", textPrimary, isDark ? "hover:bg-white/[0.06]" : "hover:bg-slate-50")}
+            className={cn("flex items-center gap-2 px-3 py-1.5 text-[12px] text-left cursor-pointer border-none bg-transparent disabled:opacity-50", textPrimary, "hover:bg-[#EDF0F7]")}
           >
             <Pencil size={13} /> Rename
           </button>
@@ -3396,14 +3604,14 @@ function StorageFileExplorer({
             type="button"
             onClick={() => { setOpenFileMenuId(null); setMoveModalAssetIds([f.id]); }}
             disabled={movingAssetId === f.id}
-            className={cn("flex items-center gap-2 px-3 py-1.5 text-[12px] text-left cursor-pointer border-none bg-transparent disabled:opacity-50", textPrimary, isDark ? "hover:bg-white/[0.06]" : "hover:bg-slate-50")}
+            className={cn("flex items-center gap-2 px-3 py-1.5 text-[12px] text-left cursor-pointer border-none bg-transparent disabled:opacity-50", textPrimary, "hover:bg-[#EDF0F7]")}
           >
             <FolderInput size={13} /> Move to folder
           </button>
           <button
             type="button"
             onClick={() => { setOpenFileMenuId(null); onRemove(f.id); }}
-            className="flex items-center gap-2 px-3 py-1.5 text-[12px] text-left cursor-pointer border-none bg-transparent text-red-500 hover:bg-red-500/10"
+            className="flex items-center gap-2 px-3 py-1.5 text-[12px] text-left cursor-pointer border-none bg-transparent text-[#C0392B] hover:bg-[#FDE8E6]"
           >
             <Trash2 size={13} /> Remove
           </button>
@@ -3419,7 +3627,7 @@ function StorageFileExplorer({
         type="button"
         onClick={() => inputRef.current?.click()}
         disabled={uploading}
-        className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-md cursor-pointer border-none transition-colors disabled:opacity-60 text-brand hover:bg-brand/10"
+        className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-md cursor-pointer border-none transition-colors disabled:opacity-60 text-[#007BFF] hover:bg-[#E5F1FF]"
       >
         <Plus size={12} /> {uploading ? "Uploading…" : "Add file"}
       </button>
@@ -3473,20 +3681,20 @@ function StorageFileExplorer({
   };
 
   return (
-    <div className={cn("rounded-lg overflow-visible", isDark ? "bg-white/[0.02]" : "bg-white")}>
+    <div className={cn("rounded-lg overflow-visible", "bg-white")}>
       {(openFileMenuId || openFolderMenuId) && (
         <div className="fixed inset-0 z-10" onClick={() => { setOpenFileMenuId(null); setOpenFolderMenuId(null); }} />
       )}
-      {(error || foldersError) && <p className="text-[12px] text-red-500 px-1 pb-2">{error || foldersError}</p>}
+      {(error || foldersError) && <p className="text-[12px] text-[#C0392B] px-1 pb-2">{error || foldersError}</p>}
 
       {selectedIds.size > 0 ? (
-        <div className={cn("flex items-center gap-1 p-2 rounded-lg mb-2", isDark ? "bg-white/[0.04]" : "bg-slate-100")}>
+        <div className={cn("flex items-center gap-1 p-2 rounded-lg mb-2", "bg-[#EDF0F7]")}>
           <IconTip label="Clear selection">
             <button
               type="button"
               onClick={() => { setSelectedIds(new Set()); closeBulkSharePanel(); }}
               aria-label="Clear selection"
-              className={cn("p-2 rounded-md cursor-pointer border-none bg-transparent transition-colors", textMuted, isDark ? "hover:bg-white/[0.08]" : "hover:bg-slate-200")}
+              className={cn("p-2 rounded-md cursor-pointer border-none bg-transparent transition-colors", textMuted, "hover:bg-[#E2E7F2]")}
             >
               <X size={14} />
             </button>
@@ -3506,7 +3714,7 @@ function StorageFileExplorer({
               }}
               disabled={bulkBusy}
               aria-label="Share"
-              className={cn("p-2 rounded-md cursor-pointer border-none transition-colors disabled:opacity-50", bulkSharePanelOpen ? "bg-brand/15 text-brand" : cn(textMuted, isDark ? "hover:bg-white/[0.08]" : "hover:bg-slate-200"))}
+              className={cn("p-2 rounded-md cursor-pointer border-none transition-colors disabled:opacity-50", bulkSharePanelOpen ? "bg-[#E5F1FF] text-[#007BFF]" : cn(textMuted, "hover:bg-[#E2E7F2]"))}
             >
               <Share2 size={14} />
             </button>
@@ -3517,7 +3725,7 @@ function StorageFileExplorer({
               onClick={() => { closeBulkSharePanel(); setMoveModalAssetIds(Array.from(selectedIds)); }}
               disabled={bulkBusy}
               aria-label="Move to folder"
-              className={cn("p-2 rounded-md cursor-pointer border-none transition-colors disabled:opacity-50", textMuted, isDark ? "hover:bg-white/[0.08]" : "hover:bg-slate-200")}
+              className={cn("p-2 rounded-md cursor-pointer border-none transition-colors disabled:opacity-50", textMuted, "hover:bg-[#E2E7F2]")}
             >
               <FolderInput size={14} />
             </button>
@@ -3528,7 +3736,7 @@ function StorageFileExplorer({
               onClick={runBulkDelete}
               disabled={bulkBusy}
               aria-label="Delete"
-              className="p-2 rounded-md cursor-pointer border-none transition-colors disabled:opacity-50 text-red-500 hover:bg-red-500/10"
+              className="p-2 rounded-md cursor-pointer border-none transition-colors disabled:opacity-50 text-[#C0392B] hover:bg-[#FDE8E6]"
             >
               <Trash2 size={14} />
             </button>
@@ -3549,7 +3757,7 @@ function StorageFileExplorer({
                   <button
                     type="button"
                     onClick={() => navigateTo(null)}
-                    className={cn("text-[12px] font-medium cursor-pointer border-none bg-transparent px-1 py-0.5 rounded transition-colors truncate max-w-[160px]", textMuted, "hover:text-brand")}
+                    className={cn("text-[12px] font-medium cursor-pointer border-none bg-transparent px-1 py-0.5 rounded transition-colors truncate max-w-[160px]", textMuted, "hover:text-[#007BFF]")}
                   >
                     {rootLabel}
                   </button>
@@ -3562,7 +3770,7 @@ function StorageFileExplorer({
                       onClick={() => navigateTo(f.id)}
                       className={cn(
                         "text-[12px] font-medium cursor-pointer border-none bg-transparent px-1 py-0.5 rounded transition-colors truncate max-w-[140px]",
-                        f.id === currentFolderId ? textPrimary : cn(textMuted, "hover:text-brand")
+                        f.id === currentFolderId ? textPrimary : cn(textMuted, "hover:text-[#007BFF]")
                       )}
                     >
                       {f.name}
@@ -3576,19 +3784,19 @@ function StorageFileExplorer({
             type="button"
             onClick={() => openNewFolderModal(currentFolderId)}
             disabled={loading}
-            className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-md cursor-pointer border-none transition-colors text-brand hover:bg-brand/10 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-md cursor-pointer border-none transition-colors text-[#007BFF] hover:bg-[#E5F1FF] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <FolderPlus size={12} /> New folder
           </button>
           {currentFolderId !== null && (
             <>
-              <div className={cn("flex items-center gap-0.5 p-0.5 rounded-md", isDark ? "bg-white/[0.04]" : "bg-slate-100")}>
+              <div className={cn("flex items-center gap-0.5 p-0.5 rounded-md", "bg-[#EDF0F7]")}>
                 <IconTip label="Grid view">
                   <button
                     type="button"
                     onClick={() => setViewMode("grid")}
                     aria-label="Grid view"
-                    className={cn("p-2 rounded cursor-pointer border-none transition-colors", viewMode === "grid" ? "bg-brand/15 text-brand" : cn("bg-transparent", textMuted))}
+                    className={cn("p-2 rounded cursor-pointer border-none transition-colors", viewMode === "grid" ? "bg-[#E5F1FF] text-[#007BFF]" : cn("bg-transparent", textMuted))}
                   >
                     <Grid3x3 size={13} />
                   </button>
@@ -3598,7 +3806,7 @@ function StorageFileExplorer({
                     type="button"
                     onClick={() => setViewMode("list")}
                     aria-label="List view"
-                    className={cn("p-2 rounded cursor-pointer border-none transition-colors", viewMode === "list" ? "bg-brand/15 text-brand" : cn("bg-transparent", textMuted))}
+                    className={cn("p-2 rounded cursor-pointer border-none transition-colors", viewMode === "list" ? "bg-[#E5F1FF] text-[#007BFF]" : cn("bg-transparent", textMuted))}
                   >
                     <LayoutList size={13} />
                   </button>
@@ -3611,14 +3819,14 @@ function StorageFileExplorer({
       )}
 
       {selectedIds.size > 0 && bulkSharePanelOpen && (
-        <div className={cn("flex flex-col gap-2 px-2.5 py-2 rounded-lg mb-2 border", isDark ? "bg-white/[0.02] border-white/[0.06]" : "bg-slate-50 border-slate-100")}>
+        <div className={cn("flex flex-col gap-2 px-2.5 py-2 rounded-lg mb-2 border", "bg-[#F4F6FB] border-[#EDF0F7]")}>
           <div className="flex flex-wrap gap-1.5">
             <button
               type="button"
               onClick={() => setBulkRoles([])}
               className={cn(
                 "px-2.5 py-1 rounded-full text-[11px] font-medium border cursor-pointer transition-colors",
-                bulkRoles.length === 0 ? "bg-brand text-white border-brand" : "bg-transparent text-slate-500 border-slate-200 hover:border-slate-300"
+                bulkRoles.length === 0 ? "bg-[#007BFF] text-white border-[#007BFF]" : "bg-transparent text-[#5F6A88] border-[#E2E7F2] hover:border-[#E2E7F2]"
               )}
             >
               All
@@ -3632,7 +3840,7 @@ function StorageFileExplorer({
                   onClick={() => setBulkRoles((prev) => (active ? prev.filter((r) => r !== role.value) : [...prev, role.value]))}
                   className={cn(
                     "px-2.5 py-1 rounded-full text-[11px] font-medium border cursor-pointer transition-colors",
-                    active ? "bg-brand text-white border-brand" : "bg-transparent text-slate-500 border-slate-200 hover:border-slate-300"
+                    active ? "bg-[#007BFF] text-white border-[#007BFF]" : "bg-transparent text-[#5F6A88] border-[#E2E7F2] hover:border-[#E2E7F2]"
                   )}
                 >
                   {role.label}
@@ -3651,7 +3859,7 @@ function StorageFileExplorer({
               type="button"
               onClick={runBulkShare}
               disabled={bulkBusy}
-              className="text-[11.5px] font-medium px-2.5 py-1 rounded-md cursor-pointer border-none bg-brand text-white disabled:opacity-60"
+              className="text-[11.5px] font-medium px-2.5 py-1 rounded-md cursor-pointer border-none bg-[#007BFF] text-white disabled:opacity-60"
             >
               Apply to {selectedIds.size} file{selectedIds.size === 1 ? "" : "s"}
             </button>
@@ -3659,12 +3867,12 @@ function StorageFileExplorer({
         </div>
       )}
 
-      {uploadError && <p className="text-[11.5px] text-red-500 mb-1.5">{uploadError}</p>}
+      {uploadError && <p className="text-[11.5px] text-[#C0392B] mb-1.5">{uploadError}</p>}
 
       {loading ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2" aria-label="Loading folders and files">
           {[0, 1, 2, 3].map((i) => (
-            <div key={i} className={cn("h-11 rounded-lg animate-pulse motion-reduce:animate-none", isDark ? "bg-white/[0.04]" : "bg-slate-100")} />
+            <div key={i} className={cn("h-11 rounded-lg animate-pulse motion-reduce:animate-none", "bg-[#EDF0F7]")} />
           ))}
         </div>
       ) : (
@@ -3689,10 +3897,10 @@ function StorageFileExplorer({
                     onClick={() => navigateTo(folder.id)}
                     className={cn(
                       "w-full flex items-center gap-2 px-3 py-2.5 rounded-lg cursor-pointer border-none text-left transition-colors",
-                      isDark ? "bg-white/[0.03] hover:bg-white/[0.07]" : "bg-slate-50 hover:bg-slate-100"
+                      "bg-[#F4F6FB] hover:bg-[#EDF0F7]"
                     )}
                   >
-                    <Folder size={18} className="text-brand shrink-0" fill="currentColor" fillOpacity={0.18} />
+                    <Folder size={18} className="text-[#007BFF] shrink-0" fill="currentColor" fillOpacity={0.18} />
                     <span className={cn("text-[12px] font-medium truncate flex-1", textPrimary)}>{folder.name}</span>
                   </button>
                   <IconTip label="Actions">
@@ -3700,17 +3908,17 @@ function StorageFileExplorer({
                       type="button"
                       onClick={(e) => { e.stopPropagation(); setOpenFolderMenuId((id) => (id === folder.id ? null : folder.id)); }}
                       aria-label={`Actions for ${folder.name}`}
-                      className={cn("absolute right-1.5 top-1/2 -translate-y-1/2 p-2 rounded-md cursor-pointer border-none transition-colors", textMuted, isDark ? "hover:bg-white/[0.1]" : "hover:bg-slate-200")}
+                      className={cn("absolute right-1.5 top-1/2 -translate-y-1/2 p-2 rounded-md cursor-pointer border-none transition-colors", textMuted, "hover:bg-[#E2E7F2]")}
                     >
                       <MoreVertical size={13} />
                     </button>
                   </IconTip>
                   {openFolderMenuId === folder.id && (
-                    <div className={cn("absolute right-1 top-full mt-1 z-20 w-44 rounded-lg border shadow-lg py-1 flex flex-col", isDark ? "bg-[#171c2c] border-white/[0.08]" : "bg-white border-slate-200")}>
+                    <div className={cn("absolute right-1 top-full mt-1 z-20 w-44 rounded-lg border shadow-lg py-1 flex flex-col", "bg-white border-[#E2E7F2]")}>
                       <button
                         type="button"
                         onClick={() => { setOpenFolderMenuId(null); openNewFolderModal(folder.id); }}
-                        className={cn("flex items-center gap-2 px-3 py-1.5 text-[12px] text-left w-full cursor-pointer border-none bg-transparent", textPrimary, isDark ? "hover:bg-white/[0.06]" : "hover:bg-slate-50")}
+                        className={cn("flex items-center gap-2 px-3 py-1.5 text-[12px] text-left w-full cursor-pointer border-none bg-transparent", textPrimary, "hover:bg-[#EDF0F7]")}
                       >
                         <FolderPlus size={13} /> New sub-folder
                       </button>
@@ -3723,7 +3931,7 @@ function StorageFileExplorer({
                           setFolderPermissionsOpenId((id) => (id === folder.id ? null : folder.id));
                         }}
                         disabled={folderPermissionsUpdatingId === folder.id}
-                        className={cn("flex items-center gap-2 px-3 py-1.5 text-[12px] text-left w-full cursor-pointer border-none bg-transparent disabled:opacity-50", textPrimary, isDark ? "hover:bg-white/[0.06]" : "hover:bg-slate-50")}
+                        className={cn("flex items-center gap-2 px-3 py-1.5 text-[12px] text-left w-full cursor-pointer border-none bg-transparent disabled:opacity-50", textPrimary, "hover:bg-[#EDF0F7]")}
                       >
                         <Lock size={13} /> Permissions
                       </button>
@@ -3731,7 +3939,7 @@ function StorageFileExplorer({
                         type="button"
                         onClick={() => { setOpenFolderMenuId(null); openRenameModal("folder", folder.id, folder.name); }}
                         disabled={renamingFolderId === folder.id}
-                        className={cn("flex items-center gap-2 px-3 py-1.5 text-[12px] text-left w-full cursor-pointer border-none bg-transparent disabled:opacity-50", textPrimary, isDark ? "hover:bg-white/[0.06]" : "hover:bg-slate-50")}
+                        className={cn("flex items-center gap-2 px-3 py-1.5 text-[12px] text-left w-full cursor-pointer border-none bg-transparent disabled:opacity-50", textPrimary, "hover:bg-[#EDF0F7]")}
                       >
                         <Pencil size={13} /> Rename
                       </button>
@@ -3740,7 +3948,7 @@ function StorageFileExplorer({
                           type="button"
                           onClick={() => { setOpenFolderMenuId(null); onDeleteFolder(folder.id); }}
                           disabled={deleteDisabled}
-                          className="flex items-center gap-2 px-3 py-1.5 text-[12px] text-left w-full cursor-pointer border-none bg-transparent text-red-500 hover:bg-red-500/10 disabled:opacity-40 disabled:hover:bg-transparent disabled:cursor-not-allowed"
+                          className="flex items-center gap-2 px-3 py-1.5 text-[12px] text-left w-full cursor-pointer border-none bg-transparent text-[#C0392B] hover:bg-[#FDE8E6] disabled:opacity-40 disabled:hover:bg-transparent disabled:cursor-not-allowed"
                         >
                           <Trash2 size={13} /> Delete
                         </button>
@@ -3770,21 +3978,21 @@ function StorageFileExplorer({
                       aria-label={`Select ${f.file_name}`}
                       className={cn(
                         "w-full text-left rounded-lg overflow-hidden cursor-pointer border-none transition-colors",
-                        selectedIds.has(f.id) ? (isDark ? "bg-brand/20" : "bg-brand/10") : (isDark ? "bg-white/[0.03] hover:bg-white/[0.06]" : "bg-slate-50 hover:bg-slate-100")
+                        selectedIds.has(f.id) ? ("bg-[#E5F1FF]") : ("bg-[#F4F6FB] hover:bg-[#EDF0F7]")
                       )}
                     >
                       <div className="flex items-center gap-1.5 pl-2 pr-7 py-1.5">
-                        <FileText size={14} className="text-brand shrink-0" />
+                        <FileText size={14} className="text-[#007BFF] shrink-0" />
                         <span className={cn("text-[11px] font-medium truncate flex-1", textPrimary)}>{f.file_name}</span>
                       </div>
-                      <div className={cn("flex items-center justify-center h-20 mx-2 mb-2 rounded-md", isDark ? "bg-white/[0.02]" : "bg-white")}>
+                      <div className={cn("flex items-center justify-center h-20 mx-2 mb-2 rounded-md", "bg-white")}>
                         <FileText size={28} className={textMuted} />
                       </div>
                       <div className="flex items-center justify-between px-2 pb-2">
                         <span className={cn("text-[9.5px]", textMuted)}>{formatFileSize(f.file_size)}</span>
                         <span className={cn(
                           "text-[9px] rounded-full px-1.5 py-0.5 whitespace-nowrap",
-                          restricted ? (isDark ? "bg-amber-500/15 text-amber-400" : "bg-amber-50 text-amber-700") : (isDark ? "bg-white/[0.06] text-slate-400" : "bg-slate-100 text-slate-500")
+                          restricted ? ("bg-[#FFF3D6] text-[#8A5A00]") : ("bg-[#EDF0F7] text-[#5F6A88]")
                         )}>
                           {permissionBadge}
                         </span>
@@ -3811,11 +4019,11 @@ function StorageFileExplorer({
                       aria-label={`Select ${f.file_name}`}
                       className={cn(
                         "w-full flex items-center gap-2 pl-2.5 pr-9 py-2 rounded-lg text-left cursor-pointer border-none transition-colors",
-                        selectedIds.has(f.id) ? (isDark ? "bg-brand/20" : "bg-brand/10") : (isDark ? "bg-white/[0.03] hover:bg-white/[0.06]" : "bg-slate-50 hover:bg-slate-100")
+                        selectedIds.has(f.id) ? ("bg-[#E5F1FF]") : ("bg-[#F4F6FB] hover:bg-[#EDF0F7]")
                       )}
                     >
-                      <div className="w-6 h-6 rounded-md bg-brand/10 flex items-center justify-center shrink-0">
-                        <FileText size={11} className="text-brand" />
+                      <div className="w-6 h-6 rounded-md bg-[#E5F1FF] flex items-center justify-center shrink-0">
+                        <FileText size={11} className="text-[#007BFF]" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className={cn("text-[11.5px] font-medium truncate", textPrimary)}>{f.file_name}</div>
@@ -3823,7 +4031,7 @@ function StorageFileExplorer({
                       </div>
                       <span className={cn(
                         "text-[10px] rounded-full px-2 py-0.5 shrink-0 whitespace-nowrap",
-                        restricted ? (isDark ? "bg-amber-500/15 text-amber-400" : "bg-amber-50 text-amber-700") : (isDark ? "bg-white/[0.06] text-slate-400" : "bg-slate-100 text-slate-500")
+                        restricted ? ("bg-[#FFF3D6] text-[#8A5A00]") : ("bg-[#EDF0F7] text-[#5F6A88]")
                       )}>
                         {permissionBadge}
                       </span>
@@ -3841,8 +4049,8 @@ function StorageFileExplorer({
       )}
 
       {newFolderModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4" onClick={() => setNewFolderModalOpen(false)}>
-          <div className={cn("w-full max-w-sm rounded-xl shadow-xl p-4", isDark ? "bg-[#121726] border border-white/[0.08]" : "bg-white border border-slate-200")} onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#071133]/60 p-4" onClick={() => setNewFolderModalOpen(false)}>
+          <div className={cn("w-full max-w-sm rounded-xl shadow-xl p-4", "bg-white border border-[#E2E7F2]")} onClick={(e) => e.stopPropagation()}>
             <div className={cn("text-[13px] font-semibold mb-2", textPrimary)}>New folder</div>
             <input
               autoFocus
@@ -3852,15 +4060,15 @@ function StorageFileExplorer({
               placeholder="Folder name"
               className={cn(
                 "w-full text-sm rounded-[9px] px-3 py-2 border-[1.5px] outline-none transition-colors font-[inherit] mb-2",
-                isDark ? "bg-transparent border-white/[0.12] text-slate-200 placeholder:text-slate-500 focus:border-brand" : "bg-white border-slate-200 text-slate-900 placeholder:text-slate-500 focus:border-brand"
+                "bg-white border-[#E2E7F2] text-[#0B1533] placeholder:text-[#5F6A88] focus:border-[#007BFF]"
               )}
             />
-            {newFolderError && <p className="text-[11.5px] text-red-500 mb-2">{newFolderError}</p>}
+            {newFolderError && <p className="text-[11.5px] text-[#C0392B] mb-2">{newFolderError}</p>}
             <div className="flex justify-end gap-2">
               <button type="button" onClick={() => setNewFolderModalOpen(false)} className={cn("text-[12px] font-medium px-3 py-1.5 rounded-md cursor-pointer border-none bg-transparent", textMuted)}>
                 Cancel
               </button>
-              <button type="button" onClick={submitNewFolder} disabled={creatingFolder} className="text-[12px] font-medium px-3 py-1.5 rounded-md cursor-pointer border-none bg-brand text-white disabled:opacity-60">
+              <button type="button" onClick={submitNewFolder} disabled={creatingFolder} className="text-[12px] font-medium px-3 py-1.5 rounded-md cursor-pointer border-none bg-[#007BFF] text-white disabled:opacity-60">
                 {creatingFolder ? "Creating…" : "Create"}
               </button>
             </div>
@@ -3869,8 +4077,8 @@ function StorageFileExplorer({
       )}
 
       {renameTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4" onClick={() => setRenameTarget(null)}>
-          <div className={cn("w-full max-w-sm rounded-xl shadow-xl p-4", isDark ? "bg-[#121726] border border-white/[0.08]" : "bg-white border border-slate-200")} onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#071133]/60 p-4" onClick={() => setRenameTarget(null)}>
+          <div className={cn("w-full max-w-sm rounded-xl shadow-xl p-4", "bg-white border border-[#E2E7F2]")} onClick={(e) => e.stopPropagation()}>
             <div className={cn("text-[13px] font-semibold mb-2", textPrimary)}>Rename {renameTarget.kind === "folder" ? "folder" : "file"}</div>
             <input
               autoFocus
@@ -3880,10 +4088,10 @@ function StorageFileExplorer({
               placeholder={renameTarget.kind === "folder" ? "Folder name" : "File name"}
               className={cn(
                 "w-full text-sm rounded-[9px] px-3 py-2 border-[1.5px] outline-none transition-colors font-[inherit] mb-2",
-                isDark ? "bg-transparent border-white/[0.12] text-slate-200 placeholder:text-slate-500 focus:border-brand" : "bg-white border-slate-200 text-slate-900 placeholder:text-slate-500 focus:border-brand"
+                "bg-white border-[#E2E7F2] text-[#0B1533] placeholder:text-[#5F6A88] focus:border-[#007BFF]"
               )}
             />
-            {renameError && <p className="text-[11.5px] text-red-500 mb-2">{renameError}</p>}
+            {renameError && <p className="text-[11.5px] text-[#C0392B] mb-2">{renameError}</p>}
             {(() => {
               const renameBusy = renameTarget.kind === "folder" ? renamingFolderId === renameTarget.id : renamingAssetId === renameTarget.id;
               return (
@@ -3895,7 +4103,7 @@ function StorageFileExplorer({
                     type="button"
                     onClick={submitRename}
                     disabled={renameBusy}
-                    className="text-[12px] font-medium px-3 py-1.5 rounded-md cursor-pointer border-none bg-brand text-white disabled:opacity-60"
+                    className="text-[12px] font-medium px-3 py-1.5 rounded-md cursor-pointer border-none bg-[#007BFF] text-white disabled:opacity-60"
                   >
                     {renameBusy ? "Saving…" : "Save"}
                   </button>
@@ -3907,8 +4115,8 @@ function StorageFileExplorer({
       )}
 
       {moveModalAssetIds && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4" onClick={() => setMoveModalAssetIds(null)}>
-          <div className={cn("w-full max-w-sm rounded-xl shadow-xl p-4 max-h-[70vh] overflow-y-auto", isDark ? "bg-[#121726] border border-white/[0.08]" : "bg-white border border-slate-200")} onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#071133]/60 p-4" onClick={() => setMoveModalAssetIds(null)}>
+          <div className={cn("w-full max-w-sm rounded-xl shadow-xl p-4 max-h-[70vh] overflow-y-auto", "bg-white border border-[#E2E7F2]")} onClick={(e) => e.stopPropagation()}>
             <div className={cn("text-[13px] font-semibold mb-2", textPrimary)}>
               Move {moveModalAssetIds.length} file{moveModalAssetIds.length === 1 ? "" : "s"} to…
             </div>
@@ -3920,9 +4128,9 @@ function StorageFileExplorer({
                   onClick={() => runMove(folder.id)}
                   disabled={bulkBusy}
                   style={{ paddingLeft: `${8 + depth * 16}px` }}
-                  className={cn("flex items-center gap-1.5 py-1.5 pr-2 rounded-md text-left cursor-pointer border-none bg-transparent transition-colors disabled:opacity-50", textPrimary, isDark ? "hover:bg-white/[0.06]" : "hover:bg-slate-50")}
+                  className={cn("flex items-center gap-1.5 py-1.5 pr-2 rounded-md text-left cursor-pointer border-none bg-transparent transition-colors disabled:opacity-50", textPrimary, "hover:bg-[#EDF0F7]")}
                 >
-                  <Folder size={13} className="text-brand shrink-0" />
+                  <Folder size={13} className="text-[#007BFF] shrink-0" />
                   <span className="text-[12px] truncate">{folder.name}</span>
                 </button>
               ))}
@@ -3942,9 +4150,9 @@ function StorageFileExplorer({
 // Modeled on the Customers → Assets tab's "Add Asset" modal (task 140) — Type narrowed to
 // Credential/Link only, since File already has its own upload flow in StorageFileExplorer.
 function AddCredentialLinkModal({
-  isDark, customerId, projectId, staffDirectory, onClose, onCreated,
+  customerId, projectId, staffDirectory, onClose, onCreated,
 }: {
-  isDark: boolean; customerId: string; projectId: string;
+  customerId: string; projectId: string;
   staffDirectory: { id: string; full_name: string | null; role: string }[];
   onClose: () => void; onCreated: (asset: AssetRow) => void;
 }) {
@@ -3961,33 +4169,15 @@ function AddCredentialLinkModal({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const textPrimary = isDark ? "text-slate-200" : "text-slate-900";
-  const textMuted = isDark ? "text-slate-400" : "text-slate-500";
-  const cardCls = isDark ? "bg-[#121726] border border-white/[0.08] rounded-xl" : "bg-white border border-slate-200 rounded-xl";
+  const textPrimary = "text-[#0B1533]";
+  const textMuted = "text-[#5F6A88]";
+  const cardCls = "bg-white border border-[#E2E7F2] rounded-xl";
   // Matches the Kickoff/New Project wizard field convention (rounded-[9px]/border-[1.5px]/
   // focus-glow), per the request to align this modal's fields with the rest of the wizard.
   const fieldLabelCls = cn("block text-[13px] font-medium mb-1.5", textPrimary);
   const fieldInputCls = cn(
     "w-full text-sm rounded-[9px] px-3.5 py-[11px] border-[1.5px] outline-none transition-[border-color,box-shadow] duration-150 font-[inherit]",
-    isDark
-      ? "bg-transparent border-white/[0.12] text-slate-200 placeholder:text-slate-500 focus:border-brand focus:shadow-[0_0_0_3px_rgba(51,88,244,0.18)]"
-      : "bg-white border-slate-200 text-slate-900 placeholder:text-slate-500 focus:border-brand focus:shadow-[0_0_0_3px_rgba(51,88,244,0.1)]"
-  );
-
-  const Switch = ({ checked, onChange, label: ariaLabel }: { checked: boolean; onChange: (v: boolean) => void; label: string }) => (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      aria-label={ariaLabel}
-      onClick={() => onChange(!checked)}
-      className={cn(
-        "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors cursor-pointer border-none",
-        checked ? "bg-brand" : isDark ? "bg-white/[0.15]" : "bg-slate-300"
-      )}
-    >
-      <span className={cn("inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform", checked ? "translate-x-[18px]" : "translate-x-[3px]")} />
-    </button>
+    "bg-white border-[#E2E7F2] text-[#0B1533] placeholder:text-[#5F6A88] focus:border-[#007BFF] focus:shadow-[0_0_0_3px_rgba(0,123,255,0.14)]"
   );
 
   const isValid =
@@ -4041,12 +4231,12 @@ function AddCredentialLinkModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#071133]/60 p-4" onClick={onClose}>
       <div className={cn(cardCls, "w-full max-w-md shadow-xl overflow-hidden max-h-[90vh] overflow-y-auto")} onClick={(e) => e.stopPropagation()}>
-        <div className={cn("flex items-center justify-between gap-3 px-5 py-3.5 border-b", isDark ? "border-white/[0.08]" : "border-slate-100")}>
+        <div className={cn("flex items-center justify-between gap-3 px-5 py-3.5 border-b", "border-[#EDF0F7]")}>
           <h2 className={cn("text-[14px] font-semibold", textPrimary)}>Add credential / link</h2>
           <IconTip label="Close" side="bottom">
-            <button type="button" onClick={onClose} aria-label="Close" className={cn("p-2 rounded-md cursor-pointer border-none bg-transparent hover:bg-slate-500/10 transition-colors", textMuted)}>
+            <button type="button" onClick={onClose} aria-label="Close" className={cn("p-2 rounded-md cursor-pointer border-none bg-transparent hover:bg-[#5F6A88]/10 transition-colors", textMuted)}>
               <X size={16} />
             </button>
           </IconTip>
@@ -4083,7 +4273,7 @@ function AddCredentialLinkModal({
               <label className={fieldLabelCls}>Value</label>
               <input type="url" value={value} onChange={(e) => setValue(e.target.value)} placeholder="https://" className={fieldInputCls} />
               {value.trim().length > 0 && !isValidUrl(value.trim()) && (
-                <p className="text-[11px] text-red-500 mt-1">Must start with http:// or https://</p>
+                <p className="text-[11px] text-[#C0392B] mt-1">Must start with http:// or https://</p>
               )}
             </div>
           )}
@@ -4117,7 +4307,7 @@ function AddCredentialLinkModal({
                         type="button"
                         onClick={() => setFields((prev) => prev.filter((_, j) => j !== i))}
                         aria-label="Remove field"
-                        className={cn("w-8 h-8 shrink-0 rounded-lg border cursor-pointer bg-transparent leading-none", isDark ? "border-white/[0.1] text-slate-400 hover:text-red-400" : "border-slate-200 text-slate-500 hover:text-red-500")}
+                        className={cn("w-8 h-8 shrink-0 rounded-lg border cursor-pointer bg-transparent leading-none", "border-[#E2E7F2] text-[#5F6A88] hover:text-[#C0392B]")}
                       >
                         ×
                       </button>
@@ -4129,7 +4319,7 @@ function AddCredentialLinkModal({
               <button
                 type="button"
                 onClick={() => setFields((prev) => [...prev, { label: "", value: "", masked: true }])}
-                className="mt-2 text-[12px] font-semibold text-brand bg-transparent border-none cursor-pointer p-0"
+                className="mt-2 text-[12px] font-semibold text-[#007BFF] bg-transparent border-none cursor-pointer p-0"
               >
                 + Add Field
               </button>
@@ -4143,7 +4333,7 @@ function AddCredentialLinkModal({
                 onClick={() => setAllowedRoles([])}
                 className={cn(
                   "px-3 py-1.5 rounded-full text-[12px] font-medium border cursor-pointer transition-colors",
-                  allowedRoles.length === 0 ? "bg-brand text-white border-brand" : "bg-transparent text-slate-500 border-slate-200 hover:border-slate-300"
+                  allowedRoles.length === 0 ? "bg-[#007BFF] text-white border-[#007BFF]" : "bg-transparent text-[#5F6A88] border-[#E2E7F2] hover:border-[#E2E7F2]"
                 )}
               >
                 All
@@ -4157,7 +4347,7 @@ function AddCredentialLinkModal({
                     onClick={() => setAllowedRoles((prev) => (active ? prev.filter((r) => r !== role.value) : [...prev, role.value]))}
                     className={cn(
                       "px-3 py-1.5 rounded-full text-[12px] font-medium border cursor-pointer transition-colors",
-                      active ? "bg-brand text-white border-brand" : "bg-transparent text-slate-500 border-slate-200 hover:border-slate-300"
+                      active ? "bg-[#007BFF] text-white border-[#007BFF]" : "bg-transparent text-[#5F6A88] border-[#E2E7F2] hover:border-[#E2E7F2]"
                     )}
                   >
                     {role.label}
@@ -4173,7 +4363,7 @@ function AddCredentialLinkModal({
                 {selectedPeople.map((person) => (
                   <span
                     key={person.id}
-                    className={cn("inline-flex items-center gap-1 pl-2.5 pr-1.5 py-1 rounded-full text-[12px] font-medium", isDark ? "bg-brand/20 text-brand" : "bg-brand/10 text-brand")}
+                    className={cn("inline-flex items-center gap-1 pl-2.5 pr-1.5 py-1 rounded-full text-[12px] font-medium", "bg-[#E5F1FF] text-[#007BFF]")}
                   >
                     {person.full_name ?? "Unnamed"}
                     <IconTip label="Remove">
@@ -4181,7 +4371,7 @@ function AddCredentialLinkModal({
                         type="button"
                         onClick={() => setAllowedUserIds((prev) => prev.filter((id) => id !== person.id))}
                         aria-label={`Remove ${person.full_name ?? "person"}`}
-                        className="p-2 rounded-full cursor-pointer border-none bg-transparent text-brand hover:bg-brand/20 transition-colors"
+                        className="p-2 rounded-full cursor-pointer border-none bg-transparent text-[#007BFF] hover:bg-[#E5F1FF] transition-colors"
                       >
                         <X size={10} />
                       </button>
@@ -4201,7 +4391,7 @@ function AddCredentialLinkModal({
                 className={fieldInputCls}
               />
               {personDropdownOpen && (
-                <div className={cn("absolute z-10 mt-1 w-full max-h-40 overflow-y-auto rounded-[9px] border-[1.5px] shadow-lg", isDark ? "bg-[#1a2032] border-white/[0.12]" : "bg-white border-slate-200")}>
+                <div className={cn("absolute z-10 mt-1 w-full max-h-40 overflow-y-auto rounded-[9px] border-[1.5px] shadow-lg", "bg-white border-[#E2E7F2]")}>
                   {filteredPeople.length === 0 ? (
                     <div className={cn("px-3 py-2 text-[12.5px]", textMuted)}>{staffDirectory.length === 0 ? "No staff directory entries found." : "No matches."}</div>
                   ) : (
@@ -4211,7 +4401,7 @@ function AddCredentialLinkModal({
                         type="button"
                         onMouseDown={(e) => e.preventDefault()}
                         onClick={() => { setAllowedUserIds((prev) => [...prev, person.id]); setPersonSearch(""); }}
-                        className={cn("w-full text-left px-3 py-2 text-[12.5px] cursor-pointer border-none bg-transparent transition-colors", isDark ? "text-slate-200 hover:bg-white/[0.06]" : "text-slate-700 hover:bg-slate-50")}
+                        className={cn("w-full text-left px-3 py-2 text-[12.5px] cursor-pointer border-none bg-transparent transition-colors", "text-[#3A4565] hover:bg-[#EDF0F7]")}
                       >
                         {person.full_name ?? "Unnamed"}
                       </button>
@@ -4221,13 +4411,13 @@ function AddCredentialLinkModal({
               )}
             </div>
           </div>
-          {error && <p className="text-[12px] text-red-500 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">{error}</p>}
+          {error && <p className="text-[12px] text-[#C0392B] bg-[#FDE8E6] border border-[#C0392B]/20 rounded-lg px-3 py-2">{error}</p>}
         </div>
-        <div className={cn("flex items-center justify-end gap-2 px-5 py-4 border-t", isDark ? "border-white/[0.08]" : "border-slate-100 bg-slate-50")}>
+        <div className={cn("flex items-center justify-end gap-2 px-5 py-4 border-t", "border-[#EDF0F7] bg-[#F4F6FB]")}>
           <button
             type="button"
             onClick={onClose}
-            className={cn("px-4 py-2 rounded-lg text-[13px] font-medium cursor-pointer border-none bg-transparent", isDark ? "text-slate-300 hover:bg-white/[0.06]" : "text-slate-600 hover:bg-slate-100")}
+            className={cn("px-4 py-2 rounded-lg text-[13px] font-medium cursor-pointer border-none bg-transparent", "text-[#3A4565] hover:bg-[#EDF0F7]")}
           >
             Cancel
           </button>
@@ -4235,7 +4425,7 @@ function AddCredentialLinkModal({
             type="button"
             onClick={handleSubmit}
             disabled={saving || !isValid}
-            className="px-4 py-2 rounded-lg bg-brand text-white text-[13px] font-semibold cursor-pointer border-none hover:opacity-90 transition-opacity disabled:opacity-60"
+            className="px-4 py-2 rounded-lg bg-[#007BFF] text-white text-[13px] font-semibold cursor-pointer border-none hover:opacity-90 transition-opacity disabled:opacity-60"
           >
             {saving ? "Adding…" : "Add Asset"}
           </button>
@@ -4312,7 +4502,7 @@ function FilePreview({ file, url }: { file: AssetRow; url: string }) {
 
   return (
     <div className="w-full h-full flex items-center justify-center px-6 text-center">
-      <span className="text-[12.5px] text-slate-500">Preview not available for this file type.</span>
+      <span className="text-[12.5px] text-[#5F6A88]">Preview not available for this file type.</span>
     </div>
   );
 }
@@ -4344,14 +4534,14 @@ function HtmlFilePreview({ url, fileName }: { url: string; fileName: string }) {
   if (error) {
     return (
       <div className="w-full h-full flex items-center justify-center px-6 text-center">
-        <span className="text-[12.5px] text-red-500">{error}</span>
+        <span className="text-[12.5px] text-[#C0392B]">{error}</span>
       </div>
     );
   }
   if (html === null) {
     return (
       <div className="w-full h-full flex items-center justify-center">
-        <span className="text-[12.5px] text-slate-500">Loading preview…</span>
+        <span className="text-[12.5px] text-[#5F6A88]">Loading preview…</span>
       </div>
     );
   }
@@ -4394,14 +4584,14 @@ function CsvFilePreview({ url }: { url: string }) {
   if (error) {
     return (
       <div className="w-full h-full flex items-center justify-center px-6 text-center">
-        <span className="text-[12.5px] text-red-500">{error}</span>
+        <span className="text-[12.5px] text-[#C0392B]">{error}</span>
       </div>
     );
   }
   if (rows === null) {
     return (
       <div className="w-full h-full flex items-center justify-center">
-        <span className="text-[12.5px] text-slate-500">Loading preview…</span>
+        <span className="text-[12.5px] text-[#5F6A88]">Loading preview…</span>
       </div>
     );
   }
@@ -4416,7 +4606,7 @@ function CsvFilePreview({ url }: { url: string }) {
         <thead>
           <tr>
             {header?.map((cell, i) => (
-              <th key={i} className="text-left font-semibold text-slate-700 px-3 py-2 border-b-2 border-slate-200 bg-slate-50 whitespace-nowrap">
+              <th key={i} className="text-left font-semibold text-[#3A4565] px-3 py-2 border-b-2 border-[#E2E7F2] bg-[#F4F6FB] whitespace-nowrap">
                 {cell}
               </th>
             ))}
@@ -4424,9 +4614,9 @@ function CsvFilePreview({ url }: { url: string }) {
         </thead>
         <tbody>
           {body.map((row, i) => (
-            <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-slate-50/50"}>
+            <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-[#F4F6FB]/50"}>
               {row.map((cell, j) => (
-                <td key={j} className="px-3 py-1.5 border-b border-slate-100 text-slate-700 whitespace-nowrap">
+                <td key={j} className="px-3 py-1.5 border-b border-[#EDF0F7] text-[#3A4565] whitespace-nowrap">
                   {cell}
                 </td>
               ))}
@@ -4465,14 +4655,14 @@ function MarkdownFilePreview({ url }: { url: string }) {
   if (error) {
     return (
       <div className="w-full h-full flex items-center justify-center px-6 text-center">
-        <span className="text-[12.5px] text-red-500">{error}</span>
+        <span className="text-[12.5px] text-[#C0392B]">{error}</span>
       </div>
     );
   }
   if (html === null) {
     return (
       <div className="w-full h-full flex items-center justify-center">
-        <span className="text-[12.5px] text-slate-500">Loading preview…</span>
+        <span className="text-[12.5px] text-[#5F6A88]">Loading preview…</span>
       </div>
     );
   }
@@ -4483,13 +4673,13 @@ function MarkdownFilePreview({ url }: { url: string }) {
 // everything renders inline via <img>/<iframe> so the signed URL is only ever fetched
 // by the browser for display, not offered to the user as a download.
 function FileViewerModal({
-  file, url, loading, error, isDark, onClose,
+  file, url, loading, error, onClose,
 }: {
-  file: AssetRow; url: string | null; loading: boolean; error: string | null; isDark: boolean; onClose: () => void;
+  file: AssetRow; url: string | null; loading: boolean; error: string | null; onClose: () => void;
 }) {
-  const textPrimary = isDark ? "text-slate-200" : "text-slate-900";
-  const textMuted = isDark ? "text-slate-400" : "text-slate-500";
-  const cardCls = isDark ? "bg-[#121726] border border-white/[0.08] rounded-xl" : "bg-white border border-slate-200 rounded-xl";
+  const textPrimary = "text-[#0B1533]";
+  const textMuted = "text-[#5F6A88]";
+  const cardCls = "bg-white border border-[#E2E7F2] rounded-xl";
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -4498,11 +4688,11 @@ function FileViewerModal({
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#071133]/60 p-4" onClick={onClose}>
       <div role="dialog" aria-modal="true" aria-labelledby="file-viewer-title" className={cn(cardCls, "w-full max-w-4xl h-[85vh] shadow-xl overflow-hidden flex flex-col")} onClick={(e) => e.stopPropagation()}>
-        <div className={cn("flex items-center justify-between gap-3 px-5 py-3 border-b shrink-0", isDark ? "border-white/[0.08]" : "border-slate-100")}>
+        <div className={cn("flex items-center justify-between gap-3 px-5 py-3 border-b shrink-0", "border-[#EDF0F7]")}>
           <div className="flex items-center gap-2 min-w-0">
-            <FileText size={14} className="text-brand shrink-0" />
+            <FileText size={14} className="text-[#007BFF] shrink-0" />
             <h2 id="file-viewer-title" className={cn("text-[13.5px] font-semibold truncate", textPrimary)}>{file.file_name}</h2>
           </div>
           <IconTip label="Close" side="bottom">
@@ -4510,7 +4700,7 @@ function FileViewerModal({
               type="button"
               onClick={onClose}
               aria-label="Close preview"
-              className={cn("p-2 rounded-md cursor-pointer border-none bg-transparent shrink-0 hover:bg-slate-500/10 transition-colors", textMuted)}
+              className={cn("p-2 rounded-md cursor-pointer border-none bg-transparent shrink-0 hover:bg-[#5F6A88]/10 transition-colors", textMuted)}
             >
               <X size={18} />
             </button>
@@ -4521,7 +4711,7 @@ function FileViewerModal({
             content) stretch the item past the modal's width instead of triggering that child's
             own overflow-auto scrollbar, so the excess columns get silently clipped by the modal
             card's overflow-hidden with no way to reach them. */}
-        <div className="flex-1 min-h-0 min-w-0 relative bg-slate-100">
+        <div className="flex-1 min-h-0 min-w-0 relative bg-[#EDF0F7]">
           {loading && (
             <div className="absolute inset-0 flex items-center justify-center">
               <span className={cn("text-[12.5px]", textMuted)}>Loading preview…</span>
@@ -4529,7 +4719,7 @@ function FileViewerModal({
           )}
           {error && !loading && (
             <div className="absolute inset-0 flex items-center justify-center px-6 text-center">
-              <span className="text-[12.5px] text-red-500">{error}</span>
+              <span className="text-[12.5px] text-[#C0392B]">{error}</span>
             </div>
           )}
           {url && !loading && !error && <FilePreview file={file} url={url} />}
@@ -4542,16 +4732,16 @@ function FileViewerModal({
 // HTML Mockup's own file list — not bare FileUploadBox, since it adds an "Edit" action
 // (text/html and text/markdown only) next to the existing View/Remove ones.
 function HtmlMockupFileList({
-  files, uploading, uploadProgress, onFile, onRemove, onView, onEdit, viewingId, isDark, disabled,
+  files, uploading, uploadProgress, onFile, onRemove, onView, onEdit, viewingId, disabled, hasError, loading,
 }: {
   files: AssetRow[]; uploading: boolean; uploadProgress?: UploadProgressEntry[]; onFile: (file: File) => void; onRemove: (id: string) => void;
-  onView: (id: string) => void; onEdit: (asset: AssetRow) => void; viewingId: string | null; isDark: boolean;
-  disabled?: boolean;
+  onView: (id: string) => void; onEdit: (asset: AssetRow) => void; viewingId: string | null;
+  disabled?: boolean; hasError?: boolean; loading?: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
-  const textMuted = isDark ? "text-slate-400" : "text-slate-500";
-  const textPrimary = isDark ? "text-slate-200" : "text-slate-900";
+  const textMuted = "text-[#5F6A88]";
+  const textPrimary = "text-[#0B1533]";
 
   function handleFiles(fileList: FileList | null) {
     if (!fileList) return;
@@ -4576,24 +4766,32 @@ function HtmlMockupFileList({
             onDragLeave={() => setIsDragOver(false)}
             onDrop={(e) => { e.preventDefault(); setIsDragOver(false); handleFiles(e.dataTransfer.files); }}
             className={cn(
-              "w-full rounded-lg border-2 border-dashed py-4 text-center cursor-pointer transition-colors disabled:opacity-60",
-              isDark
-                ? isDragOver ? "border-brand bg-brand/[0.06]" : "border-white/[0.12] bg-white/[0.02] hover:border-brand"
-                : isDragOver ? "border-brand bg-brand/[0.04]" : "border-slate-200 bg-slate-50 hover:border-brand"
+              "group w-full min-h-[168px] flex flex-col items-center justify-center gap-2.5 rounded-2xl border border-dashed py-8 text-center cursor-pointer transition-colors duration-150 disabled:opacity-60",
+              hasError
+                ? "border-[#C0392B] shadow-[0_0_0_3px_rgba(192,57,43,0.25)] bg-[#FDE8E6]/30"
+                : isDragOver ? "border-[#007BFF] bg-[#F0F7FF]" : "border-[#C7D2E8] bg-[#F9FAFD] hover:border-[#007BFF] hover:bg-[#F0F7FF]"
             )}
           >
-            <Upload size={16} className={cn("mx-auto mb-1.5", textMuted)} />
-            <div className={cn("text-[11.5px]", textMuted)}>{uploading ? "Uploading…" : <>Drag files here or <span className="text-brand font-medium">click to upload</span></>}</div>
+            <div className={cn(
+              "flex h-12 w-12 items-center justify-center rounded-full transition-all duration-150 group-hover:scale-105",
+              hasError ? "bg-[#C0392B] text-white" : isDragOver ? "bg-[#007BFF] text-white" : "bg-[#E5F1FF] text-[#007BFF]"
+            )}>
+              <CloudUpload size={22} strokeWidth={1.75} />
+            </div>
+            <div className={cn("text-[13px] font-medium", textPrimary)}>
+              {uploading ? "Uploading…" : <>Drag &amp; drop a file, or <span className="text-[#007BFF]">browse</span></>}
+            </div>
+            {!uploading && <div className={cn("text-[11px]", textMuted)}>Any document, spreadsheet, or image</div>}
           </button>
         </>
       )}
       {uploadProgress && uploadProgress.length > 0 && (
         <div className="mt-2 flex flex-col gap-1.5">
           {uploadProgress.map((p) => (
-            <div key={p.id} className={cn("flex flex-col gap-1.5 px-2.5 py-2 rounded-lg", isDark ? "bg-white/[0.03]" : "bg-slate-50")}>
+            <div key={p.id} className={cn("flex flex-col gap-1.5 px-2.5 py-2 rounded-lg", "bg-[#F4F6FB]")}>
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-md bg-brand/10 flex items-center justify-center shrink-0">
-                  <FileText size={11} className="text-brand" />
+                <div className="w-6 h-6 rounded-md bg-[#E5F1FF] flex items-center justify-center shrink-0">
+                  <FileText size={11} className="text-[#007BFF]" />
                 </div>
                 <div className={cn("text-[11.5px] font-medium truncate flex-1", textPrimary)}>{p.name}</div>
                 <div className={cn("flex items-center gap-1 text-[10.5px] tabular-nums shrink-0", textMuted)}>
@@ -4607,19 +4805,23 @@ function HtmlMockupFileList({
                   )}
                 </div>
               </div>
-              <div className={cn("h-1.5 rounded-full overflow-hidden", isDark ? "bg-white/[0.08]" : "bg-slate-200")}>
-                <div className="h-full rounded-full bg-brand transition-[width]" style={{ width: `${p.progress}%` }} />
+              <div className={cn("h-1.5 rounded-full overflow-hidden", "bg-[#E2E7F2]")}>
+                <div className="h-full rounded-full bg-[#007BFF] transition-[width]" style={{ width: `${p.progress}%` }} />
               </div>
             </div>
           ))}
         </div>
       )}
-      {files.length > 0 && (
+      {loading ? (
+        <div className="mt-2 flex flex-col gap-1.5" aria-label="Checking for previously uploaded files">
+          <div className={cn("h-11 rounded-lg animate-pulse motion-reduce:animate-none", "bg-[#EDF0F7]")} />
+        </div>
+      ) : files.length > 0 && (
         <div className="mt-2 flex flex-col gap-1.5">
           {files.map((f) => (
-            <div key={f.id} className={cn("flex items-center gap-2 px-2.5 py-2 rounded-lg", isDark ? "bg-white/[0.03]" : "bg-slate-50")}>
-              <div className="w-6 h-6 rounded-md bg-brand/10 flex items-center justify-center shrink-0">
-                <FileText size={11} className="text-brand" />
+            <div key={f.id} className={cn("flex items-center gap-2 px-2.5 py-2 rounded-lg", "bg-[#F4F6FB]")}>
+              <div className="w-6 h-6 rounded-md bg-[#E5F1FF] flex items-center justify-center shrink-0">
+                <FileText size={11} className="text-[#007BFF]" />
               </div>
               <div className={cn("text-[11.5px] font-medium truncate flex-1", textPrimary)}>{f.file_name}</div>
               <IconTip label="View">
@@ -4628,7 +4830,7 @@ function HtmlMockupFileList({
                   onClick={() => onView(f.id)}
                   disabled={viewingId === f.id}
                   aria-label={`View ${f.file_name}`}
-                  className="shrink-0 p-2 rounded-md cursor-pointer border-none bg-transparent text-brand hover:bg-brand/10 transition-colors disabled:opacity-50"
+                  className="shrink-0 p-2 rounded-md cursor-pointer border-none bg-transparent text-[#007BFF] hover:bg-[#E5F1FF] transition-colors disabled:opacity-50"
                 >
                   <Eye size={12} />
                 </button>
@@ -4639,7 +4841,7 @@ function HtmlMockupFileList({
                     type="button"
                     onClick={() => onEdit(f)}
                     aria-label={`Edit ${f.file_name}`}
-                    className="shrink-0 p-2 rounded-md cursor-pointer border-none bg-transparent text-brand hover:bg-brand/10 transition-colors"
+                    className="shrink-0 p-2 rounded-md cursor-pointer border-none bg-transparent text-[#007BFF] hover:bg-[#E5F1FF] transition-colors"
                   >
                     <Pencil size={12} />
                   </button>
@@ -4651,7 +4853,7 @@ function HtmlMockupFileList({
                     type="button"
                     onClick={() => onRemove(f.id)}
                     aria-label={`Remove ${f.file_name}`}
-                    className="shrink-0 p-2 rounded-md cursor-pointer border-none bg-transparent text-red-500 hover:bg-red-500/10 transition-colors"
+                    className="shrink-0 p-2 rounded-md cursor-pointer border-none bg-transparent text-[#C0392B] hover:bg-[#FDE8E6] transition-colors"
                   >
                     <Trash2 size={12} />
                   </button>
@@ -4669,9 +4871,9 @@ function HtmlMockupFileList({
 // CodeMirror (dynamic-imported, ssr:false); the preview pane renders the editor's
 // current in-memory value via srcDoc, debounced, no signed-URL fetch needed.
 function HtmlEditorModal({
-  file, initialHtml, loadError, isDark, customerId, onClose, onSaved,
+  file, initialHtml, loadError, customerId, onClose, onSaved,
 }: {
-  file: AssetRow; initialHtml: string | null; loadError: string | null; isDark: boolean; customerId: string;
+  file: AssetRow; initialHtml: string | null; loadError: string | null; customerId: string;
   onClose: () => void; onSaved: (assetId: string, newSize: number) => void;
 }) {
   const loaded = initialHtml !== null;
@@ -4734,9 +4936,9 @@ function HtmlEditorModal({
     return () => { if (previewDebounceRef.current) clearTimeout(previewDebounceRef.current); };
   }, [value]);
 
-  const textPrimary = isDark ? "text-slate-200" : "text-slate-900";
-  const textMuted = isDark ? "text-slate-400" : "text-slate-500";
-  const cardCls = isDark ? "bg-[#121726] border border-white/[0.08] rounded-xl" : "bg-white border border-slate-200 rounded-xl";
+  const textPrimary = "text-[#0B1533]";
+  const textMuted = "text-[#5F6A88]";
+  const cardCls = "bg-white border border-[#E2E7F2] rounded-xl";
 
   const handleSave = async () => {
     setSaveStatus("saving");
@@ -4759,11 +4961,11 @@ function HtmlEditorModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#071133]/60 p-4" onClick={onClose}>
       <div className={cn(cardCls, "w-[96vw] h-[94vh] shadow-xl overflow-hidden flex flex-col")} onClick={(e) => e.stopPropagation()}>
-        <div className={cn("flex items-center justify-between gap-3 px-5 py-3 border-b shrink-0", isDark ? "border-white/[0.08]" : "border-slate-100")}>
+        <div className={cn("flex items-center justify-between gap-3 px-5 py-3 border-b shrink-0", "border-[#EDF0F7]")}>
           <div className="flex items-center gap-2 min-w-0">
-            <Pencil size={14} className="text-brand shrink-0" />
+            <Pencil size={14} className="text-[#007BFF] shrink-0" />
             <h2 className={cn("text-[13.5px] font-semibold truncate", textPrimary)}>{file.file_name}</h2>
           </div>
           <div className="flex items-center gap-3 shrink-0">
@@ -4772,7 +4974,7 @@ function HtmlEditorModal({
               type="button"
               onClick={handleSave}
               disabled={!loaded || saveStatus === "saving"}
-              className="px-3 py-1.5 rounded-lg bg-brand text-white text-[12.5px] font-semibold cursor-pointer border-none hover:opacity-90 transition-opacity disabled:opacity-60"
+              className="px-3 py-1.5 rounded-lg bg-[#007BFF] text-white text-[12.5px] font-semibold cursor-pointer border-none hover:opacity-90 transition-opacity disabled:opacity-60"
             >
               Save
             </button>
@@ -4781,7 +4983,7 @@ function HtmlEditorModal({
                 type="button"
                 onClick={onClose}
                 aria-label="Close editor"
-                className={cn("p-2 rounded-md cursor-pointer border-none bg-transparent hover:bg-slate-500/10 transition-colors", textMuted)}
+                className={cn("p-2 rounded-md cursor-pointer border-none bg-transparent hover:bg-[#5F6A88]/10 transition-colors", textMuted)}
               >
                 <X size={18} />
               </button>
@@ -4793,25 +4995,25 @@ function HtmlEditorModal({
             panes guarantees an even, content-independent split, same flex-1/min-h-0 idiom
             already used for the outer scroll area above. */}
         <div className="flex-1 min-h-0 flex flex-col lg:flex-row">
-          <div className={cn("flex-1 min-w-0 min-h-0 overflow-auto border-b lg:border-b-0 lg:border-r", isDark ? "border-white/[0.08]" : "border-slate-200")}>
+          <div className={cn("flex-1 min-w-0 min-h-0 overflow-auto border-b lg:border-b-0 lg:border-r", "border-[#E2E7F2]")}>
             {!loaded && !loadError && (
               <div className="h-full flex items-center justify-center"><span className={cn("text-[12.5px]", textMuted)}>Loading…</span></div>
             )}
             {loadError && (
-              <div className="h-full flex items-center justify-center px-6 text-center"><span className="text-[12.5px] text-red-500">{loadError}</span></div>
+              <div className="h-full flex items-center justify-center px-6 text-center"><span className="text-[12.5px] text-[#C0392B]">{loadError}</span></div>
             )}
             {loaded && (
               <CodeMirror
                 value={value}
                 height="100%"
-                theme={isDark ? githubDark : githubLight}
+                theme={githubLight}
                 extensions={[isMarkdown ? markdownLang() : htmlLang()]}
                 onChange={(v: string) => setValue(v)}
               />
             )}
           </div>
           <div className="flex-1 min-w-0 min-h-0 flex flex-col">
-            <div className={cn("flex items-center gap-0.5 px-2 py-1.5 border-b shrink-0", isDark ? "border-white/[0.08] bg-white/[0.02]" : "border-slate-100 bg-slate-50/50")}>
+            <div className={cn("flex items-center gap-0.5 px-2 py-1.5 border-b shrink-0", "border-[#EDF0F7] bg-[#F4F6FB]/50")}>
               {PREVIEW_SIZES.map((s) => {
                 const Icon = s.icon;
                 const active = previewSize === s.key;
@@ -4823,7 +5025,7 @@ function HtmlEditorModal({
                     onClick={() => setPreviewSize(s.key)}
                     className={cn(
                       "text-[11px] px-2 h-7 rounded-md flex items-center gap-1.5 cursor-pointer transition-colors border-none",
-                      active ? "bg-brand/15 text-brand" : isDark ? "text-slate-400 hover:bg-white/[0.06]" : "text-slate-500 hover:bg-slate-100"
+                      active ? "bg-[#E5F1FF] text-[#007BFF]" : "text-[#5F6A88] hover:bg-[#EDF0F7]"
                     )}
                   >
                     <Icon size={13} /> {s.label}
@@ -4831,7 +5033,7 @@ function HtmlEditorModal({
                 );
               })}
             </div>
-            <div ref={previewPaneRef} className={cn("flex-1 min-h-0 overflow-hidden relative", isDark ? "bg-black/20" : "bg-slate-100")}>
+            <div ref={previewPaneRef} className={cn("flex-1 min-h-0 overflow-hidden relative", "bg-[#EDF0F7]")}>
               {loaded && paneSize.width > 0 && (
                 <iframe
                   key={previewRevision}
@@ -4856,53 +5058,15 @@ function HtmlEditorModal({
   );
 }
 
-function WizardDeliverableRow({
-  name, description, status, isDark, toggling, onClick,
-}: {
-  name: string; description: string; status: string; isDark: boolean; toggling: boolean; onClick?: () => void;
-}) {
-  const textPrimary = isDark ? "text-slate-200" : "text-slate-900";
-  const textMuted = isDark ? "text-slate-400" : "text-slate-500";
-  const cfg: Record<string, { border: string; bg: string; icon: React.ReactNode; label: string }> = {
-    done: { border: isDark ? "border-green-500/25" : "border-green-200", bg: isDark ? "bg-green-500/10" : "bg-green-50", icon: <CheckCircle2 size={15} className="text-green-500" />, label: "Done" },
-    in_progress: { border: isDark ? "border-blue-500/25" : "border-blue-200", bg: isDark ? "bg-blue-500/10" : "bg-blue-50", icon: <Clock size={15} className="text-blue-500" />, label: "In progress" },
-    pending: { border: isDark ? "border-white/[0.08]" : "border-slate-200", bg: isDark ? "bg-white/[0.02]" : "bg-slate-50", icon: <Circle size={15} className={textMuted} />, label: "Pending" },
-  };
-  const c = cfg[status] ?? cfg.pending;
-  const readOnly = !onClick;
-  const label = readOnly ? `"${name}"` : `Mark "${name}"`;
-  return (
-    <button
-      onClick={onClick}
-      disabled={toggling || readOnly}
-      title={readOnly ? "Status is derived automatically from the checklist below" : undefined}
-      className={cn(
-        "w-full flex items-start gap-3 p-3 rounded-lg border text-left transition-colors disabled:opacity-60",
-        readOnly ? "cursor-default" : "cursor-pointer",
-        c.border, c.bg
-      )}
-    >
-      <div className="shrink-0 mt-0.5">{toggling ? <span className={cn("text-[11px]", textMuted)}>…</span> : c.icon}</div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className={cn("text-[13px] font-medium", status === "done" ? cn(textMuted, "line-through") : textPrimary)}>{label}</span>
-        </div>
-        <div className={cn("text-[11px] mt-0.5", textMuted)}>{description}</div>
-      </div>
-      <span className={cn("text-[11px] font-medium shrink-0 mt-0.5", status === "done" ? "text-green-500" : textMuted)}>{c.label}</span>
-    </button>
-  );
-}
-
 // Phase 1's animated closing transition, shown between clicking "Complete Phase 1 & notify
 // PM" and the real request resolving. Declarative stagger via framer-motion — no internal
 // timer to race against the fetch; each item plays once and holds its final (checked) state,
 // and the "Finishing up…" line simply stays visible for as long as the parent keeps this
 // component mounted (i.e. until the real request settles), never looping or disappearing.
-function PhaseCompletionTransition({ isDark }: { isDark: boolean }) {
-  const textPrimary = isDark ? "text-slate-200" : "text-slate-900";
-  const textMuted = isDark ? "text-slate-400" : "text-slate-500";
-  const cardCls = isDark ? "bg-[#121726] border border-white/[0.08] rounded-xl" : "bg-white border border-slate-200 rounded-xl";
+function PhaseCompletionTransition() {
+  const textPrimary = "text-[#0B1533]";
+  const textMuted = "text-[#5F6A88]";
+  const cardCls = "bg-white border border-[#E2E7F2] rounded-xl";
   const finishingDelay = PHASE1_COMPLETION_CRITERIA.length * PHASE1_TRANSITION_STAGGER + 0.35;
 
   return (
@@ -4912,11 +5076,11 @@ function PhaseCompletionTransition({ isDark }: { isDark: boolean }) {
           initial={{ scale: 0.6, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.35 }}
-          className="w-14 h-14 rounded-full bg-brand/10 flex items-center justify-center mx-auto mb-4"
+          className="w-14 h-14 rounded-full bg-[#E5F1FF] flex items-center justify-center mx-auto mb-4"
         >
-          <Sparkles size={24} className="text-brand" />
+          <Sparkles size={24} className="text-[#007BFF]" />
         </motion.div>
-        <div className={cn("text-lg font-bold mb-1", textPrimary)}>Wrapping up Phase 1…</div>
+        <div className={cn("text-lg font-bold mb-1 font-heading", textPrimary)}>Wrapping up Phase 1…</div>
         <p className={cn("text-[13px]", textMuted)}>Preparing the project view and handing over to the PM.</p>
       </div>
       <div className="flex flex-col gap-2.5">
@@ -4926,7 +5090,7 @@ function PhaseCompletionTransition({ isDark }: { isDark: boolean }) {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * PHASE1_TRANSITION_STAGGER, duration: 0.3 }}
-            className={cn("flex items-start gap-2.5 px-3.5 py-2.5 rounded-lg border", isDark ? "border-white/[0.08] bg-white/[0.02]" : "border-slate-100 bg-slate-50/50")}
+            className={cn("flex items-start gap-2.5 px-3.5 py-2.5 rounded-lg border", "border-[#EDF0F7] bg-[#F4F6FB]/50")}
           >
             <motion.div
               initial={{ scale: 0, opacity: 0 }}
@@ -4934,7 +5098,7 @@ function PhaseCompletionTransition({ isDark }: { isDark: boolean }) {
               transition={{ delay: i * PHASE1_TRANSITION_STAGGER + 0.15, duration: 0.25 }}
               className="shrink-0 mt-0.5"
             >
-              <CheckCircle2 size={16} className="text-green-500" />
+              <CheckCircle2 size={16} className="text-[#177E48]" />
             </motion.div>
             <div>
               <div className={cn("text-[13px] font-medium", textPrimary)}>{item.label}</div>

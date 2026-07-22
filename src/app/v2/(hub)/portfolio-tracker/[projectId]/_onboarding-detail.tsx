@@ -11,7 +11,6 @@ import {
   Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { usePMSettings } from "@/hooks/use-pm-settings";
 import { createClient } from "@/lib/supabase/client";
 import { V2_ROUTES } from "@/config/constants";
 import {
@@ -978,9 +977,6 @@ export default function OnboardingDetail({
   // (migration 070/071) — admin/super_admin/marketing only, independent of canManagePhases.
   const canEditSchedule = role === "admin" || role === "super_admin" || role === "marketing";
 
-  const { settings } = usePMSettings();
-  const isDark = settings.theme === "dark";
-
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [programmeStartedAt, setProgrammeStartedAt] = useState<string | null>(null);
@@ -1338,9 +1334,6 @@ export default function OnboardingDetail({
     </button>
   );
 
-  // Timeline chrome is fixed-light v2.0 (task 168) — `isDark` is still computed above and passed
-  // to <OnboardingWizard isDark={isDark} .../> below unchanged, since Wizard step content (out of
-  // scope for this task) still depends on it; only this file's own rendering stops branching on it.
   if (wizardOpen && isPhase1Restricted) {
     return (
       <div className={cn("min-h-full px-7 py-8", "bg-[#F4F6FB]")}>
@@ -1374,7 +1367,6 @@ export default function OnboardingDetail({
           internalDeliverables={internalDeliverables}
           wizardData={(phases.find((p) => p.phase_number === 1)?.wizard_data as Record<string, unknown>) ?? {}}
           currentDay={programmeStartedAt ? getCurrentProgrammeDay(programmeStartedAt) : 1}
-          isDark={isDark}
           role={role}
           isPhaseActive={isPhaseActive}
           initialStepKey={wizardStartStepKey}
