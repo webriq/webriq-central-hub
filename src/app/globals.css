@@ -55,6 +55,19 @@
   --color-nav-active-bg: rgba(51, 88, 244, 0.15);
   --color-toggle-bg: #1a2f5a;
 
+  /* ─── Auth v2.0 tokens (task 179) — scoped to /v2/(auth); do not repoint the
+     brand-orange/brand tokens above, those are still used elsewhere in the hub ── */
+  --color-auth-navy: #071133;
+  --color-auth-blue: #007BFF;
+  --color-auth-blue-700: #0063D6;
+  --color-auth-orange: #FB914E;
+  --color-auth-orange-600: #E2762F;
+  --color-auth-cta-ink: #471F02;
+  --color-auth-warn: #8A5A00;
+  --color-auth-ok: #177E48;
+  --color-auth-late: var(--auth-late);
+  --color-auth-late-bg: var(--auth-late-bg);
+
   /* ─── Animation durations ───────────────────────────────────────────────── */
   --animate-aurora-1: aurora-drift-1 22s ease-in-out infinite;
   --animate-aurora-2: aurora-drift-2 28s ease-in-out infinite;
@@ -97,6 +110,10 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+
+  /* Auth v2.0 "late" (error) semantic — light surface variant (task 179) */
+  --auth-late: #C0392B;
+  --auth-late-bg: #FDE8E6;
 }
 
 /* ─── Dark — primary Hub theme ───────────────────────────────────────────── */
@@ -145,6 +162,10 @@
   --sidebar-accent-foreground: oklch(0.97 0.004 264);
   --sidebar-border: oklch(1 0 0 / 6%);
   --sidebar-ring: oklch(0.75 0.18 215);
+
+  /* Auth v2.0 "late" (error) semantic — dark surface variant (task 179) */
+  --auth-late: #F2A29B;
+  --auth-late-bg: #C0392B26;
 }
 
 /* ─── Base ────────────────────────────────────────────────────────────────── */

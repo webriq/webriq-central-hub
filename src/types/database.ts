@@ -507,6 +507,8 @@ export interface Database {
           full_name: string | null;
           avatar_url: string | null;
           customer_id: string | null;
+          otp_failed_attempts: number;
+          otp_locked_until: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -516,6 +518,8 @@ export interface Database {
           full_name?: string | null;
           avatar_url?: string | null;
           customer_id?: string | null;
+          otp_failed_attempts?: number;
+          otp_locked_until?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -525,6 +529,8 @@ export interface Database {
           full_name?: string | null;
           avatar_url?: string | null;
           customer_id?: string | null;
+          otp_failed_attempts?: number;
+          otp_locked_until?: string | null;
           updated_at?: string;
         };
         Relationships: [

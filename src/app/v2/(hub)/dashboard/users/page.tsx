@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Users, Mail, CheckCircle2, Clock, Loader2, AlertCircle, UserCog, ToggleLeft, ToggleRight } from "lucide-react";
+import { Users, Mail, CheckCircle2, Clock, Loader2, AlertCircle, UserCog, ToggleLeft, ToggleRight, Lock, LockOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -22,6 +22,7 @@ interface HubUser {
   joined_at: string | null;
   external_id: string | null;
   created_at: string;
+  otp_locked_until: string | null;
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -107,15 +108,20 @@ interface RowProps {
   onStatusToggle: (userId: string, current: string) => void;
   onInvite: (userId: string) => void;
   invitingId: string | null;
+  viewerRole: ProfileRole | null;
+  onUnlock: (userId: string) => void;
+  unlockingId: string | null;
 }
 
-function UserRow({ user, idx, savingId, onRoleChange, onStatusToggle, onInvite, invitingId }: RowProps) {
+function UserRow({ user, idx, savingId, onRoleChange, onStatusToggle, onInvite, invitingId, viewerRole, onUnlock, unlockingId }: RowProps) {
   const initials = getInitials(user);
   const displayName =
     (user.full_name ?? `${user.first_name ?? ""} ${user.last_name ?? ""}`.trim()) || user.email;
   const isActive = user.status === "active";
   const isSaving = savingId === user.id;
   const isInviting = invitingId === user.id;
+  const isLocked = !!user.otp_locked_until && new Date(user.otp_locked_until) > new Date();
+  const isUnlocking = unlockingId === user.id;
 
   return (
     <tr className={cn("border-b border-slate-100 last:border-0 transition-colors", idx % 2 === 0 ? "bg-white" : "bg-slate-50/40", "hover:bg-slate-50")}>
@@ -159,24 +165,35 @@ function UserRow({ user, idx, savingId, onRoleChange, onStatusToggle, onInvite, 
 
       {/* Status */}
       <td className="py-3 px-4">
-        <button
-          onClick={() => onStatusToggle(user.id, user.status)}
-          disabled={isSaving}
-          title={isActive ? "Click to deactivate" : "Click to activate"}
-          className={cn(
-            "inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full border transition-all cursor-pointer",
-            isActive
-              ? "bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
-              : "bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100",
-            isSaving && "opacity-50 cursor-not-allowed pointer-events-none"
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => onStatusToggle(user.id, user.status)}
+            disabled={isSaving}
+            title={isActive ? "Click to deactivate" : "Click to activate"}
+            className={cn(
+              "inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full border transition-all cursor-pointer",
+              isActive
+                ? "bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
+                : "bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100",
+              isSaving && "opacity-50 cursor-not-allowed pointer-events-none"
+            )}
+          >
+            {isActive
+              ? <ToggleRight size={13} />
+              : <ToggleLeft size={13} />
+            }
+            {isActive ? "Active" : "Inactive"}
+          </button>
+          {isLocked && (
+            <span
+              title={`Locked until ${new Date(user.otp_locked_until!).toLocaleTimeString()}`}
+              className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full border bg-red-50 text-red-700 border-red-200"
+            >
+              <Lock size={12} />
+              Locked
+            </span>
           )}
-        >
-          {isActive
-            ? <ToggleRight size={13} />
-            : <ToggleLeft size={13} />
-          }
-          {isActive ? "Active" : "Inactive"}
-        </button>
+        </div>
       </td>
 
       {/* Invite status */}
@@ -201,6 +218,21 @@ function UserRow({ user, idx, savingId, onRoleChange, onStatusToggle, onInvite, 
 
       {/* Actions */}
       <td className="py-3 px-4">
+        <div className="flex items-center gap-2">
+        {isLocked && viewerRole === "super_admin" && (
+          <button
+            onClick={() => onUnlock(user.id)}
+            disabled={isUnlocking || isSaving}
+            className={cn(
+              "inline-flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-lg transition-all",
+              "bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 cursor-pointer",
+              (isUnlocking || isSaving) && "opacity-50 cursor-not-allowed pointer-events-none"
+            )}
+          >
+            {isUnlocking ? <Loader2 size={12} className="animate-spin" /> : <LockOpen size={12} />}
+            {isUnlocking ? "Unlocking…" : "Unlock"}
+          </button>
+        )}
         {!user.is_invited && user.profile_role && (
           <button
             onClick={() => onInvite(user.id)}
@@ -232,6 +264,7 @@ function UserRow({ user, idx, savingId, onRoleChange, onStatusToggle, onInvite, 
             {isInviting ? "Sending…" : "Resend"}
           </button>
         )}
+        </div>
       </td>
     </tr>
   );
@@ -241,10 +274,12 @@ function UserRow({ user, idx, savingId, onRoleChange, onStatusToggle, onInvite, 
 
 export default function UsersPage() {
   const [users, setUsers] = useState<HubUser[]>([]);
+  const [viewerRole, setViewerRole] = useState<ProfileRole | null>(null);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [invitingId, setInvitingId] = useState<string | null>(null);
+  const [unlockingId, setUnlockingId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ msg: string; type: "ok" | "err" } | null>(null);
   const [search, setSearch] = useState("");
 
@@ -261,8 +296,9 @@ export default function UsersPage() {
         setFetchError(d.error ?? `HTTP ${res.status}`);
         return;
       }
-      const data = await res.json() as HubUser[];
-      setUsers(data);
+      const data = await res.json() as { viewerRole: ProfileRole; users: HubUser[] };
+      setUsers(data.users);
+      setViewerRole(data.viewerRole);
       setFetchError(null);
     } catch {
       setFetchError("Failed to load users. Please refresh.");
@@ -289,9 +325,10 @@ export default function UsersPage() {
           if (!ignore) setFetchError(d.error ?? `HTTP ${res.status}`);
           return;
         }
-        const data = await res.json() as HubUser[];
+        const data = await res.json() as { viewerRole: ProfileRole; users: HubUser[] };
         if (!ignore) {
-          setUsers(data);
+          setUsers(data.users);
+          setViewerRole(data.viewerRole);
           setFetchError(null);
         }
       })
@@ -354,6 +391,30 @@ export default function UsersPage() {
       showToast("Failed to update status", "err");
     } finally {
       setSavingId(null);
+    }
+  }, []);
+
+  const handleUnlock = useCallback(async (userId: string) => {
+    setUnlockingId(userId);
+    try {
+      const res = await fetch(`/api/v2/users/${userId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ unlockOtp: true }),
+      });
+      if (!res.ok) {
+        const d = await res.json() as { error?: string };
+        showToast(d.error ?? "Failed to unlock account", "err");
+        return;
+      }
+      setUsers((prev) =>
+        prev.map((u) => u.id === userId ? { ...u, otp_locked_until: null } : u)
+      );
+      showToast("Account unlocked");
+    } catch {
+      showToast("Failed to unlock account", "err");
+    } finally {
+      setUnlockingId(null);
     }
   }, []);
 
@@ -487,6 +548,9 @@ export default function UsersPage() {
                       onStatusToggle={handleStatusToggle}
                       onInvite={handleInvite}
                       invitingId={invitingId}
+                      viewerRole={viewerRole}
+                      onUnlock={handleUnlock}
+                      unlockingId={unlockingId}
                     />
                   ))
                 )}

@@ -21,6 +21,7 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@ducanh2912/next-pwa": "10.2.9",
+    "@lottiefiles/dotlottie-react": "^0.19.12",
     "@sanity/client": "^7.22.0",
     "@sanity/preview-url-secret": "^4.0.7",
     "@supabase/ssr": "^0.10.2",

@@ -69,3 +69,32 @@ export async function sendOtpEmail(to: string, code: string) {
     ].join("\n"),
   });
 }
+
+export async function sendPasswordResetOtpEmail(to: string, code: string) {
+  await transporter.sendMail({
+    from: FROM,
+    to,
+    subject: `${code} — Reset your WebriQ Hub password`,
+    text: [
+      `Your password reset code is: ${code}`,
+      ``,
+      `This code expires in 10 minutes.`,
+      `If you did not request a password reset, you can safely ignore this email.`,
+    ].join("\n"),
+  });
+}
+
+export async function sendAccountLockedEmail(to: string) {
+  await transporter.sendMail({
+    from: FROM,
+    to,
+    subject: "Your WebriQ Central Hub account has been temporarily locked",
+    text: [
+      `We detected too many failed verification attempts on your account.`,
+      ``,
+      `As a security precaution, your account has been temporarily locked for 1 hour.`,
+      ``,
+      `If this wasn't you, contact your administrator immediately. Otherwise, you can try again after the lock period ends.`,
+    ].join("\n"),
+  });
+}

@@ -2,30 +2,15 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { randomBytes, createHash } from "node:crypto";
-import { sendOtpEmail, sendInvitationEmail } from "@/lib/email/mailer";
+import { sendOtpEmail, sendInvitationEmail, sendPasswordResetOtpEmail } from "@/lib/email/mailer";
+import { setGateCookie, clearGateCookie } from "@/lib/auth/gate-cookies";
+import { checkOtpLockout, registerOtpFailure, resetOtpAttempts } from "@/lib/auth/otp-lockout";
 
 // device_sessions and otp_codes are not yet in generated types — use untyped alias until supabase gen types is re-run
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = adminClient as any;
-
-export async function signIn(formData: FormData) {
-  const supabase = await createClient();
-
-  const email = formData.get("email") as string;
-  const password = formData.get("password") as string;
-
-  if (!email || !password) {
-    return { error: "Email and password are required." };
-  }
-
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) return { error: error.message };
-
-  redirect("/v2/dashboard");
-}
 
 export async function signOut() {
   const supabase = await createClient();
@@ -36,72 +21,72 @@ export async function signOut() {
 export async function postLoginGate(
   deviceId: string,
   returnTo?: string
-): Promise<{ redirect: string; error?: string }> {
+): Promise<{ redirect: string; error?: string; warning?: string; locked?: boolean; lockedUntil?: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { redirect: "/v2/auth/login" };
 
+  // Account-level OTP lockout blocks login entirely, before any other gate —
+  // "wait 1 hour to relogin" applies regardless of device trust or forced-password state.
+  const { locked, lockedUntil } = await checkOtpLockout(user.id);
+  if (locked) {
+    return { redirect: "/v2/auth/verify", locked: true, lockedUntil: lockedUntil! };
+  }
+
   // Gate 1: forced password change
   if (user.user_metadata?.force_password_change) {
-    const cookieStore = await cookies();
-    cookieStore.set("change_password_required", "1", {
-      httpOnly: true,
-      secure: true,
-      path: "/v2",
-      sameSite: "lax",
-      maxAge: 3600,
-    });
+    await setGateCookie("change_password_required", "1", 3600);
     return { redirect: "/v2/auth/change-password" };
   }
 
   // Gate 2: device/inactivity check
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-  console.log("[postLoginGate] user:", user.id, user.email, "deviceId:", deviceId);
   const { data: deviceSession, error: dsErr } = await db
     .from("device_sessions")
     .select("last_verified_at")
     .eq("user_id", user.id)
     .eq("device_id", deviceId)
-    .single() as { data: { last_verified_at: string } | null; error: unknown };
+    .single() as { data: { last_verified_at: string } | null; error: { code?: string } | null };
 
-  console.log("[postLoginGate] deviceSession:", deviceSession, "dsErr:", dsErr, "sevenDaysAgo:", sevenDaysAgo);
+  // PGRST116 = no matching row ("first login on this device") — expected, falls through to OTP.
+  // Any other error is a genuine DB/RLS failure and must not be treated the same way.
+  if (dsErr && dsErr.code !== "PGRST116") {
+    console.error("[postLoginGate] device_sessions lookup failed:", dsErr);
+    return { redirect: "/v2/auth/login", error: "Something went wrong checking your device. Please try again." };
+  }
 
   if (!deviceSession || deviceSession.last_verified_at < sevenDaysAgo) {
     const bytes = randomBytes(4);
     const code = String(bytes.readUInt32BE(0) % 900000 + 100000);
     const codeHash = createHash("sha256").update(code).digest("hex");
 
-    console.log("[postLoginGate] inserting OTP for user:", user.id, "email:", user.email);
     const { error: otpErr } = await db.from("otp_codes").insert({
       user_id: user.id,
       code_hash: codeHash,
+      purpose: "device_verification",
       expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
     });
-    console.log("[postLoginGate] OTP insert error:", otpErr);
 
-    console.log("[postLoginGate] sending OTP email to:", user.email, "code:", code);
-    try {
-      await sendOtpEmail(user.email!, code);
-      console.log("[postLoginGate] OTP email sent OK");
-    } catch (emailErr) {
-      console.error("[postLoginGate] OTP email FAILED:", emailErr);
+    if (otpErr) {
+      console.error("[postLoginGate] OTP insert failed:", otpErr);
+      return { redirect: "/v2/auth/verify", error: "Could not generate a verification code. Please try resending." };
     }
 
-    const cookieStore = await cookies();
-    cookieStore.set("mfa_pending", "1", {
-      httpOnly: true,
-      secure: true,
-      path: "/v2",
-      sameSite: "lax",
-      maxAge: 600,
-    });
-    return { redirect: "/v2/auth/verify" };
+    let warning: string | undefined;
+    try {
+      await sendOtpEmail(user.email!, code);
+    } catch (emailErr) {
+      console.error("[postLoginGate] OTP email FAILED:", emailErr);
+      warning = "We couldn't send the verification email. Use \"Resend code\" to try again.";
+    }
+
+    await setGateCookie("mfa_pending", "1", 600);
+    return { redirect: "/v2/auth/verify", warning };
   }
 
   // Device is trusted — clear any lingering gate cookies from a previous incomplete session
-  const cookieStore = await cookies();
-  cookieStore.set("mfa_pending", "", { maxAge: 0, path: "/v2", httpOnly: true });
-  cookieStore.set("change_password_required", "", { maxAge: 0, path: "/v2", httpOnly: true });
+  await clearGateCookie("mfa_pending");
+  await clearGateCookie("change_password_required");
 
   const safe = returnTo?.startsWith("/v2/") ? returnTo : "/v2/dashboard";
   return { redirect: safe };
@@ -122,18 +107,22 @@ export async function confirmPasswordChange(
   });
   if (error) return { error: error.message };
 
-  const cookieStore = await cookies();
-  cookieStore.set("change_password_required", "", { maxAge: 0, path: "/v2", httpOnly: true });
+  await clearGateCookie("change_password_required");
   return {};
 }
 
 export async function verifyOtpCode(
   code: string,
   deviceId: string
-): Promise<{ error?: string }> {
+): Promise<{ error?: string; attemptsRemaining?: number; locked?: boolean; lockedUntil?: string | null }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Session expired." };
+
+  const { locked, lockedUntil } = await checkOtpLockout(user.id);
+  if (locked) {
+    return { error: "Too many attempts.", locked: true, lockedUntil: lockedUntil! };
+  }
 
   const codeHash = createHash("sha256").update(code).digest("hex");
   const { data: otpRecord } = await db
@@ -141,23 +130,101 @@ export async function verifyOtpCode(
     .select("id")
     .eq("user_id", user.id)
     .eq("code_hash", codeHash)
+    .eq("purpose", "device_verification")
     .eq("used", false)
     .gte("expires_at", new Date().toISOString())
     .order("created_at", { ascending: false })
     .limit(1)
     .single() as { data: { id: string } | null; error: unknown };
 
-  if (!otpRecord) return { error: "Invalid or expired code." };
+  if (!otpRecord) {
+    const failure = await registerOtpFailure(user.id, user.email!);
+    return { error: "Incorrect or expired code.", ...failure };
+  }
 
   await db.from("otp_codes").update({ used: true }).eq("id", otpRecord.id);
   await db.from("device_sessions").upsert(
     { user_id: user.id, device_id: deviceId, last_verified_at: new Date().toISOString() },
     { onConflict: "user_id,device_id" }
   );
+  await resetOtpAttempts(user.id);
 
-  const cookieStore = await cookies();
-  cookieStore.set("mfa_pending", "", { maxAge: 0, path: "/v2", httpOnly: true });
+  await clearGateCookie("mfa_pending");
   return {};
+}
+
+async function getUserIdByEmail(email: string): Promise<{ id: string; email: string } | null> {
+  const { data } = await adminClient
+    .from("hub_users")
+    .select("id, email")
+    .eq("email", email)
+    .maybeSingle();
+  return data;
+}
+
+export async function requestPasswordReset(email: string): Promise<{ ok: true }> {
+  const target = await getUserIdByEmail(email);
+  if (target) {
+    const { locked } = await checkOtpLockout(target.id);
+    if (!locked) {
+      const bytes = randomBytes(4);
+      const code = String(bytes.readUInt32BE(0) % 900000 + 100000);
+      const codeHash = createHash("sha256").update(code).digest("hex");
+      await db.from("otp_codes").insert({
+        user_id: target.id,
+        code_hash: codeHash,
+        purpose: "password_reset",
+        expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+      });
+      try {
+        await sendPasswordResetOtpEmail(target.email, code);
+      } catch (e) {
+        console.error("[requestPasswordReset] email failed:", e);
+      }
+    }
+  }
+  // Always generic — no enumeration signal either way (unknown email, locked account, or success).
+  return { ok: true };
+}
+
+export async function verifyPasswordResetOtp(
+  email: string,
+  code: string
+): Promise<{ error?: string; attemptsRemaining?: number; locked?: boolean; lockedUntil?: string | null; hashedToken?: string }> {
+  const target = await getUserIdByEmail(email);
+  if (!target) return { error: "Incorrect or expired code." };
+
+  const { locked, lockedUntil } = await checkOtpLockout(target.id);
+  if (locked) return { error: "Too many attempts.", locked: true, lockedUntil: lockedUntil! };
+
+  const codeHash = createHash("sha256").update(code).digest("hex");
+  const { data: otpRecord } = await db
+    .from("otp_codes")
+    .select("id")
+    .eq("user_id", target.id)
+    .eq("code_hash", codeHash)
+    .eq("purpose", "password_reset")
+    .eq("used", false)
+    .gte("expires_at", new Date().toISOString())
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .single() as { data: { id: string } | null; error: unknown };
+
+  if (!otpRecord) {
+    const failure = await registerOtpFailure(target.id, target.email);
+    return { error: "Incorrect or expired code.", ...failure };
+  }
+
+  await db.from("otp_codes").update({ used: true }).eq("id", otpRecord.id);
+  await resetOtpAttempts(target.id);
+
+  const { data, error } = await adminClient.auth.admin.generateLink({
+    type: "recovery",
+    email: target.email,
+  });
+  if (error || !data) return { error: "Could not complete verification. Please try again." };
+
+  return { hashedToken: data.properties.hashed_token };
 }
 
 export async function inviteUser(

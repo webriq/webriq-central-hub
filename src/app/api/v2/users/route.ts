@@ -12,7 +12,8 @@ export async function GET() {
     .select("role")
     .eq("id", user.id)
     .single();
-  if (callerProfile?.role !== "admin" && callerProfile?.role !== "super_admin") {
+  const viewerRole = callerProfile?.role ?? null;
+  if (viewerRole !== "admin" && viewerRole !== "super_admin") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -26,8 +27,8 @@ export async function GET() {
   const ids = (hubUsers ?? []).map((u) => u.id);
 
   const { data: profiles } = ids.length > 0
-    ? await adminClient.from("profiles").select("id, role, full_name").in("id", ids)
-    : { data: [] as { id: string; role: string; full_name: string | null }[] };
+    ? await adminClient.from("profiles").select("id, role, full_name, otp_locked_until").in("id", ids)
+    : { data: [] as { id: string; role: string; full_name: string | null; otp_locked_until: string | null }[] };
 
   const profileMap = new Map((profiles ?? []).map((p) => [p.id, p]));
 
@@ -35,7 +36,8 @@ export async function GET() {
     ...u,
     profile_role: profileMap.get(u.id)?.role ?? null,
     full_name: profileMap.get(u.id)?.full_name ?? null,
+    otp_locked_until: profileMap.get(u.id)?.otp_locked_until ?? null,
   }));
 
-  return NextResponse.json(merged);
+  return NextResponse.json({ viewerRole, users: merged });
 }

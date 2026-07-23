@@ -161,3 +161,37 @@ Manual browser pass required for:
 - No packaging, docs, or install-surface impact.
 - No DB migration required.
 - No change to cookie names/paths consumed elsewhere (`mfa_pending`, `change_password_required` keep the same names/paths/semantics — only the code that sets them is deduplicated).
+
+## Implementation Notes
+
+### What Changed
+- Extracted all five shared pieces called out in Requirements into `src/lib/auth/` (`password-strength.ts`, `device-id.ts`, `gate-cookies.ts`) and `src/components/auth/` (`password-strength-meter.tsx`, `password-input.tsx`, `auth-error-banner.tsx`, `auth-submit-button.tsx`, `auth-split-shell.tsx`). All four `/v2/auth/*` pages (login, register, change-password, verify) now compose these instead of duplicating markup/logic — no visual/markup changes; the split-shell's `headingIcon` prop covers verify's extra icon block, and `password-input`'s `headerAction`/`hint` props cover login's "Forgot password?" link and the strength-meter slot without altering DOM structure for pages that don't use them (conditional label wrapper only renders when `headerAction` is passed, to stay byte-identical to the original unwrapped `<label>` on the other 4 usages).
+- Fixed the three `postLoginGate` silent-failure paths: a genuine `device_sessions` lookup error (anything but Supabase's `PGRST116` "no rows" code) now returns a surfaced `error` instead of silently falling through to "trigger OTP"; a failed `otp_codes` insert now returns a surfaced `error` (redirecting to `/verify` per the task's suggested shape) instead of proceeding to email a code that was never persisted; a failed `sendOtpEmail` now returns a non-blocking `warning` (added as a new field on `postLoginGate`'s return type) instead of being fully swallowed by `console.error`.
+- Removed all debug `console.log` calls in `postLoginGate` (user/device/OTP-insert/email-send progress logging on every call); kept `console.error` for the three genuine-failure branches above.
+- Removed the unused `signIn` server action from `actions.ts` — confirmed via `mcp__vexp__run_pipeline` (refactor preset, impact-oriented query) that none of the four `/v2/auth/*` pages import it; `login/page.tsx` only ever called `supabase.auth.signInWithPassword` directly.
+- De-duplicated the resend-cooldown `setInterval` logic in `verify/page.tsx` into a module-level `startCooldownTimer(timerRef, setResendCooldown)` helper (kept outside the component so it isn't an exhaustive-deps hook dependency), called from both the mount effect and `handleResend`.
+
+### Files Changed
+- `src/lib/auth/password-strength.ts` - new: `Strength` type, `getPasswordStrength()`, `STRENGTH_META` (renamed from `getStrength` per task spec)
+- `src/lib/auth/device-id.ts` - new: `getOrCreateDeviceId()` (login/register) and `getDeviceId()` read-only variant (verify's read-only lookup, preserves its existing `?? ""` fallback semantics)
+- `src/lib/auth/gate-cookies.ts` - new: `setGateCookie(name, value, maxAgeSeconds)` / `clearGateCookie(name)`
+- `src/components/auth/password-strength-meter.tsx` - new: `<PasswordStrength/>` display component
+- `src/components/auth/password-input.tsx` - new: labeled password input w/ show/hide toggle, optional `headerAction` and `hint` slots
+- `src/components/auth/auth-error-banner.tsx` - new: shared destructive-tone inline banner (the 4 `py-2.5` form-error banners only — register's separate `py-3` session-error banner is intentionally left inline, see Deviations)
+- `src/components/auth/auth-submit-button.tsx` - new: shared loading/arrow submit button; `disabled` prop lets verify pass its extra `code.length < 6` condition, defaults to `loading` elsewhere
+- `src/components/auth/auth-split-shell.tsx` - new: shared hero/mobile-header/form-card shell with `title`/`subtitle`/`headingIcon`/`children` props
+- `src/app/v2/(auth)/actions.ts` - modified: gate-cookie helpers wired into `postLoginGate`/`confirmPasswordChange`/`verifyOtpCode`; `dsErr`/`otpErr`/email-failure handling fixed; debug logs removed; `signIn` removed; `postLoginGate` return type gained an optional `warning` field
+- `src/app/v2/(auth)/auth/login/page.tsx` - modified: uses shell/password-input/error-banner/submit-button/device-id helper; forwards a `warning` from `postLoginGate` to `/verify` via an `emailWarning` query param since it's non-blocking (see Deviations)
+- `src/app/v2/(auth)/auth/register/page.tsx` - modified: uses shell/password-input (×2)/strength-meter/error-banner/submit-button/device-id helper; session-loading and session-error branches left as-is per Out-of-Scope note (session-loading returns before the shell; session-error renders inside the shell's `children` slot)
+- `src/app/v2/(auth)/auth/change-password/page.tsx` - modified: uses shell/password-input (×2)/strength-meter/error-banner/submit-button
+- `src/app/v2/(auth)/auth/verify/page.tsx` - modified: uses shell/error-banner/submit-button/device-id read helper; de-duped cooldown timer; reads/display an `emailWarning` query param and a resend-triggered `warning` next to "Resend code"
+
+### Deviations From Plan
+- `postLoginGate`'s OTP-email-send failure is surfaced via a new `warning` field (not `error`) so the user still lands on `/verify` (the code was persisted fine) instead of being blocked on the login page. The login page forwards it to `/verify` as an `emailWarning` query param (since a full page navigation can't pass React state directly); the verify page displays it as a small muted line below "Resend code" and re-surfaces it on manual resend too. The task text's suggested return shape only mentioned `error`; this is the "or equivalent" alternative called out as acceptable in the requirement, chosen because treating a non-fatal delivery hiccup identically to a hard failure would strand the user on the login page unnecessarily.
+- `AuthErrorBanner` was scoped to the 4 identical `py-2.5` form-error banners (login, register-form, change-password, verify) per the task's own count ("4 inline error-banner blocks"). Register's separate `py-3` session-error banner (shown instead of the form when the invite link is invalid) was left inline/untouched — it's a different padding value and is explicitly called out in Out-of-Scope as living outside the normal shell-wrapped form flow.
+- No other deviations — all Requirements/Implementation Steps items were completed as specified.
+
+### Verification Run
+- `npx tsc --noEmit` - PASS (no errors)
+- `pnpm lint` - PASS (0 errors, 0 warnings — one pre-existing `react-hooks/exhaustive-deps` warning surfaced on the extracted verify-page cooldown effect and was fixed by capturing `timerRef.current` into a local `interval` variable before the cleanup closure, matching the exact fix ESLint suggests)
+- `pnpm dev` manual browser pass (login, register invite link, verify OTP + resend, change-password, pending) - SKIPPED (Claude-in-Chrome browser extension was not connected in this environment, so live browser verification could not be performed here; typecheck/lint are clean and the extraction was done by copying the original markup/classes verbatim per component, but a human should still manually click through the 4 flows before merging, per the task's own Acceptance Criteria)

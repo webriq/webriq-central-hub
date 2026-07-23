@@ -46,7 +46,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const body = await req.json() as { role?: string; status?: string };
+  const body = await req.json() as { role?: string; status?: string; unlockOtp?: boolean };
 
   if (body.role !== undefined) {
     if (!(VALID_ROLES as readonly string[]).includes(body.role)) {
@@ -71,6 +71,17 @@ export async function PATCH(
     const { error } = await adminClient
       .from("hub_users")
       .update({ status: body.status })
+      .eq("id", userId);
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  if (body.unlockOtp === true) {
+    if (callerRole !== "super_admin") {
+      return NextResponse.json({ error: "Only a Super Admin can unlock an account." }, { status: 403 });
+    }
+    const { error } = await adminClient
+      .from("profiles")
+      .update({ otp_failed_attempts: 0, otp_locked_until: null })
       .eq("id", userId);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   }
