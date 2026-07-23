@@ -443,8 +443,8 @@
     "supabase/migrations/087_mcp_oauth_schema.sql": "a1287af79528f0b022bff3627be2436227d47ce306ee05299117beee8869542f",
     "worker/index.ts": "83350712449db3ec76c4015cedb2bad5dfd0d0ccd91509ee9a6f09ee4f66f9cc"
   },
-  "indexed_at_commit": "b0b6a773aba44962118c549b3b871133a5001a5a",
-  "indexed_at_timestamp": "2026-07-23T12:31:28.096883+00:00",
+  "indexed_at_commit": "d34cdd5c3835277627d2f3201a9035f72a423725",
+  "indexed_at_timestamp": "2026-07-23T12:32:50.117516+00:00",
   "schema_version": 3,
   "stats": {
     "total_edges": 1974,
