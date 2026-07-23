@@ -19,12 +19,20 @@ export async function verifyMcpToken(
 
   const tokenHash = hashToken(bearerToken);
 
-  const { data: tokenRow } = await adminClient
+  const { data: tokenRow, error } = await adminClient
     .from("mcp_oauth_tokens")
     .select("id, client_id, user_id, scopes, supabase_refresh_token, access_token_expires_at, revoked_at")
     .eq("access_token_hash", tokenHash)
     .maybeSingle();
 
+  // A genuine query failure (bad key, RLS misconfig, missing table) must not
+  // look identical to "token not found" in the logs — both currently 401 the
+  // same way to the client (that part is correct), but only one of them is a
+  // config problem worth knowing about.
+  if (error) {
+    console.error("[mcp-verify-token] mcp_oauth_tokens lookup failed:", error.message);
+    return undefined;
+  }
   if (!tokenRow) return undefined;
   if (tokenRow.revoked_at) return undefined;
   if (new Date(tokenRow.access_token_expires_at).getTime() <= Date.now()) return undefined;

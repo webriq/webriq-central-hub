@@ -333,7 +333,7 @@
     "src/lib/mcp/tools/get-project-status.ts": "456658ae9cc9ce36103cca82ec7fd47ef644ea0c02090e6d131e314e9a23f7bc",
     "src/lib/mcp/tools/list-open-tasks.ts": "36b7a6be5200aaeb2491deb2092df2eefd0ca02dbbb9ce9094b1da45e928a741",
     "src/lib/mcp/user-scoped-client.ts": "3aa9861b117807d6e0e2f9f4dc742e787d4b1502d5f3524166cdd99137f8aadc",
-    "src/lib/mcp/verify-token.ts": "355b4b9206bcc6bcc307b006b8251abfe09cbb4bfefb0aed4692dbd82774b607",
+    "src/lib/mcp/verify-token.ts": "79b572add9ebc95ea2c35a4f57bb40a790d55581bd4f792a45b0c9bfea244b46",
     "src/lib/migrate/zoho-import.ts": "35d1dabe650fc64c4284660f3b785540f08c519b360cfcef8ef81d29846ee4d1",
     "src/lib/notifications/index.ts": "dccddea1e347f270a6c13076b7efb835199383f04cc6d6858893a7bfd8461c0a",
     "src/lib/pipeline/health-check.ts": "454d21a544e87d9a7904fe6f520dd1a78ee93dfcda92d95d9cf0f67848b4ff36",
@@ -443,8 +443,8 @@
     "supabase/migrations/087_mcp_oauth_schema.sql": "a1287af79528f0b022bff3627be2436227d47ce306ee05299117beee8869542f",
     "worker/index.ts": "83350712449db3ec76c4015cedb2bad5dfd0d0ccd91509ee9a6f09ee4f66f9cc"
   },
-  "indexed_at_commit": "152bfcbf12027d888c96bee280e58896ad16f21c",
-  "indexed_at_timestamp": "2026-07-23T11:37:34.952021+00:00",
+  "indexed_at_commit": "9b4a01865213c7db92b4f71903fe2a25ab4a636b",
+  "indexed_at_timestamp": "2026-07-23T12:10:22.022615+00:00",
   "schema_version": 3,
   "stats": {
     "total_edges": 1974,
