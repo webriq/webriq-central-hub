@@ -31,6 +31,13 @@ const handler = createMcpHandler(
     serverInfo: { name: "webriq-central-hub", version: "0.1.0" },
   },
   {
+    // mcp-handler dispatches internally on url.pathname === streamableHttpEndpoint,
+    // which defaults to "/mcp" — it does NOT infer this from the route file's own
+    // location. Without basePath, an authenticated request to our actual mount
+    // point (/api/mcp) passes withMcpAuth's auth check, then 404s inside the
+    // library's own dispatcher because "/api/mcp" !== "/mcp". basePath: "/api"
+    // makes it derive "/api/mcp" instead. (task 181 — see Implementation Notes.)
+    basePath: "/api",
     // Streamable HTTP only — mounted at a fixed path, not app/[transport]/route.ts,
     // so SSE's separate endpoint convention doesn't apply here.
     disableSse: true,

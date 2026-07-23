@@ -283,6 +283,20 @@ pnpm dev
 - `list_open_tasks` orders by `tasks.position` (ascending, nulls last) rather than leaving order unspecified — matches how task lists are ordered elsewhere in the app; not called out explicitly in the plan but a natural fill-in.
 - Discovered and worked around an unrelated stale-`.next`-cache build failure (`TypeError: Cannot read properties of null (reading 'hash')`) during verification — confirmed via isolation (moving all new route files aside, still failed; `rm -rf .next` fixed it) that this was pre-existing local build-cache corruption, not caused by this task's changes. No code change was needed; noting it here in case it resurfaces for the next person who runs `pnpm build` without a clean cache.
 
+### Post-Deploy Bug: `/api/mcp` 404 for authenticated requests
+
+Found during the user's real end-to-end connector test against the deployed instance (migration already applied by the user at that point) — full systematic-debugging pass, root-caused via Vercel function logs + reading `mcp-handler`'s compiled source directly (not just its README/`.d.ts`).
+
+**Symptom:** OAuth handshake completed fully (`/v2/oauth/authorize` → 303, `/api/oauth/token` → 200), but every subsequent `GET`/`POST /api/mcp` from Claude's real client returned `404 Not found` with no log output — while my own earlier unauthenticated `curl` tests against the same endpoint had correctly returned `401`. Vercel's Function Invocation trace for one of the 404s showed the function *did* run (`Route: /api/mcp`) and made a real, successful (`200`) call out to Supabase — meaning auth verification (`verifyMcpToken`) genuinely executed and succeeded, and the 404 happened *after* that, inside successful, authenticated request handling.
+
+**Root cause:** `mcp-handler`'s internal request dispatcher (`node_modules/mcp-handler/dist/index.js`, function `mcpApiHandler`) routes on `url.pathname === streamableHttpEndpoint`, where `streamableHttpEndpoint` defaults to the literal string `"/mcp"` unless a `basePath` is passed in config — it has no awareness of which file/route it's actually mounted at. `src/app/api/mcp/route.ts` only passed `{ disableSse: true }`, no `basePath`, so the library was checking for `"/mcp"` while the real request path was `"/api/mcp"` — always false, always falling into its final `else { res.statusCode = 404; ... }` branch. `withMcpAuth` wraps this dispatcher and only calls it *after* `verifyMcpToken` succeeds, which is why unauthenticated requests correctly got `401` (from `withMcpAuth` itself, never reaching the buggy dispatcher) while authenticated ones got `404` (auth passed, dispatcher's own path check then failed).
+
+**Fix:** added `basePath: "/api"` to `createMcpHandler`'s config in `src/app/api/mcp/route.ts` — `mcp-handler` derives `streamableHttpEndpoint` as `${basePath}/mcp`, i.e. `"/api/mcp"`, matching the real mount point.
+
+**Also fixed while investigating (unrelated but adjacent):** `src/lib/mcp/verify-token.ts` was discarding the Supabase query's `error` and treating any query failure identically to "token not found" — no log, no signal. Added explicit `console.error` on that path so a future genuine DB/config failure doesn't look indistinguishable from a normal 401 again.
+
+**Not yet re-verified end-to-end** — this fix is in the working tree, type-checked and built clean locally, but has not been redeployed or retested against a live Claude connection yet. That's the next step, not something I can verify without the user deploying again.
+
 ### Verification Run
 
 - `npx tsc --noEmit` — PASS
