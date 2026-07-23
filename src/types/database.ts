@@ -2663,6 +2663,163 @@ export interface Database {
           }
         ];
       };
+      mcp_oauth_clients: {
+        Row: {
+          id: string;
+          client_id: string;
+          client_name: string;
+          redirect_uris: string[];
+          token_endpoint_auth_method: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          client_id: string;
+          client_name: string;
+          redirect_uris: string[];
+          token_endpoint_auth_method?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          client_id?: string;
+          client_name?: string;
+          redirect_uris?: string[];
+          token_endpoint_auth_method?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      mcp_oauth_authorization_codes: {
+        Row: {
+          code: string;
+          client_id: string;
+          user_id: string;
+          redirect_uri: string;
+          code_challenge: string;
+          code_challenge_method: string;
+          scopes: string[];
+          supabase_refresh_token: string;
+          expires_at: string;
+          used_at: string | null;
+        };
+        Insert: {
+          code: string;
+          client_id: string;
+          user_id: string;
+          redirect_uri: string;
+          code_challenge: string;
+          code_challenge_method?: string;
+          scopes: string[];
+          supabase_refresh_token: string;
+          expires_at: string;
+          used_at?: string | null;
+        };
+        Update: {
+          code?: string;
+          client_id?: string;
+          user_id?: string;
+          redirect_uri?: string;
+          code_challenge?: string;
+          code_challenge_method?: string;
+          scopes?: string[];
+          supabase_refresh_token?: string;
+          expires_at?: string;
+          used_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "mcp_oauth_authorization_codes_client_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: false;
+            referencedRelation: "mcp_oauth_clients";
+            referencedColumns: ["client_id"];
+          }
+        ];
+      };
+      mcp_oauth_tokens: {
+        Row: {
+          id: string;
+          access_token_hash: string;
+          refresh_token_hash: string;
+          client_id: string;
+          user_id: string;
+          scopes: string[];
+          supabase_refresh_token: string;
+          access_token_expires_at: string;
+          revoked_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          access_token_hash: string;
+          refresh_token_hash: string;
+          client_id: string;
+          user_id: string;
+          scopes: string[];
+          supabase_refresh_token: string;
+          access_token_expires_at: string;
+          revoked_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          access_token_hash?: string;
+          refresh_token_hash?: string;
+          client_id?: string;
+          user_id?: string;
+          scopes?: string[];
+          supabase_refresh_token?: string;
+          access_token_expires_at?: string;
+          revoked_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "mcp_oauth_tokens_client_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: false;
+            referencedRelation: "mcp_oauth_clients";
+            referencedColumns: ["client_id"];
+          }
+        ];
+      };
+      mcp_tool_invocation_logs: {
+        Row: {
+          id: string;
+          user_id: string | null;
+          client_id: string | null;
+          tool_name: string;
+          scopes_used: string[] | null;
+          status: string;
+          error_message: string | null;
+          duration_ms: number | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string | null;
+          client_id?: string | null;
+          tool_name: string;
+          scopes_used?: string[] | null;
+          status?: string;
+          error_message?: string | null;
+          duration_ms?: number | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string | null;
+          client_id?: string | null;
+          tool_name?: string;
+          scopes_used?: string[] | null;
+          status?: string;
+          error_message?: string | null;
+          duration_ms?: number | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -2738,6 +2895,10 @@ export type AuditLogRow = Database["public"]["Tables"]["audit_logs"]["Row"];
 export type KbEntryRow = Database["public"]["Tables"]["kb_entries"]["Row"];
 export type TaskLogRow = Database["public"]["Tables"]["task_logs"]["Row"];
 export type KbCorrectionRow = Database["public"]["Tables"]["kb_corrections"]["Row"];
+export type McpOAuthClientRow = Database["public"]["Tables"]["mcp_oauth_clients"]["Row"];
+export type McpOAuthAuthorizationCodeRow = Database["public"]["Tables"]["mcp_oauth_authorization_codes"]["Row"];
+export type McpOAuthTokenRow = Database["public"]["Tables"]["mcp_oauth_tokens"]["Row"];
+export type McpToolInvocationLogRow = Database["public"]["Tables"]["mcp_tool_invocation_logs"]["Row"];
 
 // Convenience row types — hr schema
 // Note: hr.* queries require .schema("hr").from("employees") on the Supabase client
