@@ -28,7 +28,6 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { usePMSettings } from "@/hooks/use-pm-settings";
 import { V2_ROUTES } from "@/config/constants";
 import { CLASSIFICATIONS, type Classification, STACKSHIFT_VARIANTS, deriveProjectSuffixMulti, PROGRAMME_PHASES } from "@/config/customer-phases";
 
@@ -47,132 +46,32 @@ const stepVariants = {
   exit: (d: number) => ({ opacity: 0, x: d * -20 }),
 };
 
-type ClassificationMeta = {
-  desc: string;
-  icon: React.ReactNode;
-  border: string;
-  bg: string;
-  ring: string;
-  text: string;
-  solid: string;
-  iconBg: string;
-  iconText: string;
-  darkBorder: string;
-  darkBg: string;
-  darkRing: string;
-  darkText: string;
-  darkIconBg: string;
-  darkIconText: string;
+// Design System v2.0 (DESIGN.md) — classification cards no longer color-code by hue (that
+// reused 4 of the 5 phase hues reserved exclusively for the programme's Onboard/Migrate/
+// Publish/AI-Visibility/Optimize vocabulary, a direct spec violation — task 183). Icons alone
+// now differentiate the six classifications; selection state uses one neutral/blue treatment
+// shared by every card, matching Field's own focus styling.
+const CLASSIFICATION_ICON: Record<Classification, React.ReactNode> = {
+  "StackShift I": <Layers size={20} />,
+  "StackShift II": <LayoutGrid size={20} />,
+  "StackShift Access": <Shield size={20} />,
+  "StackShift Access Plus": <ShieldCheck size={20} />,
+  PipelineForge: <GitBranch size={20} />,
+  "Discrete Development": <Code2 size={20} />,
 };
 
-const CLASSIFICATION_META: Record<Classification, ClassificationMeta> = {
-  "StackShift I": {
-    desc: "Standard StackShift build — single site, core CMS setup.",
-    icon: <Layers size={20} />,
-    border: "border-[#2563EB]",
-    bg: "bg-[#EFF6FF]",
-    ring: "shadow-[0_0_0_3px_rgba(37,99,235,0.09)]",
-    text: "text-[#2563EB]",
-    solid: "bg-[#2563EB]",
-    iconBg: "bg-[#2563EB]/15",
-    iconText: "text-[#2563EB]",
-    darkBorder: "border-blue-500/50",
-    darkBg: "bg-blue-500/10",
-    darkRing: "shadow-[0_0_0_3px_rgba(37,99,235,0.25)]",
-    darkText: "text-blue-400",
-    darkIconBg: "bg-blue-500/20",
-    darkIconText: "text-blue-400",
-  },
-  "StackShift II": {
-    desc: "Expanded StackShift build — multi-section site, deeper migration.",
-    icon: <LayoutGrid size={20} />,
-    border: "border-[#2563EB]",
-    bg: "bg-[#EFF6FF]",
-    ring: "shadow-[0_0_0_3px_rgba(37,99,235,0.09)]",
-    text: "text-[#2563EB]",
-    solid: "bg-[#2563EB]",
-    iconBg: "bg-[#2563EB]/15",
-    iconText: "text-[#2563EB]",
-    darkBorder: "border-blue-500/50",
-    darkBg: "bg-blue-500/10",
-    darkRing: "shadow-[0_0_0_3px_rgba(37,99,235,0.25)]",
-    darkText: "text-blue-400",
-    darkIconBg: "bg-blue-500/20",
-    darkIconText: "text-blue-400",
-  },
-  "StackShift Access": {
-    desc: "StackShift with ongoing managed access & support.",
-    icon: <Shield size={20} />,
-    border: "border-[#7C3AED]",
-    bg: "bg-[#F5F3FF]",
-    ring: "shadow-[0_0_0_3px_rgba(124,58,237,0.09)]",
-    text: "text-[#7C3AED]",
-    solid: "bg-[#7C3AED]",
-    iconBg: "bg-[#7C3AED]/15",
-    iconText: "text-[#7C3AED]",
-    darkBorder: "border-violet-500/50",
-    darkBg: "bg-violet-500/10",
-    darkRing: "shadow-[0_0_0_3px_rgba(124,58,237,0.25)]",
-    darkText: "text-violet-400",
-    darkIconBg: "bg-violet-500/20",
-    darkIconText: "text-violet-400",
-  },
-  "StackShift Access Plus": {
-    desc: "StackShift Access with an expanded scope of ongoing work.",
-    icon: <ShieldCheck size={20} />,
-    border: "border-[#7C3AED]",
-    bg: "bg-[#F5F3FF]",
-    ring: "shadow-[0_0_0_3px_rgba(124,58,237,0.09)]",
-    text: "text-[#7C3AED]",
-    solid: "bg-[#7C3AED]",
-    iconBg: "bg-[#7C3AED]/15",
-    iconText: "text-[#7C3AED]",
-    darkBorder: "border-violet-500/50",
-    darkBg: "bg-violet-500/10",
-    darkRing: "shadow-[0_0_0_3px_rgba(124,58,237,0.25)]",
-    darkText: "text-violet-400",
-    darkIconBg: "bg-violet-500/20",
-    darkIconText: "text-violet-400",
-  },
-  PipelineForge: {
-    desc: "Build automation & deployment pipeline engagement.",
-    icon: <GitBranch size={20} />,
-    border: "border-[#0D9488]",
-    bg: "bg-[#F0FDFA]",
-    ring: "shadow-[0_0_0_3px_rgba(13,148,136,0.09)]",
-    text: "text-[#0D9488]",
-    solid: "bg-[#0D9488]",
-    iconBg: "bg-[#0D9488]/15",
-    iconText: "text-[#0D9488]",
-    darkBorder: "border-teal-500/50",
-    darkBg: "bg-teal-500/10",
-    darkRing: "shadow-[0_0_0_3px_rgba(13,148,136,0.25)]",
-    darkText: "text-teal-400",
-    darkIconBg: "bg-teal-500/20",
-    darkIconText: "text-teal-400",
-  },
-  "Discrete Development": {
-    desc: "Custom app — scoped, one-off development work.",
-    icon: <Code2 size={20} />,
-    border: "border-[#F97316]",
-    bg: "bg-[#FFF7ED]",
-    ring: "shadow-[0_0_0_3px_rgba(249,115,22,0.09)]",
-    text: "text-[#F97316]",
-    solid: "bg-[#F97316]",
-    iconBg: "bg-[#F97316]/15",
-    iconText: "text-[#F97316]",
-    darkBorder: "border-orange-500/50",
-    darkBg: "bg-orange-500/10",
-    darkRing: "shadow-[0_0_0_3px_rgba(249,115,22,0.25)]",
-    darkText: "text-orange-400",
-    darkIconBg: "bg-orange-500/20",
-    darkIconText: "text-orange-400",
-  },
+const CLASSIFICATION_DESC: Record<Classification, string> = {
+  "StackShift I": "Standard StackShift build — single site, core CMS setup.",
+  "StackShift II": "Expanded StackShift build — multi-section site, deeper migration.",
+  "StackShift Access": "StackShift with ongoing managed access & support.",
+  "StackShift Access Plus": "StackShift Access with an expanded scope of ongoing work.",
+  PipelineForge: "Build automation & deployment pipeline engagement.",
+  "Discrete Development": "Custom app — scoped, one-off development work.",
 };
 
 // ─── Step indicator ───────────────────────────────────────────────────────────
 
-function StepIndicator({ current, isDark }: { current: Step; isDark: boolean }) {
+function StepIndicator({ current }: { current: Step }) {
   return (
     <div className="mb-10 flex items-center">
       {STEPS.map((step, i) => {
@@ -183,8 +82,8 @@ function StepIndicator({ current, isDark }: { current: Step; isDark: boolean }) 
             <div className="flex flex-col items-center gap-2">
               <motion.div
                 animate={{
-                  background: done || active ? "#2563EB" : isDark ? "rgba(255,255,255,0.1)" : "#E2E8F0",
-                  boxShadow: active ? "0 0 0 4px rgba(37,99,235,0.15)" : "0 0 0 0 rgba(37,99,235,0)",
+                  background: done || active ? "#007BFF" : "#EDF0F7",
+                  boxShadow: active ? "0 0 0 4px rgba(0,123,255,0.15)" : "0 0 0 0 rgba(0,123,255,0)",
                 }}
                 transition={{ duration: 0.25 }}
                 className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-full"
@@ -192,19 +91,13 @@ function StepIndicator({ current, isDark }: { current: Step; isDark: boolean }) 
                 {done ? (
                   <Check size={15} color="#FFFFFF" strokeWidth={2.5} />
                 ) : (
-                  <span className={cn("text-sm font-bold", active ? "text-white" : isDark ? "text-slate-400" : "text-[#64748B]")}>
-                    {step.id}
-                  </span>
+                  <span className={cn("text-sm font-bold", active ? "text-white" : "text-[#5F6A88]")}>{step.id}</span>
                 )}
               </motion.div>
               <span
                 className={cn(
                   "whitespace-nowrap text-[11px]",
-                  active
-                    ? isDark ? "font-semibold text-slate-100" : "font-semibold text-[#0F172A]"
-                    : done
-                      ? "font-normal text-[#2563EB]"
-                      : isDark ? "font-normal text-slate-500" : "font-normal text-[#64748B]"
+                  active ? "font-semibold text-[#0B1533]" : done ? "font-normal text-[#007BFF]" : "font-normal text-[#5F6A88]"
                 )}
               >
                 {step.label}
@@ -212,7 +105,7 @@ function StepIndicator({ current, isDark }: { current: Step; isDark: boolean }) 
             </div>
             {i < STEPS.length - 1 && (
               <motion.div
-                animate={{ background: done ? "#2563EB" : isDark ? "rgba(255,255,255,0.1)" : "#E2E8F0" }}
+                animate={{ background: done ? "#007BFF" : "#EDF0F7" }}
                 transition={{ duration: 0.4 }}
                 className="mt-[-18px] ml-2 mr-2 h-0.5 flex-1"
               />
@@ -237,7 +130,6 @@ function Field({
   required,
   error,
   disabled,
-  isDark,
 }: {
   id: string;
   label: string;
@@ -249,13 +141,12 @@ function Field({
   required?: boolean;
   error?: string;
   disabled?: boolean;
-  isDark: boolean;
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={id} className={cn("flex items-center gap-1 text-[13px] font-medium", isDark ? "text-slate-200" : "text-[#0F172A]")}>
+      <label htmlFor={id} className="flex items-center gap-1 text-[13px] font-medium text-[#0B1533]">
         {label}
-        {required && <span className="text-[#2563EB]">*</span>}
+        {required && <span className="text-[#007BFF]">*</span>}
       </label>
       <div className="relative">
         <input
@@ -266,25 +157,22 @@ function Field({
           placeholder={placeholder}
           disabled={disabled}
           className={cn(
-            "peer w-full rounded-[9px] border-[1.5px] px-3.5 py-[11px] text-sm outline-none transition-[border-color,box-shadow] duration-150",
-            isDark ? "bg-transparent text-slate-100" : "bg-white text-[#0F172A]",
+            "peer w-full rounded-[9px] border px-3.5 py-[11px] text-sm text-[#0B1533] outline-none transition-colors duration-150",
             icon && "pl-[38px]",
             disabled
-              ? isDark ? "cursor-not-allowed bg-white/[0.04] text-slate-500" : "cursor-not-allowed bg-[#F8FAFC] text-[#64748B]"
+              ? "cursor-not-allowed border-[#E2E7F2] bg-[#EDF0F7] text-[#5F6A88]"
               : error
-                ? "border-[#DC2626] shadow-[0_0_0_3px_rgba(220,38,38,0.08)]"
-                : isDark
-                  ? "border-white/[0.12] focus:border-[#2563EB] focus:shadow-[0_0_0_3px_rgba(37,99,235,0.15)]"
-                  : "border-[#E2E8F0] focus:border-[#2563EB] focus:shadow-[0_0_0_3px_rgba(37,99,235,0.1)]"
+                ? "border-[#C0392B] bg-white shadow-[0_0_0_3px_rgba(192,57,43,0.08)]"
+                : "border-[#E2E7F2] bg-[#F4F6FB] focus:border-[#007BFF] focus:bg-white focus:shadow-[0_0_0_3px_rgba(0,123,255,0.14)]"
           )}
         />
         {icon && (
-          <span className={cn("pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 transition-colors peer-focus:text-[#2563EB]", isDark ? "text-slate-600" : "text-[#CBD5E1]")}>
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#5F6A88] transition-colors peer-focus:text-[#007BFF]">
             {icon}
           </span>
         )}
       </div>
-      {error && <span className={cn("text-xs", isDark ? "text-red-400" : "text-[#DC2626]")}>{error}</span>}
+      {error && <span className="text-xs text-[#C0392B]">{error}</span>}
     </div>
   );
 }
@@ -303,14 +191,12 @@ function DateTimePicker({
   min,
   max,
   disabled,
-  isDark,
 }: {
   value: string;
   onChange: (v: string) => void;
   min: Date;
   max: Date;
   disabled?: boolean;
-  isDark: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [placement, setPlacement] = useState<"bottom" | "top">("bottom");
@@ -385,24 +271,19 @@ function DateTimePicker({
         onClick={() => !disabled && setOpen((o) => !o)}
         disabled={disabled}
         className={cn(
-          "flex w-full cursor-pointer items-center gap-2 rounded-[9px] border-[1.5px] px-3.5 py-[11px] text-left text-sm outline-none transition-[border-color,box-shadow] duration-150",
-          isDark ? "bg-transparent" : "bg-white",
+          "flex w-full cursor-pointer items-center gap-2 rounded-[9px] border px-3.5 py-[11px] text-left text-sm outline-none transition-colors duration-150",
           disabled
-            ? isDark ? "cursor-not-allowed bg-white/[0.04] text-slate-500" : "cursor-not-allowed bg-[#F8FAFC] text-[#64748B]"
+            ? "cursor-not-allowed border-[#E2E7F2] bg-[#EDF0F7] text-[#5F6A88]"
             : open
-              ? isDark
-                ? "border-[#2563EB] shadow-[0_0_0_3px_rgba(37,99,235,0.15)] text-slate-100"
-                : "border-[#2563EB] shadow-[0_0_0_3px_rgba(37,99,235,0.1)] text-[#0F172A]"
-              : isDark
-                ? "border-white/[0.12] text-slate-100 hover:border-white/[0.2]"
-                : "border-[#E2E8F0] text-[#0F172A] hover:border-[#CBD5E1]"
+              ? "border-[#007BFF] bg-white text-[#0B1533] shadow-[0_0_0_3px_rgba(0,123,255,0.14)]"
+              : "border-[#E2E7F2] bg-[#F4F6FB] text-[#0B1533] hover:border-[#A8C6F5]"
         )}
       >
-        <CalendarClock size={15} className={cn("shrink-0", isDark ? "text-slate-400" : "text-[#64748B]")} />
+        <CalendarClock size={15} className="shrink-0 text-[#5F6A88]" />
         {selectedDate ? (
           selectedDate.toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })
         ) : (
-          <span className={isDark ? "text-slate-400" : "text-[#64748B]"}>Pick a date &amp; time</span>
+          <span className="text-[#5F6A88]">Pick a date &amp; time</span>
         )}
       </button>
 
@@ -410,8 +291,7 @@ function DateTimePicker({
         <div
           ref={panelRef}
           className={cn(
-            "absolute left-0 z-30 flex overflow-hidden rounded-xl border shadow-lg",
-            isDark ? "border-white/[0.1] bg-[#121726]" : "border-[#E2E8F0] bg-white",
+            "absolute left-0 z-30 flex overflow-hidden rounded-xl border border-[#E2E7F2] bg-white shadow-[0_8px_24px_rgba(7,17,51,0.10)]",
             placement === "top" ? "bottom-[calc(100%+6px)]" : "top-[calc(100%+6px)]"
           )}
         >
@@ -426,48 +306,37 @@ function DateTimePicker({
               months: "flex",
               month: "flex flex-col gap-2",
               month_caption: "relative flex h-8 items-center justify-center px-8",
-              caption_label: cn("text-[13px] font-bold", isDark ? "text-slate-100" : "text-[#0F172A]"),
+              caption_label: "text-[13px] font-bold text-[#0B1533]",
               nav: "absolute inset-x-1 top-0 flex h-8 items-center justify-between",
-              button_previous: cn(
-                "flex h-7 w-7 cursor-pointer items-center justify-center rounded-md border-none bg-transparent transition-colors disabled:cursor-not-allowed disabled:opacity-30",
-                isDark ? "text-slate-400 hover:bg-white/[0.08]" : "text-[#64748B] hover:bg-[#F1F5F9]"
-              ),
-              button_next: cn(
-                "flex h-7 w-7 cursor-pointer items-center justify-center rounded-md border-none bg-transparent transition-colors disabled:cursor-not-allowed disabled:opacity-30",
-                isDark ? "text-slate-400 hover:bg-white/[0.08]" : "text-[#64748B] hover:bg-[#F1F5F9]"
-              ),
+              button_previous:
+                "flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border-none bg-transparent text-[#5F6A88] transition-colors hover:bg-[#EDF0F7] disabled:cursor-not-allowed disabled:opacity-30",
+              button_next:
+                "flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border-none bg-transparent text-[#5F6A88] transition-colors hover:bg-[#EDF0F7] disabled:cursor-not-allowed disabled:opacity-30",
               month_grid: "w-full border-collapse",
               weekdays: "flex",
-              weekday: cn("w-8 text-center text-[10px] font-semibold uppercase tracking-wide", isDark ? "text-slate-500" : "text-[#64748B]"),
+              weekday: "w-8 text-center text-[10px] font-semibold uppercase tracking-wide text-[#5F6A88]",
               weeks: "mt-1 flex flex-col gap-0.5",
               week: "flex",
               day: "p-0 text-center",
-              day_button: cn(
-                "flex h-8 w-8 cursor-pointer items-center justify-center rounded-md border-none bg-transparent text-[13px] transition-colors",
-                isDark ? "text-slate-200 hover:bg-white/[0.08]" : "text-[#0F172A] hover:bg-[#F1F5F9]"
-              ),
-              selected: "[&>button]:bg-[#2563EB] [&>button]:font-semibold [&>button]:text-white [&>button]:hover:bg-[#2563EB]",
-              today: "[&>button]:font-bold [&>button]:text-[#2563EB]",
-              outside: isDark ? "[&>button]:text-slate-600" : "[&>button]:text-[#CBD5E1]",
-              disabled: isDark
-                ? "[&>button]:cursor-not-allowed [&>button]:text-slate-700 [&>button]:hover:bg-transparent"
-                : "[&>button]:cursor-not-allowed [&>button]:text-[#E2E8F0] [&>button]:hover:bg-transparent",
+              day_button:
+                "flex h-8 w-8 cursor-pointer items-center justify-center rounded-md border-none bg-transparent text-[13px] text-[#0B1533] transition-colors hover:bg-[#EDF0F7]",
+              selected: "[&>button]:bg-[#007BFF] [&>button]:font-semibold [&>button]:text-white [&>button]:hover:bg-[#007BFF]",
+              today: "[&>button]:font-bold [&>button]:text-[#007BFF]",
+              outside: "[&>button]:text-[#B7BFD6]",
+              disabled: "[&>button]:cursor-not-allowed [&>button]:text-[#E2E7F2] [&>button]:hover:bg-transparent",
             }}
             components={{
               Chevron: ({ orientation }) =>
                 orientation === "left" ? <ChevronLeft size={14} /> : <ChevronRight size={14} />,
             }}
           />
-          <div className={cn("flex w-[168px] flex-col gap-3 border-l p-3.5", isDark ? "border-white/[0.08]" : "border-[#F1F5F9]")}>
-            <div className={cn("text-[10px] font-bold uppercase tracking-wider", isDark ? "text-slate-500" : "text-[#64748B]")}>Time</div>
+          <div className="flex w-[168px] flex-col gap-3 border-l border-[#EDF0F7] p-3.5">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-[#5F6A88]">Time</div>
             <div className="flex items-center gap-1.5">
               <select
                 value={hour12}
                 onChange={(e) => handleTimeChange({ hour12: Number(e.target.value) })}
-                className={cn(
-                  "h-9 w-full cursor-pointer rounded-[8px] border-[1.5px] text-center text-sm outline-none focus:border-[#2563EB]",
-                  isDark ? "border-white/[0.12] bg-transparent text-slate-100" : "border-[#E2E8F0] bg-white text-[#0F172A]"
-                )}
+                className="h-9 w-full cursor-pointer rounded-[8px] border border-[#E2E7F2] bg-white text-center text-sm text-[#0B1533] outline-none focus:border-[#007BFF]"
               >
                 {HOURS_12.map((h) => (
                   <option key={h} value={h}>
@@ -475,14 +344,11 @@ function DateTimePicker({
                   </option>
                 ))}
               </select>
-              <span className={cn("text-sm font-semibold", isDark ? "text-slate-500" : "text-[#64748B]")}>:</span>
+              <span className="text-sm font-semibold text-[#5F6A88]">:</span>
               <select
                 value={minute}
                 onChange={(e) => handleTimeChange({ minute: Number(e.target.value) })}
-                className={cn(
-                  "h-9 w-full cursor-pointer rounded-[8px] border-[1.5px] text-center text-sm outline-none focus:border-[#2563EB]",
-                  isDark ? "border-white/[0.12] bg-transparent text-slate-100" : "border-[#E2E8F0] bg-white text-[#0F172A]"
-                )}
+                className="h-9 w-full cursor-pointer rounded-[8px] border border-[#E2E7F2] bg-white text-center text-sm text-[#0B1533] outline-none focus:border-[#007BFF]"
               >
                 {MINUTES_60.map((m) => (
                   <option key={m} value={m}>
@@ -491,7 +357,7 @@ function DateTimePicker({
                 ))}
               </select>
             </div>
-            <div className={cn("flex w-fit items-center gap-1 rounded-lg p-1", isDark ? "bg-white/[0.06]" : "bg-[#F1F5F9]")}>
+            <div className="flex w-fit items-center gap-1 rounded-lg bg-[#EDF0F7] p-1">
               {([false, true] as const).map((pm) => (
                 <button
                   key={String(pm)}
@@ -499,9 +365,7 @@ function DateTimePicker({
                   onClick={() => handleTimeChange({ pm })}
                   className={cn(
                     "cursor-pointer rounded-md border-none px-3 py-1.5 text-xs font-medium transition-colors",
-                    isPm === pm
-                      ? isDark ? "bg-white/[0.12] text-slate-100" : "bg-white text-[#0F172A] shadow-sm"
-                      : isDark ? "bg-transparent text-slate-400 hover:text-slate-100" : "bg-transparent text-[#64748B] hover:text-[#0F172A]"
+                    isPm === pm ? "bg-white text-[#0B1533] shadow-sm" : "bg-transparent text-[#5F6A88] hover:text-[#0B1533]"
                   )}
                 >
                   {pm ? "PM" : "AM"}
@@ -511,7 +375,7 @@ function DateTimePicker({
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="mt-auto cursor-pointer rounded-[8px] border-none bg-[#2563EB] py-2 text-xs font-semibold text-white transition-colors hover:bg-[#1D4ED8]"
+              className="mt-auto cursor-pointer rounded-full border-none bg-[#007BFF] py-2 text-xs font-semibold text-white transition-colors hover:bg-[#0063D6]"
             >
               Done
             </button>
@@ -523,74 +387,59 @@ function DateTimePicker({
 }
 
 // ─── Classification card ──────────────────────────────────────────────────────
+// DESIGN.md: phase hues are reserved for the programme's 5 phases only. A single
+// neutral/blue selection treatment (matching Field's own focus styling) replaces the old
+// per-classification rainbow — icons alone differentiate cards now (task 183).
 
 function ClassificationCard({
   classification,
   selected,
   onSelect,
-  isDark,
 }: {
   classification: Classification;
   selected: boolean;
   onSelect: () => void;
-  isDark: boolean;
 }) {
-  const meta = CLASSIFICATION_META[classification];
   return (
-    <motion.button
+    <button
       type="button"
       onClick={onSelect}
       aria-pressed={selected}
-      whileHover={{ y: -2 }}
-      whileTap={{ scale: 0.99 }}
-      transition={{ duration: 0.15 }}
       className={cn(
-        "relative w-full cursor-pointer rounded-xl border-[1.5px] p-4 text-left transition-colors",
+        "relative w-full cursor-pointer rounded-xl border p-4 text-left transition-colors",
         selected
-          ? isDark ? cn(meta.darkBorder, meta.darkBg, meta.darkRing) : cn(meta.border, meta.bg, meta.ring)
-          : isDark ? "border-white/[0.1] bg-[#121726] hover:border-white/[0.2]" : "border-[#E2E8F0] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:border-[#CBD5E1]"
+          ? "border-[#007BFF] bg-[#F0F7FF] shadow-[0_0_0_3px_rgba(0,123,255,0.09)]"
+          : "border-[#E2E7F2] bg-white shadow-[0_1px_2px_rgba(7,17,51,0.05)] hover:border-[#A8C6F5]"
       )}
     >
-      <AnimatePresence>
-        {selected && (
-          <motion.div
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0, opacity: 0 }}
-            transition={{ type: "spring", stiffness: 400, damping: 20 }}
-            className={cn("absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full", meta.solid)}
-          >
-            <Check size={11} color="#FFFFFF" strokeWidth={2.5} />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {selected && (
+        <div className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full bg-[#007BFF]">
+          <Check size={11} color="#FFFFFF" strokeWidth={2.5} />
+        </div>
+      )}
 
       <div
         className={cn(
           "mb-2.5 flex h-10 w-10 items-center justify-center rounded-[11px] transition-colors",
-          selected
-            ? isDark ? cn(meta.darkIconBg, meta.darkIconText) : cn(meta.iconBg, meta.iconText)
-            : isDark ? "bg-white/[0.06] text-slate-400" : "bg-[#F8FAFC] text-[#64748B]"
+          selected ? "bg-[#E5F1FF] text-[#0063D6]" : "bg-[#EDF0F7] text-[#5F6A88]"
         )}
       >
-        {meta.icon}
+        {CLASSIFICATION_ICON[classification]}
       </div>
 
-      <div className={cn("mb-1 text-sm font-bold", selected ? (isDark ? meta.darkText : meta.text) : isDark ? "text-slate-100" : "text-[#0F172A]")}>
-        {classification}
-      </div>
-      <div className={cn("text-xs leading-relaxed", isDark ? "text-slate-400" : "text-[#64748B]")}>{meta.desc}</div>
-    </motion.button>
+      <div className={cn("mb-1 text-sm font-bold", selected ? "text-[#0063D6]" : "text-[#0B1533]")}>{classification}</div>
+      <div className="text-xs leading-relaxed text-[#5F6A88]">{CLASSIFICATION_DESC[classification]}</div>
+    </button>
   );
 }
 
 // ─── Review row ───────────────────────────────────────────────────────────────
 
-function ReviewRow({ label, value, isDark }: { label: string; value: string; isDark: boolean }) {
+function ReviewRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div className="flex items-baseline justify-between py-2.5">
-      <span className={cn("text-xs", isDark ? "text-slate-400" : "text-[#64748B]")}>{label}</span>
-      <span className={cn("text-[13px] font-medium", isDark ? "text-slate-100" : "text-[#0F172A]")}>{value}</span>
+      <span className="text-xs text-[#5F6A88]">{label}</span>
+      <span className={cn("text-[13px] font-medium text-[#0B1533]", mono && "font-mono text-xs")}>{value}</span>
     </div>
   );
 }
@@ -605,7 +454,6 @@ function SuccessScreen({
   onCopy,
   onBack,
   onView,
-  isDark,
 }: {
   projectName: string;
   customerId: string;
@@ -614,7 +462,6 @@ function SuccessScreen({
   onCopy: () => void;
   onBack: () => void;
   onView: () => void;
-  isDark: boolean;
 }) {
   return (
     <motion.div
@@ -627,32 +474,26 @@ function SuccessScreen({
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
         transition={{ delay: 0.1, type: "spring", stiffness: 300, damping: 18 }}
-        className="mx-auto mb-6 flex h-[72px] w-[72px] items-center justify-center rounded-full bg-gradient-to-br from-[#22C55E] to-[#16A34A] shadow-[0_4px_20px_rgba(34,197,94,0.35)]"
+        className="mx-auto mb-6 flex h-[72px] w-[72px] items-center justify-center rounded-full bg-[#177E48] shadow-[0_4px_16px_rgba(23,126,72,0.28)]"
       >
         <Check size={34} color="#FFFFFF" strokeWidth={2.5} />
       </motion.div>
 
-      <h2 className={cn("mb-1.5 text-2xl font-bold tracking-[-0.025em]", isDark ? "text-slate-100" : "text-[#0F172A]")}>
-        {projectName} is ready
-      </h2>
-      <p className={cn("mb-7 text-sm leading-relaxed", isDark ? "text-slate-400" : "text-[#64748B]")}>
-        Project created successfully and added to the onboarding queue.
-      </p>
+      <h2 className="font-heading mb-1.5 text-2xl font-bold tracking-[-0.025em] text-[#0B1533]">{projectName} is ready</h2>
+      <p className="mb-7 text-sm leading-relaxed text-[#5F6A88]">Project created successfully and added to the onboarding queue.</p>
 
       {showCustomerId && (
-        <div className={cn("mb-3 flex items-center gap-2 rounded-[10px] border-[1.5px] px-3.5 py-3 text-left", isDark ? "border-white/[0.1] bg-white/[0.04]" : "border-[#E2E8F0] bg-[#F8FAFC]")}>
+        <div className="mb-3 flex items-center gap-2 rounded-[10px] border border-[#E2E7F2] bg-[#F4F6FB] px-3.5 py-3 text-left">
           <div className="min-w-0 flex-1">
-            <div className={cn("mb-0.5 text-[10px] font-semibold uppercase tracking-[0.06em]", isDark ? "text-slate-500" : "text-[#64748B]")}>Customer ID</div>
-            <span className={cn("font-mono text-xs", isDark ? "text-slate-100" : "text-[#0F172A]")}>{customerId}</span>
+            <div className="mb-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-[#5F6A88]">Customer ID</div>
+            <span className="font-mono text-xs text-[#0B1533]">{customerId}</span>
           </div>
           <button
             type="button"
             onClick={onCopy}
             className={cn(
               "flex shrink-0 cursor-pointer items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors",
-              copied
-                ? isDark ? "border-green-500/30 bg-green-500/10 text-green-400" : "border-[#BBF7D0] bg-[#F0FDF4] text-[#16A34A]"
-                : isDark ? "border-white/[0.1] bg-transparent text-slate-300" : "border-[#E2E8F0] bg-white text-[#475569]"
+              copied ? "border-[#BEE7CD] bg-[#E3F5EA] text-[#177E48]" : "border-[#E2E7F2] bg-white text-[#3A4565]"
             )}
           >
             {copied ? <Check size={12} /> : <Copy size={12} />}
@@ -665,17 +506,14 @@ function SuccessScreen({
         <button
           type="button"
           onClick={onBack}
-          className={cn(
-            "flex-1 cursor-pointer rounded-[9px] border-[1.5px] px-4 py-[11px] text-[13px] font-medium transition-colors",
-            isDark ? "border-white/[0.1] bg-transparent text-slate-100 hover:border-white/[0.2] hover:bg-white/[0.06]" : "border-[#E2E8F0] bg-white text-[#0F172A] hover:border-[#CBD5E1] hover:bg-[#F8FAFC]"
-          )}
+          className="flex-1 cursor-pointer rounded-full border border-[#E2E7F2] bg-white px-4 py-[11px] text-[13px] font-medium text-[#3A4565] transition-colors hover:border-[#A8C6F5] hover:text-[#0B1533]"
         >
           Back to projects
         </button>
         <button
           type="button"
           onClick={onView}
-          className="flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-[9px] border-none bg-[#2563EB] px-4 py-[11px] text-[13px] font-semibold text-white shadow-[0_2px_8px_rgba(37,99,235,0.3)] transition-colors hover:bg-[#1D4ED8]"
+          className="flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-full border-none bg-[#007BFF] px-4 py-[11px] text-[13px] font-semibold text-white shadow-[0_2px_8px_rgba(0,123,255,0.3)] transition-colors hover:bg-[#0063D6]"
         >
           View project <ExternalLink size={13} />
         </button>
@@ -687,8 +525,6 @@ function SuccessScreen({
 // ─── Main wizard ──────────────────────────────────────────────────────────────
 
 export default function NewProjectWizard({ role }: { role: string | null }) {
-  const { settings } = usePMSettings();
-  const isDark = settings.theme === "dark";
   // Mirrors _onboarding-detail.tsx's canManagePhases exactly — jumping straight to a later
   // phase is an admin/super_admin/marketing action there too, deliberately excluding pm.
   const canManagePhases = role !== "pm" && role !== "developer";
@@ -953,13 +789,13 @@ export default function NewProjectWizard({ role }: { role: string | null }) {
   }
 
   return (
-    <div className={cn("flex min-h-full flex-col items-center px-6 py-10", isDark ? "bg-[#070E1F]" : "bg-[#F8FAFC]")}>
+    <div className="flex min-h-full flex-col items-center bg-[#F4F6FB] px-6 py-10">
       {!success && (
         <div className="mb-2 w-full max-w-[560px]">
           <button
             type="button"
             onClick={goBack}
-            className={cn("flex cursor-pointer items-center gap-1.5 border-none bg-transparent p-0 text-xs transition-colors hover:text-[#2563EB]", isDark ? "text-slate-400" : "text-[#64748B]")}
+            className="flex cursor-pointer items-center gap-1.5 border-none bg-transparent p-0 text-xs text-[#5F6A88] transition-colors hover:text-[#007BFF]"
           >
             <ArrowLeft size={13} />
             {step === 1 ? "Back to projects" : "Previous step"}
@@ -967,10 +803,7 @@ export default function NewProjectWizard({ role }: { role: string | null }) {
         </div>
       )}
 
-      <div className={cn(
-        "w-full max-w-[560px] rounded-2xl border px-10 py-9",
-        isDark ? "border-white/[0.08] bg-[#121726]" : "border-[#E2E8F0] bg-white shadow-[0_4px_24px_rgba(15,23,42,0.07)]"
-      )}>
+      <div className="w-full max-w-[560px] rounded-[14px] border border-[#E2E7F2] bg-white px-10 py-9 shadow-[0_1px_2px_rgba(7,17,51,0.05)]">
         {success ? (
           <SuccessScreen
             projectName={displayedProjectName}
@@ -980,11 +813,10 @@ export default function NewProjectWizard({ role }: { role: string | null }) {
             onCopy={() => copyCustomerId(success.customer_id)}
             onBack={() => router.push(V2_ROUTES.PORTFOLIO_TRACKER)}
             onView={() => router.push(`${V2_ROUTES.PORTFOLIO_TRACKER}/${success.project_id}`)}
-            isDark={isDark}
           />
         ) : (
           <>
-            <StepIndicator current={step} isDark={isDark} />
+            <StepIndicator current={step} />
 
             <AnimatePresence mode="wait" custom={direction}>
               <motion.div
@@ -999,15 +831,13 @@ export default function NewProjectWizard({ role }: { role: string | null }) {
                 {step === 1 && (
                   <div>
                     <div className="mb-7">
-                      <h2 className={cn("mb-1 text-xl font-bold tracking-[-0.02em]", isDark ? "text-slate-100" : "text-[#0F172A]")}>
-                        Company &amp; contact
-                      </h2>
-                      <p className={cn("text-[13px]", isDark ? "text-slate-400" : "text-[#64748B]")}>
+                      <h2 className="font-heading mb-1 text-xl font-bold tracking-[-0.02em] text-[#0B1533]">Company &amp; contact</h2>
+                      <p className="text-[13px] text-[#5F6A88]">
                         This will be used to set up the customer&apos;s workspace and this project&apos;s onboarding.
                       </p>
                     </div>
 
-                    <div className={cn("mb-5 flex w-fit items-center gap-1 rounded-lg p-1", isDark ? "bg-white/[0.06]" : "bg-[#F1F5F9]")}>
+                    <div className="mb-5 flex w-fit items-center gap-1 rounded-lg bg-[#EDF0F7] p-1">
                       {(["new", "existing"] as const).map((m) => (
                         <button
                           key={m}
@@ -1018,9 +848,7 @@ export default function NewProjectWizard({ role }: { role: string | null }) {
                           }}
                           className={cn(
                             "cursor-pointer rounded-md border-none px-3 py-1.5 text-xs font-medium transition-colors",
-                            companyMode === m
-                              ? isDark ? "bg-white/[0.12] text-slate-100" : "bg-white text-[#0F172A] shadow-sm"
-                              : isDark ? "bg-transparent text-slate-400 hover:text-slate-100" : "bg-transparent text-[#64748B] hover:text-[#0F172A]"
+                            companyMode === m ? "bg-white text-[#0B1533] shadow-sm" : "bg-transparent text-[#5F6A88] hover:text-[#0B1533]"
                           )}
                         >
                           {m === "new" ? "New company" : "Existing company"}
@@ -1046,22 +874,21 @@ export default function NewProjectWizard({ role }: { role: string | null }) {
                           icon={<Building2 size={15} />}
                           required
                           error={errors1.companyName}
-                          isDark={isDark}
                         />
                       ) : selectedCustomer ? (
                         <div>
-                          <label className={cn("mb-1.5 flex items-center gap-1 text-[13px] font-medium", isDark ? "text-slate-200" : "text-[#0F172A]")}>
-                            Company <span className="text-[#2563EB]">*</span>
+                          <label className="mb-1.5 flex items-center gap-1 text-[13px] font-medium text-[#0B1533]">
+                            Company <span className="text-[#007BFF]">*</span>
                           </label>
-                          <div className={cn("flex items-center justify-between gap-2 rounded-[9px] border-[1.5px] px-3.5 py-2.5", isDark ? "border-white/[0.1] bg-white/[0.04]" : "border-[#E2E8F0] bg-[#F8FAFC]")}>
+                          <div className="flex items-center justify-between gap-2 rounded-[9px] border border-[#E2E7F2] bg-[#F4F6FB] px-3.5 py-2.5">
                             <div className="min-w-0">
-                              <div className={cn("truncate text-sm font-medium", isDark ? "text-slate-100" : "text-[#0F172A]")}>{selectedCustomer.company_name}</div>
-                              <div className={cn("font-mono truncate text-[11px]", isDark ? "text-slate-400" : "text-[#64748B]")}>{selectedCustomer.customer_id}</div>
+                              <div className="truncate text-sm font-medium text-[#0B1533]">{selectedCustomer.company_name}</div>
+                              <div className="truncate font-mono text-[11px] text-[#5F6A88]">{selectedCustomer.customer_id}</div>
                             </div>
                             <button
                               type="button"
                               onClick={() => setSelectedCustomer(null)}
-                              className="shrink-0 cursor-pointer border-none bg-transparent text-xs font-medium text-[#2563EB]"
+                              className="shrink-0 cursor-pointer border-none bg-transparent text-xs font-medium text-[#007BFF]"
                             >
                               Change
                             </button>
@@ -1069,27 +896,24 @@ export default function NewProjectWizard({ role }: { role: string | null }) {
                         </div>
                       ) : (
                         <div>
-                          <label className={cn("mb-1.5 flex items-center gap-1 text-[13px] font-medium", isDark ? "text-slate-200" : "text-[#0F172A]")}>
-                            Company <span className="text-[#2563EB]">*</span>
+                          <label className="mb-1.5 flex items-center gap-1 text-[13px] font-medium text-[#0B1533]">
+                            Company <span className="text-[#007BFF]">*</span>
                           </label>
                           <div className="relative">
                             <input
                               value={existingSearch}
                               onChange={(e) => handleSearchChange(e.target.value)}
                               placeholder="Search existing customers…"
-                              className={cn(
-                                "w-full rounded-[9px] border-[1.5px] py-2.75 pl-8.5 pr-3.5 text-sm outline-none transition-colors focus:border-[#2563EB]",
-                                isDark ? "border-white/[0.12] bg-transparent text-slate-100" : "border-[#E2E8F0] bg-white text-[#0F172A]"
-                              )}
+                              className="w-full rounded-[9px] border border-[#E2E7F2] bg-[#F4F6FB] py-2.75 pl-8.5 pr-3.5 text-sm text-[#0B1533] outline-none transition-colors focus:border-[#007BFF] focus:bg-white"
                             />
-                            <Search size={14} className={cn("pointer-events-none absolute left-3 top-1/2 -translate-y-1/2", isDark ? "text-slate-400" : "text-[#64748B]")} />
+                            <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#5F6A88]" />
                           </div>
                           {existingSearch.trim() && (
-                            <div className={cn("mt-1.5 max-h-48 overflow-y-auto rounded-[9px] border", isDark ? "border-white/[0.1] bg-[#121726]" : "border-[#E2E8F0] bg-white shadow-sm")}>
+                            <div className="mt-1.5 max-h-48 overflow-y-auto rounded-[9px] border border-[#E2E7F2] bg-white shadow-[0_1px_2px_rgba(7,17,51,0.05)]">
                               {searching ? (
-                                <div className={cn("px-3.5 py-2.5 text-xs", isDark ? "text-slate-400" : "text-[#64748B]")}>Searching…</div>
+                                <div className="px-3.5 py-2.5 text-xs text-[#5F6A88]">Searching…</div>
                               ) : existingMatches.length === 0 ? (
-                                <div className={cn("px-3.5 py-2.5 text-xs", isDark ? "text-slate-400" : "text-[#64748B]")}>No matches.</div>
+                                <div className="px-3.5 py-2.5 text-xs text-[#5F6A88]">No matches.</div>
                               ) : (
                                 existingMatches.map((c) => (
                                   <button
@@ -1118,12 +942,9 @@ export default function NewProjectWizard({ role }: { role: string | null }) {
                                         .catch(() => {})
                                         .finally(() => setContactLoading(false));
                                     }}
-                                    className={cn(
-                                      "block w-full cursor-pointer border-none bg-transparent px-3.5 py-2 text-left text-[13px]",
-                                      isDark ? "text-slate-100 hover:bg-white/[0.06]" : "text-[#0F172A] hover:bg-[#F8FAFC]"
-                                    )}
+                                    className="block w-full cursor-pointer border-none bg-transparent px-3.5 py-2 text-left text-[13px] text-[#0B1533] hover:bg-[#F4F6FB]"
                                   >
-                                    {c.company_name} <span className={cn("font-mono text-[11px]", isDark ? "text-slate-400" : "text-[#64748B]")}>{c.customer_id}</span>
+                                    {c.company_name} <span className="font-mono text-[11px] text-[#5F6A88]">{c.customer_id}</span>
                                   </button>
                                 ))
                               )}
@@ -1132,10 +953,10 @@ export default function NewProjectWizard({ role }: { role: string | null }) {
                         </div>
                       )}
                       {companyMode === "existing" && errors1.companyName && (
-                        <span className={cn("text-xs", isDark ? "text-red-400" : "text-[#DC2626]")}>{errors1.companyName}</span>
+                        <span className="text-xs text-[#C0392B]">{errors1.companyName}</span>
                       )}
 
-                      <div className={cn("h-px", isDark ? "bg-white/[0.08]" : "bg-[#F1F5F9]")} />
+                      <div className="h-px bg-[#EDF0F7]" />
 
                       <Field
                         id="contact-name"
@@ -1153,7 +974,6 @@ export default function NewProjectWizard({ role }: { role: string | null }) {
                         icon={<User size={15} />}
                         error={errors1.contactName}
                         disabled={contactLoading}
-                        isDark={isDark}
                       />
                       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                         <Field
@@ -1173,7 +993,6 @@ export default function NewProjectWizard({ role }: { role: string | null }) {
                           icon={<Mail size={15} />}
                           error={errors1.contactEmail}
                           disabled={contactLoading}
-                          isDark={isDark}
                         />
                         <Field
                           id="contact-phone"
@@ -1183,7 +1002,6 @@ export default function NewProjectWizard({ role }: { role: string | null }) {
                           placeholder={contactLoading ? "Loading phone number…" : "Optional"}
                           icon={<Phone size={15} />}
                           disabled={contactLoading}
-                          isDark={isDark}
                         />
                       </div>
                     </div>
@@ -1193,10 +1011,8 @@ export default function NewProjectWizard({ role }: { role: string | null }) {
                 {step === 2 && (
                   <div>
                     <div className="mb-6">
-                      <h2 className={cn("mb-1 text-xl font-bold tracking-[-0.02em]", isDark ? "text-slate-100" : "text-[#0F172A]")}>
-                        Project details
-                      </h2>
-                      <p className={cn("text-[13px]", isDark ? "text-slate-400" : "text-[#64748B]")}>
+                      <h2 className="font-heading mb-1 text-xl font-bold tracking-[-0.02em] text-[#0B1533]">Project details</h2>
+                      <p className="text-[13px] text-[#5F6A88]">
                         Choose the engagement type. This drives which product and project type get created.
                       </p>
                     </div>
@@ -1204,13 +1020,13 @@ export default function NewProjectWizard({ role }: { role: string | null }) {
                     <div className="mb-6 flex flex-col gap-2">
                       <div className="grid grid-cols-2 gap-3">
                         {CLASSIFICATIONS.map((c) => (
-                          <ClassificationCard key={c} classification={c} selected={classifications.includes(c)} onSelect={() => toggleClassification(c)} isDark={isDark} />
+                          <ClassificationCard key={c} classification={c} selected={classifications.includes(c)} onSelect={() => toggleClassification(c)} />
                         ))}
                       </div>
-                      {classificationError && <span className={cn("text-xs", isDark ? "text-red-400" : "text-[#DC2626]")}>{classificationError}</span>}
+                      {classificationError && <span className="text-xs text-[#C0392B]">{classificationError}</span>}
                     </div>
 
-                    <div className={cn("mb-6 h-px", isDark ? "bg-white/[0.08]" : "bg-[#F1F5F9]")} />
+                    <div className="mb-6 h-px bg-[#EDF0F7]" />
 
                     <div className="flex flex-col gap-4.5">
                       <Field
@@ -1225,7 +1041,6 @@ export default function NewProjectWizard({ role }: { role: string | null }) {
                         placeholder="Auto-generated from company + classification"
                         required
                         error={projectNameError}
-                        isDark={isDark}
                       />
                     </div>
                   </div>
@@ -1234,44 +1049,36 @@ export default function NewProjectWizard({ role }: { role: string | null }) {
                 {step === 3 && (
                   <div>
                     <div className="mb-6">
-                      <h2 className={cn("mb-1 text-xl font-bold tracking-[-0.02em]", isDark ? "text-slate-100" : "text-[#0F172A]")}>
-                        Review &amp; create
-                      </h2>
-                      <p className={cn("text-[13px]", isDark ? "text-slate-400" : "text-[#64748B]")}>Confirm the details below before creating this project.</p>
+                      <h2 className="font-heading mb-1 text-xl font-bold tracking-[-0.02em] text-[#0B1533]">Review &amp; create</h2>
+                      <p className="text-[13px] text-[#5F6A88]">Confirm the details below before creating this project.</p>
                     </div>
 
-                    <div className={cn(
-                      "mb-4 rounded-xl border px-5 py-1",
-                      isDark ? "divide-y divide-white/[0.08] border-white/[0.1] bg-white/[0.03]" : "divide-y divide-[#F1F5F9] border-[#E2E8F0] bg-[#F8FAFC]"
-                    )}>
-                      <ReviewRow label="Company" value={companyName || "—"} isDark={isDark} />
-                      <ReviewRow label="Primary contact" value={contactName || "—"} isDark={isDark} />
-                      <ReviewRow label="Contact email" value={contactEmail || "—"} isDark={isDark} />
-                      {contactPhone.trim() && <ReviewRow label="Phone" value={contactPhone} isDark={isDark} />}
-                      <ReviewRow label="Classification" value={classifications.length > 0 ? classifications.join(", ") : "—"} isDark={isDark} />
-                      <ReviewRow label="Project name" value={displayedProjectName || "—"} isDark={isDark} />
+                    <div className="mb-4 divide-y divide-[#EDF0F7] rounded-[10px] border border-[#E2E7F2] bg-[#F4F6FB] px-5 py-1">
+                      <ReviewRow label="Company" value={companyName || "—"} />
+                      <ReviewRow label="Primary contact" value={contactName || "—"} />
+                      <ReviewRow label="Contact email" value={contactEmail || "—"} />
+                      {contactPhone.trim() && <ReviewRow label="Phone" value={contactPhone} />}
+                      <ReviewRow label="Classification" value={classifications.length > 0 ? classifications.join(", ") : "—"} />
+                      <ReviewRow label="Project name" value={displayedProjectName || "—"} />
                       {scheduledAt && (
                         <ReviewRow
                           label="Scheduled start"
                           value={new Date(scheduledAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
-                          isDark={isDark}
+                          mono
                         />
                       )}
                     </div>
 
                     {companyMode === "new" && (
-                      <div className={cn(
-                        "mb-1 flex items-center gap-2.5 rounded-[10px] border px-4 py-3.5",
-                        isDark ? "border-amber-500/25 bg-amber-500/10" : "border-[rgba(245,158,11,0.3)] bg-gradient-to-r from-[rgba(245,158,11,0.08)] to-[rgba(249,115,22,0.08)]"
-                      )}>
-                        <Sparkles size={14} className="shrink-0 text-[#F97316]" />
-                        <span className={cn("text-xs leading-snug", isDark ? "text-amber-300" : "text-[#92400E]")}>
+                      <div className="mb-1 flex items-center gap-2.5 rounded-[10px] border border-[#F0D896] bg-[#FFF3D6] px-4 py-3.5">
+                        <Sparkles size={14} className="shrink-0 text-[#8A5A00]" />
+                        <span className="text-xs leading-snug text-[#8A5A00]">
                           A unique customer ID (<span className="font-mono">WRQ-CUST-XXXXXXXX</span>) will be generated for this new company.
                         </span>
                       </div>
                     )}
 
-                    {submitError && <p className={cn("mt-3 text-xs", isDark ? "text-red-400" : "text-[#DC2626]")}>{submitError}</p>}
+                    {submitError && <p className="mt-3 text-xs text-[#C0392B]">{submitError}</p>}
                   </div>
                 )}
               </motion.div>
@@ -1282,34 +1089,29 @@ export default function NewProjectWizard({ role }: { role: string | null }) {
                 <button
                   type="button"
                   onClick={goBack}
-                  className={cn(
-                    "flex cursor-pointer items-center gap-1.5 rounded-[9px] border-[1.5px] bg-transparent px-4 py-2.5 text-[13px] font-medium transition-colors",
-                    isDark ? "border-white/[0.1] text-slate-300 hover:border-white/[0.2] hover:bg-white/[0.06]" : "border-[#E2E8F0] text-[#475569] hover:border-[#CBD5E1] hover:bg-[#F8FAFC]"
-                  )}
+                  className="flex cursor-pointer items-center gap-1.5 rounded-full border border-[#E2E7F2] bg-transparent px-4 py-2.5 text-[13px] font-medium text-[#3A4565] transition-colors hover:border-[#A8C6F5] hover:bg-[#F4F6FB]"
                 >
                   <ArrowLeft size={14} />
                   {step === 1 ? "Cancel" : "Back"}
                 </button>
-                <motion.button
+                <button
                   type="button"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
                   onClick={goNext}
                   disabled={validatingStep}
-                  className="flex cursor-pointer items-center gap-1.5 rounded-[9px] border-none bg-[#2563EB] px-5 py-2.5 text-[13px] font-semibold text-white shadow-[0_2px_10px_rgba(37,99,235,0.3)] disabled:cursor-not-allowed disabled:opacity-60"
+                  className="flex cursor-pointer items-center gap-1.5 rounded-full border-none bg-[#007BFF] px-5 py-2.5 text-[13px] font-semibold text-white shadow-[0_2px_10px_rgba(0,123,255,0.3)] transition-colors hover:bg-[#0063D6] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {validatingStep ? "Checking…" : (
                     <>
                       Continue <ArrowRight size={14} />
                     </>
                   )}
-                </motion.button>
+                </button>
               </div>
             ) : (
               <div className="mt-7 flex flex-col gap-2.5">
                 {canManagePhases && (
                   <div className="flex flex-col gap-1.5">
-                    <label htmlFor="start-phase" className={cn("text-[13px] font-medium", isDark ? "text-slate-200" : "text-[#0F172A]")}>
+                    <label htmlFor="start-phase" className="text-[13px] font-medium text-[#0B1533]">
                       Start at phase
                     </label>
                     <select
@@ -1317,13 +1119,10 @@ export default function NewProjectWizard({ role }: { role: string | null }) {
                       value={startPhase}
                       onChange={(e) => setStartPhase(Number(e.target.value) as 1 | 2 | 3 | 4 | 5)}
                       disabled={!!submitting}
-                      className={cn(
-                        "h-[42px] w-full cursor-pointer appearance-none rounded-[9px] border-[1.5px] px-3.5 pr-8 text-sm outline-none transition-colors focus:border-[#2563EB] disabled:cursor-not-allowed disabled:opacity-60",
-                        isDark ? "border-white/[0.12] bg-transparent text-slate-100" : "border-[#E2E8F0] bg-white text-[#0F172A]"
-                      )}
+                      className="h-[42px] w-full cursor-pointer appearance-none rounded-[9px] border border-[#E2E7F2] bg-[#F4F6FB] px-3.5 pr-8 text-sm text-[#0B1533] outline-none transition-colors focus:border-[#007BFF] disabled:cursor-not-allowed disabled:opacity-60"
                       style={{
                         backgroundImage:
-                          "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2394a3b8'/%3E%3C/svg%3E\")",
+                          "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%235F6A88'/%3E%3C/svg%3E\")",
                         backgroundRepeat: "no-repeat",
                         backgroundPosition: "right 14px center",
                       }}
@@ -1337,13 +1136,11 @@ export default function NewProjectWizard({ role }: { role: string | null }) {
                   </div>
                 )}
                 {!scheduleExpanded && (
-                  <motion.button
+                  <button
                     type="button"
-                    whileHover={{ scale: 1.01 }}
-                    whileTap={{ scale: 0.99 }}
                     onClick={() => (canManagePhases ? startAtPhase(startPhase) : submit("start"))}
                     disabled={!!submitting}
-                    className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-[9px] border-none bg-gradient-to-br from-[#2563EB] to-[#1D4ED8] px-5 py-3 text-[13px] font-semibold text-white shadow-[0_2px_10px_rgba(37,99,235,0.3)] disabled:cursor-not-allowed disabled:opacity-60"
+                    className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-full border-none bg-[#FB914E] px-5 py-3 text-[13px] font-semibold text-[#471F02] transition-colors hover:bg-[#E2762F] hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {submitting === "start" ? (
                       "Starting…"
@@ -1356,15 +1153,15 @@ export default function NewProjectWizard({ role }: { role: string | null }) {
                         <Check size={14} strokeWidth={2.5} /> Start onboarding (Day 1 now)
                       </>
                     )}
-                  </motion.button>
+                  </button>
                 )}
                 {scheduleExpanded && (
                   <div className="flex items-end gap-2">
                     <div className="flex-1">
-                      <label htmlFor="scheduled-start" className={cn("mb-1.5 block text-[13px] font-medium", isDark ? "text-slate-200" : "text-[#0F172A]")}>
+                      <label htmlFor="scheduled-start" className="mb-1.5 block text-[13px] font-medium text-[#0B1533]">
                         Scheduled start
                       </label>
-                      <DateTimePicker value={scheduledAt} onChange={setScheduledAt} min={scheduleMin} max={scheduleMax} isDark={isDark} />
+                      <DateTimePicker value={scheduledAt} onChange={setScheduledAt} min={scheduleMin} max={scheduleMax} />
                     </div>
                     <button
                       type="button"
@@ -1374,10 +1171,7 @@ export default function NewProjectWizard({ role }: { role: string | null }) {
                         setSubmitError(null);
                       }}
                       aria-label="Cancel scheduling"
-                      className={cn(
-                        "mb-0.5 flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-[9px] border-[1.5px] bg-transparent transition-colors",
-                        isDark ? "border-white/[0.12] text-slate-400 hover:border-white/[0.2] hover:bg-white/[0.06]" : "border-[#E2E8F0] text-[#64748B] hover:border-[#CBD5E1] hover:bg-[#F8FAFC]"
-                      )}
+                      className="mb-0.5 flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-[#E2E7F2] bg-transparent text-[#5F6A88] transition-colors hover:border-[#A8C6F5] hover:bg-[#F4F6FB]"
                     >
                       <X size={14} />
                     </button>
@@ -1392,10 +1186,7 @@ export default function NewProjectWizard({ role }: { role: string | null }) {
                       submit("save");
                     }}
                     disabled={!!submitting}
-                    className={cn(
-                      "flex-1 cursor-pointer rounded-[9px] border-[1.5px] bg-transparent px-4 py-2.5 text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60",
-                      isDark ? "border-white/[0.1] text-slate-300 hover:border-white/[0.2] hover:bg-white/[0.06]" : "border-[#E2E8F0] text-[#475569] hover:border-[#CBD5E1] hover:bg-[#F8FAFC]"
-                    )}
+                    className="flex-1 cursor-pointer rounded-full border border-[#E2E7F2] bg-transparent px-4 py-2.5 text-[13px] font-medium text-[#3A4565] transition-colors hover:border-[#A8C6F5] hover:bg-[#F4F6FB] disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {submitting === "save" ? "Saving…" : "Just save"}
                   </button>
@@ -1410,12 +1201,10 @@ export default function NewProjectWizard({ role }: { role: string | null }) {
                     }}
                     disabled={!!submitting}
                     className={cn(
-                      "flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-[9px] text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60",
+                      "flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-full text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60",
                       scheduleExpanded
-                        ? "border-none bg-gradient-to-br from-[#2563EB] to-[#1D4ED8] font-semibold text-white shadow-[0_2px_10px_rgba(37,99,235,0.3)]"
-                        : isDark
-                          ? "border-[1.5px] border-white/[0.1] bg-transparent px-4 py-2.5 text-slate-300 hover:border-white/[0.2] hover:bg-white/[0.06]"
-                          : "border-[1.5px] border-[#E2E8F0] bg-transparent px-4 py-2.5 text-[#475569] hover:border-[#CBD5E1] hover:bg-[#F8FAFC]"
+                        ? "border-none bg-[#FB914E] font-semibold text-[#471F02] hover:bg-[#E2762F] hover:text-white"
+                        : "border border-[#E2E7F2] bg-transparent px-4 py-2.5 text-[#3A4565] hover:border-[#A8C6F5] hover:bg-[#F4F6FB]"
                     )}
                   >
                     {submitting === "save_scheduled" ? (
@@ -1433,10 +1222,7 @@ export default function NewProjectWizard({ role }: { role: string | null }) {
                   type="button"
                   onClick={goBack}
                   disabled={!!submitting}
-                  className={cn(
-                    "mt-1 flex cursor-pointer items-center gap-1.5 self-start border-none bg-transparent px-1 py-1 text-xs font-medium transition-colors hover:text-[#2563EB] disabled:opacity-60",
-                    isDark ? "text-slate-400" : "text-[#64748B]"
-                  )}
+                  className="mt-1 flex cursor-pointer items-center gap-1.5 self-start border-none bg-transparent px-1 py-1 text-xs font-medium text-[#5F6A88] transition-colors hover:text-[#007BFF] disabled:opacity-60"
                 >
                   <ArrowLeft size={13} /> Back
                 </button>

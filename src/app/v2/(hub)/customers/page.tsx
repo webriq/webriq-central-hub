@@ -37,21 +37,36 @@ export default async function CustomersPage({
   const searchQ = params.search?.trim() ?? "";
   const statusParam = params.status ?? "";
 
+  // Roles that run Phase 1 onboarding (same set as Portfolio Tracker's `editable` gate in
+  // `_onboarding-list.tsx`) can see customers still gated behind Phase-1 handover — everyone
+  // else (pm/developer) gets the "hidden until handover" behavior below, including in search.
+  const { data: claims } = await supabase.auth.getClaims();
+  const userId = claims?.claims?.sub as string | undefined;
+  let role: string | null = null;
+  if (userId) {
+    const { data: profile } = await supabase.from("profiles").select("role").eq("id", userId).maybeSingle();
+    role = profile?.role ?? null;
+  }
+  const canSeeHiddenCustomers = role === "marketing" || role === "admin" || role === "super_admin";
+
   // A customer is hidden from the default list iff it has at least one project and *every*
   // project is still onboarding-gated (onboarding_visible_at IS NULL). Computed up front so the
   // exclusion can be applied before pagination/count, keeping `total`/`.range()` accurate.
-  const allProjects = await fetchAllPaginated<{ customer_id: string; onboarding_visible_at: string | null }>(
-    async (f, t) => supabase.from("projects").select("customer_id, onboarding_visible_at").range(f, t)
-  );
-  const projectsByCustomer = new Map<string, { onboarding_visible_at: string | null }[]>();
-  for (const p of allProjects) {
-    const list = projectsByCustomer.get(p.customer_id) ?? [];
-    list.push({ onboarding_visible_at: p.onboarding_visible_at });
-    projectsByCustomer.set(p.customer_id, list);
+  let fullyHiddenCustomerIds: string[] = [];
+  if (!canSeeHiddenCustomers) {
+    const allProjects = await fetchAllPaginated<{ customer_id: string; onboarding_visible_at: string | null }>(
+      async (f, t) => supabase.from("projects").select("customer_id, onboarding_visible_at").range(f, t)
+    );
+    const projectsByCustomer = new Map<string, { onboarding_visible_at: string | null }[]>();
+    for (const p of allProjects) {
+      const list = projectsByCustomer.get(p.customer_id) ?? [];
+      list.push({ onboarding_visible_at: p.onboarding_visible_at });
+      projectsByCustomer.set(p.customer_id, list);
+    }
+    fullyHiddenCustomerIds = [...projectsByCustomer.entries()]
+      .filter(([, rows]) => rows.length > 0 && rows.every((r) => r.onboarding_visible_at === null))
+      .map(([id]) => id);
   }
-  const fullyHiddenCustomerIds = [...projectsByCustomer.entries()]
-    .filter(([, rows]) => rows.length > 0 && rows.every((r) => r.onboarding_visible_at === null))
-    .map(([id]) => id);
 
   let customersQuery = supabase
     .from("customers")
@@ -90,8 +105,10 @@ export default async function CustomersPage({
 
     for (const p of projectsRes.data ?? []) {
       // Individually-hidden projects (new product on an already-visible customer) still drop out
-      // of the count even though the parent customer stays in the list.
-      if (!p.onboarding_visible_at) continue;
+      // of the count for roles that can't see hidden customers at all — privileged roles
+      // (Requirement: canSeeHiddenCustomers) see the true count, matching what they can already
+      // see on Portfolio Tracker, instead of a misleading "0 projects" on a customer they know exists.
+      if (!canSeeHiddenCustomers && !p.onboarding_visible_at) continue;
       visibleProjectCount.set(p.customer_id, (visibleProjectCount.get(p.customer_id) ?? 0) + 1);
       if (p.programme_started_at) {
         const existing = programmeStartedAtByCustomer.get(p.customer_id);
