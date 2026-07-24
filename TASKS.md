@@ -18,6 +18,7 @@
 
 | ID | Title | Priority | Type | Doc | Date |
 |----|-------|----------|------|-----|------|
+| 182 | Remote MCP Server — Expose Ops Chat Tools for External Clients (task/classification/ticket CRUD + orchestration) | HIGH | feature | _docs/task/182-mcp-server-expose-ops-chat-tools.md | 2026-07-24 |
 | 181 | Remote MCP Server — OAuth 2.1/PKCE Scaffold + Two Read-Only Tools (get_project_status, list_open_tasks) | HIGH | feature | _docs/task/181-remote-mcp-server-oauth-scaffold.md | 2026-07-23 |
 | 180 | OTP/2FA Verification Redesign — Digit-Box UI, Attempt Lockout (4 tries / 1hr), Forgot Password Flow, Super Admin Unlock | HIGH | feature | _docs/task/180-otp-2fa-redesign-attempt-lockout-forgot-password.md | 2026-07-23 |
 | 178 | `/v2/(auth)` Audit — DRY Refactor, Error Handling & Guard Rails (shared shell/password-input/strength-meter, gate-cookie helpers, silent OTP failure fixes) | MEDIUM | refactor | _docs/task/178-v2-auth-audit-dry-error-handling-guardrails.md | 2026-07-22 |
