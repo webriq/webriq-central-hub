@@ -136,16 +136,16 @@ function Column({
       <div className="flex items-center justify-between px-1 mb-3 shrink-0">
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full" style={{ background: accent }} />
-          <span className="text-[13px] font-semibold text-slate-700">{label}</span>
-          <span className="text-[11px] font-mono text-slate-400 bg-slate-200/60 rounded-full px-1.5">{count}</span>
+          <span className="text-[13px] font-semibold text-[#0B1533]">{label}</span>
+          <span className="text-[11px] font-mono text-[#5F6A88] bg-[#EDF0F7] rounded-full px-1.5">{count}</span>
         </div>
-        <button onClick={onAdd} className="p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 cursor-pointer" title={`Add to ${label}`}>
+        <button onClick={onAdd} className="p-1 rounded-md text-[#5F6A88] hover:text-[#0B1533] hover:bg-[#EDF0F7] transition-colors cursor-pointer" title={`Add to ${label}`}>
           <Plus size={15} />
         </button>
       </div>
       <div
         ref={setNodeRef}
-        className={`flex-1 overflow-y-auto rounded-xl p-2 transition-colors ${isOver ? "bg-blue-50/60" : "bg-slate-100/60"}`}
+        className={`flex-1 overflow-y-auto rounded-[14px] p-2 transition-colors ${isOver ? "bg-[#F0F7FF]" : "bg-[#F4F6FB]"}`}
       >
         {children}
       </div>
@@ -172,28 +172,28 @@ function CardBody({ task, dragging }: { task: Task; dragging?: boolean }) {
   const due = formatDueDate(task.due_date);
   return (
     <div
-      className={`rounded-lg border bg-white px-3.5 py-3 cursor-pointer transition-shadow ${
-        dragging ? "border-slate-300 shadow-lg rotate-1" : "border-slate-200 shadow-[0_1px_2px_rgba(0,0,0,0.04)] hover:shadow-md hover:border-slate-300"
+      className={`rounded-[14px] border bg-white px-3.5 py-3 cursor-pointer transition-shadow ${
+        dragging ? "border-[#A8C6F5] shadow-lg rotate-1" : "border-[#E2E7F2] shadow-[0_1px_2px_rgba(7,17,51,.05)] hover:shadow-md hover:border-[#A8C6F5]"
       }`}
     >
       <div className="flex items-start gap-2">
         <span className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0" style={{ background: p.dot }} />
-        <p className="text-[13px] font-medium text-slate-800 leading-snug flex-1">{task.title}</p>
+        <p className="text-[13px] font-medium text-[#0B1533] leading-snug flex-1">{task.title}</p>
       </div>
       {(due || task.github_pr_url || (task.labels && task.labels.length > 0)) && (
         <div className="flex items-center gap-2 mt-2.5 pl-3.5 flex-wrap">
           {due && (
-            <span className="inline-flex items-center gap-1 text-[11px] text-slate-500">
+            <span className="inline-flex items-center gap-1 text-[11px] text-[#5F6A88]">
               <Calendar size={11} /> {due}
             </span>
           )}
           {task.github_pr_url && (
-            <span className="inline-flex items-center gap-1 text-[11px] text-violet-600">
+            <span className="inline-flex items-center gap-1 text-[11px] text-[#5F6A88]">
               <GitPullRequest size={11} /> PR
             </span>
           )}
           {task.labels?.map((l) => (
-            <span key={l} className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500">{l}</span>
+            <span key={l} className="text-[10px] px-1.5 py-0.5 rounded bg-[#EDF0F7] text-[#5F6A88]">{l}</span>
           ))}
         </div>
       )}

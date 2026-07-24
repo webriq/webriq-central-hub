@@ -11,10 +11,13 @@ export async function GET(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const { data: project } = await supabase.from("projects").select("id").eq("project_id", projectId).single();
+  if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 });
+
   const { data, error } = await supabase
     .from("milestones")
     .select("*")
-    .eq("project_id", projectId)
+    .eq("project_id", project.id)
     .order("position", { ascending: true, nullsFirst: false });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
@@ -31,6 +34,9 @@ export async function POST(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const { data: project } = await supabase.from("projects").select("id").eq("project_id", projectId).single();
+  if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 });
+
   const body = await req.json().catch(() => ({}));
   if (!body.name?.trim()) {
     return NextResponse.json({ error: "name is required" }, { status: 400 });
@@ -39,7 +45,7 @@ export async function POST(
   const { data, error } = await supabase
     .from("milestones")
     .insert({
-      project_id: projectId,
+      project_id: project.id,
       name: body.name.trim(),
       description: body.description?.trim() || null,
       due_date: body.due_date || null,

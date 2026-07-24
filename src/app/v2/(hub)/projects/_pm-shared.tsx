@@ -35,39 +35,45 @@ export const STATUS_LABEL: Record<TaskStatus, string> = {
   closed:              "Closed",
 };
 
+// ─── v2.0 design-token semantic states (DESIGN.md Section 1) ────────────────
+// --ok: #177E48/#E3F5EA · --warn: #8A5A00/#FFF3D6 · --late: #C0392B/#FDE8E6
+// --blue: #007BFF/#E5F1FF (interactive, not a semantic state) · neutral: #5F6A88/#EDF0F7
+// DESIGN.md's Chips spec carries no border (bg tint + text/dot only) — border is kept
+// equal to bg here to satisfy this type's shape without introducing an unspecified hex.
 export const STATUS_STYLE: Record<TaskStatus, { text: string; bg: string; border: string }> = {
-  open:                { text: "#16A34A", bg: "#F0FDF4", border: "#BBF7D0" },
-  in_progress:         { text: "#EA580C", bg: "#FFF7ED", border: "#FED7AA" },
-  ready_for_qa:        { text: "#0D9488", bg: "#F0FDFA", border: "#99F6E4" },
-  testing_completed:   { text: "#2563EB", bg: "#EFF6FF", border: "#BFDBFE" },
-  for_client_approval: { text: "#D97706", bg: "#FFFBEB", border: "#FDE68A" },
-  ready_to_merge:      { text: "#DC2626", bg: "#FEF2F2", border: "#FECACA" },
-  post_live_qa:        { text: "#14B8A6", bg: "#F0FDFA", border: "#CCFBF1" },
-  closed:              { text: "#94A3B8", bg: "#F8FAFC", border: "#E2E8F0" },
+  open:                { text: "#5F6A88", bg: "#EDF0F7", border: "#EDF0F7" }, // not started — neutral
+  in_progress:         { text: "#007BFF", bg: "#E5F1FF", border: "#E5F1FF" }, // active — blue
+  ready_for_qa:        { text: "#8A5A00", bg: "#FFF3D6", border: "#FFF3D6" }, // pending review — warn
+  testing_completed:   { text: "#007BFF", bg: "#E5F1FF", border: "#E5F1FF" }, // active — blue
+  for_client_approval: { text: "#8A5A00", bg: "#FFF3D6", border: "#FFF3D6" }, // awaiting decision — warn
+  ready_to_merge:      { text: "#007BFF", bg: "#E5F1FF", border: "#E5F1FF" }, // active — blue
+  post_live_qa:        { text: "#8A5A00", bg: "#FFF3D6", border: "#FFF3D6" }, // verification pending — warn
+  closed:              { text: "#177E48", bg: "#E3F5EA", border: "#E3F5EA" }, // done — ok
 };
 
 export const PRIORITY_STYLE: Record<string, { label: string; text: string; dot: string }> = {
-  critical: { label: "Critical", text: "#DC2626", dot: "#DC2626" },
-  high:     { label: "High",     text: "#EA580C", dot: "#EA580C" },
-  normal:   { label: "Normal",   text: "#2563EB", dot: "#2563EB" },
-  low:      { label: "Low",      text: "#94A3B8", dot: "#94A3B8" },
-  none:     { label: "—",        text: "#94A3B8", dot: "#CBD5E1" },
+  critical: { label: "Critical", text: "#C0392B", dot: "#C0392B" },
+  high:     { label: "High",     text: "#8A5A00", dot: "#8A5A00" },
+  normal:   { label: "Normal",   text: "#007BFF", dot: "#007BFF" },
+  low:      { label: "Low",      text: "#5F6A88", dot: "#5F6A88" },
+  none:     { label: "—",        text: "#5F6A88", dot: "#E2E7F2" },
 };
 
+// Mirrors task 184/185's established project-status mapping: active/completed → ok,
+// on_hold → warn, archived/not_started → neutral (both "inactive" buckets collapse
+// together now that violet — the old not_started color — is a reserved phase hue).
 export const PROJECT_STATUS_STYLE: Record<string, { text: string; bg: string; border: string; label: string }> = {
-  not_started: { text: "#7C3AED", bg: "#F5F3FF", border: "#DDD6FE", label: "Not Started" },
-  active:      { text: "#2563EB", bg: "#EFF6FF", border: "#BFDBFE", label: "Active" },
-  on_hold:     { text: "#D97706", bg: "#FFFBEB", border: "#FDE68A", label: "On Hold" },
-  completed:   { text: "#16A34A", bg: "#F0FDF4", border: "#BBF7D0", label: "Completed" },
-  archived:    { text: "#94A3B8", bg: "#F8FAFC", border: "#E2E8F0", label: "Archived" },
+  not_started: { text: "#5F6A88", bg: "#EDF0F7", border: "#EDF0F7", label: "Not Started" },
+  active:      { text: "#177E48", bg: "#E3F5EA", border: "#E3F5EA", label: "Active" },
+  on_hold:     { text: "#8A5A00", bg: "#FFF3D6", border: "#FFF3D6", label: "On Hold" },
+  completed:   { text: "#177E48", bg: "#E3F5EA", border: "#E3F5EA", label: "Completed" },
+  archived:    { text: "#5F6A88", bg: "#EDF0F7", border: "#EDF0F7", label: "Archived" },
 };
 
-export const PROJECT_TYPE_STYLE: Record<string, { text: string; bg: string; border: string }> = {
-  "Content Site":    { text: "#0D9488", bg: "#F0FDFA", border: "#99F6E4" },
-  "Ecommerce (B2C)": { text: "#7C3AED", bg: "#F5F3FF", border: "#DDD6FE" },
-  "Ecommerce (B2B)": { text: "#2563EB", bg: "#EFF6FF", border: "#BFDBFE" },
-  "Custom App":      { text: "#EA580C", bg: "#FFF7ED", border: "#FED7AA" },
-};
+// Project type is a plain classification, not a status — single neutral treatment
+// (the old 4-hue table collided with 4 of DESIGN.md's 5 reserved phase hues for a
+// non-phase meaning, the same violation tasks 183/185 already fixed on their pages).
+const PROJECT_TYPE_NEUTRAL = { text: "#5F6A88", bg: "#EDF0F7", border: "#EDF0F7" };
 
 export const PROJECT_TYPES = [
   "Content Site",
@@ -136,7 +142,7 @@ export function ProjectStatusBadge({ status, pct }: { status: string; pct?: numb
 }
 
 export function ProjectTypeBadge({ type }: { type: string }) {
-  const c = PROJECT_TYPE_STYLE[type] ?? { text: "#64748B", bg: "#F8FAFC", border: "#E2E8F0" };
+  const c = PROJECT_TYPE_NEUTRAL;
   return (
     <span
       className="self-start inline-flex items-center text-[10px] font-medium px-2 py-0.5 rounded-md border whitespace-nowrap"
@@ -211,7 +217,7 @@ export function TagChip({
 
 export function OwnerChip({ name }: { name: string }) {
   const initials = name.split(" ").filter(Boolean).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
-  const colors = ["#2563EB", "#7C3AED", "#0D9488", "#DC2626", "#D97706"];
+  const colors = AVATAR_COLORS;
   const bg = colors[name.charCodeAt(0) % colors.length];
   return (
     <div
@@ -231,9 +237,9 @@ export function CompletionRing({ pct, size = 40 }: { pct: number; size?: number 
   const dash = (pct / 100) * circ;
   const cx = size / 2;
   const cy = size / 2;
-  const trackColor = "#E2E8F0";
-  const fillColor = pct === 100 ? "#16A34A" : "#2563EB";
-  const textColor = "#334155";
+  const trackColor = "#EDF0F7";
+  const fillColor = pct === 100 ? "#177E48" : "#007BFF";
+  const textColor = "#0B1533";
   return (
     <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
       <circle cx={cx} cy={cy} r={r} fill="none" stroke={trackColor} strokeWidth={strokeWidth} />
@@ -271,7 +277,9 @@ export function businessDaysRemaining(endDate: string | null): number | null {
   return days;
 }
 
-const AVATAR_COLORS = ["#2563EB", "#7C3AED", "#0D9488", "#DC2626", "#D97706"];
+// DESIGN.md Avatars spec — fixed 6-color rotation, matches the stacks already
+// shipped on /v2/projects and /v2/portfolio-tracker.
+const AVATAR_COLORS = ["#0063D6", "#6A48E0", "#0B8A93", "#B85512", "#177E48", "#44508A"];
 
 export function AssigneeChip({ id, idx }: { id: string; idx: number }) {
   const initials = id.replace(/-/g, "").slice(0, 2).toUpperCase();

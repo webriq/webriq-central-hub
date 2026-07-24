@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Bell, CheckCircle2, XCircle, Clock, X, type LucideIcon } from "lucide-react";
 import { formatRelativeTime, cn } from "@/lib/utils";
@@ -216,7 +217,7 @@ export default function NotificationBell() {
         )}
       </button>
 
-      {mounted && (
+      {mounted && createPortal(
         <>
           <div
             aria-hidden="true"
@@ -308,7 +309,8 @@ export default function NotificationBell() {
               )}
             </div>
           </div>
-        </>
+        </>,
+        document.body
       )}
     </>
   );

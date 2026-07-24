@@ -15,20 +15,21 @@ export async function GET(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const [projectRes, milestonesRes, tasksRes] = await Promise.all([
-    supabase.from("projects").select("*").eq("id", projectId).single(),
-    supabase.from("milestones").select("*").eq("project_id", projectId).order("position", { ascending: true, nullsFirst: false }),
-    supabase
-      .from("tasks")
-      .select("*")
-      .eq("project_id", projectId)
-      .is("parent_task_id", null)
-      .order("position", { ascending: true, nullsFirst: false }),
-  ]);
+  const projectRes = await supabase.from("projects").select("*").eq("project_id", projectId).single();
 
   if (projectRes.error || !projectRes.data) {
     return NextResponse.json({ error: "Project not found" }, { status: 404 });
   }
+
+  const [milestonesRes, tasksRes] = await Promise.all([
+    supabase.from("milestones").select("*").eq("project_id", projectRes.data.id).order("position", { ascending: true, nullsFirst: false }),
+    supabase
+      .from("tasks")
+      .select("*")
+      .eq("project_id", projectRes.data.id)
+      .is("parent_task_id", null)
+      .order("position", { ascending: true, nullsFirst: false }),
+  ]);
 
   return NextResponse.json({
     project: projectRes.data,
@@ -63,7 +64,7 @@ export async function PATCH(
   const { data, error } = await supabase
     .from("projects")
     .update(patch)
-    .eq("id", projectId)
+    .eq("project_id", projectId)
     .select()
     .single();
 
@@ -84,7 +85,7 @@ export async function DELETE(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { error } = await supabase.from("projects").delete().eq("id", projectId);
+  const { error } = await supabase.from("projects").delete().eq("project_id", projectId);
   if (error) {
     console.error("[api/v2/projects/[id]] delete failed:", error.message);
     return NextResponse.json({ error: error.message }, { status: 400 });

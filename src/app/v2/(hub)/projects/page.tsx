@@ -57,7 +57,7 @@ export default async function ProjectsPage({
   // Build filtered projects query — count: "exact" on the filtered query returns filtered total.
   let projectsQuery = supabase
     .from("projects")
-    .select("id,name,project_type,status,customer_id,end_date,tags,owner_name,updated_at,external_project_id,customer_product_id", { count: "exact" })
+    .select("id,project_id,name,project_type,status,customer_id,end_date,tags,owner_name,updated_at,external_project_id,customer_product_id", { count: "exact" })
     .order(sortSpec.column, { ascending: sortSpec.ascending, nullsFirst: sortSpec.nullsFirst });
 
   if (customerParam) {
@@ -146,6 +146,7 @@ export default async function ProjectsPage({
 
   const projects: ProjectListItem[] = (projectsRes.data ?? []).map((p) => ({
     id: p.id,
+    project_id: p.project_id,
     name: p.name,
     project_type: p.project_type,
     status: p.status,

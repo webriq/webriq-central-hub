@@ -19,6 +19,7 @@ import { Chip } from "../dashboard/_components/dashboard-shared";
 
 export type ProjectListItem = {
   id: string;
+  project_id: string | null;
   name: string;
   project_type: string;
   status: string;
@@ -403,9 +404,10 @@ export default function ProjectsIndex({
 
   const activeCustomer = customers.find((c) => c.customer_id === customerFilter);
 
-  const removeTag = useCallback(async (projectId: string, currentTags: string[], tagToRemove: string) => {
+  const removeTag = useCallback(async (id: string, projectId: string | null, currentTags: string[], tagToRemove: string) => {
+    if (!projectId) return;
     const next = currentTags.filter((t) => t !== tagToRemove);
-    setTagOverrides((prev) => ({ ...prev, [projectId]: next }));
+    setTagOverrides((prev) => ({ ...prev, [id]: next }));
     await fetch(`/api/v2/projects/${projectId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -657,7 +659,7 @@ function GridView({
   projects: ProjectListItem[];
   canManageTags: boolean;
   getTagsFor: (p: ProjectListItem) => string[];
-  removeTag: (id: string, currentTags: string[], tag: string) => void;
+  removeTag: (id: string, projectId: string | null, currentTags: string[], tag: string) => void;
 }) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-stretch">
@@ -668,7 +670,7 @@ function GridView({
         return (
           <Link
             key={p.id}
-            href={`${V2_ROUTES.PROJECTS}/${p.id}`}
+            href={p.project_id ? `${V2_ROUTES.PROJECTS}/${p.project_id}` : V2_ROUTES.PROJECTS}
             className="h-full flex flex-col gap-3 p-4 rounded-[14px] border border-[#E2E7F2] bg-white hover:border-[#A8C6F5] transition-colors"
           >
             {/* Title + status */}
@@ -706,7 +708,7 @@ function GridView({
                     key={tag}
                     tag={tag}
                     canRemove={canManageTags}
-                    onRemove={() => removeTag(p.id, tags, tag)}
+                    onRemove={() => removeTag(p.id, p.project_id, tags, tag)}
                   />
                 ))}
                 {tags.length > 4 && (
@@ -740,7 +742,7 @@ function ListView({
   projects: ProjectListItem[];
   canManageTags: boolean;
   getTagsFor: (p: ProjectListItem) => string[];
-  removeTag: (id: string, currentTags: string[], tag: string) => void;
+  removeTag: (id: string, projectId: string | null, currentTags: string[], tag: string) => void;
 }) {
   const router = useRouter();
   return (
@@ -767,7 +769,7 @@ function ListView({
               return (
                 <tr
                   key={p.id}
-                  onClick={() => router.push(`${V2_ROUTES.PROJECTS}/${p.id}`)}
+                  onClick={() => p.project_id && router.push(`${V2_ROUTES.PROJECTS}/${p.project_id}`)}
                   className="hover:bg-[#F0F7FF] transition-colors cursor-pointer"
                 >
                   {/* Project Name + Customer below */}
@@ -828,7 +830,7 @@ function ListView({
                             key={tag}
                             tag={tag}
                             canRemove={canManageTags}
-                            onRemove={() => removeTag(p.id, tags, tag)}
+                            onRemove={() => removeTag(p.id, p.project_id, tags, tag)}
                           />
                         ))}
                         {tags.length > 3 && (

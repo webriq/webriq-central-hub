@@ -12,17 +12,24 @@ export default async function TaskDetailPage({
   const { projectId, taskId } = await params;
   const supabase = await createClient();
 
-  const [{ data: task }, { data: project }, { data: milestones }] = await Promise.all([
-    supabase.from("tasks").select("*").eq("id", taskId).single(),
-    supabase.from("projects").select("id, name, customer_id").eq("id", projectId).single(),
+  const { data: project } = await supabase
+    .from("projects")
+    .select("id, name, customer_id, project_id")
+    .eq("project_id", projectId)
+    .single();
+
+  if (!project) notFound();
+
+  const [{ data: task }, { data: milestones }] = await Promise.all([
+    supabase.from("tasks").select("*").eq("display_id", taskId).eq("project_id", project.id).single(),
     supabase
       .from("milestones")
       .select("*")
-      .eq("project_id", projectId)
+      .eq("project_id", project.id)
       .order("position", { ascending: true, nullsFirst: false }),
   ]);
 
-  if (!task || !project) notFound();
+  if (!task) notFound();
 
   return (
     <TaskDetailClient

@@ -1,15 +1,15 @@
 "use client";
 
 import { Fragment, useState, useMemo, useEffect, useRef } from "react";
-import { ChevronDown, ChevronRight, Users, X, Play, Pause, Clock } from "lucide-react";
+import { ChevronDown, ChevronRight, Users, X, Play, Pause, Clock, SearchX } from "lucide-react";
 import {
   type Task, type Tasklist, type TaskStatus,
   STATUS_LABEL, STATUS_STYLE, PRIORITY_STYLE,
   formatDueDate, normalizeStatus,
 } from "../_pm-shared";
 
-type SortKey = "title" | "status" | "priority" | "due_date";
-type SortDir = "asc" | "desc";
+export type SortKey = "title" | "status" | "priority" | "due_date";
+export type SortDir = "asc" | "desc";
 
 const PRIORITY_ORDER: Record<string, number> = { critical: 0, high: 1, normal: 2, low: 3, none: 4 };
 const STATUS_ORDER: Record<string, number> = {
@@ -22,18 +22,20 @@ const STATUS_OPTS: TaskStatus[] = [
   "for_client_approval", "ready_to_merge", "post_live_qa", "closed",
 ];
 
-const AVATAR_COLORS = ["#2563EB", "#7C3AED", "#0D9488", "#DC2626", "#D97706"];
+// DESIGN.md Avatars spec — fixed 6-color rotation, matches the stacks already
+// shipped on /v2/projects and /v2/portfolio-tracker.
+const AVATAR_COLORS = ["#0063D6", "#6A48E0", "#0B8A93", "#B85512", "#177E48", "#44508A"];
 
 const DEPTH_INDENT = ["pl-0", "pl-4", "pl-8", "pl-12", "pl-16", "pl-20", "pl-24"] as const;
 
 type MemberProfile = { id: string; full_name: string | null; avatar_url: string | null };
 
 function getDueColor(due: string | null): string {
-  if (!due) return "text-slate-400";
+  if (!due) return "text-[#5F6A88]";
   const days = Math.ceil((new Date(due).getTime() - Date.now()) / 86400000);
-  if (days < 0) return "text-red-500";
-  if (days <= 7) return "text-orange-500";
-  return "text-slate-500";
+  if (days < 0) return "text-[#C0392B]";
+  if (days <= 7) return "text-[#8A5A00]";
+  return "text-[#3A4565]";
 }
 
 function nameInitials(name: string | null | undefined, fallbackId: string): string {
@@ -99,10 +101,10 @@ function AssigneePicker({
           </div>
         ))}
         {currentAssignees.length > 3 && (
-          <span className="text-[10px] text-slate-500 ml-1.5 shrink-0">+{currentAssignees.length - 3}</span>
+          <span className="text-[10px] text-[#5F6A88] ml-1.5 shrink-0">+{currentAssignees.length - 3}</span>
         )}
         {currentAssignees.length === 0 && (
-          <span className="text-slate-300 group-hover:text-slate-400 transition-colors">
+          <span className="text-[#C7CEDD] group-hover:text-[#5F6A88] transition-colors">
             <Users size={14} />
           </span>
         )}
@@ -112,11 +114,11 @@ function AssigneePicker({
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <div
-            className="fixed z-50 w-52 rounded-xl border border-slate-200 bg-white shadow-xl overflow-hidden"
+            className="fixed z-50 w-52 rounded-[10px] border border-[#E2E7F2] bg-white shadow-[0_8px_24px_rgba(7,17,51,0.10)] overflow-hidden"
             style={{ top: panelPos.top, left: panelPos.left }}
           >
-            <div className="px-3 py-2.5 border-b border-slate-100">
-              <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Assign to</p>
+            <div className="px-3 py-2.5 border-b border-[#EDF0F7]">
+              <p className="text-[11px] font-semibold text-[#5F6A88] uppercase tracking-wide">Assign to</p>
             </div>
             <div className="max-h-52 overflow-y-auto">
               {allMembers.map((m, mi) => {
@@ -125,8 +127,8 @@ function AssigneePicker({
                   <button
                     key={m.id}
                     onClick={() => toggleMember(m.id)}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2 text-[12px] hover:bg-slate-50 cursor-pointer transition-colors text-left ${
-                      isAssigned ? "bg-blue-50/50" : ""
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 text-[12px] hover:bg-[#F4F6FB] cursor-pointer transition-colors text-left ${
+                      isAssigned ? "bg-[#F0F7FF]" : ""
                     }`}
                   >
                     <div
@@ -135,17 +137,17 @@ function AssigneePicker({
                     >
                       {nameInitials(m.full_name, m.id)}
                     </div>
-                    <span className={`flex-1 truncate ${isAssigned ? "font-medium text-slate-900" : "text-slate-700"}`}>
+                    <span className={`flex-1 truncate ${isAssigned ? "font-medium text-[#0B1533]" : "text-[#3A4565]"}`}>
                       {m.full_name ?? "Unknown"}
                     </span>
                     {isAssigned && (
-                      <span className="text-blue-600 text-[11px] shrink-0">✓</span>
+                      <span className="text-[#007BFF] text-[11px] shrink-0">✓</span>
                     )}
                   </button>
                 );
               })}
               {allMembers.length === 0 && (
-                <p className="text-[12px] text-slate-400 px-3 py-3">No members found</p>
+                <p className="text-[12px] text-[#5F6A88] px-3 py-3">No members found</p>
               )}
             </div>
           </div>
@@ -185,7 +187,7 @@ function TimerButton({ taskId, onStop }: { taskId: string; onStop: (taskId: stri
     return (
       <button
         onClick={handleStop}
-        className="flex items-center gap-1 text-blue-600 hover:text-blue-700 transition-colors cursor-pointer"
+        className="flex items-center gap-1 text-[#007BFF] hover:text-[#0063D6] transition-colors cursor-pointer"
         title="Stop timer"
       >
         <Pause size={11} />
@@ -197,7 +199,7 @@ function TimerButton({ taskId, onStop }: { taskId: string; onStop: (taskId: stri
   return (
     <button
       onClick={handleStart}
-      className="flex items-center justify-center text-slate-300 hover:text-blue-600 transition-colors cursor-pointer"
+      className="flex items-center justify-center text-[#C7CEDD] hover:text-[#007BFF] transition-colors cursor-pointer"
       title="Start timer"
     >
       <Play size={13} />
@@ -217,6 +219,13 @@ export default function ListView({
   allMembers,
   hoursById,
   onTimerStop,
+  sortKey,
+  sortDir,
+  onToggleSort,
+  collapsed,
+  onToggleCollapseGroup,
+  hasActiveFilters,
+  onClearFilters,
 }: {
   tasks: Task[];
   tasklists: Tasklist[];
@@ -227,10 +236,14 @@ export default function ListView({
   allMembers: MemberProfile[];
   hoursById: Record<string, number>;
   onTimerStop: (taskId: string, hours: number) => void;
+  sortKey: SortKey;
+  sortDir: SortDir;
+  onToggleSort: (key: SortKey) => void;
+  collapsed: Set<string>;
+  onToggleCollapseGroup: (groupId: string) => void;
+  hasActiveFilters: boolean;
+  onClearFilters: () => void;
 }) {
-  const [sortKey, setSortKey] = useState<SortKey>("status");
-  const [sortDir, setSortDir] = useState<SortDir>("asc");
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [selected, setSelected] = useState<Set<string>>(new Set());
   // Pre-expand all root tasks that have children so subtasks are visible by default (matches Zoho behavior)
   const [expandedRows, setExpandedRows] = useState<Set<string>>(() => {
@@ -244,11 +257,6 @@ export default function ListView({
     }
     return initial;
   });
-
-  function toggleSort(key: SortKey) {
-    if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    else { setSortKey(key); setSortDir("asc"); }
-  }
 
   function toggleRow(id: string) {
     setSelected((prev) => {
@@ -320,14 +328,6 @@ export default function ListView({
     return map;
   }, [tasks]);
 
-  function toggleCollapseGroup(id: string) {
-    setCollapsed((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
-  }
-
   function toggleExpand(id: string) {
     setExpandedRows((prev) => {
       const next = new Set(prev);
@@ -336,10 +336,27 @@ export default function ListView({
     });
   }
 
-  if (tasks.length === 0 && tasklists.length === 0) {
+  if (tasks.length === 0 && tasklists.length === 0 && !hasActiveFilters) {
     return (
       <div className="flex items-center justify-center h-full">
-        <p className="text-[13px] text-slate-400">No tasks yet.</p>
+        <p className="text-[13px] text-[#5F6A88]">No tasks yet.</p>
+      </div>
+    );
+  }
+
+  if (tasks.length === 0 && hasActiveFilters) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full gap-3">
+        <div className="w-10 h-10 rounded-full bg-[#EDF0F7] flex items-center justify-center">
+          <SearchX size={18} className="text-[#5F6A88]" />
+        </div>
+        <p className="text-[13px] text-[#5F6A88]">No tasks match your filters.</p>
+        <button
+          onClick={onClearFilters}
+          className="text-[12px] font-semibold text-[#007BFF] hover:text-[#0063D6] cursor-pointer transition-colors"
+        >
+          Clear filters
+        </button>
       </div>
     );
   }
@@ -378,35 +395,35 @@ export default function ListView({
   return (
     <div className="h-full flex flex-col min-h-0">
       {selected.size > 0 && (
-        <div className="flex items-center gap-2 px-8 py-2 bg-amber-50 border-b border-amber-200 shrink-0">
+        <div className="flex items-center gap-2 px-8 py-2 bg-[#FFF3D6] border-b border-[#F5DFA0] shrink-0">
           <button
             onClick={() => setSelected(new Set())}
-            className="flex items-center justify-center w-5 h-5 rounded hover:bg-amber-200 text-amber-700 cursor-pointer transition-colors"
+            className="flex items-center justify-center w-5 h-5 rounded hover:bg-[#F5DFA0] text-[#8A5A00] cursor-pointer transition-colors"
           >
             <X size={12} />
           </button>
-          <span className="text-[12px] font-semibold text-amber-800">{selected.size}</span>
-          <div className="w-px h-4 bg-amber-300 mx-1" />
-          <button className="text-[11px] font-medium px-2.5 py-1 rounded border border-red-300 bg-white text-red-600 hover:bg-red-50 cursor-pointer transition-colors">
+          <span className="text-[12px] font-semibold text-[#8A5A00]">{selected.size}</span>
+          <div className="w-px h-4 bg-[#F5DFA0] mx-1" />
+          <button className="text-[11px] font-medium px-2.5 py-1 rounded-full border border-[#C0392B]/40 bg-white text-[#C0392B] hover:bg-[#FDE8E6] cursor-pointer transition-colors">
             Trash
           </button>
         </div>
       )}
 
       <div className="flex-1 min-h-0 overflow-y-auto px-8 py-5">
-        <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+        <div className="rounded-[14px] border border-[#E2E7F2] bg-white overflow-hidden">
 
           {/* Column headers */}
-          <div className={`grid ${GRID} items-center gap-3 px-4 py-2.5 border-b border-slate-100 bg-slate-50`}>
+          <div className={`grid ${GRID} items-center gap-3 px-4 py-2.5 border-b border-[#EDF0F7] bg-[#FAFBFE]`}>
             <div /> {/* checkbox spacer */}
-            <SortHeader label="Task Name" active={sortKey === "title"} dir={sortDir} onClick={() => toggleSort("title")} />
-            <SortHeader label="Status" active={sortKey === "status"} dir={sortDir} onClick={() => toggleSort("status")} />
-            <span className="flex items-center gap-1 text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
+            <SortHeader label="Task Name" active={sortKey === "title"} dir={sortDir} onClick={() => onToggleSort("title")} />
+            <SortHeader label="Status" active={sortKey === "status"} dir={sortDir} onClick={() => onToggleSort("status")} />
+            <span className="flex items-center gap-1 text-[11px] font-semibold text-[#5F6A88] uppercase tracking-wide">
               <Users size={11} /> Assignee
             </span>
-            <SortHeader label="Due Date" active={sortKey === "due_date"} dir={sortDir} onClick={() => toggleSort("due_date")} />
-            <SortHeader label="Priority" active={sortKey === "priority"} dir={sortDir} onClick={() => toggleSort("priority")} />
-            <span className="flex items-center gap-1 text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
+            <SortHeader label="Due Date" active={sortKey === "due_date"} dir={sortDir} onClick={() => onToggleSort("due_date")} />
+            <SortHeader label="Priority" active={sortKey === "priority"} dir={sortDir} onClick={() => onToggleSort("priority")} />
+            <span className="flex items-center gap-1 text-[11px] font-semibold text-[#5F6A88] uppercase tracking-wide">
               <Clock size={11} />
             </span>
             <div /> {/* timer spacer */}
@@ -419,25 +436,25 @@ export default function ListView({
 
             return (
               <div key={g.id}>
-                <div className="flex items-center bg-slate-100 border-b border-slate-200">
+                <div className="flex items-center bg-[#F4F6FB] border-b border-[#E2E7F2]">
                   <div className="w-8 shrink-0 flex items-center justify-center">
                     <input
                       type="checkbox"
                       checked={allGroupSelected}
                       onChange={() => toggleGroup(g.id, groupTaskIds)}
-                      className="w-3.5 h-3.5 rounded border-slate-400 cursor-pointer accent-blue-600"
+                      className="w-3.5 h-3.5 rounded border-[#A8B0C8] cursor-pointer accent-[#007BFF]"
                     />
                   </div>
-                  <div className="w-0.5 h-5 bg-slate-400 rounded-full mr-2 shrink-0" />
+                  <div className="w-0.5 h-5 bg-[#A8B0C8] rounded-full mr-2 shrink-0" />
                   <button
-                    onClick={() => toggleCollapseGroup(g.id)}
+                    onClick={() => onToggleCollapseGroup(g.id)}
                     className="flex items-center gap-2 flex-1 py-2 pr-4 cursor-pointer hover:opacity-75 text-left"
                   >
                     {isCollapsed
-                      ? <ChevronRight size={13} className="text-slate-500 shrink-0" />
-                      : <ChevronDown size={13} className="text-slate-500 shrink-0" />}
-                    <span className="text-[12px] font-bold text-slate-700">{g.name}</span>
-                    <span className="text-[10px] font-semibold text-slate-500 bg-slate-200 rounded-full px-1.5 py-0.5 leading-none">
+                      ? <ChevronRight size={13} className="text-[#5F6A88] shrink-0" />
+                      : <ChevronDown size={13} className="text-[#5F6A88] shrink-0" />}
+                    <span className="text-[12px] font-bold text-[#3A4565]">{g.name}</span>
+                    <span className="text-[10px] font-semibold text-[#5F6A88] bg-[#EDF0F7] rounded-full px-1.5 py-0.5 leading-none">
                       {g.tasks.length}
                     </span>
                   </button>
@@ -447,8 +464,8 @@ export default function ListView({
                   g.tasks.length > 0
                     ? renderRows(g.tasks)
                     : (
-                      <div className="pl-10 pr-4 py-3 border-b border-slate-100">
-                        <p className="text-[12px] text-slate-300">No tasks in this list.</p>
+                      <div className="pl-10 pr-4 py-3 border-b border-[#EDF0F7]">
+                        <p className="text-[12px] text-[#A8B0C8]">No tasks in this list.</p>
                       </div>
                     )
                 )}
@@ -471,7 +488,7 @@ function SortHeader({
   return (
     <button
       onClick={onClick}
-      className="flex items-center gap-1 text-[11px] font-semibold text-slate-500 uppercase tracking-wide hover:text-slate-700 cursor-pointer"
+      className="flex items-center gap-1 text-[11px] font-semibold text-[#5F6A88] uppercase tracking-wide hover:text-[#0B1533] cursor-pointer transition-colors"
     >
       {label}
       {active && <span className="text-[9px]">{dir === "asc" ? "▲" : "▼"}</span>}
@@ -511,15 +528,15 @@ function Row({
   const isAssignedToMe = task.assignees?.includes(currentUserId) ?? false;
 
   return (
-    <div className={`grid ${gridClass} items-center gap-3 pl-4 pr-3 py-2.5 border-b border-slate-100 last:border-0 transition-colors ${
-      selected ? "bg-blue-50/60" : "hover:bg-slate-50/70"
+    <div className={`grid ${gridClass} items-center gap-3 pl-4 pr-3 py-2.5 border-b border-[#EDF0F7] last:border-0 transition-colors ${
+      selected ? "bg-[#F0F7FF]" : "hover:bg-[#F0F7FF]/60"
     }`}>
       {/* Checkbox */}
       <input
         type="checkbox"
         checked={selected}
         onChange={onToggle}
-        className="w-3.5 h-3.5 rounded border-slate-300 cursor-pointer accent-blue-600"
+        className="w-3.5 h-3.5 rounded border-[#E2E7F2] cursor-pointer accent-[#007BFF]"
       />
 
       {/* Task name */}
@@ -528,7 +545,7 @@ function Row({
           <button
             onClick={onToggleExpand}
             title={isExpanded ? "Collapse" : `Expand ${childrenCount} subtask${childrenCount === 1 ? "" : "s"}`}
-            className="flex items-center justify-center w-5 h-5 rounded text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition-colors cursor-pointer shrink-0"
+            className="flex items-center justify-center w-5 h-5 rounded text-[#5F6A88] hover:bg-[#EDF0F7] hover:text-[#0B1533] transition-colors cursor-pointer shrink-0"
           >
             {isExpanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
           </button>
@@ -536,12 +553,12 @@ function Row({
           <span className="w-5 h-5 shrink-0" />
         )}
         <button onClick={onOpen} className="text-left min-w-0 cursor-pointer group flex-1">
-          <span className="text-[13px] text-slate-700 truncate block group-hover:text-blue-600 transition-colors font-medium">
+          <span className="text-[13px] text-[#3A4565] truncate block group-hover:text-[#007BFF] transition-colors font-medium">
             {task.title}
           </span>
         </button>
         {childrenCount > 0 && !isExpanded && (
-          <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 rounded-full px-1.5 py-0.5 leading-none shrink-0 tabular-nums">
+          <span className="text-[10px] font-semibold text-[#5F6A88] bg-[#EDF0F7] rounded-full px-1.5 py-0.5 leading-none shrink-0 tabular-nums">
             {childrenCount}
           </span>
         )}
@@ -555,7 +572,7 @@ function Row({
         style={{ color: ss.text, background: ss.bg, borderColor: ss.border }}
       >
         {STATUS_OPTS.map((s) => (
-          <option key={s} value={s} className="bg-white text-slate-700">{STATUS_LABEL[s]}</option>
+          <option key={s} value={s} className="bg-white text-[#3A4565]">{STATUS_LABEL[s]}</option>
         ))}
       </select>
 
@@ -577,7 +594,7 @@ function Row({
       </span>
 
       {/* Hours logged */}
-      <span className="text-[12px] font-medium text-slate-500 tabular-nums">
+      <span className="text-[12px] font-medium text-[#5F6A88] tabular-nums">
         {totalHours > 0 ? `${totalHours % 1 === 0 ? totalHours : totalHours.toFixed(1)}h` : "—"}
       </span>
 

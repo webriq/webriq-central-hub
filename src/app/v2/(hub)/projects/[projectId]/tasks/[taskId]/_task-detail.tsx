@@ -60,7 +60,7 @@ export default function TaskDetailClient({
   milestones,
 }: {
   task: Task;
-  project: { id: string; name: string; customer_id: string };
+  project: { id: string; name: string; customer_id: string; project_id: string | null };
   milestones: Milestone[];
 }) {
   const router = useRouter();
@@ -185,7 +185,7 @@ export default function TaskDetailClient({
   async function handleDelete() {
     if (!confirm("Delete this task and all its subtasks?")) return;
     await fetch(`/api/v2/tasks/${task.id}`, { method: "DELETE" });
-    router.push(`/v2/projects/${project.id}`);
+    if (project.project_id) router.push(`/v2/projects/${project.project_id}`);
   }
 
   const doneCount = subtasks.filter((s) => s.status === "closed").length;
@@ -195,7 +195,7 @@ export default function TaskDetailClient({
       {/* Header */}
       <div className="px-8 pt-6 pb-5 bg-white border-b border-slate-100 shrink-0">
         <button
-          onClick={() => router.push(`/v2/projects/${project.id}`)}
+          onClick={() => project.project_id && router.push(`/v2/projects/${project.project_id}`)}
           className="inline-flex items-center gap-1.5 text-[12px] text-slate-500 hover:text-slate-700 mb-3 cursor-pointer"
         >
           <ArrowLeft size={14} /> {project.name}
@@ -205,7 +205,7 @@ export default function TaskDetailClient({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-2 flex-wrap">
               <span className="text-[11px] font-mono text-slate-400 bg-slate-100 px-2 py-0.5 rounded">
-                TASK · {task.id.slice(0, 8).toUpperCase()}
+                TASK · {task.display_id}
               </span>
               <StatusBadge status={status} />
               <PriorityBadge priority={priority} />

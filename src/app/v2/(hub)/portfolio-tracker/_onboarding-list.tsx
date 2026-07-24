@@ -217,6 +217,15 @@ export default function OnboardingList({ role }: { role: string | null }) {
   const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10) || 1);
   const pageSize = Math.max(1, parseInt(searchParams.get("pageSize") ?? String(PAGE_SIZES[0]), 10) || PAGE_SIZES[0]);
 
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const main = document.querySelector("main");
+    if (!main) return;
+    const onScroll = () => setScrolled(main.scrollTop > 4);
+    main.addEventListener("scroll", onScroll, { passive: true });
+    return () => main.removeEventListener("scroll", onScroll);
+  }, []);
+
   useEffect(() => {
     let ignore = false;
     // `loading` already starts `true` (initial state) — re-fetches triggered by `retryKey`
@@ -265,114 +274,121 @@ export default function OnboardingList({ role }: { role: string | null }) {
   const phaseCount = PROGRAMME_PHASES.length;
 
   return (
-    <div className="max-w-350 mx-auto px-8 py-6">
-      <div className="flex items-center justify-between gap-4 mb-5 flex-wrap">
-        <div>
-          <h1 className="font-heading text-[22px] font-bold tracking-[-0.02em] flex items-center gap-2 text-[#0B1533]">
-            <ChartGantt size={20} className="text-[#5F6A88]" /> Portfolio Tracker
-          </h1>
-          <p className="text-[13px] mt-0.5 text-[#5F6A88]">
-            {editable
-              ? `${total} client${total === 1 ? "" : "s"} · programme intake and progress across all ${phaseCount} phases (${totalDays}-day full cycle) — Phase 1 is hidden from PM/staff view until handover.`
-              : "Projects currently going through Phase 1 onboarding."}
-          </p>
-        </div>
-        {canCreate && (
-          <div className="flex items-center gap-2 shrink-0">
-            <Link
-              href={V2_ROUTES.PORTFOLIO_TRACKER_IMPORT}
-              className="inline-flex items-center gap-2 px-[15px] py-2 rounded-full border text-[12px] font-semibold transition-colors cursor-pointer border-[#E2E7F2] bg-white text-[#3A4565] hover:border-[#A8C6F5] hover:text-[#0B1533]"
-            >
-              <Upload size={14} /> Import Project
-            </Link>
-            <Link
-              href={V2_ROUTES.PORTFOLIO_TRACKER_NEW}
-              className="inline-flex items-center gap-2 px-[15px] py-2 rounded-full text-[12px] font-semibold transition-colors cursor-pointer bg-[#FB914E] text-[#471F02] hover:bg-[#E2762F] hover:text-white"
-            >
-              <Plus size={14} /> New Project
-            </Link>
-          </div>
-        )}
-      </div>
-
-      {/* Toolbar: search + status filter + pagination */}
-      <div className="flex items-center gap-3 flex-wrap mb-4">
-        <div className="relative min-w-[220px] max-w-xs flex-shrink-0">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#5F6A88]" />
-          <input
-            value={searchInput}
-            onChange={(e) => {
-              const q = e.target.value;
-              setSearchInput(q);
-              if (debounceRef.current) clearTimeout(debounceRef.current);
-              debounceRef.current = setTimeout(() => {
-                router.push(buildUrl({ search: q || null, page: 1 }));
-              }, 300);
-            }}
-            placeholder="Search clients or projects…"
-            className="w-full pl-8 pr-3 py-2 rounded-[10px] border text-[13px] outline-none transition-colors border-[#E2E7F2] bg-[#F4F6FB] text-[#3A4565] focus:border-[#007BFF] focus:bg-white focus:ring-[3px] focus:ring-[#007BFF]/[0.14] placeholder:text-[#5F6A88]"
-          />
-        </div>
-
-        {/* Filter pills — DESIGN.md: individual floating pills, active fills navy (never blue,
-            so filters read as selection state, not an action) — not a segmented-control group. */}
-        <div className="flex items-center gap-1.5 flex-wrap shrink-0">
-          {STATUS_FILTERS.map((s) => (
-            <button
-              key={s}
-              onClick={() => router.push(buildUrl({ status: s === "all" ? null : s, page: 1 }))}
-              aria-pressed={statusValue === s}
-              className={cn(
-                "px-3 py-[4.5px] rounded-full border text-[11px] font-semibold transition-colors cursor-pointer",
-                statusValue === s ? "bg-[#071133] border-[#071133] text-white" : "bg-white border-[#E2E7F2] text-[#5F6A88] hover:border-[#A8C6F5] hover:text-[#0B1533]"
-              )}
-            >
-              {STATUS_FILTER_LABELS[s]}
-            </button>
-          ))}
-        </div>
-
-        {isFiltered && (
-          <button
-            onClick={() => { setSearchInput(""); router.push(V2_ROUTES.PORTFOLIO_TRACKER); }}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#E2E7F2] bg-white text-[12px] text-[#3A4565] hover:bg-[#F0F7FF] cursor-pointer shrink-0 transition-colors"
-          >
-            <X size={13} /> Clear filters
-          </button>
-        )}
-
-        <div className="flex-1 min-w-0" />
-
-        {total > 0 && (
-          <div className="flex items-center gap-2 shrink-0">
-            <select
-              value={pageSize}
-              onChange={(e) => router.push(buildUrl({ pageSize: Number(e.target.value), page: 1 }))}
-              className="h-8 px-2.5 pr-6 rounded-lg border border-[#E2E7F2] bg-white text-[12px] text-[#3A4565] outline-none focus:border-[#007BFF] focus:ring-[3px] focus:ring-[#007BFF]/[0.14] cursor-pointer"
-            >
-              {PAGE_SIZES.map((n) => <option key={n} value={n}>{n} per page</option>)}
-            </select>
-            <span className="text-[12px] font-mono text-[#5F6A88]">
-              {from + 1}–{Math.min(from + pageSize, total)} of {total}
-            </span>
-            <div className="flex items-center gap-1 text-[#5F6A88]">
-              <button onClick={() => router.push(buildUrl({ page: 1 }))} disabled={!hasPrev} className="flex items-center justify-center w-7 h-7 rounded-full border border-[#E2E7F2] bg-white hover:bg-[#F0F7FF] disabled:opacity-30 disabled:cursor-default cursor-pointer transition-colors" title="First page">
-                <ChevronsLeft size={14} />
-              </button>
-              <button onClick={() => router.push(buildUrl({ page: page - 1 }))} disabled={!hasPrev} className="flex items-center justify-center w-7 h-7 rounded-full border border-[#E2E7F2] bg-white hover:bg-[#F0F7FF] disabled:opacity-30 disabled:cursor-default cursor-pointer transition-colors" title="Previous page">
-                <ChevronLeft size={14} />
-              </button>
-              <button onClick={() => router.push(buildUrl({ page: page + 1 }))} disabled={!hasNext} className="flex items-center justify-center w-7 h-7 rounded-full border border-[#E2E7F2] bg-white hover:bg-[#F0F7FF] disabled:opacity-30 disabled:cursor-default cursor-pointer transition-colors" title="Next page">
-                <ChevronRight size={14} />
-              </button>
-              <button onClick={() => router.push(buildUrl({ page: Math.ceil(total / pageSize) }))} disabled={!hasNext} className="flex items-center justify-center w-7 h-7 rounded-full border border-[#E2E7F2] bg-white hover:bg-[#F0F7FF] disabled:opacity-30 disabled:cursor-default cursor-pointer transition-colors" title="Last page">
-                <ChevronsRight size={14} />
-              </button>
+    <div>
+      {/* ── Sticky header (title row + toolbar row) ─────────────────────────── */}
+      <div className={cn("sticky top-0 z-20 bg-[#F4F6FB] transition-shadow duration-150", scrolled && "shadow-[0_1px_0_0_rgba(7,17,51,0.06)]")}>
+        <div className="max-w-350 mx-auto px-8 pt-6 pb-4">
+          <div className="flex items-center justify-between gap-4 mb-4 flex-wrap">
+            <div>
+              <h1 className="font-heading text-[22px] font-bold tracking-[-0.02em] flex items-center gap-2 text-[#0B1533]">
+                <ChartGantt size={20} className="text-[#5F6A88]" /> Portfolio Tracker
+              </h1>
+              <p className="text-[13px] mt-0.5 text-[#5F6A88]">
+                {editable
+                  ? `${total} client${total === 1 ? "" : "s"} · programme intake and progress across all ${phaseCount} phases (${totalDays}-day full cycle) — Phase 1 is hidden from PM/staff view until handover.`
+                  : "Projects currently going through Phase 1 onboarding."}
+              </p>
             </div>
+            {canCreate && (
+              <div className="flex items-center gap-2 shrink-0">
+                <Link
+                  href={V2_ROUTES.PORTFOLIO_TRACKER_IMPORT}
+                  className="inline-flex items-center gap-2 px-[15px] py-2 rounded-full border text-[12px] font-semibold transition-colors cursor-pointer border-[#E2E7F2] bg-white text-[#3A4565] hover:border-[#A8C6F5] hover:text-[#0B1533]"
+                >
+                  <Upload size={14} /> Import Project
+                </Link>
+                <Link
+                  href={V2_ROUTES.PORTFOLIO_TRACKER_NEW}
+                  className="inline-flex items-center gap-2 px-[15px] py-2 rounded-full text-[12px] font-semibold transition-colors cursor-pointer bg-[#FB914E] text-[#471F02] hover:bg-[#E2762F] hover:text-white"
+                >
+                  <Plus size={14} /> New Project
+                </Link>
+              </div>
+            )}
           </div>
-        )}
+
+          {/* Toolbar: search + status filter + pagination */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="relative min-w-[220px] max-w-xs flex-shrink-0">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#5F6A88]" />
+              <input
+                value={searchInput}
+                onChange={(e) => {
+                  const q = e.target.value;
+                  setSearchInput(q);
+                  if (debounceRef.current) clearTimeout(debounceRef.current);
+                  debounceRef.current = setTimeout(() => {
+                    router.push(buildUrl({ search: q || null, page: 1 }));
+                  }, 300);
+                }}
+                placeholder="Search clients or projects…"
+                className="w-full pl-8 pr-3 py-2 rounded-[10px] border text-[13px] outline-none transition-colors border-[#E2E7F2] bg-[#F4F6FB] text-[#3A4565] focus:border-[#007BFF] focus:bg-white focus:ring-[3px] focus:ring-[#007BFF]/[0.14] placeholder:text-[#5F6A88]"
+              />
+            </div>
+
+            {/* Filter pills — DESIGN.md: individual floating pills, active fills navy (never blue,
+                so filters read as selection state, not an action) — not a segmented-control group. */}
+            <div className="flex items-center gap-1.5 flex-wrap shrink-0">
+              {STATUS_FILTERS.map((s) => (
+                <button
+                  key={s}
+                  onClick={() => router.push(buildUrl({ status: s === "all" ? null : s, page: 1 }))}
+                  aria-pressed={statusValue === s}
+                  className={cn(
+                    "px-3 py-[4.5px] rounded-full border text-[11px] font-semibold transition-colors cursor-pointer",
+                    statusValue === s ? "bg-[#071133] border-[#071133] text-white" : "bg-white border-[#E2E7F2] text-[#5F6A88] hover:border-[#A8C6F5] hover:text-[#0B1533]"
+                  )}
+                >
+                  {STATUS_FILTER_LABELS[s]}
+                </button>
+              ))}
+            </div>
+
+            {isFiltered && (
+              <button
+                onClick={() => { setSearchInput(""); router.push(V2_ROUTES.PORTFOLIO_TRACKER); }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#E2E7F2] bg-white text-[12px] text-[#3A4565] hover:bg-[#F0F7FF] cursor-pointer shrink-0 transition-colors"
+              >
+                <X size={13} /> Clear filters
+              </button>
+            )}
+
+            <div className="flex-1 min-w-0" />
+
+            {total > 0 && (
+              <div className="flex items-center gap-2 shrink-0">
+                <select
+                  value={pageSize}
+                  onChange={(e) => router.push(buildUrl({ pageSize: Number(e.target.value), page: 1 }))}
+                  className="h-8 px-2.5 pr-6 rounded-lg border border-[#E2E7F2] bg-white text-[12px] text-[#3A4565] outline-none focus:border-[#007BFF] focus:ring-[3px] focus:ring-[#007BFF]/[0.14] cursor-pointer"
+                >
+                  {PAGE_SIZES.map((n) => <option key={n} value={n}>{n} per page</option>)}
+                </select>
+                <span className="text-[12px] font-mono text-[#5F6A88]">
+                  {from + 1}–{Math.min(from + pageSize, total)} of {total}
+                </span>
+                <div className="flex items-center gap-1 text-[#5F6A88]">
+                  <button onClick={() => router.push(buildUrl({ page: 1 }))} disabled={!hasPrev} className="flex items-center justify-center w-7 h-7 rounded-full border border-[#E2E7F2] bg-white hover:bg-[#F0F7FF] disabled:opacity-30 disabled:cursor-default cursor-pointer transition-colors" title="First page">
+                    <ChevronsLeft size={14} />
+                  </button>
+                  <button onClick={() => router.push(buildUrl({ page: page - 1 }))} disabled={!hasPrev} className="flex items-center justify-center w-7 h-7 rounded-full border border-[#E2E7F2] bg-white hover:bg-[#F0F7FF] disabled:opacity-30 disabled:cursor-default cursor-pointer transition-colors" title="Previous page">
+                    <ChevronLeft size={14} />
+                  </button>
+                  <button onClick={() => router.push(buildUrl({ page: page + 1 }))} disabled={!hasNext} className="flex items-center justify-center w-7 h-7 rounded-full border border-[#E2E7F2] bg-white hover:bg-[#F0F7FF] disabled:opacity-30 disabled:cursor-default cursor-pointer transition-colors" title="Next page">
+                    <ChevronRight size={14} />
+                  </button>
+                  <button onClick={() => router.push(buildUrl({ page: Math.ceil(total / pageSize) }))} disabled={!hasNext} className="flex items-center justify-center w-7 h-7 rounded-full border border-[#E2E7F2] bg-white hover:bg-[#F0F7FF] disabled:opacity-30 disabled:cursor-default cursor-pointer transition-colors" title="Last page">
+                    <ChevronsRight size={14} />
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
+      {/* ── Scrollable content ───────────────────────────────────────────────── */}
+      <div className="max-w-350 mx-auto px-8 py-5">
       {error && (
         <div className="flex items-center gap-3 mb-4">
           <p className="text-[13px] text-[#C0392B]">{error}</p>
@@ -433,6 +449,7 @@ export default function OnboardingList({ role }: { role: string | null }) {
           <ChevronRight size={11} /> Status only — content and file access are restricted to Marketing.
         </p>
       )}
+      </div>
     </div>
   );
 }

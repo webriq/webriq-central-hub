@@ -97,7 +97,7 @@ export default function TaskDrawer({
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 h-14 border-b border-slate-100 shrink-0">
-          <span className="text-[12px] font-mono text-slate-400">TASK · {task.id.slice(0, 8).toUpperCase()}</span>
+          <span className="text-[12px] font-mono text-slate-400">TASK · {task.display_id}</span>
           <div className="flex items-center gap-1">
             <button
               onClick={() => { if (confirm("Delete this task and its subtasks?")) onDelete(task.id); }}

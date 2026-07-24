@@ -14,10 +14,13 @@ export async function GET(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const { data: project } = await supabase.from("projects").select("id").eq("project_id", projectId).single();
+  if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 });
+
   const { data, error } = await supabase
     .from("tasks")
     .select("*")
-    .eq("project_id", projectId)
+    .eq("project_id", project.id)
     .is("parent_task_id", null)
     .order("position", { ascending: true, nullsFirst: false });
 
@@ -35,6 +38,9 @@ export async function POST(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const { data: project } = await supabase.from("projects").select("id").eq("project_id", projectId).single();
+  if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 });
+
   const body = await req.json().catch(() => ({}));
   if (!body.title?.trim()) {
     return NextResponse.json({ error: "title is required" }, { status: 400 });
@@ -49,7 +55,7 @@ export async function POST(
   const { data, error } = await supabase
     .from("tasks")
     .insert({
-      project_id: projectId,
+      project_id: project.id,
       title: body.title.trim(),
       description: body.description?.trim() || null,
       status: body.status || "backlog",

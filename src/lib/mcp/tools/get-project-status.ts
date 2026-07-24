@@ -3,7 +3,7 @@ import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import { runScopedTool } from "@/lib/mcp/run-tool";
 
 export const getProjectStatusInputSchema = {
-  customer_id: z.string().describe("The customer_id (e.g. WRQ-CLIENT-XXXX) to look up."),
+  customer_id: z.string().describe("The customer_id (e.g. WRQ-CUST-XXXXXXXX) to look up."),
 };
 
 export async function getProjectStatus(

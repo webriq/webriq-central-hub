@@ -15,7 +15,7 @@ export default async function ProjectDetailPage({
   const { data: project } = await supabase
     .from("projects")
     .select("*")
-    .eq("id", projectId)
+    .eq("project_id", projectId)
     .single();
 
   if (!project) notFound();
@@ -27,21 +27,21 @@ export default async function ProjectDetailPage({
     supabase
       .from("milestones")
       .select("*")
-      .eq("project_id", projectId)
+      .eq("project_id", project.id)
       .order("position", { ascending: true, nullsFirst: false }),
     supabase
       .from("tasklists")
       .select("*")
-      .eq("project_id", projectId)
+      .eq("project_id", project.id)
       .order("created_at", { ascending: true }),
     supabase
       .from("tasks")
       .select("*")
-      .eq("project_id", projectId)
+      .eq("project_id", project.id)
       .order("position", { ascending: true, nullsFirst: false }),
     supabase.from("customers").select("company_name").eq("customer_id", project.customer_id).single(),
     supabase.from("profiles").select("id, full_name, avatar_url").in("role", ["developer", "pm", "admin", "super_admin"]).order("full_name", { ascending: true }),
-    supabase.from("time_logs").select("task_id, hours").eq("project_id", projectId),
+    supabase.from("time_logs").select("task_id, hours").eq("project_id", project.id),
   ]);
 
   const profilesById: Record<string, { full_name: string; avatar_url: string | null }> = {};

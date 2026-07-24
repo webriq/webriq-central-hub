@@ -811,6 +811,7 @@ export interface Database {
           created_at: string;
           updated_at: string;
           source_meta: Record<string, unknown>;
+          display_id: string | null;
         };
         Insert: {
           id?: string;
@@ -829,6 +830,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
           source_meta?: Record<string, unknown>;
+          display_id?: string | null;
         };
         Update: {
           id?: string;
@@ -846,6 +848,7 @@ export interface Database {
           due_date?: string | null;
           updated_at?: string;
           source_meta?: Record<string, unknown>;
+          display_id?: string | null;
         };
         Relationships: [
           {
@@ -1008,6 +1011,7 @@ export interface Database {
           depth: number;
           completed_on: string | null;
           source_meta: Record<string, unknown>;
+          display_id: string | null;
         };
         Insert: {
           id?: string;
@@ -1039,6 +1043,7 @@ export interface Database {
           depth?: number;
           completed_on?: string | null;
           source_meta?: Record<string, unknown>;
+          display_id?: string | null;
         };
         Update: {
           id?: string;
@@ -1069,6 +1074,7 @@ export interface Database {
           depth?: number;
           completed_on?: string | null;
           source_meta?: Record<string, unknown>;
+          display_id?: string | null;
         };
         Relationships: [
           {
