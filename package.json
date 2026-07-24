@@ -4,9 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build --webpack",
+    "build": "pnpm type-check && next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint . --ext .ts,.tsx",
+    "type-check": "tsc",
+    "type-check:watch": "tsc --watch"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.71",

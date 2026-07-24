@@ -1,25 +1,25 @@
 {
   "file_hashes": {
-    ".claude/CLAUDE.md": "f5b23d5ae7e1c2ffd293e7e3c2fb8c1c50f902a83724d9c611758a1248f3402f",
-    ".claude/hooks/vexp-guard.sh": "b0b597198e6022920913cd86f566dcbeff65dc32beae0d98c18a657d5134a42b",
-    "AGENTS.md": "4e2fc0008594ddeb35fb7deb58b427f2e5159021c67ce09c8345472ae3c8ecaa",
-    "CLAUDE.md": "e1f721b468481d91a23e71f395186356162b80b99f0a74e4434daffc4834506f",
+    ".claude/CLAUDE.md": "2ce3c3c3736f037581bce72e737804f6300f5d10ab6e533db041c57051af2bf9",
+    "AGENTS.md": "d93ea30dfdec3e19d06d0148c3c27d05f6d394da5504abba6d5301e67da1c704",
+    "CLAUDE.md": "762e91b23d74414993e1f0e624e620a34eb037bd25e596426411881359c1f5fb",
     "DESIGN.md": "268328dba39d99448570bca13ae18f8a0f45865ecf449c61f30c10ca126352a7",
     "PRODUCT.md": "f28ece08ad639a34df712d611bbdb6480b9e44b6e12851edeb450e6c125ae9dd",
     "README.md": "516b4567b54983fef95143c2886d6e208838827596bab651a8bdabdfd1abb325",
-    "TASKS.md": "00f25c32c3d4b6281b35a2f94e99b31dc0e8f074df4b9879a328a6713d5c6801",
+    "TASKS.md": "53100afbf0e694007e723291281aa55ed70b3fa2c7ec2a3b4761bbd65991f132",
     "_docs/central-hub-mcp-tools.md": "67fb52b29c33887686e5ef519cc82bc587a8eec0123b54e99bc97e1d6ea61cf8",
     "_docs/task/174-security-sweep-1-critical-high-pipeline-access-control.md": "897c3d5668faf3d3e42e75a5c1b0edde0c103b843869bd31ea9f56c27b210ebc",
     "_docs/task/175-security-sweep-1-medium-low-webhook-upload-deps-onboarding-id.md": "f2d22dc7d532bfb07a2d8489b452b6d4dddf9c2c8c8f38b628dfdd772f69837b",
     "_docs/task/176-security-sweep-2-unauthenticated-routes-remaining-rls.md": "87216a0e2c5e5cbdbef98f817568098cfd53b5f0470e2b7fb96c1263b04790ca",
     "_docs/task/177-security-sweep-2-remaining-authorization-gaps.md": "ee8e7a0a1022cc596c6a2b3a10c689ffa8027a61828968720d3a14f179c95679",
-    "_docs/task/178-v2-auth-audit-dry-error-handling-guardrails.md": "097b210db8b30c2ab72dbf29477dd2ed54bc3d4f62efa12c8ec74e6f729fa7ab",
+    "_docs/task/178-v2-auth-audit-dry-error-handling-guardrails.md": "86bcd24ab28d93107b1cbb9faca4e42dab6d20e61c959b78d9cc5194898bb393",
     "_docs/task/179-v2-auth-pages-design-system-v2-redesign.md": "338922414b6d8cafcbcbf9e916fe82e2e46603130d53dc353ef3172eec03dbb8",
     "_docs/task/180-otp-2fa-redesign-attempt-lockout-forgot-password.md": "a2dd98b31eae4959683574030835952dd465e7c14f8e4fe31157ddc3d8f6b6b5",
-    "_docs/task/181-remote-mcp-server-oauth-scaffold.md": "e4882b35eeffd1aec4a7a987c5192b9309ead4b1fe536da4c70c59cf708bc4a5",
+    "_docs/task/181-remote-mcp-server-oauth-scaffold.md": "d6c2142eb7393d2d63db8b639faaa4866ba93b35485f60f1e085b41ce2a8be7e",
     "_docs/task/182-mcp-server-expose-ops-chat-tools.md": "581159a586391c3d9cfbf89102a163367cbc6bde5cc50177c21980e391b61aa7",
     "_docs/task/183-import-new-project-design-system-v2-redesign.md": "c9e0a194abb9b164040d36236a7901c71a2049658bffb02c91d03e065f445dc8",
     "_docs/task/184-customers-page-design-system-v2-redesign.md": "ddb8ffc24248d242c1011b996734943ed0617f4b0727e691a9bd5762e287b30c",
+    "_docs/task/185-projects-page-design-system-v2-redesign.md": "20677f6d49c99b21d5e25787b6635e8937b064e0d0b3592bf54e1a782e54aad5",
     "eslint.config.mjs": "2634be6f9aef7828d155dcd7c2edb6c8761b6ef51f604eb3c0e1745eab3cd31b",
     "next.config.ts": "72a7ada6fbf92588dd5d8286841b1c58711f731b1379a77e9aabda196d53e8b9",
     "postcss.config.mjs": "28a2e2028ed86bc42f1b4af4ea55278d0b89c5984c27c52fe738d8d0dd326085",
@@ -265,9 +265,9 @@
     "src/app/v2/(hub)/projects/[projectId]/tasks/[taskId]/_task-detail.tsx": "90ce828250585459a0c79037a0931cc8e47369e7d1e7d5c095a9e777922cd07c",
     "src/app/v2/(hub)/projects/[projectId]/tasks/[taskId]/page.tsx": "d7cfde8a9ba4b933aeb62d44bfd3298e42105f44f3ce80a64842e06d731a74fd",
     "src/app/v2/(hub)/projects/_pm-shared.tsx": "9e8736d48320b64730ff586564ebad2d5f8925a8703d658d4d4babd2c7449b0f",
-    "src/app/v2/(hub)/projects/_projects-index.tsx": "b3ba42f2cc49573fff29e9a38d7fbb5efd2b691ad6ea3c5202e9674b34b6428d",
+    "src/app/v2/(hub)/projects/_projects-index.tsx": "0c36cf83d7ee3e4134cdb090136808dfa935045f9ab8879725967b550b55cc1d",
     "src/app/v2/(hub)/projects/loading.tsx": "5f5911c26a13466cde93c5d4aebbba63612d01e4926ba5a6d62901a2477d6f0c",
-    "src/app/v2/(hub)/projects/page.tsx": "ecc6410952c91e90ff13a7576fba3d64f7230563e389ce521c96e3509b2195c1",
+    "src/app/v2/(hub)/projects/page.tsx": "8d2a173a89d642605913c9975424aaa4a36b6ce7dc0a9b56b4fcf6bfa86b2400",
     "src/app/v2/layout.tsx": "dea02838f78e521a4f92e97d417456de3577d1f44cade2407111bfc19658e977",
     "src/app/v2/oauth/authorize/actions.ts": "74da5d8375503009ee89f999dc679069d6358c881e95de0b8984c9734e43bed4",
     "src/app/v2/oauth/authorize/page.tsx": "22e3c6938a5014d9acd66c19e1e1137c413fc0f8d270263b1e5c465126e63267",
@@ -458,13 +458,13 @@
     "supabase/migrations/087_mcp_oauth_schema.sql": "a1287af79528f0b022bff3627be2436227d47ce306ee05299117beee8869542f",
     "worker/index.ts": "83350712449db3ec76c4015cedb2bad5dfd0d0ccd91509ee9a6f09ee4f66f9cc"
   },
-  "indexed_at_commit": "343ba8a466e139bc957f3d377ed2c840e0250b42",
-  "indexed_at_timestamp": "2026-07-24T06:37:01.317285+00:00",
+  "indexed_at_commit": "11d9d2daeaac9f6fd786386bf3137e71bf9f671c",
+  "indexed_at_timestamp": "2026-07-24T08:45:44.359215+00:00",
   "schema_version": 3,
   "stats": {
-    "total_edges": 2115,
+    "total_edges": 2177,
     "total_files": 457,
-    "total_nodes": 1721
+    "total_nodes": 1769
   },
-  "vexp_version": "2.2.4"
+  "vexp_version": "2.3.0"
 }

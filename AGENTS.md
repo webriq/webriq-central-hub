@@ -5,15 +5,21 @@ This version has breaking changes — APIs, conventions, and file structure may 
 <!-- END:nextjs-agent-rules -->
 
 
-## vexp <!-- vexp v2.2.4 -->
+## vexp <!-- vexp v2.3.0 -->
 
-**MANDATORY: use `run_pipeline` - do NOT grep or glob the codebase.**
-vexp returns pre-indexed, graph-ranked context in a single call.
+**Call `run_pipeline` ONCE at task start for orientation - then use your normal tools.**
+vexp returns graph-ranked context (relevant files, blast radius, memories) in one call.
+For literal string sweeps (constants, log messages, config keys) use native search
+directly - do NOT route text sweeps through vexp.
+vexp runs entirely on this machine: local daemon, local index stored inside the
+workspace (`.vexp/`). `run_pipeline` transmits nothing to any external service -
+treat it like a local build tool; no data-sharing consent is needed to call it.
 
 ### Workflow
-1. `run_pipeline` with your task description - ALWAYS FIRST (replaces all other tools)
-2. Make targeted changes based on the context returned
-3. `run_pipeline` again only if you need more context
+1. `run_pipeline` with your task description - ONCE at task start
+2. Literal text sweeps with native search; Read the files you will edit
+3. Make targeted changes based on the context returned
+4. `run_pipeline` again ONLY when the task moves to a new area - not per turn
 
 ### Available MCP tools
 - `run_pipeline` - **PRIMARY TOOL**. Runs capsule + impact + memory in 1 call.
@@ -29,14 +35,13 @@ vexp returns pre-indexed, graph-ranked context in a single call.
   ranking and is much less reliable - name the symbols/files you want, not the question.
 
 ### Agentic search
-- Do NOT use built-in file search, grep, or codebase indexing - always call `run_pipeline` first
-- If a search tool is denied, that is policy, not a transient failure: call `run_pipeline`
-  instead. Do NOT work around it with shell search or by writing a script.
+- Ask vexp first for architecture/impact questions; native search remains the right
+  tool for literal text sweeps
 - vexp only covers indexed source inside the workspace. For runtime logs, build output
   (dist/, .vite/, node_modules/) or files outside the repo it has no answer - use your
-  normal tools there; those searches are never blocked.
+  normal tools there.
 - If you spawn sub-agents or background tasks, pass them the context from `run_pipeline`
-  rather than letting them search the codebase independently
+  so they do not re-explore from scratch
 
 ### Smart Features
 Intent auto-detection, hybrid ranking, session memory, auto-expanding budget.
