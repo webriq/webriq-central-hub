@@ -142,3 +142,19 @@ pnpm dev
 - `npx tsc --noEmit` - PASS
 - `pnpm lint` - PASS
 - Manual browser verification (duplicate rows in one batch, re-upload of an already-imported file, one normal distinct-rows import) - SKIPPED (deferred to the `test` stage per the implement→simplify→test chain; not run in this stage).
+
+## Quality Gate Notes
+
+### Result
+PASS
+
+### Standards Review
+- No unused code, dead code, or commented-out implementation.
+- No `any`/untyped escape hatches introduced.
+- Uses `adminClient`, matching every other query in this loop (not `supabase`, unlike task 195's route, which is a deliberate and correct difference per this file's existing convention).
+- Error handling follows the identical row-level `errors.push({ row: rowNumber, error }); continue;` pattern already used by every other validation failure in this loop (e.g. the `productError` branch immediately above it) — no new error-handling shape introduced.
+- Comment explains the non-obvious *why* (companion gap to task 195, covers two concrete duplicate scenarios) rather than restating the code.
+- Verified directly against current file contents, not just the Implementation Notes summary — matches the task doc's Implementation Steps exactly.
+
+### Deviations
+- None.

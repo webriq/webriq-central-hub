@@ -182,6 +182,22 @@ pnpm dev
 - `pnpm lint` - PASS
 - Manual browser verification (double-submit, back-and-forth resubmission, and one normal end-to-end run per mode) - SKIPPED (deferred to the `test` stage per the implement→simplify→test chain; not run in this stage).
 
+## Quality Gate Notes
+
+### Result
+PASS
+
+### Standards Review
+- No unused code, dead code, or commented-out implementation.
+- No `any`/untyped escape hatches introduced.
+- Error handling matches this codebase's existing convention exactly (`console.error(...)` + typed `NextResponse.json({ error }, { status })`), consistent with every other Supabase-error branch in this route.
+- `submitLockRef`'s comment explains the non-obvious *why* (async `setSubmitting` can be outrun by a fast second click) rather than restating the code — matches CLAUDE.md's comment guidance.
+- The 2-line lock check/release appears identically in both `submit()` and `startAtPhase()`; not extracted into a shared helper — at this size, extraction would be over-abstraction for two call sites, not a real maintainability win (matches CLAUDE.md's "three similar lines is better than a premature abstraction").
+- Both changed files match the task doc's Implementation Steps exactly; verified directly against current file contents, not just the Implementation Notes summary.
+
+### Deviations
+- None.
+
 ## Live Data Incident — WRQ-CUST-D0A5D523 Cleanup (2026-07-29)
 
 The three duplicate cards from the original screenshot were traced to specific rows and resolved in the live database, ahead of/independent from the code fix landing. Recorded here so the history isn't lost if this comes up again.

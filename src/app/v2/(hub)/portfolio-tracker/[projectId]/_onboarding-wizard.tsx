@@ -3,13 +3,14 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowLeft, ArrowRight, Check, CheckCircle2, Circle, Clock, CloudUpload,
   FileText, Plus, Trash2, Sparkles, AlertTriangle, ListChecks, X, Eye, Pencil,
-  Monitor, Tablet, Smartphone, Folder, Lock, Grid3x3, LayoutList,
+  Monitor, Tablet, Smartphone, Folder, Lock, LayoutGrid, List, Code2,
   MoreVertical, FolderPlus, FolderInput, Share2, ChevronRight, Loader2,
-  Users, Crown, ArrowRightLeft,
+  Users, Crown, ArrowRightLeft, CircleQuestionMark, FileSpreadsheet, FileImage,
+  FileCode2, Link2, KeyRound, FolderOpen,
 } from "lucide-react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -17,6 +18,8 @@ import { html as htmlLang } from "@codemirror/lang-html";
 import { markdown as markdownLang } from "@codemirror/lang-markdown";
 import { githubLight } from "@uiw/codemirror-theme-github";
 import { marked } from "marked";
+import * as XLSX from "xlsx";
+import mammoth from "mammoth";
 import { cn } from "@/lib/utils";
 import { V2_ROUTES } from "@/config/constants";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
@@ -74,11 +77,11 @@ function IconTip({ label, side = "top", children }: { label: string; side?: "top
   );
 }
 
-// Renders raw Markdown into a self-contained, readable HTML document (headings, code blocks,
-// tables, blockquotes styled) for both the read-only viewer and the edit modal's live preview —
-// `marked.parse()` alone only returns unstyled body markup, not a full styled page.
-function markdownToHtmlDocument(md: string): string {
-  const body = marked.parse(md, { async: false }) as string;
+// Wraps arbitrary body HTML in a self-contained, readable document (headings, code blocks,
+// tables, blockquotes styled) — shared by the Markdown viewer/preview (below) and the Docx
+// thumbnail/preview (mammoth's converted HTML, see DocxFilePreview), since both just need
+// unstyled body markup dressed up the same way.
+function htmlBodyDocument(body: string): string {
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.65; color: #1e293b; max-width: 760px; margin: 0 auto; padding: 32px 24px; }
     h1, h2, h3, h4 { font-weight: 700; line-height: 1.3; margin-top: 1.5em; margin-bottom: 0.5em; }
@@ -95,6 +98,11 @@ function markdownToHtmlDocument(md: string): string {
     ul, ol { padding-left: 1.4em; }
     hr { border: none; border-top: 1px solid #e2e8f0; margin: 2em 0; }
   </style></head><body>${body}</body></html>`;
+}
+
+// `marked.parse()` alone only returns unstyled body markup, not a full styled page.
+function markdownToHtmlDocument(md: string): string {
+  return htmlBodyDocument(marked.parse(md, { async: false }) as string);
 }
 
 interface OnboardingWizardProps {
@@ -387,12 +395,12 @@ export default function OnboardingWizard({
     initialContacts.length > 0
       ? initialContacts
       : [{
-          fullName: project.contact_name ?? "",
-          position: "",
-          email: project.contact_email ?? "",
-          phone: project.primary_contact_phone ?? "",
-          socialMedia: "",
-        }];
+        fullName: project.contact_name ?? "",
+        position: "",
+        email: project.contact_email ?? "",
+        phone: project.primary_contact_phone ?? "",
+        socialMedia: "",
+      }];
   const [contacts, setContacts] = useState<ContactEntry[]>(defaultContacts);
   // additionalNotes replaces directAccess (task 129) — fall back to the old key so already-saved
   // "Direct access notes" content isn't silently lost for in-progress projects.
@@ -494,9 +502,15 @@ export default function OnboardingWizard({
   // Credentials & links list (task 140) — non-file Phase 1 assets, sourced from the same
   // phase1Assets state the File Explorer already fetches; no separate fetch needed.
   const [showAddCredentialLink, setShowAddCredentialLink] = useState(false);
+  // Which type the "+ Add" modal opens pre-selected to (task 198) — set right before opening
+  // the modal from whichever tab's "+ Add" button was clicked.
+  const [addCredentialLinkType, setAddCredentialLinkType] = useState<"link" | "credential">("link");
   // Keyed by `${assetId}::${fieldIndex}` — per-field reveal, not per-asset (task 140 follow-up).
   const [revealedCredentialFields, setRevealedCredentialFields] = useState<Set<string>>(new Set());
   const [credentialLinkDeleteError, setCredentialLinkDeleteError] = useState<string | null>(null);
+  // Project Files / Credentials / Links tabs (task 198) — local UI state only, resets on
+  // remount; doesn't need to persist across wizard steps.
+  const [assetTab, setAssetTab] = useState<"files" | "credentials" | "links">("files");
 
   const [outcomeText, setOutcomeText] = useState((outcomeTargetData.outcomeText as string) ?? "");
   const [outcomeFiles, setOutcomeFiles] = useState<AssetRow[]>([]);
@@ -789,7 +803,7 @@ export default function OnboardingWizard({
       .then((data: { id: string; full_name: string | null; role: string }[]) => {
         if (!cancelled) setStaffDirectory(Array.isArray(data) ? data : []);
       })
-      .catch(() => {});
+      .catch(() => { });
     return () => {
       cancelled = true;
     };
@@ -1701,6 +1715,16 @@ export default function OnboardingWizard({
     setEditingHtmlLoadError(null);
   };
 
+  // "Edit HTML" button inside FileViewerModal — closes the read-only viewer and opens the
+  // editable split-view modal for the same file in one go. Both state updates land in the same
+  // render (closeFileViewer + handleOpenHtmlEditor both fire synchronously before any await),
+  // so the two modals' AnimatePresence exit/enter animations run concurrently as a crossfade
+  // instead of a hard cut.
+  const handleEditHtmlFromViewer = (asset: AssetRow) => {
+    closeFileViewer();
+    handleOpenHtmlEditor(asset);
+  };
+
   const handleHtmlEditorSaved = (assetId: string, newSize: number) => {
     setHtmlMockupFiles((prev) => prev.map((f) => (f.id === assetId ? { ...f, file_size: newSize } : f)));
   };
@@ -1947,7 +1971,6 @@ export default function OnboardingWizard({
   const textPrimary = "text-[#0B1533]";
   const textMuted = "text-[#5F6A88]";
   const cardCls = "bg-white border border-[#E2E7F2] rounded-xl";
-  const labelCls = cn("block text-[12.5px] font-semibold mb-1.5", textPrimary);
 
   // Kickoff-step-only Field styling, matching the New Project wizard's
   // rounded-[9px]/border-[1.5px]/focus-glow look — fixed-light v2.0 tokens.
@@ -2125,434 +2148,532 @@ export default function OnboardingWizard({
             to reach it; it's now a sticky side column so it stays in view alongside whichever
             field the user is filling in. */}
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_1px_272px] gap-6 items-start">
-        <div className="min-w-0">
-        {step.key === "kickoff" && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-4 mb-5">
-            <div className="flex flex-col gap-4">
-              <ContactsField contacts={contacts} onChange={setContacts} hasError={contactsFieldError && !isContactsValid} disabled={isStepReadOnly} />
-              <div>
-                <label className={kickoffLabelCls}>Current website URL</label>
-                <input
-                  value={websiteUrl}
-                  onChange={(e) => { setWebsiteUrl(e.target.value); setWebsiteUrlError(null); }}
-                  onBlur={() => setWebsiteUrlError(websiteUrl.trim() && !isValidUrl(websiteUrl.trim()) ? "Enter a full URL starting with http:// or https://" : null)}
-                  placeholder="https://client.com"
-                  className={kickoffInputCls}
-                  disabled={isStepReadOnly}
-                />
-                <p className={cn("text-[11px] mt-1", textMuted)}>Leave blank if none.</p>
-                {websiteUrlError && <p className="text-[11px] text-[#C0392B] mt-1">{websiteUrlError}</p>}
+          <div className="min-w-0">
+            {step.key === "kickoff" && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-4 mb-5">
+                <div className="flex flex-col gap-4">
+                  <ContactsField contacts={contacts} onChange={setContacts} hasError={contactsFieldError && !isContactsValid} disabled={isStepReadOnly} />
+                  <div>
+                    <label className={kickoffLabelCls}>Current website URL</label>
+                    <input
+                      value={websiteUrl}
+                      onChange={(e) => { setWebsiteUrl(e.target.value); setWebsiteUrlError(null); }}
+                      onBlur={() => setWebsiteUrlError(websiteUrl.trim() && !isValidUrl(websiteUrl.trim()) ? "Enter a full URL starting with http:// or https://" : null)}
+                      placeholder="https://client.com"
+                      className={kickoffInputCls}
+                      disabled={isStepReadOnly}
+                    />
+                    <p className={cn("text-[11px] mt-1", textMuted)}>Leave blank if none.</p>
+                    {websiteUrlError && <p className="text-[11px] text-[#C0392B] mt-1">{websiteUrlError}</p>}
+                  </div>
+                  <div>
+                    <TagField
+                      label="Competitor / reference URLs"
+                      tags={competitorUrls}
+                      input={competitorInput}
+                      setInput={(v) => { setCompetitorInput(v); setCompetitorInputError(null); }}
+                      onAdd={() => {
+                        const v = competitorInput.trim();
+                        if (!v) return;
+                        if (!isValidUrl(v)) { setCompetitorInputError("Enter a full URL starting with http:// or https://"); return; }
+                        setCompetitorUrls((c) => [...c, v]);
+                        setCompetitorInput("");
+                        setCompetitorInputError(null);
+                      }}
+                      onRemove={(i) => setCompetitorUrls((c) => c.filter((_, j) => j !== i))}
+                      placeholder="https://competitor.com"
+                      disabled={isStepReadOnly}
+                    />
+                    {competitorInputError && <p className="text-[11px] text-[#C0392B] mt-1">{competitorInputError}</p>}
+                  </div>
+                </div>
+                <div className="flex flex-col gap-4">
+                  <div>
+                    <RichTextField
+                      label="Business facts"
+                      value={businessFacts}
+                      onChange={setBusinessFacts}
+                      placeholder="History, services, value proposition, service areas, target customers… (required — text or an attachment)"
+                      minHeightClass="min-h-[104px]"
+                      maxHeightClass="max-h-[280px]"
+                      hasError={businessFactsFieldError && !isBusinessFactsFilled}
+                      disabled={isStepReadOnly}
+                    />
+                    {businessFactsUploadError && <p className="text-[12px] text-[#C0392B] mt-2">{businessFactsUploadError}</p>}
+                    <FileUploadBox
+                      files={businessFactsFiles}
+                      uploading={businessFactsUploadProgress.length > 0}
+                      uploadProgress={businessFactsUploadProgress}
+                      onFile={handleBusinessFactsUpload}
+                      onRemove={handleRemoveBusinessFactsFile}
+                      onView={handleViewBusinessFactsFile}
+                      viewingId={viewingBusinessFactsFileId}
+                      hasError={businessFactsFieldError && !isBusinessFactsFilled}
+                      disabled={isStepReadOnly}
+                      loading={phase1Loading}
+                    />
+                  </div>
+                  <RichTextField
+                    label="Additional Notes"
+                    value={additionalNotes}
+                    onChange={setAdditionalNotes}
+                    placeholder="Leave blank if none."
+                    minHeightClass="min-h-[80px]"
+                    maxHeightClass="max-h-[220px]"
+                    disabled={isStepReadOnly}
+                  />
+                </div>
               </div>
-              <div>
-                <TagField
-                  label="Competitor / reference URLs"
-                  tags={competitorUrls}
-                  input={competitorInput}
-                  setInput={(v) => { setCompetitorInput(v); setCompetitorInputError(null); }}
-                  onAdd={() => {
-                    const v = competitorInput.trim();
-                    if (!v) return;
-                    if (!isValidUrl(v)) { setCompetitorInputError("Enter a full URL starting with http:// or https://"); return; }
-                    setCompetitorUrls((c) => [...c, v]);
-                    setCompetitorInput("");
-                    setCompetitorInputError(null);
-                  }}
-                  onRemove={(i) => setCompetitorUrls((c) => c.filter((_, j) => j !== i))}
-                  placeholder="https://competitor.com"
-                  disabled={isStepReadOnly}
-                />
-                {competitorInputError && <p className="text-[11px] text-[#C0392B] mt-1">{competitorInputError}</p>}
+            )}
+
+            {step.key === "storage-kb" && (
+              <div className="mb-5">
+                {/* Project Files / Credentials / Links tabs (task 198) — same pill-tab visual
+                pattern as the Tasks/Issues/Milestones tabs on the project detail page, but
+                switched locally (this is one wizard step, not a set of routes). */}
+                <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
+                  <div className="flex items-center gap-1 bg-[#F4F6FB] rounded-full p-1">
+                    {([
+                      { id: "files", label: "Project files" },
+                      { id: "credentials", label: "Credentials" },
+                      { id: "links", label: "Links" },
+                    ] as const).map((tab) => (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => setAssetTab(tab.id)}
+                        className={cn(
+                          "px-3 py-1.5 rounded-full text-[12px] font-medium transition-colors cursor-pointer border-none",
+                          assetTab === tab.id
+                            ? "bg-white text-[#0B1533] shadow-[0_1px_2px_rgba(7,17,51,.05)]"
+                            : "bg-transparent text-[#5F6A88] hover:text-[#0B1533]"
+                        )}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {assetTab === "files" && (
+                  <StorageFileExplorer
+                    assets={phase1Assets}
+                    error={phase1AssetsError}
+                    folders={phase1Folders}
+                    foldersError={phase1FoldersError}
+                    loading={phase1Loading}
+                    rootLabel={project.project_id ?? project.id}
+                    onView={handleViewAsset}
+                    viewingId={viewerLoading ? (viewerFile?.id ?? null) : null}
+                    onPermissionsChange={handlePermissionsChange}
+                    permissionsUpdatingId={permissionsUpdatingId}
+                    onUpload={handleUpload}
+                    uploading={uploading}
+                    uploadError={uploadError}
+                    onRemove={handleRemoveFile}
+                    onMove={handleMoveAsset}
+                    movingAssetId={movingAssetId}
+                    onCreateFolder={handleCreateFolder}
+                    creatingFolder={creatingFolder}
+                    onFolderPermissionsChange={handleFolderPermissionsChange}
+                    folderPermissionsUpdatingId={folderPermissionsUpdatingId}
+                    onRenameFolder={handleRenameFolder}
+                    renamingFolderId={renamingFolderId}
+                    onDeleteFolder={handleDeleteFolder}
+                    deletingFolderId={deletingFolderId}
+                    onRenameAsset={handleRenameAsset}
+                    renamingAssetId={renamingAssetId}
+                    staffDirectory={staffDirectory}
+                    customerId={project.customer_id}
+                  />
+                )}
+
+                {assetTab === "credentials" && (() => {
+                  const credentials = phase1Assets.filter((a): a is AssetRow & { type: "credential" } => a.type === "credential");
+                  return (
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className={cn("text-[10px] font-semibold uppercase tracking-wide", textMuted)}>
+                          {credentials.length} credential{credentials.length === 1 ? "" : "s"}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => { setAddCredentialLinkType("credential"); setShowAddCredentialLink(true); }}
+                          className="inline-flex items-center gap-1 text-[11.5px] font-medium px-2.5 py-1.5 rounded-full cursor-pointer border transition-colors border-[#E2E7F2] bg-white text-[#007BFF] hover:border-[#A8C6F5]"
+                        >
+                          <Plus size={12} /> Add credential
+                        </button>
+                      </div>
+                      {credentialLinkDeleteError && <p className="text-[11.5px] text-[#C0392B] mb-1.5">{credentialLinkDeleteError}</p>}
+                      {credentials.length === 0 ? (
+                        <div className={cn("flex flex-col items-center justify-center gap-2 py-10 rounded-xl border border-dashed text-center", "border-[#E2E7F2] bg-[#F9FAFD]")}>
+                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#FFF3D6] text-[#8A5A00]">
+                            <KeyRound size={18} />
+                          </div>
+                          <p className={cn("text-[12.5px]", textMuted)}>No credentials added yet — they&apos;ll show up here once you add one.</p>
+                          <button
+                            type="button"
+                            onClick={() => { setAddCredentialLinkType("credential"); setShowAddCredentialLink(true); }}
+                            className="text-[11.5px] font-medium text-[#007BFF] hover:opacity-70 transition-opacity cursor-pointer border-none bg-transparent"
+                          >
+                            Add a credential
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col gap-1.5">
+                          {credentials.map((asset) => {
+                            // Per-field sensitivity (task 140 follow-up) — each field carries its own
+                            // `masked` flag; fields saved before this change (or the whole-asset
+                            // `masked` toggle) fall back to the asset-level flag so nothing regresses
+                            // to plaintext-by-default.
+                            const credentialFields = Array.isArray(asset.fields)
+                              ? (asset.fields as { label: string; value: string; masked?: boolean }[])
+                              : [];
+                            return (
+                              <div key={asset.id} className={cn("flex items-start gap-3 px-3 py-2.5 rounded-lg", "bg-[#F4F6FB]")}>
+                                <span className={cn("text-[10px] font-bold rounded px-1.5 py-px shrink-0 mt-0.5", assetTypeCls(asset.type))}>
+                                  {ASSET_TYPE_LABELS[asset.type]}
+                                </span>
+                                <span className={cn("text-[12px] font-semibold shrink-0 w-32 truncate mt-0.5", textPrimary)}>{asset.label}</span>
+                                <div className="flex-1 min-w-0 flex flex-col gap-1">
+                                  {credentialFields.map((field, i) => {
+                                    const fieldKey = `${asset.id}::${i}`;
+                                    const fieldRevealed = revealedCredentialFields.has(fieldKey);
+                                    const isSensitive = field.masked ?? asset.masked;
+                                    return (
+                                      <div key={i} className="flex items-center gap-2">
+                                        <span className={cn("text-[11px] font-mono shrink-0", textMuted)}>{field.label}:</span>
+                                        <span className={cn("text-[11px] font-mono truncate", textPrimary)}>
+                                          {isSensitive && !fieldRevealed ? "••••••••" : field.value}
+                                        </span>
+                                        {isSensitive && (
+                                          <button
+                                            type="button"
+                                            onClick={() => setRevealedCredentialFields((prev) => {
+                                              const next = new Set(prev);
+                                              if (fieldRevealed) next.delete(fieldKey); else next.add(fieldKey);
+                                              return next;
+                                            })}
+                                            className="text-[10.5px] font-medium text-[#007BFF] bg-transparent border-none cursor-pointer shrink-0"
+                                          >
+                                            {fieldRevealed ? "Hide" : "Show"}
+                                          </button>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                                <div className="flex items-center gap-2 shrink-0 mt-0.5">
+                                  <IconTip label="Remove">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteCredentialLink(asset.id)}
+                                      aria-label={`Remove ${asset.label}`}
+                                      className="p-2 rounded-md cursor-pointer border-none bg-transparent text-[#C0392B] hover:bg-[#FDE8E6] transition-colors"
+                                    >
+                                      <Trash2 size={12} />
+                                    </button>
+                                  </IconTip>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {assetTab === "links" && (() => {
+                  const links = phase1Assets.filter((a): a is AssetRow & { type: "link" } => a.type === "link");
+                  return (
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className={cn("text-[10px] font-semibold uppercase tracking-wide", textMuted)}>
+                          {links.length} link{links.length === 1 ? "" : "s"}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => { setAddCredentialLinkType("link"); setShowAddCredentialLink(true); }}
+                          className="inline-flex items-center gap-1 text-[11.5px] font-medium px-2.5 py-1.5 rounded-full cursor-pointer border transition-colors border-[#E2E7F2] bg-white text-[#007BFF] hover:border-[#A8C6F5]"
+                        >
+                          <Plus size={12} /> Add link
+                        </button>
+                      </div>
+                      {credentialLinkDeleteError && <p className="text-[11.5px] text-[#C0392B] mb-1.5">{credentialLinkDeleteError}</p>}
+                      {links.length === 0 ? (
+                        <div className={cn("flex flex-col items-center justify-center gap-2 py-10 rounded-xl border border-dashed text-center", "border-[#E2E7F2] bg-[#F9FAFD]")}>
+                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#E5F1FF] text-[#007BFF]">
+                            <Link2 size={18} />
+                          </div>
+                          <p className={cn("text-[12.5px]", textMuted)}>No links added yet — they&apos;ll show up here once you add one.</p>
+                          <button
+                            type="button"
+                            onClick={() => { setAddCredentialLinkType("link"); setShowAddCredentialLink(true); }}
+                            className="text-[11.5px] font-medium text-[#007BFF] hover:opacity-70 transition-opacity cursor-pointer border-none bg-transparent"
+                          >
+                            Add a link
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col gap-1.5">
+                          {links.map((asset) => (
+                            <div key={asset.id} className={cn("flex items-start gap-3 px-3 py-2.5 rounded-lg", "bg-[#F4F6FB]")}>
+                              <span className={cn("text-[10px] font-bold rounded px-1.5 py-px shrink-0 mt-0.5", assetTypeCls(asset.type))}>
+                                {ASSET_TYPE_LABELS[asset.type]}
+                              </span>
+                              <span className={cn("text-[12px] font-semibold shrink-0 w-32 truncate mt-0.5", textPrimary)}>{asset.label}</span>
+                              <span className={cn("flex-1 min-w-0 text-[11px] font-mono truncate mt-0.5", textMuted)}>{asset.value}</span>
+                              <div className="flex items-center gap-2 shrink-0 mt-0.5">
+                                <a href={asset.value ?? "#"} target="_blank" rel="noopener noreferrer" className="text-[11px] font-medium text-[#007BFF] hover:opacity-70 transition-opacity">
+                                  Open
+                                </a>
+                                <IconTip label="Remove">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteCredentialLink(asset.id)}
+                                    aria-label={`Remove ${asset.label}`}
+                                    className="p-2 rounded-md cursor-pointer border-none bg-transparent text-[#C0392B] hover:bg-[#FDE8E6] transition-colors"
+                                  >
+                                    <Trash2 size={12} />
+                                  </button>
+                                </IconTip>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
-            </div>
-            <div className="flex flex-col gap-4">
-              <div>
-                <RichTextField
-                  label="Business facts"
-                  value={businessFacts}
-                  onChange={setBusinessFacts}
-                  placeholder="History, services, value proposition, service areas, target customers… (required — text or an attachment)"
-                  minHeightClass="min-h-[104px]"
-                  maxHeightClass="max-h-[280px]"
-                  hasError={businessFactsFieldError && !isBusinessFactsFilled}
-                  disabled={isStepReadOnly}
-                />
-                {businessFactsUploadError && <p className="text-[12px] text-[#C0392B] mt-2">{businessFactsUploadError}</p>}
-                <FileUploadBox
-                  files={businessFactsFiles}
-                  uploading={businessFactsUploadProgress.length > 0}
-                  uploadProgress={businessFactsUploadProgress}
-                  onFile={handleBusinessFactsUpload}
-                  onRemove={handleRemoveBusinessFactsFile}
-                  onView={handleViewBusinessFactsFile}
-                  viewingId={viewingBusinessFactsFileId}
-                  hasError={businessFactsFieldError && !isBusinessFactsFilled}
+            )}
+
+            {showAddCredentialLink && (
+              <AddCredentialLinkModal
+                customerId={project.customer_id}
+                projectId={project.id}
+                staffDirectory={staffDirectory}
+                initialType={addCredentialLinkType}
+                onClose={() => setShowAddCredentialLink(false)}
+                onCreated={(asset) => setPhase1Assets((prev) => [...prev, asset])}
+              />
+            )}
+
+            {step.key === "outcome-target" && (
+              <div className="mb-5">
+                <UploadFirstField
+                  richTextLabel="Agreed measurable outcomes"
+                  richTextPlaceholder="e.g. Increase organic traffic 40% by Day 90, 3x qualified leads by Day 120…"
+                  textValue={outcomeText}
+                  onTextChange={setOutcomeText}
+                  hasError={outcomeFieldError && !isOutcomeFilled}
+                  errorMessage="Add the agreed measurable outcomes — text or an attached document — before continuing."
+                  uploadLabel="Agreed measurable outcomes"
+                  uploadHint="Upload a KPI or targets sheet — or add typed notes below instead. One of the two is required."
+                  uploadError={outcomeUploadError}
+                  files={outcomeFiles}
+                  uploading={outcomeUploadProgress.length > 0}
+                  uploadProgress={outcomeUploadProgress}
+                  onFile={handleOutcomeFileUpload}
+                  onRemove={handleRemoveOutcomeFile}
+                  onView={handleViewOutcomeFile}
+                  viewingId={viewingOutcomeFileId}
                   disabled={isStepReadOnly}
                   loading={phase1Loading}
                 />
               </div>
-              <RichTextField
-                label="Additional Notes"
-                value={additionalNotes}
-                onChange={setAdditionalNotes}
-                placeholder="Leave blank if none."
-                minHeightClass="min-h-[80px]"
-                maxHeightClass="max-h-[220px]"
-                disabled={isStepReadOnly}
-              />
-            </div>
-          </div>
-        )}
-
-        {step.key === "storage-kb" && (
-          <div className="flex flex-col gap-4 mb-5">
-            <div>
-              <label className={labelCls}>Project files</label>
-              <StorageFileExplorer
-                assets={phase1Assets}
-                error={phase1AssetsError}
-                folders={phase1Folders}
-                foldersError={phase1FoldersError}
-                loading={phase1Loading}
-                rootLabel={project.project_id ?? project.id}
-                onView={handleViewAsset}
-                viewingId={viewerLoading ? (viewerFile?.id ?? null) : null}
-                onPermissionsChange={handlePermissionsChange}
-                permissionsUpdatingId={permissionsUpdatingId}
-                onUpload={handleUpload}
-                uploading={uploading}
-                uploadError={uploadError}
-                onRemove={handleRemoveFile}
-                onMove={handleMoveAsset}
-                movingAssetId={movingAssetId}
-                onCreateFolder={handleCreateFolder}
-                creatingFolder={creatingFolder}
-                onFolderPermissionsChange={handleFolderPermissionsChange}
-                folderPermissionsUpdatingId={folderPermissionsUpdatingId}
-                onRenameFolder={handleRenameFolder}
-                renamingFolderId={renamingFolderId}
-                onDeleteFolder={handleDeleteFolder}
-                deletingFolderId={deletingFolderId}
-                onRenameAsset={handleRenameAsset}
-                renamingAssetId={renamingAssetId}
-                staffDirectory={staffDirectory}
-              />
-            </div>
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className={labelCls}>Credentials & links</label>
-                <button
-                  type="button"
-                  onClick={() => setShowAddCredentialLink(true)}
-                  className="inline-flex items-center gap-1 text-[11.5px] font-medium px-2 py-1 rounded-md cursor-pointer border-none transition-colors text-[#007BFF] hover:bg-[#E5F1FF]"
-                >
-                  <Plus size={12} /> Add
-                </button>
-              </div>
-              {credentialLinkDeleteError && <p className="text-[11.5px] text-[#C0392B] mb-1.5">{credentialLinkDeleteError}</p>}
-              {(() => {
-                const credentialsAndLinks = phase1Assets.filter((a): a is AssetRow & { type: "link" | "credential" } => a.type === "link" || a.type === "credential");
-                if (credentialsAndLinks.length === 0) {
-                  return <p className={cn("text-[11.5px]", textMuted)}>No credentials or links added yet.</p>;
-                }
-                return (
-                  <div className="flex flex-col gap-1.5">
-                    {credentialsAndLinks.map((asset) => {
-                      // Per-field sensitivity (task 140 follow-up) — each field carries its own
-                      // `masked` flag; fields saved before this change (or the whole-asset
-                      // `masked` toggle) fall back to the asset-level flag so nothing regresses
-                      // to plaintext-by-default.
-                      const credentialFields = asset.type === "credential" && Array.isArray(asset.fields)
-                        ? (asset.fields as { label: string; value: string; masked?: boolean }[])
-                        : [];
-                      return (
-                        <div key={asset.id} className={cn("flex items-start gap-3 px-3 py-2.5 rounded-lg", "bg-[#F4F6FB]")}>
-                          <span className={cn("text-[10px] font-bold rounded px-1.5 py-px shrink-0 mt-0.5", assetTypeCls(asset.type))}>
-                            {ASSET_TYPE_LABELS[asset.type]}
-                          </span>
-                          <span className={cn("text-[12px] font-semibold shrink-0 w-32 truncate mt-0.5", textPrimary)}>{asset.label}</span>
-                          <div className="flex-1 min-w-0 flex flex-col gap-1">
-                            {asset.type === "credential" ? (
-                              credentialFields.map((field, i) => {
-                                const fieldKey = `${asset.id}::${i}`;
-                                const fieldRevealed = revealedCredentialFields.has(fieldKey);
-                                const isSensitive = field.masked ?? asset.masked;
-                                return (
-                                  <div key={i} className="flex items-center gap-2">
-                                    <span className={cn("text-[11px] font-mono shrink-0", textMuted)}>{field.label}:</span>
-                                    <span className={cn("text-[11px] font-mono truncate", textPrimary)}>
-                                      {isSensitive && !fieldRevealed ? "••••••••" : field.value}
-                                    </span>
-                                    {isSensitive && (
-                                      <button
-                                        type="button"
-                                        onClick={() => setRevealedCredentialFields((prev) => {
-                                          const next = new Set(prev);
-                                          if (fieldRevealed) next.delete(fieldKey); else next.add(fieldKey);
-                                          return next;
-                                        })}
-                                        className="text-[10.5px] font-medium text-[#007BFF] bg-transparent border-none cursor-pointer shrink-0"
-                                      >
-                                        {fieldRevealed ? "Hide" : "Show"}
-                                      </button>
-                                    )}
-                                  </div>
-                                );
-                              })
-                            ) : (
-                              <span className={cn("text-[11px] font-mono truncate mt-0.5", textMuted)}>{asset.value}</span>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2 shrink-0 mt-0.5">
-                            {asset.type === "link" && (
-                              <a href={asset.value ?? "#"} target="_blank" rel="noopener noreferrer" className="text-[11px] font-medium text-[#007BFF] hover:opacity-70 transition-opacity">
-                                Open
-                              </a>
-                            )}
-                            <IconTip label="Remove">
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteCredentialLink(asset.id)}
-                                aria-label={`Remove ${asset.label}`}
-                                className="p-2 rounded-md cursor-pointer border-none bg-transparent text-[#C0392B] hover:bg-[#FDE8E6] transition-colors"
-                              >
-                                <Trash2 size={12} />
-                              </button>
-                            </IconTip>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                );
-              })()}
-            </div>
-          </div>
-        )}
-
-        {showAddCredentialLink && (
-          <AddCredentialLinkModal
-            customerId={project.customer_id}
-            projectId={project.id}
-            staffDirectory={staffDirectory}
-            onClose={() => setShowAddCredentialLink(false)}
-            onCreated={(asset) => setPhase1Assets((prev) => [...prev, asset])}
-          />
-        )}
-
-        {step.key === "outcome-target" && (
-          <div className="mb-5">
-            <UploadFirstField
-              richTextLabel="Agreed measurable outcomes"
-              richTextPlaceholder="e.g. Increase organic traffic 40% by Day 90, 3x qualified leads by Day 120…"
-              textValue={outcomeText}
-              onTextChange={setOutcomeText}
-              hasError={outcomeFieldError && !isOutcomeFilled}
-              errorMessage="Add the agreed measurable outcomes — text or an attached document — before continuing."
-              uploadLabel="Agreed measurable outcomes"
-              uploadHint="Upload a KPI or targets sheet — or add typed notes below instead. One of the two is required."
-              uploadError={outcomeUploadError}
-              files={outcomeFiles}
-              uploading={outcomeUploadProgress.length > 0}
-              uploadProgress={outcomeUploadProgress}
-              onFile={handleOutcomeFileUpload}
-              onRemove={handleRemoveOutcomeFile}
-              onView={handleViewOutcomeFile}
-              viewingId={viewingOutcomeFileId}
-              disabled={isStepReadOnly}
-              loading={phase1Loading}
-            />
-          </div>
-        )}
-
-        {step.key === "migration-checklist" && (
-          <div className="mb-5">
-            <UploadFirstField
-              richTextLabel="Migration checklist / audit notes"
-              richTextPlaceholder="e.g. Pages to migrate, redirects needed, content gaps found in the audit…"
-              textValue={migrationChecklistText}
-              onTextChange={setMigrationChecklistText}
-              hasError={migrationChecklistFieldError && !isMigrationChecklistFilled}
-              errorMessage="Add the migration checklist / audit notes — text or an attached document — before continuing."
-              uploadLabel="Migration checklist / audit notes"
-              uploadHint="Upload a site audit spreadsheet — or add typed notes below instead. One of the two is required."
-              uploadError={migrationChecklistUploadError}
-              files={migrationChecklistFiles}
-              uploading={migrationChecklistUploadProgress.length > 0}
-              uploadProgress={migrationChecklistUploadProgress}
-              onFile={handleMigrationChecklistUpload}
-              onRemove={handleRemoveMigrationChecklistFile}
-              onView={handleViewMigrationChecklistFile}
-              viewingId={viewingMigrationChecklistFileId}
-              disabled={isStepReadOnly}
-              loading={phase1Loading}
-            />
-          </div>
-        )}
-
-        {step.key === "content-map" && (
-          <div className="mb-5">
-            <UploadFirstField
-              richTextLabel="Content clusters & 90-day publishing schedule"
-              richTextPlaceholder="e.g. Topic clusters, target keywords, publishing cadence through Day 90…"
-              textValue={contentMapText}
-              onTextChange={setContentMapText}
-              hasError={contentMapFieldError && !isContentMapFilled}
-              errorMessage="Add the content clusters and publishing schedule — text or an attached document — before continuing."
-              uploadLabel="Content clusters & 90-day publishing schedule"
-              uploadHint="Upload a content calendar spreadsheet — or add typed notes below instead. One of the two is required."
-              uploadError={contentMapUploadError}
-              files={contentMapFiles}
-              uploading={contentMapUploadProgress.length > 0}
-              uploadProgress={contentMapUploadProgress}
-              onFile={handleContentMapUpload}
-              onRemove={handleRemoveContentMapFile}
-              onView={handleViewContentMapFile}
-              viewingId={viewingContentMapFileId}
-              disabled={isStepReadOnly}
-              loading={phase1Loading}
-            />
-          </div>
-        )}
-
-        {step.key === "client-signoff" && (
-          <div className="mb-5">
-            <UploadFirstField
-              richTextLabel="Sign-off call notes"
-              richTextPlaceholder="e.g. Scope, mockup, and migration plan discussed and approved; handover topics covered…"
-              textValue={signoffNotes}
-              onTextChange={setSignoffNotes}
-              hasError={signoffFieldError && !isSignoffFilled}
-              errorMessage="Add sign-off call notes or upload the signed agreement before continuing."
-              uploadLabel="Sign-off call notes"
-              uploadHint="Upload the signed agreement — or add typed notes below instead. One of the two is required."
-              uploadError={signoffUploadError}
-              files={signoffFiles}
-              uploading={signoffUploadProgress.length > 0}
-              uploadProgress={signoffUploadProgress}
-              onFile={handleSignoffUpload}
-              onRemove={handleRemoveSignoffFile}
-              onView={handleViewSignoffFile}
-              viewingId={viewingSignoffFileId}
-              disabled={isStepReadOnly}
-              loading={phase1Loading}
-            />
-          </div>
-        )}
-
-        {step.key === "html-mockup" && (
-          <div className="mb-5">
-            <label className={kickoffLabelCls}>Mockup file</label>
-            <p className={cn("text-[11px] mb-1.5", textMuted)}>Upload the HTML mockup for client approval — HTML files can be edited directly in-app.</p>
-            {htmlMockupUploadError && <p className="text-[12px] text-[#C0392B] mb-2">{htmlMockupUploadError}</p>}
-            <HtmlMockupFileList
-              files={htmlMockupFiles}
-              uploading={htmlMockupUploadProgress.length > 0}
-              uploadProgress={htmlMockupUploadProgress}
-              onFile={handleHtmlMockupUpload}
-              onRemove={handleRemoveHtmlMockupFile}
-              onView={handleViewHtmlMockupFile}
-              onEdit={handleOpenHtmlEditor}
-              viewingId={viewingHtmlMockupFileId}
-              disabled={isStepReadOnly}
-              hasError={htmlMockupFieldError && !isHtmlMockupFilled}
-              loading={phase1Loading}
-            />
-            {htmlMockupFieldError && !isHtmlMockupFilled && (
-              <p className="text-[11px] text-[#C0392B] mt-1">Upload at least one mockup file before continuing.</p>
             )}
+
+            {step.key === "migration-checklist" && (
+              <div className="mb-5">
+                <UploadFirstField
+                  richTextLabel="Migration checklist / audit notes"
+                  richTextPlaceholder="e.g. Pages to migrate, redirects needed, content gaps found in the audit…"
+                  textValue={migrationChecklistText}
+                  onTextChange={setMigrationChecklistText}
+                  hasError={migrationChecklistFieldError && !isMigrationChecklistFilled}
+                  errorMessage="Add the migration checklist / audit notes — text or an attached document — before continuing."
+                  uploadLabel="Migration checklist / audit notes"
+                  uploadHint="Upload a site audit spreadsheet — or add typed notes below instead. One of the two is required."
+                  uploadError={migrationChecklistUploadError}
+                  files={migrationChecklistFiles}
+                  uploading={migrationChecklistUploadProgress.length > 0}
+                  uploadProgress={migrationChecklistUploadProgress}
+                  onFile={handleMigrationChecklistUpload}
+                  onRemove={handleRemoveMigrationChecklistFile}
+                  onView={handleViewMigrationChecklistFile}
+                  viewingId={viewingMigrationChecklistFileId}
+                  disabled={isStepReadOnly}
+                  loading={phase1Loading}
+                />
+              </div>
+            )}
+
+            {step.key === "content-map" && (
+              <div className="mb-5">
+                <UploadFirstField
+                  richTextLabel="Content clusters & 90-day publishing schedule"
+                  richTextPlaceholder="e.g. Topic clusters, target keywords, publishing cadence through Day 90…"
+                  textValue={contentMapText}
+                  onTextChange={setContentMapText}
+                  hasError={contentMapFieldError && !isContentMapFilled}
+                  errorMessage="Add the content clusters and publishing schedule — text or an attached document — before continuing."
+                  uploadLabel="Content clusters & 90-day publishing schedule"
+                  uploadHint="Upload a content calendar spreadsheet — or add typed notes below instead. One of the two is required."
+                  uploadError={contentMapUploadError}
+                  files={contentMapFiles}
+                  uploading={contentMapUploadProgress.length > 0}
+                  uploadProgress={contentMapUploadProgress}
+                  onFile={handleContentMapUpload}
+                  onRemove={handleRemoveContentMapFile}
+                  onView={handleViewContentMapFile}
+                  viewingId={viewingContentMapFileId}
+                  disabled={isStepReadOnly}
+                  loading={phase1Loading}
+                />
+              </div>
+            )}
+
+            {step.key === "client-signoff" && (
+              <div className="mb-5">
+                <UploadFirstField
+                  richTextLabel="Sign-off call notes"
+                  richTextPlaceholder="e.g. Scope, mockup, and migration plan discussed and approved; handover topics covered…"
+                  textValue={signoffNotes}
+                  onTextChange={setSignoffNotes}
+                  hasError={signoffFieldError && !isSignoffFilled}
+                  errorMessage="Add sign-off call notes or upload the signed agreement before continuing."
+                  uploadLabel="Sign-off call notes"
+                  uploadHint="Upload the signed agreement — or add typed notes below instead. One of the two is required."
+                  uploadError={signoffUploadError}
+                  files={signoffFiles}
+                  uploading={signoffUploadProgress.length > 0}
+                  uploadProgress={signoffUploadProgress}
+                  onFile={handleSignoffUpload}
+                  onRemove={handleRemoveSignoffFile}
+                  onView={handleViewSignoffFile}
+                  viewingId={viewingSignoffFileId}
+                  disabled={isStepReadOnly}
+                  loading={phase1Loading}
+                />
+              </div>
+            )}
+
+            {step.key === "html-mockup" && (
+              <div className="mb-5">
+                <label className={kickoffLabelCls}>Mockup file</label>
+                <p className={cn("text-[11px] mb-1.5", textMuted)}>Upload the HTML mockup for client approval — HTML files can be edited directly in-app.</p>
+                {htmlMockupUploadError && <p className="text-[12px] text-[#C0392B] mb-2">{htmlMockupUploadError}</p>}
+                <HtmlMockupFileList
+                  files={htmlMockupFiles}
+                  uploading={htmlMockupUploadProgress.length > 0}
+                  uploadProgress={htmlMockupUploadProgress}
+                  onFile={handleHtmlMockupUpload}
+                  onRemove={handleRemoveHtmlMockupFile}
+                  onView={handleViewHtmlMockupFile}
+                  onEdit={handleOpenHtmlEditor}
+                  viewingId={viewingHtmlMockupFileId}
+                  disabled={isStepReadOnly}
+                  hasError={htmlMockupFieldError && !isHtmlMockupFilled}
+                  loading={phase1Loading}
+                />
+                {htmlMockupFieldError && !isHtmlMockupFilled && (
+                  <p className="text-[11px] text-[#C0392B] mt-1">Upload at least one mockup file before continuing.</p>
+                )}
+              </div>
+            )}
+
           </div>
-        )}
 
-        </div>
-
-        {/* Light vertical divider between the main content and the checklist sidebar — visible
+          {/* Light vertical divider between the main content and the checklist sidebar — visible
             at the lg breakpoint only, matching the columns it separates. */}
-        {stepInternal.length > 0 && <div className="hidden lg:block self-stretch w-px bg-[#E2E7F2]" />}
+          {stepInternal.length > 0 && <div className="hidden lg:block self-stretch w-px bg-[#E2E7F2]" />}
 
-        {/* Checklist sidebar (task 171 feedback round) — sticky so it stays visible while the
+          {/* Checklist sidebar (task 171 feedback round) — sticky so it stays visible while the
             main column (which can be much taller, e.g. Storage/KB's file explorer) is scrolled.
             The old WizardDeliverableRow "quoted title" row was removed; the step's own
             pending/in_progress/done status now lives in the header next to the step name. */}
-        {stepInternal.length > 0 && (
-          <div className={cn("rounded-2xl border p-3.5 lg:sticky lg:top-4", "border-[#E2E7F2] bg-white")}>
-            <div className="flex items-center justify-between gap-2 mb-2">
-              <div className={cn("text-[10.5px] font-semibold uppercase tracking-wide flex items-center gap-1.5", textMuted)}>
-                <ListChecks size={11} /> Checklist
-              </div>
-              {canEditChecklist && stepInternal.some((item) => (localInternal.find((r) => r.deliverable_key === item.key)?.status ?? "pending") !== "done") && (
-                <button
-                  onClick={handleMarkAllChecklistDone}
-                  className={cn(
-                    "text-[10px] font-semibold rounded-full px-2 py-1 border cursor-pointer transition-colors focus-visible:outline-2 focus-visible:outline-[#007BFF] focus-visible:outline-offset-2",
-                    "border-[#E2E7F2] text-[#3A4565] bg-white hover:border-[#A8C6F5]"
-                  )}
-                >
-                  Mark all
-                </button>
-              )}
-            </div>
-            <div className="flex flex-col gap-1">
-              {stepInternal.map((id) => {
-                const row = localInternal.find((r) => r.deliverable_key === id.key);
-                const iStatus = row?.status ?? "pending";
-                const isDone = iStatus === "done";
-                const itemLabel = (
-                  <span className={cn("text-[12px] leading-snug", isDone ? cn(textMuted, "line-through") : textPrimary)}>{id.name}</span>
-                );
-                // Deadline tag (task 171, Requirement C) — every item in `stepInternal` belongs
-                // to the current step (internalDeliverablesForSubPhase(step.key)), so they all
-                // share step.dayStart/dayEnd; individual checklist items carry no day of their
-                // own. Matches DESIGN.md's "Checklist row" spec: right-aligned mono DAY N / PENDING.
-                const itemNotStarted = currentDay < step.dayStart;
-                const itemOverdue = currentDay > step.dayEnd;
-                const tagCls = itemNotStarted
-                  ? "text-[#5F6A88] bg-[#EDF0F7]"
-                  : itemOverdue
-                    ? "text-[#C0392B] bg-[#FDE8E6]"
-                    : "text-[#8A5A00] bg-[#FFF3D6]";
-                return (
+          {stepInternal.length > 0 && (
+            <div className={cn("rounded-2xl border p-3.5 lg:sticky lg:top-4", "border-[#E2E7F2] bg-white")}>
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <div className={cn("text-[10.5px] font-semibold uppercase tracking-wide flex items-center gap-1.5", textMuted)}>
+                  <ListChecks size={11} /> Checklist
+                </div>
+                {canEditChecklist && stepInternal.some((item) => (localInternal.find((r) => r.deliverable_key === item.key)?.status ?? "pending") !== "done") && (
                   <button
-                    key={id.key}
-                    onClick={() => handleValidatedInternalToggle(id.key, iStatus)}
-                    disabled={togglingKey === `internal-${id.key}` || !canEditChecklist}
+                    onClick={handleMarkAllChecklistDone}
                     className={cn(
-                      "w-full flex items-start gap-2 p-1.5 rounded-md bg-transparent border-none text-left transition-colors disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-[#007BFF] focus-visible:outline-offset-2",
-                      canEditChecklist ? "cursor-pointer" : "cursor-default",
-                      canEditChecklist && "hover:bg-[#F0F7FF]"
+                      "text-[10px] font-semibold rounded-full px-2 py-1 border cursor-pointer transition-colors focus-visible:outline-2 focus-visible:outline-[#007BFF] focus-visible:outline-offset-2",
+                      "border-[#E2E7F2] text-[#3A4565] bg-white hover:border-[#A8C6F5]"
                     )}
                   >
-                    <span
+                    Mark all
+                  </button>
+                )}
+              </div>
+              <div className="flex flex-col gap-1">
+                {stepInternal.map((id) => {
+                  const row = localInternal.find((r) => r.deliverable_key === id.key);
+                  const iStatus = row?.status ?? "pending";
+                  const isDone = iStatus === "done";
+                  const itemLabel = (
+                    <span className={cn("text-[12px] leading-snug", isDone ? cn(textMuted, "line-through") : textPrimary)}>{id.name}</span>
+                  );
+                  // Deadline tag (task 171, Requirement C) — every item in `stepInternal` belongs
+                  // to the current step (internalDeliverablesForSubPhase(step.key)), so they all
+                  // share step.dayStart/dayEnd; individual checklist items carry no day of their
+                  // own. Matches DESIGN.md's "Checklist row" spec: right-aligned mono DAY N / PENDING.
+                  const itemNotStarted = currentDay < step.dayStart;
+                  const itemOverdue = currentDay > step.dayEnd;
+                  const tagCls = itemNotStarted
+                    ? "text-[#5F6A88] bg-[#EDF0F7]"
+                    : itemOverdue
+                      ? "text-[#C0392B] bg-[#FDE8E6]"
+                      : "text-[#8A5A00] bg-[#FFF3D6]";
+                  return (
+                    <button
+                      key={id.key}
+                      onClick={() => handleValidatedInternalToggle(id.key, iStatus)}
+                      disabled={togglingKey === `internal-${id.key}` || !canEditChecklist}
                       className={cn(
-                        "shrink-0 mt-0.5 h-[17px] w-[17px] rounded-[5px] border flex items-center justify-center transition-colors",
-                        isDone ? "bg-[#177E48] border-[#177E48]" : "border-[#E2E7F2] bg-white"
+                        "w-full flex items-start gap-2 p-1.5 rounded-md bg-transparent border-none text-left transition-colors disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-[#007BFF] focus-visible:outline-offset-2",
+                        canEditChecklist ? "cursor-pointer" : "cursor-default",
+                        canEditChecklist && "hover:bg-[#F0F7FF]"
                       )}
                     >
-                      {isDone && <Check size={10} strokeWidth={3} className="text-white" />}
-                    </span>
-                    <span className="flex-1 min-w-0 flex flex-col gap-1">
-                      {canEditChecklist ? (
-                        <Tooltip>
-                          <TooltipTrigger render={itemLabel} />
-                          <TooltipContent side="left">{isDone ? "Uncheck" : "Mark as Done"}</TooltipContent>
-                        </Tooltip>
-                      ) : (
-                        itemLabel
-                      )}
-                      {!isDone && (
-                        <span className={cn("self-start font-mono text-[9px] font-semibold uppercase tracking-wide rounded-[7px] px-1.5 py-0.5", tagCls)}>
-                          {itemNotStarted ? "PENDING" : `DAY ${step.dayEnd}`}
-                        </span>
-                      )}
-                    </span>
-                  </button>
-                );
-              })}
-              {checklistValidationError && (
-                <p className="text-[11px] text-[#C0392B] mt-1">{checklistValidationError}</p>
-              )}
+                      <span
+                        className={cn(
+                          "shrink-0 mt-0.5 h-[17px] w-[17px] rounded-[5px] border flex items-center justify-center transition-colors",
+                          isDone ? "bg-[#177E48] border-[#177E48]" : "border-[#E2E7F2] bg-white"
+                        )}
+                      >
+                        {isDone && <Check size={10} strokeWidth={3} className="text-white" />}
+                      </span>
+                      <span className="flex-1 min-w-0 flex flex-col gap-1">
+                        {canEditChecklist ? (
+                          <Tooltip>
+                            <TooltipTrigger render={itemLabel} />
+                            <TooltipContent side="left">{isDone ? "Uncheck" : "Mark as Done"}</TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          itemLabel
+                        )}
+                        {!isDone && (
+                          <span className={cn("self-start font-mono text-[9px] font-semibold uppercase tracking-wide rounded-[7px] px-1.5 py-0.5", tagCls)}>
+                            {itemNotStarted ? "PENDING" : `DAY ${step.dayEnd}`}
+                          </span>
+                        )}
+                      </span>
+                    </button>
+                  );
+                })}
+                {checklistValidationError && (
+                  <p className="text-[11px] text-[#C0392B] mt-1">{checklistValidationError}</p>
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          )}
         </div>
       </div>
 
@@ -2717,26 +2838,33 @@ export default function OnboardingWizard({
         </div>
       )}
 
-      {viewerFile && (
-        <FileViewerModal
-          file={viewerFile}
-          url={viewerUrl}
-          loading={viewerLoading}
-          error={viewerError}
-          onClose={closeFileViewer}
-        />
-      )}
+      <AnimatePresence>
+        {viewerFile && (
+          <FileViewerModal
+            key="file-viewer"
+            file={viewerFile}
+            url={viewerUrl}
+            loading={viewerLoading}
+            error={viewerError}
+            onClose={closeFileViewer}
+            onEditHtml={handleEditHtmlFromViewer}
+          />
+        )}
+      </AnimatePresence>
 
-      {editingHtmlAsset && (
-        <HtmlEditorModal
-          file={editingHtmlAsset}
-          initialHtml={editingHtmlContent}
-          loadError={editingHtmlLoadError}
-          customerId={project.customer_id}
-          onClose={closeHtmlEditor}
-          onSaved={handleHtmlEditorSaved}
-        />
-      )}
+      <AnimatePresence>
+        {editingHtmlAsset && (
+          <HtmlEditorModal
+            key="html-editor"
+            file={editingHtmlAsset}
+            initialHtml={editingHtmlContent}
+            loadError={editingHtmlLoadError}
+            customerId={project.customer_id}
+            onClose={closeHtmlEditor}
+            onSaved={handleHtmlEditorSaved}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -3220,7 +3348,7 @@ function StorageFileExplorer({
   onMove, movingAssetId, onCreateFolder, creatingFolder,
   onFolderPermissionsChange, folderPermissionsUpdatingId,
   onRenameFolder, renamingFolderId, onDeleteFolder, deletingFolderId,
-  onRenameAsset, renamingAssetId, staffDirectory,
+  onRenameAsset, renamingAssetId, staffDirectory, customerId,
 }: {
   assets: AssetRow[]; error: string | null;
   folders: AssetFolder[]; foldersError: string | null;
@@ -3238,6 +3366,9 @@ function StorageFileExplorer({
   onDeleteFolder: (folderId: string) => Promise<boolean>; deletingFolderId: string | null;
   onRenameAsset: (assetId: string, fileName: string) => Promise<boolean>; renamingAssetId: string | null;
   staffDirectory: { id: string; full_name: string | null; role: string }[];
+  // Thumbnail lazy signed-url fetch (task 198) — same per-asset file-url endpoint the
+  // viewer already uses, just called per visible grid card instead of on click.
+  customerId: string;
 }) {
   const textPrimary = "text-[#0B1533]";
   const textMuted = "text-[#5F6A88]";
@@ -3248,6 +3379,10 @@ function StorageFileExplorer({
   const [permissionsOpenId, setPermissionsOpenId] = useState<string | null>(null);
   const [openFileMenuId, setOpenFileMenuId] = useState<string | null>(null);
   const [openFolderMenuId, setOpenFolderMenuId] = useState<string | null>(null);
+  // Right-click context menu (task 198 follow-up) — same Actions items as the kebab dropdown,
+  // just anchored at the cursor instead of the kebab button. Coordinates are clamped to the
+  // viewport at render time so the menu never spills off-screen near an edge.
+  const [contextMenu, setContextMenu] = useState<{ kind: "file" | "folder"; id: string; x: number; y: number } | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [newFolderModalOpen, setNewFolderModalOpen] = useState(false);
   const [newFolderParentId, setNewFolderParentId] = useState<string | null>(null);
@@ -3273,6 +3408,70 @@ function StorageFileExplorer({
   const [renameTarget, setRenameTarget] = useState<{ kind: "folder" | "file"; id: string } | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [renameError, setRenameError] = useState<string | null>(null);
+
+  // Drag-and-drop zone (task 198) — the whole content area is a drop target. At root, only
+  // folder tiles are valid drops: `dragOverFolderId` tracks which tile is currently hovered,
+  // and while it's null the container's own dragover handler sets dropEffect="none" so the
+  // browser paints its native not-allowed cursor over empty root space. Inside a folder, the
+  // container itself accepts a drop anywhere; a sub-folder tile's handler still calls
+  // stopPropagation so a drop landing on it routes into that sub-folder instead of the
+  // currently-open one. `dragCounterRef` is the standard enter/leave-counting technique for
+  // a drop zone with nested children (folder tiles, file cards) — a plain isDragOver boolean
+  // (as FileUploadBox uses for its single-target case) flickers when the pointer crosses a
+  // child element's boundary inside the same zone.
+  const [isDraggingOverZone, setIsDraggingOverZone] = useState(false);
+  const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null);
+  const dragCounterRef = useRef(0);
+
+  const uploadFiles = (fileList: FileList | null, folderId: string | null) => {
+    if (!fileList) return;
+    Array.from(fileList).forEach((f) => onUpload(f, folderId));
+  };
+
+  const handleZoneDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    dragCounterRef.current += 1;
+    setIsDraggingOverZone(true);
+  };
+  const handleZoneDragLeave = () => {
+    dragCounterRef.current = Math.max(0, dragCounterRef.current - 1);
+    if (dragCounterRef.current === 0) {
+      setIsDraggingOverZone(false);
+      setDragOverFolderId(null);
+    }
+  };
+  const handleZoneDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    // Reached only when the pointer is over empty zone space, not a folder tile — folder
+    // tiles stop propagation on their own dragover below.
+    e.dataTransfer.dropEffect = currentFolderId === null ? "none" : "copy";
+  };
+  const handleZoneDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    dragCounterRef.current = 0;
+    setIsDraggingOverZone(false);
+    setDragOverFolderId(null);
+    if (currentFolderId === null) return; // root: empty space never accepts a drop
+    uploadFiles(e.dataTransfer.files, currentFolderId);
+  };
+  const handleFolderTileDragOver = (e: React.DragEvent<HTMLButtonElement>, folderId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = "copy";
+    setDragOverFolderId(folderId);
+  };
+  const handleFolderTileDragLeave = (e: React.DragEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    setDragOverFolderId((id) => (id === null ? id : null));
+  };
+  const handleFolderTileDrop = (e: React.DragEvent<HTMLButtonElement>, folderId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current = 0;
+    setIsDraggingOverZone(false);
+    setDragOverFolderId(null);
+    uploadFiles(e.dataTransfer.files, folderId);
+  };
 
   const closeBulkSharePanel = () => {
     setBulkSharePanelOpen(false);
@@ -3552,6 +3751,59 @@ function StorageFileExplorer({
     else setRenameError(`Failed to rename ${renameTarget.kind === "folder" ? "folder" : "file"} — the name may already be in use.`);
   };
 
+  // Shared Actions list for a file — used by both the kebab dropdown (fileMenu below) and the
+  // right-click context menu, so the two triggers can't drift out of sync. `closeMenu` lets
+  // each caller wire its own "how do I close myself" (kebab clears openFileMenuId, context menu
+  // clears contextMenu).
+  const renderFileMenuItems = (f: AssetRow, closeMenu: () => void) => (
+    <>
+      <button
+        type="button"
+        onClick={() => { closeMenu(); onView(f); }}
+        disabled={viewingId === f.id}
+        className={cn("flex items-center gap-2 px-3 py-1.5 text-[12px] text-left cursor-pointer border-none bg-transparent disabled:opacity-50 w-full", textPrimary, "hover:bg-[#EDF0F7]")}
+      >
+        <Eye size={13} /> View
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          closeMenu();
+          setFilePersonSearch("");
+          setFilePersonDropdownOpen(false);
+          setPermissionsOpenId((id) => (id === f.id ? null : f.id));
+        }}
+        disabled={permissionsUpdatingId === f.id}
+        className={cn("flex items-center gap-2 px-3 py-1.5 text-[12px] text-left cursor-pointer border-none bg-transparent disabled:opacity-50 w-full", textPrimary, "hover:bg-[#EDF0F7]")}
+      >
+        <Lock size={13} /> Permissions
+      </button>
+      <button
+        type="button"
+        onClick={() => { closeMenu(); openRenameModal("file", f.id, f.file_name ?? ""); }}
+        disabled={renamingAssetId === f.id}
+        className={cn("flex items-center gap-2 px-3 py-1.5 text-[12px] text-left cursor-pointer border-none bg-transparent disabled:opacity-50 w-full", textPrimary, "hover:bg-[#EDF0F7]")}
+      >
+        <Pencil size={13} /> Rename
+      </button>
+      <button
+        type="button"
+        onClick={() => { closeMenu(); setMoveModalAssetIds([f.id]); }}
+        disabled={movingAssetId === f.id}
+        className={cn("flex items-center gap-2 px-3 py-1.5 text-[12px] text-left cursor-pointer border-none bg-transparent disabled:opacity-50 w-full", textPrimary, "hover:bg-[#EDF0F7]")}
+      >
+        <FolderInput size={13} /> Move to folder
+      </button>
+      <button
+        type="button"
+        onClick={() => { closeMenu(); onRemove(f.id); }}
+        className="flex items-center gap-2 px-3 py-1.5 text-[12px] text-left cursor-pointer border-none bg-transparent text-[#C0392B] hover:bg-[#FDE8E6] w-full"
+      >
+        <Trash2 size={13} /> Remove
+      </button>
+    </>
+  );
+
   const fileMenu = (f: AssetRow) => (
     <div className="relative">
       <IconTip label="Actions">
@@ -3571,55 +3823,65 @@ function StorageFileExplorer({
             "bg-white border-[#E2E7F2]"
           )}
         >
-          <button
-            type="button"
-            onClick={() => { setOpenFileMenuId(null); onView(f); }}
-            disabled={viewingId === f.id}
-            className={cn("flex items-center gap-2 px-3 py-1.5 text-[12px] text-left cursor-pointer border-none bg-transparent disabled:opacity-50", textPrimary, "hover:bg-[#EDF0F7]")}
-          >
-            <Eye size={13} /> View
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setOpenFileMenuId(null);
-              setFilePersonSearch("");
-              setFilePersonDropdownOpen(false);
-              setPermissionsOpenId((id) => (id === f.id ? null : f.id));
-            }}
-            disabled={permissionsUpdatingId === f.id}
-            className={cn("flex items-center gap-2 px-3 py-1.5 text-[12px] text-left cursor-pointer border-none bg-transparent disabled:opacity-50", textPrimary, "hover:bg-[#EDF0F7]")}
-          >
-            <Lock size={13} /> Permissions
-          </button>
-          <button
-            type="button"
-            onClick={() => { setOpenFileMenuId(null); openRenameModal("file", f.id, f.file_name ?? ""); }}
-            disabled={renamingAssetId === f.id}
-            className={cn("flex items-center gap-2 px-3 py-1.5 text-[12px] text-left cursor-pointer border-none bg-transparent disabled:opacity-50", textPrimary, "hover:bg-[#EDF0F7]")}
-          >
-            <Pencil size={13} /> Rename
-          </button>
-          <button
-            type="button"
-            onClick={() => { setOpenFileMenuId(null); setMoveModalAssetIds([f.id]); }}
-            disabled={movingAssetId === f.id}
-            className={cn("flex items-center gap-2 px-3 py-1.5 text-[12px] text-left cursor-pointer border-none bg-transparent disabled:opacity-50", textPrimary, "hover:bg-[#EDF0F7]")}
-          >
-            <FolderInput size={13} /> Move to folder
-          </button>
-          <button
-            type="button"
-            onClick={() => { setOpenFileMenuId(null); onRemove(f.id); }}
-            className="flex items-center gap-2 px-3 py-1.5 text-[12px] text-left cursor-pointer border-none bg-transparent text-[#C0392B] hover:bg-[#FDE8E6]"
-          >
-            <Trash2 size={13} /> Remove
-          </button>
+          {renderFileMenuItems(f, () => setOpenFileMenuId(null))}
         </div>
       )}
     </div>
   );
 
+  // Shared Actions list for a folder — mirrors renderFileMenuItems above, used by both the
+  // kebab dropdown and the right-click context menu.
+  const renderFolderMenuItems = (folder: AssetFolder, closeMenu: () => void) => {
+    const isEmpty = childrenOf(folder.id).length === 0 && !assets.some((a) => a.folder_id === folder.id);
+    const deleteDisabled = folder.is_system || !isEmpty || deletingFolderId === folder.id;
+    const deleteTitle = folder.is_system ? "System folders can't be deleted" : !isEmpty ? "Folder is not empty" : "Delete";
+    return (
+      <>
+        <button
+          type="button"
+          onClick={() => { closeMenu(); openNewFolderModal(folder.id); }}
+          className={cn("flex items-center gap-2 px-3 py-1.5 text-[12px] text-left w-full cursor-pointer border-none bg-transparent", textPrimary, "hover:bg-[#EDF0F7]")}
+        >
+          <FolderPlus size={13} /> New sub-folder
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            closeMenu();
+            setFolderPersonSearch("");
+            setFolderPersonDropdownOpen(false);
+            setFolderPermissionsOpenId((id) => (id === folder.id ? null : folder.id));
+          }}
+          disabled={folderPermissionsUpdatingId === folder.id}
+          className={cn("flex items-center gap-2 px-3 py-1.5 text-[12px] text-left w-full cursor-pointer border-none bg-transparent disabled:opacity-50", textPrimary, "hover:bg-[#EDF0F7]")}
+        >
+          <Lock size={13} /> Permissions
+        </button>
+        <button
+          type="button"
+          onClick={() => { closeMenu(); openRenameModal("folder", folder.id, folder.name); }}
+          disabled={renamingFolderId === folder.id}
+          className={cn("flex items-center gap-2 px-3 py-1.5 text-[12px] text-left w-full cursor-pointer border-none bg-transparent disabled:opacity-50", textPrimary, "hover:bg-[#EDF0F7]")}
+        >
+          <Pencil size={13} /> Rename
+        </button>
+        <IconTip label={deleteTitle}>
+          <button
+            type="button"
+            onClick={() => { closeMenu(); onDeleteFolder(folder.id); }}
+            disabled={deleteDisabled}
+            className="flex items-center gap-2 px-3 py-1.5 text-[12px] text-left w-full cursor-pointer border-none bg-transparent text-[#C0392B] hover:bg-[#FDE8E6] disabled:opacity-40 disabled:hover:bg-transparent disabled:cursor-not-allowed"
+          >
+            <Trash2 size={13} /> Delete
+          </button>
+        </IconTip>
+      </>
+    );
+  };
+
+  // Bordered pill buttons (task 198) — "New folder" and "Add file" used to render as plain
+  // text links, easy to miss at a glance; both now match the Ghost button spec (bordered,
+  // icon + label) so they read as actionable buttons immediately.
   const uploadInput = (
     <>
       <input ref={inputRef} type="file" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onUpload(f, currentFolderId); e.target.value = ""; }} />
@@ -3627,9 +3889,9 @@ function StorageFileExplorer({
         type="button"
         onClick={() => inputRef.current?.click()}
         disabled={uploading}
-        className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-md cursor-pointer border-none transition-colors disabled:opacity-60 text-[#007BFF] hover:bg-[#E5F1FF]"
+        className="inline-flex items-center gap-1.5 text-[11.5px] font-medium px-2.5 py-1.5 rounded-full cursor-pointer border transition-colors disabled:opacity-60 border-[#E2E7F2] bg-white text-[#007BFF] hover:border-[#A8C6F5]"
       >
-        <Plus size={12} /> {uploading ? "Uploading…" : "Add file"}
+        <Plus size={13} /> {uploading ? "Uploading…" : "Add file"}
       </button>
     </>
   );
@@ -3682,9 +3944,30 @@ function StorageFileExplorer({
 
   return (
     <div className={cn("rounded-lg overflow-visible", "bg-white")}>
-      {(openFileMenuId || openFolderMenuId) && (
-        <div className="fixed inset-0 z-10" onClick={() => { setOpenFileMenuId(null); setOpenFolderMenuId(null); }} />
+      {(openFileMenuId || openFolderMenuId || contextMenu) && (
+        <div
+          className="fixed inset-0 z-10"
+          onClick={() => { setOpenFileMenuId(null); setOpenFolderMenuId(null); setContextMenu(null); }}
+          onContextMenu={(e) => { e.preventDefault(); setContextMenu(null); }}
+        />
       )}
+      {contextMenu && (() => {
+        const item =
+          contextMenu.kind === "file"
+            ? assets.find((a) => a.id === contextMenu.id)
+            : folders.find((f) => f.id === contextMenu.id);
+        if (!item) return null;
+        return (
+          <div
+            className={cn("fixed z-20 w-44 rounded-lg border shadow-lg py-1 flex flex-col", "bg-white border-[#E2E7F2]")}
+            style={{ left: contextMenu.x, top: contextMenu.y }}
+          >
+            {contextMenu.kind === "file"
+              ? renderFileMenuItems(item as AssetRow, () => setContextMenu(null))
+              : renderFolderMenuItems(item as AssetFolder, () => setContextMenu(null))}
+          </div>
+        );
+      })()}
       {(error || foldersError) && <p className="text-[12px] text-[#C0392B] px-1 pb-2">{error || foldersError}</p>}
 
       {selectedIds.size > 0 ? (
@@ -3784,37 +4067,49 @@ function StorageFileExplorer({
             type="button"
             onClick={() => openNewFolderModal(currentFolderId)}
             disabled={loading}
-            className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-md cursor-pointer border-none transition-colors text-[#007BFF] hover:bg-[#E5F1FF] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-1.5 text-[11.5px] font-medium px-2.5 py-1.5 rounded-full cursor-pointer border transition-colors border-[#E2E7F2] bg-white text-[#007BFF] hover:border-[#A8C6F5] disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <FolderPlus size={12} /> New folder
+            <FolderPlus size={13} /> New folder
           </button>
-          {currentFolderId !== null && (
-            <>
-              <div className={cn("flex items-center gap-0.5 p-0.5 rounded-md", "bg-[#EDF0F7]")}>
-                <IconTip label="Grid view">
-                  <button
-                    type="button"
-                    onClick={() => setViewMode("grid")}
-                    aria-label="Grid view"
-                    className={cn("p-2 rounded cursor-pointer border-none transition-colors", viewMode === "grid" ? "bg-[#E5F1FF] text-[#007BFF]" : cn("bg-transparent", textMuted))}
-                  >
-                    <Grid3x3 size={13} />
-                  </button>
-                </IconTip>
-                <IconTip label="List view">
-                  <button
-                    type="button"
-                    onClick={() => setViewMode("list")}
-                    aria-label="List view"
-                    className={cn("p-2 rounded cursor-pointer border-none transition-colors", viewMode === "list" ? "bg-[#E5F1FF] text-[#007BFF]" : cn("bg-transparent", textMuted))}
-                  >
-                    <LayoutList size={13} />
-                  </button>
-                </IconTip>
-              </div>
-              {uploadInput}
-            </>
-          )}
+          {currentFolderId !== null && uploadInput}
+          {/* Grid/List toggle — same pill-toggle design as the Projects list's Grid/List view
+              switch (src/app/v2/(hub)/projects/_projects-index.tsx): bordered white pill
+              container, active state a filled navy pill + white icon. Visible at every level
+              (previously folder-only) since bigger folder tiles benefit from a list layout too. */}
+          <div className="flex items-center gap-0.5 border border-[#E2E7F2] rounded-full p-1 bg-white">
+            <IconTip label="Grid view">
+              <button
+                type="button"
+                onClick={() => setViewMode("grid")}
+                aria-label="Grid view"
+                className={cn("p-1.5 rounded-full cursor-pointer border-none transition-colors", viewMode === "grid" ? "bg-[#071133] text-white" : cn("bg-transparent", textMuted, "hover:text-[#0B1533]"))}
+              >
+                <LayoutGrid size={14} />
+              </button>
+            </IconTip>
+            <IconTip label="List view">
+              <button
+                type="button"
+                onClick={() => setViewMode("list")}
+                aria-label="List view"
+                className={cn("p-1.5 rounded-full cursor-pointer border-none transition-colors", viewMode === "list" ? "bg-[#071133] text-white" : cn("bg-transparent", textMuted, "hover:text-[#0B1533]"))}
+              >
+                <List size={14} />
+              </button>
+            </IconTip>
+          </div>
+          <IconTip label="This whole area below is a drag-and-drop zone — at the top level, drop a file onto a folder; inside a folder, drop it anywhere.">
+            <button
+              type="button"
+              aria-label="Drag-and-drop zone help"
+              className={cn(
+                "inline-flex items-center justify-center w-5 h-5 rounded-full cursor-help transition-colors shrink-0",
+                "border-[#C7D2E8] bg-white hover:border-auth-blue hover:text-auth-blue", textMuted
+              )}
+            >
+              <CircleQuestionMark size={20} />
+            </button>
+          </IconTip>
         </div>
       )}
 
@@ -3869,184 +4164,249 @@ function StorageFileExplorer({
 
       {uploadError && <p className="text-[11.5px] text-[#C0392B] mb-1.5">{uploadError}</p>}
 
-      {loading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2" aria-label="Loading folders and files">
-          {[0, 1, 2, 3].map((i) => (
-            <div key={i} className={cn("h-11 rounded-lg animate-pulse motion-reduce:animate-none", "bg-[#EDF0F7]")} />
-          ))}
-        </div>
-      ) : (
-        <>
-      {childFolders.length === 0 && filesHere.length === 0 && (
-        <div className={cn("text-[12.5px] py-8 text-center", textMuted)}>
-          {currentFolderId === null ? "No folders yet." : "This folder is empty."}
-        </div>
-      )}
-
-      {childFolders.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 mb-3">
-          {childFolders.map((folder) => {
-            const isEmpty = childrenOf(folder.id).length === 0 && !assets.some((a) => a.folder_id === folder.id);
-            const deleteDisabled = folder.is_system || !isEmpty || deletingFolderId === folder.id;
-            const deleteTitle = folder.is_system ? "System folders can't be deleted" : !isEmpty ? "Folder is not empty" : "Delete";
-            return (
-              <div key={folder.id} className="flex flex-col">
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => navigateTo(folder.id)}
-                    className={cn(
-                      "w-full flex items-center gap-2 px-3 py-2.5 rounded-lg cursor-pointer border-none text-left transition-colors",
-                      "bg-[#F4F6FB] hover:bg-[#EDF0F7]"
-                    )}
-                  >
-                    <Folder size={18} className="text-[#007BFF] shrink-0" fill="currentColor" fillOpacity={0.18} />
-                    <span className={cn("text-[12px] font-medium truncate flex-1", textPrimary)}>{folder.name}</span>
-                  </button>
-                  <IconTip label="Actions">
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); setOpenFolderMenuId((id) => (id === folder.id ? null : folder.id)); }}
-                      aria-label={`Actions for ${folder.name}`}
-                      className={cn("absolute right-1.5 top-1/2 -translate-y-1/2 p-2 rounded-md cursor-pointer border-none transition-colors", textMuted, "hover:bg-[#E2E7F2]")}
-                    >
-                      <MoreVertical size={13} />
-                    </button>
-                  </IconTip>
-                  {openFolderMenuId === folder.id && (
-                    <div className={cn("absolute right-1 top-full mt-1 z-20 w-44 rounded-lg border shadow-lg py-1 flex flex-col", "bg-white border-[#E2E7F2]")}>
-                      <button
-                        type="button"
-                        onClick={() => { setOpenFolderMenuId(null); openNewFolderModal(folder.id); }}
-                        className={cn("flex items-center gap-2 px-3 py-1.5 text-[12px] text-left w-full cursor-pointer border-none bg-transparent", textPrimary, "hover:bg-[#EDF0F7]")}
-                      >
-                        <FolderPlus size={13} /> New sub-folder
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setOpenFolderMenuId(null);
-                          setFolderPersonSearch("");
-                          setFolderPersonDropdownOpen(false);
-                          setFolderPermissionsOpenId((id) => (id === folder.id ? null : folder.id));
-                        }}
-                        disabled={folderPermissionsUpdatingId === folder.id}
-                        className={cn("flex items-center gap-2 px-3 py-1.5 text-[12px] text-left w-full cursor-pointer border-none bg-transparent disabled:opacity-50", textPrimary, "hover:bg-[#EDF0F7]")}
-                      >
-                        <Lock size={13} /> Permissions
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => { setOpenFolderMenuId(null); openRenameModal("folder", folder.id, folder.name); }}
-                        disabled={renamingFolderId === folder.id}
-                        className={cn("flex items-center gap-2 px-3 py-1.5 text-[12px] text-left w-full cursor-pointer border-none bg-transparent disabled:opacity-50", textPrimary, "hover:bg-[#EDF0F7]")}
-                      >
-                        <Pencil size={13} /> Rename
-                      </button>
-                      <IconTip label={deleteTitle}>
-                        <button
-                          type="button"
-                          onClick={() => { setOpenFolderMenuId(null); onDeleteFolder(folder.id); }}
-                          disabled={deleteDisabled}
-                          className="flex items-center gap-2 px-3 py-1.5 text-[12px] text-left w-full cursor-pointer border-none bg-transparent text-[#C0392B] hover:bg-[#FDE8E6] disabled:opacity-40 disabled:hover:bg-transparent disabled:cursor-not-allowed"
-                        >
-                          <Trash2 size={13} /> Delete
-                        </button>
-                      </IconTip>
-                    </div>
-                  )}
-                </div>
-                {folderPermissionsOpenId === folder.id && renderFolderPermissionsPanel(folder)}
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {filesHere.length > 0 && (
-        viewMode === "grid" ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
-            {filesHere.map((f) => {
-              const { roleRestricted, restricted, permissionBadge } = getPermissionInfo(f);
-              return (
-                <div key={f.id} className="flex flex-col">
-                  <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() => toggleSelect(f.id)}
-                      aria-pressed={selectedIds.has(f.id)}
-                      aria-label={`Select ${f.file_name}`}
-                      className={cn(
-                        "w-full text-left rounded-lg overflow-hidden cursor-pointer border-none transition-colors",
-                        selectedIds.has(f.id) ? ("bg-[#E5F1FF]") : ("bg-[#F4F6FB] hover:bg-[#EDF0F7]")
-                      )}
-                    >
-                      <div className="flex items-center gap-1.5 pl-2 pr-7 py-1.5">
-                        <FileText size={14} className="text-[#007BFF] shrink-0" />
-                        <span className={cn("text-[11px] font-medium truncate flex-1", textPrimary)}>{f.file_name}</span>
-                      </div>
-                      <div className={cn("flex items-center justify-center h-20 mx-2 mb-2 rounded-md", "bg-white")}>
-                        <FileText size={28} className={textMuted} />
-                      </div>
-                      <div className="flex items-center justify-between px-2 pb-2">
-                        <span className={cn("text-[9.5px]", textMuted)}>{formatFileSize(f.file_size)}</span>
-                        <span className={cn(
-                          "text-[9px] rounded-full px-1.5 py-0.5 whitespace-nowrap",
-                          restricted ? ("bg-[#FFF3D6] text-[#8A5A00]") : ("bg-[#EDF0F7] text-[#5F6A88]")
-                        )}>
-                          {permissionBadge}
-                        </span>
-                      </div>
-                    </button>
-                    <div className="absolute top-1.5 right-1">{fileMenu(f)}</div>
-                  </div>
-                  {permissionsOpenId === f.id && renderPermissionsPanel(f, roleRestricted)}
-                </div>
-              );
-            })}
+      {/* Drag-and-drop zone (task 198 follow-up) — scoped to just the Folders→Files content
+          area, not the breadcrumb/toolbar row above it, so dragging over "New folder"/the
+          view toggle/"Add file" doesn't paint the zone highlight or eat the drop. */}
+      <div
+        onDragEnter={handleZoneDragEnter}
+        onDragLeave={handleZoneDragLeave}
+        onDragOver={handleZoneDragOver}
+        onDrop={handleZoneDrop}
+        className={cn(
+          "rounded-lg transition-colors duration-150",
+          isDraggingOverZone && cn(
+            "outline-dashed outline-1 outline-offset-4 rounded-lg",
+            currentFolderId === null && dragOverFolderId === null
+              ? "outline-[#C0392B]/40 cursor-not-allowed"
+              : "outline-auth-blue/50 bg-[#F0F7FF]/40"
+          )
+        )}
+      >
+        {loading ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3" aria-label="Loading folders and files">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className={cn("h-28 rounded-xl animate-pulse motion-reduce:animate-none", "bg-[#EDF0F7]")} />
+            ))}
           </div>
         ) : (
-          <div className="flex flex-col gap-1.5">
-            {filesHere.map((f) => {
-              const { roleRestricted, restricted, permissionBadge } = getPermissionInfo(f);
-              return (
-                <div key={f.id} className="flex flex-col">
-                  <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() => toggleSelect(f.id)}
-                      aria-pressed={selectedIds.has(f.id)}
-                      aria-label={`Select ${f.file_name}`}
-                      className={cn(
-                        "w-full flex items-center gap-2 pl-2.5 pr-9 py-2 rounded-lg text-left cursor-pointer border-none transition-colors",
-                        selectedIds.has(f.id) ? ("bg-[#E5F1FF]") : ("bg-[#F4F6FB] hover:bg-[#EDF0F7]")
-                      )}
-                    >
-                      <div className="w-6 h-6 rounded-md bg-[#E5F1FF] flex items-center justify-center shrink-0">
-                        <FileText size={11} className="text-[#007BFF]" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className={cn("text-[11.5px] font-medium truncate", textPrimary)}>{f.file_name}</div>
-                        <div className={cn("text-[10px]", textMuted)}>{formatFileSize(f.file_size)}</div>
-                      </div>
-                      <span className={cn(
-                        "text-[10px] rounded-full px-2 py-0.5 shrink-0 whitespace-nowrap",
-                        restricted ? ("bg-[#FFF3D6] text-[#8A5A00]") : ("bg-[#EDF0F7] text-[#5F6A88]")
-                      )}>
-                        {permissionBadge}
-                      </span>
-                    </button>
-                    <div className="absolute right-1 top-1/2 -translate-y-1/2">{fileMenu(f)}</div>
-                  </div>
-                  {permissionsOpenId === f.id && renderPermissionsPanel(f, roleRestricted)}
+          <>
+            {childFolders.length === 0 && filesHere.length === 0 && (
+              // Enhanced empty state (task 198) — a real drag-and-drop-or-browse panel instead of
+              // plain text. The panel itself has no DnD handlers of its own: it lives inside the
+              // zone-level container above, which already owns the drop behavior for this level
+              // (root: folder tiles only; inside a folder: anywhere) — giving the panel its own
+              // handlers would make it a second, competing drop target.
+              <button
+                type="button"
+                onClick={() => (currentFolderId === null ? openNewFolderModal(null) : inputRef.current?.click())}
+                disabled={loading}
+                className={cn(
+                  "group w-full min-h-[168px] flex flex-col items-center justify-center gap-2.5 rounded-2xl border border-dashed py-10 text-center cursor-pointer transition-colors duration-150",
+                  "border-[#C7D2E8] bg-[#F9FAFD] hover:border-[#007BFF] hover:bg-[#F0F7FF]"
+                )}
+              >
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#E5F1FF] text-[#007BFF] transition-transform duration-150 group-hover:scale-105">
+                  {currentFolderId === null ? <FolderOpen size={22} strokeWidth={1.75} /> : <CloudUpload size={22} strokeWidth={1.75} />}
                 </div>
-              );
-            })}
-          </div>
-        )
-      )}
-        </>
-      )}
+                <div className={cn("text-[13px] font-medium", textPrimary)}>
+                  {currentFolderId === null
+                    ? "No folders yet — create one to start organizing files"
+                    : <>Drag &amp; drop a file here, or <span className="text-[#007BFF]">browse</span></>}
+                </div>
+                <div className={cn("text-[11px]", textMuted)}>
+                  {currentFolderId === null ? "Click to create a folder" : "Any document, spreadsheet, or image"}
+                </div>
+              </button>
+            )}
+
+            {childFolders.length > 0 && (
+              <div className="mb-6">
+                <div className={cn("text-[10px] font-semibold uppercase tracking-wide mb-2", textMuted)}>
+                  Folders
+                </div>
+                <div className={cn("grid gap-3", viewMode === "grid" ? "grid-cols-2 sm:grid-cols-3 md:grid-cols-4" : "grid-cols-1")}>
+                  {childFolders.map((folder) => {
+                    const isDragTarget = dragOverFolderId === folder.id;
+                    return (
+                      <div key={folder.id} className="flex flex-col">
+                        <div className="relative">
+                          <button
+                            type="button"
+                            onClick={() => navigateTo(folder.id)}
+                            onContextMenu={(e) => {
+                              e.preventDefault();
+                              setOpenFolderMenuId(null);
+                              setContextMenu({ kind: "folder", id: folder.id, x: Math.min(e.clientX, window.innerWidth - 190), y: Math.min(e.clientY, window.innerHeight - 220) });
+                            }}
+                            onDragOver={(e) => handleFolderTileDragOver(e, folder.id)}
+                            onDragLeave={handleFolderTileDragLeave}
+                            onDrop={(e) => handleFolderTileDrop(e, folder.id)}
+                            className={cn(
+                              "w-full cursor-pointer border text-left transition-colors duration-150 shadow-[0_1px_2px_rgba(7,17,51,.05)]",
+                              viewMode === "grid"
+                                ? "flex flex-col items-center justify-center gap-2 min-h-26 px-3 py-4 rounded-xl"
+                                : "flex items-center gap-3 min-h-14 pl-3.5 pr-9 py-2.5 rounded-xl",
+                              isDragTarget
+                                ? "border-auth-blue bg-[#EAF2FF]"
+                                : "border-[#E2E7F2] bg-white hover:bg-[#F4F8FF] hover:border-[#C7D2E8]"
+                            )}
+                          >
+                            <Folder
+                              size={viewMode === "grid" ? 32 : 22}
+                              className="text-auth-blue shrink-0"
+                              fill="currentColor"
+                              fillOpacity={0.18}
+                            />
+                            {/* Native title attribute (task 198 follow-up) — a Base UI Tooltip trigger
+                          here was found in-browser to swallow the first click on the tile
+                          (nested inside this same button), so full-name-on-hover uses the
+                          native browser tooltip instead of the app's styled one. */}
+                            <span
+                              title={folder.name}
+                              className={cn(
+                                "font-medium truncate",
+                                textPrimary,
+                                viewMode === "grid" ? "text-[12.5px] max-w-full text-center" : "text-[12.5px] flex-1"
+                              )}
+                            >
+                              {folder.name}
+                            </span>
+                          </button>
+                          <IconTip label="Actions">
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); setOpenFolderMenuId((id) => (id === folder.id ? null : folder.id)); }}
+                              aria-label={`Actions for ${folder.name}`}
+                              className={cn(
+                                "absolute p-2 rounded-md cursor-pointer border-none transition-colors",
+                                viewMode === "grid" ? "right-1.5 top-1.5" : "right-1.5 top-1/2 -translate-y-1/2",
+                                textMuted, "hover:bg-[#E2E7F2]"
+                              )}
+                            >
+                              <MoreVertical size={13} />
+                            </button>
+                          </IconTip>
+                          {openFolderMenuId === folder.id && (
+                            <div className={cn("absolute right-1 top-full mt-1 z-20 w-44 rounded-lg border shadow-lg py-1 flex flex-col", "bg-white border-[#E2E7F2]")}>
+                              {renderFolderMenuItems(folder, () => setOpenFolderMenuId(null))}
+                            </div>
+                          )}
+                        </div>
+                        {folderPermissionsOpenId === folder.id && renderFolderPermissionsPanel(folder)}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {filesHere.length > 0 && (
+              <div>
+                <div className={cn("text-[10px] font-semibold uppercase tracking-wide mb-2", textMuted)}>
+                  Files
+                </div>
+                {viewMode === "grid" ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                    {filesHere.map((f) => {
+                      const { roleRestricted, restricted, permissionBadge } = getPermissionInfo(f);
+                      const isSelected = selectedIds.has(f.id);
+                      return (
+                        <div key={f.id} className="flex flex-col">
+                          <div className="relative">
+                            <button
+                              type="button"
+                              onClick={() => toggleSelect(f.id)}
+                              onContextMenu={(e) => {
+                                e.preventDefault();
+                                setOpenFileMenuId(null);
+                                setContextMenu({ kind: "file", id: f.id, x: Math.min(e.clientX, window.innerWidth - 170), y: Math.min(e.clientY, window.innerHeight - 200) });
+                              }}
+                              aria-pressed={isSelected}
+                              aria-label={`Select ${f.file_name}`}
+                              className={cn(
+                                "w-full aspect-square flex flex-col text-left rounded-lg overflow-hidden cursor-pointer border transition-colors duration-150 shadow-[0_1px_2px_rgba(7,17,51,.05)]",
+                                isSelected
+                                  ? "bg-[#EAF2FF] border-[#007BFF]"
+                                  : "bg-white border-[#E2E7F2] hover:bg-[#F4F8FF] hover:border-[#C7D2E8]"
+                              )}
+                            >
+                              <div className="flex items-center gap-2 pl-2.5 pr-8 py-2 shrink-0">
+                                <FileText size={14} className="text-[#007BFF] shrink-0" />
+                                {/* Native title, not IconTip — see the folder-tile comment above for why. */}
+                                <span title={f.file_name ?? "Untitled file"} className={cn("text-[11px] font-medium truncate flex-1", textPrimary)}>{f.file_name}</span>
+                              </div>
+                              <div className="flex-1 min-h-0 mx-2 mb-2 rounded-md overflow-hidden bg-[#F4F6FB]">
+                                <FileThumbnail asset={f} customerId={customerId} />
+                              </div>
+                              <div className="flex items-center justify-between px-2 pb-2 shrink-0">
+                                <span className={cn("text-[9.5px]", textMuted)}>{formatFileSize(f.file_size)}</span>
+                                <span className={cn(
+                                  "text-[9px] rounded-full px-1.5 py-0.5 whitespace-nowrap",
+                                  restricted ? ("bg-[#FFF3D6] text-[#8A5A00]") : ("bg-[#EDF0F7] text-[#5F6A88]")
+                                )}>
+                                  {permissionBadge}
+                                </span>
+                              </div>
+                            </button>
+                            <div className="absolute top-1.5 right-1.5">{fileMenu(f)}</div>
+                          </div>
+                          {permissionsOpenId === f.id && renderPermissionsPanel(f, roleRestricted)}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-1.5">
+                    {filesHere.map((f) => {
+                      const { roleRestricted, restricted, permissionBadge } = getPermissionInfo(f);
+                      const isSelected = selectedIds.has(f.id);
+                      return (
+                        <div key={f.id} className="flex flex-col">
+                          <div className="relative">
+                            <button
+                              type="button"
+                              onClick={() => toggleSelect(f.id)}
+                              onContextMenu={(e) => {
+                                e.preventDefault();
+                                setOpenFileMenuId(null);
+                                setContextMenu({ kind: "file", id: f.id, x: Math.min(e.clientX, window.innerWidth - 170), y: Math.min(e.clientY, window.innerHeight - 200) });
+                              }}
+                              aria-pressed={isSelected}
+                              aria-label={`Select ${f.file_name}`}
+                              className={cn(
+                                "w-full flex items-center gap-2.5 pl-2.5 pr-9 py-2 rounded-lg text-left cursor-pointer border transition-colors duration-150 shadow-[0_1px_2px_rgba(7,17,51,.05)]",
+                                isSelected
+                                  ? "bg-[#EAF2FF] border-[#007BFF]"
+                                  : "bg-white border-[#E2E7F2] hover:bg-[#F4F8FF] hover:border-[#C7D2E8]"
+                              )}
+                            >
+                              <div className="w-6 h-6 rounded-md bg-[#E5F1FF] flex items-center justify-center shrink-0">
+                                <FileText size={11} className="text-[#007BFF]" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div title={f.file_name ?? "Untitled file"} className={cn("text-[11.5px] font-medium truncate", textPrimary)}>{f.file_name}</div>
+                                <div className={cn("text-[10px]", textMuted)}>{formatFileSize(f.file_size)}</div>
+                              </div>
+                              <span className={cn(
+                                "text-[10px] rounded-full px-2 py-0.5 shrink-0 whitespace-nowrap",
+                                restricted ? ("bg-[#FFF3D6] text-[#8A5A00]") : ("bg-[#EDF0F7] text-[#5F6A88]")
+                              )}>
+                                {permissionBadge}
+                              </span>
+                            </button>
+                            <div className="absolute right-1.5 top-1/2 -translate-y-1/2">{fileMenu(f)}</div>
+                          </div>
+                          {permissionsOpenId === f.id && renderPermissionsPanel(f, roleRestricted)}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+          </>
+        )}
+      </div>
 
       {newFolderModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#071133]/60 p-4" onClick={() => setNewFolderModalOpen(false)}>
@@ -4150,13 +4510,14 @@ function StorageFileExplorer({
 // Modeled on the Customers → Assets tab's "Add Asset" modal (task 140) — Type narrowed to
 // Credential/Link only, since File already has its own upload flow in StorageFileExplorer.
 function AddCredentialLinkModal({
-  customerId, projectId, staffDirectory, onClose, onCreated,
+  customerId, projectId, staffDirectory, initialType, onClose, onCreated,
 }: {
   customerId: string; projectId: string;
   staffDirectory: { id: string; full_name: string | null; role: string }[];
+  initialType?: "link" | "credential";
   onClose: () => void; onCreated: (asset: AssetRow) => void;
 }) {
-  const [type, setType] = useState<"link" | "credential">("link");
+  const [type, setType] = useState<"link" | "credential">(initialType ?? "link");
   const [label, setLabel] = useState("");
   const [value, setValue] = useState("");
   // Per-field sensitivity (task 140 follow-up) — replaces the single whole-credential
@@ -4446,7 +4807,7 @@ const OFFICE_MIME_TYPES = [
 // signed URL directly (image/PDF/text) or hands it to a document-rendering service
 // (Office Online, since browsers can't render docx/xlsx natively) rather than letting the
 // browser fall back to a download prompt.
-function FilePreview({ file, url }: { file: AssetRow; url: string }) {
+function FilePreview({ file, url, previewSize }: { file: AssetRow; url: string; previewSize?: PreviewSizeKey }) {
   const mime = file.file_mime_type ?? "";
   const fileName = file.file_name ?? "file";
 
@@ -4476,7 +4837,7 @@ function FilePreview({ file, url }: { file: AssetRow; url: string }) {
     // Fetching the content ourselves and injecting it via srcDoc bypasses that header
     // entirely — the browser parses whatever HTML string it's given, regardless of the
     // Content-Type the bytes were served with.
-    return <HtmlFilePreview url={url} fileName={fileName} />;
+    return <HtmlFilePreview url={url} fileName={fileName} previewSize={previewSize ?? "full"} />;
   }
 
   if (mime === "text/csv") {
@@ -4507,9 +4868,135 @@ function FilePreview({ file, url }: { file: AssetRow; url: string }) {
   );
 }
 
+const EXCEL_MIME_TYPES = ["application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"];
+const WORD_MIME_TYPES = ["application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"];
+
+// Static, color-coded fallback tile — the loading/error placeholder for every lazily-previewed
+// mime below, and the permanent result for anything genuinely unrecognized. Google Drive itself
+// falls back to an icon like this for formats it can't thumbnail either.
+const FILE_TYPE_TILES: { test: (mime: string) => boolean; Icon: typeof FileText; bg: string; fg: string; label: string }[] = [
+  { test: (m) => WORD_MIME_TYPES.includes(m), Icon: FileText, bg: "bg-[#E5F1FF]", fg: "text-[#007BFF]", label: "DOC" },
+  { test: (m) => EXCEL_MIME_TYPES.includes(m), Icon: FileSpreadsheet, bg: "bg-[#E3F6EA]", fg: "text-[#177E48]", label: "XLS" },
+  { test: (m) => m === "application/pdf", Icon: FileText, bg: "bg-[#FDE8E6]", fg: "text-[#C0392B]", label: "PDF" },
+  { test: (m) => m === "text/html", Icon: FileCode2, bg: "bg-[#FFF3D6]", fg: "text-[#8A5A00]", label: "HTML" },
+  { test: (m) => m.startsWith("image/"), Icon: FileImage, bg: "bg-[#F4F6FB]", fg: "text-[#5F6A88]", label: "IMG" },
+];
+
+function FileTypeTile({ mime }: { mime: string }) {
+  const match = FILE_TYPE_TILES.find((t) => t.test(mime));
+  const Icon = match?.Icon ?? FileText;
+  return (
+    <div className={cn("w-full h-full flex flex-col items-center justify-center gap-1", match?.bg ?? "bg-[#F4F6FB]")}>
+      <Icon size={26} className={match?.fg ?? "text-[#5F6A88]"} />
+      {match && <span className={cn("text-[9px] font-bold tracking-wide", match.fg)}>{match.label}</span>}
+    </div>
+  );
+}
+
+// Google-Drive-style lazy thumbnail (task 198) — only fetches a signed URL (60s TTL, see the
+// file-url route) once the card actually scrolls into view, so opening a folder with many files
+// doesn't fire dozens of signed-URL requests at once. Renders its own mime-specific preview
+// directly (rather than delegating to FilePreview, which stays untouched for the full
+// FileViewerModal — that modal wants Office Online's full-fidelity Word/Excel rendering, a
+// downgrade for a thumbnail but the right choice for actually reading the file):
+//   - image/*                        → real <img>, object-cover so it reads like a cropped
+//                                       screenshot instead of a letterboxed thumbnail.
+//   - text/csv, Excel mimes          → CsvFilePreview / ExcelFilePreview (real table content).
+//   - text/markdown, text/html       → MarkdownFilePreview / HtmlFilePreview.
+//   - Word mimes                     → DocxFilePreview (mammoth-converted HTML).
+//   - application/pdf, anything else, or a lazy fetch that errors → FileTypeTile. PDF was
+//     tried both as a plain `<iframe src>` and with the `#toolbar=0&navpanes=0` fragment that's
+//     supposed to hide Chrome's built-in viewer chrome — verified in-browser that neither
+//     avoids the native PDF viewer UI (toolbar/scrollbar, or a "password required" prompt for a
+//     protected file) rendering inside the tiny thumbnail box, which looks broken rather than
+//     like a preview. The static red "PDF" tile reads better and needs no extra library.
+function FileThumbnail({ asset, customerId }: { asset: AssetRow; customerId: string }) {
+  const mime = asset.file_mime_type ?? "";
+  const isLazyPreviewable =
+    mime.startsWith("image/") ||
+    mime === "text/csv" ||
+    mime === "text/markdown" ||
+    mime === "text/html" ||
+    EXCEL_MIME_TYPES.includes(mime) ||
+    WORD_MIME_TYPES.includes(mime);
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
+  const [url, setUrl] = useState<string | null>(null);
+  const [errored, setErrored] = useState(false);
+
+  useEffect(() => {
+    if (!isLazyPreviewable) return;
+    const el = containerRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "200px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [isLazyPreviewable]);
+
+  useEffect(() => {
+    if (!isVisible || !isLazyPreviewable) return;
+    let cancelled = false;
+    fetch(`/api/customers/${customerId}/assets/${asset.id}/file-url`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch file URL");
+        return res.json();
+      })
+      .then((json: { url: string }) => {
+        if (!cancelled) setUrl(json.url);
+      })
+      .catch(() => {
+        if (!cancelled) setErrored(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isVisible, isLazyPreviewable, customerId, asset.id]);
+
+  if (!isLazyPreviewable || errored) {
+    return <FileTypeTile mime={mime} />;
+  }
+
+  // containerRef stays mounted on every render of this branch — including while url is still
+  // null — so the IntersectionObserver effect above always has a real element to attach to;
+  // returning a differently-shaped tree (no ref) while loading would leave containerRef.current
+  // null forever and the observer would never fire (same pitfall HtmlFilePreview's own comment
+  // documents for its ResizeObserver).
+  return (
+    <div ref={containerRef} className="w-full h-full pointer-events-none overflow-hidden">
+      {!url ? (
+        <FileTypeTile mime={mime} />
+      ) : mime.startsWith("image/") ? (
+        // eslint-disable-next-line @next/next/no-img-element -- signed, short-lived, per-request Supabase Storage URL; not a static/optimizable src next/image can allowlist
+        <img src={url} alt={asset.file_name ?? "file"} className="w-full h-full object-cover object-top" />
+      ) : mime === "text/csv" ? (
+        <CsvFilePreview url={url} />
+      ) : EXCEL_MIME_TYPES.includes(mime) ? (
+        <ExcelFilePreview url={url} />
+      ) : mime === "text/markdown" ? (
+        <MarkdownFilePreview url={url} />
+      ) : mime === "text/html" ? (
+        <HtmlFilePreview url={url} fileName={asset.file_name ?? "file"} previewSize="mobile" />
+      ) : WORD_MIME_TYPES.includes(mime) ? (
+        <DocxFilePreview url={url} />
+      ) : (
+        <FileTypeTile mime={mime} />
+      )}
+    </div>
+  );
+}
+
 // Fetches the HTML file's raw text client-side and renders it via iframe srcDoc — see the
 // comment at FilePreview's text/html branch for why src={url} alone doesn't work here.
-function HtmlFilePreview({ url, fileName }: { url: string; fileName: string }) {
+function HtmlFilePreview({ url, fileName, previewSize }: { url: string; fileName: string; previewSize: PreviewSizeKey }) {
   const [html, setHtml] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -4531,23 +5018,72 @@ function HtmlFilePreview({ url, fileName }: { url: string; fileName: string }) {
     };
   }, [url]);
 
-  if (error) {
-    return (
-      <div className="w-full h-full flex items-center justify-center px-6 text-center">
-        <span className="text-[12.5px] text-[#C0392B]">{error}</span>
-      </div>
-    );
-  }
-  if (html === null) {
-    return (
-      <div className="w-full h-full flex items-center justify-center">
-        <span className="text-[12.5px] text-[#5F6A88]">Loading preview…</span>
-      </div>
-    );
-  }
-  // Empty sandbox = no script execution, no same-origin, no forms/popups/top-nav —
-  // renders uploaded HTML visually inert, since this may be unreviewed client content.
-  return <iframe srcDoc={html} title={fileName} sandbox="" className="w-full h-full border-0 bg-white" />;
+  // Scale-to-fit — same technique as HtmlEditorModal's live preview pane: measure this
+  // wrapper's actual size, then render the iframe at the preset's real design width (e.g.
+  // 1280px for Desktop) and visually scale it down to fit, instead of a 1:1 iframe whose
+  // narrower modal width would trip the page's own mobile responsive breakpoints.
+  const paneRef = useRef<HTMLDivElement>(null);
+  const [paneSize, setPaneSize] = useState({ width: 0, height: 0 });
+  useEffect(() => {
+    const el = paneRef.current;
+    if (!el) return;
+    // Seed the size synchronously from the element's current box — ResizeObserver's spec
+    // guarantees an initial callback, but verified in-browser that inside a small grid-item
+    // thumbnail card (nested in an aspect-square CSS Grid button) that first callback can be
+    // arbitrarily delayed or never arrive within a normal render window. Reading the rect
+    // directly here covers the thumbnail case; the observer below still keeps handling genuine
+    // later resizes (e.g. the full FileViewerModal, whose pane really can resize).
+    const rect = el.getBoundingClientRect();
+    if (rect.width > 0) setPaneSize({ width: rect.width, height: rect.height });
+    const observer = new ResizeObserver((entries) => {
+      const observedRect = entries[0]?.contentRect;
+      if (observedRect) setPaneSize({ width: observedRect.width, height: observedRect.height });
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  const virtualWidth = PREVIEW_SIZES.find((s) => s.key === previewSize)?.width ?? 1280;
+  const scale = paneSize.width > 0 ? Math.min(1, paneSize.width / virtualWidth) : 1;
+  const virtualHeight = paneSize.height > 0 && scale > 0 ? paneSize.height / scale : paneSize.height;
+  const visualWidth = virtualWidth * scale;
+  const leftOffset = Math.max(0, (paneSize.width - visualWidth) / 2);
+
+  // paneRef's wrapper stays mounted across all states (unlike the old plain-iframe version)
+  // so the ResizeObserver effect above — which only runs once on mount — always finds a real
+  // element to observe; conditionally swapping in a differently-shaped div while loading would
+  // leave paneRef.current null when that effect fires and the observer would never attach.
+  return (
+    <div ref={paneRef} className="w-full h-full relative overflow-hidden">
+      {error && (
+        <div className="absolute inset-0 flex items-center justify-center px-6 text-center">
+          <span className="text-[12.5px] text-[#C0392B]">{error}</span>
+        </div>
+      )}
+      {html === null && !error && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="text-[12.5px] text-[#5F6A88]">Loading preview…</span>
+        </div>
+      )}
+      {html !== null && !error && paneSize.width > 0 && (
+        // Empty sandbox = no script execution, no same-origin, no forms/popups/top-nav —
+        // renders uploaded HTML visually inert, since this may be unreviewed client content.
+        <iframe
+          key={previewSize}
+          srcDoc={html}
+          title={fileName}
+          sandbox=""
+          className="block border-0 bg-white absolute top-0"
+          style={{
+            left: leftOffset,
+            width: virtualWidth,
+            height: virtualHeight,
+            transform: `scale(${scale})`,
+            transformOrigin: "top left",
+          }}
+        />
+      )}
+    </div>
+  );
 }
 
 // Fetches the CSV file's raw text and renders it as an actual table — a simple split on
@@ -4628,6 +5164,128 @@ function CsvFilePreview({ url }: { url: string }) {
   );
 }
 
+// Parses the actual .xlsx/.xls binary client-side (via the `xlsx`/SheetJS package already
+// used for spreadsheet import at portfolio-tracker/import/_content.tsx) and renders the first
+// sheet as a real table — the same "screenshot of the spreadsheet" preview CSV gets, rather
+// than a static icon. Reads the sheet as an array-of-arrays (`header: 1`) so merged/irregular
+// headers still render something reasonable, unlike sheet_to_json's object-per-row shape.
+function ExcelFilePreview({ url }: { url: string }) {
+  const [rows, setRows] = useState<string[][] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(url)
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch spreadsheet content");
+        return res.arrayBuffer();
+      })
+      .then((buffer) => {
+        if (cancelled) return;
+        const workbook = XLSX.read(buffer, { type: "array" });
+        const firstSheetName = workbook.SheetNames[0];
+        const sheet = firstSheetName ? workbook.Sheets[firstSheetName] : undefined;
+        const parsed = sheet
+          ? XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, defval: "", raw: false })
+          : [];
+        setRows(parsed.slice(0, 30).map((row) => row.map((cell) => String(cell ?? ""))));
+      })
+      .catch(() => {
+        if (!cancelled) setError("Failed to load spreadsheet preview.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [url]);
+
+  if (error) {
+    return (
+      <div className="w-full h-full flex items-center justify-center px-6 text-center">
+        <span className="text-[12.5px] text-[#C0392B]">{error}</span>
+      </div>
+    );
+  }
+  if (rows === null) {
+    return (
+      <div className="w-full h-full flex items-center justify-center">
+        <span className="text-[12.5px] text-[#5F6A88]">Loading preview…</span>
+      </div>
+    );
+  }
+
+  const [header, ...body] = rows;
+  return (
+    <div className="w-full h-full overflow-auto p-4 bg-white scrollbar-light">
+      <table className="min-w-full text-[12px] border-collapse">
+        <thead>
+          <tr>
+            {header?.map((cell, i) => (
+              <th key={i} className="text-left font-semibold text-[#3A4565] px-3 py-2 border-b-2 border-[#E2E7F2] bg-[#F4F6FB] whitespace-nowrap">
+                {cell}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {body.map((row, i) => (
+            <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-[#F4F6FB]/50"}>
+              {row.map((cell, j) => (
+                <td key={j} className="px-3 py-1.5 border-b border-[#EDF0F7] text-[#3A4565] whitespace-nowrap">
+                  {cell}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// Converts the actual .doc/.docx binary client-side (via `mammoth`) to basic HTML — headings,
+// paragraphs, lists, bold/italic survive; complex layout/positioning doesn't, but that's a
+// reasonable tradeoff for a preview of the document's own text rather than a static icon.
+// Rendered through the same htmlBodyDocument styling shell as the Markdown preview.
+function DocxFilePreview({ url }: { url: string }) {
+  const [html, setHtml] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(url)
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch document content");
+        return res.arrayBuffer();
+      })
+      .then((buffer) => mammoth.convertToHtml({ arrayBuffer: buffer }))
+      .then((result) => {
+        if (!cancelled) setHtml(htmlBodyDocument(result.value));
+      })
+      .catch(() => {
+        if (!cancelled) setError("Failed to load document preview.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [url]);
+
+  if (error) {
+    return (
+      <div className="w-full h-full flex items-center justify-center px-6 text-center">
+        <span className="text-[12.5px] text-[#C0392B]">{error}</span>
+      </div>
+    );
+  }
+  if (html === null) {
+    return (
+      <div className="w-full h-full flex items-center justify-center">
+        <span className="text-[12.5px] text-[#5F6A88]">Loading preview…</span>
+      </div>
+    );
+  }
+  return <iframe srcDoc={html} sandbox="" title="Document preview" className="w-full h-full border-0 bg-white" />;
+}
+
 // Fetches the Markdown file's raw text and renders it as actual formatted HTML via
 // markdownToHtmlDocument — a much nicer preview than raw source text.
 function MarkdownFilePreview({ url }: { url: string }) {
@@ -4673,13 +5331,16 @@ function MarkdownFilePreview({ url }: { url: string }) {
 // everything renders inline via <img>/<iframe> so the signed URL is only ever fetched
 // by the browser for display, not offered to the user as a download.
 function FileViewerModal({
-  file, url, loading, error, onClose,
+  file, url, loading, error, onClose, onEditHtml,
 }: {
   file: AssetRow; url: string | null; loading: boolean; error: string | null; onClose: () => void;
+  onEditHtml: (file: AssetRow) => void;
 }) {
   const textPrimary = "text-[#0B1533]";
   const textMuted = "text-[#5F6A88]";
   const cardCls = "bg-white border border-[#E2E7F2] rounded-xl";
+  const isHtml = file.file_mime_type === "text/html";
+  const [previewSize, setPreviewSize] = useState<PreviewSizeKey>("full");
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -4688,23 +5349,82 @@ function FileViewerModal({
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#071133]/60 p-4" onClick={onClose}>
-      <div role="dialog" aria-modal="true" aria-labelledby="file-viewer-title" className={cn(cardCls, "w-full max-w-4xl h-[85vh] shadow-xl overflow-hidden flex flex-col")} onClick={(e) => e.stopPropagation()}>
-        <div className={cn("flex items-center justify-between gap-3 px-5 py-3 border-b shrink-0", "border-[#EDF0F7]")}>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.15, ease: "easeOut" }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[#071133]/60 p-4"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.97, y: 8 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.97, y: 8 }}
+        transition={{ duration: 0.18, ease: "easeOut" }}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="file-viewer-title"
+        className={cn(cardCls, "w-[1360px] max-w-[96vw] h-[94vh] shadow-xl overflow-hidden flex flex-col")}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className={cn("relative flex items-center justify-between gap-3 px-5 py-3 border-b shrink-0", "border-[#EDF0F7]")}>
           <div className="flex items-center gap-2 min-w-0">
             <FileText size={14} className="text-[#007BFF] shrink-0" />
             <h2 id="file-viewer-title" className={cn("text-[13.5px] font-semibold truncate", textPrimary)}>{file.file_name}</h2>
           </div>
-          <IconTip label="Close" side="bottom">
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="Close preview"
-              className={cn("p-2 rounded-md cursor-pointer border-none bg-transparent shrink-0 hover:bg-[#5F6A88]/10 transition-colors", textMuted)}
-            >
-              <X size={18} />
-            </button>
-          </IconTip>
+          {isHtml && (
+            // Same pill-toggle design as the Projects list's Grid/List view switch
+            // (src/app/v2/(hub)/projects/_projects-index.tsx) — icon-only buttons, active state
+            // a filled navy pill, real tooltips via the shared Tooltip primitive (IconTip wraps
+            // it). Absolutely centered so it sits in the middle of the header regardless of how
+            // wide the file name or close button are.
+            <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-0.5 border border-[#E2E7F2] rounded-full p-1 bg-white">
+              {PREVIEW_SIZES.map((s) => {
+                const Icon = s.icon;
+                const active = previewSize === s.key;
+                return (
+                  <IconTip key={s.key} label={s.label}>
+                    <button
+                      type="button"
+                      onClick={() => setPreviewSize(s.key)}
+                      aria-label={s.label}
+                      className={cn(
+                        "p-1.5 rounded-full transition-colors cursor-pointer border-none",
+                        active ? "bg-[#071133] text-white" : "text-[#5F6A88] hover:text-[#0B1533] bg-transparent"
+                      )}
+                    >
+                      <Icon size={15} />
+                    </button>
+                  </IconTip>
+                );
+              })}
+            </div>
+          )}
+          <div className="flex items-center gap-1 shrink-0">
+            {isHtml && (
+              <IconTip label="Edit HTML" side="bottom">
+                <button
+                  type="button"
+                  onClick={() => onEditHtml(file)}
+                  aria-label="Edit HTML"
+                  className={cn("p-2 rounded-md cursor-pointer border-none bg-transparent hover:bg-[#5F6A88]/10 transition-colors", textMuted)}
+                >
+                  <Pencil size={16} />
+                </button>
+              </IconTip>
+            )}
+            <IconTip label="Close" side="bottom">
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label="Close preview"
+                className={cn("p-2 rounded-md cursor-pointer border-none bg-transparent hover:bg-[#5F6A88]/10 transition-colors", textMuted)}
+              >
+                <X size={18} />
+              </button>
+            </IconTip>
+          </div>
         </div>
         {/* min-w-0 alongside min-h-0 — without it, this flex-col item's default min-width:auto
             lets a wide child (e.g. CsvFilePreview's table, which has no upper bound on its
@@ -4722,10 +5442,10 @@ function FileViewerModal({
               <span className="text-[12.5px] text-[#C0392B]">{error}</span>
             </div>
           )}
-          {url && !loading && !error && <FilePreview file={file} url={url} />}
+          {url && !loading && !error && <FilePreview file={file} url={url} previewSize={isHtml ? previewSize : undefined} />}
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
 
@@ -4887,6 +5607,7 @@ function HtmlEditorModal({
   // silently fail to re-initialize their content on later re-renders of the same node.
   const [previewRevision, setPreviewRevision] = useState(0);
   const [previewSize, setPreviewSize] = useState<PreviewSizeKey>("full");
+  const [showCode, setShowCode] = useState(true);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [saveError, setSaveError] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState<Date | null>(null);
@@ -4961,20 +5682,81 @@ function HtmlEditorModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#071133]/60 p-4" onClick={onClose}>
-      <div className={cn(cardCls, "w-[96vw] h-[94vh] shadow-xl overflow-hidden flex flex-col")} onClick={(e) => e.stopPropagation()}>
-        <div className={cn("flex items-center justify-between gap-3 px-5 py-3 border-b shrink-0", "border-[#EDF0F7]")}>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.15, ease: "easeOut" }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[#071133]/60 p-4"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.97, y: 8 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.97, y: 8 }}
+        transition={{ duration: 0.18, ease: "easeOut" }}
+        className={cn(cardCls, "w-[96vw] h-[94vh] shadow-xl overflow-hidden flex flex-col")}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className={cn("relative flex items-center justify-between gap-3 px-5 py-3 border-b shrink-0", "border-[#EDF0F7]")}>
           <div className="flex items-center gap-2 min-w-0">
             <Pencil size={14} className="text-[#007BFF] shrink-0" />
             <h2 className={cn("text-[13.5px] font-semibold truncate", textPrimary)}>{file.file_name}</h2>
           </div>
-          <div className="flex items-center gap-3 shrink-0">
+          {/* Same pill-toggle design as FileViewerModal's viewport switch (which itself mirrors
+              the Projects list's Grid/List view switch) — icon-only, navy-fill active state,
+              absolutely centered in the header instead of its own toolbar row above the
+              preview pane. The code-editor toggle sits in its own matching pill immediately
+              before it, same button styling, active (editor shown) = same navy fill. */}
+          <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2">
+            <div className="flex items-center border border-[#E2E7F2] rounded-full p-1 bg-white">
+              <IconTip label={showCode ? "Hide code" : "Show code"} side="bottom">
+                <button
+                  type="button"
+                  onClick={() => setShowCode((v) => !v)}
+                  aria-label={showCode ? "Hide code editor" : "Show code editor"}
+                  aria-pressed={showCode}
+                  className={cn(
+                    "p-1.5 rounded-full transition-colors cursor-pointer border-none",
+                    showCode ? "bg-[#071133] text-white" : "text-[#5F6A88] hover:text-[#0B1533] bg-transparent"
+                  )}
+                >
+                  <Code2 size={15} />
+                </button>
+              </IconTip>
+            </div>
+            <div className="flex items-center gap-0.5 border border-[#E2E7F2] rounded-full p-1 bg-white">
+              {PREVIEW_SIZES.map((s) => {
+                const Icon = s.icon;
+                const active = previewSize === s.key;
+                return (
+                  <IconTip key={s.key} label={s.label}>
+                    <button
+                      type="button"
+                      onClick={() => setPreviewSize(s.key)}
+                      aria-label={s.label}
+                      className={cn(
+                        "p-1.5 rounded-full transition-colors cursor-pointer border-none",
+                        active ? "bg-[#071133] text-white" : "text-[#5F6A88] hover:text-[#0B1533] bg-transparent"
+                      )}
+                    >
+                      <Icon size={15} />
+                    </button>
+                  </IconTip>
+                );
+              })}
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
             <SaveIndicator status={saveStatus} lastSavedAt={savedAt} error={saveError} />
+            {/* CTA button per _final_design/guide/central-hub-design-system.md §4 Buttons —
+                pill radius, orange fill, #471F02 text, hover orange-600 + white text. Same
+                classes as the "+ Add client"/"+ New Project" CTAs elsewhere in v2. */}
             <button
               type="button"
               onClick={handleSave}
               disabled={!loaded || saveStatus === "saving"}
-              className="px-3 py-1.5 rounded-lg bg-[#007BFF] text-white text-[12.5px] font-semibold cursor-pointer border-none hover:opacity-90 transition-opacity disabled:opacity-60"
+              className="inline-flex items-center gap-2 px-[15px] py-2 rounded-full text-[12px] font-semibold transition-colors cursor-pointer bg-[#FB914E] text-[#471F02] hover:bg-[#E2762F] hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
             >
               Save
             </button>
@@ -4993,68 +5775,50 @@ function HtmlEditorModal({
         {/* flex (not grid) for the split — grid's default 1fr columns can grow past 50% to
             fit a long unwrapped code line's min-content width; flex-1 + min-w-0 on both
             panes guarantees an even, content-independent split, same flex-1/min-h-0 idiom
-            already used for the outer scroll area above. */}
+            already used for the outer scroll area above. When showCode is false the editor
+            pane is unmounted entirely rather than hidden, so the preview pane's flex-1
+            naturally claims the full row width as the only child. */}
         <div className="flex-1 min-h-0 flex flex-col lg:flex-row">
-          <div className={cn("flex-1 min-w-0 min-h-0 overflow-auto border-b lg:border-b-0 lg:border-r", "border-[#E2E7F2]")}>
-            {!loaded && !loadError && (
-              <div className="h-full flex items-center justify-center"><span className={cn("text-[12.5px]", textMuted)}>Loading…</span></div>
-            )}
-            {loadError && (
-              <div className="h-full flex items-center justify-center px-6 text-center"><span className="text-[12.5px] text-[#C0392B]">{loadError}</span></div>
-            )}
-            {loaded && (
-              <CodeMirror
-                value={value}
-                height="100%"
-                theme={githubLight}
-                extensions={[isMarkdown ? markdownLang() : htmlLang()]}
-                onChange={(v: string) => setValue(v)}
-              />
-            )}
-          </div>
-          <div className="flex-1 min-w-0 min-h-0 flex flex-col">
-            <div className={cn("flex items-center gap-0.5 px-2 py-1.5 border-b shrink-0", "border-[#EDF0F7] bg-[#F4F6FB]/50")}>
-              {PREVIEW_SIZES.map((s) => {
-                const Icon = s.icon;
-                const active = previewSize === s.key;
-                return (
-                  <button
-                    key={s.key}
-                    type="button"
-                    title={s.label}
-                    onClick={() => setPreviewSize(s.key)}
-                    className={cn(
-                      "text-[11px] px-2 h-7 rounded-md flex items-center gap-1.5 cursor-pointer transition-colors border-none",
-                      active ? "bg-[#E5F1FF] text-[#007BFF]" : "text-[#5F6A88] hover:bg-[#EDF0F7]"
-                    )}
-                  >
-                    <Icon size={13} /> {s.label}
-                  </button>
-                );
-              })}
-            </div>
-            <div ref={previewPaneRef} className={cn("flex-1 min-h-0 overflow-hidden relative", "bg-[#EDF0F7]")}>
-              {loaded && paneSize.width > 0 && (
-                <iframe
-                  key={previewRevision}
-                  srcDoc={previewDocument}
-                  sandbox=""
-                  title="Live preview"
-                  className="block border-0 bg-white absolute top-0"
-                  style={{
-                    left: previewLeftOffset,
-                    width: previewVirtualWidth,
-                    height: previewVirtualHeight,
-                    transform: `scale(${previewScale})`,
-                    transformOrigin: "top left",
-                  }}
+          {showCode && (
+            <div className={cn("flex-1 min-w-0 min-h-0 overflow-auto border-b lg:border-b-0 lg:border-r", "border-[#E2E7F2]")}>
+              {!loaded && !loadError && (
+                <div className="h-full flex items-center justify-center"><span className={cn("text-[12.5px]", textMuted)}>Loading…</span></div>
+              )}
+              {loadError && (
+                <div className="h-full flex items-center justify-center px-6 text-center"><span className="text-[12.5px] text-[#C0392B]">{loadError}</span></div>
+              )}
+              {loaded && (
+                <CodeMirror
+                  value={value}
+                  height="100%"
+                  theme={githubLight}
+                  extensions={[isMarkdown ? markdownLang() : htmlLang()]}
+                  onChange={(v: string) => setValue(v)}
                 />
               )}
             </div>
+          )}
+          <div ref={previewPaneRef} className={cn("flex-1 min-w-0 min-h-0 overflow-hidden relative", "bg-[#EDF0F7]")}>
+            {loaded && paneSize.width > 0 && (
+              <iframe
+                key={previewRevision}
+                srcDoc={previewDocument}
+                sandbox=""
+                title="Live preview"
+                className="block border-0 bg-white absolute top-0"
+                style={{
+                  left: previewLeftOffset,
+                  width: previewVirtualWidth,
+                  height: previewVirtualHeight,
+                  transform: `scale(${previewScale})`,
+                  transformOrigin: "top left",
+                }}
+              />
+            )}
           </div>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
 
