@@ -185,7 +185,7 @@ export default function TaskDetailClient({
   async function handleDelete() {
     if (!confirm("Delete this task and all its subtasks?")) return;
     await fetch(`/api/v2/tasks/${task.id}`, { method: "DELETE" });
-    if (project.project_id) router.push(`/v2/projects/${project.project_id}`);
+    if (project.project_id) router.push(`/v2/projects/${project.project_id}/tasks`);
   }
 
   const doneCount = subtasks.filter((s) => s.status === "closed").length;
@@ -195,7 +195,7 @@ export default function TaskDetailClient({
       {/* Header */}
       <div className="px-8 pt-6 pb-5 bg-white border-b border-slate-100 shrink-0">
         <button
-          onClick={() => project.project_id && router.push(`/v2/projects/${project.project_id}`)}
+          onClick={() => project.project_id && router.push(`/v2/projects/${project.project_id}/tasks`)}
           className="inline-flex items-center gap-1.5 text-[12px] text-slate-500 hover:text-slate-700 mb-3 cursor-pointer"
         >
           <ArrowLeft size={14} /> {project.name}

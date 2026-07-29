@@ -1,4 +1,4 @@
-## vexp - Context-Aware AI Coding <!-- vexp v2.3.0 -->
+## vexp - Context-Aware AI Coding <!-- vexp v2.3.1 -->
 
 ### Context strategy: one pipeline call up front, then your normal tools
 For every multi-file task - bug fixes, features, refactors, debugging:

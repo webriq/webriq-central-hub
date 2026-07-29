@@ -540,6 +540,11 @@ export default function NewProjectWizard({ role }: { role: string | null }) {
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerMatch | null>(null);
   const [searching, setSearching] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Task 195: `submitting` state alone is an async, best-effort re-entrancy guard — a second
+  // click can still fire before React re-renders `disabled`. This ref is checked/set
+  // synchronously, before any await, so a rapid double-invoke of submit()/startAtPhase() can't
+  // send two requests.
+  const submitLockRef = useRef(false);
 
   const [contactName, setContactName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
@@ -700,6 +705,8 @@ export default function NewProjectWizard({ role }: { role: string | null }) {
       setSubmitError("Pick a schedule date/time to Save + Set Schedule.");
       return;
     }
+    if (submitLockRef.current) return;
+    submitLockRef.current = true;
     setSubmitting(mode);
     setSubmitError(null);
     try {
@@ -718,6 +725,7 @@ export default function NewProjectWizard({ role }: { role: string | null }) {
       setSubmitError(err instanceof Error ? err.message : "Failed to create project");
     } finally {
       setSubmitting(null);
+      submitLockRef.current = false;
     }
   }
 
@@ -735,6 +743,8 @@ export default function NewProjectWizard({ role }: { role: string | null }) {
       setSubmitError("Company and project name are required.");
       return;
     }
+    if (submitLockRef.current) return;
+    submitLockRef.current = true;
     setSubmitting("start");
     setSubmitError(null);
     try {
@@ -779,6 +789,7 @@ export default function NewProjectWizard({ role }: { role: string | null }) {
       setSubmitError(err instanceof Error ? err.message : "Failed to create project");
     } finally {
       setSubmitting(null);
+      submitLockRef.current = false;
     }
   }
 

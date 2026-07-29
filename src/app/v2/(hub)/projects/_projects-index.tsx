@@ -670,7 +670,7 @@ function GridView({
         return (
           <Link
             key={p.id}
-            href={p.project_id ? `${V2_ROUTES.PROJECTS}/${p.project_id}` : V2_ROUTES.PROJECTS}
+            href={p.project_id ? `${V2_ROUTES.PROJECTS}/${p.project_id}/tasks` : V2_ROUTES.PROJECTS}
             className="h-full flex flex-col gap-3 p-4 rounded-[14px] border border-[#E2E7F2] bg-white hover:border-[#A8C6F5] transition-colors"
           >
             {/* Title + status */}
@@ -769,7 +769,7 @@ function ListView({
               return (
                 <tr
                   key={p.id}
-                  onClick={() => p.project_id && router.push(`${V2_ROUTES.PROJECTS}/${p.project_id}`)}
+                  onClick={() => p.project_id && router.push(`${V2_ROUTES.PROJECTS}/${p.project_id}/tasks`)}
                   className="hover:bg-[#F0F7FF] transition-colors cursor-pointer"
                 >
                   {/* Project Name + Customer below */}

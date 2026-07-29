@@ -12,13 +12,16 @@ import { cn } from "@/lib/utils";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { V2_ROUTES } from "@/config/constants";
 import {
-  type Project, type Milestone, type Tasklist, type Task,
-  type TaskStatus, type TaskPriority, ProjectStatusBadge,
-  STATUS_LABEL, PRIORITY_STYLE, normalizeStatus,
+  type Project, type Milestone, type Tasklist, type Task, type Issue,
+  type TaskStatus, type TaskPriority, type IssueSeverity, ProjectStatusBadge,
+  STATUS_LABEL, PRIORITY_STYLE, SEVERITY_STYLE, normalizeStatus, normalizeSeverity,
 } from "../_pm-shared";
 import BoardView from "./_board-view";
 import ListView, { type SortKey, type SortDir } from "./_list-view";
 import CalendarView from "./_calendar-view";
+import IssueListView, { type IssueSortKey, type IssueSortDir } from "./_issue-list-view";
+import IssueBoardView from "./_issue-board-view";
+import IssueCalendarView from "./_issue-calendar-view";
 import MilestonePanel from "./_milestone-panel";
 
 type ViewId = "board" | "list" | "calendar";
@@ -60,6 +63,24 @@ const SORT_OPTIONS: { value: SortValue; label: string; key: SortKey; dir: SortDi
   { value: "priority_low",  label: "Priority (lowest first)",  key: "priority", dir: "desc" },
 ];
 
+// ─── Issues tab — status pipeline is shared with tasks (see task 192 doc); severity
+// is a separate 5-value Zoho vocabulary, not the task priority enum. ────────────────
+const SEVERITY_OPTS: IssueSeverity[] = ["Show stopper", "Critical", "Major", "Minor", "None"];
+const SEVERITY_FILTER_OPTIONS = SEVERITY_OPTS.map((s) => ({ value: s, label: SEVERITY_STYLE[s].label }));
+
+type IssueSortValue = "istatus_asc" | "istatus_desc" | "iname_asc" | "iname_desc" | "idue_soonest" | "idue_latest" | "severity_high" | "severity_low";
+
+const ISSUE_SORT_OPTIONS: { value: IssueSortValue; label: string; key: IssueSortKey; dir: IssueSortDir }[] = [
+  { value: "istatus_asc",    label: "Status (pipeline order)",   key: "status",   dir: "asc" },
+  { value: "istatus_desc",   label: "Status (reverse order)",    key: "status",   dir: "desc" },
+  { value: "iname_asc",      label: "Issue name (A–Z)",          key: "title",    dir: "asc" },
+  { value: "iname_desc",     label: "Issue name (Z–A)",          key: "title",    dir: "desc" },
+  { value: "idue_soonest",   label: "Due date (soonest)",        key: "due_date", dir: "asc" },
+  { value: "idue_latest",    label: "Due date (latest)",         key: "due_date", dir: "desc" },
+  { value: "severity_high",  label: "Severity (highest first)",  key: "severity", dir: "asc" },
+  { value: "severity_low",   label: "Severity (lowest first)",   key: "severity", dir: "desc" },
+];
+
 export type TaskDefaults = {
   status?: TaskStatus;
   milestone_id?: string | null;
@@ -72,23 +93,27 @@ export default function ProjectDetail({
   initialMilestones,
   initialTasklists,
   initialTasks,
+  initialIssues,
   currentUserId,
   profilesById,
   allMembers,
   initialHoursById,
+  activeTab,
 }: {
   project: Project;
   companyName: string;
   initialMilestones: Milestone[];
   initialTasklists: Tasklist[];
   initialTasks: Task[];
+  initialIssues: Issue[];
   currentUserId: string;
   profilesById: Record<string, { full_name: string; avatar_url: string | null }>;
   allMembers: { id: string; full_name: string | null; avatar_url: string | null }[];
   initialHoursById: Record<string, number>;
+  activeTab: PrimaryTab;
 }) {
   const router = useRouter();
-  const [primaryTab, setPrimaryTab] = useState<PrimaryTab>("tasks");
+  const primaryTab = activeTab;
   const [view, setView] = useState<ViewId>("list");
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [milestones, setMilestones] = useState<Milestone[]>(initialMilestones);
@@ -103,6 +128,16 @@ export default function ProjectDetail({
   const [sortKey, setSortKey] = useState<SortKey>("status");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+
+  // ─── Issue state (own view/toolbar state — independent of the Tasks tab) ───
+  const [issues, setIssues] = useState<Issue[]>(initialIssues);
+  const [issueView, setIssueView] = useState<ViewId>("list");
+  const [issueSearch, setIssueSearch] = useState("");
+  const [issueStatusFilter, setIssueStatusFilter] = useState<string[]>(() => STATUS_OPTS.map((s) => s as string));
+  const [severityFilter, setSeverityFilter] = useState<string[]>(() => SEVERITY_OPTS.map((s) => s as string));
+  const [issueSortKey, setIssueSortKey] = useState<IssueSortKey>("status");
+  const [issueSortDir, setIssueSortDir] = useState<IssueSortDir>("asc");
+  const [createIssueOpen, setCreateIssueOpen] = useState(false);
 
   // ─── Realtime sync ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -132,6 +167,33 @@ export default function ProjectDetail({
     return () => { void supabase.removeChannel(channel); };
   }, [project.id]);
 
+  useEffect(() => {
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`project_issues_${project.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "issues", filter: `project_id=eq.${project.id}` },
+        (payload) => {
+          if (payload.eventType === "UPDATE") {
+            setIssues((prev) =>
+              prev.map((i) => (i.id === (payload.new as Issue).id ? { ...i, ...(payload.new as Issue) } : i))
+            );
+          } else if (payload.eventType === "INSERT") {
+            const incoming = payload.new as Issue;
+            setIssues((prev) =>
+              prev.some((i) => i.id === incoming.id) ? prev : [...prev, incoming]
+            );
+          } else if (payload.eventType === "DELETE") {
+            const deletedId = (payload.old as { id: string }).id;
+            setIssues((prev) => prev.filter((i) => i.id !== deletedId));
+          }
+        }
+      )
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [project.id]);
+
   // ─── Task mutations (optimistic) ─────────────────────────────────────────
   const updateTask = useCallback(async (id: string, patch: Partial<Task>) => {
     const snapshot = tasks;
@@ -149,6 +211,36 @@ export default function ProjectDetail({
 
   const addTask = useCallback((task: Task) => {
     setTasks((prev) => [...prev, task]);
+  }, []);
+
+  // ─── Issue mutations (optimistic) ────────────────────────────────────────
+  const updateIssue = useCallback(async (id: string, patch: Partial<Issue>) => {
+    const snapshot = issues;
+    setIssues((prev) => prev.map((i) => (i.id === id ? { ...i, ...patch } : i)));
+    const res = await fetch(`/api/v2/issues/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    });
+    if (!res.ok) { setIssues(snapshot); return false; }
+    const updated: Issue = await res.json();
+    setIssues((prev) => prev.map((i) => (i.id === id ? updated : i)));
+    return true;
+  }, [issues]);
+
+  const addIssue = useCallback((issue: Issue) => {
+    setIssues((prev) => [...prev, issue]);
+  }, []);
+
+  const bulkDeleteIssues = useCallback(async (ids: string[]) => {
+    const results = await Promise.all(
+      ids.map(async (id) => {
+        const res = await fetch(`/api/v2/issues/${id}`, { method: "DELETE" });
+        return { id, ok: res.ok };
+      })
+    );
+    const deletedIds = new Set(results.filter((r) => r.ok).map((r) => r.id));
+    setIssues((prev) => prev.filter((i) => !deletedIds.has(i.id)));
   }, []);
 
   // ─── Milestone mutations ──────────────────────────────────────────────────
@@ -241,6 +333,45 @@ export default function ProjectDetail({
     else { setSortKey(key); setSortDir("asc"); }
   }
 
+  // ─── Issue search / filter ────────────────────────────────────────────────
+  const filteredIssues = useMemo(() => {
+    const q = issueSearch.trim().toLowerCase();
+    const statusSet = new Set(issueStatusFilter);
+    const severitySet = new Set(severityFilter);
+    return issues.filter((i) => {
+      if (!statusSet.has(normalizeStatus(i.status))) return false;
+      if (!severitySet.has(normalizeSeverity(i.severity))) return false;
+      if (!q) return true;
+      return i.title.toLowerCase().includes(q) || (i.assignee_name?.toLowerCase().includes(q) ?? false);
+    });
+  }, [issues, issueSearch, issueStatusFilter, severityFilter]);
+
+  const hasActiveIssueFilters =
+    issueSearch.trim().length > 0 ||
+    issueStatusFilter.length < STATUS_OPTS.length ||
+    severityFilter.length < SEVERITY_OPTS.length;
+
+  function clearIssueFilters() {
+    setIssueSearch("");
+    setIssueStatusFilter(STATUS_OPTS.map((s) => s as string));
+    setSeverityFilter(SEVERITY_OPTS.map((s) => s as string));
+  }
+
+  const issueSortValue: IssueSortValue =
+    ISSUE_SORT_OPTIONS.find((o) => o.key === issueSortKey && o.dir === issueSortDir)?.value ?? "istatus_asc";
+
+  function handleIssueSortChange(value: string) {
+    const opt = ISSUE_SORT_OPTIONS.find((o) => o.value === value);
+    if (!opt) return;
+    setIssueSortKey(opt.key);
+    setIssueSortDir(opt.dir);
+  }
+
+  function toggleIssueSort(key: IssueSortKey) {
+    if (issueSortKey === key) setIssueSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setIssueSortKey(key); setIssueSortDir("asc"); }
+  }
+
   // ─── Collapse / expand all tasklist groups ───────────────────────────────
   const allGroupIds = useMemo(() => {
     const ids = tasklists.map((tl) => tl.id);
@@ -290,10 +421,10 @@ export default function ProjectDetail({
             </p>
           </div>
           <button
-            onClick={() => setCreateDefaults({})}
+            onClick={() => (primaryTab === "issues" ? setCreateIssueOpen(true) : setCreateDefaults({}))}
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#FB914E] text-[#471F02] text-[13px] font-medium hover:bg-[#E2762F] hover:text-white transition-colors cursor-pointer shrink-0"
           >
-            <Plus size={16} /> New Task
+            <Plus size={16} /> {primaryTab === "issues" ? "New Issue" : "New Task"}
           </button>
         </div>
 
@@ -303,7 +434,7 @@ export default function ProjectDetail({
             {PRIMARY_TABS.map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setPrimaryTab(tab.id)}
+                onClick={() => router.push(`/v2/projects/${project.project_id}/${tab.id}`)}
                 className={cn(
                   "px-3 py-1.5 rounded-full text-[12px] font-medium transition-colors cursor-pointer",
                   primaryTab === tab.id
@@ -338,7 +469,7 @@ export default function ProjectDetail({
 
                 <FilterMultiSelect label="Status" options={STATUS_FILTER_OPTIONS} selected={statusFilter} onChange={setStatusFilter} />
                 <FilterMultiSelect label="Priority" options={PRIORITY_FILTER_OPTIONS} selected={priorityFilter} onChange={setPriorityFilter} />
-                <SortSelect value={sortValue} onChange={handleSortChange} />
+                <SortSelect value={sortValue} onChange={handleSortChange} options={SORT_OPTIONS} />
 
                 {view === "list" && (
                   <button
@@ -406,6 +537,7 @@ export default function ProjectDetail({
                   onToggleSort={toggleSort}
                   collapsed={collapsedGroups}
                   onToggleCollapseGroup={toggleGroupCollapse}
+                  onCreateNew={() => setCreateDefaults({})}
                   hasActiveFilters={hasActiveFilters}
                   onClearFilters={clearFilters}
                 />
@@ -423,9 +555,84 @@ export default function ProjectDetail({
 
         {/* ── Issues tab ── */}
         {primaryTab === "issues" && (
-          <div className="flex items-center justify-center h-full">
-            <p className="text-[13px] text-[#5F6A88]">Issues coming soon.</p>
-          </div>
+          <>
+            <div className="flex flex-wrap items-center justify-between gap-2 px-8 py-2.5 bg-white border-b border-[#E2E7F2] shrink-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="relative">
+                  <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#5F6A88] pointer-events-none" />
+                  <input
+                    value={issueSearch}
+                    onChange={(e) => setIssueSearch(e.target.value)}
+                    placeholder="Search issues…"
+                    className="w-56 pl-8 pr-3 py-[6.5px] rounded-[10px] border text-[12px] outline-none transition-colors border-[#E2E7F2] bg-[#F4F6FB] text-[#3A4565] focus:border-[#007BFF] focus:bg-white focus:ring-[3px] focus:ring-[#007BFF]/[0.14] placeholder:text-[#5F6A88]"
+                  />
+                </div>
+
+                <FilterMultiSelect label="Status" options={STATUS_FILTER_OPTIONS} selected={issueStatusFilter} onChange={setIssueStatusFilter} />
+                <FilterMultiSelect label="Severity" options={SEVERITY_FILTER_OPTIONS} selected={severityFilter} onChange={setSeverityFilter} />
+                <SortSelect value={issueSortValue} onChange={handleIssueSortChange} options={ISSUE_SORT_OPTIONS} />
+
+                {hasActiveIssueFilters && (
+                  <button
+                    onClick={clearIssueFilters}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#E2E7F2] bg-white text-[12px] text-[#3A4565] hover:bg-[#F0F7FF] cursor-pointer shrink-0 transition-colors"
+                  >
+                    <X size={13} /> Clear filters
+                  </button>
+                )}
+              </div>
+
+              <div className="flex items-center gap-0.5 border border-[#E2E7F2] rounded-full p-1 bg-white shrink-0">
+                {VIEW_ORDER.map((v) => (
+                  <Tooltip key={v}>
+                    <TooltipTrigger render={
+                      <button
+                        onClick={() => setIssueView(v)}
+                        aria-label={`${VIEW_LABELS[v]} view`}
+                        className={cn(
+                          "p-1.5 rounded-full transition-colors cursor-pointer",
+                          issueView === v ? "bg-[#071133] text-white" : "text-[#5F6A88] hover:text-[#0B1533]"
+                        )}
+                      >
+                        {VIEW_ICONS[v]}
+                      </button>
+                    } />
+                    <TooltipContent side="top">{VIEW_LABELS[v]} view</TooltipContent>
+                  </Tooltip>
+                ))}
+              </div>
+            </div>
+            <div className="flex-1 min-h-0 overflow-hidden">
+              {issueView === "board" && (
+                <IssueBoardView
+                  issues={filteredIssues}
+                  onMove={async (id, status) => { await updateIssue(id, { status }); }}
+                  onOpen={(issue) => router.push(`/v2/projects/${project.project_id}/issues/${issue.display_id}`)}
+                />
+              )}
+              {issueView === "list" && (
+                <IssueListView
+                  issues={filteredIssues}
+                  onOpen={(issue) => router.push(`/v2/projects/${project.project_id}/issues/${issue.display_id}`)}
+                  onUpdate={updateIssue}
+                  onBulkDelete={bulkDeleteIssues}
+                  allMembers={allMembers}
+                  sortKey={issueSortKey}
+                  sortDir={issueSortDir}
+                  onToggleSort={toggleIssueSort}
+                  onCreateNew={() => setCreateIssueOpen(true)}
+                  hasActiveFilters={hasActiveIssueFilters}
+                  onClearFilters={clearIssueFilters}
+                />
+              )}
+              {issueView === "calendar" && (
+                <IssueCalendarView
+                  issues={filteredIssues}
+                  onOpen={(issue) => router.push(`/v2/projects/${project.project_id}/issues/${issue.display_id}`)}
+                />
+              )}
+            </div>
+          </>
         )}
 
         {/* ── Milestones tab ── */}
@@ -433,6 +640,7 @@ export default function ProjectDetail({
           <div className="px-8 py-5 overflow-y-auto h-full">
             <MilestonePanel
               projectId={project.id}
+              projectSlug={project.project_id ?? project.id}
               milestones={milestones}
               tasks={tasks}
               onUpsert={upsertMilestone}
@@ -452,6 +660,17 @@ export default function ProjectDetail({
           onCreated={(t) => { addTask(t); setCreateDefaults(null); }}
         />
       )}
+
+      {/* Create issue modal */}
+      {createIssueOpen && (
+        <CreateIssueModal
+          projectId={project.project_id ?? project.id}
+          allMembers={allMembers}
+          onClose={() => setCreateIssueOpen(false)}
+          onCreated={(i) => { addIssue(i); setCreateIssueOpen(false); }}
+        />
+      )}
+
     </div>
   );
 }
@@ -561,7 +780,13 @@ function FilterMultiSelect({
 
 // ─── Sort select (page-scoped) ─────────────────────────────────────────────
 
-function SortSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+function SortSelect({
+  value, onChange, options,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; label: string }[];
+}) {
   return (
     <div className="relative shrink-0">
       <ArrowUpDown size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#5F6A88] pointer-events-none" />
@@ -571,7 +796,7 @@ function SortSelect({ value, onChange }: { value: string; onChange: (v: string) 
         className="h-[30px] pl-7 pr-7 rounded-full border border-[#E2E7F2] bg-white text-[11px] font-semibold text-[#3A4565] outline-none focus:border-[#007BFF] focus:ring-[3px] focus:ring-[#007BFF]/[0.14] cursor-pointer appearance-none"
         style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%235F6A88'/%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center" }}
       >
-        {SORT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+        {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
     </div>
   );
@@ -693,6 +918,154 @@ function CreateTaskModal({
               >
                 <option value="">None</option>
                 {milestones.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className={labelClass}>Due date</span>
+              <input
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                className={inputClass}
+              />
+            </label>
+          </div>
+          {error && <p className="text-[12px] text-[#C0392B]">{error}</p>}
+        </div>
+        <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-[#EDF0F7] bg-[#F4F6FB]">
+          <button onClick={onClose} className="px-4 py-2 rounded-full text-[13px] text-[#3A4565] bg-white border border-[#E2E7F2] hover:border-[#A8C6F5] cursor-pointer transition-colors">
+            Cancel
+          </button>
+          <button
+            onClick={submit}
+            disabled={saving}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#007BFF] text-white text-[13px] font-medium hover:bg-[#0063D6] disabled:opacity-45 cursor-pointer transition-colors"
+          >
+            {saving && <Loader2 size={14} className="animate-spin" />} Create
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Create Issue modal ───────────────────────────────────────────────────────
+
+type MemberOption = { id: string; full_name: string | null; avatar_url: string | null };
+
+function CreateIssueModal({
+  projectId,
+  allMembers,
+  onClose,
+  onCreated,
+}: {
+  projectId: string;
+  allMembers: MemberOption[];
+  onClose: () => void;
+  onCreated: (i: Issue) => void;
+}) {
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [status, setStatus] = useState<string>("open");
+  const [severity, setSeverity] = useState<IssueSeverity>("None");
+  const [assigneeId, setAssigneeId] = useState<string>("");
+  const [dueDate, setDueDate] = useState<string>("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit() {
+    if (!title.trim()) { setError("Title is required"); return; }
+    setSaving(true);
+    setError(null);
+    const assignee = allMembers.find((m) => m.id === assigneeId);
+    const res = await fetch(`/api/v2/projects/${projectId}/issues`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: title.trim(),
+        description: description.trim() || undefined,
+        status,
+        severity,
+        assignee_name: assignee?.full_name || undefined,
+        due_date: dueDate || undefined,
+      }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      setError(body.error || "Failed to create issue");
+      setSaving(false);
+      return;
+    }
+    onCreated(await res.json());
+  }
+
+  const inputClass = "w-full px-3 py-2 rounded-[10px] border text-[13px] outline-none transition-colors border-[#E2E7F2] bg-[#F4F6FB] text-[#3A4565] focus:border-[#007BFF] focus:bg-white focus:ring-[3px] focus:ring-[#007BFF]/[0.14]";
+  const labelClass = "text-[11px] font-semibold text-[#0B1533]";
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0B1533]/40 p-4" onClick={onClose}>
+      <div
+        className="w-full max-w-md rounded-[14px] bg-white shadow-xl border border-[#E2E7F2] overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#EDF0F7]">
+          <h2 className="text-[15px] font-semibold text-[#0B1533]">New Issue</h2>
+          <button onClick={onClose} className="p-1 rounded-md text-[#5F6A88] hover:text-[#0B1533] hover:bg-[#F4F6FB] cursor-pointer transition-colors">
+            <X size={16} />
+          </button>
+        </div>
+        <div className="p-5 flex flex-col gap-4">
+          <label className="flex flex-col gap-1.5">
+            <span className={labelClass}>Title</span>
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              autoFocus
+              className={inputClass}
+              placeholder="What's the issue?"
+            />
+          </label>
+          <label className="flex flex-col gap-1.5">
+            <span className={labelClass}>Description (optional)</span>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={2}
+              className={cn(inputClass, "resize-none")}
+            />
+          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="flex flex-col gap-1.5">
+              <span className={labelClass}>Status</span>
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                className={cn(inputClass, "bg-white capitalize cursor-pointer")}
+              >
+                {STATUS_OPTS.map((s) => <option key={s} value={s}>{s.replace(/_/g, " ")}</option>)}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className={labelClass}>Severity</span>
+              <select
+                value={severity}
+                onChange={(e) => setSeverity(e.target.value as IssueSeverity)}
+                className={cn(inputClass, "bg-white cursor-pointer")}
+              >
+                {SEVERITY_OPTS.map((s) => <option key={s} value={s}>{SEVERITY_STYLE[s].label}</option>)}
+              </select>
+            </label>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="flex flex-col gap-1.5">
+              <span className={labelClass}>Assignee</span>
+              <select
+                value={assigneeId}
+                onChange={(e) => setAssigneeId(e.target.value)}
+                className={cn(inputClass, "bg-white cursor-pointer")}
+              >
+                <option value="">Unassigned</option>
+                {allMembers.map((m) => <option key={m.id} value={m.id}>{m.full_name ?? "Unknown"}</option>)}
               </select>
             </label>
             <label className="flex flex-col gap-1.5">

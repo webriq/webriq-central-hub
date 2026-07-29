@@ -5,7 +5,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 <!-- END:nextjs-agent-rules -->
 
 
-## vexp <!-- vexp v2.3.0 -->
+## vexp <!-- vexp v2.3.1 -->
 
 **Call `run_pipeline` ONCE at task start for orientation - then use your normal tools.**
 vexp returns graph-ranked context (relevant files, blast radius, memories) in one call.

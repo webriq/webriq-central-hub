@@ -175,6 +175,26 @@ export async function POST(request: NextRequest) {
         }
 
         const projectName = `${companyName} ${deriveProjectSuffixMulti(classifications)}`;
+
+        // Task 196: companion gap to task 195 — this route derives the same auto-generated
+        // name the wizard does but had no duplicate check at all, so both a same-batch repeat
+        // row and a re-uploaded file would silently create duplicate projects.
+        const { data: existingProject, error: nameCheckError } = await adminClient
+          .from("projects")
+          .select("id")
+          .ilike("name", projectName)
+          .limit(1)
+          .maybeSingle();
+        if (nameCheckError) {
+          console.error(`POST /api/onboarding/projects/import row ${rowNumber} name check error:`, nameCheckError);
+          errors.push({ row: rowNumber, error: "Failed to validate project name" });
+          continue;
+        }
+        if (existingProject) {
+          errors.push({ row: rowNumber, error: "A project with this name already exists" });
+          continue;
+        }
+
         const { data: project, error: projectError } = await adminClient
           .from("projects")
           .insert({

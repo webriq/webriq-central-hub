@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import Link from "next/link";
 import { Pencil, Trash2, Plus, Check, X, Loader2, Flag } from "lucide-react";
 import { type Milestone, type Task, formatDueDate } from "../_pm-shared";
 
@@ -15,12 +16,14 @@ type MilestoneStatus = (typeof STATUS_OPTS)[number];
 
 export default function MilestonePanel({
   projectId,
+  projectSlug,
   milestones,
   tasks,
   onUpsert,
   onRemove,
 }: {
   projectId: string;
+  projectSlug: string;
   milestones: Milestone[];
   tasks: Task[];
   onUpsert: (m: Milestone) => void;
@@ -185,7 +188,14 @@ export default function MilestonePanel({
                     </>
                   ) : (
                     <>
-                      <td className="px-4 py-2.5 text-[13px] text-slate-700 font-medium">{m.name}</td>
+                      <td className="px-4 py-2.5">
+                        <Link
+                          href={`/v2/projects/${projectSlug}/milestones/${m.id}`}
+                          className="text-[13px] text-slate-700 font-medium hover:text-slate-900 hover:underline"
+                        >
+                          {m.name}
+                        </Link>
+                      </td>
                       <td className="px-4 py-2.5">
                         <span
                           className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border capitalize"

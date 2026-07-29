@@ -20,6 +20,7 @@ export async function PATCH(
   if (typeof body.name === "string") patch.name = body.name.trim();
   if (typeof body.description === "string") patch.description = body.description.trim() || null;
   if ("due_date" in body) patch.due_date = body.due_date || null;
+  if ("start_date" in body) patch.start_date = body.start_date || null;
   if (typeof body.position === "number") patch.position = body.position;
   if (typeof body.status === "string") {
     if (!(VALID_STATUS as readonly string[]).includes(body.status)) {

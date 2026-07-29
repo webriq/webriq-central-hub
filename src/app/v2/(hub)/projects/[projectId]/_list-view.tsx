@@ -1,7 +1,8 @@
 "use client";
 
 import { Fragment, useState, useMemo, useEffect, useRef } from "react";
-import { ChevronDown, ChevronRight, Users, X, Play, Pause, Clock, SearchX } from "lucide-react";
+import { ChevronDown, ChevronRight, Users, X, Play, Pause, Clock, SearchX, Trash2, ClipboardList, Plus } from "lucide-react";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import {
   type Task, type Tasklist, type TaskStatus,
   STATUS_LABEL, STATUS_STYLE, PRIORITY_STYLE,
@@ -226,6 +227,7 @@ export default function ListView({
   onToggleCollapseGroup,
   hasActiveFilters,
   onClearFilters,
+  onCreateNew,
 }: {
   tasks: Task[];
   tasklists: Tasklist[];
@@ -243,8 +245,31 @@ export default function ListView({
   onToggleCollapseGroup: (groupId: string) => void;
   hasActiveFilters: boolean;
   onClearFilters: () => void;
+  onCreateNew?: () => void;
 }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  // ─── Sticky-header "stuck" detection ───────────────────────────────────────
+  // A zero-height sentinel sits at the card's top edge, just above the sticky
+  // header. Once it scrolls out of the scroll container's view, the header has
+  // pinned flush against the toolbar above (no gap) — square off its top
+  // corners at that point; restore the rounded corners once it un-sticks.
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const stickySentinelRef = useRef<HTMLDivElement>(null);
+  const [headerStuck, setHeaderStuck] = useState(false);
+
+  useEffect(() => {
+    const root = scrollRef.current;
+    const sentinel = stickySentinelRef.current;
+    if (!root || !sentinel) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setHeaderStuck(!entry.isIntersecting),
+      { root, threshold: 0 }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, []);
+
   // Pre-expand all root tasks that have children so subtasks are visible by default (matches Zoho behavior)
   const [expandedRows, setExpandedRows] = useState<Set<string>>(() => {
     const childParentIds = new Set<string>();
@@ -338,8 +363,19 @@ export default function ListView({
 
   if (tasks.length === 0 && tasklists.length === 0 && !hasActiveFilters) {
     return (
-      <div className="flex items-center justify-center h-full">
+      <div className="flex flex-col items-center justify-center h-full gap-3">
+        <div className="w-10 h-10 rounded-full bg-[#EDF0F7] flex items-center justify-center">
+          <ClipboardList size={18} className="text-[#5F6A88]" />
+        </div>
         <p className="text-[13px] text-[#5F6A88]">No tasks yet.</p>
+        {onCreateNew && (
+          <button
+            onClick={onCreateNew}
+            className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#007BFF] hover:text-[#0063D6] cursor-pointer transition-colors"
+          >
+            <Plus size={13} /> New Task
+          </button>
+        )}
       </div>
     );
   }
@@ -404,17 +440,35 @@ export default function ListView({
           </button>
           <span className="text-[12px] font-semibold text-[#8A5A00]">{selected.size}</span>
           <div className="w-px h-4 bg-[#F5DFA0] mx-1" />
-          <button className="text-[11px] font-medium px-2.5 py-1 rounded-full border border-[#C0392B]/40 bg-white text-[#C0392B] hover:bg-[#FDE8E6] cursor-pointer transition-colors">
-            Trash
-          </button>
+          <Tooltip>
+            <TooltipTrigger render={
+              <button
+                aria-label="Trash"
+                className="flex items-center justify-center w-6 h-6 rounded-full border border-[#C0392B]/40 bg-white text-[#C0392B] hover:bg-[#FDE8E6] cursor-pointer transition-colors"
+              >
+                <Trash2 size={13} />
+              </button>
+            } />
+            <TooltipContent side="top">Trash</TooltipContent>
+          </Tooltip>
         </div>
       )}
 
-      <div className="flex-1 min-h-0 overflow-y-auto px-8 py-5">
-        <div className="rounded-[14px] border border-[#E2E7F2] bg-white overflow-hidden">
+      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto px-8 pb-5">
+        {/* No overflow-hidden here — it would create its own clipping/scroll-container
+            box and break the header's `sticky` positioning against the real scrolling
+            ancestor above. Corner rounding is applied directly to the header (top) and
+            the rows wrapper (bottom) instead. Top spacing is a margin on this card, not
+            padding on the scroll container above — padding-top on a scroll container is
+            part of its own scrollport padding box, so a `sticky top-0` descendant can
+            never rise above it, leaving a permanent gap once stuck. Margin has no such
+            floor: it scrolls away completely, then the header sticks flush. */}
+        <div className="rounded-[14px] border border-[#E2E7F2] bg-white mt-5">
+
+          <div ref={stickySentinelRef} className="h-0" />
 
           {/* Column headers */}
-          <div className={`grid ${GRID} items-center gap-3 px-4 py-2.5 border-b border-[#EDF0F7] bg-[#FAFBFE]`}>
+          <div className={`sticky top-0 z-10 grid ${GRID} items-center gap-3 px-4 py-2.5 border-b border-[#EDF0F7] bg-[#FAFBFE] ${headerStuck ? "rounded-t-none" : "rounded-t-[14px]"}`}>
             <div /> {/* checkbox spacer */}
             <SortHeader label="Task Name" active={sortKey === "title"} dir={sortDir} onClick={() => onToggleSort("title")} />
             <SortHeader label="Status" active={sortKey === "status"} dir={sortDir} onClick={() => onToggleSort("status")} />
@@ -429,6 +483,7 @@ export default function ListView({
             <div /> {/* timer spacer */}
           </div>
 
+          <div className="overflow-hidden rounded-b-[14px]">
           {groups.map((g) => {
             const isCollapsed = collapsed.has(g.id);
             const groupTaskIds = g.tasks.map((t) => t.id);
@@ -472,6 +527,7 @@ export default function ListView({
               </div>
             );
           })}
+          </div>
         </div>
       </div>
     </div>

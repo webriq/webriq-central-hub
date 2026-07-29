@@ -8,6 +8,7 @@ export type Project = Database["public"]["Tables"]["projects"]["Row"];
 export type Milestone = Database["public"]["Tables"]["milestones"]["Row"];
 export type Tasklist = Database["public"]["Tables"]["tasklists"]["Row"];
 export type Task = Database["public"]["Tables"]["tasks"]["Row"];
+export type Issue = Database["public"]["Tables"]["issues"]["Row"];
 
 export type TaskStatus = Task["status"];
 export type TaskPriority = Task["priority"];
@@ -58,6 +59,22 @@ export const PRIORITY_STYLE: Record<string, { label: string; text: string; dot: 
   low:      { label: "Low",      text: "#5F6A88", dot: "#5F6A88" },
   none:     { label: "—",        text: "#5F6A88", dot: "#E2E7F2" },
 };
+
+// ─── Issue severity — Zoho's own vocabulary (migration 051), NOT the task priority enum ─
+export const SEVERITY_OPTS = ["Show stopper", "Critical", "Major", "Minor", "None"] as const;
+export type IssueSeverity = (typeof SEVERITY_OPTS)[number];
+
+export const SEVERITY_STYLE: Record<string, { label: string; text: string; dot: string }> = {
+  "Show stopper": { label: "Show stopper", text: "#C0392B", dot: "#C0392B" },
+  "Critical":     { label: "Critical",     text: "#C0392B", dot: "#C0392B" },
+  "Major":        { label: "Major",        text: "#8A5A00", dot: "#8A5A00" },
+  "Minor":        { label: "Minor",        text: "#007BFF", dot: "#007BFF" },
+  "None":         { label: "None",         text: "#5F6A88", dot: "#E2E7F2" },
+};
+
+export function normalizeSeverity(s: string | null | undefined): IssueSeverity {
+  return s && (SEVERITY_OPTS as readonly string[]).includes(s) ? (s as IssueSeverity) : "None";
+}
 
 // Mirrors task 184/185's established project-status mapping: active/completed → ok,
 // on_hold → warn, archived/not_started → neutral (both "inactive" buckets collapse

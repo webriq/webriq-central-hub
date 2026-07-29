@@ -205,6 +205,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "scheduled_start_at is required when mode is save_scheduled" }, { status: 400 });
     }
 
+    // Task 195: the wizard's own check-name pre-check (GET .../check-name) only runs once,
+    // client-side, at the Step 2 -> 3 transition — it never re-validates at the moment of actual
+    // creation. This is the authoritative guard, mirroring that route's exact ilike semantics, so
+    // any repeat POST (double click, retry, back-and-forth navigation, second tab) is rejected
+    // here regardless of what the client did or didn't catch first.
+    const { data: existingProject, error: nameCheckError } = await supabase
+      .from("projects")
+      .select("id")
+      .ilike("name", body.project_name.trim())
+      .limit(1)
+      .maybeSingle();
+    if (nameCheckError) {
+      console.error("POST /api/onboarding/projects name check error:", nameCheckError);
+      return NextResponse.json({ error: "Failed to validate project name" }, { status: 500 });
+    }
+    if (existingProject) {
+      return NextResponse.json({ error: "A project with this name already exists" }, { status: 409 });
+    }
+
     // Task 157 follow-up: which phase a scheduled start should land on. Undefined/1 is always
     // fine (the existing default); anything else requires the same phase-management permission
     // the immediate "Start at phase" flow already gates on client-side — never trust that alone.
