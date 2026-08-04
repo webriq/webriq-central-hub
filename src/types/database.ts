@@ -1613,6 +1613,7 @@ export interface Database {
           phase_number: number | null;
           project_id: string | null;
           folder_id: string | null;
+          source_asset_id: string | null;
           created_at: string;
         };
         Insert: {
@@ -1632,6 +1633,7 @@ export interface Database {
           phase_number?: number | null;
           project_id?: string | null;
           folder_id?: string | null;
+          source_asset_id?: string | null;
           created_at?: string;
         };
         Update: {
@@ -1651,6 +1653,7 @@ export interface Database {
           phase_number?: number | null;
           project_id?: string | null;
           folder_id?: string | null;
+          source_asset_id?: string | null;
         };
         Relationships: [
           {
@@ -1672,6 +1675,13 @@ export interface Database {
             columns: ["folder_id"];
             isOneToOne: false;
             referencedRelation: "customer_asset_folders";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "customer_assets_source_asset_id_fkey";
+            columns: ["source_asset_id"];
+            isOneToOne: false;
+            referencedRelation: "customer_assets";
             referencedColumns: ["id"];
           }
         ];

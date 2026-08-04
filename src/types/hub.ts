@@ -6,7 +6,8 @@ export type OrchestrationLayer =
   | "digest"
   | "reply"
   | "wiki_lint"
-  | "ops_chat";
+  | "ops_chat"
+  | "mockup_spec";
 
 export type AIProvider = "anthropic" | "openai";
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { adminClient } from "@/lib/supabase/admin";
 import {
   canManagePhase1Membership,
   getPhaseMembership,
@@ -39,7 +40,10 @@ export async function GET(
     // profiles!phase_members_user_id_fkey: phase_members has two FKs to profiles (user_id and
     // added_by) — a bare `profiles(...)` embed is ambiguous (PGRST201) without naming which one
     // to follow. We always want the member's own profile, not the adder's.
-    const { data, error } = await supabase
+    // adminClient: same profiles RLS gap as .../members/route.ts's GET — the embedded profiles
+    // sub-select is bound by profiles_read_own (migration 048), which blocks a pm/marketing
+    // caller from reading teammates' rows and rendered them as "Unnamed"/"Unassigned".
+    const { data, error } = await adminClient
       .from("phase_members")
       .select("id, user_id, is_owner, added_by, created_at, profiles!phase_members_user_id_fkey(full_name, role)")
       .eq("project_id", projectId)

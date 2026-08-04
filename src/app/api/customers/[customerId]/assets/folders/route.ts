@@ -36,6 +36,9 @@ const LABEL_TO_SYSTEM_FOLDER: Record<string, string> = {
   "Migration Checklist": "Checklist",
   "Content Map": "Content Map",
   "HTML Mockup": "HTML Mockup",
+  // Task 199 — the auto-generated build spec is paired 1:1 with its HTML mockup and belongs
+  // alongside it, not in the "Other" catch-all it would otherwise fall into.
+  "Mockup Build Spec": "HTML Mockup",
 };
 
 // Business Files gets three pre-seeded sub-folders (task 141) replacing the old free-text

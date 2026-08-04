@@ -216,6 +216,13 @@
   100% { width: 90%; }
 }
 
+/* ─── Indeterminate progress bar (task 199 — HTML Mockup spec generation phase,
+   which has no byte-progress signal to report) ──────────────────────────────── */
+@keyframes indeterminate-bar {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
+
 /* ─── Noise texture overlay ──────────────────────────────────────────────── */
 .noise-overlay::after {
   content: "";

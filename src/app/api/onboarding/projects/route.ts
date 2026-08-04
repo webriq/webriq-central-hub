@@ -117,7 +117,10 @@ export async function GET() {
     const allMemberIds = [...new Set([...memberIdsByProject.values()].flatMap((s) => [...s]))];
     const memberFullNameById = new Map<string, string | null>();
     if (allMemberIds.length > 0) {
-      const { data: memberProfiles } = await supabase.from("profiles").select("id, full_name").in("id", allMemberIds);
+      // adminClient: profiles_read_own RLS (migration 048) only lets a caller read their own row
+      // or all rows if admin/super_admin — pm/marketing/developer callers otherwise get nothing
+      // back for teammates' rows here, which silently rendered every other member as "Unnamed".
+      const { data: memberProfiles } = await adminClient.from("profiles").select("id, full_name").in("id", allMemberIds);
       for (const row of memberProfiles ?? []) memberFullNameById.set(row.id, row.full_name);
     }
 

@@ -46,11 +46,16 @@ export async function loadOnboardingDetailData(projectId: string) {
 
   // Task 153: Phase 1 membership drives the Wizard entry gate + the owner/member display —
   // fetched here (not client-side) so the restricted-access decision is made before any Wizard
-  // content would otherwise flash. phase_members SELECT is broadly readable RLS.
+  // content would otherwise flash. phase_members SELECT is broadly readable RLS, but the
+  // embedded `profiles` sub-select is bound by profiles' own RLS (profiles_read_own, migration
+  // 048: own row, or all rows for admin/super_admin only) — for a pm/marketing caller every
+  // other member's embedded profile came back null, rendering as "Unnamed"/"Unassigned".
+  // adminClient bypasses that for this read-only display lookup, same fix as the contacts query
+  // above and the Portfolio Tracker list's member-name lookup.
   // profiles!phase_members_user_id_fkey: phase_members has two FKs to profiles (user_id and
   // added_by) — PostgREST can't disambiguate a bare `profiles(...)` embed between them
   // (PGRST201), so the FK must be named explicitly. We always want the member's own profile.
-  const { data: phase1MembersRaw } = await supabase
+  const { data: phase1MembersRaw } = await adminClient
     .from("phase_members")
     .select("id, user_id, is_owner, created_at, profiles!phase_members_user_id_fkey(full_name, role)")
     .eq("project_id", project.id)
@@ -70,8 +75,9 @@ export async function loadOnboardingDetailData(projectId: string) {
   // for both the owner display and the tightened canManageProjectMembers check (which now
   // depends on the caller's own membership, not just their role).
   // profiles!project_members_user_id_fkey — same disambiguation as above (project_members also
-  // has user_id + added_by both pointing at profiles).
-  const { data: projectMembersRaw } = await supabase
+  // has user_id + added_by both pointing at profiles). adminClient — same profiles RLS gap as
+  // phase1Members above.
+  const { data: projectMembersRaw } = await adminClient
     .from("project_members")
     .select("id, user_id, is_owner, created_at, profiles!project_members_user_id_fkey(full_name, role)")
     .eq("project_id", project.id)
@@ -91,7 +97,8 @@ export async function loadOnboardingDetailData(projectId: string) {
   // all yet, so `is_owner` never resolves to anyone from projectMembers alone).
   let createdByName: string | null = null;
   if (project.created_by && !projectMembers.some((m) => m.user_id === project.created_by)) {
-    const { data: creatorProfile } = await supabase.from("profiles").select("full_name").eq("id", project.created_by).maybeSingle();
+    // adminClient — same profiles RLS gap as above.
+    const { data: creatorProfile } = await adminClient.from("profiles").select("full_name").eq("id", project.created_by).maybeSingle();
     createdByName = creatorProfile?.full_name ?? null;
   }
 

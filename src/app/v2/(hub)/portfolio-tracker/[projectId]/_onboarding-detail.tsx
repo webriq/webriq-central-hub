@@ -881,9 +881,11 @@ function OwnerPanel({ projectMembers, busy, error, onTransferOwnership, onClose 
   );
 }
 
-// Task 155/157 — search-to-add UI mirrors _onboarding-wizard.tsx's renderPersonPicker shape
-// (search input + filtered dropdown, immediate-add-on-click, onMouseDown preventDefault so the
-// click survives the input's onBlur).
+// Task 155/157/201 — search-to-add UI mirrors _onboarding-wizard.tsx's renderPersonPicker shape
+// (search input + filtered dropdown, onMouseDown preventDefault so the click survives the
+// input's onBlur). Task 201 changed adding from immediate-add-on-click to stage-then-confirm —
+// clicking a candidate stages them as a removable chip; one "Add N" click batches all staged
+// picks into a single POST (and therefore a single combined notification server-side).
 function CollaboratorsPanel({
   projectMembers, staffDirectory, busy, error, onAdd, onRemove, onClose,
 }: {
@@ -891,22 +893,31 @@ function CollaboratorsPanel({
   staffDirectory: { id: string; full_name: string | null; role: string }[];
   busy: boolean;
   error: string | null;
-  onAdd: (userId: string) => void;
+  onAdd: (userIds: string[]) => void;
   onRemove: (userId: string) => void;
   onClose: () => void;
 }) {
   const [search, setSearch] = useState("");
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [staged, setStaged] = useState<string[]>([]);
 
   const memberIds = new Set(projectMembers.map((m) => m.user_id));
+  const stagedIds = new Set(staged);
   // Task 155: any staff role is addable as a project collaborator (was marketing/pm only).
   const candidates = staffDirectory
-    .filter((p) => !memberIds.has(p.id))
+    .filter((p) => !memberIds.has(p.id) && !stagedIds.has(p.id))
     .filter((p) => (p.full_name ?? "").toLowerCase().includes(search.toLowerCase()));
+  const stagedPeople = staged.map((id) => staffDirectory.find((p) => p.id === id)).filter((p): p is { id: string; full_name: string | null; role: string } => !!p);
+
+  const handleConfirm = () => {
+    if (staged.length === 0) return;
+    onAdd(staged);
+    setStaged([]);
+  };
 
   return (
     <div className="mt-4 mb-6 flex flex-col gap-2.5 rounded-xl border border-[#E2E7F2] bg-[#F4F6FB] p-4">
-      <PanelHeader label="Add collaborators — who sees this on the Onboarding list" onClose={onClose} />
+      <PanelHeader label="Manage collaborators — who sees this on the Onboarding list" onClose={onClose} />
       {error && <p className="text-[11.5px] text-[#C0392B]">{error}</p>}
       {/* Search sits above the collaborator chips, not beside them. */}
       <div className="relative max-w-xs">
@@ -932,7 +943,7 @@ function CollaboratorsPanel({
                   key={person.id}
                   type="button"
                   onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => { onAdd(person.id); setSearch(""); }}
+                  onClick={() => { setStaged((prev) => [...prev, person.id]); setSearch(""); }}
                   className="block w-full cursor-pointer border-none bg-transparent px-2.5 py-1.5 text-left text-[11.5px] text-[#3A4565] transition-colors hover:bg-[#F4F6FB]"
                 >
                   {person.full_name ?? "Unnamed"} <span className="text-[#5F6A88]">({person.role})</span>
@@ -942,6 +953,39 @@ function CollaboratorsPanel({
           </div>
         )}
       </div>
+      {stagedPeople.length > 0 && (
+        <div className="flex flex-col gap-2 rounded-lg border border-dashed border-[#A8C6F5] bg-white/60 p-2.5">
+          <div className="flex flex-wrap items-center gap-1.5">
+            {stagedPeople.map((p) => (
+              <PersonChip
+                key={p.id}
+                label={p.full_name ?? "Unnamed"}
+                sublabel={p.role}
+                onRemove={() => setStaged((prev) => prev.filter((id) => id !== p.id))}
+                disabled={busy}
+              />
+            ))}
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleConfirm}
+              disabled={busy}
+              className="cursor-pointer rounded-full border-none bg-[#007BFF] px-3 py-1 text-[11.5px] font-semibold text-white transition-colors hover:bg-[#0063D6] disabled:opacity-50"
+            >
+              Add {stagedPeople.length}
+            </button>
+            <button
+              type="button"
+              onClick={() => setStaged([])}
+              disabled={busy}
+              className="cursor-pointer border-none bg-transparent text-[11.5px] font-medium text-[#5F6A88] transition-colors hover:text-[#3A4565] disabled:opacity-50"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
       <div className="flex flex-wrap items-center gap-1.5">
         {projectMembers.length === 0 && <span className="text-[11.5px] text-[#5F6A88]">No collaborators added yet.</span>}
         {projectMembers.map((m) => (
@@ -1011,10 +1055,17 @@ export default function OnboardingDetail({
   const isPhase1Member = !!myPhase1Membership;
   const isPhase1Owner = !!myPhase1Membership?.is_owner;
   const phase1HasMembers = phase1Members.length > 0;
+  const isProjectMember = projectMembers.some((m) => m.user_id === currentUserId);
+  // pm is the project's manager, not a phase-specific contributor like marketing — being on the
+  // project (project_members) is sufficient for them, so they don't need a separate opt-in to
+  // the phase_members(phase_number=1) table just to see their own project's Phase 1 content.
+  // marketing stays phase-gated on phase1Members alone, per task 153 requirement 4's explicit
+  // "marketing is also phase-gated, not just pm."
+  const hasPhase1Access = isPhase1Member || (role === "pm" && isProjectMember);
   // Gated per requirement 4: marketing/pm without membership are blocked once the phase actually
   // has members; a phase with zero members is unrestricted (backward compatibility, see task
   // 153 doc — avoids locking out every already-in-progress onboarding on ship).
-  const isPhase1Restricted = isRoleGatedByMembership(role) && phase1HasMembers && !isPhase1Member;
+  const isPhase1Restricted = isRoleGatedByMembership(role) && phase1HasMembers && !hasPhase1Access;
   const canManagePhase1 = canManagePhase1Membership(role, { isMember: isPhase1Member, isOwner: isPhase1Owner });
   // Task 157: both keyed off "is this caller the project creator" rather than plain membership
   // — super_admin/admin/pm/creator can add collaborators; super_admin/admin/creator can set the
@@ -1064,22 +1115,22 @@ export default function OnboardingDetail({
     } catch { /* leave current state */ }
   };
 
-  const handleAddProjectMember = async (userId: string) => {
+  const handleAddProjectMembers = async (userIds: string[]) => {
     setMembershipBusy(true);
     setMembershipError(null);
     try {
       const res = await fetch(`/api/projects/${project.id}/members`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: userId }),
+        body: JSON.stringify({ user_ids: userIds }),
       });
       if (!res.ok) {
         const json = await res.json().catch(() => ({}));
-        throw new Error(json.error ?? "Failed to add project member");
+        throw new Error(json.error ?? "Failed to add project members");
       }
       await refetchProjectMembers();
     } catch (err) {
-      setMembershipError(err instanceof Error ? err.message : "Failed to add project member.");
+      setMembershipError(err instanceof Error ? err.message : "Failed to add project members.");
     } finally {
       setMembershipBusy(false);
     }
@@ -1617,7 +1668,7 @@ export default function OnboardingDetail({
                           onClick={() => { setCollaboratorsPanelOpen(true); setOwnerPanelOpen(false); setSettingsMenuOpen(false); }}
                           className="flex w-full cursor-pointer items-center gap-2 border-none bg-transparent px-3 py-2 text-left text-[12.5px] text-[#3A4565] transition-colors hover:bg-[#F4F6FB]"
                         >
-                          <Users size={13} className="text-[#5F6A88]" /> Add Collaborators
+                          <Users size={13} className="text-[#5F6A88]" /> Manage Collaborators
                         </button>
                       )}
                     </div>
@@ -1658,7 +1709,7 @@ export default function OnboardingDetail({
               staffDirectory={staffDirectory}
               busy={membershipBusy}
               error={membershipError}
-              onAdd={handleAddProjectMember}
+              onAdd={handleAddProjectMembers}
               onRemove={handleRemoveProjectMember}
               onClose={() => setCollaboratorsPanelOpen(false)}
             />

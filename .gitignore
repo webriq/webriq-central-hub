@@ -57,3 +57,6 @@ appstore-images/
 supabase/.temp/
 
 .claude/worktrees/
+
+.claude/hooks/
+.codex/

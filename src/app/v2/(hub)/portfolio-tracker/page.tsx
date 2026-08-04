@@ -18,5 +18,5 @@ export default async function OnboardingPage() {
 
   if (role === "client") redirect(V2_ROUTES.DASHBOARD);
 
-  return <OnboardingList role={role} />;
+  return <OnboardingList role={role} currentUserId={userId} />;
 }

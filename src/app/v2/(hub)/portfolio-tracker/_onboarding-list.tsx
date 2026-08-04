@@ -13,6 +13,7 @@ import { V2_ROUTES } from "@/config/constants";
 import { PROGRAMME_PHASES } from "@/config/customer-phases";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Chip, PhaseChip, OnboardingStatusPill } from "../dashboard/_components/dashboard-shared";
+import { isRoleGatedByMembership } from "@/lib/programme/membership-rules";
 
 export type OnboardingProjectListItem = {
   id: string;
@@ -201,7 +202,7 @@ const STATUS_FILTER_LABELS: Record<(typeof STATUS_FILTERS)[number], string> = {
 };
 const PAGE_SIZES = [9, 18, 36] as const;
 
-export default function OnboardingList({ role }: { role: string | null }) {
+export default function OnboardingList({ role, currentUserId }: { role: string | null; currentUserId: string | null }) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -268,7 +269,13 @@ export default function OnboardingList({ role }: { role: string | null }) {
   const hasPrev = page > 1;
   const isFiltered = searchQ.length > 0 || statusValue !== "all";
 
-  const editable = role === "marketing" || role === "admin" || role === "super_admin";
+  const roleEditable = role === "marketing" || role === "admin" || role === "super_admin";
+  // A gated role (pm/marketing) that's a project/Phase-1 member (item.members, task 154's
+  // deduped union) can open that specific project even without a role-wide editable grant —
+  // mirrors the detail route's own DETAIL_ROLES + membership gate (_load-detail-data.ts), which
+  // this list previously didn't account for at all (editable was role-only).
+  const canOpenProject = (item: OnboardingProjectListItem) =>
+    roleEditable || (isRoleGatedByMembership(role) && !!currentUserId && item.members.some((m) => m.id === currentUserId));
 
   const totalDays = PROGRAMME_PHASES[PROGRAMME_PHASES.length - 1].dayEnd;
   const phaseCount = PROGRAMME_PHASES.length;
@@ -284,7 +291,7 @@ export default function OnboardingList({ role }: { role: string | null }) {
                 <ChartGantt size={20} className="text-[#5F6A88]" /> Portfolio Tracker
               </h1>
               <p className="text-[13px] mt-0.5 text-[#5F6A88]">
-                {editable
+                {roleEditable
                   ? `${total} client${total === 1 ? "" : "s"} · programme intake and progress across all ${phaseCount} phases (${totalDays}-day full cycle) — Phase 1 is hidden from PM/staff view until handover.`
                   : "Projects currently going through Phase 1 onboarding."}
               </p>
@@ -439,14 +446,14 @@ export default function OnboardingList({ role }: { role: string | null }) {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 items-stretch">
           {paginated.map((p) => (
-            <ProjectCard key={p.id} item={p} editable={editable} />
+            <ProjectCard key={p.id} item={p} editable={canOpenProject(p)} />
           ))}
         </div>
       )}
 
-      {!editable && projects.length > 0 && (
+      {!roleEditable && projects.length > 0 && !projects.every(canOpenProject) && (
         <p className="text-[11.5px] mt-4 inline-flex items-center gap-1 text-[#5F6A88]">
-          <ChevronRight size={11} /> Status only — content and file access are restricted to Marketing.
+          <ChevronRight size={11} /> Status only — open a project you&apos;re a member of, or ask Marketing/Admin for access.
         </p>
       )}
       </div>

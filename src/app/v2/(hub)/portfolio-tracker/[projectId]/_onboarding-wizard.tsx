@@ -10,7 +10,7 @@ import {
   Monitor, Tablet, Smartphone, Folder, Lock, LayoutGrid, List, Code2,
   MoreVertical, FolderPlus, FolderInput, Share2, ChevronRight, Loader2,
   Users, Crown, ArrowRightLeft, CircleQuestionMark, FileSpreadsheet, FileImage,
-  FileCode2, Link2, KeyRound, FolderOpen,
+  FileCode2, Link2, KeyRound, FolderOpen, RefreshCw,
 } from "lucide-react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -74,6 +74,27 @@ function IconTip({ label, side = "top", children }: { label: string; side?: "top
       <TooltipTrigger render={children} />
       <TooltipContent side={side}>{label}</TooltipContent>
     </Tooltip>
+  );
+}
+
+// Task 146's read-only mode (pm on steps 1-5/7, or any role once past the active phase) hides
+// the add/upload controls entirely — this renders in their place so the restriction is visible
+// (message + not-allowed cursor) instead of the control just silently disappearing. `compact` is
+// for the inline "add row" spots (contacts, tags); the default box matches an upload dropzone's
+// footprint so the layout doesn't jump when the real dropzone would've been there.
+function ReadOnlyHint({ compact }: { compact?: boolean }) {
+  return (
+    <div
+      className={cn(
+        "flex items-center gap-1.5 text-[#5F6A88] cursor-not-allowed select-none",
+        compact
+          ? "text-[11px] mt-1"
+          : "justify-center rounded-2xl border border-dashed border-[#E2E7F2] bg-[#F9FAFD] py-4 text-[12px]"
+      )}
+    >
+      <Lock size={compact ? 10 : 13} />
+      Read-only — you don&apos;t have edit access to this step.
+    </div>
   );
 }
 
@@ -193,8 +214,13 @@ function formatFileSize(bytes: number | null): string {
 // server has processed/stored the file and before the second (asset-record) request even
 // starts. Without a distinct state here, the bar sits at "100%" doing nothing for that whole
 // window, which reads as broken/frozen instead of still working.
-type UploadProgressEntry = { id: string; name: string; progress: number; finishing?: boolean };
+// `stage` is only ever set by the HTML Mockup step — every other step's upload progress entry
+// resolves and clears once "finishing" completes. HTML Mockup keeps its entry alive one phase
+// longer ("generating") while the paired MD build spec is produced, so the bar reads as one
+// continuous action instead of finishing early and then the file list changing again on its own.
+type UploadProgressEntry = { id: string; name: string; progress: number; finishing?: boolean; stage?: "generating" };
 type UploadedAsset = { path: string; filename: string; size: number; mimeType: string };
+type MockupSpecStatus = "generating" | "ready" | "error";
 
 // XMLHttpRequest (not fetch) is required here specifically because it's the only browser API
 // that exposes real upload byte-progress (`upload.onprogress`) — used by every `handle*Upload`
@@ -432,9 +458,11 @@ export default function OnboardingWizard({
   // false when opened from the per-step checklist's inline "Mark All as Done" button, which
   // should only check items off and leave the user on the current step (task 161).
   const [markAllAdvance, setMarkAllAdvance] = useState(true);
-  // Message for the Steps-indicator's own gate — set when a forward click to an unreached step
-  // is blocked because the current step isn't done/overdue yet; null hides the alert.
-  const [stepGateAlert, setStepGateAlert] = useState<string | null>(null);
+  // Alert for the Steps-indicator's own gate — set when a forward click is blocked because some
+  // step between the current position and the target isn't done/overdue yet; null hides the
+  // alert. targetIdx carries the specific blocking step so the popup can offer a "go there"
+  // shortcut instead of just naming it in prose.
+  const [stepGateAlert, setStepGateAlert] = useState<{ message: string; targetIdx: number } | null>(null);
 
   // Escape dismisses whichever of the three custom modals below is currently open.
   useEffect(() => {
@@ -571,6 +599,10 @@ export default function OnboardingWizard({
   const [viewingHtmlMockupFileId, setViewingHtmlMockupFileId] = useState<string | null>(null);
   const isHtmlMockupFilled = htmlMockupFiles.length > 0;
   const [htmlMockupFieldError, setHtmlMockupFieldError] = useState(false);
+  // Task 199 — auto-generated MD build spec paired 1:1 with each HTML mockup, keyed by the
+  // HTML asset's id (not the spec's own id) so a row can be found from its source in O(1).
+  const [htmlMockupSpecs, setHtmlMockupSpecs] = useState<Record<string, AssetRow>>({});
+  const [htmlMockupSpecStatus, setHtmlMockupSpecStatus] = useState<Record<string, MockupSpecStatus>>({});
   const [editingHtmlAsset, setEditingHtmlAsset] = useState<AssetRow | null>(null);
   const [editingHtmlContent, setEditingHtmlContent] = useState<string | null>(null);
   const [editingHtmlLoadError, setEditingHtmlLoadError] = useState<string | null>(null);
@@ -654,6 +686,16 @@ export default function OnboardingWizard({
   if (htmlMockupFiles.length === 0 && phase1Assets.length > 0) {
     const seeded = phase1Assets.filter((a) => a.label === "HTML Mockup").sort((a, b) => a.created_at.localeCompare(b.created_at));
     if (seeded.length > 0) setHtmlMockupFiles(seeded);
+  }
+  if (Object.keys(htmlMockupSpecs).length === 0 && phase1Assets.length > 0) {
+    const seededSpecs = phase1Assets.filter((a) => a.label === "Mockup Build Spec" && a.source_asset_id);
+    if (seededSpecs.length > 0) {
+      setHtmlMockupSpecs(Object.fromEntries(seededSpecs.map((s) => [s.source_asset_id as string, s])));
+      setHtmlMockupSpecStatus((prev) => ({
+        ...Object.fromEntries(seededSpecs.map((s) => [s.source_asset_id as string, "ready" as const])),
+        ...prev,
+      }));
+    }
   }
   if (signoffFiles.length === 0 && phase1Assets.length > 0) {
     const seeded = phase1Assets.filter((a) => a.label === "Signed Agreement").sort((a, b) => a.created_at.localeCompare(b.created_at));
@@ -1618,10 +1660,45 @@ export default function OnboardingWizard({
     }
   };
 
+  // Task 199 — phase 2 of the upload: calls the paired-MD generation endpoint for one HTML
+  // mockup asset. Doubles as the "Regenerate" action (progressId omitted) since the API route
+  // itself decides create-vs-overwrite based on whether a paired spec already exists. A
+  // generation failure only ever marks that one row's status "error" — it never touches
+  // htmlMockupFiles, so the already-successful HTML upload is never rolled back or hidden.
+  const generateMockupSpecFor = async (htmlAsset: AssetRow, progressId?: string) => {
+    setHtmlMockupSpecStatus((prev) => ({ ...prev, [htmlAsset.id]: "generating" }));
+    if (progressId) {
+      setHtmlMockupUploadProgress((prev) => prev.map((p) => (p.id === progressId ? { ...p, stage: "generating" } : p)));
+    }
+    try {
+      const res = await fetch(`/api/customers/${project.customer_id}/assets/${htmlAsset.id}/generate-md`, { method: "POST" });
+      if (!res.ok) throw new Error("Failed to generate build spec");
+      const mdAsset: AssetRow = await res.json();
+      setHtmlMockupSpecs((prev) => ({ ...prev, [htmlAsset.id]: mdAsset }));
+      setHtmlMockupSpecStatus((prev) => ({ ...prev, [htmlAsset.id]: "ready" }));
+      // Keep the Storage/KB File Explorer's own asset list in sync too — otherwise the
+      // generated spec (and, on first generation, the file explorer's very first sighting of
+      // it) only appears after a full page reload, same gap handleUpload/handleRemoveFile
+      // already close for that step's own direct actions.
+      setPhase1Assets((prev) => (prev.some((a) => a.id === mdAsset.id) ? prev.map((a) => (a.id === mdAsset.id ? mdAsset : a)) : [...prev, mdAsset]));
+    } catch {
+      setHtmlMockupSpecStatus((prev) => ({ ...prev, [htmlAsset.id]: "error" }));
+    } finally {
+      if (progressId) {
+        setHtmlMockupUploadProgress((prev) => prev.filter((p) => p.id !== progressId));
+      }
+    }
+  };
+
+  const handleRegenerateMockupSpec = (htmlAsset: AssetRow) => {
+    void generateMockupSpecFor(htmlAsset);
+  };
+
   const handleHtmlMockupUpload = async (file: File) => {
     const tempId = crypto.randomUUID();
     setHtmlMockupUploadProgress((prev) => [...prev, { id: tempId, name: file.name, progress: 0 }]);
     setHtmlMockupUploadError(null);
+    let newAsset: AssetRow;
     try {
       const formData = new FormData();
       formData.append("file", file);
@@ -1632,6 +1709,12 @@ export default function OnboardingWizard({
         (pct) => setHtmlMockupUploadProgress((prev) => prev.map((p) => (p.id === tempId ? { ...p, progress: pct, finishing: pct >= 100 } : p)))
       );
       setHtmlMockupUploadProgress((prev) => prev.map((p) => (p.id === tempId ? { ...p, finishing: true } : p)));
+      // Files off wizard steps are normally left unfiled (folder_id null) and only land in
+      // their system folder once the Storage/KB step's own mount-time backfill runs — which
+      // means "unfiled" until the next full page load. The "HTML Mockup" system folder is
+      // already provisioned by that same mount-time fetch (phase1Folders), so it's filed here
+      // explicitly instead, and its paired spec inherits the same folder_id server-side.
+      const htmlMockupFolderId = phase1Folders.find((f) => f.name === "HTML Mockup" && f.parent_folder_id === null)?.id ?? null;
       const res = await fetch(`/api/customers/${project.customer_id}/assets`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1644,23 +1727,61 @@ export default function OnboardingWizard({
           file_mime_type: uploaded.mimeType,
           phase_number: 1,
           project_id: project.id,
+          folder_id: htmlMockupFolderId,
         }),
       });
       if (!res.ok) {
         const json = await res.json().catch(() => ({}));
         throw new Error(json.error ?? "Failed to save asset");
       }
-      const newAsset: AssetRow = await res.json();
+      newAsset = await res.json();
       setHtmlMockupFiles((prev) => [...prev, newAsset]);
+      setPhase1Assets((prev) => [...prev, newAsset]);
     } catch (err) {
       setHtmlMockupUploadError(err instanceof Error ? err.message : "Failed to upload file");
-    } finally {
       setHtmlMockupUploadProgress((prev) => prev.filter((p) => p.id !== tempId));
+      return;
     }
+    // Upload has already succeeded and committed at this point — generation runs as phase 2
+    // of the same progress entry, but its own failure is handled entirely inside
+    // generateMockupSpecFor and can't unwind the upload above.
+    await generateMockupSpecFor(newAsset, tempId);
   };
 
   const handleRemoveHtmlMockupFile = async (id: string) => {
-    setHtmlMockupFiles((prev) => prev.filter((f) => f.id !== id));
+    const pairedSpecEntry = Object.entries(htmlMockupSpecs).find(([, spec]) => spec.id === id);
+    if (pairedSpecEntry) {
+      // Removing the paired MD spec row directly (not its source HTML) — only clear this
+      // step's own local spec-tracking state, htmlMockupFiles is untouched.
+      const [sourceId] = pairedSpecEntry;
+      setHtmlMockupSpecs((prev) => {
+        const next = { ...prev };
+        delete next[sourceId];
+        return next;
+      });
+      setHtmlMockupSpecStatus((prev) => {
+        const next = { ...prev };
+        delete next[sourceId];
+        return next;
+      });
+      setPhase1Assets((prev) => prev.filter((f) => f.id !== id));
+    } else {
+      // Removing an HTML mockup — the server cascades its paired MD row (and storage object)
+      // automatically (task 199 migration + DELETE route), so drop both locally too.
+      const pairedSpecId = htmlMockupSpecs[id]?.id;
+      setHtmlMockupFiles((prev) => prev.filter((f) => f.id !== id));
+      setHtmlMockupSpecs((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+      setHtmlMockupSpecStatus((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+      setPhase1Assets((prev) => prev.filter((f) => f.id !== id && f.id !== pairedSpecId));
+    }
     try {
       await fetch(`/api/customers/${project.customer_id}/assets?id=${id}`, { method: "DELETE" });
     } catch {
@@ -1669,9 +1790,10 @@ export default function OnboardingWizard({
   };
 
   // In-app read-only preview — reuses the shared viewerFile/viewerUrl/viewerLoading/viewerError
-  // state, same as every other step's file viewer.
+  // state, same as every other step's file viewer. Looks in both the HTML mockup list and the
+  // paired-spec map since task 199's spec rows aren't part of htmlMockupFiles.
   const handleViewHtmlMockupFile = async (id: string) => {
-    const file = htmlMockupFiles.find((f) => f.id === id);
+    const file = htmlMockupFiles.find((f) => f.id === id) ?? Object.values(htmlMockupSpecs).find((f) => f.id === id);
     if (!file) return;
     setViewerFile(file);
     setViewerUrl(null);
@@ -1777,54 +1899,64 @@ export default function OnboardingWizard({
     setInternalStatus(key, target);
   };
 
-  // Continue → gate on any incomplete internal-deliverable checklist item for the current step
-  // (html-mockup's own file requirement is validated at the checklist-item level instead — see
-  // handleValidatedInternalToggle — not duplicated here, which previously caused a false-positive
-  // block when the checklist item was already done from an earlier session but the file list,
-  // which isn't hydrated from customer_assets on mount, was empty in the current session),
-  // plus Outcome target/Migration checklist/Content map's own required-field checks (each has a
-  // text-or-file either/or, so isn't blocked by the same file-hydration gap in the common case
-  // where at least some text was saved). None of these three ever hard-blocks with no way
-  // forward: Outcome target's field is also the "outcome-target-filed" checklist item, so it's
-  // already caught by — and gets the normal Mark-all-as-done → force-confirm bypass from — the
-  // stepInternal gate below; Migration checklist/Content map have no checklist item tied to their
-  // own field, so falling through to the same "Missing required fields" force-confirm modal
-  // directly (with nothing to list, since there's no matching item) still gives an equivalent
-  // "proceed anyway" escape hatch instead of a dead end.
-  const handleContinueClick = () => {
+  // Shared gate for "advance past the currently-viewed step" — gates on any incomplete
+  // internal-deliverable checklist item for the current step (html-mockup's own file requirement
+  // is validated at the checklist-item level instead — see handleValidatedInternalToggle — not
+  // duplicated here, which previously caused a false-positive block when the checklist item was
+  // already done from an earlier session but the file list, which isn't hydrated from
+  // customer_assets on mount, was empty in the current session), plus Outcome target/Migration
+  // checklist/Content map's own required-field checks (each has a text-or-file either/or, so
+  // isn't blocked by the same file-hydration gap in the common case where at least some text was
+  // saved). None of these three ever hard-blocks with no way forward: Outcome target's field is
+  // also the "outcome-target-filed" checklist item, so it's already caught by — and gets the
+  // normal Mark-all-as-done → force-confirm bypass from — the stepInternal gate below; Migration
+  // checklist/Content map have no checklist item tied to their own field, so falling through to
+  // the same "Missing required fields" force-confirm modal directly (with nothing to list, since
+  // there's no matching item) still gives an equivalent "proceed anyway" escape hatch instead of
+  // a dead end. Shared by both the Continue button and the step indicator (task 200 follow-up) —
+  // clicking a nav item that's blocked by the step you're currently on now surfaces the same
+  // field-level red highlighting / incomplete-items modal Continue does, instead of a generic
+  // popup that names the step without showing what's actually missing on it.
+  // Returns true when the current step is actually clear to advance past (no UI shown); false
+  // when it opened a modal/set field errors and the caller should not advance.
+  const validateCurrentStepForAdvance = (): boolean => {
     // pm can't fill in any of these gated fields/checklists (read-only), so none of these
-    // guards can ever be satisfied for that role — skip straight to navigating (task 146).
-    if (!isPM) {
-      let fieldMissing = false;
-      if (step.key === "outcome-target" && !isOutcomeFilled) {
-        setOutcomeFieldError(true);
-        fieldMissing = true;
-      }
-      if (step.key === "migration-checklist" && !isMigrationChecklistFilled) {
-        setMigrationChecklistFieldError(true);
-        fieldMissing = true;
-      }
-      if (step.key === "content-map" && !isContentMapFilled) {
-        setContentMapFieldError(true);
-        fieldMissing = true;
-      }
-      if (stepInternal.length > 0) {
-        const incomplete = stepInternal.filter((item) => {
-          const row = localInternal.find((r) => r.deliverable_key === item.key);
-          return (row?.status ?? "pending") !== "done";
-        });
-        if (incomplete.length > 0) {
-          setIncompleteItems(incomplete);
-          setShowIncompleteModal(true);
-          return;
-        }
-      }
-      if (fieldMissing) {
-        setIncompleteItems([]);
-        setShowForceConfirmModal(true);
-        return;
+    // guards can ever be satisfied for that role — always clear to advance (task 146).
+    if (isPM) return true;
+    let fieldMissing = false;
+    if (step.key === "outcome-target" && !isOutcomeFilled) {
+      setOutcomeFieldError(true);
+      fieldMissing = true;
+    }
+    if (step.key === "migration-checklist" && !isMigrationChecklistFilled) {
+      setMigrationChecklistFieldError(true);
+      fieldMissing = true;
+    }
+    if (step.key === "content-map" && !isContentMapFilled) {
+      setContentMapFieldError(true);
+      fieldMissing = true;
+    }
+    if (stepInternal.length > 0) {
+      const incomplete = stepInternal.filter((item) => {
+        const row = localInternal.find((r) => r.deliverable_key === item.key);
+        return (row?.status ?? "pending") !== "done";
+      });
+      if (incomplete.length > 0) {
+        setIncompleteItems(incomplete);
+        setShowIncompleteModal(true);
+        return false;
       }
     }
+    if (fieldMissing) {
+      setIncompleteItems([]);
+      setShowForceConfirmModal(true);
+      return false;
+    }
+    return true;
+  };
+
+  const handleContinueClick = () => {
+    if (!validateCurrentStepForAdvance()) return;
     setStepIdx((s) => s + 1);
   };
 
@@ -1903,29 +2035,54 @@ export default function OnboardingWizard({
     setShowIncompleteModal(true);
   };
 
+  // A step is "cleared" for gating purposes only once its own deliverable is actually done —
+  // deliberately no overdue auto-bypass here (a prior version had one, which let an overdue-but-
+  // empty step be skipped straight past via the step indicator while Continue on that same step
+  // still hard-blocked on the same incomplete checklist; the two gates disagreeing was the bug).
+  // Continue's own "force proceed anyway" modal is the only sanctioned way past incomplete data —
+  // this keeps both navigation paths honoring that same rule instead of one silently punching
+  // through it once a step's due date passes.
+  const isStepCleared = (j: number): boolean => {
+    const status = localDeliverables.find((r) => r.deliverable_key === STEPS[j].key)?.status ?? "pending";
+    return status === "done";
+  };
+
   // Steps indicator — clicking a circle jumps straight to that step. Already-reached steps
-  // (i <= stepIdx) are always open to revisit. Jumping forward is capped to exactly the next
-  // step (i === stepIdx + 1) — never further ahead, even past-overdue or already-done steps
-  // can't be skipped over — and only once the *currently viewed* step is done, or that step is
-  // overdue (today's programme day is past its own dayEnd), matching Continue's own gate. PM
-  // mirrors handleContinueClick's own pm bypass (read-only viewing, no data at risk) — never
-  // gated, can jump anywhere.
+  // (i <= stepIdx) are always open to revisit. Jumping forward is allowed as far as every step
+  // from the current position up to (but not including) the target is cleared — task 200 fix:
+  // this used to hard-cap at exactly stepIdx + 1 regardless of completion, so an already-done
+  // intervening step still blocked the jump. PM mirrors handleContinueClick's own pm bypass
+  // (read-only viewing, no data at risk) — never gated, can jump anywhere.
   const handleStepIndicatorClick = (i: number) => {
     if (i === stepIdx) return;
     if (i < stepIdx || isPM) {
       setStepIdx(i);
       return;
     }
-    if (i !== stepIdx + 1) {
-      setStepGateAlert(`Complete "${step.name}" first — steps can only be advanced one at a time.`);
-      return;
+    let blockingIdx: number | null = null;
+    for (let j = stepIdx; j < i; j++) {
+      if (!isStepCleared(j)) {
+        blockingIdx = j;
+        break;
+      }
     }
-    const isCurrentOverdue = currentDay > step.dayEnd;
-    if (stepStatus === "done" || isCurrentOverdue) {
+    if (blockingIdx === null) {
       setStepIdx(i);
       return;
     }
-    setStepGateAlert(`"${step.name}" needs to be completed first before continuing to the other step.`);
+    // The step currently on screen is the one blocking the jump (always true for a click on the
+    // very next step, and possibly true for a further jump too) — run the same field-level
+    // validation Continue uses instead of just naming the step in a popup, so the user sees
+    // exactly what's missing (red field border + inline message, or the incomplete-items modal)
+    // right where they're already looking.
+    if (blockingIdx === stepIdx) {
+      if (validateCurrentStepForAdvance()) setStepIdx(i);
+      return;
+    }
+    setStepGateAlert({
+      message: `Complete "${STEPS[blockingIdx].name}" first before jumping ahead — steps must be cleared in order.`,
+      targetIdx: blockingIdx,
+    });
   };
 
   const completePhase = async () => {
@@ -1977,7 +2134,8 @@ export default function OnboardingWizard({
   const kickoffLabelCls = cn("block text-[13px] font-medium mb-1.5", textPrimary);
   const kickoffInputCls = cn(
     "w-full text-sm rounded-[10px] px-3.5 py-[11px] border-[1.5px] outline-none transition-[border-color,box-shadow] duration-150 font-[inherit]",
-    "bg-white border-[#E2E7F2] text-[#0B1533] placeholder:text-[#5F6A88] focus:border-[#007BFF] focus:shadow-[0_0_0_3px_rgba(0,123,255,0.14)]"
+    "bg-white border-[#E2E7F2] text-[#0B1533] placeholder:text-[#5F6A88] focus:border-[#007BFF] focus:shadow-[0_0_0_3px_rgba(0,123,255,0.14)]",
+    "disabled:cursor-not-allowed"
   );
 
   if (showTransition && !done) {
@@ -2061,27 +2219,34 @@ export default function OnboardingWizard({
             circle (overflow-x-auto forces the browser to also compute overflow-y as non-visible
             per spec, so the ring's top/bottom bleed needs the same clearance as its left/right). */}
         <div className="flex items-center gap-1 overflow-x-auto p-1 -m-1">
-          {STEPS.map((s, i) => (
-            <div key={s.key} className="flex items-center flex-1 last:flex-none min-w-8">
-              <IconTip label={`${s.name} · Day ${s.dayStart === s.dayEnd ? s.dayStart : `${s.dayStart}–${s.dayEnd}`}`} side="bottom">
-                <button
-                  type="button"
-                  onClick={() => handleStepIndicatorClick(i)}
-                  aria-label={`Go to ${s.name}`}
-                  className="flex flex-col items-center gap-1 bg-transparent border-none p-0 cursor-pointer transition-opacity hover:opacity-80"
-                >
-                  <div className={cn(
-                    "w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0",
-                    i < stepIdx ? "bg-[#007BFF] text-white" : i === stepIdx ? "bg-[#007BFF] text-white ring-4 ring-[#007BFF]/15" : "bg-[#EDF0F7] text-[#5F6A88]"
-                  )}>
-                    {i < stepIdx ? <Check size={11} /> : i + 1}
-                  </div>
-                  <span className={cn("text-[9px] whitespace-nowrap max-w-16 truncate", i === stepIdx ? cn("font-semibold", textPrimary) : textMuted)}>{s.name}</span>
-                </button>
-              </IconTip>
-              {i < STEPS.length - 1 && <div className={cn("flex-1 h-0.5 mx-1.5 -mt-4", i < stepIdx ? "bg-[#007BFF]" : "bg-[#E2E7F2]")} />}
-            </div>
-          ))}
+          {STEPS.map((s, i) => {
+            // Done reflects real per-step completion (localDeliverables status), not position
+            // relative to stepIdx — task 200 fix: the old i < stepIdx check showed a step as
+            // checked merely because you'd scrolled past it while viewing a later step, and
+            // hid the check on a step you'd already completed but navigated back before.
+            const done = (localDeliverables.find((r) => r.deliverable_key === s.key)?.status ?? "pending") === "done";
+            return (
+              <div key={s.key} className="flex items-center flex-1 last:flex-none min-w-8">
+                <IconTip label={`${s.name} · Day ${s.dayStart === s.dayEnd ? s.dayStart : `${s.dayStart}–${s.dayEnd}`}`} side="bottom">
+                  <button
+                    type="button"
+                    onClick={() => handleStepIndicatorClick(i)}
+                    aria-label={`Go to ${s.name}`}
+                    className="flex flex-col items-center gap-1 bg-transparent border-none p-0 cursor-pointer transition-opacity hover:opacity-80"
+                  >
+                    <div className={cn(
+                      "w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0",
+                      i === stepIdx ? "bg-[#007BFF] text-white ring-4 ring-[#007BFF]/15" : done ? "bg-[#007BFF] text-white" : "bg-[#EDF0F7] text-[#5F6A88]"
+                    )}>
+                      {done && i !== stepIdx ? <Check size={11} /> : i + 1}
+                    </div>
+                    <span className={cn("text-[9px] whitespace-nowrap max-w-16 truncate", i === stepIdx ? cn("font-semibold", textPrimary) : textMuted)}>{s.name}</span>
+                  </button>
+                </IconTip>
+                {i < STEPS.length - 1 && <div className={cn("flex-1 h-0.5 mx-1.5 -mt-4", done ? "bg-[#007BFF]" : "bg-[#E2E7F2]")} />}
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -2163,7 +2328,7 @@ export default function OnboardingWizard({
                       className={kickoffInputCls}
                       disabled={isStepReadOnly}
                     />
-                    <p className={cn("text-[11px] mt-1", textMuted)}>Leave blank if none.</p>
+                    {isStepReadOnly ? <ReadOnlyHint compact /> : <p className={cn("text-[11px] mt-1", textMuted)}>Leave blank if none.</p>}
                     {websiteUrlError && <p className="text-[11px] text-[#C0392B] mt-1">{websiteUrlError}</p>}
                   </div>
                   <div>
@@ -2563,7 +2728,7 @@ export default function OnboardingWizard({
             {step.key === "html-mockup" && (
               <div className="mb-5">
                 <label className={kickoffLabelCls}>Mockup file</label>
-                <p className={cn("text-[11px] mb-1.5", textMuted)}>Upload the HTML mockup for client approval — HTML files can be edited directly in-app.</p>
+                <p className={cn("text-[11px] mb-1.5", textMuted)}>Upload the HTML mockup for client approval — HTML files can be edited directly in-app. A Markdown build spec is generated automatically for each one.</p>
                 {htmlMockupUploadError && <p className="text-[12px] text-[#C0392B] mb-2">{htmlMockupUploadError}</p>}
                 <HtmlMockupFileList
                   files={htmlMockupFiles}
@@ -2577,6 +2742,9 @@ export default function OnboardingWizard({
                   disabled={isStepReadOnly}
                   hasError={htmlMockupFieldError && !isHtmlMockupFilled}
                   loading={phase1Loading}
+                  specs={htmlMockupSpecs}
+                  specStatus={htmlMockupSpecStatus}
+                  onRegenerateSpec={handleRegenerateMockupSpec}
                 />
                 {htmlMockupFieldError && !isHtmlMockupFilled && (
                   <p className="text-[11px] text-[#C0392B] mt-1">Upload at least one mockup file before continuing.</p>
@@ -2638,7 +2806,7 @@ export default function OnboardingWizard({
                       disabled={togglingKey === `internal-${id.key}` || !canEditChecklist}
                       className={cn(
                         "w-full flex items-start gap-2 p-1.5 rounded-md bg-transparent border-none text-left transition-colors disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-[#007BFF] focus-visible:outline-offset-2",
-                        canEditChecklist ? "cursor-pointer" : "cursor-default",
+                        canEditChecklist ? "cursor-pointer" : "cursor-not-allowed",
                         canEditChecklist && "hover:bg-[#F0F7FF]"
                       )}
                     >
@@ -2651,14 +2819,12 @@ export default function OnboardingWizard({
                         {isDone && <Check size={10} strokeWidth={3} className="text-white" />}
                       </span>
                       <span className="flex-1 min-w-0 flex flex-col gap-1">
-                        {canEditChecklist ? (
-                          <Tooltip>
-                            <TooltipTrigger render={itemLabel} />
-                            <TooltipContent side="left">{isDone ? "Uncheck" : "Mark as Done"}</TooltipContent>
-                          </Tooltip>
-                        ) : (
-                          itemLabel
-                        )}
+                        <Tooltip>
+                          <TooltipTrigger render={itemLabel} />
+                          <TooltipContent side="left">
+                            {canEditChecklist ? (isDone ? "Uncheck" : "Mark as Done") : "Read-only — you don't have edit access to this step"}
+                          </TooltipContent>
+                        </Tooltip>
                         {!isDone && (
                           <span className={cn("self-start font-mono text-[9px] font-semibold uppercase tracking-wide rounded-[7px] px-1.5 py-0.5", tagCls)}>
                             {itemNotStarted ? "PENDING" : `DAY ${step.dayEnd}`}
@@ -2763,7 +2929,11 @@ export default function OnboardingWizard({
               <p className={cn("text-[13px] mb-1", textMuted)}>The following items in &quot;{step.name}&quot; haven&apos;t been marked done yet:</p>
               {incompleteItems.map((item) => (
                 <div key={item.key} className={cn("flex items-center gap-2 text-[13px] px-3 py-2 rounded-lg", "bg-[#F4F6FB]")}>
-                  <Circle size={13} className={textMuted} />
+                  {/* Empty checkbox, not a radio circle — matches the live checklist's own
+                      unchecked-item square (17px, 5px radius) elsewhere in this file (task 200
+                      follow-up: this was a stray Circle icon, reading as a radio button next to
+                      what's actually a checklist). */}
+                  <span className="shrink-0 h-[17px] w-[17px] rounded-[5px] border border-[#E2E7F2] bg-white" />
                   <span className={textPrimary}>{item.name}</span>
                 </div>
               ))}
@@ -2771,13 +2941,13 @@ export default function OnboardingWizard({
             <div className={cn("flex items-center justify-end gap-2 px-5 py-4 border-t", "border-[#EDF0F7] bg-[#F4F6FB]")}>
               <button
                 onClick={() => setShowIncompleteModal(false)}
-                className={cn("px-4 py-2 rounded-lg text-[13px] font-medium cursor-pointer border-none bg-transparent", "text-[#3A4565] hover:bg-[#EDF0F7]")}
+                className={cn("px-4 py-2 rounded-full border text-[13px] font-medium cursor-pointer bg-transparent transition-colors", "border-[#E2E7F2] text-[#3A4565] hover:border-[#A8C6F5] hover:bg-[#F4F6FB]")}
               >
                 Cancel
               </button>
               <button
                 onClick={handleMarkAllDone}
-                className="px-4 py-2 rounded-lg bg-[#007BFF] text-white text-[13px] font-semibold cursor-pointer border-none hover:opacity-90 transition-opacity"
+                className="px-4 py-2 rounded-full bg-[#007BFF] text-white text-[13px] font-semibold cursor-pointer border-none shadow-[0_2px_10px_rgba(0,123,255,0.3)] transition-colors hover:bg-[#0063D6]"
               >
                 Mark all as done
               </button>
@@ -2801,13 +2971,13 @@ export default function OnboardingWizard({
             <div className={cn("flex items-center justify-end gap-2 px-5 py-4 border-t", "border-[#EDF0F7] bg-[#F4F6FB]")}>
               <button
                 onClick={handleReview}
-                className={cn("px-4 py-2 rounded-lg text-[13px] font-medium cursor-pointer border-none bg-transparent", "text-[#3A4565] hover:bg-[#EDF0F7]")}
+                className={cn("px-4 py-2 rounded-full border text-[13px] font-medium cursor-pointer bg-transparent transition-colors", "border-[#E2E7F2] text-[#3A4565] hover:border-[#A8C6F5] hover:bg-[#F4F6FB]")}
               >
                 Review
               </button>
               <button
                 onClick={handleForceProceed}
-                className="px-4 py-2 rounded-lg bg-[#007BFF] text-white text-[13px] font-semibold cursor-pointer border-none hover:opacity-90 transition-opacity"
+                className="px-4 py-2 rounded-full bg-[#007BFF] text-white text-[13px] font-semibold cursor-pointer border-none shadow-[0_2px_10px_rgba(0,123,255,0.3)] transition-colors hover:bg-[#0063D6]"
               >
                 Yes, proceed
               </button>
@@ -2820,18 +2990,31 @@ export default function OnboardingWizard({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#071133]/40 p-4" onClick={() => setStepGateAlert(null)}>
           <div role="dialog" aria-modal="true" aria-labelledby="step-gate-title" className={cn(cardCls, "w-full max-w-sm shadow-xl overflow-hidden")} onClick={(e) => e.stopPropagation()}>
             <div className="p-5">
-              <div className="flex items-center gap-2 mb-2">
-                <AlertTriangle size={16} className="text-[#8A5A00] shrink-0" />
-                <h2 id="step-gate-title" className={cn("text-[15px] font-semibold", textPrimary)}>Step not available yet</h2>
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-[#FFF3D6]">
+                  <AlertTriangle size={15} className="text-[#8A5A00]" />
+                </div>
+                <div className="pt-0.5">
+                  <h2 id="step-gate-title" className={cn("text-[15px] font-semibold mb-1", textPrimary)}>Step not available yet</h2>
+                  <p className={cn("text-[13px]", textMuted)}>{stepGateAlert.message}</p>
+                </div>
               </div>
-              <p className={cn("text-[13px]", textMuted)}>{stepGateAlert}</p>
             </div>
             <div className={cn("flex items-center justify-end gap-2 px-5 py-4 border-t", "border-[#EDF0F7] bg-[#F4F6FB]")}>
               <button
                 onClick={() => setStepGateAlert(null)}
-                className="px-4 py-2 rounded-lg bg-[#007BFF] text-white text-[13px] font-semibold cursor-pointer border-none hover:opacity-90 transition-opacity"
+                className={cn("px-4 py-2 rounded-full border text-[13px] font-medium cursor-pointer bg-transparent transition-colors", "border-[#E2E7F2] text-[#3A4565] hover:border-[#A8C6F5] hover:bg-[#F4F6FB]")}
               >
-                OK
+                Stay here
+              </button>
+              <button
+                onClick={() => {
+                  setStepIdx(stepGateAlert.targetIdx);
+                  setStepGateAlert(null);
+                }}
+                className="px-4 py-2 rounded-full bg-[#007BFF] text-white text-[13px] font-semibold cursor-pointer border-none shadow-[0_2px_10px_rgba(0,123,255,0.3)] transition-colors hover:bg-[#0063D6]"
+              >
+                Go to &quot;{STEPS[stepGateAlert.targetIdx].name}&quot;
               </button>
             </div>
           </div>
@@ -2895,6 +3078,7 @@ function TagField({
           ))}
         </div>
       )}
+      {disabled && <ReadOnlyHint compact />}
       {!disabled && (
         <div className="flex gap-2">
           <input
@@ -2936,7 +3120,8 @@ function ContactsField({
   const textMuted = "text-[#5F6A88]";
   const miniInputCls = cn(
     "w-full text-[13px] rounded-[9px] px-3 py-2.5 border-[1.5px] outline-none transition-[border-color,box-shadow] duration-150 font-[inherit]",
-    "bg-white border-[#E2E7F2] text-[#0B1533] placeholder:text-[#5F6A88] focus:border-[#007BFF] focus:shadow-[0_0_0_3px_rgba(0,123,255,0.14)]"
+    "bg-white border-[#E2E7F2] text-[#0B1533] placeholder:text-[#5F6A88] focus:border-[#007BFF] focus:shadow-[0_0_0_3px_rgba(0,123,255,0.14)]",
+    "disabled:cursor-not-allowed"
   );
 
   const updateContact = (i: number, patch: Partial<ContactEntry>) => {
@@ -3004,6 +3189,7 @@ function ContactsField({
           );
         })}
       </div>
+      {disabled && <ReadOnlyHint compact />}
       {!disabled && (
         <IconTip label="Add contact" side="bottom">
           <button
@@ -3170,7 +3356,8 @@ function RichTextField({
           "bg-white",
           hasError
             ? "border-[#C0392B] shadow-[0_0_0_3px_rgba(192,57,43,0.25)] focus-within:border-[#C0392B] focus-within:shadow-[0_0_0_3px_rgba(192,57,43,0.35)]"
-            : "border-[#E2E7F2] focus-within:border-[#007BFF] focus-within:shadow-[0_0_0_3px_rgba(0,123,255,0.14)]"
+            : "border-[#E2E7F2] focus-within:border-[#007BFF] focus-within:shadow-[0_0_0_3px_rgba(0,123,255,0.14)]",
+          disabled && "cursor-not-allowed"
         )}
       >
         {!disabled && (
@@ -3207,6 +3394,7 @@ function RichTextField({
         )}
         <EditorContent editor={editor} />
       </div>
+      {disabled && <ReadOnlyHint compact />}
       {placeholder && <p className={cn("text-[11px] mt-1", textMuted)}>{placeholder}</p>}
     </div>
   );
@@ -3230,7 +3418,9 @@ function FileUploadBox({
 
   return (
     <div className="mt-2.5">
-      {!disabled && (
+      {disabled ? (
+        <ReadOnlyHint />
+      ) : (
         <>
           <input
             ref={inputRef}
@@ -5453,10 +5643,12 @@ function FileViewerModal({
 // (text/html and text/markdown only) next to the existing View/Remove ones.
 function HtmlMockupFileList({
   files, uploading, uploadProgress, onFile, onRemove, onView, onEdit, viewingId, disabled, hasError, loading,
+  specs, specStatus, onRegenerateSpec,
 }: {
   files: AssetRow[]; uploading: boolean; uploadProgress?: UploadProgressEntry[]; onFile: (file: File) => void; onRemove: (id: string) => void;
   onView: (id: string) => void; onEdit: (asset: AssetRow) => void; viewingId: string | null;
   disabled?: boolean; hasError?: boolean; loading?: boolean;
+  specs: Record<string, AssetRow>; specStatus: Record<string, MockupSpecStatus>; onRegenerateSpec: (asset: AssetRow) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -5470,7 +5662,9 @@ function HtmlMockupFileList({
 
   return (
     <div className="mt-1">
-      {!disabled && (
+      {disabled ? (
+        <ReadOnlyHint />
+      ) : (
         <>
           <input
             ref={inputRef}
@@ -5507,29 +5701,44 @@ function HtmlMockupFileList({
       )}
       {uploadProgress && uploadProgress.length > 0 && (
         <div className="mt-2 flex flex-col gap-1.5">
-          {uploadProgress.map((p) => (
-            <div key={p.id} className={cn("flex flex-col gap-1.5 px-2.5 py-2 rounded-lg", "bg-[#F4F6FB]")}>
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-md bg-[#E5F1FF] flex items-center justify-center shrink-0">
-                  <FileText size={11} className="text-[#007BFF]" />
+          {uploadProgress.map((p) => {
+            const isGenerating = p.stage === "generating";
+            return (
+              <div key={p.id} className={cn("flex flex-col gap-1.5 px-2.5 py-2 rounded-lg", "bg-[#F4F6FB]")}>
+                <div className="flex items-center gap-2">
+                  <div className={cn(
+                    "w-6 h-6 rounded-md flex items-center justify-center shrink-0",
+                    isGenerating ? "bg-[#EFE9FF] text-[#7C3AED]" : "bg-[#E5F1FF] text-[#007BFF]"
+                  )}>
+                    {isGenerating ? <Sparkles size={11} /> : <FileText size={11} />}
+                  </div>
+                  <div className={cn("text-[11.5px] font-medium truncate flex-1", textPrimary)}>{p.name}</div>
+                  <div className={cn("flex items-center gap-1 text-[10.5px] tabular-nums shrink-0", textMuted)}>
+                    {isGenerating ? (
+                      <>
+                        <Loader2 size={10} className="animate-spin motion-reduce:animate-none" />
+                        Generating build spec…
+                      </>
+                    ) : p.finishing ? (
+                      <>
+                        <Loader2 size={10} className="animate-spin motion-reduce:animate-none" />
+                        Finishing…
+                      </>
+                    ) : (
+                      `${p.progress}%`
+                    )}
+                  </div>
                 </div>
-                <div className={cn("text-[11.5px] font-medium truncate flex-1", textPrimary)}>{p.name}</div>
-                <div className={cn("flex items-center gap-1 text-[10.5px] tabular-nums shrink-0", textMuted)}>
-                  {p.finishing ? (
-                    <>
-                      <Loader2 size={10} className="animate-spin motion-reduce:animate-none" />
-                      Finishing…
-                    </>
+                <div className={cn("h-1.5 rounded-full overflow-hidden", "bg-[#E2E7F2]")}>
+                  {isGenerating ? (
+                    <div className="h-full w-1/3 rounded-full bg-[#7C3AED] animate-[indeterminate-bar_1.2s_ease-in-out_infinite] motion-reduce:animate-none motion-reduce:w-full" />
                   ) : (
-                    `${p.progress}%`
+                    <div className="h-full rounded-full bg-[#007BFF] transition-[width]" style={{ width: `${p.progress}%` }} />
                   )}
                 </div>
               </div>
-              <div className={cn("h-1.5 rounded-full overflow-hidden", "bg-[#E2E7F2]")}>
-                <div className="h-full rounded-full bg-[#007BFF] transition-[width]" style={{ width: `${p.progress}%` }} />
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
       {loading ? (
@@ -5538,49 +5747,133 @@ function HtmlMockupFileList({
         </div>
       ) : files.length > 0 && (
         <div className="mt-2 flex flex-col gap-1.5">
-          {files.map((f) => (
-            <div key={f.id} className={cn("flex items-center gap-2 px-2.5 py-2 rounded-lg", "bg-[#F4F6FB]")}>
-              <div className="w-6 h-6 rounded-md bg-[#E5F1FF] flex items-center justify-center shrink-0">
-                <FileText size={11} className="text-[#007BFF]" />
+          {files.map((f) => {
+            const spec = specs[f.id];
+            const status = specStatus[f.id];
+            return (
+              <div key={f.id} className="flex flex-col gap-1.5">
+                <div className={cn("flex items-center gap-2 px-2.5 py-2 rounded-lg", "bg-[#F4F6FB]")}>
+                  <div className="w-6 h-6 rounded-md bg-[#E5F1FF] flex items-center justify-center shrink-0">
+                    <FileText size={11} className="text-[#007BFF]" />
+                  </div>
+                  <div className={cn("text-[11.5px] font-medium truncate flex-1", textPrimary)}>{f.file_name}</div>
+                  <IconTip label="View">
+                    <button
+                      type="button"
+                      onClick={() => onView(f.id)}
+                      disabled={viewingId === f.id}
+                      aria-label={`View ${f.file_name}`}
+                      className="shrink-0 p-2 rounded-md cursor-pointer border-none bg-transparent text-[#007BFF] hover:bg-[#E5F1FF] transition-colors disabled:opacity-50"
+                    >
+                      <Eye size={12} />
+                    </button>
+                  </IconTip>
+                  {!disabled && (f.file_mime_type === "text/html" || f.file_mime_type === "text/markdown") && (
+                    <IconTip label="Edit">
+                      <button
+                        type="button"
+                        onClick={() => onEdit(f)}
+                        aria-label={`Edit ${f.file_name}`}
+                        className="shrink-0 p-2 rounded-md cursor-pointer border-none bg-transparent text-[#007BFF] hover:bg-[#E5F1FF] transition-colors"
+                      >
+                        <Pencil size={12} />
+                      </button>
+                    </IconTip>
+                  )}
+                  {!disabled && (
+                    <IconTip label="Remove">
+                      <button
+                        type="button"
+                        onClick={() => onRemove(f.id)}
+                        aria-label={`Remove ${f.file_name}`}
+                        className="shrink-0 p-2 rounded-md cursor-pointer border-none bg-transparent text-[#C0392B] hover:bg-[#FDE8E6] transition-colors"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </IconTip>
+                  )}
+                </div>
+                {/* Task 199 — paired MD build spec, nested under its source HTML mockup so the
+                  1:1 relationship reads visually, not just in the data model. */}
+                {status === "generating" && (
+                  <div className="ml-6 flex items-center gap-2 px-2.5 py-1.5 rounded-lg border border-dashed border-[#D9CFFB] bg-[#FAF8FF]">
+                    <Loader2 size={11} className="text-[#7C3AED] animate-spin motion-reduce:animate-none shrink-0" />
+                    <span className="text-[11px] text-[#5F6A88]">Generating build spec…</span>
+                  </div>
+                )}
+                {status === "error" && (
+                  <div className="ml-6 flex items-center gap-2 px-2.5 py-1.5 rounded-lg border border-dashed border-[#F5C6C0] bg-[#FDE8E6]/40">
+                    <AlertTriangle size={11} className="text-[#C0392B] shrink-0" />
+                    <span className="text-[11px] text-[#C0392B] flex-1">Build spec generation failed.</span>
+                    {!disabled && (
+                      <button
+                        type="button"
+                        onClick={() => onRegenerateSpec(f)}
+                        className="shrink-0 text-[11px] font-medium text-[#007BFF] hover:underline cursor-pointer bg-transparent border-none p-0"
+                      >
+                        Retry
+                      </button>
+                    )}
+                  </div>
+                )}
+                {status === "ready" && spec && (
+                  <div className={cn("ml-6 flex items-center gap-2 px-2.5 py-2 rounded-lg", "bg-[#FAF8FF]")}>
+                    <div className="w-6 h-6 rounded-md bg-[#EFE9FF] flex items-center justify-center shrink-0">
+                      <Sparkles size={11} className="text-[#7C3AED]" />
+                    </div>
+                    <div className={cn("text-[11.5px] font-medium truncate flex-1", textPrimary)}>{spec.file_name}</div>
+                    <IconTip label="View">
+                      <button
+                        type="button"
+                        onClick={() => onView(spec.id)}
+                        disabled={viewingId === spec.id}
+                        aria-label={`View ${spec.file_name}`}
+                        className="shrink-0 p-2 rounded-md cursor-pointer border-none bg-transparent text-[#007BFF] hover:bg-[#E5F1FF] transition-colors disabled:opacity-50"
+                      >
+                        <Eye size={12} />
+                      </button>
+                    </IconTip>
+                    {!disabled && (
+                      <IconTip label="Edit">
+                        <button
+                          type="button"
+                          onClick={() => onEdit(spec)}
+                          aria-label={`Edit ${spec.file_name}`}
+                          className="shrink-0 p-2 rounded-md cursor-pointer border-none bg-transparent text-[#007BFF] hover:bg-[#E5F1FF] transition-colors"
+                        >
+                          <Pencil size={12} />
+                        </button>
+                      </IconTip>
+                    )}
+                    {!disabled && (
+                      <IconTip label="Regenerate">
+                        <button
+                          type="button"
+                          onClick={() => onRegenerateSpec(f)}
+                          aria-label={`Regenerate build spec for ${f.file_name}`}
+                          className="shrink-0 p-2 rounded-md cursor-pointer border-none bg-transparent text-[#7C3AED] hover:bg-[#EFE9FF] transition-colors"
+                        >
+                          <RefreshCw size={12} />
+                        </button>
+                      </IconTip>
+                    )}
+                    {!disabled && (
+                      <IconTip label="Remove">
+                        <button
+                          type="button"
+                          onClick={() => onRemove(spec.id)}
+                          aria-label={`Remove ${spec.file_name}`}
+                          className="shrink-0 p-2 rounded-md cursor-pointer border-none bg-transparent text-[#C0392B] hover:bg-[#FDE8E6] transition-colors"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </IconTip>
+                    )}
+                  </div>
+                )}
               </div>
-              <div className={cn("text-[11.5px] font-medium truncate flex-1", textPrimary)}>{f.file_name}</div>
-              <IconTip label="View">
-                <button
-                  type="button"
-                  onClick={() => onView(f.id)}
-                  disabled={viewingId === f.id}
-                  aria-label={`View ${f.file_name}`}
-                  className="shrink-0 p-2 rounded-md cursor-pointer border-none bg-transparent text-[#007BFF] hover:bg-[#E5F1FF] transition-colors disabled:opacity-50"
-                >
-                  <Eye size={12} />
-                </button>
-              </IconTip>
-              {!disabled && (f.file_mime_type === "text/html" || f.file_mime_type === "text/markdown") && (
-                <IconTip label="Edit">
-                  <button
-                    type="button"
-                    onClick={() => onEdit(f)}
-                    aria-label={`Edit ${f.file_name}`}
-                    className="shrink-0 p-2 rounded-md cursor-pointer border-none bg-transparent text-[#007BFF] hover:bg-[#E5F1FF] transition-colors"
-                  >
-                    <Pencil size={12} />
-                  </button>
-                </IconTip>
-              )}
-              {!disabled && (
-                <IconTip label="Remove">
-                  <button
-                    type="button"
-                    onClick={() => onRemove(f.id)}
-                    aria-label={`Remove ${f.file_name}`}
-                    className="shrink-0 p-2 rounded-md cursor-pointer border-none bg-transparent text-[#C0392B] hover:bg-[#FDE8E6] transition-colors"
-                  >
-                    <Trash2 size={12} />
-                  </button>
-                </IconTip>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

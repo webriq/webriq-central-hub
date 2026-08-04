@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { adminClient } from "@/lib/supabase/admin";
 import {
   canManageProjectMembers,
   canSetProjectOwner,
@@ -9,6 +10,7 @@ import {
   getProjectCreator,
   transferProjectOwnership,
 } from "@/lib/programme/phase-membership";
+import { createNotification } from "@/lib/notifications";
 
 // Task 153 — project-level membership (requirement 6). Gates visibility on the Onboarding
 // list for marketing/pm (GET /api/onboarding/projects); admin/super_admin always see
@@ -32,7 +34,12 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     // profiles!project_members_user_id_fkey: project_members has two FKs to profiles (user_id
     // and added_by) — a bare `profiles(...)` embed is ambiguous (PGRST201) without naming
     // which one to follow. We always want the member's own profile, not the adder's.
-    const { data, error } = await supabase
+    // adminClient: the embedded `profiles` sub-select is bound by profiles' own RLS
+    // (profiles_read_own, migration 048 — own row, or all rows for admin/super_admin only), so a
+    // pm/marketing caller got null back for every other member's profile here, rendering as
+    // "Unnamed"/"Unassigned" in the UI. project_members itself is already broadly readable
+    // (see comment above), this only bypasses the embedded profiles table's stricter RLS.
+    const { data, error } = await adminClient
       .from("project_members")
       .select("id, user_id, is_owner, added_by, created_at, profiles!project_members_user_id_fkey(full_name, role)")
       .eq("project_id", projectId)
@@ -51,6 +58,9 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
   }
 }
 
+// Task 201 — accepts a batch of user_ids so one "Add Collaborators" confirm can add several
+// people and trigger a single combined notification (rather than one add + one notification
+// per person). formatNameList below builds the Oxford-comma grammar for that notification.
 export async function POST(request: NextRequest, { params }: { params: Promise<{ projectId: string }> }) {
   try {
     const supabase = await createClient();
@@ -65,20 +75,70 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     const body = await request.json();
-    const userId = String(body?.user_id ?? "");
-    if (!userId) return NextResponse.json({ error: "user_id is required" }, { status: 400 });
+    const rawUserIds: unknown = body?.user_ids;
+    const userIds: string[] = Array.isArray(rawUserIds)
+      ? [...new Set(rawUserIds.map((v) => String(v)).filter(Boolean))]
+      : [];
+    if (userIds.length === 0) return NextResponse.json({ error: "user_ids is required" }, { status: 400 });
 
-    const { error } = await addProjectMember(projectId, userId, user.id);
-    if (error) {
-      console.error("POST /api/projects/[projectId]/members error:", error);
-      return NextResponse.json({ error: "Failed to add project member" }, { status: 500 });
+    const results = await Promise.all(userIds.map((id) => addProjectMember(projectId, id, user.id)));
+    const addedIds = userIds.filter((_, i) => !results[i].error);
+    if (addedIds.length === 0) {
+      console.error("POST /api/projects/[projectId]/members error:", results[0]?.error);
+      return NextResponse.json({ error: "Failed to add project members" }, { status: 500 });
     }
 
-    return NextResponse.json({ ok: true }, { status: 201 });
+    // Notifications — best-effort, mirrors the deliverable_complete call site's placement
+    // after the DB write (src/app/api/projects/[projectId]/programme/deliverables/[deliverableKey]/route.ts).
+    try {
+      const [{ data: actorProfile }, { data: addedProfiles }, { data: project }, { data: allMembers }] = await Promise.all([
+        supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle(),
+        supabase.from("profiles").select("id, full_name").in("id", addedIds),
+        supabase.from("projects").select("name, project_id").eq("id", projectId).maybeSingle(),
+        supabase.from("project_members").select("user_id").eq("project_id", projectId),
+      ]);
+      const actorName = actorProfile?.full_name ?? "Someone";
+      const projectName = project?.name ?? "this project";
+      const url = project?.project_id ? `/v2/portfolio-tracker/${project.project_id}` : undefined;
+      const addedNames = addedIds.map((id) => addedProfiles?.find((p) => p.id === id)?.full_name ?? "Unnamed");
+
+      await Promise.all(addedIds.map((id) => createNotification(id, {
+        type: "project_collaborator_added",
+        title: "Added as collaborator",
+        body: `${actorName} has added you as a collaborator on ${projectName}.`,
+        url,
+        actorId: user.id,
+      })));
+
+      const otherMemberIds = (allMembers ?? [])
+        .map((m) => m.user_id)
+        .filter((id) => id !== user.id && !addedIds.includes(id));
+      if (otherMemberIds.length > 0) {
+        const noun = addedNames.length === 1 ? "collaborator" : "collaborators";
+        await Promise.all(otherMemberIds.map((id) => createNotification(id, {
+          type: "project_collaborator_added",
+          title: "Collaborator added",
+          body: `${actorName} has added ${formatNameList(addedNames)} as ${noun} on ${projectName}.`,
+          url,
+          actorId: user.id,
+        })));
+      }
+    } catch (notifyErr) {
+      console.error("POST /api/projects/[projectId]/members notification error:", notifyErr);
+    }
+
+    return NextResponse.json({ ok: true, added: addedIds.length }, { status: 201 });
   } catch (err) {
     console.error("POST /api/projects/[projectId]/members unexpected error:", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
+}
+
+// Oxford-comma list join: "A" | "A and B" | "A, B, and C" — local to this route, only caller.
+function formatNameList(names: string[]): string {
+  if (names.length === 1) return names[0];
+  if (names.length === 2) return `${names[0]} and ${names[1]}`;
+  return `${names.slice(0, -1).join(", ")}, and ${names[names.length - 1]}`;
 }
 
 // Task 157 — transfer/set project ownership to an existing member. super_admin/admin/creator
@@ -109,6 +169,44 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (error) {
       console.error("PATCH /api/projects/[projectId]/members error:", error);
       return NextResponse.json({ error: "Failed to transfer ownership" }, { status: 500 });
+    }
+
+    // Notifications — best-effort; actor is never notified about their own action (also
+    // covers the self-transfer edge case where an admin sets themselves as owner).
+    try {
+      const [{ data: actorProfile }, { data: targetProfile }, { data: project }, { data: allMembers }] = await Promise.all([
+        supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle(),
+        supabase.from("profiles").select("full_name").eq("id", targetUserId).maybeSingle(),
+        supabase.from("projects").select("name, project_id").eq("id", projectId).maybeSingle(),
+        supabase.from("project_members").select("user_id").eq("project_id", projectId),
+      ]);
+      const actorName = actorProfile?.full_name ?? "Someone";
+      const newOwnerName = targetProfile?.full_name ?? "Unnamed";
+      const projectName = project?.name ?? "this project";
+      const url = project?.project_id ? `/v2/portfolio-tracker/${project.project_id}` : undefined;
+
+      if (targetUserId !== user.id) {
+        await createNotification(targetUserId, {
+          type: "project_owner_changed",
+          title: "Project owner changed",
+          body: `${actorName} set you as the project owner of ${projectName}.`,
+          url,
+          actorId: user.id,
+        });
+      }
+
+      const otherMemberIds = (allMembers ?? [])
+        .map((m) => m.user_id)
+        .filter((id) => id !== user.id && id !== targetUserId);
+      await Promise.all(otherMemberIds.map((id) => createNotification(id, {
+        type: "project_owner_changed",
+        title: "Project owner changed",
+        body: `${actorName} has changed the ownership of ${projectName} to ${newOwnerName}.`,
+        url,
+        actorId: user.id,
+      })));
+    } catch (notifyErr) {
+      console.error("PATCH /api/projects/[projectId]/members notification error:", notifyErr);
     }
 
     return NextResponse.json({ ok: true });

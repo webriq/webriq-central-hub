@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { adminClient } from "@/lib/supabase/admin";
 
 async function getRequesterRole(supabase: Awaited<ReturnType<typeof createClient>>, userId: string) {
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", userId).maybeSingle();
@@ -170,6 +171,21 @@ export async function DELETE(
       return NextResponse.json({ error: "Not permitted to delete this asset" }, { status: 403 });
     }
 
+    // Deleting an HTML mockup cascades (DB-level, on delete cascade via source_asset_id) to
+    // its paired Mockup Build Spec MD row — but the cascade only removes the DB row, not the
+    // storage object it points at. Capture that path before the delete so it can be cleaned
+    // up from the bucket too, avoiding an orphaned file (task 199).
+    const { data: pairedSpec, error: pairedLookupError } = await supabase
+      .from("customer_assets")
+      .select("file_path")
+      .eq("source_asset_id", id)
+      .eq("customer_id", customerId)
+      .maybeSingle();
+
+    if (pairedLookupError) {
+      console.error("DELETE /api/customers/[customerId]/assets paired-spec lookup error:", pairedLookupError);
+    }
+
     const { error } = await supabase
       .from("customer_assets")
       .delete()
@@ -179,6 +195,13 @@ export async function DELETE(
     if (error) {
       console.error("DELETE /api/customers/[customerId]/assets error:", error);
       return NextResponse.json({ error: "Failed to delete asset" }, { status: 500 });
+    }
+
+    if (pairedSpec?.file_path) {
+      const { error: storageError } = await adminClient.storage.from("customer-assets").remove([pairedSpec.file_path]);
+      if (storageError) {
+        console.error("DELETE /api/customers/[customerId]/assets paired-spec storage cleanup error:", storageError);
+      }
     }
 
     return new NextResponse(null, { status: 204 });
