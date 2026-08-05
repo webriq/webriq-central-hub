@@ -7,6 +7,8 @@ interface DashboardViewProps {
   role: string | null;
   displayName: string | null;
   userId: string;
+  devProjectsCount?: number;
+  devCustomerIds?: string[];
 }
 
 /**
@@ -20,9 +22,16 @@ interface DashboardViewProps {
  *   pm                 → PM dashboard
  *   hr/client          → PM dashboard (fallback; HR dashboard ships in Sprint 6)
  */
-export default function DashboardView({ role, displayName, userId }: DashboardViewProps) {
+export default function DashboardView({ role, displayName, userId, devProjectsCount, devCustomerIds }: DashboardViewProps) {
   if (role === "developer") {
-    return <DevDashboard userId={userId} displayName={displayName} />;
+    return (
+      <DevDashboard
+        userId={userId}
+        displayName={displayName}
+        projectsCount={devProjectsCount ?? 0}
+        customerIds={devCustomerIds ?? []}
+      />
+    );
   }
   if (role === "admin" || role === "super_admin") {
     return <AdminDashboard userId={userId} displayName={displayName} />;

@@ -1,6 +1,8 @@
 "use client";
 
 import React from "react";
+import { motion } from "framer-motion";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import type { Database } from "@/types/database";
 
 // ─── DB row aliases ─────────────────────────────────────────────────────────
@@ -119,6 +121,26 @@ export function midpoint(prev?: number | null, next?: number | null): number {
   if (prev == null) return (next as number) - 1;
   if (next == null) return (prev as number) + 1;
   return ((prev as number) + (next as number)) / 2;
+}
+
+// ─── HTML entity decoding (Zoho-imported titles carry literal `&amp;` etc.) ─
+// Regex-based, no DOMParser/document — this module is imported by components
+// Next.js server-renders on first paint, so it must run with no DOM available.
+const NAMED_ENTITIES: Record<string, string> = {
+  amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " ",
+  hellip: "…", mdash: "—", ndash: "–",
+  lsquo: "‘", rsquo: "’", ldquo: "“", rdquo: "”",
+};
+export function decodeHtmlEntities(input: string): string {
+  return input.replace(/&(#x?[0-9a-fA-F]+|[a-zA-Z]+);/g, (match, entity: string) => {
+    if (entity[0] === "#") {
+      const code = entity[1] === "x" || entity[1] === "X"
+        ? parseInt(entity.slice(2), 16)
+        : parseInt(entity.slice(1), 10);
+      return Number.isNaN(code) ? match : String.fromCodePoint(code);
+    }
+    return NAMED_ENTITIES[entity] ?? match;
+  });
 }
 
 // ─── Small presentational helpers ───────────────────────────────────────────
@@ -298,16 +320,32 @@ export function businessDaysRemaining(endDate: string | null): number | null {
 // shipped on /v2/projects and /v2/portfolio-tracker.
 const AVATAR_COLORS = ["#0063D6", "#6A48E0", "#0B8A93", "#B85512", "#177E48", "#44508A"];
 
-export function AssigneeChip({ id, idx }: { id: string; idx: number }) {
-  const initials = id.replace(/-/g, "").slice(0, 2).toUpperCase();
+// Task 210 flagged this component's raw-UUID initials + native `title` as a follow-up (out of
+// scope there); task 211 fixes it in place — same styled Tooltip + hover-lift pattern as
+// `_list-view.tsx`'s ResolvedAssigneeChip, which stays independent/untouched (see that file's
+// own comment). Only caller: `tasks/[taskId]/_task-detail.tsx`.
+function nameInitials(name: string | null | undefined, fallbackId: string): string {
+  if (name) return name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+  return fallbackId.replace(/-/g, "").slice(0, 2).toUpperCase();
+}
+
+export function AssigneeChip({ id, idx, name }: { id: string; idx: number; name?: string }) {
   return (
-    <div
-      className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-semibold text-white border-2 border-white"
-      style={{ background: AVATAR_COLORS[idx % AVATAR_COLORS.length] }}
-      title={id}
-    >
-      {initials}
-    </div>
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <motion.div
+            className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-semibold text-white border-2 border-white shrink-0 cursor-default"
+            style={{ background: AVATAR_COLORS[idx % AVATAR_COLORS.length] }}
+            whileHover={{ y: -4, zIndex: 10 }}
+            transition={{ type: "spring", stiffness: 500, damping: 20 }}
+          >
+            {nameInitials(name, id)}
+          </motion.div>
+        }
+      />
+      <TooltipContent side="top">{name ?? "Unnamed"}</TooltipContent>
+    </Tooltip>
   );
 }
 

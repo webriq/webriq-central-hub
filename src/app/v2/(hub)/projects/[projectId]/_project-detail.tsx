@@ -23,6 +23,8 @@ import IssueListView, { type IssueSortKey, type IssueSortDir } from "./_issue-li
 import IssueBoardView from "./_issue-board-view";
 import IssueCalendarView from "./_issue-calendar-view";
 import MilestonePanel from "./_milestone-panel";
+import { TaskDescriptionEditor } from "./_task-description-editor";
+import { TaskAttachmentPicker } from "./_task-attachment-picker";
 
 type ViewId = "board" | "list" | "calendar";
 type PrimaryTab = "tasks" | "issues" | "milestones";
@@ -95,6 +97,7 @@ export default function ProjectDetail({
   initialTasks,
   initialIssues,
   currentUserId,
+  currentUserRole,
   profilesById,
   allMembers,
   initialHoursById,
@@ -107,8 +110,9 @@ export default function ProjectDetail({
   initialTasks: Task[];
   initialIssues: Issue[];
   currentUserId: string;
+  currentUserRole: string | null;
   profilesById: Record<string, { full_name: string; avatar_url: string | null }>;
-  allMembers: { id: string; full_name: string | null; avatar_url: string | null }[];
+  allMembers: { id: string; full_name: string | null; avatar_url: string | null; role: string }[];
   initialHoursById: Record<string, number>;
   activeTab: PrimaryTab;
 }) {
@@ -117,7 +121,7 @@ export default function ProjectDetail({
   const [view, setView] = useState<ViewId>("list");
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [milestones, setMilestones] = useState<Milestone[]>(initialMilestones);
-  const [tasklists] = useState<Tasklist[]>(initialTasklists);
+  const [tasklists, setTasklists] = useState<Tasklist[]>(initialTasklists);
   const [createDefaults, setCreateDefaults] = useState<TaskDefaults | null>(null);
   const [hoursById, setHoursById] = useState<Record<string, number>>(initialHoursById);
 
@@ -213,6 +217,10 @@ export default function ProjectDetail({
     setTasks((prev) => [...prev, task]);
   }, []);
 
+  const addTasklist = useCallback((tasklist: Tasklist) => {
+    setTasklists((prev) => [...prev, tasklist]);
+  }, []);
+
   // ─── Issue mutations (optimistic) ────────────────────────────────────────
   const updateIssue = useCallback(async (id: string, patch: Partial<Issue>) => {
     const snapshot = issues;
@@ -256,14 +264,13 @@ export default function ProjectDetail({
     setTasks((prev) => prev.map((t) => (t.milestone_id === id ? { ...t, milestone_id: null } : t)));
   }, []);
 
-  const handleTimerStop = useCallback(async (taskId: string, hours: number) => {
+  // Task 209 — timer start/pause/resume/stop now goes through the hub-wide TimerContext
+  // (server-persisted `active_timers`, so it survives navigation/refresh and can be seen from
+  // the floating break widget). This only receives the resulting hours to update the local
+  // display total once a stop actually happens.
+  const handleHoursLogged = useCallback((taskId: string, hours: number) => {
     setHoursById((prev) => ({ ...prev, [taskId]: (prev[taskId] ?? 0) + hours }));
-    await fetch(`/api/v2/tasks/${taskId}/timelog`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ hours, project_id: project.id }),
-    });
-  }, [project.id]);
+  }, []);
 
   // ─── Search / filter — root-task match, whole subtree follows ────────────
   // Filtering is evaluated against root tasks (no parent, depth 0). If a root
@@ -519,6 +526,8 @@ export default function ProjectDetail({
                   onMove={async (id, status, position) => { await updateTask(id, { status, position }); }}
                   onOpen={(task) => router.push(`/v2/projects/${project.project_id}/tasks/${task.display_id}`)}
                   onAddInColumn={(status) => setCreateDefaults({ status })}
+                  currentUserId={currentUserId}
+                  currentUserRole={currentUserRole}
                 />
               )}
               {view === "list" && (
@@ -528,10 +537,11 @@ export default function ProjectDetail({
                   onOpen={(task) => router.push(`/v2/projects/${project.project_id}/tasks/${task.display_id}`)}
                   onUpdate={updateTask}
                   currentUserId={currentUserId}
+                  currentUserRole={currentUserRole}
                   profilesById={profilesById}
                   allMembers={allMembers}
                   hoursById={hoursById}
-                  onTimerStop={handleTimerStop}
+                  onHoursLogged={handleHoursLogged}
                   sortKey={sortKey}
                   sortDir={sortDir}
                   onToggleSort={toggleSort}
@@ -653,11 +663,14 @@ export default function ProjectDetail({
       {/* Create task modal */}
       {createDefaults && (
         <CreateTaskModal
-          projectId={project.id}
+          projectId={project.project_id ?? project.id}
           milestones={milestones}
+          tasklists={tasklists}
+          allMembers={allMembers}
           defaults={createDefaults}
           onClose={() => setCreateDefaults(null)}
           onCreated={(t) => { addTask(t); setCreateDefaults(null); }}
+          onTasklistCreated={addTasklist}
         />
       )}
 
@@ -804,32 +817,71 @@ function SortSelect({
 
 // ─── Create Task modal ────────────────────────────────────────────────────────
 
+type MemberOptionWithRole = { id: string; full_name: string | null; avatar_url: string | null; role: string };
+
 function CreateTaskModal({
   projectId,
   milestones,
+  tasklists,
+  allMembers,
   defaults,
   onClose,
   onCreated,
+  onTasklistCreated,
 }: {
   projectId: string;
   milestones: Milestone[];
+  tasklists: Tasklist[];
+  allMembers: MemberOptionWithRole[];
   defaults: TaskDefaults;
   onClose: () => void;
   onCreated: (t: Task) => void;
+  onTasklistCreated: (tl: Tasklist) => void;
 }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState<TaskStatus>(defaults.status ?? "open");
   const [priority, setPriority] = useState<TaskPriority>("normal");
   const [milestoneId, setMilestoneId] = useState<string>(defaults.milestone_id ?? "");
+  const [startDate, setStartDate] = useState<string>("");
   const [dueDate, setDueDate] = useState<string>(defaults.due_date ?? "");
+  const [tasklistId, setTasklistId] = useState<string>(() => tasklists.find((tl) => tl.is_default)?.id ?? "");
+  const [creatingTasklist, setCreatingTasklist] = useState(false);
+  const [newTasklistName, setNewTasklistName] = useState("");
+  const [assigneeId, setAssigneeId] = useState<string>("");
+  const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [attachmentWarning, setAttachmentWarning] = useState<string | null>(null);
+
+  const developers = allMembers.filter((m) => m.role === "developer");
 
   async function submit() {
     if (!title.trim()) { setError("Title is required"); return; }
+    if (!startDate) { setError("Start date is required"); return; }
+    if (!dueDate) { setError("Due date is required"); return; }
     setSaving(true);
     setError(null);
+    setAttachmentWarning(null);
+
+    let finalTasklistId = tasklistId;
+    if (creatingTasklist && newTasklistName.trim()) {
+      const tlRes = await fetch(`/api/v2/projects/${projectId}/tasklists`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newTasklistName.trim() }),
+      });
+      if (!tlRes.ok) {
+        const body = await tlRes.json().catch(() => ({}));
+        setError(body.error || "Failed to create task list");
+        setSaving(false);
+        return;
+      }
+      const newTasklist: Tasklist = await tlRes.json();
+      onTasklistCreated(newTasklist);
+      finalTasklistId = newTasklist.id;
+    }
+
     const res = await fetch(`/api/v2/projects/${projectId}/tasks`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -839,7 +891,10 @@ function CreateTaskModal({
         status,
         priority,
         milestone_id: milestoneId || undefined,
-        due_date: dueDate || undefined,
+        tasklist_id: finalTasklistId || undefined,
+        start_date: startDate,
+        due_date: dueDate,
+        assignees: assigneeId ? [assigneeId] : undefined,
       }),
     });
     if (!res.ok) {
@@ -848,7 +903,21 @@ function CreateTaskModal({
       setSaving(false);
       return;
     }
-    onCreated(await res.json());
+    const task: Task = await res.json();
+
+    if (attachmentFiles.length > 0) {
+      const results = await Promise.allSettled(attachmentFiles.map((file) => {
+        const fd = new FormData();
+        fd.append("file", file);
+        return fetch(`/api/v2/projects/${projectId}/tasks/${task.id}/attachments`, { method: "POST", body: fd });
+      }));
+      const failed = results.filter((r) => r.status === "rejected" || (r.status === "fulfilled" && !r.value.ok)).length;
+      if (failed > 0) {
+        setAttachmentWarning(`Task created — ${failed} of ${attachmentFiles.length} attachment(s) failed to upload.`);
+      }
+    }
+
+    onCreated(task);
   }
 
   const inputClass = "w-full px-3 py-2 rounded-[10px] border text-[13px] outline-none transition-colors border-[#E2E7F2] bg-[#F4F6FB] text-[#3A4565] focus:border-[#007BFF] focus:bg-white focus:ring-[3px] focus:ring-[#007BFF]/[0.14]";
@@ -857,16 +926,16 @@ function CreateTaskModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0B1533]/40 p-4" onClick={onClose}>
       <div
-        className="w-full max-w-md rounded-[14px] bg-white shadow-xl border border-[#E2E7F2] overflow-hidden"
+        className="w-full max-w-lg rounded-[14px] bg-white shadow-xl border border-[#E2E7F2] overflow-hidden max-h-[90vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[#EDF0F7]">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#EDF0F7] shrink-0">
           <h2 className="text-[15px] font-semibold text-[#0B1533]">New Task</h2>
           <button onClick={onClose} className="p-1 rounded-md text-[#5F6A88] hover:text-[#0B1533] hover:bg-[#F4F6FB] cursor-pointer transition-colors">
             <X size={16} />
           </button>
         </div>
-        <div className="p-5 flex flex-col gap-4">
+        <div className="p-5 flex flex-col gap-4 overflow-y-auto">
           <label className="flex flex-col gap-1.5">
             <span className={labelClass}>Title</span>
             <input
@@ -877,15 +946,14 @@ function CreateTaskModal({
               placeholder="What needs to be done?"
             />
           </label>
-          <label className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-1.5">
             <span className={labelClass}>Description (optional)</span>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={2}
-              className={cn(inputClass, "resize-none")}
-            />
-          </label>
+            <TaskDescriptionEditor projectId={projectId} value={description} onChange={setDescription} />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <span className={labelClass}>Attachments (optional)</span>
+            <TaskAttachmentPicker files={attachmentFiles} onFilesChange={setAttachmentFiles} />
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <label className="flex flex-col gap-1.5">
               <span className={labelClass}>Status</span>
@@ -908,7 +976,7 @@ function CreateTaskModal({
               </select>
             </label>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <label className="flex flex-col gap-1.5">
               <span className={labelClass}>Milestone</span>
               <select
@@ -921,6 +989,15 @@ function CreateTaskModal({
               </select>
             </label>
             <label className="flex flex-col gap-1.5">
+              <span className={labelClass}>Start date</span>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className={inputClass}
+              />
+            </label>
+            <label className="flex flex-col gap-1.5">
               <span className={labelClass}>Due date</span>
               <input
                 type="date"
@@ -930,9 +1007,58 @@ function CreateTaskModal({
               />
             </label>
           </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1.5">
+              <span className={labelClass}>Task list</span>
+              {creatingTasklist ? (
+                <div className="flex items-center gap-1.5">
+                  <input
+                    value={newTasklistName}
+                    onChange={(e) => setNewTasklistName(e.target.value)}
+                    autoFocus
+                    placeholder="New task list name"
+                    className={inputClass}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => { setCreatingTasklist(false); setNewTasklistName(""); }}
+                    aria-label="Cancel new task list"
+                    className="p-2 rounded-[10px] text-[#5F6A88] hover:text-[#0B1533] hover:bg-[#F4F6FB] cursor-pointer transition-colors shrink-0"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ) : (
+                <select
+                  value={tasklistId}
+                  onChange={(e) => {
+                    if (e.target.value === "__create__") { setCreatingTasklist(true); return; }
+                    setTasklistId(e.target.value);
+                  }}
+                  className={cn(inputClass, "bg-white cursor-pointer")}
+                >
+                  <option value="">No task list</option>
+                  {tasklists.map((tl) => <option key={tl.id} value={tl.id}>{tl.name}</option>)}
+                  <option value="__create__">+ Create new list…</option>
+                </select>
+              )}
+            </div>
+            <label className="flex flex-col gap-1.5">
+              <span className={labelClass}>Assignee</span>
+              <select
+                value={assigneeId}
+                onChange={(e) => setAssigneeId(e.target.value)}
+                className={cn(inputClass, "bg-white cursor-pointer")}
+              >
+                <option value="">Unassigned</option>
+                {developers.map((m) => <option key={m.id} value={m.id}>{m.full_name ?? "Unknown"}</option>)}
+              </select>
+            </label>
+          </div>
           {error && <p className="text-[12px] text-[#C0392B]">{error}</p>}
+          {attachmentWarning && <p className="text-[12px] text-[#8A5A00]">{attachmentWarning}</p>}
         </div>
-        <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-[#EDF0F7] bg-[#F4F6FB]">
+        <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-[#EDF0F7] bg-[#F4F6FB] shrink-0">
           <button onClick={onClose} className="px-4 py-2 rounded-full text-[13px] text-[#3A4565] bg-white border border-[#E2E7F2] hover:border-[#A8C6F5] cursor-pointer transition-colors">
             Cancel
           </button>

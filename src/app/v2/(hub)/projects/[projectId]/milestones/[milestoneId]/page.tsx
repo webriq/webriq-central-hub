@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { isProjectVisibleToCurrentUser } from "../../../_project-access";
 import MilestoneDetailClient from "./_milestone-detail";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +20,7 @@ export default async function MilestoneDetailPage({
     .single();
 
   if (!project) notFound();
+  if (!(await isProjectVisibleToCurrentUser(project.id))) notFound();
 
   const [{ data: milestone }, { data: linkedTasks }] = await Promise.all([
     supabase.from("milestones").select("*").eq("id", milestoneId).eq("project_id", project.id).single(),

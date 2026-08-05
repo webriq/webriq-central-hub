@@ -1,4 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
+import { adminClient } from "@/lib/supabase/admin";
+import { getDeveloperAccessibleProjectIds } from "./_project-access";
 import ProjectsIndex, { type ProjectListItem, type CustomerOption, type PaginationMeta } from "./_projects-index";
 
 export const dynamic = "force-dynamic";
@@ -43,6 +45,13 @@ export default async function ProjectsPage({
     : null;
   const role = profileRes?.data?.role;
   const canManageTags = role === "admin" || role === "pm" || role === "super_admin";
+  // Task 209 — separate capability from canManageTags even though the role set matches today.
+  const canCreateProject = role === "admin" || role === "pm" || role === "super_admin";
+
+  // Task 208 — developer role only sees projects they're a member of or have an assigned task in.
+  const developerProjectIds = role === "developer" && user
+    ? await getDeveloperAccessibleProjectIds(user.id)
+    : null;
 
   // Two-step lookup: resolve company-name search to customer_ids first (only when searching).
   let searchCustomerIds: string[] | null = null;
@@ -62,6 +71,11 @@ export default async function ProjectsPage({
 
   if (customerParam) {
     projectsQuery = projectsQuery.eq("customer_id", customerParam);
+  }
+  if (developerProjectIds !== null) {
+    // .in() with an empty array is unspecified across PostgREST clients — force a
+    // guaranteed-zero-rows match instead of risking a silent "no filter" fallback.
+    projectsQuery = projectsQuery.in("id", developerProjectIds.length > 0 ? developerProjectIds : ["00000000-0000-0000-0000-000000000000"]);
   }
   if (statusValues !== null) {
     // .in() with an empty array is unspecified across PostgREST clients — force a
@@ -139,7 +153,9 @@ export default async function ProjectsPage({
     }
     const allMemberIds = [...new Set((memberRows ?? []).map((r) => r.user_id))];
     if (allMemberIds.length > 0) {
-      const { data: memberProfiles } = await supabase.from("profiles").select("id,full_name").in("id", allMemberIds);
+      // profiles' own RLS (profiles_read_own) only lets a caller read their own row —
+      // adminClient bypasses that for this read-only display lookup (member avatar names).
+      const { data: memberProfiles } = await adminClient.from("profiles").select("id,full_name").in("id", allMemberIds);
       for (const row of memberProfiles ?? []) fullNameMap.set(row.id, row.full_name);
     }
   }
@@ -181,6 +197,7 @@ export default async function ProjectsPage({
       paginationMeta={paginationMeta}
       initialView={(params.view === "list" ? "list" : "grid") as "grid" | "list"}
       canManageTags={canManageTags}
+      canCreateProject={canCreateProject}
     />
   );
 }

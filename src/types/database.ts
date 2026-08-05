@@ -698,6 +698,73 @@ export interface Database {
           }
         ];
       };
+      active_timers: {
+        Row: {
+          id: string;
+          user_id: string;
+          task_id: string | null;
+          project_id: string | null;
+          status: string | null;
+          accumulated_seconds: number;
+          segment_started_at: string | null;
+          break_type: string | null;
+          break_started_at: string | null;
+          break_duration_minutes: number | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          task_id?: string | null;
+          project_id?: string | null;
+          status?: string | null;
+          accumulated_seconds?: number;
+          segment_started_at?: string | null;
+          break_type?: string | null;
+          break_started_at?: string | null;
+          break_duration_minutes?: number | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          task_id?: string | null;
+          project_id?: string | null;
+          status?: string | null;
+          accumulated_seconds?: number;
+          segment_started_at?: string | null;
+          break_type?: string | null;
+          break_started_at?: string | null;
+          break_duration_minutes?: number | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "active_timers_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: true;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "active_timers_task_id_fkey";
+            columns: ["task_id"];
+            isOneToOne: false;
+            referencedRelation: "tasks";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "active_timers_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
       phase_members: {
         Row: {
           id: string;

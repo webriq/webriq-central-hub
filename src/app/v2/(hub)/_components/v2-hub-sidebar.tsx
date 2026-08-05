@@ -35,12 +35,14 @@ function getNavGroups(role: string | null): NavGroup[] {
     ...(!isDev ? [
       { label: "Customers",   icon: <Building2 size={18} />,       href: V2_ROUTES.CUSTOMERS },
     ] : []),
-    ...(role !== "client" ? [
+    ...(role !== "client" && !isDev ? [
       { label: "Tracker",     icon: <ChartGantt size={18} />,          href: V2_ROUTES.PORTFOLIO_TRACKER },
     ] : []),
     { label: "Projects",      icon: <FolderKanban size={18} />,   href: V2_ROUTES.PROJECTS },
-    { label: "Desk",          icon: <Inbox size={18} />,           href: V2_ROUTES.DASHBOARD_TASKS },
-    { label: "Orchestration", icon: <Cpu size={18} />,             href: V2_ROUTES.ORCHESTRATION },
+    ...(!isDev ? [
+      { label: "Desk",          icon: <Inbox size={18} />,           href: V2_ROUTES.DASHBOARD_TASKS },
+      { label: "Orchestration", icon: <Cpu size={18} />,             href: V2_ROUTES.ORCHESTRATION },
+    ] : []),
   ];
 
   const peopleItems: NavItem[] = [

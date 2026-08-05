@@ -5,6 +5,8 @@ import V2HubSidebar from "./v2-hub-sidebar";
 import V2HubHeader from "./v2-hub-header";
 import OpsChat from "./ops-chat";
 import PushPermissionPrompt from "@/components/hub/push-permission-prompt";
+import { TimerProvider } from "./timer-context";
+import TimerFloatingWidget from "./timer-floating-widget";
 
 interface V2HubShellProps {
   userRole: string | null;
@@ -36,7 +38,7 @@ export default function V2HubShell({ userRole, displayName, children }: V2HubShe
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
-  return (
+  const shell = (
     <div className="flex h-screen overflow-hidden bg-slate-50">
       <PushPermissionPrompt />
       {/* Sidebar */}
@@ -59,5 +61,16 @@ export default function V2HubShell({ userRole, displayName, children }: V2HubShe
         </div>
       </div>
     </div>
+  );
+
+  // Task 209 — timer + break widget is developer-only; TimerProvider only mounts (and only
+  // starts polling active_timers) for that role.
+  if (userRole !== "developer") return shell;
+
+  return (
+    <TimerProvider>
+      {shell}
+      <TimerFloatingWidget />
+    </TimerProvider>
   );
 }

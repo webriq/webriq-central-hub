@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { isProjectVisibleToCurrentUser } from "../../../_project-access";
 import IssueDetailClient from "./_issue-detail";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +20,7 @@ export default async function IssueDetailPage({
     .single();
 
   if (!project) notFound();
+  if (!(await isProjectVisibleToCurrentUser(project.id))) notFound();
 
   const [{ data: issue }, { data: allMembers }] = await Promise.all([
     supabase.from("issues").select("*").eq("display_id", issueId).eq("project_id", project.id).single(),

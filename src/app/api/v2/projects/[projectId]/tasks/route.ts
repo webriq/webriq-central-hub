@@ -45,6 +45,14 @@ export async function POST(
   if (!body.title?.trim()) {
     return NextResponse.json({ error: "title is required" }, { status: 400 });
   }
+  // Task 211 — required at creation time only; editing an existing task (PATCH) still allows
+  // either date to be cleared back to null.
+  if (!body.start_date) {
+    return NextResponse.json({ error: "start_date is required" }, { status: 400 });
+  }
+  if (!body.due_date) {
+    return NextResponse.json({ error: "due_date is required" }, { status: 400 });
+  }
   if (body.status && !VALID_STATUS.includes(body.status)) {
     return NextResponse.json({ error: "invalid status" }, { status: 400 });
   }
@@ -61,7 +69,9 @@ export async function POST(
       status: body.status || "backlog",
       priority: body.priority || "normal",
       milestone_id: body.milestone_id || null,
-      due_date: body.due_date || null,
+      tasklist_id: body.tasklist_id || null,
+      start_date: body.start_date,
+      due_date: body.due_date,
       assignees: Array.isArray(body.assignees) ? body.assignees : null,
       labels: Array.isArray(body.labels) ? body.labels : null,
       position: typeof body.position === "number" ? body.position : Date.now(),

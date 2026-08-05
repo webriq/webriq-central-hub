@@ -1,15 +1,16 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import {
-  ArrowLeft, Trash2, Plus, Square, CheckSquare, Loader2,
-  GitPullRequest, ExternalLink,
-} from "lucide-react";
+import { ArrowLeft, Trash2, GitPullRequest, ExternalLink } from "lucide-react";
 import {
   type Task, type Milestone, type TaskStatus, type TaskPriority,
-  STATUS_LABEL, PRIORITY_STYLE, StatusBadge, PriorityBadge, TagChip, AssigneeChip,
+  STATUS_LABEL, PRIORITY_STYLE, StatusBadge, PriorityBadge, AssigneeChip,
+  decodeHtmlEntities,
 } from "../../../_pm-shared";
+import { TaskDescriptionField } from "./_task-description-field";
+import { TaskAttachmentsCommentsPanel } from "./_task-attachments-comments-panel";
+import { getTaskEditPermission } from "@/lib/tasks/permissions";
 
 const STATUS_OPTS: TaskStatus[] = [
   "open", "in_progress", "ready_for_qa", "testing_completed",
@@ -17,28 +18,28 @@ const STATUS_OPTS: TaskStatus[] = [
 ];
 const PRIORITY_OPTS: TaskPriority[] = ["low", "normal", "high", "critical"];
 
+// Forms-spec input class (DESIGN.md §4) — matches `_project-detail.tsx:915`'s `inputClass`,
+// kept at this page's existing smaller sidebar sizing (px-2.5 py-1.5 / 12px).
+const inputClass =
+  "w-full px-2.5 py-1.5 rounded-[10px] border text-[12px] outline-none transition-colors border-[#E2E7F2] bg-[#F4F6FB] text-[#3A4565] focus:border-[#007BFF] focus:bg-white focus:ring-[3px] focus:ring-[#007BFF]/[0.14]";
+
 // ─── Local layout helpers — outside component per rerender-no-inline-components ─
 
 function Card({
   title,
-  count,
   children,
 }: {
   title: string;
-  count?: string;
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
-      <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100">
-        <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+    <div className="rounded-[14px] border border-[#E2E7F2] bg-white shadow-[0_1px_2px_rgba(7,17,51,0.05)] overflow-hidden">
+      <div className="flex items-center justify-between px-[18px] py-3.5 border-b border-[#EDF0F7]">
+        <span className="font-heading text-[15px] font-semibold text-[#0B1533]">
           {title}
         </span>
-        {count !== undefined ? (
-          <span className="text-[11px] font-mono text-slate-400">{count}</span>
-        ) : null}
       </div>
-      <div className="p-5">{children}</div>
+      <div className="p-[18px]">{children}</div>
     </div>
   );
 }
@@ -46,7 +47,7 @@ function Card({
 function Meta({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <span className="text-[12px] font-medium text-slate-600">{label}</span>
+      <span className="text-[11px] font-semibold text-[#0B1533]">{label}</span>
       {children}
     </div>
   );
@@ -58,15 +59,30 @@ export default function TaskDetailClient({
   task,
   project,
   milestones,
+  currentUserId,
+  currentUserRole,
+  assigneeProfiles,
 }: {
   task: Task;
   project: { id: string; name: string; customer_id: string; project_id: string | null };
   milestones: Milestone[];
+  currentUserId: string;
+  currentUserRole: string | null;
+  assigneeProfiles: { id: string; full_name: string | null }[];
 }) {
   const router = useRouter();
+  const projectId = project.project_id ?? project.id;
+  const assigneeNamesById = new Map(assigneeProfiles.map((p) => [p.id, p.full_name]));
+
+  // Task 209 — creator: full edit. Assignee-only: status limited to in_progress/ready_for_qa.
+  // Neither: fully read-only.
+  const perm = getTaskEditPermission(currentUserRole, currentUserId, task);
+  const statusOptions = perm.allowedStatusValues === "all"
+    ? STATUS_OPTS
+    : Array.from(new Set([task.status as TaskStatus, ...perm.allowedStatusValues]));
 
   // Editable text fields
-  const [title, setTitle] = useState(task.title);
+  const [title, setTitle] = useState(() => decodeHtmlEntities(task.title));
   const [description, setDescription] = useState(task.description ?? "");
 
   // Sidebar fields — controlled for UI consistency
@@ -79,28 +95,7 @@ export default function TaskDetailClient({
     task.estimate_hours != null ? String(task.estimate_hours) : ""
   );
 
-  // Labels
-  const [labels, setLabels] = useState<string[]>(task.labels ?? []);
-  const [newLabel, setNewLabel] = useState("");
-
-  // Subtasks
-  const [subtasks, setSubtasks] = useState<Task[]>([]);
-  const [loadingSubs, setLoadingSubs] = useState(true);
-  const [newSub, setNewSub] = useState("");
-  const [addingSub, setAddingSub] = useState(false);
-
   const ps = PRIORITY_STYLE[priority] ?? PRIORITY_STYLE["normal"];
-
-  // Load subtasks on mount
-  useEffect(() => {
-    const ctrl = new AbortController();
-    fetch(`/api/v2/tasks/${task.id}/subtasks`, { signal: ctrl.signal })
-      .then((r) => (r.ok ? r.json() : []))
-      .then((data: Task[]) => setSubtasks(data))
-      .catch(() => {})
-      .finally(() => setLoadingSubs(false));
-    return () => ctrl.abort();
-  }, [task.id]);
 
   // ─── Save helpers ─────────────────────────────────────────────────────────
 
@@ -120,83 +115,21 @@ export default function TaskDetailClient({
     if (trimmed && trimmed !== task.title) void saveField({ title: trimmed });
   }, [title, task.title, saveField]);
 
-  const saveDescription = useCallback(() => {
-    if (description !== (task.description ?? ""))
-      void saveField({ description: description.trim() || null });
-  }, [description, task.description, saveField]);
-
-  // ─── Subtask CRUD ─────────────────────────────────────────────────────────
-
-  async function addSubtask() {
-    if (!newSub.trim()) return;
-    setAddingSub(true);
-    const res = await fetch(`/api/v2/tasks/${task.id}/subtasks`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: newSub.trim() }),
-    });
-    if (res.ok) {
-      const created: Task = await res.json();
-      setSubtasks((prev) => [...prev, created]);
-      setNewSub("");
-    }
-    setAddingSub(false);
-  }
-
-  async function toggleSubtask(sub: Task) {
-    const nextStatus: TaskStatus = sub.status === "closed" ? "open" : "closed";
-    setSubtasks((prev) =>
-      prev.map((s) => (s.id === sub.id ? { ...s, status: nextStatus } : s))
-    );
-    const res = await fetch(`/api/v2/tasks/${sub.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: nextStatus }),
-    });
-    if (!res.ok) setSubtasks((prev) => prev.map((s) => (s.id === sub.id ? sub : s)));
-  }
-
-  async function deleteSubtask(id: string) {
-    const snapshot = subtasks;
-    setSubtasks((prev) => prev.filter((s) => s.id !== id));
-    const res = await fetch(`/api/v2/tasks/${id}`, { method: "DELETE" });
-    if (!res.ok) setSubtasks(snapshot);
-  }
-
-  // ─── Label CRUD ───────────────────────────────────────────────────────────
-
-  async function addLabel() {
-    const trimmed = newLabel.trim();
-    if (!trimmed || labels.includes(trimmed)) return;
-    const next = [...labels, trimmed];
-    setLabels(next);
-    setNewLabel("");
-    await saveField({ labels: next });
-  }
-
-  async function removeLabel(tag: string) {
-    const next = labels.filter((l) => l !== tag);
-    setLabels(next);
-    await saveField({ labels: next });
-  }
-
   // ─── Delete task ──────────────────────────────────────────────────────────
 
   async function handleDelete() {
-    if (!confirm("Delete this task and all its subtasks?")) return;
+    if (!confirm("Delete this task? This cannot be undone.")) return;
     await fetch(`/api/v2/tasks/${task.id}`, { method: "DELETE" });
     if (project.project_id) router.push(`/v2/projects/${project.project_id}/tasks`);
   }
 
-  const doneCount = subtasks.filter((s) => s.status === "closed").length;
-
   return (
     <div className="flex flex-col h-full min-h-0">
       {/* Header */}
-      <div className="px-8 pt-6 pb-5 bg-white border-b border-slate-100 shrink-0">
+      <div className="px-8 pt-6 pb-5 bg-white border-b border-[#E2E7F2] shrink-0">
         <button
           onClick={() => project.project_id && router.push(`/v2/projects/${project.project_id}/tasks`)}
-          className="inline-flex items-center gap-1.5 text-[12px] text-slate-500 hover:text-slate-700 mb-3 cursor-pointer"
+          className="inline-flex items-center gap-1.5 text-[12px] text-[#5F6A88] hover:text-[#0B1533] mb-3 cursor-pointer transition-colors"
         >
           <ArrowLeft size={14} /> {project.name}
         </button>
@@ -204,7 +137,7 @@ export default function TaskDetailClient({
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-2 flex-wrap">
-              <span className="text-[11px] font-mono text-slate-400 bg-slate-100 px-2 py-0.5 rounded">
+              <span className="text-[11px] font-mono text-[#5F6A88] bg-[#EDF0F7] px-2 py-0.5 rounded-[5px]">
                 TASK · {task.display_id}
               </span>
               <StatusBadge status={status} />
@@ -214,139 +147,29 @@ export default function TaskDetailClient({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               onBlur={saveTitle}
+              readOnly={!perm.canEditDetails}
               rows={2}
-              className="text-[22px] font-bold text-slate-900 tracking-[-0.02em] outline-none resize-none leading-snug w-full border-0 focus:bg-slate-50 rounded-lg px-2 -mx-2"
+              className="font-heading text-[22px] font-bold text-[#0B1533] tracking-[-0.02em] outline-none resize-none leading-snug w-full border-0 focus:bg-[#F4F6FB] rounded-lg px-2 -mx-2 transition-colors read-only:focus:bg-transparent"
             />
           </div>
-          <button
-            onClick={() => void handleDelete()}
-            className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 cursor-pointer shrink-0 mt-1"
-            title="Delete task"
-          >
-            <Trash2 size={18} />
-          </button>
+          {perm.canEditDetails && (
+            <button
+              onClick={() => void handleDelete()}
+              className="p-2 rounded-full text-[#5F6A88] hover:text-[#C0392B] hover:bg-[#FDE8E6] cursor-pointer shrink-0 mt-1 transition-colors"
+              aria-label="Delete task"
+              title="Delete task"
+            >
+              <Trash2 size={18} />
+            </button>
+          )}
         </div>
       </div>
 
       {/* Content */}
-      <div className="bg-slate-50 flex-1 overflow-y-auto p-8">
+      <div className="bg-[#F4F6FB] flex-1 overflow-y-auto p-8">
         <div className="flex gap-6 max-w-5xl">
 
-          {/* Left — main content */}
-          <div className="flex-1 flex flex-col gap-5 min-w-0">
-
-            {/* Description */}
-            <Card title="Description">
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                onBlur={saveDescription}
-                rows={5}
-                placeholder="Add a description…"
-                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-[13px] text-slate-700 outline-none focus:border-slate-400 resize-none"
-              />
-            </Card>
-
-            {/* Labels */}
-            <Card title="Labels">
-              <div className="flex flex-col gap-3">
-                {labels.length > 0 ? (
-                  <div className="flex flex-wrap gap-1.5">
-                    {labels.map((tag) => (
-                      <TagChip
-                        key={tag}
-                        tag={tag}
-                        canRemove
-                        onRemove={() => void removeLabel(tag)}
-                      />
-                    ))}
-                  </div>
-                ) : null}
-                <div className="flex items-center gap-2">
-                  <input
-                    value={newLabel}
-                    onChange={(e) => setNewLabel(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Enter") void addLabel(); }}
-                    placeholder="Add a label…"
-                    className="flex-1 px-3 py-1.5 rounded-lg border border-slate-200 text-[13px] text-slate-700 outline-none focus:border-slate-400"
-                  />
-                  <button
-                    onClick={() => void addLabel()}
-                    disabled={!newLabel.trim()}
-                    className="p-2 rounded-lg bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-50 cursor-pointer shrink-0"
-                  >
-                    <Plus size={14} />
-                  </button>
-                </div>
-              </div>
-            </Card>
-
-            {/* Subtasks */}
-            <Card title="Subtasks" count={`${doneCount}/${subtasks.length}`}>
-              <div className="flex flex-col gap-2">
-                {loadingSubs ? (
-                  <div className="h-8 animate-pulse bg-slate-100 rounded-lg" />
-                ) : (
-                  <div className="flex flex-col gap-1">
-                    {subtasks.map((s) => (
-                      <div
-                        key={s.id}
-                        className="group flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-slate-50"
-                      >
-                        <button
-                          onClick={() => void toggleSubtask(s)}
-                          className="cursor-pointer shrink-0"
-                        >
-                          {s.status === "closed" ? (
-                            <CheckSquare size={16} className="text-green-600" />
-                          ) : (
-                            <Square size={16} className="text-slate-300" />
-                          )}
-                        </button>
-                        <span
-                          className={`text-[13px] flex-1 ${
-                            s.status === "closed"
-                              ? "line-through text-slate-400"
-                              : "text-slate-700"
-                          }`}
-                        >
-                          {s.title}
-                        </span>
-                        <button
-                          onClick={() => void deleteSubtask(s.id)}
-                          className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-slate-300 hover:text-red-500 cursor-pointer transition-opacity"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <div className="flex items-center gap-2 mt-1">
-                  <input
-                    value={newSub}
-                    onChange={(e) => setNewSub(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Enter") void addSubtask(); }}
-                    placeholder="Add a subtask…"
-                    className="flex-1 px-3 py-1.5 rounded-lg border border-slate-200 text-[13px] text-slate-700 outline-none focus:border-slate-400"
-                  />
-                  <button
-                    onClick={() => void addSubtask()}
-                    disabled={!newSub.trim() || addingSub}
-                    className="p-2 rounded-lg bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-50 cursor-pointer shrink-0"
-                  >
-                    {addingSub ? (
-                      <Loader2 size={14} className="animate-spin" />
-                    ) : (
-                      <Plus size={14} />
-                    )}
-                  </button>
-                </div>
-              </div>
-            </Card>
-          </div>
-
-          {/* Right — sidebar */}
+          {/* Left — sidebar */}
           <div className="w-72 shrink-0">
             <Card title="Details">
               <div className="flex flex-col gap-4">
@@ -359,9 +182,10 @@ export default function TaskDetailClient({
                       setStatus(next);
                       void saveField({ status: next });
                     }}
-                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-[12px] text-slate-700 outline-none focus:border-slate-400 bg-white cursor-pointer"
+                    disabled={!perm.canChangeStatus}
+                    className={`${inputClass} bg-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-60`}
                   >
-                    {STATUS_OPTS.map((s) => (
+                    {statusOptions.map((s) => (
                       <option key={s} value={s}>{STATUS_LABEL[s]}</option>
                     ))}
                   </select>
@@ -375,11 +199,12 @@ export default function TaskDetailClient({
                       setPriority(next);
                       void saveField({ priority: next });
                     }}
-                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-[12px] outline-none focus:border-slate-400 bg-white cursor-pointer capitalize"
+                    disabled={!perm.canEditDetails}
+                    className={`${inputClass} bg-white cursor-pointer capitalize disabled:cursor-not-allowed disabled:opacity-60`}
                     style={{ color: ps.text }}
                   >
                     {PRIORITY_OPTS.map((p) => (
-                      <option key={p} value={p} className="text-slate-700">
+                      <option key={p} value={p} className="text-[#3A4565]">
                         {p}
                       </option>
                     ))}
@@ -394,7 +219,8 @@ export default function TaskDetailClient({
                       setMilestoneId(next);
                       void saveField({ milestone_id: next || null });
                     }}
-                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-[12px] text-slate-700 outline-none focus:border-slate-400 bg-white cursor-pointer"
+                    disabled={!perm.canEditDetails}
+                    className={`${inputClass} bg-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-60`}
                   >
                     <option value="">None</option>
                     {milestones.map((m) => (
@@ -412,7 +238,8 @@ export default function TaskDetailClient({
                       setDueDate(next);
                       void saveField({ due_date: next || null });
                     }}
-                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-[12px] text-slate-700 outline-none focus:border-slate-400"
+                    disabled={!perm.canEditDetails}
+                    className={`${inputClass} disabled:cursor-not-allowed disabled:opacity-60`}
                   />
                 </Meta>
 
@@ -425,7 +252,8 @@ export default function TaskDetailClient({
                       setStartDate(next);
                       void saveField({ start_date: next || null });
                     }}
-                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-[12px] text-slate-700 outline-none focus:border-slate-400"
+                    disabled={!perm.canEditDetails}
+                    className={`${inputClass} disabled:cursor-not-allowed disabled:opacity-60`}
                   />
                 </Meta>
 
@@ -442,8 +270,9 @@ export default function TaskDetailClient({
                         estimate_hours: raw ? parseFloat(raw) : null,
                       });
                     }}
+                    disabled={!perm.canEditDetails}
                     placeholder="0"
-                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-[12px] text-slate-700 outline-none focus:border-slate-400"
+                    className={`${inputClass} disabled:cursor-not-allowed disabled:opacity-60`}
                   />
                 </Meta>
 
@@ -451,7 +280,7 @@ export default function TaskDetailClient({
                   <Meta label="Assignees">
                     <div className="flex gap-1 flex-wrap">
                       {task.assignees.map((id: string, i: number) => (
-                        <AssigneeChip key={id} id={id} idx={i} />
+                        <AssigneeChip key={id} id={id} idx={i} name={assigneeNamesById.get(id) ?? undefined} />
                       ))}
                     </div>
                   </Meta>
@@ -465,7 +294,7 @@ export default function TaskDetailClient({
                           href={task.github_pr_url}
                           target="_blank"
                           rel="noreferrer"
-                          className="inline-flex items-center gap-1.5 text-[12px] text-violet-600 hover:underline"
+                          className="inline-flex items-center gap-1.5 text-[12px] text-[#0063D6] hover:underline"
                         >
                           <GitPullRequest size={13} /> View Pull Request
                         </a>
@@ -475,7 +304,7 @@ export default function TaskDetailClient({
                           href={task.preview_url}
                           target="_blank"
                           rel="noreferrer"
-                          className="inline-flex items-center gap-1.5 text-[12px] text-blue-600 hover:underline"
+                          className="inline-flex items-center gap-1.5 text-[12px] text-[#0063D6] hover:underline"
                         >
                           <ExternalLink size={13} /> Preview
                         </a>
@@ -486,6 +315,26 @@ export default function TaskDetailClient({
 
               </div>
             </Card>
+          </div>
+
+          {/* Right — main content */}
+          <div className="flex-1 flex flex-col gap-5 min-w-0">
+
+            {/* Description */}
+            <Card title="Description">
+              <TaskDescriptionField
+                projectId={projectId}
+                value={description}
+                readOnly={!perm.canEditDetails}
+                onSave={(html) => {
+                  setDescription(html);
+                  void saveField({ description: html || null });
+                }}
+              />
+            </Card>
+
+            {/* Attachments / Comments */}
+            <TaskAttachmentsCommentsPanel projectId={projectId} taskId={task.id} />
           </div>
 
         </div>

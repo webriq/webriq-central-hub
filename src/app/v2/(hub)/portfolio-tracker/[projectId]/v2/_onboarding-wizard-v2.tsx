@@ -2,12 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { motion } from "framer-motion";
+import { ArrowLeft, Sparkles, CheckCircle2, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getCurrentProgrammeDay } from "@/config/customer-phases";
+import { getCurrentProgrammeDay, getPhaseByNumber } from "@/config/customer-phases";
 import { V2_ROUTES } from "@/config/constants";
 import { AssetRow, AssetFolder, DeliverableRow, InternalDeliverableRow, StaffPerson, WizardV2Project, WizardTabKey } from "./_wizard-v2-types";
-import { textPrimary, textMuted, PillTabs } from "./_shared-ui";
+import { textPrimary, textMuted, cardCls, PillTabs } from "./_shared-ui";
 import { BusinessInfoTab } from "./_business-info-tab";
 import { FilesTab } from "./_files-tab";
 import { AccessTab } from "./_access-tab";
@@ -15,6 +16,9 @@ import { ChecklistTab } from "./_checklist-tab";
 
 const WIZARD_ROLES = ["admin", "super_admin", "marketing", "pm"];
 const WRITE_ROLES = ["admin", "super_admin", "marketing"];
+// Task 204 — same Phase 1 deliverable config the Checklist tab renders (_checklist-tab.tsx:9),
+// used here to gate the "Proceed to Phase 2" button on every deliverable being done.
+const DELIVERABLES = getPhaseByNumber(1).deliverables;
 
 export default function OnboardingWizardV2({ project, role }: { project: WizardV2Project; role: string | null }) {
   const router = useRouter();
@@ -30,6 +34,10 @@ export default function OnboardingWizardV2({ project, role }: { project: WizardV
   const [staffDirectory, setStaffDirectory] = useState<StaffPerson[]>([]);
   const [openFolderId, setOpenFolderId] = useState<string | null>(null);
   const [togglingKey, setTogglingKey] = useState<string | null>(null);
+  const [completingPhase, setCompletingPhase] = useState(false);
+  const [completePhaseError, setCompletePhaseError] = useState<string | null>(null);
+  const [phaseTransition, setPhaseTransition] = useState(false);
+  const [phaseDone, setPhaseDone] = useState(false);
   const notesFolderRequested = useRef(false);
 
   useEffect(() => {
@@ -87,6 +95,11 @@ export default function OnboardingWizardV2({ project, role }: { project: WizardV
   const canEditFiles = (isWriteRole || isPM) && isPhaseActive;
   const canEditBusinessInfo = isWriteRole && isPhaseActive;
   const canEditChecklist = isWriteRole && isPhaseActive;
+  // Task 204 — mirrors the Checklist tab's own status source: a deliverable's status is
+  // auto-derived server-side from its internal checklist items (internal-deliverables/
+  // [deliverableKey]/route.ts), so "every deliverable done" is exactly "checklist all checked".
+  const allDeliverablesDone = deliverables.length > 0
+    && DELIVERABLES.every((cfg) => deliverables.find((d) => d.deliverable_key === cfg.key)?.status === "done");
 
   const openFolderByName = useCallback((name: string) => {
     const folder = folders.find((f) => f.name === name && f.parent_folder_id === null);
@@ -211,6 +224,80 @@ export default function OnboardingWizardV2({ project, role }: { project: WizardV
     }
   };
 
+  // Task 204 — same request the shipping Onboarding Wizard makes on "Complete Phase 1 & notify
+  // PM" (../_onboarding-wizard.tsx:2088-2106); notifyProjectMembers() inside this route already
+  // notifies every project_members row, including a PM added as a collaborator, so no separate
+  // notification call is needed here.
+  const handleCompletePhase = async () => {
+    setCompletingPhase(true);
+    setCompletePhaseError(null);
+    setPhaseTransition(true);
+    try {
+      const res = await fetch(`/api/projects/${project.id}/programme/complete-phase`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phase_number: 1 }),
+      });
+      if (!res.ok) throw new Error();
+      setPhaseDone(true);
+    } catch {
+      setCompletePhaseError("Failed to complete Phase 1 — please try again.");
+      setPhaseTransition(false);
+    } finally {
+      setCompletingPhase(false);
+    }
+  };
+
+  if (phaseTransition && !phaseDone) {
+    return (
+      <div className={cn(cardCls, "max-w-lg mx-auto p-8 mt-8")}>
+        <div className="text-center mb-6">
+          <motion.div
+            initial={{ scale: 0.6, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.35 }}
+            className="w-14 h-14 rounded-full bg-[#E5F1FF] flex items-center justify-center mx-auto mb-4"
+          >
+            <Sparkles size={24} className="text-[#007BFF]" />
+          </motion.div>
+          <div className={cn("text-lg font-bold mb-1 font-heading", textPrimary)}>Wrapping up Phase 1…</div>
+          <p className={cn("text-[13px]", textMuted)}>Preparing the project view and handing over to the PM.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (phaseDone) {
+    const doneDeliverables = deliverables.filter((d) => d.status === "done").length;
+    const doneInternal = internalDeliverables.filter((d) => d.status === "done").length;
+    return (
+      <div className={cn(cardCls, "max-w-lg mx-auto p-8 text-center mt-8")}>
+        <div className="w-16 h-16 rounded-full bg-[#177E48] flex items-center justify-center mx-auto mb-5">
+          <Check size={30} className="text-white" strokeWidth={2.5} />
+        </div>
+        <div className={cn("text-lg font-bold mb-1.5 font-heading", textPrimary)}>Phase 1 complete</div>
+        <p className={cn("text-[13px] mb-5", textMuted)}>{project.company_name} has been handed over to the PM — the project is now visible in Customers/Projects.</p>
+        <div className="flex flex-col gap-2 mb-5 text-left">
+          {[
+            `${doneDeliverables} of ${deliverables.length} deliverables marked done`,
+            `${doneInternal} of ${internalDeliverables.length} internal deliverables marked done`,
+            `PM notified — Phase 2 begins`,
+          ].map((label, i) => (
+            <div key={i} className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg border text-[12px] font-medium border-[#177E48]/25 bg-[#E3F5EA] text-[#0B1533]">
+              <CheckCircle2 size={14} className="text-[#177E48] shrink-0" /> {label}
+            </div>
+          ))}
+        </div>
+        <button
+          onClick={() => router.push(project.project_id ? `${V2_ROUTES.PORTFOLIO_TRACKER}/${project.project_id}` : V2_ROUTES.PORTFOLIO_TRACKER)}
+          className="w-full text-[13px] font-semibold text-white bg-[#007BFF] rounded-lg py-2.5 hover:opacity-90 transition-opacity border-none cursor-pointer"
+        >
+          Back to Onboarding Timeline
+        </button>
+      </div>
+    );
+  }
+
   if (role === "developer") {
     return (
       <div className="max-w-3xl mx-auto px-5 py-16 text-center">
@@ -245,6 +332,19 @@ export default function OnboardingWizardV2({ project, role }: { project: WizardV
             Sandbox preview (task 202) — file-management-first redesign of Phase 1. No step order required.
           </p>
         </div>
+        {allDeliverablesDone && isWriteRole && isPhaseActive && (
+          <div className="flex flex-col items-end gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={handleCompletePhase}
+              disabled={completingPhase}
+              className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#471F02] rounded-full px-4 py-2 border-none cursor-pointer disabled:opacity-45 bg-[#FB914E] hover:bg-[#E2762F] hover:text-white transition-colors focus-visible:outline-2 focus-visible:outline-[#007BFF] focus-visible:outline-offset-2"
+            >
+              {completingPhase ? "Completing…" : <><Check size={14} strokeWidth={2.5} /> Proceed to Phase 2</>}
+            </button>
+            {completePhaseError && <p className="text-[12px] text-[#C0392B]">{completePhaseError}</p>}
+          </div>
+        )}
       </div>
 
       <div className="mt-5 mb-4">

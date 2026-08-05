@@ -368,12 +368,14 @@ export default function ProjectsIndex({
   paginationMeta,
   initialView = "grid",
   canManageTags = false,
+  canCreateProject = false,
 }: {
   projects: ProjectListItem[];
   customers: CustomerOption[];
   paginationMeta: PaginationMeta;
   initialView?: "grid" | "list";
   canManageTags?: boolean;
+  canCreateProject?: boolean;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -463,12 +465,14 @@ export default function ProjectsIndex({
                 {activeCustomer ? ` · ${activeCustomer.company_name}` : ""}
               </p>
             </div>
-            <button
-              onClick={() => setShowCreate(true)}
-              className="inline-flex items-center gap-2 px-[15px] py-2 rounded-full text-[12px] font-semibold transition-colors cursor-pointer bg-[#FB914E] text-[#471F02] hover:bg-[#E2762F] hover:text-white shrink-0"
-            >
-              <Plus size={14} /> New Project
-            </button>
+            {canCreateProject && (
+              <button
+                onClick={() => setShowCreate(true)}
+                className="inline-flex items-center gap-2 px-[15px] py-2 rounded-full text-[12px] font-semibold transition-colors cursor-pointer bg-[#FB914E] text-[#471F02] hover:bg-[#E2762F] hover:text-white shrink-0"
+              >
+                <Plus size={14} /> New Project
+              </button>
+            )}
           </div>
 
           {/* Toolbar row: search + filters + view toggle + pagination (right) */}

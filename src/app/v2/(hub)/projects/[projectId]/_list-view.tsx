@@ -1,13 +1,17 @@
 "use client";
 
 import { Fragment, useState, useMemo, useEffect, useRef } from "react";
-import { ChevronDown, ChevronRight, Users, X, Play, Pause, Clock, SearchX, Trash2, ClipboardList, Plus } from "lucide-react";
+import { motion } from "framer-motion";
+import { ChevronDown, ChevronRight, Users, X, Clock, SearchX, Trash2, ClipboardList, Plus } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import {
   type Task, type Tasklist, type TaskStatus,
   STATUS_LABEL, STATUS_STYLE, PRIORITY_STYLE,
   formatDueDate, normalizeStatus,
 } from "../_pm-shared";
+import { getTaskEditPermission } from "@/lib/tasks/permissions";
+import { TaskTimerButton } from "./_task-timer-button";
+import { formatHoursAsHHMM, formatHoursInWords } from "@/lib/timer/format";
 
 export type SortKey = "title" | "status" | "priority" | "due_date";
 export type SortDir = "asc" | "desc";
@@ -49,13 +53,21 @@ function nameInitials(name: string | null | undefined, fallbackId: string): stri
 
 function ResolvedAssigneeChip({ id, idx, name }: { id: string; idx: number; name?: string }) {
   return (
-    <div
-      className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-semibold text-white border-2 border-white shrink-0"
-      style={{ background: AVATAR_COLORS[idx % AVATAR_COLORS.length] }}
-      title={name ?? id}
-    >
-      {nameInitials(name, id)}
-    </div>
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <motion.div
+            className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-semibold text-white border-2 border-white shrink-0 cursor-default"
+            style={{ background: AVATAR_COLORS[idx % AVATAR_COLORS.length] }}
+            whileHover={{ y: -4, zIndex: 10 }}
+            transition={{ type: "spring", stiffness: 500, damping: 20 }}
+          >
+            {nameInitials(name, id)}
+          </motion.div>
+        }
+      />
+      <TooltipContent side="top">{name ?? "Unnamed"}</TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -67,11 +79,13 @@ function AssigneePicker({
   allMembers,
   profilesById,
   onUpdate,
+  readOnly = false,
 }: {
   task: Task;
   allMembers: MemberProfile[];
   profilesById: Record<string, { full_name: string; avatar_url: string | null }>;
   onUpdate: (id: string, patch: Partial<Task>) => Promise<boolean>;
+  readOnly?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [panelPos, setPanelPos] = useState({ top: 0, left: 0 });
@@ -91,6 +105,23 @@ function AssigneePicker({
       ? currentAssignees.filter((a) => a !== memberId)
       : [...currentAssignees, memberId];
     void onUpdate(task.id, { assignees: next });
+  }
+
+  // Task 209 — a developer who's only assigned (not the creator) can't reassign the task.
+  if (readOnly) {
+    return (
+      <div className="flex items-center">
+        {currentAssignees.slice(0, 3).map((a, i) => (
+          <div key={a} style={{ marginLeft: i > 0 ? -6 : 0 }} className="shrink-0">
+            <ResolvedAssigneeChip id={a} idx={i} name={profilesById[a]?.full_name} />
+          </div>
+        ))}
+        {currentAssignees.length > 3 && (
+          <span className="text-[10px] text-[#5F6A88] ml-1.5 shrink-0">+{currentAssignees.length - 3}</span>
+        )}
+        {currentAssignees.length === 0 && <span className="text-[#C7CEDD]"><Users size={14} /></span>}
+      </div>
+    );
   }
 
   return (
@@ -158,56 +189,6 @@ function AssigneePicker({
   );
 }
 
-// ─── TimerButton ──────────────────────────────────────────────────────────────
-
-function TimerButton({ taskId, onStop }: { taskId: string; onStop: (taskId: string, hours: number) => void }) {
-  const [startedAt, setStartedAt] = useState<number | null>(null);
-  const [elapsed, setElapsed] = useState(0);
-
-  useEffect(() => {
-    if (startedAt === null) return;
-    const id = setInterval(() => setElapsed(Math.floor((Date.now() - startedAt) / 1000)), 1000);
-    return () => clearInterval(id);
-  }, [startedAt]);
-
-  function handleStart() {
-    setElapsed(0);
-    setStartedAt(Date.now());
-  }
-
-  function handleStop() {
-    if (startedAt === null) return;
-    const hours = (Date.now() - startedAt) / 3600000;
-    setStartedAt(null);
-    onStop(taskId, hours);
-  }
-
-  if (startedAt !== null) {
-    const mm = Math.floor(elapsed / 60).toString().padStart(2, "0");
-    const ss = (elapsed % 60).toString().padStart(2, "0");
-    return (
-      <button
-        onClick={handleStop}
-        className="flex items-center gap-1 text-[#007BFF] hover:text-[#0063D6] transition-colors cursor-pointer"
-        title="Stop timer"
-      >
-        <Pause size={11} />
-        <span className="text-[10px] font-mono font-semibold tabular-nums">{mm}:{ss}</span>
-      </button>
-    );
-  }
-
-  return (
-    <button
-      onClick={handleStart}
-      className="flex items-center justify-center text-[#C7CEDD] hover:text-[#007BFF] transition-colors cursor-pointer"
-      title="Start timer"
-    >
-      <Play size={13} />
-    </button>
-  );
-}
-
 // ─── ListView ─────────────────────────────────────────────────────────────────
 
 export default function ListView({
@@ -216,10 +197,11 @@ export default function ListView({
   onOpen,
   onUpdate,
   currentUserId,
+  currentUserRole,
   profilesById,
   allMembers,
   hoursById,
-  onTimerStop,
+  onHoursLogged,
   sortKey,
   sortDir,
   onToggleSort,
@@ -234,10 +216,11 @@ export default function ListView({
   onOpen: (task: Task) => void;
   onUpdate: (id: string, patch: Partial<Task>) => Promise<boolean>;
   currentUserId: string;
+  currentUserRole: string | null;
   profilesById: Record<string, { full_name: string; avatar_url: string | null }>;
   allMembers: MemberProfile[];
   hoursById: Record<string, number>;
-  onTimerStop: (taskId: string, hours: number) => void;
+  onHoursLogged: (taskId: string, hours: number) => void;
   sortKey: SortKey;
   sortDir: SortDir;
   onToggleSort: (key: SortKey) => void;
@@ -416,10 +399,11 @@ export default function ListView({
             onOpen={() => onOpen(t)}
             onUpdate={onUpdate}
             currentUserId={currentUserId}
+            currentUserRole={currentUserRole}
             profilesById={profilesById}
             allMembers={allMembers}
             hoursById={hoursById}
-            onTimerStop={onTimerStop}
+            onHoursLogged={onHoursLogged}
             gridClass={GRID}
           />
           {isExpanded && children.length > 0 && renderRows(children, depth + 1)}
@@ -556,7 +540,7 @@ function SortHeader({
 
 function Row({
   task, selected, onToggle, onOpen, onUpdate,
-  currentUserId, profilesById, allMembers, hoursById, onTimerStop, gridClass,
+  currentUserId, currentUserRole, profilesById, allMembers, hoursById, onHoursLogged, gridClass,
   depth, childrenCount, isExpanded, onToggleExpand,
 }: {
   task: Task;
@@ -565,10 +549,11 @@ function Row({
   onOpen: () => void;
   onUpdate: (id: string, patch: Partial<Task>) => Promise<boolean>;
   currentUserId: string;
+  currentUserRole: string | null;
   profilesById: Record<string, { full_name: string; avatar_url: string | null }>;
   allMembers: MemberProfile[];
   hoursById: Record<string, number>;
-  onTimerStop: (taskId: string, hours: number) => void;
+  onHoursLogged: (taskId: string, hours: number) => void;
   gridClass: string;
   depth: number;
   childrenCount: number;
@@ -582,6 +567,13 @@ function Row({
   const dueColor = getDueColor(task.due_date);
   const totalHours = hoursById[task.id] ?? 0;
   const isAssignedToMe = task.assignees?.includes(currentUserId) ?? false;
+
+  // Task 209 — creator: full edit. Assignee-only: status limited to in_progress/ready_for_qa.
+  // Neither: fully read-only.
+  const perm = getTaskEditPermission(currentUserRole, currentUserId, task);
+  const statusOptions = perm.allowedStatusValues === "all"
+    ? STATUS_OPTS
+    : Array.from(new Set([norm as TaskStatus, ...perm.allowedStatusValues]));
 
   return (
     <div className={`grid ${gridClass} items-center gap-3 pl-4 pr-3 py-2.5 border-b border-[#EDF0F7] last:border-0 transition-colors ${
@@ -624,10 +616,11 @@ function Row({
       <select
         value={norm}
         onChange={(e) => void onUpdate(task.id, { status: e.target.value as TaskStatus })}
-        className="text-[11px] font-semibold rounded-full border px-2.5 py-0.5 outline-none cursor-pointer appearance-none w-full truncate"
+        disabled={!perm.canChangeStatus}
+        className="text-[11px] font-semibold rounded-full border px-2.5 py-0.5 outline-none cursor-pointer appearance-none w-full truncate disabled:cursor-not-allowed disabled:opacity-60"
         style={{ color: ss.text, background: ss.bg, borderColor: ss.border }}
       >
-        {STATUS_OPTS.map((s) => (
+        {statusOptions.map((s) => (
           <option key={s} value={s} className="bg-white text-[#3A4565]">{STATUS_LABEL[s]}</option>
         ))}
       </select>
@@ -638,6 +631,7 @@ function Row({
         allMembers={allMembers}
         profilesById={profilesById}
         onUpdate={onUpdate}
+        readOnly={!perm.canEditDetails}
       />
 
       {/* Due date */}
@@ -650,14 +644,23 @@ function Row({
       </span>
 
       {/* Hours logged */}
-      <span className="text-[12px] font-medium text-[#5F6A88] tabular-nums">
-        {totalHours > 0 ? `${totalHours % 1 === 0 ? totalHours : totalHours.toFixed(1)}h` : "—"}
-      </span>
+      {totalHours > 0 ? (
+        <Tooltip>
+          <TooltipTrigger render={
+            <span className="text-[12px] font-medium text-[#5F6A88] tabular-nums cursor-default">
+              {formatHoursAsHHMM(totalHours)}
+            </span>
+          } />
+          <TooltipContent side="top">{formatHoursInWords(totalHours)}</TooltipContent>
+        </Tooltip>
+      ) : (
+        <span className="text-[12px] font-medium text-[#5F6A88] tabular-nums">—</span>
+      )}
 
       {/* Timer */}
       <div className="flex items-center justify-center">
         {isAssignedToMe && (
-          <TimerButton taskId={task.id} onStop={onTimerStop} />
+          <TaskTimerButton taskId={task.id} projectId={task.project_id} onHoursLogged={onHoursLogged} />
         )}
       </div>
     </div>

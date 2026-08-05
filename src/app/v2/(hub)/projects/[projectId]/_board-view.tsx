@@ -14,17 +14,22 @@ import { Plus, Calendar, GitPullRequest } from "lucide-react";
 import {
   type Task, type TaskStatus, BOARD_COLUMNS, PRIORITY_STYLE, midpoint, formatDueDate,
 } from "../_pm-shared";
+import { getTaskEditPermission } from "@/lib/tasks/permissions";
 
 export default function BoardView({
   tasks,
   onMove,
   onOpen,
   onAddInColumn,
+  currentUserId,
+  currentUserRole,
 }: {
   tasks: Task[];
   onMove: (id: string, status: TaskStatus, position: number) => Promise<void>;
   onOpen: (task: Task) => void;
   onAddInColumn: (status: TaskStatus) => void;
+  currentUserId: string;
+  currentUserRole: string | null;
 }) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
@@ -58,6 +63,21 @@ export default function BoardView({
     const targetStatus = columnOf(over.id as string);
     if (!targetStatus) return;
 
+    const current = tasks.find((t) => t.id === activeTaskId);
+    if (!current) return;
+
+    // Task 209 — a developer restricted to specific status values can't drop into any other
+    // column (moving within the same column is a position-only change, always allowed).
+    const perm = getTaskEditPermission(currentUserRole, currentUserId, current);
+    if (!perm.canChangeStatus) return;
+    if (
+      perm.allowedStatusValues !== "all" &&
+      targetStatus !== current.status &&
+      !perm.allowedStatusValues.includes(targetStatus)
+    ) {
+      return;
+    }
+
     // Target column list excluding the dragged task.
     const list = (byColumn.get(targetStatus) ?? []).filter((t) => t.id !== activeTaskId);
 
@@ -73,8 +93,7 @@ export default function BoardView({
     const next = list[index]?.position;
     const newPosition = midpoint(prev, next);
 
-    const current = tasks.find((t) => t.id === activeTaskId);
-    if (current && current.status === targetStatus && current.position === newPosition) return;
+    if (current.status === targetStatus && current.position === newPosition) return;
 
     await onMove(activeTaskId, targetStatus, newPosition);
   }
@@ -103,7 +122,12 @@ export default function BoardView({
                 <SortableContext items={items.map((t) => t.id)} strategy={verticalListSortingStrategy}>
                   <div className="flex flex-col gap-2.5 px-0.5 min-h-[40px]">
                     {items.map((t) => (
-                      <SortableCard key={t.id} task={t} onOpen={() => onOpen(t)} />
+                      <SortableCard
+                        key={t.id}
+                        task={t}
+                        onOpen={() => onOpen(t)}
+                        canDrag={getTaskEditPermission(currentUserRole, currentUserId, t).canChangeStatus}
+                      />
                     ))}
                   </div>
                 </SortableContext>
@@ -153,15 +177,15 @@ function Column({
   );
 }
 
-function SortableCard({ task, onOpen }: { task: Task; onOpen: () => void }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id });
+function SortableCard({ task, onOpen, canDrag }: { task: Task; onOpen: () => void; canDrag: boolean }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id, disabled: !canDrag });
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.4 : 1,
   };
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners} onClick={onOpen}>
+    <div ref={setNodeRef} style={style} {...(canDrag ? { ...attributes, ...listeners } : {})} onClick={onOpen}>
       <CardBody task={task} />
     </div>
   );

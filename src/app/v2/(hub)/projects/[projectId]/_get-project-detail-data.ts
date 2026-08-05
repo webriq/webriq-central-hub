@@ -1,4 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
+import { adminClient } from "@/lib/supabase/admin";
+import { isProjectVisibleToCurrentUser } from "../_project-access";
 import type { Project, Milestone, Tasklist, Task, Issue } from "../_pm-shared";
 
 export type ProjectDetailData = {
@@ -9,8 +11,9 @@ export type ProjectDetailData = {
   initialTasks: Task[];
   initialIssues: Issue[];
   currentUserId: string;
+  currentUserRole: string | null;
   profilesById: Record<string, { full_name: string; avatar_url: string | null }>;
-  allMembers: { id: string; full_name: string | null; avatar_url: string | null }[];
+  allMembers: { id: string; full_name: string | null; avatar_url: string | null; role: string }[];
   initialHoursById: Record<string, number>;
 };
 
@@ -24,6 +27,7 @@ export async function getProjectDetailData(projectId: string): Promise<ProjectDe
     .single();
 
   if (!project) return null;
+  if (!(await isProjectVisibleToCurrentUser(project.id))) return null;
 
   const { data: claimsData } = await supabase.auth.getClaims();
   const currentUserId = (claimsData?.claims?.sub as string | undefined) ?? "";
@@ -50,7 +54,9 @@ export async function getProjectDetailData(projectId: string): Promise<ProjectDe
       .eq("project_id", project.id)
       .order("created_at", { ascending: false }),
     supabase.from("customers").select("company_name").eq("customer_id", project.customer_id).single(),
-    supabase.from("profiles").select("id, full_name, avatar_url").in("role", ["developer", "pm", "admin", "super_admin"]).order("full_name", { ascending: true }),
+    // profiles' own RLS (profiles_read_own) only lets a caller read their own row —
+    // adminClient bypasses that for this read-only display lookup (assignee/member names).
+    adminClient.from("profiles").select("id, full_name, avatar_url, role").in("role", ["developer", "pm", "admin", "super_admin"]).order("full_name", { ascending: true }),
     supabase.from("time_logs").select("task_id, hours").eq("project_id", project.id),
   ]);
 
@@ -64,6 +70,9 @@ export async function getProjectDetailData(projectId: string): Promise<ProjectDe
     if (row.task_id) hoursById[row.task_id] = (hoursById[row.task_id] ?? 0) + row.hours;
   }
 
+  // Task 209 — derived from allMembers (already fetched above), no extra query.
+  const currentUserRole = (profilesRes.data ?? []).find((p) => p.id === currentUserId)?.role ?? null;
+
   return {
     project,
     companyName: customerRes.data?.company_name ?? project.customer_id,
@@ -72,6 +81,7 @@ export async function getProjectDetailData(projectId: string): Promise<ProjectDe
     initialTasks: tasksRes.data ?? [],
     initialIssues: issuesRes.data ?? [],
     currentUserId,
+    currentUserRole,
     profilesById,
     allMembers: profilesRes.data ?? [],
     initialHoursById: hoursById,
