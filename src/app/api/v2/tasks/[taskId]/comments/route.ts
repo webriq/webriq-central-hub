@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { adminClient } from "@/lib/supabase/admin";
 
 // Comment thread for the task detail page (task 206). `task_comments` already exists (migration
 // 025/035) with RLS already scoping staff read/insert (migration 048) — no migration needed here.
@@ -42,9 +43,29 @@ export async function GET(
   const authorIds = [...new Set((comments ?? []).map((c) => c.author_id).filter((id): id is string => !!id))];
   const profileNames = new Map<string, string>();
   if (authorIds.length > 0) {
-    const { data: profiles } = await supabase.from("profiles").select("id, full_name").in("id", authorIds);
+    // profiles' own RLS (profiles_read_own) only lets a caller read their own row —
+    // adminClient bypasses that for this read-only display lookup.
+    const { data: profiles } = await adminClient.from("profiles").select("id, full_name").in("id", authorIds);
     for (const p of profiles ?? []) {
       if (p.full_name) profileNames.set(p.id, p.full_name);
+    }
+  }
+
+  // Task 212 — batch-fetch every comment's attachments in one query, same reasoning as the
+  // author-name resolution above: avoids an N+1 fetch per comment.
+  const commentIds = (comments ?? []).map((c) => c.id);
+  const attachmentsByComment = new Map<string, { id: string; filename: string; size: number | null }[]>();
+  if (commentIds.length > 0) {
+    const { data: attachments } = await supabase
+      .from("attachments")
+      .select("id, filename, size, entity_id")
+      .eq("entity_type", "comment")
+      .in("entity_id", commentIds)
+      .order("created_at", { ascending: true });
+    for (const a of attachments ?? []) {
+      const list = attachmentsByComment.get(a.entity_id) ?? [];
+      list.push({ id: a.id, filename: a.filename, size: a.size });
+      attachmentsByComment.set(a.entity_id, list);
     }
   }
 
@@ -53,6 +74,7 @@ export async function GET(
     body: c.body,
     created_at: c.created_at,
     author_name: resolveAuthorName(c, profileNames),
+    attachments: attachmentsByComment.get(c.id) ?? [],
   }));
 
   return NextResponse.json(result);

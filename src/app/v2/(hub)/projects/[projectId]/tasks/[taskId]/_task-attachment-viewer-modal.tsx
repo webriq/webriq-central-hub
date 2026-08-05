@@ -4,11 +4,14 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { X } from "lucide-react";
 
-// In-app file viewer for the Attachments grid (task 211) — reduced port of
-// ../../../portfolio-tracker/[projectId]/_onboarding-wizard.tsx's FileViewerModal/FilePreview,
-// scoped to the fixed set of mime types the upload route allow-lists (images, PDF, Word, Excel;
-// no HTML/CSV/Markdown branches, since a task attachment can never be those types).
-type AttachmentRow = { id: string; filename: string; size: number | null; created_at: string };
+// In-app file viewer, shared by the Attachments grid (task 211) and comment attachments (task
+// 212) — reduced port of ../../../portfolio-tracker/[projectId]/_onboarding-wizard.tsx's
+// FileViewerModal/FilePreview, scoped to the fixed set of mime types the upload routes
+// allow-list (images, PDF, Word, Excel; no HTML/CSV/Markdown branches, since neither a task nor
+// a comment attachment can ever be those types). Only `filename` is read here — the caller
+// supplies `fetchUrl` directly, so this component doesn't need to know the attachment's id,
+// size, or which entity it belongs to (task 212 Decision #8).
+type AttachmentRow = { filename: string };
 
 const IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "gif", "webp"];
 const OFFICE_EXTENSIONS = ["doc", "docx", "xls", "xlsx"];
@@ -25,13 +28,11 @@ function fileKindFromFilename(filename: string): FileKind {
 
 export function TaskAttachmentViewerModal({
   attachment,
-  projectId,
-  taskId,
+  fetchUrl,
   onClose,
 }: {
   attachment: AttachmentRow;
-  projectId: string;
-  taskId: string;
+  fetchUrl: string;
   onClose: () => void;
 }) {
   const [url, setUrl] = useState<string | null>(null);
@@ -39,14 +40,22 @@ export function TaskAttachmentViewerModal({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // `cancelled` guards against a superseded effect run's response overwriting current state —
+    // mirrors AttachmentThumbnail's identical pattern in ../../_task-attachments.tsx. Without it,
+    // React's dev-only Strict Mode mount/cleanup/remount cycle fires this effect twice for a
+    // single "View" click; if the first (stale) invocation's request resolves after the second's
+    // (e.g. a transient dev-server hiccup on one of the two), its result would otherwise still
+    // overwrite the correct, current one — `setUrl`/`setError`/`setLoading` on an aborted-but-
+    // still-resolving fetch is not itself an error worth surfacing.
+    let cancelled = false;
     const ctrl = new AbortController();
-    fetch(`/api/v2/projects/${projectId}/tasks/${taskId}/attachments/${attachment.id}/file-url`, { signal: ctrl.signal })
+    fetch(fetchUrl, { signal: ctrl.signal })
       .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((data: { url: string }) => setUrl(data.url))
-      .catch(() => setError("Failed to load file preview."))
-      .finally(() => setLoading(false));
-    return () => ctrl.abort();
-  }, [projectId, taskId, attachment.id]);
+      .then((data: { url: string }) => { if (!cancelled) setUrl(data.url); })
+      .catch(() => { if (!cancelled) setError("Failed to load file preview."); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; ctrl.abort(); };
+  }, [fetchUrl]);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {

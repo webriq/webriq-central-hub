@@ -24,3 +24,29 @@ export function formatHoursInWords(hours: number): string {
   if (hourPart && minutePart) return `${hourPart} and ${minutePart}`;
   return hourPart || minutePart || "0 minutes";
 }
+
+function to12Hour(date: Date): { hh: string; mm: string; meridiem: "am" | "pm" } {
+  const hours24 = date.getHours();
+  const hh12 = hours24 % 12 || 12;
+  return {
+    hh: hh12.toString().padStart(2, "0"),
+    mm: date.getMinutes().toString().padStart(2, "0"),
+    meridiem: hours24 < 12 ? "am" : "pm",
+  };
+}
+
+// Time Period column — "hh:mm am/pm", lowercase meridiem, e.g. "05:15 pm".
+export function formatClockTime(iso: string): string {
+  const { hh, mm, meridiem } = to12Hour(new Date(iso));
+  return `${hh}:${mm} ${meridiem}`;
+}
+
+// Timer timeline popover — "hh:mm am/pm, mm-dd-yyyy", matches the reference screenshot's own
+// tooltip style exactly (deliberately not the same date format as the tab's date-group headers).
+export function formatFullTimestamp(iso: string): string {
+  const date = new Date(iso);
+  const { hh, mm, meridiem } = to12Hour(date);
+  const month = (date.getMonth() + 1).toString().padStart(2, "0");
+  const day = date.getDate().toString().padStart(2, "0");
+  return `${hh}:${mm} ${meridiem}, ${month}-${day}-${date.getFullYear()}`;
+}

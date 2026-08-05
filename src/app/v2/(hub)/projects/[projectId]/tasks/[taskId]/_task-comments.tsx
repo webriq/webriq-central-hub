@@ -1,45 +1,151 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { MessageSquare, Loader2 } from "lucide-react";
-import { formatRelativeTime } from "@/lib/utils";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { MessageSquare, Loader2, FileText, Image as ImageIcon } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { formatRelativeTime, cn } from "@/lib/utils";
 import { OwnerChip } from "../../../_pm-shared";
+import { CommentEditor } from "./_comment-editor";
+import { TaskAttachmentPicker } from "../../_task-attachment-picker";
+import { TaskAttachmentViewerModal } from "./_task-attachment-viewer-modal";
 
-// Comment thread for the task detail page (task 206) — built on the existing, already
-// live-commenting-capable `task_comments` table (RLS: staff read/insert/own-delete already
-// shipped, migration 048). No edit/delete UI yet — see task 206 Decision #6, a deliberate
-// fast-follow boundary, not an oversight.
-type CommentRow = { id: string; body: string; created_at: string; author_name: string };
+// Comment thread for the task detail page (task 206). Rich-text body + optional file
+// attachments (task 212) — built on the existing `task_comments` table (RLS: staff
+// read/insert/own-delete already shipped, migration 048) and the generic `attachments` table
+// (entity_type: "comment", already a legal value since migration 049). No edit/delete UI yet —
+// see task 206 Decision #6, a deliberate fast-follow boundary, not an oversight.
+const IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "gif", "webp"];
+
+// Wider than the New Task modal's attachment picker (image/pdf/office only) — comment
+// attachments also allow HTML, Markdown, plain text, and MP4, matching the comment
+// attachments POST route's own allow-list exactly (src/app/api/v2/tasks/[taskId]/comments/
+// [commentId]/attachments/route.ts). Passed explicitly so the shared TaskAttachmentPicker's
+// default (used by the New Task modal, whose server route is unchanged) stays untouched.
+const COMMENT_ATTACHMENT_MIME_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "text/html",
+  "text/markdown",
+  "text/plain",
+  "video/mp4",
+];
+
+type CommentAttachment = { id: string; filename: string; size: number | null };
+type CommentRow = { id: string; body: string; created_at: string; author_name: string; attachments: CommentAttachment[] };
+
+function formatFileSize(bytes: number | null): string {
+  if (bytes == null) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 export function TaskComments({ taskId }: { taskId: string }) {
   const [comments, setComments] = useState<CommentRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [draft, setDraft] = useState("");
+  const [draftHtml, setDraftHtml] = useState("");
+  const [draftEmpty, setDraftEmpty] = useState(true);
+  const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
   const [posting, setPosting] = useState(false);
+  const [attachmentWarning, setAttachmentWarning] = useState<string | null>(null);
+  const [resetKey, setResetKey] = useState(0);
+  const [viewing, setViewing] = useState<{ commentId: string; attachment: CommentAttachment } | null>(null);
+  const commentsRef = useRef<CommentRow[]>([]);
+  useEffect(() => { commentsRef.current = comments; }, [comments]);
+
+  const fetchComments = useCallback((signal?: AbortSignal) => {
+    return fetch(`/api/v2/tasks/${taskId}/comments`, { signal })
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data: CommentRow[]) => setComments(data))
+      .catch(() => {});
+  }, [taskId]);
 
   useEffect(() => {
     const ctrl = new AbortController();
-    fetch(`/api/v2/tasks/${taskId}/comments`, { signal: ctrl.signal })
-      .then((r) => (r.ok ? r.json() : []))
-      .then((data: CommentRow[]) => setComments(data))
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    fetchComments(ctrl.signal).finally(() => setLoading(false));
     return () => ctrl.abort();
-  }, [taskId]);
+  }, [fetchComments]);
+
+  // Realtime sync (task 213) — a bare postgres_changes payload only carries the raw row
+  // (no resolved author_name / no comment's attachments array), so unlike the Attachments
+  // tab's direct-patch approach, this re-fetches the already-batched comments list. That's
+  // a materially different trigger (a genuine data change) than the tab-switch bug this task
+  // fixes, so it doesn't reintroduce the refetch-on-every-switch problem.
+  useEffect(() => {
+    const supabase = createClient();
+    const commentsChannel = supabase
+      .channel(`task_comments_${taskId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "task_comments", filter: `task_id=eq.${taskId}` },
+        (payload) => {
+          // Skip the current user's own optimistic INSERT — already applied locally by postComment().
+          if (payload.eventType === "INSERT") {
+            const row = payload.new as { id: string };
+            if (commentsRef.current.some((c) => c.id === row.id)) return;
+          }
+          void fetchComments();
+        }
+      )
+      .subscribe();
+
+    const attachmentsChannel = supabase
+      .channel(`task_comment_attachments_${taskId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "attachments", filter: `entity_type=eq.comment` },
+        (payload) => {
+          const row = (payload.new ?? payload.old) as { entity_id: string };
+          if (commentsRef.current.some((c) => c.id === row.entity_id)) void fetchComments();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(commentsChannel);
+      void supabase.removeChannel(attachmentsChannel);
+    };
+  }, [taskId, fetchComments]);
 
   async function postComment() {
-    const trimmed = draft.trim();
-    if (!trimmed) return;
+    if (draftEmpty) return;
     setPosting(true);
+    setAttachmentWarning(null);
     const res = await fetch(`/api/v2/tasks/${taskId}/comments`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ body: trimmed }),
+      body: JSON.stringify({ body: draftHtml }),
     });
     if (res.ok) {
-      const created: CommentRow = await res.json();
-      setComments((prev) => [...prev, created]);
-      setDraft("");
+      const created: Omit<CommentRow, "attachments"> = await res.json();
+      let attachments: CommentAttachment[] = [];
+
+      if (attachmentFiles.length > 0) {
+        const results = await Promise.allSettled(attachmentFiles.map((file) => {
+          const fd = new FormData();
+          fd.append("file", file);
+          return fetch(`/api/v2/tasks/${taskId}/comments/${created.id}/attachments`, { method: "POST", body: fd })
+            .then((r) => (r.ok ? r.json() : Promise.reject()));
+        }));
+        attachments = results
+          .filter((r): r is PromiseFulfilledResult<CommentAttachment> => r.status === "fulfilled")
+          .map((r) => r.value);
+        const failed = results.length - attachments.length;
+        if (failed > 0) {
+          setAttachmentWarning(`Comment posted — ${failed} of ${attachmentFiles.length} attachment(s) failed to upload.`);
+        }
+      }
+
+      setComments((prev) => [...prev, { ...created, attachments }]);
+      setAttachmentFiles([]);
+      setResetKey((k) => k + 1);
     }
     setPosting(false);
   }
@@ -66,7 +172,42 @@ export function TaskComments({ taskId }: { taskId: string }) {
                   <span className="text-[12px] font-semibold text-[#0B1533]">{c.author_name}</span>
                   <span className="text-[10px] font-mono text-[#5F6A88]">{formatRelativeTime(c.created_at)}</span>
                 </div>
-                <p className="text-[13px] text-[#3A4565] leading-relaxed whitespace-pre-wrap mt-0.5">{c.body}</p>
+                <div
+                  className={cn(
+                    "text-[13px] text-[#3A4565] leading-relaxed mt-0.5",
+                    "[&_p]:my-1 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pl-5 [&_ol]:pl-5 [&_li]:my-0.5",
+                    "[&_a]:text-[#0063D6] [&_a]:underline [&_img]:max-w-full [&_img]:rounded-[8px] [&_img]:my-1.5"
+                  )}
+                  // Staff-authored comment HTML — same trust boundary as the Description field's rendered content (task 206)
+                  dangerouslySetInnerHTML={{ __html: c.body }}
+                />
+                {c.attachments.length > 0 && (
+                  <ul className="flex flex-col gap-1 mt-1.5">
+                    {c.attachments.map((file) => {
+                      const ext = file.filename.split(".").pop()?.toLowerCase() ?? "";
+                      const isImage = IMAGE_EXTENSIONS.includes(ext);
+                      return (
+                        <li
+                          key={file.id}
+                          className="flex items-center gap-2 rounded-[8px] border border-[#E2E7F2] bg-white px-2.5 py-1.5"
+                        >
+                          {isImage
+                            ? <ImageIcon size={13} className="text-[#5F6A88] shrink-0" />
+                            : <FileText size={13} className="text-[#5F6A88] shrink-0" />}
+                          <span className="flex-1 truncate text-[12px] text-[#3A4565]">{file.filename}</span>
+                          <span className="text-[10px] text-[#5F6A88] shrink-0">{formatFileSize(file.size)}</span>
+                          <button
+                            type="button"
+                            onClick={() => setViewing({ commentId: c.id, attachment: file })}
+                            className="text-[11px] font-semibold text-[#0063D6] hover:underline cursor-pointer shrink-0"
+                          >
+                            View
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
               </div>
             </li>
           ))}
@@ -74,23 +215,36 @@ export function TaskComments({ taskId }: { taskId: string }) {
       )}
 
       <div className="flex flex-col gap-2 pt-1 border-t border-[#EDF0F7]">
-        <textarea
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          rows={2}
-          placeholder="Add a comment…"
-          className="w-full px-3 py-2 rounded-[10px] border text-[13px] outline-none transition-colors resize-none border-[#E2E7F2] bg-[#F4F6FB] text-[#3A4565] focus:border-[#007BFF] focus:bg-white focus:ring-[3px] focus:ring-[#007BFF]/[0.14]"
+        <CommentEditor
+          key={resetKey}
+          taskId={taskId}
+          onChange={setDraftHtml}
+          onEmptyChange={setDraftEmpty}
         />
+        <TaskAttachmentPicker
+          files={attachmentFiles}
+          onFilesChange={setAttachmentFiles}
+          allowedMimeTypes={COMMENT_ATTACHMENT_MIME_TYPES}
+        />
+        {attachmentWarning && <p className="text-[11px] text-[#8A5A00]">{attachmentWarning}</p>}
         <button
           type="button"
           onClick={() => void postComment()}
-          disabled={!draft.trim() || posting}
+          disabled={draftEmpty || posting}
           className="self-end inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#007BFF] text-white text-[12px] font-semibold hover:bg-[#0063D6] disabled:opacity-45 cursor-pointer transition-colors"
         >
           {posting ? <Loader2 size={13} className="animate-spin" /> : null}
           Post comment
         </button>
       </div>
+
+      {viewing && (
+        <TaskAttachmentViewerModal
+          attachment={viewing.attachment}
+          fetchUrl={`/api/v2/tasks/${taskId}/comments/${viewing.commentId}/attachments/${viewing.attachment.id}/file-url`}
+          onClose={() => setViewing(null)}
+        />
+      )}
     </div>
   );
 }

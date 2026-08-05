@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { attachTaskTitle } from "@/lib/timer/serialize";
+import { appendTimerEvent, type TimerEvent } from "@/lib/timer/timeline";
 
 // POST /api/v2/timer/stop — computes final hours server-side (never trust a client-supplied
 // duration), logs to time_logs, then clears the timer portion of the row. If a break is still
@@ -13,7 +14,7 @@ export async function POST() {
 
   const { data: existing } = await supabase
     .from("active_timers")
-    .select("id, task_id, project_id, status, accumulated_seconds, segment_started_at, break_type")
+    .select("id, task_id, project_id, status, accumulated_seconds, segment_started_at, break_type, timeline")
     .eq("user_id", user.id)
     .maybeSingle();
 
@@ -28,15 +29,22 @@ export async function POST() {
   const totalSeconds = existing.accumulated_seconds + runningSeconds;
   const hours = totalSeconds / 3600;
 
+  const now = new Date().toISOString();
+  const timeline = appendTimerEvent(existing.timeline, { type: "stopped", at: now });
+  const startTime = (existing.timeline as TimerEvent[] | null)?.[0]?.at ?? null;
+
   if (hours > 0) {
     const { error: logError } = await supabase.from("time_logs").insert({
       task_id: existing.task_id,
       project_id: existing.project_id,
       employee_id: user.id,
-      date_logged: new Date().toISOString().slice(0, 10),
+      date_logged: now.slice(0, 10),
       hours,
       source: "timer",
       billable: false,
+      start_time: startTime,
+      end_time: now,
+      timeline,
     });
     if (logError) {
       console.error("[api/v2/timer/stop] time_logs insert failed:", logError.message);

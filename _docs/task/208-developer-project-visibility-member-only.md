@@ -4,7 +4,7 @@
 **Priority:** HIGH
 **Type:** bugfix
 **Recommended Tier:** balanced
-**Status:** Planned
+**Status:** Completed (2026-08-05)
 
 ---
 
@@ -176,3 +176,11 @@ PASS
 
 ### Required Fixes
 - None.
+
+## Completion Notes
+
+Marked completed directly from the quality-gate pass at the user's request (skipping the formal `test`/`document`/`ship` chain stages for this change).
+
+- Two of this task's touched files (`page.tsx` and `_get-project-detail-data.ts`) received further, unrelated concurrent edits from in-progress task 209 work (`canCreateProject`, `currentUserRole`, switching the member-profile lookup to `adminClient`) after the quality gate passed. Re-verified post-hoc that all task 208 lines are still intact and unaffected: the `developerProjectIds` branch + `.in("id", ...)` filter in `page.tsx`, the `isProjectVisibleToCurrentUser` import + guard call in `_get-project-detail-data.ts`, and the same import + guard call in `tasks/[taskId]/page.tsx`, `issues/[issueId]/page.tsx`, and `milestones/[milestoneId]/page.tsx`.
+- `npx tsc --noEmit` re-run after those concurrent edits — still PASS, no errors.
+- Browser-based acceptance verification (developer-role narrowing, non-member direct-URL 404, pm/admin/no-regression check) was not performed in this environment — still outstanding, left to the user's own live pass as called out in Verification/Quality Gate Notes above. Flagging again here since this is the final status update: functionally complete and typechecked, but not yet manually verified in the running app.

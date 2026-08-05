@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { attachTaskTitle } from "@/lib/timer/serialize";
+import type { TimerEvent } from "@/lib/timer/timeline";
 
 // POST /api/v2/timer/start { task_id, project_id }
 // Starts a fresh timer for the current user. Only one timer may be active at a time — 409 if
@@ -47,16 +48,19 @@ export async function POST(req: NextRequest) {
   }
 
   const now = new Date().toISOString();
+  // Fresh session — timeline resets to a single "started" event, mirroring the existing
+  // accumulated_seconds: 0 reset when reusing a break-only row (task 215).
+  const timeline: TimerEvent[] = [{ type: "started", at: now }];
   const { data, error } = existing
     ? await supabase
         .from("active_timers")
-        .update({ task_id: taskId, project_id: projectId, status: "running", accumulated_seconds: 0, segment_started_at: now, updated_at: now })
+        .update({ task_id: taskId, project_id: projectId, status: "running", accumulated_seconds: 0, segment_started_at: now, timeline, updated_at: now })
         .eq("id", existing.id)
         .select()
         .single()
     : await supabase
         .from("active_timers")
-        .insert({ user_id: user.id, task_id: taskId, project_id: projectId, status: "running", accumulated_seconds: 0, segment_started_at: now })
+        .insert({ user_id: user.id, task_id: taskId, project_id: projectId, status: "running", accumulated_seconds: 0, segment_started_at: now, timeline })
         .select()
         .single();
 

@@ -710,6 +710,7 @@ export interface Database {
           break_type: string | null;
           break_started_at: string | null;
           break_duration_minutes: number | null;
+          timeline: Json;
           created_at: string;
           updated_at: string;
         };
@@ -724,6 +725,7 @@ export interface Database {
           break_type?: string | null;
           break_started_at?: string | null;
           break_duration_minutes?: number | null;
+          timeline?: Json;
           created_at?: string;
           updated_at?: string;
         };
@@ -738,6 +740,7 @@ export interface Database {
           break_type?: string | null;
           break_started_at?: string | null;
           break_duration_minutes?: number | null;
+          timeline?: Json;
           created_at?: string;
           updated_at?: string;
         };
@@ -1320,6 +1323,9 @@ export interface Database {
           external_id: string | null;
           owner_name: string | null;
           owner_email: string | null;
+          start_time: string | null;
+          end_time: string | null;
+          timeline: Json | null;
           created_at: string;
         };
         Insert: {
@@ -1337,6 +1343,9 @@ export interface Database {
           external_id?: string | null;
           owner_name?: string | null;
           owner_email?: string | null;
+          start_time?: string | null;
+          end_time?: string | null;
+          timeline?: Json | null;
           created_at?: string;
         };
         Update: {
@@ -1354,6 +1363,9 @@ export interface Database {
           external_id?: string | null;
           owner_name?: string | null;
           owner_email?: string | null;
+          start_time?: string | null;
+          end_time?: string | null;
+          timeline?: Json | null;
         };
         Relationships: [
           {

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { FileText, FileSpreadsheet, Image as ImageIcon, Paperclip } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 import { TaskAttachmentViewerModal } from "./_task-attachment-viewer-modal";
 
 // Grid viewer for files staged via the New Task modal's Attachments picker (task 205) —
@@ -110,6 +111,34 @@ export function TaskAttachments({ projectId, taskId }: { projectId: string; task
     return () => ctrl.abort();
   }, [projectId, taskId]);
 
+  // Realtime sync (task 213) — patches local state directly from the event payload
+  // instead of refetching, mirroring ../../_project-detail.tsx's tasks/issues subscriptions.
+  // `attachments` is polymorphic (entity_type/entity_id); Realtime's `filter` only supports
+  // one equality clause, so this filters on entity_id and double-checks entity_type in the
+  // handler (a task's UUID won't collide with a project/issue/comment UUID in practice).
+  useEffect(() => {
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`task_attachments_${taskId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "attachments", filter: `entity_id=eq.${taskId}` },
+        (payload) => {
+          if (payload.eventType === "INSERT") {
+            const row = payload.new as AttachmentRow & { entity_type: string };
+            if (row.entity_type !== "task") return;
+            setAttachments((prev) => (prev.some((a) => a.id === row.id) ? prev : [...prev, row]));
+          } else if (payload.eventType === "DELETE") {
+            const old = payload.old as { id: string; entity_type?: string };
+            if (old.entity_type && old.entity_type !== "task") return;
+            setAttachments((prev) => prev.filter((a) => a.id !== old.id));
+          }
+        }
+      )
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [taskId]);
+
   if (loading) {
     return (
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -161,8 +190,7 @@ export function TaskAttachments({ projectId, taskId }: { projectId: string; task
       {viewing && (
         <TaskAttachmentViewerModal
           attachment={viewing}
-          projectId={projectId}
-          taskId={taskId}
+          fetchUrl={`/api/v2/projects/${projectId}/tasks/${taskId}/attachments/${viewing.id}/file-url`}
           onClose={() => setViewing(null)}
         />
       )}

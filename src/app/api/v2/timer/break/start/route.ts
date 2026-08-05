@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { BREAK_DURATIONS_MIN, type BreakType } from "@/lib/timer/constants";
 import { attachTaskTitle } from "@/lib/timer/serialize";
+import { appendTimerEvent } from "@/lib/timer/timeline";
 
 // POST /api/v2/timer/break/start { break_type }
 // Duration is resolved server-side from BREAK_DURATIONS_MIN — never trust a client-supplied
@@ -25,7 +26,7 @@ export async function POST(req: NextRequest) {
 
   const { data: existing } = await supabase
     .from("active_timers")
-    .select("id, status, accumulated_seconds, segment_started_at, break_type")
+    .select("id, status, accumulated_seconds, segment_started_at, break_type, timeline")
     .eq("user_id", user.id)
     .maybeSingle();
 
@@ -43,6 +44,7 @@ export async function POST(req: NextRequest) {
     break_type: breakType,
     break_started_at: now,
     break_duration_minutes: BREAK_DURATIONS_MIN[breakType],
+    timeline: appendTimerEvent(existing?.timeline, { type: "break_start" as const, at: now, break_type: breakType }),
     updated_at: now,
   };
 

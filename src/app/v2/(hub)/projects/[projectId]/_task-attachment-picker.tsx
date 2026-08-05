@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 // itself is created (see CreateTaskModal.submit). Deliberately smaller than the 168px
 // UploadDropzone in portfolio-tracker/v2's _files-tab.tsx, which is sized for a full-page
 // file explorer, not a max-w-md modal.
-const ALLOWED_MIME_TYPES = [
+const DEFAULT_ALLOWED_MIME_TYPES = [
   "image/jpeg",
   "image/png",
   "image/gif",
@@ -32,9 +32,11 @@ function formatFileSize(bytes: number): string {
 export function TaskAttachmentPicker({
   files,
   onFilesChange,
+  allowedMimeTypes = DEFAULT_ALLOWED_MIME_TYPES,
 }: {
   files: File[];
   onFilesChange: (files: File[]) => void;
+  allowedMimeTypes?: string[];
 }) {
   const [dragOver, setDragOver] = useState(false);
   const [rejectionError, setRejectionError] = useState<string | null>(null);
@@ -48,7 +50,7 @@ export function TaskAttachmentPicker({
         setRejectionError(`Only up to ${MAX_FILES} files can be attached.`);
         break;
       }
-      if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+      if (!allowedMimeTypes.includes(file.type)) {
         setRejectionError(`${file.name}: unsupported file type`);
         continue;
       }
