@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, Link2, KeyRound, Trash2, X } from "lucide-react";
+import { useRef, useState } from "react";
+import { Plus, Link2, KeyRound, Trash2, X, Eye, EyeOff, Copy, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AssetRow, StaffPerson, ASSET_ROLE_OPTIONS } from "./_wizard-v2-types";
 import { textPrimary, textMuted, cardCls, fieldLabelCls, fieldInputCls, PillTabs, IconTip } from "./_shared-ui";
@@ -9,6 +9,37 @@ import { PermissionPicker, permissionSummary } from "./_permission-picker";
 
 function isValidUrl(v: string): boolean {
   try { const u = new URL(v); return u.protocol === "http:" || u.protocol === "https:"; } catch { return false; }
+}
+
+// Mockup 05's masked credential field — value + a reveal toggle + copy button, replacing the
+// old count-only "N field(s)" summary. Reveal state is local/ephemeral (not persisted).
+function CredentialField({ field }: { field: { label: string; value: string; masked?: boolean } }) {
+  const [revealed, setRevealed] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(field.value);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* clipboard unavailable — no dedicated error UI for a sandbox action */
+    }
+  };
+  return (
+    <span className="inline-flex items-center gap-1">
+      {field.label}: <span className="font-mono">{revealed ? field.value : "•".repeat(Math.min(10, Math.max(6, field.value.length)))}</span>
+      <IconTip label={revealed ? "Hide" : "Reveal"}>
+        <button type="button" onClick={() => setRevealed((v) => !v)} aria-label={revealed ? `Hide ${field.label}` : `Reveal ${field.label}`} className="p-1 rounded-md border-none bg-transparent cursor-pointer text-[#5F6A88] hover:bg-[#EDF0F7] hover:text-[#0B1533]">
+          {revealed ? <EyeOff size={11} /> : <Eye size={11} />}
+        </button>
+      </IconTip>
+      <IconTip label={copied ? "Copied" : "Copy"}>
+        <button type="button" onClick={handleCopy} aria-label={`Copy ${field.label}`} className="p-1 rounded-md border-none bg-transparent cursor-pointer text-[#5F6A88] hover:bg-[#EDF0F7] hover:text-[#0B1533]">
+          {copied ? <Check size={11} className="text-[#177E48]" /> : <Copy size={11} />}
+        </button>
+      </IconTip>
+    </span>
+  );
 }
 
 export function AccessTab({
@@ -21,52 +52,92 @@ export function AccessTab({
 }) {
   const [subTab, setSubTab] = useState<"credentials" | "links">("credentials");
   const [modalOpen, setModalOpen] = useState(false);
+  // Mockup 05's 5-second undo-delete — scoped to this tab only (Files-tab deletes stay
+  // immediate, matching what mockup 03's bulk bar actually shows). The row is hidden from the
+  // list immediately (optimistic); the real DELETE only fires once the window elapses unless
+  // Undo is clicked. Single-slot: a second delete while one is pending commits the first right
+  // away rather than trying to queue multiple undo bars.
+  const [pendingDelete, setPendingDelete] = useState<AssetRow | null>(null);
+  const pendingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const items = assets.filter((a) => a.type === (subTab === "credentials" ? "credential" : "link"));
+  const items = assets.filter((a) => a.type === (subTab === "credentials" ? "credential" : "link") && a.id !== pendingDelete?.id);
+
+  const commitPendingDelete = () => {
+    if (pendingTimeout.current) clearTimeout(pendingTimeout.current);
+    setPendingDelete((current) => {
+      if (current) onDelete(current.id);
+      return null;
+    });
+  };
+
+  const handleDeleteClick = (item: AssetRow) => {
+    commitPendingDelete();
+    setPendingDelete(item);
+    pendingTimeout.current = setTimeout(commitPendingDelete, 5000);
+  };
+
+  const handleUndo = () => {
+    if (pendingTimeout.current) clearTimeout(pendingTimeout.current);
+    setPendingDelete(null);
+  };
 
   return (
-    <div className={cn(cardCls, "p-4")}>
-      <div className="flex items-center justify-between gap-3 mb-3.5 flex-wrap">
-        <PillTabs tabs={[{ id: "credentials", label: "Credentials" }, { id: "links", label: "Links" }]} active={subTab} onChange={setSubTab} />
-        {canEdit && (
-          <button type="button" onClick={() => setModalOpen(true)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold bg-[#007BFF] text-white cursor-pointer border-none hover:bg-[#0063D6] transition-colors">
-            <Plus size={13} /> Add {subTab === "credentials" ? "credential" : "link"}
-          </button>
+    <div className={cn(cardCls, "overflow-hidden")}>
+      <div className="p-4">
+        <div className="flex items-center justify-between gap-3 mb-3.5 flex-wrap">
+          <PillTabs tabs={[{ id: "credentials", label: "Credentials" }, { id: "links", label: "Links" }]} active={subTab} onChange={setSubTab} />
+          {canEdit && (
+            <button type="button" onClick={() => setModalOpen(true)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold bg-[#007BFF] text-white cursor-pointer border-none hover:bg-[#0063D6] transition-colors">
+              <Plus size={13} /> Add {subTab === "credentials" ? "credential" : "link"}
+            </button>
+          )}
+        </div>
+
+        {items.length === 0 ? (
+          <div className="flex flex-col items-center justify-center gap-2 py-12 rounded-[10px] border-2 border-dashed border-[#E2E7F2] text-center px-6">
+            {subTab === "credentials" ? <KeyRound size={22} className="text-[#A8B3CC]" /> : <Link2 size={22} className="text-[#A8B3CC]" />}
+            <p className={cn("text-[12.5px] max-w-64", textMuted)}>
+              {subTab === "credentials" ? "No credentials shared yet." : "No links shared yet."}
+              {canEdit && " Add one above."}
+            </p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {items.map((item) => (
+              <div key={item.id} className="flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-[10px] border border-[#E2E7F2] bg-white">
+                <div className="min-w-0">
+                  <p className={cn("text-[12.5px] font-medium truncate", textPrimary)}>{item.label}</p>
+                  <p className={cn("text-[11px] truncate flex items-center gap-2 flex-wrap", textMuted)}>
+                    {item.type === "link" ? (
+                      item.value
+                    ) : (
+                      (item.fields ?? []).map((f, i) => <CredentialField key={i} field={f} />)
+                    )}
+                    <span>Visible to {permissionSummary(item.allowed_roles, item.allowed_user_ids)}</span>
+                  </p>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {canEdit && (
+                    <>
+                      <PermissionPicker allowedRoles={item.allowed_roles} allowedUserIds={item.allowed_user_ids} staffDirectory={staffDirectory} onChange={(u) => onPermissionChange(item.id, u)} />
+                      <IconTip label="Remove">
+                        <button type="button" onClick={() => handleDeleteClick(item)} aria-label="Remove" className="p-1.5 rounded-md border-none bg-transparent cursor-pointer text-[#5F6A88] hover:text-[#C0392B] hover:bg-[#FDE8E6]">
+                          <Trash2 size={13} />
+                        </button>
+                      </IconTip>
+                    </>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </div>
 
-      {items.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-2 py-12 rounded-[10px] border-2 border-dashed border-[#E2E7F2] text-center px-6">
-          {subTab === "credentials" ? <KeyRound size={22} className="text-[#A8B3CC]" /> : <Link2 size={22} className="text-[#A8B3CC]" />}
-          <p className={cn("text-[12.5px] max-w-64", textMuted)}>
-            {subTab === "credentials" ? "No credentials shared yet." : "No links shared yet."}
-            {canEdit && " Add one above."}
-          </p>
-        </div>
-      ) : (
-        <div className="flex flex-col gap-2">
-          {items.map((item) => (
-            <div key={item.id} className="flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-[10px] border border-[#E2E7F2] bg-white">
-              <div className="min-w-0">
-                <p className={cn("text-[12.5px] font-medium truncate", textPrimary)}>{item.label}</p>
-                <p className={cn("text-[11px] truncate", textMuted)}>
-                  {item.type === "link" ? item.value : `${(item.fields ?? []).length} field(s)`} · Visible to {permissionSummary(item.allowed_roles, item.allowed_user_ids)}
-                </p>
-              </div>
-              <div className="flex items-center gap-1.5 shrink-0">
-                {canEdit && (
-                  <>
-                    <PermissionPicker allowedRoles={item.allowed_roles} allowedUserIds={item.allowed_user_ids} staffDirectory={staffDirectory} onChange={(u) => onPermissionChange(item.id, u)} />
-                    <IconTip label="Remove">
-                      <button type="button" onClick={() => onDelete(item.id)} aria-label="Remove" className="p-1.5 rounded-md border-none bg-transparent cursor-pointer text-[#5F6A88] hover:text-[#C0392B] hover:bg-[#FDE8E6]">
-                        <Trash2 size={13} />
-                      </button>
-                    </IconTip>
-                  </>
-                )}
-              </div>
-            </div>
-          ))}
+      {pendingDelete && (
+        <div className="flex items-center gap-3 px-4 py-2.5 bg-[#071133] text-white text-[12.5px]">
+          <span className="font-semibold">{pendingDelete.label} deleted.</span>
+          <button type="button" onClick={handleUndo} className="ml-auto text-[#5EB0FF] font-semibold bg-transparent border-none cursor-pointer hover:underline">Undo</button>
         </div>
       )}
 
@@ -131,19 +202,17 @@ function AddCredentialLinkModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#071133]/60 p-4" onClick={onClose}>
       <div className={cn(cardCls, "w-full max-w-md shadow-xl overflow-hidden max-h-[90vh] overflow-y-auto")} onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between gap-3 px-5 py-3.5 border-b border-[#EDF0F7]">
-          <h2 className={cn("text-[14px] font-semibold", textPrimary)}>Add credential / link</h2>
+          <h2 className={cn("text-[14px] font-semibold", textPrimary)}>Add {type === "credential" ? "credential" : "link"}</h2>
           <button type="button" onClick={onClose} aria-label="Close" className={cn("p-2 rounded-md cursor-pointer border-none bg-transparent hover:bg-[#5F6A88]/10 transition-colors", textMuted)}>
             <X size={16} />
           </button>
         </div>
         <div className="p-5 flex flex-col gap-4">
-          <div>
-            <label className={fieldLabelCls}>Type</label>
-            <select value={type} onChange={(e) => { setType(e.target.value as "link" | "credential"); setValue(""); setFields([{ label: "", value: "", masked: true }]); }} className={fieldInputCls}>
-              <option value="link">Link</option>
-              <option value="credential">Credential</option>
-            </select>
-          </div>
+          <PillTabs
+            tabs={[{ id: "credential", label: "Credential" }, { id: "link", label: "Link" }]}
+            active={type}
+            onChange={(t) => { setType(t); setValue(""); setFields([{ label: "", value: "", masked: true }]); }}
+          />
           <div>
             <label className={fieldLabelCls}>Label</label>
             <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder={type === "credential" ? "e.g. HubSpot access" : "e.g. Staging URL"} className={fieldInputCls} />
@@ -162,7 +231,7 @@ function AddCredentialLinkModal({
                 {fields.map((field, i) => (
                   <div key={i} className="flex items-center gap-2">
                     <input value={field.label} onChange={(e) => setFields((prev) => prev.map((f, j) => (j === i ? { ...f, label: e.target.value } : f)))} placeholder="e.g. Username" className={fieldInputCls} />
-                    <input value={field.value} onChange={(e) => setFields((prev) => prev.map((f, j) => (j === i ? { ...f, value: e.target.value } : f)))} placeholder="Value" className={fieldInputCls} />
+                    <input value={field.value} onChange={(e) => setFields((prev) => prev.map((f, j) => (j === i ? { ...f, value: e.target.value } : f)))} placeholder="Value" className={fieldInputCls} type={field.masked ? "password" : "text"} />
                     <button type="button" onClick={() => setFields((prev) => prev.filter((_, j) => j !== i))} aria-label="Remove field" className="w-8 h-8 shrink-0 rounded-lg border cursor-pointer bg-transparent leading-none border-[#E2E7F2] text-[#5F6A88] hover:text-[#C0392B]">×</button>
                   </div>
                 ))}
@@ -183,14 +252,14 @@ function AddCredentialLinkModal({
                 );
               })}
             </div>
-            <p className="text-[10.5px] mt-1.5 text-[#5F6A88]">Named-person sharing can be set after adding, from the list.</p>
+            <p className="text-[10.5px] mt-1.5 text-[#5F6A88]">Multi-select — pick any combination. Named-person sharing can be set after adding, from the list.</p>
           </div>
           {error && <p className="text-[12px] text-[#C0392B] bg-[#FDE8E6] border border-[#C0392B]/20 rounded-lg px-3 py-2">{error}</p>}
         </div>
         <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-[#EDF0F7] bg-[#F4F6FB]">
           <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg text-[13px] font-medium cursor-pointer border-none bg-transparent text-[#3A4565] hover:bg-[#EDF0F7]">Cancel</button>
           <button type="button" onClick={handleSubmit} disabled={saving || !isValid} className="px-4 py-2 rounded-lg bg-[#007BFF] text-white text-[13px] font-semibold cursor-pointer border-none hover:bg-[#0063D6] transition-colors disabled:opacity-60">
-            {saving ? "Adding…" : "Add asset"}
+            {saving ? "Adding…" : `Add ${type === "credential" ? "credential" : "link"}`}
           </button>
         </div>
       </div>

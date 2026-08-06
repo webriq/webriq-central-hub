@@ -660,7 +660,7 @@ function Row({
       {/* Timer */}
       <div className="flex items-center justify-center">
         {isAssignedToMe && (
-          <TaskTimerButton taskId={task.id} projectId={task.project_id} onHoursLogged={onHoursLogged} />
+          <TaskTimerButton taskId={task.id} projectId={task.project_id} onHoursLogged={onHoursLogged} prominent />
         )}
       </div>
     </div>

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>6 · Checklist — Onboarding Workspace</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#071133; --blue:#007BFF; --blue-700:#0063D6; --blue-100:#E5F1FF;
+  --orange:#FB914E;
+  --bg:#F4F6FB; --surface:#FFFFFF; --line:#E2E7F2; --line-soft:#EDF0F7;
+  --ink:#0B1533; --body:#3A4565; --muted:#5F6A88;
+  --ok:#177E48; --ok-bg:#E3F5EA; --late:#C0392B; --late-bg:#FDE8E6;
+  --r-lg:14px; --r-md:10px;
+  --sh-sm:0 1px 2px rgba(7,17,51,.05);
+  --ease:cubic-bezier(.22,1,.36,1);
+  --font-ui:'Inter',system-ui,sans-serif; --font-display:'Space Grotesk',var(--font-ui); --font-mono:'JetBrains Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-ui);background:var(--bg);color:var(--body);font-size:.8125rem;line-height:1.55;-webkit-font-smoothing:antialiased}
+button{font:inherit;cursor:pointer;border:none;background:none;color:inherit}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:4px}
+.wrap{max-width:900px;margin:0 auto;padding:28px}
+.annot{display:flex;gap:9px;background:var(--navy);color:#B9C2E0;border-radius:var(--r-md);padding:12px 16px;margin-bottom:22px;font-size:.75rem}
+.annot b{color:#fff}
+.annot ul{margin:6px 0 0 16px}
+.annot li{margin-bottom:2px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--sh-sm)}
+
+.track-card{padding:16px 20px;margin-bottom:20px}
+.track-top{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:11px;gap:12px;flex-wrap:wrap}
+.track-top .lbl{font-size:.6875rem;font-weight:700;color:var(--ink);text-transform:uppercase;letter-spacing:.06em}
+.track-top .val{font-family:var(--font-mono);font-size:.6875rem;color:var(--muted)}
+.track{position:relative;height:20px;border-radius:999px;background:var(--line-soft)}
+.track-fill{position:absolute;inset:0 auto 0 0;width:60%;border-radius:999px;background:linear-gradient(90deg,#FFD9B8,var(--orange))}
+.track-day{position:absolute;top:50%;left:60%;transform:translate(-50%,-50%);font-family:var(--font-mono);font-size:.5625rem;font-weight:600;background:var(--navy);color:#fff;padding:2px 7px;border-radius:999px;box-shadow:0 1px 3px rgba(7,17,51,.35)}
+.track-foot{display:flex;justify-content:space-between;margin-top:6px;font-family:var(--font-mono);font-size:.5625rem;color:var(--muted)}
+
+.cl-summary{display:flex;align-items:center;gap:16px;margin-bottom:18px;flex-wrap:wrap;padding:0 4px}
+.cl-summary .stat{font-family:var(--font-display);font-size:1.75rem;font-weight:700;color:var(--ink);letter-spacing:-.02em;line-height:1}
+.cl-summary .stat-lbl{font-size:.6875rem;color:var(--muted);margin-top:3px}
+.cl-summary .div{width:1px;height:34px;background:var(--line)}
+
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:.625rem;font-weight:700;letter-spacing:.02em;padding:2.5px 8px;border-radius:5px;white-space:nowrap}
+.chip .cdot{width:5px;height:5px;border-radius:50%;background:currentColor}
+.chip-ok{background:var(--ok-bg);color:var(--ok)}
+.chip-late{background:var(--late-bg);color:var(--late)}
+
+.cl-section{margin-bottom:12px}
+.cl-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;gap:12px}
+.cl-head .left{display:flex;align-items:center;gap:12px;min-width:0}
+.cl-head h4{font-size:.875rem;font-weight:600;color:var(--ink)}
+.cl-head p{font-size:.6875rem;color:var(--muted);margin-top:2px}
+.cl-head .right{display:flex;align-items:center;gap:10px;flex:none}
+.avatar{width:24px;height:24px;border-radius:50%;display:inline-grid;place-items:center;font-size:.5625rem;font-weight:700;color:#fff;flex:none}
+.cl-item{display:flex;align-items:center;gap:10px;padding:9px 18px;border-top:1px solid var(--line-soft);font-size:.75rem}
+.cl-item .cb{width:17px;height:17px;border-radius:5px;border:1.5px solid #C4CCE0;flex:none;display:grid;place-items:center}
+.cl-item.done .cb{background:var(--ok);border-color:var(--ok);color:#fff}
+.cl-item.done span.t{color:var(--muted);text-decoration:line-through;text-decoration-color:#C4CCE0}
+.cl-item span.t{flex:1;color:var(--ink);font-weight:500}
+.cl-item .day{font-family:var(--font-mono);font-size:.5625rem;color:var(--muted)}
+.cl-item .evi{color:var(--blue-700);font-size:.6875rem;font-weight:600;display:flex;align-items:center;gap:4px}
+.cl-item .evi:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="annot">
+    <b>6 · Checklist — enhancements</b>
+    <ul>
+      <li>The programme track — the design system's signature element — now appears at the top, so "how close is Day 15" is visible without doing the math from due-day labels.</li>
+      <li>A summary row (sections complete, overdue count, current day) sits above the list, previously absent.</li>
+      <li>Each section shows the assigned teammate as an avatar — the source had no ownership indicator anywhere in the checklist.</li>
+      <li>Items that depend on a file or credential ("Implementation file," "Credentials for external integrations") now link to where that evidence actually lives, instead of a bare unchecked box with no path to complete it.</li>
+    </ul>
+  </div>
+
+  <div class="card track-card">
+    <div class="track-top"><span class="lbl">Onboard phase progress</span><span class="val">DAY 9 OF 15</span></div>
+    <div class="track"><div class="track-fill"></div><div class="track-day">DAY 9</div></div>
+    <div class="track-foot"><span>DAY 1</span><span>DAY 15 · MIGRATE &amp; REBRAND STARTS</span></div>
+  </div>
+
+  <div class="cl-summary">
+    <div><div class="stat">2<span style="font-size:1rem;color:var(--muted);font-weight:500">/8</span></div><div class="stat-lbl">Sections complete</div></div>
+    <div class="div"></div>
+    <div><div class="stat" style="color:var(--late)">4</div><div class="stat-lbl">Overdue</div></div>
+    <div class="div"></div>
+    <div><div class="stat" style="color:var(--muted);font-size:1.125rem">Day 9</div><div class="stat-lbl">of 15 — Onboard phase</div></div>
+  </div>
+
+  <div class="card cl-section">
+    <div class="cl-head">
+      <div class="left"><span class="avatar" style="background:#177E48">BT</span><div><h4>Kickoff</h4><p>Structured kickoff meeting; goals, timeline, and contacts confirmed.</p></div></div>
+      <div class="right"><span class="chip chip-ok"><i class="cdot"></i>Done</span></div>
+    </div>
+    <div class="cl-item done"><span class="cb"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4"><path d="M20 6L9 17l-5-5"/></svg></span><span class="t">Kickoff meeting held</span></div>
+    <div class="cl-item done"><span class="cb"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4"><path d="M20 6L9 17l-5-5"/></svg></span><span class="t">Contacts confirmed</span></div>
+    <div class="cl-item done"><span class="cb"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4"><path d="M20 6L9 17l-5-5"/></svg></span><span class="t">Goals, timeline and other important details filed</span></div>
+  </div>
+
+  <div class="card cl-section">
+    <div class="cl-head">
+      <div class="left"><span class="avatar" style="background:#0063D6">NT</span><div><h4>Outcome target</h4><p>Agreed measurable outcomes for the 120-day programme.</p></div></div>
+      <div class="right"><span class="chip chip-ok"><i class="cdot"></i>Done</span></div>
+    </div>
+    <div class="cl-item done"><span class="cb"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4"><path d="M20 6L9 17l-5-5"/></svg></span><span class="t">Agreed measurable outcomes for the 120-day programme filed</span></div>
+  </div>
+
+  <div class="card cl-section">
+    <div class="cl-head">
+      <div class="left"><span class="avatar" style="background:#6A48E0">AP</span><div><h4>Migration checklist</h4><p>Full audit of existing site and content ready for migration.</p></div></div>
+      <div class="right"><span class="chip chip-late"><i class="cdot"></i>Overdue · Due Day 9</span></div>
+    </div>
+    <div class="cl-item"><span class="cb"></span><span class="t">Implementation file</span><span class="evi"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v7a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg>Attach from Files</span></div>
+  </div>
+
+  <div class="card cl-section">
+    <div class="cl-head">
+      <div class="left"><span class="avatar" style="background:#B85512">MR</span><div><h4>90-day content map</h4><p>Topics, clusters, and publishing schedule through Day 90.</p></div></div>
+      <div class="right"><span class="chip chip-late"><i class="cdot"></i>Overdue · Due Day 11</span></div>
+    </div>
+    <div class="cl-item"><span class="cb"></span><span class="t">Cluster topics &amp; schedules</span></div>
+    <div class="cl-item done"><span class="cb"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4"><path d="M20 6L9 17l-5-5"/></svg></span><span class="t">Publishing plan</span></div>
+  </div>
+
+  <div class="card cl-section">
+    <div class="cl-head">
+      <div class="left"><span class="avatar" style="background:#44508A">BR</span><div><h4>Storage folder + KB</h4><p>Project folder live; knowledge base populated with all assets.</p></div></div>
+      <div class="right"><span class="chip chip-late"><i class="cdot"></i>Overdue · Due Day 14</span></div>
+    </div>
+    <div class="cl-item"><span class="cb"></span><span class="t">Branding guides</span><span class="day">PENDING</span></div>
+    <div class="cl-item"><span class="cb"></span><span class="t">KB info (raw)</span><span class="day">PENDING</span></div>
+    <div class="cl-item"><span class="cb"></span><span class="t">DNS details</span><span class="day">PENDING</span></div>
+    <div class="cl-item"><span class="cb"></span><span class="t">Credentials (for external integrations)</span><span class="evi"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v7a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg>Attach from Access</span></div>
+  </div>
+</div>
+</body>
+</html>

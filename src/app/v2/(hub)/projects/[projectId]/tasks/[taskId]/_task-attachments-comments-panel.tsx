@@ -19,7 +19,16 @@ const TAB_LABEL: Record<PanelTab, string> = {
   timelogs: "Time Logs",
 };
 
-export function TaskAttachmentsCommentsPanel({ projectId, taskId }: { projectId: string; taskId: string }) {
+export function TaskAttachmentsCommentsPanel({
+  projectId,
+  taskId,
+  timeLogsRefreshKey,
+}: {
+  projectId: string;
+  taskId: string;
+  // Task 218 — bumped by the header's TaskTimerButton on stop, so the Time Logs tab refetches.
+  timeLogsRefreshKey?: number;
+}) {
   const [tab, setTab] = useState<PanelTab>("attachments");
 
   return (
@@ -55,7 +64,7 @@ export function TaskAttachmentsCommentsPanel({ projectId, taskId }: { projectId:
           <TaskComments taskId={taskId} />
         </div>
         <div className={cn(tab !== "timelogs" && "hidden")}>
-          <TaskTimeLogs taskId={taskId} />
+          <TaskTimeLogs taskId={taskId} refreshKey={timeLogsRefreshKey} />
         </div>
       </div>
     </div>

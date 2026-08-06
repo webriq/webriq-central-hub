@@ -11,6 +11,7 @@ import {
 import { TaskDescriptionField } from "./_task-description-field";
 import { TaskAttachmentsCommentsPanel } from "./_task-attachments-comments-panel";
 import { getTaskEditPermission } from "@/lib/tasks/permissions";
+import { TaskTimerButton } from "../../_task-timer-button";
 
 const STATUS_OPTS: TaskStatus[] = [
   "open", "in_progress", "ready_for_qa", "testing_completed",
@@ -81,6 +82,12 @@ export default function TaskDetailClient({
     ? STATUS_OPTS
     : Array.from(new Set([task.status as TaskStatus, ...perm.allowedStatusValues]));
 
+  // Task 218 — mirrors the list view's `TaskTimerButton` gate (`_list-view.tsx:569,662`):
+  // only the task's assignee sees the timer control. `TimerProvider` only mounts for the
+  // developer role (`v2-hub-shell.tsx`), and only developers are ever assignees, so this
+  // assignment check is what keeps `useTimer()` from being called without a provider.
+  const isAssignedToMe = task.assignees?.includes(currentUserId) ?? false;
+
   // Editable text fields
   const [title, setTitle] = useState(() => decodeHtmlEntities(task.title));
   const [description, setDescription] = useState(task.description ?? "");
@@ -94,6 +101,13 @@ export default function TaskDetailClient({
   const [estimateHours, setEstimateHours] = useState(
     task.estimate_hours != null ? String(task.estimate_hours) : ""
   );
+
+  // Task 218 — bumped whenever the header timer button logs an entry, so the Time Logs tab
+  // (which fetches its own data on mount and has no other refresh hook) picks it up live.
+  const [timeLogsRefreshKey, setTimeLogsRefreshKey] = useState(0);
+  const handleHoursLogged = useCallback(() => {
+    setTimeLogsRefreshKey((k) => k + 1);
+  }, []);
 
   const ps = PRIORITY_STYLE[priority] ?? PRIORITY_STYLE["normal"];
 
@@ -142,6 +156,14 @@ export default function TaskDetailClient({
               </span>
               <StatusBadge status={status} />
               <PriorityBadge priority={priority} />
+              {isAssignedToMe && (
+                <TaskTimerButton
+                  taskId={task.id}
+                  projectId={task.project_id}
+                  onHoursLogged={handleHoursLogged}
+                  prominent
+                />
+              )}
             </div>
             <textarea
               value={title}
@@ -334,7 +356,7 @@ export default function TaskDetailClient({
             </Card>
 
             {/* Attachments / Comments */}
-            <TaskAttachmentsCommentsPanel projectId={projectId} taskId={task.id} />
+            <TaskAttachmentsCommentsPanel projectId={projectId} taskId={task.id} timeLogsRefreshKey={timeLogsRefreshKey} />
           </div>
 
         </div>

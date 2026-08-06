@@ -1,13 +1,14 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { ChevronRight, CloudUpload, FolderPlus, Loader2, LayoutGrid, List, CircleQuestionMark } from "lucide-react";
+import { ChevronRight, FolderPlus, LayoutGrid, List, CircleQuestionMark, Search, ArrowUpDown, X, CloudUpload } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AssetRow, AssetFolder, StaffPerson } from "./_wizard-v2-types";
-import { textPrimary, textMuted, cardCls, fieldInputCls, IconTip } from "./_shared-ui";
+import { textPrimary, textMuted, cardCls, IconTip } from "./_shared-ui";
 import { FolderTile, FileTile, ActionsMenuItems, ItemAction } from "./_file-tile";
 import { RenameModal, MoveModal } from "./_rename-move-modals";
 import { BulkToolbar } from "./_bulk-toolbar";
+import { useUploadQueue, UploadQueuePanel, UploadDropzone } from "./_upload-queue";
 
 const ALLOWED_UPLOAD_TYPES = [
   "image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml", "application/pdf",
@@ -15,6 +16,18 @@ const ALLOWED_UPLOAD_TYPES = [
   "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   "text/html", "text/markdown", "text/plain", "text/csv",
 ];
+const MIME_LABELS: Record<string, string> = {
+  "image/jpeg": "JPG", "image/png": "PNG", "image/gif": "GIF", "image/webp": "WEBP", "image/svg+xml": "SVG",
+  "application/pdf": "PDF", "application/msword": "DOC",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "DOCX",
+  "application/vnd.ms-excel": "XLS", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "XLSX",
+  "text/html": "HTML", "text/markdown": "MD", "text/plain": "TXT", "text/csv": "CSV",
+};
+const ALLOWED_TYPES_LABEL = Array.from(new Set(ALLOWED_UPLOAD_TYPES.map((m) => MIME_LABELS[m] ?? m))).join(", ");
+const MAX_FILE_SIZE = 25 * 1024 * 1024; // matches the customer-assets bucket's file_size_limit (upload/route.ts)
+const MAX_SIZE_LABEL = "25 MB";
+
+type VersionGroup = { asset: AssetRow; versionCount: number; olderVersions: AssetRow[] };
 
 export function FilesTab({
   customerId, assets, folders, staffDirectory, canEdit, openFolderId, onOpenFolder,
@@ -24,7 +37,7 @@ export function FilesTab({
   customerId: string;
   assets: AssetRow[]; folders: AssetFolder[]; staffDirectory: StaffPerson[]; canEdit: boolean;
   openFolderId: string | null; onOpenFolder: (id: string | null) => void;
-  onUpload: (file: File, folderId: string) => Promise<void>;
+  onUpload: (file: File, folderId: string, onProgress?: (pct: number) => void) => Promise<void>;
   onDeleteAsset: (id: string) => void;
   onAssetPermissionChange: (assetId: string, updates: { allowed_roles?: string[]; allowed_user_ids?: string[] }) => void;
   onFolderPermissionChange: (folderId: string, updates: { allowed_roles?: string[]; allowed_user_ids?: string[] }) => void;
@@ -36,18 +49,21 @@ export function FilesTab({
 }) {
   const [dragOver, setDragOver] = useState(false);
   const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [rejectedFile, setRejectedFile] = useState<{ name: string; reason: string } | null>(null);
   const [newFolderOpen, setNewFolderOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<"newest" | "name">("newest");
   const [renameTarget, setRenameTarget] = useState<{ kind: "file" | "folder"; id: string; name: string } | null>(null);
   const [moveTargetAssetIds, setMoveTargetAssetIds] = useState<string[] | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; actions: ItemAction[] } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const rootFolders = useMemo(() => folders.filter((f) => f.parent_folder_id === null).sort((a, b) => a.name.localeCompare(b.name)), [folders]);
+  const { items: queueItems, enqueue, retry: retryUpload, dismiss: dismissQueueItem } = useUploadQueue(onUpload);
+
+  const rootFolders = useMemo(() => folders.filter((f) => f.parent_folder_id === null), [folders]);
   const openFolder = openFolderId ? folders.find((f) => f.id === openFolderId) ?? null : null;
   const filesInOpenFolder = useMemo(() => (openFolderId ? assets.filter((a) => a.type === "file" && a.folder_id === openFolderId) : []), [assets, openFolderId]);
   const fileCountByFolder = useMemo(() => {
@@ -57,6 +73,49 @@ export function FilesTab({
     }
     return counts;
   }, [assets]);
+
+  // Case-insensitive sibling collision — the create-folder API already blocks new duplicates on
+  // the happy path (assets/folders/route.ts), so this only ever fires for legacy data or the
+  // documented 23505-race fallback. Display-only warning, not a new validation rule.
+  const duplicateFolderNames = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const f of rootFolders) {
+      const key = f.name.trim().toLowerCase();
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    return new Set(Array.from(counts.entries()).filter(([, n]) => n > 1).map(([name]) => name));
+  }, [rootFolders]);
+
+  const visibleFolders = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    const list = q ? rootFolders.filter((f) => f.name.toLowerCase().includes(q)) : rootFolders;
+    return [...list].sort((a, b) => (sortBy === "name" ? a.name.localeCompare(b.name) : new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
+  }, [rootFolders, searchQuery, sortBy]);
+
+  // Client-side version grouping (no schema change): files sharing an exact filename within the
+  // same folder collapse into one visible tile — the newest by created_at — with a "vN · latest"
+  // badge and the older uploads exposed as a version-history list (upload dates only).
+  const versionGroups = useMemo<VersionGroup[]>(() => {
+    const byName = new Map<string, AssetRow[]>();
+    for (const a of filesInOpenFolder) {
+      const key = a.file_name ?? a.label;
+      byName.set(key, [...(byName.get(key) ?? []), a]);
+    }
+    return Array.from(byName.values()).map((group) => {
+      const sorted = [...group].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      return { asset: sorted[0], versionCount: sorted.length, olderVersions: sorted.slice(1) };
+    });
+  }, [filesInOpenFolder]);
+
+  const visibleFiles = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    const list = q ? versionGroups.filter((g) => (g.asset.file_name ?? g.asset.label).toLowerCase().includes(q)) : versionGroups;
+    return [...list].sort((a, b) =>
+      sortBy === "name"
+        ? (a.asset.file_name ?? a.asset.label).localeCompare(b.asset.file_name ?? b.asset.label)
+        : new Date(b.asset.created_at).getTime() - new Date(a.asset.created_at).getTime()
+    );
+  }, [versionGroups, searchQuery, sortBy]);
 
   const openContextMenu = (e: React.MouseEvent, actions: ItemAction[]) => {
     const menuWidth = 176;
@@ -78,20 +137,23 @@ export function FilesTab({
   };
   const clearSelection = () => setSelectedIds(new Set());
 
-  const handleFiles = async (files: FileList | File[], targetFolderId: string) => {
+  const handleFiles = (files: FileList | File[], targetFolderId: string) => {
     if (!canEdit) return;
-    setUploadError(null);
-    setUploading(true);
-    try {
-      for (const file of Array.from(files)) {
-        if (!ALLOWED_UPLOAD_TYPES.includes(file.type)) {
-          setUploadError(`Unsupported file type: ${file.type || "unknown"}`);
-          continue;
-        }
-        await onUpload(file, targetFolderId);
+    const valid: File[] = [];
+    for (const file of Array.from(files)) {
+      if (!ALLOWED_UPLOAD_TYPES.includes(file.type)) {
+        setRejectedFile({ name: file.name, reason: `${file.type || "This file type"} isn't supported — allowed: ${ALLOWED_TYPES_LABEL}.` });
+        continue;
       }
-    } finally {
-      setUploading(false);
+      if (file.size > MAX_FILE_SIZE) {
+        setRejectedFile({ name: file.name, reason: `${(file.size / (1024 * 1024)).toFixed(1)} MB exceeds the ${MAX_SIZE_LABEL} limit — compress the file or split it, then try again.` });
+        continue;
+      }
+      valid.push(file);
+    }
+    if (valid.length > 0) {
+      setRejectedFile(null);
+      enqueue(valid, targetFolderId);
     }
   };
 
@@ -99,7 +161,7 @@ export function FilesTab({
     e.preventDefault();
     setDragOver(false);
     if (!openFolderId) return; // root: empty space never accepts a drop (folder tiles handle their own drop below)
-    if (e.dataTransfer.files.length > 0) void handleFiles(e.dataTransfer.files, openFolderId);
+    if (e.dataTransfer.files.length > 0) handleFiles(e.dataTransfer.files, openFolderId);
   };
 
   const handleCreateFolder = async () => {
@@ -120,8 +182,8 @@ export function FilesTab({
         </>
       )}
 
-      <div className="flex items-center justify-between gap-3 mb-3.5 flex-wrap">
-        <div className="flex items-center gap-1.5 text-[13px]">
+      <div className="flex items-center gap-2.5 mb-3.5 flex-wrap">
+        <div className="flex items-center gap-1.5 text-[13px] flex-1 min-w-[180px]">
           <button type="button" onClick={() => onOpenFolder(null)} className={cn("cursor-pointer border-none bg-transparent px-0 font-medium", openFolder ? "text-[#5F6A88] hover:text-[#007BFF]" : textPrimary)}>
             Files
           </button>
@@ -135,44 +197,52 @@ export function FilesTab({
             <span className="inline-flex text-[#A8B3CC] cursor-help"><CircleQuestionMark size={14} /></span>
           </IconTip>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center rounded-full border border-[#E2E7F2] bg-white p-0.5">
-            <IconTip label="Grid view">
-              <button type="button" onClick={() => setViewMode("grid")} aria-label="Grid view" aria-pressed={viewMode === "grid"} className={cn("p-1.5 rounded-full cursor-pointer border-none transition-colors", viewMode === "grid" ? "bg-[#E5F1FF] text-[#007BFF]" : "bg-transparent text-[#5F6A88]")}>
-                <LayoutGrid size={14} />
-              </button>
-            </IconTip>
-            <IconTip label="List view">
-              <button type="button" onClick={() => setViewMode("list")} aria-label="List view" aria-pressed={viewMode === "list"} className={cn("p-1.5 rounded-full cursor-pointer border-none transition-colors", viewMode === "list" ? "bg-[#E5F1FF] text-[#007BFF]" : "bg-transparent text-[#5F6A88]")}>
-                <List size={14} />
-              </button>
-            </IconTip>
-          </div>
-          {!openFolder && canEdit && (
-            <button type="button" onClick={() => setNewFolderOpen((v) => !v)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium border border-[#E2E7F2] bg-white text-[#3A4565] cursor-pointer hover:border-[#A8C6F5] transition-colors">
-              <FolderPlus size={13} /> New folder
-            </button>
-          )}
-          {openFolder && canEdit && (
-            <>
-              <input ref={fileInputRef} type="file" multiple className="hidden" onChange={(e) => e.target.files && handleFiles(e.target.files, openFolderId!)} />
-              <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold bg-[#007BFF] text-white cursor-pointer border-none hover:bg-[#0063D6] transition-colors disabled:opacity-60">
-                {uploading ? <Loader2 size={13} className="animate-spin" /> : <CloudUpload size={13} />}
-                {uploading ? "Uploading…" : "Upload"}
-              </button>
-            </>
-          )}
+        <div className="relative w-44 shrink-0">
+          <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#5F6A88] pointer-events-none" />
+          <input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={openFolder ? "Search files" : "Search folders"}
+            className="w-full text-[12px] rounded-full border border-[#E2E7F2] bg-[#F4F6FB] pl-8 pr-3 py-2 outline-none transition-colors focus:border-[#007BFF] focus:bg-white focus:shadow-[0_0_0_3px_rgba(0,123,255,0.14)]"
+          />
         </div>
+        <button
+          type="button"
+          onClick={() => setSortBy((s) => (s === "newest" ? "name" : "newest"))}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium border border-[#E2E7F2] bg-white text-[#3A4565] cursor-pointer hover:border-[#A8C6F5] transition-colors shrink-0"
+        >
+          <ArrowUpDown size={12} /> Sort: {sortBy === "newest" ? "Newest" : "Name"}
+        </button>
+        <div className="flex items-center rounded-full border border-[#E2E7F2] bg-white p-0.5 shrink-0">
+          <IconTip label="Grid view">
+            <button type="button" onClick={() => setViewMode("grid")} aria-label="Grid view" aria-pressed={viewMode === "grid"} className={cn("p-1.5 rounded-full cursor-pointer border-none transition-colors", viewMode === "grid" ? "bg-[#E5F1FF] text-[#007BFF]" : "bg-transparent text-[#5F6A88]")}>
+              <LayoutGrid size={14} />
+            </button>
+          </IconTip>
+          <IconTip label="List view">
+            <button type="button" onClick={() => setViewMode("list")} aria-label="List view" aria-pressed={viewMode === "list"} className={cn("p-1.5 rounded-full cursor-pointer border-none transition-colors", viewMode === "list" ? "bg-[#E5F1FF] text-[#007BFF]" : "bg-transparent text-[#5F6A88]")}>
+              <List size={14} />
+            </button>
+          </IconTip>
+        </div>
+        {openFolder && canEdit && (
+          <>
+            <input ref={fileInputRef} type="file" multiple className="hidden" onChange={(e) => e.target.files && handleFiles(e.target.files, openFolderId!)} />
+            <button type="button" onClick={() => fileInputRef.current?.click()} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold bg-[#007BFF] text-white cursor-pointer border-none hover:bg-[#0063D6] transition-colors shrink-0">
+              <CloudUpload size={13} /> Upload
+            </button>
+          </>
+        )}
       </div>
 
-      {!openFolder && newFolderOpen && (
-        <div className="flex items-center gap-2 mb-3.5">
-          <input autoFocus value={newFolderName} onChange={(e) => setNewFolderName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleCreateFolder()} placeholder="Folder name" className={cn(fieldInputCls, "max-w-64 text-[12.5px] py-2")} />
-          <button type="button" onClick={handleCreateFolder} className="px-3 py-2 rounded-lg bg-[#007BFF] text-white text-[12.5px] font-semibold cursor-pointer border-none hover:bg-[#0063D6] transition-colors">Create</button>
+      {openFolder && <UploadQueuePanel items={queueItems} onRetry={retryUpload} onDismiss={dismissQueueItem} />}
+
+      {rejectedFile && filesInOpenFolder.length > 0 && (
+        <div className="flex items-center justify-between gap-3 mb-3.5 px-3.5 py-2.5 rounded-[10px] bg-[#FDE8E6] border border-[#C0392B]/20 text-[12px] text-[#C0392B]">
+          <span><b>{rejectedFile.name}</b> can&apos;t be uploaded — {rejectedFile.reason}</span>
+          <button type="button" onClick={() => setRejectedFile(null)} aria-label="Dismiss" className="shrink-0 bg-transparent border-none cursor-pointer text-[#C0392B]"><X size={14} /></button>
         </div>
       )}
-
-      {uploadError && <p className="text-[12px] text-[#C0392B] mb-3">{uploadError}</p>}
 
       {openFolder && selectedIds.size > 0 && (
         <BulkToolbar
@@ -190,12 +260,13 @@ export function FilesTab({
           <EmptyPanel text="No folders yet — folders are created automatically per deliverable, or add your own." />
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
-            {rootFolders.map((folder) => (
+            {visibleFolders.map((folder) => (
               <FolderTile
                 key={folder.id}
                 folder={folder}
                 fileCount={fileCountByFolder.get(folder.id) ?? 0}
                 canEdit={canEdit}
+                duplicateWarning={duplicateFolderNames.has(folder.name.trim().toLowerCase())}
                 onOpen={() => onOpenFolder(folder.id)}
                 onPermissionChange={(u) => onFolderPermissionChange(folder.id, u)}
                 onRename={() => setRenameTarget({ kind: "folder", id: folder.id, name: folder.name })}
@@ -204,10 +275,16 @@ export function FilesTab({
                 isDropTarget={dragOverFolderId === folder.id}
                 onDragOverTile={(e) => { e.preventDefault(); e.stopPropagation(); if (canEdit) setDragOverFolderId(folder.id); }}
                 onDragLeaveTile={(e) => { e.stopPropagation(); setDragOverFolderId((id) => (id === folder.id ? null : id)); }}
-                onDropTile={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverFolderId(null); if (canEdit && e.dataTransfer.files.length > 0) void handleFiles(e.dataTransfer.files, folder.id); }}
+                onDropTile={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverFolderId(null); if (canEdit && e.dataTransfer.files.length > 0) handleFiles(e.dataTransfer.files, folder.id); }}
                 onContextMenu={openContextMenu}
               />
             ))}
+            {!searchQuery && canEdit && (
+              <NewFolderTile open={newFolderOpen} name={newFolderName} onOpen={() => setNewFolderOpen(true)} onNameChange={setNewFolderName} onCreate={handleCreateFolder} onCancel={() => { setNewFolderOpen(false); setNewFolderName(""); }} />
+            )}
+            {visibleFolders.length === 0 && searchQuery && (
+              <p className={cn("text-[12.5px] col-span-full text-center py-6", textMuted)}>No folders match &ldquo;{searchQuery}&rdquo;.</p>
+            )}
           </div>
         )
       ) : (
@@ -219,13 +296,22 @@ export function FilesTab({
         >
           {filesInOpenFolder.length === 0 ? (
             canEdit ? (
-              <UploadDropzone uploading={uploading} isDragOver={dragOver} onBrowse={() => fileInputRef.current?.click()} />
+              <UploadDropzone
+                uploading={false}
+                isDragOver={dragOver}
+                onBrowse={() => fileInputRef.current?.click()}
+                rejected={rejectedFile}
+                maxSizeLabel={MAX_SIZE_LABEL}
+                allowedTypesLabel={ALLOWED_TYPES_LABEL}
+              />
             ) : (
               <EmptyPanel text="This folder is empty." />
             )
+          ) : visibleFiles.length === 0 ? (
+            <p className={cn("text-[12.5px] text-center py-10", textMuted)}>No files match &ldquo;{searchQuery}&rdquo;.</p>
           ) : viewMode === "grid" ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
-              {filesInOpenFolder.map((asset) => (
+              {visibleFiles.map(({ asset, versionCount, olderVersions }) => (
                 <FileTile
                   key={asset.id}
                   asset={asset}
@@ -233,6 +319,8 @@ export function FilesTab({
                   canEdit={canEdit}
                   viewMode="grid"
                   selected={selectedIds.has(asset.id)}
+                  versionCount={versionCount}
+                  olderVersions={olderVersions}
                   onToggleSelect={() => toggleSelect(asset.id)}
                   onContextMenu={openContextMenu}
                   onDelete={() => onDeleteAsset(asset.id)}
@@ -245,7 +333,7 @@ export function FilesTab({
             </div>
           ) : (
             <div className="flex flex-col gap-2">
-              {filesInOpenFolder.map((asset) => (
+              {visibleFiles.map(({ asset, versionCount, olderVersions }) => (
                 <FileTile
                   key={asset.id}
                   asset={asset}
@@ -253,6 +341,8 @@ export function FilesTab({
                   canEdit={canEdit}
                   viewMode="list"
                   selected={selectedIds.has(asset.id)}
+                  versionCount={versionCount}
+                  olderVersions={olderVersions}
                   onToggleSelect={() => toggleSelect(asset.id)}
                   onContextMenu={openContextMenu}
                   onDelete={() => onDeleteAsset(asset.id)}
@@ -296,32 +386,35 @@ function EmptyPanel({ text }: { text: string }) {
   );
 }
 
-// Same drag-and-drop visual as the per-field upload boxes on the original Onboarding Wizard's
-// steps (../_onboarding-wizard.tsx's FileUploadBox) — circular blue icon badge, "Drag & drop a
-// file, or browse" copy, dashed rounded-2xl border. The actual drop handling stays on this
-// tab's parent zone (`onDrop={handleZoneDrop}` in the wrapping div); this is the empty-state
-// visual + the click-to-browse trigger.
-function UploadDropzone({ uploading, isDragOver, onBrowse }: { uploading: boolean; isDragOver: boolean; onBrowse: () => void }) {
+// Mockup 03's inline dashed "+ New folder" grid tile — replaces the old toolbar-button-reveals-
+// an-inline-input-row pattern; the tile itself now toggles into the name input.
+function NewFolderTile({
+  open, name, onOpen, onNameChange, onCreate, onCancel,
+}: {
+  open: boolean; name: string; onOpen: () => void; onNameChange: (v: string) => void; onCreate: () => void; onCancel: () => void;
+}) {
+  if (open) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-2 rounded-[14px] border border-dashed border-[#A8C6F5] bg-[#F0F7FF] p-4 min-h-26">
+        <input
+          autoFocus
+          value={name}
+          onChange={(e) => onNameChange(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") onCreate(); if (e.key === "Escape") onCancel(); }}
+          onBlur={() => (name.trim() ? onCreate() : onCancel())}
+          placeholder="Folder name"
+          className="w-full text-[12.5px] rounded-[8px] border border-[#A8C6F5] bg-white px-2.5 py-2 outline-none text-center"
+        />
+      </div>
+    );
+  }
   return (
     <button
       type="button"
-      onClick={onBrowse}
-      disabled={uploading}
-      className={cn(
-        "group w-full min-h-[168px] flex flex-col items-center justify-center gap-2.5 rounded-2xl border border-dashed py-8 text-center cursor-pointer transition-colors duration-150 disabled:opacity-60",
-        isDragOver ? "border-[#007BFF] bg-[#F0F7FF]" : "border-[#C7D2E8] bg-[#F9FAFD] hover:border-[#007BFF] hover:bg-[#F0F7FF]"
-      )}
+      onClick={onOpen}
+      className="flex flex-col items-center justify-center gap-1.5 rounded-[14px] border border-dashed border-[#A8C6F5] bg-[#F0F7FF] text-[#0063D6] font-semibold text-[12.5px] min-h-26 cursor-pointer hover:bg-[#E5F1FF] transition-colors"
     >
-      <div className={cn(
-        "flex h-12 w-12 items-center justify-center rounded-full transition-all duration-150 group-hover:scale-105",
-        isDragOver ? "bg-[#007BFF] text-white" : "bg-[#E5F1FF] text-[#007BFF]"
-      )}>
-        <CloudUpload size={22} strokeWidth={1.75} />
-      </div>
-      <div className={cn("text-[13px] font-medium", textPrimary)}>
-        {uploading ? "Uploading…" : <>Drag &amp; drop a file, or <span className="text-[#007BFF]">browse</span></>}
-      </div>
-      {!uploading && <div className={cn("text-[11px]", textMuted)}>Any document, spreadsheet, or image</div>}
+      <FolderPlus size={20} /> New folder
     </button>
   );
 }

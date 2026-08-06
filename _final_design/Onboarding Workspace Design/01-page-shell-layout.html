@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>1 · Page shell, layout &amp; tabs — Onboarding Workspace</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#071133; --blue:#007BFF; --blue-700:#0063D6; --blue-100:#E5F1FF; --blue-50:#F0F7FF;
+  --orange:#FB914E; --orange-600:#E2762F; --orange-100:#FFEFE3; --orange-700:#B85512;
+  --bg:#F4F6FB; --surface:#FFFFFF; --line:#E2E7F2; --line-soft:#EDF0F7;
+  --ink:#0B1533; --body:#3A4565; --muted:#5F6A88;
+  --ph-onboard:#E2762F; --ph-onboard-bg:#FFEFE3;
+  --ok:#177E48; --ok-bg:#E3F5EA; --warn:#8A5A00; --warn-bg:#FFF3D6; --late:#C0392B; --late-bg:#FDE8E6;
+  --r-lg:14px; --r-md:10px; --r-sm:7px;
+  --sh-sm:0 1px 2px rgba(7,17,51,.05); --sh-md:0 8px 24px rgba(7,17,51,.10);
+  --ease:cubic-bezier(.22,1,.36,1);
+  --font-ui:'Inter',system-ui,sans-serif; --font-display:'Space Grotesk',var(--font-ui); --font-mono:'JetBrains Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-ui);background:var(--bg);color:var(--body);font-size:.8125rem;line-height:1.55;-webkit-font-smoothing:antialiased}
+button{font:inherit;cursor:pointer;border:none;background:none;color:inherit}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:4px}
+::selection{background:var(--blue-100);color:var(--blue-700)}
+
+.wrap{max-width:1180px;margin:0 auto;padding:28px 28px 100px}
+.annot{display:flex;gap:9px;background:var(--navy);color:#B9C2E0;border-radius:var(--r-md);padding:12px 16px;margin-bottom:24px;font-size:.75rem}
+.annot b{color:#fff}
+.annot svg{flex:none;margin-top:2px}
+.annot ul{margin:6px 0 0 16px}
+.annot li{margin-bottom:2px}
+
+.crumb{display:flex;align-items:center;gap:6px;font-size:.75rem;color:var(--muted);margin-bottom:16px}
+.crumb a{color:var(--muted);font-weight:500}
+.crumb a:hover{color:var(--blue-700)}
+.crumb svg{opacity:.55}
+.crumb .current{color:var(--ink);font-weight:600}
+
+.title-row{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap;margin-bottom:22px}
+.title-main h1{font-family:var(--font-display);font-size:1.5rem;font-weight:700;color:var(--ink);letter-spacing:-.015em;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.title-main p{font-size:.8125rem;color:var(--muted);margin-top:6px;max-width:62ch}
+.title-actions{display:flex;gap:8px;align-items:center;flex:none}
+
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:.625rem;font-weight:700;letter-spacing:.02em;padding:2.5px 8px;border-radius:5px;white-space:nowrap}
+.chip .cdot{width:5px;height:5px;border-radius:50%;background:currentColor}
+.chip-onboard{background:var(--ph-onboard-bg);color:var(--ph-onboard)}
+.chip-neutral{background:var(--line-soft);color:var(--muted)}
+
+.btn{display:inline-flex;align-items:center;gap:7px;padding:8px 15px;border-radius:999px;font-size:.75rem;font-weight:600;white-space:nowrap;transition:background .16s var(--ease),transform .12s var(--ease),border-color .16s var(--ease),color .16s var(--ease)}
+.btn:active{transform:translateY(1px)}
+.btn-cta{background:var(--orange);color:#471F02}
+.btn-cta:hover{background:var(--orange-600);color:#fff}
+.btn-ghost{border:1px solid var(--line);color:var(--body);background:var(--surface)}
+.btn-ghost:hover{border-color:#A8C6F5;color:var(--ink)}
+.btn-sm{padding:5.5px 12px;font-size:.6875rem}
+
+.track-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--sh-sm);padding:16px 20px;margin-bottom:22px}
+.track-top{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:11px;gap:12px;flex-wrap:wrap}
+.track-top .lbl{font-size:.6875rem;font-weight:700;color:var(--ink);text-transform:uppercase;letter-spacing:.06em}
+.track-top .val{font-family:var(--font-mono);font-size:.6875rem;color:var(--muted)}
+.track{position:relative;height:20px;border-radius:999px;background:var(--line-soft)}
+.track-ticks{position:absolute;inset:0;border-radius:999px;pointer-events:none;
+  background:
+    linear-gradient(var(--line) 0 0) calc(1/7*100%) 0/1px 100% no-repeat,
+    linear-gradient(var(--line) 0 0) calc(3/7*100%) 0/1px 100% no-repeat,
+    linear-gradient(var(--line) 0 0) calc(5/7*100%) 0/1px 100% no-repeat;}
+.track-fill{position:absolute;inset:0 auto 0 0;width:60%;border-radius:999px;background:linear-gradient(90deg,#FFD9B8,var(--orange))}
+.track-day{position:absolute;top:50%;left:60%;transform:translate(-50%,-50%);font-family:var(--font-mono);font-size:.5625rem;font-weight:600;background:var(--navy);color:#fff;padding:2px 7px;border-radius:999px;box-shadow:0 1px 3px rgba(7,17,51,.35)}
+.track-foot{display:flex;justify-content:space-between;margin-top:6px;font-family:var(--font-mono);font-size:.5625rem;color:var(--muted)}
+
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin-bottom:0;overflow-x:auto}
+.tab{position:relative;padding:11px 4px;margin-right:22px;font-size:.8125rem;font-weight:600;color:var(--muted);white-space:nowrap;transition:color .16s var(--ease)}
+.tab:hover{color:var(--ink)}
+.tab.active{color:var(--ink)}
+.tab.active::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--blue);border-radius:2px 2px 0 0}
+.tab .tcount{font-family:var(--font-mono);font-size:.625rem;color:var(--muted);margin-left:4px}
+
+.frame{border:1px solid var(--line);border-radius:var(--r-lg);background:var(--surface);box-shadow:var(--sh-sm);padding:60px 20px;text-align:center;color:var(--muted);font-size:.8125rem;margin-top:18px}
+.frame b{color:var(--ink);font-family:var(--font-display);display:block;font-size:.9375rem;margin-bottom:4px}
+
+.spec{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-top:34px}
+.spec-card{border:1px solid var(--line);border-radius:var(--r-md);background:var(--surface);padding:16px;box-shadow:var(--sh-sm)}
+.spec-card h4{font-family:var(--font-display);font-size:.8125rem;font-weight:600;color:var(--ink);margin-bottom:8px}
+.spec-card ul{list-style:none;font-size:.75rem;color:var(--body)}
+.spec-card li{padding:3px 0}
+.spec-card li b{color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="annot">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+    <div><b>1 · Overall page design &amp; layout — what changed</b>
+      <ul>
+        <li>Page title now sets in Space Grotesk 700 per the type spec; tab labels stay in Inter (display face was previously banned from tabs, but the source screen used it nowhere consistently).</li>
+        <li>Tabs are now a real, defined component — underline-on-active, not a pill segment (pills stayed reserved for filters, matching the guide's "filter pills are single-select, fill navy" rule so tabs can't be confused with filters).</li>
+        <li>Phase chip + classification chip sit next to the title so the current phase is visible without opening the Checklist tab.</li>
+        <li>The programme track (the guide's "signature element") is now present here, with phase-boundary ticks and a mono day-pill, instead of missing entirely.</li>
+        <li>One orange CTA ("Complete onboarding") — previously there was no primary action anywhere on the page.</li>
+      </ul>
+    </div>
+  </div>
+
+  <nav class="crumb">
+    <a href="#">Work</a>
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M9 6l6 6-6 6"/></svg>
+    <a href="#">Portfolio Tracker</a>
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M9 6l6 6-6 6"/></svg>
+    <span class="current">ABC Test Company</span>
+  </nav>
+
+  <div class="title-row">
+    <div class="title-main">
+      <h1>ABC Test Company — Onboarding workspace <span class="chip chip-onboard"><i class="cdot"></i>Onboard</span> <span class="chip chip-neutral">StackShift I</span></h1>
+      <p>Day 1–15 of the 120-day programme. Every deliverable below can be worked in any order — nothing here gates on step sequence.</p>
+    </div>
+    <div class="title-actions">
+      <button class="btn btn-ghost btn-sm"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>Back to website</button>
+      <button class="btn btn-cta"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6L9 17l-5-5"/></svg>Complete onboarding</button>
+    </div>
+  </div>
+
+  <div class="track-card">
+    <div class="track-top">
+      <span class="lbl">Onboard phase progress</span>
+      <span class="val">DAY 9 OF 15 &nbsp;·&nbsp; 4 SECTIONS OVERDUE</span>
+    </div>
+    <div class="track">
+      <div class="track-ticks"></div>
+      <div class="track-fill"></div>
+      <div class="track-day">DAY 9</div>
+    </div>
+    <div class="track-foot"><span>DAY 1</span><span>DAY 15 · MIGRATE &amp; REBRAND STARTS</span></div>
+  </div>
+
+  <div class="tabs" role="tablist">
+    <button class="tab active" data-t="Business info">Business info</button>
+    <button class="tab" data-t="Files">Files <span class="tcount">15</span></button>
+    <button class="tab" data-t="Access">Access <span class="tcount">2</span></button>
+    <button class="tab" data-t="Checklist">Checklist <span class="tcount">2/8</span></button>
+  </div>
+  <div class="frame" id="frame"><b>Business info</b>See 02-business-info.html, 03-file-management.html, 04-upload-dropzone.html, 05-access-management.html and 06-checklist.html for each tab's full content.</div>
+
+  <div class="spec">
+    <div class="spec-card"><h4>Type</h4><ul>
+      <li><b>Page title</b> — Space Grotesk 700, 24px</li>
+      <li><b>Panel/section title</b> — Space Grotesk 600, 15px</li>
+      <li><b>Tabs, buttons, body</b> — Inter, never display face</li>
+      <li><b>Day counts, IDs, timestamps</b> — JetBrains Mono</li>
+    </ul></div>
+    <div class="spec-card"><h4>Color roles used here</h4><ul>
+      <li><b>Navy</b> — day-pill, chrome</li>
+      <li><b>Blue</b> — links, tab underline, focus ring</li>
+      <li><b>Orange</b> — the one primary CTA + Onboard phase chip</li>
+      <li><b>Late red</b> — overdue count in the track header</li>
+    </ul></div>
+    <div class="spec-card"><h4>Spacing</h4><ul>
+      <li>Page padding 28px</li>
+      <li>Card padding 18–22px</li>
+      <li>Section gap 22–24px</li>
+      <li>4px base grid throughout</li>
+    </ul></div>
+  </div>
+</div>
+<script>
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active');
+  document.getElementById('frame').innerHTML='<b>'+t.dataset.t+'</b>See the matching numbered file for this tab\'s full design.';
+}));
+</script>
+</body>
+</html>

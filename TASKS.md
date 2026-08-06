@@ -19,6 +19,8 @@
 
 | ID | Title | Priority | Type | Doc | Date |
 |----|-------|----------|------|-----|------|
+| 218 | Task Detail Page — Start Timer Button (Parity with List View) | MEDIUM | enhancement | _docs/task/218-task-detail-page-start-timer-button.md | 2026-08-06 |
+| 217 | Onboarding Workspace v2 (`/v2/portfolio-tracker/[projectId]/v2`) — Design Redesign From `_final_design/Onboarding Workspace Design` (underline tabs, programme track, business-info field polish, file mgmt search/sort/version badges, upload progress queue, access masked values + undo-delete, checklist stats) | HIGH | enhancement | _docs/task/217-onboarding-workspace-v2-design-redesign.md | 2026-08-06 |
 | 216 | Fix Task Comments Showing "Unknown" Author — Profiles RLS Gap | HIGH | bugfix | _docs/task/216-fix-comment-author-unknown-profiles-rls-gap.md | 2026-08-05 |
 | 214 | Task Detail — "Time Logs" Tab (Check, Edit, Add Manual Entries) | HIGH | feature | _docs/task/214-task-detail-time-logs-tab-check-edit-add.md | 2026-08-05 |
 | 212 | Task Comments — Rich Text Editor (Paste Images), File Attachments, Loading-Skeleton Verification | HIGH | enhancement | _docs/task/212-comment-rich-text-attachments-skeletons.md | 2026-08-05 |

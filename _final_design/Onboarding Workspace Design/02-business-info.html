@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2 · Business info — Onboarding Workspace</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#071133; --blue:#007BFF; --blue-700:#0063D6; --blue-100:#E5F1FF; --blue-50:#F0F7FF;
+  --orange:#FB914E; --orange-600:#E2762F;
+  --bg:#F4F6FB; --surface:#FFFFFF; --line:#E2E7F2; --line-soft:#EDF0F7;
+  --ink:#0B1533; --body:#3A4565; --muted:#5F6A88;
+  --ok:#177E48; --ok-bg:#E3F5EA; --late:#C0392B; --late-bg:#FDE8E6;
+  --r-lg:14px; --r-md:10px;
+  --sh-sm:0 1px 2px rgba(7,17,51,.05);
+  --ease:cubic-bezier(.22,1,.36,1);
+  --font-ui:'Inter',system-ui,sans-serif; --font-display:'Space Grotesk',var(--font-ui); --font-mono:'JetBrains Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-ui);background:var(--bg);color:var(--body);font-size:.8125rem;line-height:1.55;-webkit-font-smoothing:antialiased}
+button{font:inherit;cursor:pointer;border:none;background:none;color:inherit}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:4px}
+.wrap{max-width:1180px;margin:0 auto;padding:28px}
+.annot{display:flex;gap:9px;background:var(--navy);color:#B9C2E0;border-radius:var(--r-md);padding:12px 16px;margin-bottom:22px;font-size:.75rem}
+.annot b{color:#fff}
+.annot ul{margin:6px 0 0 16px}
+.annot li{margin-bottom:2px}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--sh-sm)}
+.pad{padding:22px}
+.bi-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+@media (max-width:900px){.bi-grid{grid-template-columns:1fr}}
+.field-block h3{font-family:var(--font-display);font-size:.9375rem;font-weight:600;color:var(--ink);margin-bottom:3px}
+.field-block>p.hint{font-size:.6875rem;color:var(--muted);margin-bottom:14px}
+
+.contact-card{border:1px solid var(--line);border-radius:var(--r-md);padding:14px;margin-bottom:12px;position:relative}
+.contact-card .badge{position:absolute;top:-9px;left:12px;background:var(--blue-100);color:var(--blue-700);font-size:.5938rem;font-weight:700;padding:2px 8px;border-radius:5px;letter-spacing:.03em}
+.contact-card .remove{position:absolute;top:10px;right:10px;color:var(--muted);width:24px;height:24px;border-radius:6px;display:grid;place-items:center;transition:all .16s var(--ease)}
+.contact-card .remove:hover{background:var(--late-bg);color:var(--late)}
+.f-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.f-row:last-child{margin-bottom:0}
+.field label{display:flex;align-items:center;gap:4px;font-size:.6875rem;font-weight:600;color:var(--ink);margin-bottom:5px}
+.field label .req{color:var(--late)}
+.field label .opt{color:var(--muted);font-weight:500}
+.field{position:relative}
+.field input,.field select{width:100%;font:inherit;font-size:.8125rem;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 12px;outline:none;transition:border-color .16s var(--ease),box-shadow .16s var(--ease),background .16s var(--ease)}
+.field input:focus,.field select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,123,255,.14);background:#fff}
+.field .err{font-size:.6875rem;color:var(--late);margin-top:5px;display:flex;align-items:center;gap:4px}
+.field.has-error input{border-color:var(--late)}
+.field.ok input{border-color:var(--ok);padding-right:32px}
+.field.ok .okmark{position:absolute;right:11px;top:33px;color:var(--ok)}
+.field .fav{position:absolute;left:11px;top:33px;width:16px;height:16px;border-radius:4px;background:var(--blue-100);display:grid;place-items:center;color:var(--blue-700);font-size:.5rem;font-weight:700}
+.field.has-fav input{padding-left:34px}
+
+.add-row{display:inline-flex;align-items:center;gap:6px;font-size:.75rem;font-weight:600;color:var(--blue-700);border:1px dashed #A8C6F5;border-radius:999px;padding:7px 14px;background:transparent;width:100%;justify-content:center;transition:all .16s var(--ease)}
+.add-row:hover{background:var(--blue-50);border-color:var(--blue)}
+.multi-url{display:flex;gap:8px;margin-bottom:8px}
+.multi-url input{flex:1}
+.multi-url button{flex:none;width:36px;border:1px solid var(--line);border-radius:10px;color:var(--muted);display:grid;place-items:center;transition:all .16s var(--ease)}
+.multi-url button:hover{border-color:var(--late);color:var(--late)}
+
+.rte{border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden}
+.rte-bar{display:flex;gap:2px;padding:6px 8px;border-bottom:1px solid var(--line-soft);background:var(--bg);align-items:center}
+.rte-bar button{width:26px;height:26px;border-radius:6px;display:grid;place-items:center;color:var(--body);font-size:.75rem;font-weight:700;transition:background .16s var(--ease)}
+.rte-bar button:hover{background:var(--line-soft);color:var(--ink)}
+.rte-bar .div{width:1px;height:16px;background:var(--line);margin:0 4px}
+.rte textarea{display:block;width:100%;border:none;resize:vertical;font:inherit;font-size:.8125rem;color:var(--ink);padding:12px;outline:none;min-height:96px;background:#fff}
+.rte textarea::placeholder{color:#9AA4C2}
+.rte-foot{display:flex;justify-content:flex-end;padding:5px 10px;border-top:1px solid var(--line-soft);font-family:var(--font-mono);font-size:.625rem;color:var(--muted)}
+
+.autosave{display:flex;align-items:center;gap:6px;font-size:.6875rem;color:var(--muted);margin-top:18px;padding-top:16px;border-top:1px solid var(--line-soft)}
+.autosave.saved svg{color:var(--ok)}
+.autosave.pending svg{color:var(--muted);animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.kickoff-card{display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:var(--r-md);padding:12px 14px}
+.kickoff-card .ic{width:34px;height:34px;border-radius:9px;background:var(--blue-100);color:var(--blue-700);display:grid;place-items:center;flex:none}
+.kickoff-card .meta{flex:1}
+.kickoff-card .meta .n{font-size:.75rem;font-weight:600;color:var(--ink)}
+.kickoff-card .meta .s{font-size:.625rem;color:var(--muted)}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:7px 13px;border-radius:999px;font-size:.6875rem;font-weight:600;border:1px solid var(--line);color:var(--body);background:var(--surface);transition:all .16s var(--ease)}
+.btn:hover{border-color:#A8C6F5;color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="annot">
+    <b>2 · Business info — enhancements</b>
+    <ul>
+      <li>Every field has a persistent label (not a placeholder standing in for one) — required fields are marked, optional fields say so in the label, not just as grayed-out placeholder text.</li>
+      <li>Live validation: the primary contact email shows an inline error with the fix, the website field shows a resolved-favicon + success state once a valid URL is entered.</li>
+      <li>Autosave now has three visible states — saved, saving, and (not shown) failed — instead of no indicator at all.</li>
+      <li>Removing a contact or URL row is now a visible, hoverable action instead of an implicit gesture.</li>
+    </ul>
+  </div>
+
+  <div class="card pad">
+    <div class="bi-grid">
+      <div>
+        <div class="field-block">
+          <h3>Contacts</h3>
+          <p class="hint">Who we coordinate with during onboarding.</p>
+
+          <div class="contact-card">
+            <span class="badge">PRIMARY CONTACT</span>
+            <div class="f-row">
+              <div class="field"><label>Full name <span class="req">*</span></label><input type="text" value="Test"></div>
+              <div class="field"><label>Position <span class="opt">(optional)</span></label><input type="text" placeholder="e.g. Operations Manager"></div>
+            </div>
+            <div class="f-row">
+              <div class="field has-error">
+                <label>Email <span class="req">*</span></label>
+                <input type="email" value="test@gmail">
+                <div class="err"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>Enter a full address, e.g. name@company.com</div>
+              </div>
+              <div class="field"><label>Phone <span class="opt">(optional)</span></label><input type="tel" placeholder="+1 (555) 000-0000"></div>
+            </div>
+            <div class="field"><label>Social accounts <span class="opt">(optional, comma-separated)</span></label><input type="text" placeholder="linkedin.com/company/..., @handle"></div>
+          </div>
+
+          <div class="contact-card">
+            <span class="remove" title="Remove contact"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 6l12 12M18 6L6 18"/></svg></span>
+            <div class="f-row">
+              <div class="field"><label>Full name <span class="req">*</span></label><input type="text" placeholder="e.g. Jordan Lee"></div>
+              <div class="field"><label>Position <span class="opt">(optional)</span></label><input type="text" placeholder="e.g. Marketing Lead"></div>
+            </div>
+            <div class="f-row">
+              <div class="field"><label>Email <span class="req">*</span></label><input type="email" placeholder="name@company.com"></div>
+              <div class="field"><label>Phone <span class="opt">(optional)</span></label><input type="tel" placeholder="+1 (555) 000-0000"></div>
+            </div>
+          </div>
+
+          <button class="add-row"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>Add another contact</button>
+        </div>
+
+        <div class="field-block" style="margin-top:24px">
+          <h3>Web presence</h3>
+          <p class="hint">Used to brief the design and content team.</p>
+          <div class="field ok has-fav" style="margin-bottom:14px">
+            <label>Current website URL <span class="req">*</span></label>
+            <span class="fav">C</span>
+            <input type="url" value="https://client.com">
+            <span class="okmark"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6L9 17l-5-5"/></svg></span>
+          </div>
+          <label style="display:block;font-size:.6875rem;font-weight:600;color:var(--ink);margin-bottom:5px">Competitor / reference URLs <span style="color:var(--muted);font-weight:500">(optional)</span></label>
+          <div class="multi-url"><input type="url" value="https://competitor.com"><button aria-label="Remove"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+          <div class="multi-url"><input type="url" placeholder="https://another-competitor.com"><button aria-label="Remove"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+          <button class="add-row" style="margin-top:2px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>Add another URL</button>
+        </div>
+      </div>
+
+      <div>
+        <div class="field-block">
+          <h3>Business facts</h3>
+          <p class="hint">History, services, value proposition, target customers.</p>
+          <div class="rte">
+            <div class="rte-bar">
+              <button style="font-weight:800">B</button><button style="font-style:italic">I</button><button style="text-decoration:underline">U</button>
+              <span class="div"></span><button>•</button>
+            </div>
+            <textarea placeholder="Start typing, or paste from the kickoff notes...">Test</textarea>
+            <div class="rte-foot">4 / 2000</div>
+          </div>
+        </div>
+
+        <div class="field-block" style="margin-top:24px">
+          <h3>Additional notes</h3>
+          <p class="hint">Leave blank if none.</p>
+          <div class="rte">
+            <div class="rte-bar">
+              <button style="font-weight:800">B</button><button style="font-style:italic">I</button><button style="text-decoration:underline">U</button>
+              <span class="div"></span><button>•</button>
+            </div>
+            <textarea placeholder="Anything else the team should know before Day 16..."></textarea>
+            <div class="rte-foot">0 / 2000</div>
+          </div>
+        </div>
+
+        <div class="field-block" style="margin-top:24px">
+          <h3>Kickoff notes</h3>
+          <p class="hint">Reference document shared by the client on the kickoff call.</p>
+          <div class="kickoff-card">
+            <span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v7a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg></span>
+            <div class="meta"><div class="n">Kickoff Notes — ABC Test Co.docx</div><div class="s">Uploaded by Danessa · Jul 17</div></div>
+            <button class="btn">Open</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="autosave saved"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6L9 17l-5-5"/></svg>Saved automatically · last change 2 minutes ago</div>
+  </div>
+</div>
+</body>
+</html>

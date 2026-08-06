@@ -1,6 +1,7 @@
 "use client";
 
 import { Play, Pause, Square, Coffee, Timer } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { useTimer } from "../../_components/timer-context";
 import { formatMMSS } from "@/lib/timer/format";
@@ -12,10 +13,14 @@ export function TaskTimerButton({
   taskId,
   projectId,
   onHoursLogged,
+  prominent = false,
 }: {
   taskId: string;
   projectId: string;
   onHoursLogged: (taskId: string, hours: number) => void;
+  // Task 218 — opt-in, larger brand-orange "start" affordance for the task detail page header.
+  // Defaults to false so the list view's compact row icon is unchanged.
+  prominent?: boolean;
 }) {
   const { timer, elapsedSeconds, startTimer, pauseTimer, resumeTimer, stopTimer } = useTimer();
 
@@ -46,9 +51,14 @@ export function TaskTimerButton({
         <TooltipTrigger render={
           <button
             onClick={() => void startTimer(taskId, projectId)}
-            className="flex items-center justify-center text-[#C7CEDD] hover:text-[#007BFF] transition-colors cursor-pointer"
+            className={cn(
+              "flex items-center justify-center transition-colors cursor-pointer",
+              prominent
+                ? "text-[#FB914E] hover:text-[#E2762F]"
+                : "text-[#C7CEDD] hover:text-[#007BFF]"
+            )}
           >
-            <Timer size={13} />
+            <Timer size={prominent ? 18 : 13} />
           </button>
         } />
         <TooltipContent side="top">Start timer</TooltipContent>

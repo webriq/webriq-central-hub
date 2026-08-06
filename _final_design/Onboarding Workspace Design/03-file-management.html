@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3 · File management — Onboarding Workspace</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#071133; --blue:#007BFF; --blue-700:#0063D6; --blue-100:#E5F1FF; --blue-50:#F0F7FF;
+  --orange:#FB914E;
+  --bg:#F4F6FB; --surface:#FFFFFF; --line:#E2E7F2; --line-soft:#EDF0F7;
+  --ink:#0B1533; --body:#3A4565; --muted:#5F6A88;
+  --ok:#177E48; --ok-bg:#E3F5EA; --warn:#8A5A00; --warn-bg:#FFF3D6; --late:#C0392B; --late-bg:#FDE8E6;
+  --r-lg:14px; --r-md:10px;
+  --sh-sm:0 1px 2px rgba(7,17,51,.05); --sh-md:0 8px 24px rgba(7,17,51,.10);
+  --ease:cubic-bezier(.22,1,.36,1);
+  --font-ui:'Inter',system-ui,sans-serif; --font-display:'Space Grotesk',var(--font-ui); --font-mono:'JetBrains Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-ui);background:var(--bg);color:var(--body);font-size:.8125rem;line-height:1.55;-webkit-font-smoothing:antialiased}
+button{font:inherit;cursor:pointer;border:none;background:none;color:inherit}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:4px}
+.wrap{max-width:1180px;margin:0 auto;padding:28px}
+.annot{display:flex;gap:9px;background:var(--navy);color:#B9C2E0;border-radius:var(--r-md);padding:12px 16px;margin-bottom:22px;font-size:.75rem}
+.annot b{color:#fff}
+.annot ul{margin:6px 0 0 16px}
+.annot li{margin-bottom:2px}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--sh-sm)}
+.pad{padding:22px}
+
+.toolbar{display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap}
+.crumb-mini{display:flex;align-items:center;gap:6px;font-size:.8125rem;flex:1;min-width:160px}
+.crumb-mini a{color:var(--muted);font-weight:600}
+.crumb-mini a:hover{color:var(--blue-700)}
+.crumb-mini .current{color:var(--ink);font-weight:700;font-family:var(--font-display);font-size:.9375rem}
+.crumb-mini svg{opacity:.55;flex:none}
+.back-btn{display:none;align-items:center;gap:6px;color:var(--muted);font-weight:600;font-size:.75rem}
+.back-btn:hover{color:var(--blue-700)}
+.search{position:relative;flex:none;width:220px}
+.search input{width:100%;font:inherit;font-size:.75rem;padding:8px 12px 8px 32px;border:1px solid var(--line);border-radius:999px;background:var(--bg);outline:none;transition:all .16s var(--ease)}
+.search input:focus{border-color:var(--blue);background:#fff;box-shadow:0 0 0 3px rgba(0,123,255,.14)}
+.search svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted)}
+.seg{display:flex;border:1px solid var(--line);border-radius:999px;padding:2px;background:var(--surface)}
+.seg button{width:28px;height:26px;border-radius:999px;display:grid;place-items:center;color:var(--muted);transition:all .16s var(--ease)}
+.seg button.active{background:var(--blue-100);color:var(--blue-700)}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:8px 15px;border-radius:999px;font-size:.75rem;font-weight:600;white-space:nowrap;transition:all .16s var(--ease)}
+.btn-ghost{border:1px solid var(--line);color:var(--body);background:var(--surface)}
+.btn-ghost:hover{border-color:#A8C6F5;color:var(--ink)}
+.btn-blue{background:var(--blue);color:#fff}
+.btn-blue:hover{background:var(--blue-700)}
+.btn-sm{padding:5.5px 12px;font-size:.6875rem}
+
+/* ═ folder grid ═ */
+.folder-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.folder{border:1px solid var(--line);border-radius:var(--r-md);padding:16px;background:var(--surface);transition:border-color .16s var(--ease),box-shadow .16s var(--ease);cursor:pointer;position:relative}
+.folder:hover{border-color:#A8C6F5;box-shadow:var(--sh-sm)}
+.folder .top{display:flex;justify-content:space-between;align-items:flex-start}
+.folder .ico{width:34px;height:34px;border-radius:9px;background:var(--blue-100);display:grid;place-items:center;color:var(--blue-700);margin-bottom:10px}
+.folder .menu{position:relative}
+.folder .menu button{color:var(--muted);padding:4px;border-radius:6px}
+.folder .menu button:hover{background:var(--line-soft);color:var(--ink)}
+.folder .name{font-size:.8125rem;font-weight:600;color:var(--ink);margin-bottom:2px}
+.folder .cnt{font-size:.6875rem;color:var(--muted)}
+.folder.dupe{border-color:var(--warn)}
+.folder.dupe .warn{display:flex;align-items:center;gap:4px;margin-top:8px;font-size:.5938rem;font-weight:700;color:var(--warn);background:var(--warn-bg);padding:2px 7px;border-radius:5px;width:fit-content}
+.folder.new{border-style:dashed;border-color:#A8C6F5;background:var(--blue-50);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:var(--blue-700);font-weight:600;gap:6px;min-height:104px}
+.folder.new:hover{background:var(--blue-100)}
+.dropdown{position:absolute;top:30px;right:0;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);box-shadow:var(--sh-md);width:150px;z-index:5;padding:5px;display:none}
+.dropdown.show{display:block}
+.dropdown button{display:flex;align-items:center;gap:8px;width:100%;padding:7px 9px;border-radius:7px;font-size:.75rem;color:var(--body);text-align:left}
+.dropdown button:hover{background:var(--line-soft);color:var(--ink)}
+.dropdown button.danger:hover{background:var(--late-bg);color:var(--late)}
+
+/* ═ file table ═ */
+.bulkbar{display:none;align-items:center;gap:10px;background:var(--navy);color:#fff;padding:9px 16px;border-radius:var(--r-md);margin-bottom:12px;font-size:.75rem}
+.bulkbar.show{display:flex}
+.bulkbar .sp{flex:1}
+.bulkbar button{color:#DCE3F7;border:1px solid rgba(185,194,224,.35);border-radius:999px;padding:5.5px 12px;font-size:.6875rem;font-weight:600}
+.bulkbar button:hover{border-color:#5EB0FF;color:#fff}
+
+.file-table{width:100%;border-collapse:collapse}
+.file-table th{text-align:left;font-size:.5938rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);padding:0 10px 10px;border-bottom:1px solid var(--line)}
+.file-table th.num,.file-table td.num{text-align:right}
+.file-table td{padding:10px;border-bottom:1px solid var(--line-soft);font-size:.75rem;color:var(--body);vertical-align:middle}
+.file-table tr:hover td{background:var(--blue-50)}
+.file-table tr:last-child td{border-bottom:none}
+.file-name{display:flex;align-items:center;gap:10px;font-weight:600;color:var(--ink)}
+.file-ico{width:30px;height:30px;border-radius:7px;display:grid;place-items:center;flex:none;font-family:var(--font-mono);font-size:.5313rem;font-weight:700;color:#fff}
+.fi-doc{background:#0063D6}.fi-pdf{background:#C0392B}.fi-csv{background:#177E48}.fi-img{background:#6A48E0}.fi-html{background:#B85512}
+.ver-badge{font-family:var(--font-mono);font-size:.5625rem;font-weight:600;color:var(--muted);background:var(--line-soft);padding:1px 6px;border-radius:4px;margin-left:8px}
+.role-pill{font-size:.625rem;font-weight:600;color:var(--muted);background:var(--line-soft);padding:2.5px 9px;border-radius:999px}
+.checkbox{width:16px;height:16px;border-radius:4px;border:1.5px solid #C4CCE0;cursor:pointer}
+.row-actions{display:flex;gap:2px;justify-content:flex-end}
+.icon-btn{width:28px;height:28px;border-radius:7px;display:grid;place-items:center;color:var(--muted);transition:all .16s var(--ease)}
+.icon-btn:hover{background:var(--line-soft);color:var(--ink)}
+
+.empty{text-align:center;padding:60px 20px;color:var(--muted)}
+.empty svg{margin-bottom:12px;opacity:.5}
+.empty b{display:block;color:var(--ink);font-family:var(--font-display);font-size:.9375rem;margin-bottom:4px}
+
+.hidden{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="annot">
+    <b>3 · File management — enhancements</b>
+    <ul>
+      <li>The missing piece from the last pass: the folder grid itself. Click a folder below to open it — breadcrumb, search, and view toggle all update in place.</li>
+      <li>Duplicate folder names are now flagged inline (two folders were both named "Test" in the source) instead of silently allowed.</li>
+      <li>An explicit "New folder" tile creates in place — no name collision is possible without a warning.</li>
+      <li>Inside a folder: the broken "No" icon bug is fixed, repeated uploads of the same file collapse into one row with a version badge, and multi-select drives a bulk action bar.</li>
+    </ul>
+  </div>
+
+  <div class="card pad">
+    <div class="toolbar">
+      <div class="crumb-mini">
+        <button class="back-btn" id="backBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M15 6l-6 6 6 6"/></svg></button>
+        <a href="#" id="crumbFiles">Files</a>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" id="crumbChevron" class="hidden"><path d="M9 6l6 6-6 6"/></svg>
+        <span class="current" id="crumbCurrent"></span>
+      </div>
+      <div class="search"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><input placeholder="Search files"></div>
+      <button class="btn btn-ghost btn-sm">Sort: Newest</button>
+      <div class="seg"><button class="active" aria-label="Grid view"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></button><button aria-label="List view"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button></div>
+      <button class="btn btn-ghost btn-sm" id="newFolderBtn">+ New folder</button>
+      <button class="btn btn-blue btn-sm"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>Upload</button>
+    </div>
+
+    <!-- FOLDER GRID -->
+    <div id="folderView">
+      <div class="folder-grid">
+        <div class="folder" data-folder="Business Files" data-count="10">
+          <div class="top"><span class="ico"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v7a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg></span>
+            <div class="menu"><button aria-label="More" onclick="event.stopPropagation();this.nextElementSibling.classList.toggle('show')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="5" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="12" cy="19" r="1.4"/></svg></button>
+              <div class="dropdown"><button>Rename</button><button>Move</button><button class="danger">Delete</button></div></div>
+          </div>
+          <div class="name">Business Files</div><div class="cnt">10 files</div>
+        </div>
+        <div class="folder" data-folder="Checklist" data-count="0">
+          <div class="top"><span class="ico"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v7a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg></span>
+            <div class="menu"><button aria-label="More" onclick="event.stopPropagation();this.nextElementSibling.classList.toggle('show')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="5" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="12" cy="19" r="1.4"/></svg></button>
+              <div class="dropdown"><button>Rename</button><button>Move</button><button class="danger">Delete</button></div></div>
+          </div>
+          <div class="name">Checklist</div><div class="cnt">Empty</div>
+        </div>
+        <div class="folder" data-folder="Content Map" data-count="0">
+          <div class="top"><span class="ico"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v7a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg></span>
+            <div class="menu"><button aria-label="More" onclick="event.stopPropagation();this.nextElementSibling.classList.toggle('show')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="5" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="12" cy="19" r="1.4"/></svg></button>
+              <div class="dropdown"><button>Rename</button><button>Move</button><button class="danger">Delete</button></div></div>
+          </div>
+          <div class="name">Content Map</div><div class="cnt">Empty</div>
+        </div>
+        <div class="folder" data-folder="Outcome Target" data-count="2">
+          <div class="top"><span class="ico"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v7a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg></span>
+            <div class="menu"><button aria-label="More" onclick="event.stopPropagation();this.nextElementSibling.classList.toggle('show')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="5" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="12" cy="19" r="1.4"/></svg></button>
+              <div class="dropdown"><button>Rename</button><button>Move</button><button class="danger">Delete</button></div></div>
+          </div>
+          <div class="name">Outcome Target</div><div class="cnt">2 files</div>
+        </div>
+        <div class="folder dupe" data-folder="Test (1)" data-count="2">
+          <div class="top"><span class="ico"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v7a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg></span>
+            <div class="menu"><button aria-label="More" onclick="event.stopPropagation();this.nextElementSibling.classList.toggle('show')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="5" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="12" cy="19" r="1.4"/></svg></button>
+              <div class="dropdown"><button>Rename</button><button>Move</button><button class="danger">Delete</button></div></div>
+          </div>
+          <div class="name">Test</div><div class="cnt">2 files</div>
+          <div class="warn"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>Same name as another folder</div>
+        </div>
+        <div class="folder dupe" data-folder="Test (2)" data-count="0">
+          <div class="top"><span class="ico"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v7a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg></span>
+            <div class="menu"><button aria-label="More" onclick="event.stopPropagation();this.nextElementSibling.classList.toggle('show')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="5" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="12" cy="19" r="1.4"/></svg></button>
+              <div class="dropdown"><button>Rename</button><button>Move</button><button class="danger">Delete</button></div></div>
+          </div>
+          <div class="name">Test</div><div class="cnt">Empty</div>
+          <div class="warn"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>Same name as another folder</div>
+        </div>
+        <div class="folder new" id="newFolderTile"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>New folder</div>
+      </div>
+    </div>
+
+    <!-- FILE LISTING (inside a folder) -->
+    <div id="filesView" class="hidden">
+      <div class="bulkbar" id="bulkbar"><b>3 selected</b><div class="sp"></div><button>Move</button><button>Delete</button></div>
+      <table class="file-table">
+        <thead><tr>
+          <th style="width:26px"></th>
+          <th>Name</th><th>Uploaded by</th><th>Visible to</th><th class="num">Size</th><th style="width:70px"></th>
+        </tr></thead>
+        <tbody>
+          <tr><td><input class="checkbox" type="checkbox"></td>
+            <td><div class="file-name"><span class="file-ico fi-doc">DOC</span>onboarding-user-manual.docx</div></td>
+            <td>Danessa · Jul 24</td><td><span class="role-pill">All roles</span></td><td class="num">23.3 KB</td>
+            <td><div class="row-actions"><button class="icon-btn" aria-label="Preview"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg></button><button class="icon-btn" aria-label="Delete"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></button></div></td></tr>
+          <tr><td><input class="checkbox" type="checkbox"></td>
+            <td><div class="file-name"><span class="file-ico fi-html">WEB</span>Project_Onboarding_QBR_120Day_FINAL.html</div></td>
+            <td>Danessa · Jul 24</td><td><span class="role-pill">All roles</span></td><td class="num">39.1 KB</td>
+            <td><div class="row-actions"><button class="icon-btn" aria-label="Preview"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg></button><button class="icon-btn" aria-label="Delete"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></button></div></td></tr>
+          <tr><td><input class="checkbox" type="checkbox"></td>
+            <td><div class="file-name"><span class="file-ico fi-img">PNG</span>onboarding_120day_workflow.png</div></td>
+            <td>Danessa · Jul 24</td><td><span class="role-pill">All roles</span></td><td class="num">68.7 KB</td>
+            <td><div class="row-actions"><button class="icon-btn" aria-label="Preview"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg></button><button class="icon-btn" aria-label="Delete"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></button></div></td></tr>
+          <tr><td><input class="checkbox" type="checkbox" checked></td>
+            <td><div class="file-name"><span class="file-ico fi-pdf">PDF</span>iCARE Orientation Deck.pdf</div></td>
+            <td>Danessa · Jul 22</td><td><span class="role-pill">All roles</span></td><td class="num">7.5 MB</td>
+            <td><div class="row-actions"><button class="icon-btn" aria-label="Preview"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg></button><button class="icon-btn" aria-label="Delete"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></button></div></td></tr>
+          <tr><td><input class="checkbox" type="checkbox" checked></td>
+            <td><div class="file-name"><span class="file-ico fi-csv">CSV</span>StackShift I Tracker - Overview.csv<span class="ver-badge">v4 · latest</span></div></td>
+            <td>Danessa · Jul 24, 3:41 PM</td><td><span class="role-pill">All roles</span></td><td class="num">2.5 KB</td>
+            <td><div class="row-actions"><button class="icon-btn" aria-label="Version history"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 109-9M3 12h4M3 12V8"/></svg></button><button class="icon-btn" aria-label="Delete"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></button></div></td></tr>
+          <tr><td><input class="checkbox" type="checkbox" checked></td>
+            <td><div class="file-name"><span class="file-ico fi-csv">CSV</span>wide-test.csv</div></td>
+            <td>Danessa · Jul 20</td><td><span class="role-pill">All roles</span></td><td class="num">406 B</td>
+            <td><div class="row-actions"><button class="icon-btn" aria-label="Preview"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg></button><button class="icon-btn" aria-label="Delete"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></button></div></td></tr>
+        </tbody>
+      </table>
+      <p style="font-size:.6875rem;color:var(--muted);margin-top:14px">Four duplicate uploads of the same tracker collapsed into one row with version history (<code style="font-family:var(--font-mono);background:var(--line-soft);padding:1px 5px;border-radius:4px">v4 · latest</code>).</p>
+    </div>
+
+    <!-- EMPTY FOLDER (Checklist / Content Map open state) -->
+    <div id="emptyView" class="hidden empty">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v7a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg>
+      <b>No files yet</b>
+      Drag files in, or use Upload above — they'll appear here.
+    </div>
+  </div>
+</div>
+<script>
+const folderView=document.getElementById('folderView'), filesView=document.getElementById('filesView'), emptyView=document.getElementById('emptyView');
+const crumbCurrent=document.getElementById('crumbCurrent'), crumbChevron=document.getElementById('crumbChevron'), backBtn=document.getElementById('backBtn');
+document.querySelectorAll('.folder[data-folder]').forEach(f=>{
+  f.addEventListener('click',()=>{
+    const name=f.dataset.folder, count=parseInt(f.dataset.count);
+    folderView.classList.add('hidden');
+    crumbCurrent.textContent=name; crumbChevron.classList.remove('hidden'); backBtn.style.display='inline-flex';
+    if(count>0){filesView.classList.remove('hidden'); emptyView.classList.add('hidden');}
+    else{emptyView.classList.remove('hidden'); filesView.classList.add('hidden');}
+  });
+});
+function goBack(){folderView.classList.remove('hidden');filesView.classList.add('hidden');emptyView.classList.add('hidden');crumbCurrent.textContent='';crumbChevron.classList.add('hidden');backBtn.style.display='none';}
+backBtn.addEventListener('click',goBack);
+document.getElementById('crumbFiles').addEventListener('click',e=>{e.preventDefault();goBack();});
+document.querySelectorAll('.file-table .checkbox').forEach(cb=>cb.addEventListener('change',()=>{
+  const n=document.querySelectorAll('.file-table .checkbox:checked').length;
+  const bar=document.getElementById('bulkbar');
+  bar.classList.toggle('show',n>0);
+  if(n>0) bar.querySelector('b').textContent=n+' selected';
+}));
+document.addEventListener('click',e=>{if(!e.target.closest('.menu'))document.querySelectorAll('.dropdown.show').forEach(d=>d.classList.remove('show'));});
+</script>
+</body>
+</html>

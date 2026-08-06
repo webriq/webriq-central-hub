@@ -3,12 +3,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { ArrowLeft, Sparkles, CheckCircle2, Check } from "lucide-react";
+import { Sparkles, CheckCircle2, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getCurrentProgrammeDay, getPhaseByNumber } from "@/config/customer-phases";
 import { V2_ROUTES } from "@/config/constants";
 import { AssetRow, AssetFolder, DeliverableRow, InternalDeliverableRow, StaffPerson, WizardV2Project, WizardTabKey } from "./_wizard-v2-types";
-import { textPrimary, textMuted, cardCls, PillTabs } from "./_shared-ui";
+import { textPrimary, textMuted, cardCls } from "./_shared-ui";
+import { WorkspaceHeader } from "./_workspace-header";
+import { uploadFileWithProgress } from "./_upload-queue";
 import { BusinessInfoTab } from "./_business-info-tab";
 import { FilesTab } from "./_files-tab";
 import { AccessTab } from "./_access-tab";
@@ -16,9 +18,11 @@ import { ChecklistTab } from "./_checklist-tab";
 
 const WIZARD_ROLES = ["admin", "super_admin", "marketing", "pm"];
 const WRITE_ROLES = ["admin", "super_admin", "marketing"];
+const PHASE1 = getPhaseByNumber(1);
+const PHASE2 = getPhaseByNumber(2);
 // Task 204 — same Phase 1 deliverable config the Checklist tab renders (_checklist-tab.tsx:9),
 // used here to gate the "Proceed to Phase 2" button on every deliverable being done.
-const DELIVERABLES = getPhaseByNumber(1).deliverables;
+const DELIVERABLES = PHASE1.deliverables;
 
 export default function OnboardingWizardV2({ project, role }: { project: WizardV2Project; role: string | null }) {
   const router = useRouter();
@@ -117,13 +121,11 @@ export default function OnboardingWizardV2({ project, role }: { project: WizardV
     setWizardData((prev) => ({ ...prev, [subPhaseKey]: { ...(prev[subPhaseKey] ?? {}), ...data } }));
   };
 
-  const handleUpload = async (file: File, folderId: string) => {
+  const handleUpload = async (file: File, folderId: string, onProgress?: (pct: number) => void) => {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("project_id", project.id);
-    const uploadRes = await fetch(`/api/customers/${project.customer_id}/assets/upload`, { method: "POST", body: formData });
-    if (!uploadRes.ok) return;
-    const uploaded: { path: string; filename: string; size: number; mimeType: string } = await uploadRes.json();
+    const uploaded = await uploadFileWithProgress(`/api/customers/${project.customer_id}/assets/upload`, formData, onProgress);
     const assetRes = await fetch(`/api/customers/${project.customer_id}/assets`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -313,52 +315,45 @@ export default function OnboardingWizardV2({ project, role }: { project: WizardV
     );
   }
 
-  return (
-    <div className="max-w-5xl mx-auto px-5 py-6">
+  const doneDeliverableCount = deliverables.filter((d) => d.status === "done").length;
+  const overdueCount = DELIVERABLES.filter((cfg) => {
+    const status = deliverables.find((d) => d.deliverable_key === cfg.key)?.status ?? "pending";
+    return status !== "done" && currentDay > cfg.dayEnd;
+  }).length;
+  const filesCount = assets.filter((a) => a.type === "file").length;
+  const accessCount = assets.filter((a) => a.type === "credential" || a.type === "link").length;
+
+  const cta = allDeliverablesDone && isWriteRole && isPhaseActive && (
+    <div className="flex flex-col items-end gap-1.5 shrink-0">
       <button
         type="button"
-        onClick={() => router.push(project.project_id ? `${V2_ROUTES.PORTFOLIO_TRACKER}/${project.project_id}` : V2_ROUTES.PORTFOLIO_TRACKER)}
-        className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-[#5F6A88] hover:text-[#0B1533] bg-transparent border-none cursor-pointer mb-3 transition-colors"
+        onClick={handleCompletePhase}
+        disabled={completingPhase}
+        className="inline-flex items-center gap-[7px] text-[12px] font-semibold text-[#471F02] rounded-full px-[15px] py-2 border-none cursor-pointer disabled:opacity-45 bg-[#FB914E] hover:bg-[#E2762F] hover:text-white transition-colors focus-visible:outline-2 focus-visible:outline-[#007BFF] focus-visible:outline-offset-2"
       >
-        <ArrowLeft size={14} /> Back to {project.name}
+        {completingPhase ? "Completing…" : <><Check size={13} strokeWidth={2.4} /> Proceed to Phase 2</>}
       </button>
+      {completePhaseError && <p className="text-[12px] text-[#C0392B]">{completePhaseError}</p>}
+    </div>
+  );
 
-      <div className="flex items-start justify-between gap-4 mb-1">
-        <div>
-          <h1 className={cn("text-[22px] font-bold tracking-[-0.015em]", textPrimary)} style={{ fontFamily: "var(--font-space-grotesk, inherit)" }}>
-            {project.company_name} — Onboarding workspace
-          </h1>
-          <p className={cn("text-[13px] mt-1", textMuted)}>
-            Sandbox preview (task 202) — file-management-first redesign of Phase 1. No step order required.
-          </p>
-        </div>
-        {allDeliverablesDone && isWriteRole && isPhaseActive && (
-          <div className="flex flex-col items-end gap-1.5 shrink-0">
-            <button
-              type="button"
-              onClick={handleCompletePhase}
-              disabled={completingPhase}
-              className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#471F02] rounded-full px-4 py-2 border-none cursor-pointer disabled:opacity-45 bg-[#FB914E] hover:bg-[#E2762F] hover:text-white transition-colors focus-visible:outline-2 focus-visible:outline-[#007BFF] focus-visible:outline-offset-2"
-            >
-              {completingPhase ? "Completing…" : <><Check size={14} strokeWidth={2.5} /> Proceed to Phase 2</>}
-            </button>
-            {completePhaseError && <p className="text-[12px] text-[#C0392B]">{completePhaseError}</p>}
-          </div>
-        )}
-      </div>
-
-      <div className="mt-5 mb-4">
-        <PillTabs
-          tabs={[
-            { id: "business-info", label: "Business info" },
-            { id: "files", label: "Files" },
-            { id: "access", label: "Access" },
-            { id: "checklist", label: "Checklist" },
-          ]}
-          active={tab}
-          onChange={setTab}
-        />
-      </div>
+  return (
+    <div className="max-w-5xl mx-auto px-5 py-6">
+      <WorkspaceHeader
+        companyName={project.company_name}
+        projectRouteId={project.project_id}
+        classification={project.classification}
+        existingWebsite={project.existing_website}
+        currentDay={currentDay}
+        dayStart={PHASE1.dayStart}
+        dayEnd={PHASE1.dayEnd}
+        overdueCount={overdueCount}
+        milestoneLabel={`${PHASE2.name} starts`}
+        tab={tab}
+        tabCounts={{ files: filesCount, access: accessCount, checklist: `${doneDeliverableCount}/${DELIVERABLES.length}` }}
+        onTabChange={setTab}
+        cta={cta}
+      />
 
       {!isPhaseActive && (
         <div className="mb-4 px-3.5 py-2.5 rounded-[10px] bg-[#FFF3D6] border border-[#8A5A00]/15 text-[12.5px] text-[#8A5A00]">
@@ -374,8 +369,10 @@ export default function OnboardingWizardV2({ project, role }: { project: WizardV
         <>
           {tab === "business-info" && (
             <BusinessInfoTab
+              customerId={project.customer_id}
               wizardData={wizardData}
               folders={folders}
+              assets={assets}
               canEdit={canEditBusinessInfo}
               onSaveSection={handleSaveSection}
               onOpenFolder={openFolderByName}
@@ -422,6 +419,8 @@ export default function OnboardingWizardV2({ project, role }: { project: WizardV
               canEditInternal={canEditChecklist}
               togglingKey={togglingKey}
               onToggleInternal={handleToggleInternal}
+              onOpenFolder={openFolderByName}
+              onGoToAccess={() => setTab("access")}
             />
           )}
         </>

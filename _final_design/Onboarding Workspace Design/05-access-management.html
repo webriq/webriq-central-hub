@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>5 · Access management — Onboarding Workspace</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#071133; --blue:#007BFF; --blue-700:#0063D6; --blue-100:#E5F1FF; --blue-50:#F0F7FF;
+  --orange-100:#FFEFE3; --orange-700:#B85512;
+  --bg:#F4F6FB; --surface:#FFFFFF; --line:#E2E7F2; --line-soft:#EDF0F7;
+  --ink:#0B1533; --body:#3A4565; --muted:#5F6A88;
+  --ok:#177E48; --ok-bg:#E3F5EA; --late:#C0392B; --late-bg:#FDE8E6;
+  --r-lg:14px; --r-md:10px;
+  --sh-sm:0 1px 2px rgba(7,17,51,.05); --sh-md:0 8px 24px rgba(7,17,51,.10);
+  --ease:cubic-bezier(.22,1,.36,1);
+  --font-ui:'Inter',system-ui,sans-serif; --font-display:'Space Grotesk',var(--font-ui); --font-mono:'JetBrains Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-ui);background:var(--bg);color:var(--body);font-size:.8125rem;line-height:1.55;-webkit-font-smoothing:antialiased}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer;border:none;background:none}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:4px}
+.wrap{max-width:900px;margin:0 auto;padding:28px}
+.annot{display:flex;gap:9px;background:var(--navy);color:#B9C2E0;border-radius:var(--r-md);padding:12px 16px;margin-bottom:22px;font-size:.75rem}
+.annot b{color:#fff}
+.annot ul{margin:6px 0 0 16px}
+.annot li{margin-bottom:2px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--sh-sm)}
+.group-label{font-size:.6563rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:26px 0 10px}
+.group-label:first-child{margin-top:0}
+
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:3px;background:var(--surface)}
+.seg button{padding:6px 16px;border-radius:999px;font-size:.75rem;font-weight:600;color:var(--muted);transition:all .16s var(--ease)}
+.seg button.active{background:var(--navy);color:#fff}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:8px 15px;border-radius:999px;font-size:.75rem;font-weight:600;transition:all .16s var(--ease)}
+.btn-blue{background:var(--blue);color:#fff}
+.btn-blue:hover{background:var(--blue-700)}
+.btn-ghost{border:1px solid var(--line);color:var(--body);background:var(--surface)}
+.btn-ghost:hover{border-color:#A8C6F5;color:var(--ink)}
+.btn-sm{padding:5.5px 12px;font-size:.6875rem}
+
+.access-row{display:flex;align-items:center;gap:14px;padding:14px 18px;border-bottom:1px solid var(--line-soft)}
+.access-row:last-child{border-bottom:none}
+.access-row .ic{width:34px;height:34px;border-radius:9px;background:var(--orange-100);color:var(--orange-700);display:grid;place-items:center;flex:none}
+.access-row.link .ic{background:var(--blue-100);color:var(--blue-700)}
+.access-row .meta{flex:1;min-width:0}
+.access-row .meta .lbl{font-size:.8125rem;font-weight:600;color:var(--ink)}
+.access-row .meta .sub{font-size:.6875rem;color:var(--muted);margin-top:2px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.masked{font-family:var(--font-mono);letter-spacing:.08em}
+.role-pill{font-size:.625rem;font-weight:600;color:var(--muted);background:var(--line-soft);padding:2.5px 9px;border-radius:999px}
+.icon-btn{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;color:var(--muted);transition:all .16s var(--ease)}
+.icon-btn:hover{background:var(--line-soft);color:var(--ink)}
+.icon-btn.danger:hover{background:var(--late-bg);color:var(--late)}
+
+.undo{display:flex;align-items:center;gap:10px;background:var(--navy);color:#fff;padding:10px 18px;font-size:.75rem}
+.undo b{font-weight:600}
+.undo button{color:#5EB0FF;font-weight:600;margin-left:auto}
+.undo button:hover{text-decoration:underline}
+
+.modal-demo{border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--sh-md);background:var(--surface)}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--line)}
+.modal-head h3{font-family:var(--font-display);font-size:1rem;font-weight:600;color:var(--ink)}
+.modal-body{padding:20px}
+.type-toggle{display:flex;border:1px solid var(--line);border-radius:999px;padding:3px;width:fit-content;margin-bottom:18px}
+.type-toggle button{padding:6px 16px;border-radius:999px;font-size:.75rem;font-weight:600;color:var(--muted);transition:all .16s var(--ease)}
+.type-toggle button.active{background:var(--navy);color:#fff}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:.6875rem;font-weight:600;color:var(--ink);margin-bottom:5px}
+.field label .req{color:var(--late)}
+.field input{width:100%;font:inherit;font-size:.8125rem;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 12px;outline:none;transition:all .16s var(--ease)}
+.field input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,123,255,.14);background:#fff}
+.field-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.pw-field{position:relative}
+.pw-field button{position:absolute;right:10px;top:33px;color:var(--muted);width:22px;height:22px;display:grid;place-items:center}
+.role-pills{display:flex;gap:7px;flex-wrap:wrap;margin-top:5px}
+.role-pill-btn{font-size:.6875rem;font-weight:600;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:4.5px 12px;background:var(--surface);transition:all .16s var(--ease)}
+.role-pill-btn.active{background:var(--navy);border-color:var(--navy);color:#fff}
+.helper{font-size:.6875rem;color:var(--muted);margin-top:8px}
+.modal-foot{display:flex;justify-content:flex-end;gap:10px;padding:16px 20px;border-top:1px solid var(--line)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="annot">
+    <b>5 · Access management — enhancements</b>
+    <ul>
+      <li>Credential values are masked with an explicit reveal and copy action — the source showed no value at all, just a field count.</li>
+      <li>Delete now shows a 5-second undo bar instead of deleting immediately with no recovery path.</li>
+      <li>The add form splits Credential from Link: a credential gets username + masked password fields; a link keeps the single URL field it already had.</li>
+      <li>Visibility is a real multi-select (Admin and PM both highlighted below), not a single-choice control disguised as pills.</li>
+    </ul>
+  </div>
+
+  <div class="group-label">Credentials &amp; links list</div>
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 20px 0">
+      <div class="seg"><button class="active">Credentials</button><button>Links</button></div>
+      <button class="btn btn-blue btn-sm"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>Add credential</button>
+    </div>
+    <div style="padding:18px 4px 4px">
+      <div class="access-row">
+        <span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></svg></span>
+        <div class="meta">
+          <div class="lbl">Hosting admin panel</div>
+          <div class="sub">Username: admin@abctest.com &nbsp;·&nbsp; Password: <span class="masked">••••••••••</span> <span class="role-pill">All roles</span></div>
+        </div>
+        <button class="icon-btn" aria-label="Reveal password"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg></button>
+        <button class="icon-btn" aria-label="Copy password"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg></button>
+        <button class="icon-btn danger" aria-label="Delete" id="delBtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></button>
+      </div>
+      <div class="access-row">
+        <span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></svg></span>
+        <div class="meta">
+          <div class="lbl">DNS registrar</div>
+          <div class="sub">Username: ops@abctest.com &nbsp;·&nbsp; Password: <span class="masked">••••••••••</span> <span class="role-pill">Admin, PM</span></div>
+        </div>
+        <button class="icon-btn" aria-label="Reveal password"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg></button>
+        <button class="icon-btn" aria-label="Copy password"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg></button>
+        <button class="icon-btn danger" aria-label="Delete"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></button>
+      </div>
+    </div>
+    <div class="undo" id="undoBar" style="display:none;border-radius:0 0 14px 14px"><b>Hosting admin panel deleted.</b><button id="undoAction">Undo</button></div>
+  </div>
+
+  <div class="group-label">Add credential — form</div>
+  <div class="modal-demo">
+    <div class="modal-head"><h3>Add credential</h3><button class="icon-btn" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <div class="modal-body">
+      <div class="type-toggle"><button class="active">Credential</button><button>Link</button></div>
+      <div class="field"><label>Label <span class="req">*</span></label><input placeholder="e.g. Hosting admin panel"></div>
+      <div class="field-grid">
+        <div class="field"><label>Username <span class="req">*</span></label><input placeholder="admin@client.com"></div>
+        <div class="field pw-field"><label>Password <span class="req">*</span></label><input type="password" value="••••••••••"><button aria-label="Show password"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+      </div>
+      <div style="margin-top:6px">
+        <label style="display:block;font-size:.6875rem;font-weight:600;color:var(--ink);margin-bottom:5px">Visible to</label>
+        <div class="role-pills">
+          <button class="role-pill-btn">All</button>
+          <button class="role-pill-btn">Super Admin</button>
+          <button class="role-pill-btn active">Admin</button>
+          <button class="role-pill-btn active">PM</button>
+          <button class="role-pill-btn">Developer</button>
+        </div>
+        <p class="helper">Multi-select — pick any combination. Named-person sharing can be set after adding, from the list.</p>
+      </div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-ghost btn-sm">Cancel</button><button class="btn btn-blue btn-sm">Add credential</button></div>
+  </div>
+</div>
+<script>
+document.getElementById('delBtn').addEventListener('click',()=>{
+  document.getElementById('undoBar').style.display='flex';
+});
+document.getElementById('undoAction').addEventListener('click',()=>{
+  document.getElementById('undoBar').style.display='none';
+});
+</script>
+</body>
+</html>

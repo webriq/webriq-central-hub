@@ -68,6 +68,8 @@ export type WizardV2Project = {
   customer_id: string;
   project_id: string | null;
   company_name: string;
+  existing_website: string | null;
+  classification: string | null;
 };
 
 export type WizardTabKey = "business-info" | "files" | "access" | "checklist";

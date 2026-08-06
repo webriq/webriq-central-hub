@@ -25,7 +25,7 @@ export async function loadOnboardingDetailData(projectId: string) {
 
   const { data: project, error } = await supabase
     .from("projects")
-    .select("id, name, customer_id, project_id, created_by, scheduled_onboarding_start_at, scheduled_start_phase, customers(company_name)")
+    .select("id, name, customer_id, project_id, created_by, scheduled_onboarding_start_at, scheduled_start_phase, existing_website, customer_product_id, customers(company_name)")
     .eq("project_id", projectId)
     .single();
 
@@ -34,6 +34,19 @@ export async function loadOnboardingDetailData(projectId: string) {
   }
 
   const companyName = (project.customers as unknown as { company_name: string } | null)?.company_name ?? "Customer";
+
+  // Task 217 — Onboarding Workspace v2's title-row classification chip ("StackShift I" etc.)
+  // needs the linked customer_products row; a separate lookup (not an embed) since
+  // customer_product_id has no declared FK relationship name for PostgREST to embed through.
+  let classification: string | null = null;
+  if (project.customer_product_id) {
+    const { data: product } = await supabase
+      .from("customer_products")
+      .select("classification")
+      .eq("id", project.customer_product_id)
+      .maybeSingle();
+    classification = product?.classification ?? null;
+  }
 
   // adminClient: marketing is in DETAIL_ROLES (can view this page) but isn't covered by
   // contacts_staff_read RLS (admin|super_admin|pm|developer only, migration 056).
@@ -116,6 +129,8 @@ export async function loadOnboardingDetailData(projectId: string) {
       created_by_name: createdByName,
       scheduled_onboarding_start_at: project.scheduled_onboarding_start_at,
       scheduled_start_phase: project.scheduled_start_phase,
+      existing_website: project.existing_website,
+      classification,
     },
     role,
     userId,

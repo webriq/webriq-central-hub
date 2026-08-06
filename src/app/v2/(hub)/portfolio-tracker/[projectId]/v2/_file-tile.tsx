@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Folder, FileText, Trash2, ExternalLink, MoreVertical, Pencil, FolderInput, Lock } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Folder, FileText, Trash2, ExternalLink, MoreVertical, Pencil, FolderInput, Lock, AlertTriangle, History } from "lucide-react";
+import { cn, formatRelativeTime } from "@/lib/utils";
 import { AssetRow, AssetFolder, StaffPerson } from "./_wizard-v2-types";
 import { textPrimary, textMuted, formatFileSize, IconTip } from "./_shared-ui";
 import { InlinePermissionsPanel, permissionSummary } from "./_permission-picker";
@@ -103,7 +103,7 @@ function PermissionBadge({ allowedRoles, allowedUserIds }: { allowedRoles: strin
 
 export function FolderTile({
   folder, fileCount, canEdit, onOpen, onPermissionChange, staffDirectory, onRename, onDelete,
-  isDropTarget, onDragOverTile, onDragLeaveTile, onDropTile, onContextMenu,
+  isDropTarget, onDragOverTile, onDragLeaveTile, onDropTile, onContextMenu, duplicateWarning,
 }: {
   folder: AssetFolder; fileCount: number; canEdit: boolean; onOpen: () => void;
   onPermissionChange: (updates: { allowed_roles?: string[]; allowed_user_ids?: string[] }) => void;
@@ -115,6 +115,9 @@ export function FolderTile({
   onDragLeaveTile: (e: React.DragEvent) => void;
   onDropTile: (e: React.DragEvent) => void;
   onContextMenu: (e: React.MouseEvent, actions: ItemAction[]) => void;
+  // Mockup 03 — case-insensitive sibling name collision (display-only; the create-folder API
+  // already blocks new duplicates, so this only ever surfaces legacy/raced data).
+  duplicateWarning?: boolean;
 }) {
   const [permissionsOpen, setPermissionsOpen] = useState(false);
   const actions: ItemAction[] = [
@@ -139,7 +142,7 @@ export function FolderTile({
           onContextMenu={(e) => { e.preventDefault(); onContextMenu(e, actions); }}
           className={cn(
             "w-full flex flex-col items-start gap-3 p-5 text-left rounded-[14px] border cursor-pointer transition-colors duration-150",
-            isDropTarget ? "border-[#007BFF] bg-[#EAF2FF]" : "border-[#E2E7F2] bg-white hover:bg-[#F4F8FF] hover:border-[#C7D2E8]"
+            isDropTarget ? "border-[#007BFF] bg-[#EAF2FF]" : duplicateWarning ? "border-[#8A5A00] bg-white hover:bg-[#F4F8FF]" : "border-[#E2E7F2] bg-white hover:bg-[#F4F8FF] hover:border-[#C7D2E8]"
           )}
         >
           <div className="w-12 h-12 rounded-[10px] bg-[#E5F1FF] flex items-center justify-center">
@@ -148,6 +151,11 @@ export function FolderTile({
           <div className="min-w-0 w-full">
             <p className={cn("text-[13.5px] font-semibold truncate", textPrimary)} title={folder.name}>{folder.name}</p>
             <p className={cn("text-[11px]", textMuted)}>{fileCount} {fileCount === 1 ? "file" : "files"}</p>
+            {duplicateWarning && (
+              <span className="inline-flex items-center gap-1 mt-1.5 text-[9.5px] font-bold text-[#8A5A00] bg-[#FFF3D6] rounded-[5px] px-1.5 py-0.5">
+                <AlertTriangle size={9} /> Same name as another folder
+              </span>
+            )}
           </div>
         </button>
         <div className="absolute top-2 right-2"><ActionsMenu actions={actions} /></div>
@@ -165,9 +173,38 @@ export function FolderTile({
   );
 }
 
+// Mockup 03's "v4 · latest" badge — client-side version grouping only (no schema change): a
+// click reveals the older same-named uploads' dates, computed/passed down by _files-tab.tsx.
+// No rollback/diff, just a dated list — see task 217 doc's gap table for why.
+function VersionBadge({ versionCount, olderVersions }: { versionCount: number; olderVersions: AssetRow[] }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <span className="relative inline-flex" onClick={(e) => e.stopPropagation()}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="font-mono text-[9px] font-semibold text-[#5F6A88] bg-[#EDF0F7] px-1.5 py-0.5 rounded-[4px] cursor-pointer border-none inline-flex items-center gap-1"
+      >
+        <History size={9} /> v{versionCount} · latest
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute left-0 top-full mt-1 z-50 w-44 rounded-lg border border-[#E2E7F2] bg-white shadow-[0_8px_24px_rgba(7,17,51,.10)] p-2">
+            <p className="text-[9.5px] font-bold uppercase tracking-wide text-[#5F6A88] px-1 pb-1">Earlier uploads</p>
+            {olderVersions.map((v) => (
+              <p key={v.id} className="text-[11px] text-[#3A4565] px-1 py-1">{formatRelativeTime(v.created_at)}</p>
+            ))}
+          </div>
+        </>
+      )}
+    </span>
+  );
+}
+
 export function FileTile({
   asset, customerId, canEdit, onDelete, onPermissionChange, onRename, onMove, staffDirectory, viewMode,
-  selected, onToggleSelect, onContextMenu,
+  selected, onToggleSelect, onContextMenu, versionCount, olderVersions,
 }: {
   asset: AssetRow; customerId: string; canEdit: boolean; onDelete: () => void;
   onPermissionChange: (updates: { allowed_roles?: string[]; allowed_user_ids?: string[] }) => void;
@@ -177,8 +214,11 @@ export function FileTile({
   selected: boolean;
   onToggleSelect: () => void;
   onContextMenu: (e: React.MouseEvent, actions: ItemAction[]) => void;
+  versionCount?: number;
+  olderVersions?: AssetRow[];
 }) {
   const [permissionsOpen, setPermissionsOpen] = useState(false);
+  const hasVersions = !!versionCount && versionCount > 1;
 
   const handleView = async () => {
     try {
@@ -224,8 +264,9 @@ export function FileTile({
             </div>
             <div className="min-w-0 flex-1">
               <p className={cn("text-[12.5px] font-medium truncate", textPrimary)} title={asset.file_name ?? asset.label}>{asset.file_name ?? asset.label}</p>
-              <p className={cn("text-[10.5px]", textMuted)}>{formatFileSize(asset.file_size)}</p>
+              <p className={cn("text-[10.5px]", textMuted)}>{formatFileSize(asset.file_size)} · Uploaded {formatRelativeTime(asset.created_at)}</p>
             </div>
+            {hasVersions && <VersionBadge versionCount={versionCount!} olderVersions={olderVersions ?? []} />}
             <PermissionBadge allowedRoles={asset.allowed_roles} allowedUserIds={asset.allowed_user_ids} />
           </button>
           <div className="absolute right-1.5 top-1/2 -translate-y-1/2"><ActionsMenu actions={actions} /></div>
@@ -264,9 +305,12 @@ export function FileTile({
           <div className="flex-1 min-h-0 mx-2 mb-2 rounded-md overflow-hidden bg-[#F4F6FB]">
             <FileThumbnail asset={asset} customerId={customerId} />
           </div>
-          <div className="flex items-center justify-between px-2 pb-2 shrink-0">
-            <span className={cn("text-[9.5px]", textMuted)}>{formatFileSize(asset.file_size)}</span>
-            <PermissionBadge allowedRoles={asset.allowed_roles} allowedUserIds={asset.allowed_user_ids} />
+          <div className="flex items-center justify-between gap-1 px-2 pb-2 shrink-0">
+            <span className={cn("text-[9.5px] truncate", textMuted)}>{formatFileSize(asset.file_size)}</span>
+            <span className="flex items-center gap-1 shrink-0">
+              {hasVersions && <VersionBadge versionCount={versionCount!} olderVersions={olderVersions ?? []} />}
+              <PermissionBadge allowedRoles={asset.allowed_roles} allowedUserIds={asset.allowed_user_ids} />
+            </span>
           </div>
         </button>
         <div className="absolute top-2 right-2"><ActionsMenu actions={actions} /></div>

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>4 · Upload &amp; drag-and-drop — Onboarding Workspace</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#071133; --blue:#007BFF; --blue-700:#0063D6; --blue-100:#E5F1FF; --blue-50:#F0F7FF;
+  --bg:#F4F6FB; --surface:#FFFFFF; --line:#E2E7F2; --line-soft:#EDF0F7;
+  --ink:#0B1533; --body:#3A4565; --muted:#5F6A88;
+  --ok:#177E48; --ok-bg:#E3F5EA; --late:#C0392B; --late-bg:#FDE8E6;
+  --r-lg:14px; --r-md:10px;
+  --sh-sm:0 1px 2px rgba(7,17,51,.05);
+  --ease:cubic-bezier(.22,1,.36,1);
+  --font-ui:'Inter',system-ui,sans-serif; --font-display:'Space Grotesk',var(--font-ui); --font-mono:'JetBrains Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-ui);background:var(--bg);color:var(--body);font-size:.8125rem;line-height:1.55;-webkit-font-smoothing:antialiased}
+button{font:inherit;cursor:pointer;border:none;background:none;color:inherit}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:4px}
+.wrap{max-width:900px;margin:0 auto;padding:28px}
+.annot{display:flex;gap:9px;background:var(--navy);color:#B9C2E0;border-radius:var(--r-md);padding:12px 16px;margin-bottom:22px;font-size:.75rem}
+.annot b{color:#fff}
+.annot ul{margin:6px 0 0 16px}
+.annot li{margin-bottom:2px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--sh-sm)}
+.pad{padding:22px}
+.group-label{font-size:.6563rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+
+.dropzone{border:2px dashed #A8C6F5;border-radius:var(--r-lg);background:var(--blue-50);padding:40px 20px;text-align:center;transition:all .16s var(--ease);cursor:pointer}
+.dropzone:hover,.dropzone.drag{border-color:var(--blue);background:var(--blue-100)}
+.dropzone .ico{width:48px;height:48px;border-radius:12px;background:#fff;border:1px solid var(--line);display:grid;place-items:center;margin:0 auto 14px;color:var(--blue-700)}
+.dropzone h4{font-size:.875rem;font-weight:600;color:var(--ink);margin-bottom:4px}
+.dropzone p{font-size:.75rem;color:var(--muted)}
+.dropzone .limits{font-family:var(--font-mono);font-size:.625rem;color:var(--muted);margin-top:10px}
+.dropzone .browse{color:var(--blue-700);font-weight:600}
+
+.dropzone.error{border-color:var(--late);background:var(--late-bg)}
+.dropzone.error .ico{color:var(--late)}
+
+.uploadrow{display:flex;align-items:center;gap:12px;padding:11px 4px;border-bottom:1px solid var(--line-soft)}
+.uploadrow:last-child{border-bottom:none}
+.uploadrow .ico{width:30px;height:30px;border-radius:7px;background:var(--blue-100);color:var(--blue-700);display:grid;place-items:center;flex:none}
+.uploadrow .ico.err{background:var(--late-bg);color:var(--late)}
+.uploadrow .ico.ok{background:var(--ok-bg);color:var(--ok)}
+.uploadrow .meta{flex:1;min-width:0}
+.uploadrow .name{font-size:.75rem;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.uploadrow .sub{font-size:.6875rem;color:var(--muted);margin-top:2px}
+.uploadrow .sub.err{color:var(--late)}
+.uploadrow .bar{flex:1;height:6px;border-radius:999px;background:var(--line-soft);overflow:hidden;margin-top:5px}
+.uploadrow .bar span{display:block;height:100%;background:var(--blue);border-radius:999px}
+.uploadrow .pct{font-family:var(--font-mono);font-size:.625rem;color:var(--muted);width:34px;text-align:right;flex:none}
+.uploadrow .retry{font-size:.6875rem;font-weight:600;color:var(--blue-700);flex:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="annot">
+    <b>4 · Upload / drag-and-drop — enhancements</b>
+    <ul>
+      <li>The dropzone icon now sits on a white chip with a border, well above 4.5:1 contrast — the original's light-blue-on-light-blue icon barely registered.</li>
+      <li>Size and file-type limits are stated up front, not just "any document" with no numbers.</li>
+      <li>Drag-over, uploading, success, and error states are all defined — the source only had the empty default.</li>
+      <li>An upload queue with per-file progress and a visible retry action replaces the previous all-or-nothing single dropzone.</li>
+    </ul>
+  </div>
+
+  <div class="group-label">Default state</div>
+  <div class="card pad" style="margin-bottom:20px">
+    <div class="dropzone">
+      <div class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/><path d="M4 21h16"/></svg></div>
+      <h4>Drag &amp; drop files, or <span class="browse">browse</span></h4>
+      <p>Documents, spreadsheets, or images</p>
+      <div class="limits">UP TO 25 MB PER FILE &nbsp;·&nbsp; PDF, DOCX, XLSX, CSV, PNG, JPG</div>
+    </div>
+  </div>
+
+  <div class="group-label">Drag-over state</div>
+  <div class="card pad" style="margin-bottom:20px">
+    <div class="dropzone drag">
+      <div class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/><path d="M4 21h16"/></svg></div>
+      <h4>Drop to upload</h4>
+      <p>3 files ready</p>
+    </div>
+  </div>
+
+  <div class="group-label">Rejected file — over the size limit</div>
+  <div class="card pad" style="margin-bottom:20px">
+    <div class="dropzone error">
+      <div class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg></div>
+      <h4>MeganTattooing (1).jpg is too large</h4>
+      <p>24.3 MB exceeds the 25 MB limit shown above — compress the image or split it, then try again.</p>
+    </div>
+  </div>
+
+  <div class="group-label">Upload queue</div>
+  <div class="card pad">
+    <div class="uploadrow">
+      <span class="ico ok"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6L9 17l-5-5"/></svg></span>
+      <div class="meta"><div class="name">Branding-Guides-v2.pdf</div><div class="sub">4.1 MB · Uploaded</div></div>
+    </div>
+    <div class="uploadrow">
+      <span class="ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v7a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg></span>
+      <div class="meta"><div class="name">DNS-details.docx</div><div class="bar"><span style="width:64%"></span></div></div>
+      <span class="pct">64%</span>
+    </div>
+    <div class="uploadrow">
+      <span class="ico err"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg></span>
+      <div class="meta"><div class="name">kb-info-raw.xlsx</div><div class="sub err">Connection lost — 40% uploaded</div></div>
+      <button class="retry">Retry</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>

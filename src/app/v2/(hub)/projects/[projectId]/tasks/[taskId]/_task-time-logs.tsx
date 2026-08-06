@@ -58,7 +58,7 @@ function formatLoggedAt(iso: string): string {
   return sameDay ? formatRelativeTime(iso) : `${formatDate(iso)}, ${formatClockTime(iso)}`;
 }
 
-export function TaskTimeLogs({ taskId }: { taskId: string }) {
+export function TaskTimeLogs({ taskId, refreshKey }: { taskId: string; refreshKey?: number }) {
   const [entries, setEntries] = useState<TimeLogEntry[]>([]);
   const [canAdd, setCanAdd] = useState(false);
   const [canSeeSource, setCanSeeSource] = useState(false);
@@ -78,7 +78,8 @@ export function TaskTimeLogs({ taskId }: { taskId: string }) {
       .catch(() => {})
       .finally(() => setLoading(false));
     return () => ctrl.abort();
-  }, [taskId]);
+    // Task 218 — `refreshKey` refetches after the header TaskTimerButton logs an entry via stop.
+  }, [taskId, refreshKey]);
 
   async function handleDelete(id: string) {
     if (!confirm("Delete this time log entry? This cannot be undone.")) return;

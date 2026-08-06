@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
+import Underline from "@tiptap/extension-underline";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
@@ -57,13 +58,17 @@ export function DueBadge({ currentDay, dayStart, dayEnd, done }: { currentDay: n
 // Simplified rich-text field (tiptap StarterKit, bold/italic/underline/bullets) — same library
 // as the original wizard's RichTextField, rebuilt fresh here since the original isn't exported.
 export function RichTextField({
-  label, value, onChange, placeholder, hasError, disabled,
+  label, value, onChange, placeholder, hasError, disabled, maxLength,
 }: {
   label: string; value: string; onChange: (html: string) => void; placeholder?: string;
   hasError?: boolean; disabled?: boolean;
+  // Task 217 (mockup 02) — when set, shows an "N / maxLength" plain-text-length counter footer.
+  // Soft limit only (not enforced/truncated) since rich text length is HTML-tag-inclusive and a
+  // hard cutoff mid-tag would corrupt the document — matches the mockup's counter-only intent.
+  maxLength?: number;
 }) {
   const editor = useEditor({
-    extensions: [StarterKit],
+    extensions: [StarterKit, Underline],
     content: value,
     editable: !disabled,
     immediatelyRender: false,
@@ -86,8 +91,11 @@ export function RichTextField({
   const marks: { label: string; title: string; cls: string; action: () => void; active: () => boolean }[] = [
     { label: "B", title: "Bold", cls: "font-bold", action: () => editor?.chain().focus().toggleBold().run(), active: () => editor?.isActive("bold") ?? false },
     { label: "I", title: "Italic", cls: "italic", action: () => editor?.chain().focus().toggleItalic().run(), active: () => editor?.isActive("italic") ?? false },
+    { label: "U", title: "Underline", cls: "underline", action: () => editor?.chain().focus().toggleUnderline().run(), active: () => editor?.isActive("underline") ?? false },
     { label: "•", title: "Bullet list", cls: "", action: () => editor?.chain().focus().toggleBulletList().run(), active: () => editor?.isActive("bulletList") ?? false },
   ];
+
+  const textLength = editor?.getText().length ?? stripHtml(value).length;
 
   return (
     <div>
@@ -120,6 +128,11 @@ export function RichTextField({
           </div>
         )}
         <EditorContent editor={editor} />
+        {typeof maxLength === "number" && (
+          <div className="flex justify-end px-2.5 py-1 border-t border-[#EDF0F7] font-mono text-[10px] text-[#5F6A88]">
+            {textLength} / {maxLength}
+          </div>
+        )}
       </div>
       {placeholder && <p className="text-[11px] mt-1 text-[#5F6A88]">{placeholder}</p>}
     </div>
@@ -144,6 +157,40 @@ export function PillTabs<T extends string>({ tabs, active, onChange }: { tabs: {
           )}
         >
           {tab.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// Top-level 4-tab shell (mockup 01) — underline-on-active, deliberately distinct from PillTabs'
+// filled-segment look so tabs (navigation) never read as filter/segmented pills (a different
+// interaction) per the mockup's own annotation. Sub-tabs (Access's Credentials/Links, the
+// grid/list view toggle) keep PillTabs/segmented styling — only this top-level bar switches.
+export function UnderlineTabs<T extends string>({
+  tabs, active, onChange,
+}: {
+  tabs: { id: T; label: string; count?: string }[];
+  active: T;
+  onChange: (id: T) => void;
+}) {
+  return (
+    <div className="flex items-center gap-0 border-b border-[#E2E7F2] overflow-x-auto" role="tablist">
+      {tabs.map((tab) => (
+        <button
+          key={tab.id}
+          type="button"
+          role="tab"
+          aria-selected={active === tab.id}
+          onClick={() => onChange(tab.id)}
+          className={cn(
+            "relative py-2.5 mr-5 text-[13px] font-semibold whitespace-nowrap cursor-pointer border-none bg-transparent transition-colors",
+            active === tab.id ? textPrimary : cn(textMuted, "hover:text-[#0B1533]")
+          )}
+        >
+          {tab.label}
+          {tab.count && <span className="font-mono text-[10px] text-[#5F6A88] ml-1">{tab.count}</span>}
+          {active === tab.id && <span className="absolute left-0 right-0 -bottom-px h-0.5 rounded-t-sm bg-[#007BFF]" />}
         </button>
       ))}
     </div>
