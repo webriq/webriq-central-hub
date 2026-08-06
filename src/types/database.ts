@@ -1693,6 +1693,7 @@ export interface Database {
           project_id: string | null;
           folder_id: string | null;
           source_asset_id: string | null;
+          uploaded_by: string | null;
           created_at: string;
         };
         Insert: {
@@ -1713,6 +1714,7 @@ export interface Database {
           project_id?: string | null;
           folder_id?: string | null;
           source_asset_id?: string | null;
+          uploaded_by?: string | null;
           created_at?: string;
         };
         Update: {
@@ -1733,6 +1735,7 @@ export interface Database {
           project_id?: string | null;
           folder_id?: string | null;
           source_asset_id?: string | null;
+          uploaded_by?: string | null;
         };
         Relationships: [
           {
@@ -1761,6 +1764,13 @@ export interface Database {
             columns: ["source_asset_id"];
             isOneToOne: false;
             referencedRelation: "customer_assets";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "customer_assets_uploaded_by_fkey";
+            columns: ["uploaded_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
             referencedColumns: ["id"];
           }
         ];

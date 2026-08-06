@@ -58,9 +58,13 @@ export function DueBadge({ currentDay, dayStart, dayEnd, done }: { currentDay: n
 // Simplified rich-text field (tiptap StarterKit, bold/italic/underline/bullets) — same library
 // as the original wizard's RichTextField, rebuilt fresh here since the original isn't exported.
 export function RichTextField({
-  label, value, onChange, placeholder, hasError, disabled, maxLength,
+  label, description, value, onChange, placeholder, hasError, disabled, maxLength,
 }: {
-  label: string; value: string; onChange: (html: string) => void; placeholder?: string;
+  label: string;
+  // Task 217 (mockup 02, follow-up) — hint text under the label, above the field, matching the
+  // field-block's title+description pattern used across Business Info.
+  description?: string;
+  value: string; onChange: (html: string) => void; placeholder?: string;
   hasError?: boolean; disabled?: boolean;
   // Task 217 (mockup 02) — when set, shows an "N / maxLength" plain-text-length counter footer.
   // Soft limit only (not enforced/truncated) since rich text length is HTML-tag-inclusive and a
@@ -75,7 +79,9 @@ export function RichTextField({
     editorProps: {
       attributes: {
         class: cn(
-          "outline-none px-3.5 py-[11px] text-sm min-h-[88px] max-h-[260px] overflow-y-auto",
+          // Task 217 follow-up — fixed ~8-row box (min === max): grows to fill 8 lines by
+          // default, scrolls internally past that instead of growing the card further.
+          "outline-none px-3.5 py-[11px] text-sm min-h-[216px] max-h-[216px] overflow-y-auto",
           "[&_p]:my-1 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pl-5 [&_ol]:pl-5 [&_li]:my-0.5",
           textPrimary
         ),
@@ -99,7 +105,10 @@ export function RichTextField({
 
   return (
     <div>
-      <label className={fieldLabelCls}>{label}</label>
+      {/* Task 217 follow-up — field-block title matches mockup 02's `.field-block h3` exactly
+          (Space Grotesk/font-heading, 15px, semibold), not the smaller per-field `fieldLabelCls`. */}
+      <h3 className={cn("font-heading text-[15px] font-semibold mb-[3px]", textPrimary)}>{label}</h3>
+      {description && <p className={cn("text-[11px] mb-3.5", textMuted)}>{description}</p>}
       <div
         className={cn(
           "rounded-[9px] border-[1.5px] overflow-hidden transition-[border-color,box-shadow] duration-150 bg-white",
@@ -170,7 +179,9 @@ export function PillTabs<T extends string>({ tabs, active, onChange }: { tabs: {
 export function UnderlineTabs<T extends string>({
   tabs, active, onChange,
 }: {
-  tabs: { id: T; label: string; count?: string }[];
+  // Task 219 — `alert` renders a small red dot at the tab's top-right corner (e.g. Checklist
+  // when there's an overdue section to review); purely visual, no badge count semantics.
+  tabs: { id: T; label: string; count?: string; alert?: boolean }[];
   active: T;
   onChange: (id: T) => void;
 }) {
@@ -184,12 +195,24 @@ export function UnderlineTabs<T extends string>({
           aria-selected={active === tab.id}
           onClick={() => onChange(tab.id)}
           className={cn(
-            "relative py-2.5 mr-5 text-[13px] font-semibold whitespace-nowrap cursor-pointer border-none bg-transparent transition-colors",
+            "relative py-2.5 mr-9 last:mr-0 text-[13px] font-semibold whitespace-nowrap cursor-pointer border-none bg-transparent transition-colors",
             active === tab.id ? textPrimary : cn(textMuted, "hover:text-[#0B1533]")
           )}
         >
           {tab.label}
-          {tab.count && <span className="font-mono text-[10px] text-[#5F6A88] ml-1">{tab.count}</span>}
+          {(tab.count || tab.alert) && (
+            <span className="relative inline-flex ml-2 align-middle">
+              {tab.count && (
+                <span className="font-mono text-[10px] font-semibold text-[#5F6A88] bg-[#EDF0F7] rounded-full px-1.5 py-0.5">{tab.count}</span>
+              )}
+              {/* Post-ship follow-up — sits on the count pill's corner (not floating above the
+                  tab label) with a white ring so it reads as clipped by the pill beneath it,
+                  matching a standard notification-badge treatment. */}
+              {tab.alert && (
+                <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-[#C0392B] ring-2 ring-white" aria-label="Requires attention" />
+              )}
+            </span>
+          )}
           {active === tab.id && <span className="absolute left-0 right-0 -bottom-px h-0.5 rounded-t-sm bg-[#007BFF]" />}
         </button>
       ))}

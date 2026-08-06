@@ -1682,13 +1682,11 @@ export default function OnboardingDetail({
                 <button
                   type="button"
                   onClick={() => {
-                    setWizardStartStepKey(undefined);
-                    setWizardOpen(true);
-                    router.push(`${V2_ROUTES.PORTFOLIO_TRACKER}/${projectUrlKey}?phase=${FIRST_WIZARD_STEP_PARAMS.phase}&deliverable=${FIRST_WIZARD_STEP_PARAMS.deliverable}`, { scroll: false });
+                    router.push(`${V2_ROUTES.PORTFOLIO_TRACKER}/${projectUrlKey}/onboarding-workspace`);
                   }}
                   className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border-none bg-[#007BFF] px-4 py-2 text-[13px] font-semibold text-white shadow-[0_2px_10px_rgba(0,123,255,0.3)] transition-colors hover:bg-[#0063D6]"
                 >
-                  <PlayCircle size={14} /> {activePhaseNumber === 1 ? "Onboarding Wizard" : "View Onboarding Wizard"}
+                  <PlayCircle size={14} /> {activePhaseNumber === 1 ? "Onboarding Workspace" : "View Onboarding Workspace"}
                 </button>
               )}
             </div>

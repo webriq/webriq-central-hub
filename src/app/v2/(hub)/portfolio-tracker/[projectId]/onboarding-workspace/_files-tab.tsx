@@ -1,12 +1,12 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { Fragment, useMemo, useRef, useState } from "react";
 import { ChevronRight, FolderPlus, LayoutGrid, List, CircleQuestionMark, Search, ArrowUpDown, X, CloudUpload } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AssetRow, AssetFolder, StaffPerson } from "./_wizard-v2-types";
 import { textPrimary, textMuted, cardCls, IconTip } from "./_shared-ui";
 import { FolderTile, FileTile, ActionsMenuItems, ItemAction } from "./_file-tile";
-import { RenameModal, MoveModal } from "./_rename-move-modals";
+import { RenameModal, MoveModal, DuplicateFolderModal } from "./_rename-move-modals";
 import { BulkToolbar } from "./_bulk-toolbar";
 import { useUploadQueue, UploadQueuePanel, UploadDropzone } from "./_upload-queue";
 
@@ -41,7 +41,7 @@ export function FilesTab({
   onDeleteAsset: (id: string) => void;
   onAssetPermissionChange: (assetId: string, updates: { allowed_roles?: string[]; allowed_user_ids?: string[] }) => void;
   onFolderPermissionChange: (folderId: string, updates: { allowed_roles?: string[]; allowed_user_ids?: string[] }) => void;
-  onCreateFolder: (name: string) => Promise<void>;
+  onCreateFolder: (name: string, parentFolderId: string | null) => Promise<void>;
   onRenameAsset: (assetId: string, fileName: string) => Promise<boolean>;
   onRenameFolder: (folderId: string, name: string) => Promise<boolean>;
   onDeleteFolder: (folderId: string) => Promise<void>;
@@ -52,6 +52,7 @@ export function FilesTab({
   const [rejectedFile, setRejectedFile] = useState<{ name: string; reason: string } | null>(null);
   const [newFolderOpen, setNewFolderOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
+  const [duplicatePrompt, setDuplicatePrompt] = useState<{ name: string; suggested: string } | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<"newest" | "name">("newest");
@@ -63,8 +64,23 @@ export function FilesTab({
 
   const { items: queueItems, enqueue, retry: retryUpload, dismiss: dismissQueueItem } = useUploadQueue(onUpload);
 
-  const rootFolders = useMemo(() => folders.filter((f) => f.parent_folder_id === null), [folders]);
-  const openFolder = openFolderId ? folders.find((f) => f.id === openFolderId) ?? null : null;
+  // Task 220 — folders can now nest arbitrarily deep (matching ../_onboarding-wizard.tsx's
+  // Storage folder + KB step), so "the folders/files visible right now" is whatever is a direct
+  // child of openFolderId (null === root), not a hardcoded root-only list.
+  const foldersById = useMemo(() => new Map(folders.map((f) => [f.id, f])), [folders]);
+  const currentLevelFolders = useMemo(() => folders.filter((f) => f.parent_folder_id === openFolderId), [folders, openFolderId]);
+  const openFolder = openFolderId ? foldersById.get(openFolderId) ?? null : null;
+  // Full ancestor chain for the breadcrumb — walks parent_folder_id up to root, same technique
+  // as ../_onboarding-wizard.tsx:3685-3692.
+  const breadcrumbChain = useMemo(() => {
+    const chain: AssetFolder[] = [];
+    let cur = openFolderId ? foldersById.get(openFolderId) ?? null : null;
+    while (cur) {
+      chain.unshift(cur);
+      cur = cur.parent_folder_id ? foldersById.get(cur.parent_folder_id) ?? null : null;
+    }
+    return chain;
+  }, [openFolderId, foldersById]);
   const filesInOpenFolder = useMemo(() => (openFolderId ? assets.filter((a) => a.type === "file" && a.folder_id === openFolderId) : []), [assets, openFolderId]);
   const fileCountByFolder = useMemo(() => {
     const counts = new Map<string, number>();
@@ -74,23 +90,24 @@ export function FilesTab({
     return counts;
   }, [assets]);
 
-  // Case-insensitive sibling collision — the create-folder API already blocks new duplicates on
-  // the happy path (assets/folders/route.ts), so this only ever fires for legacy data or the
-  // documented 23505-race fallback. Display-only warning, not a new validation rule.
+  // Case-insensitive sibling collision, scoped to the current location (root or the currently
+  // open folder) — the create-folder API already blocks new duplicates on the happy path
+  // (assets/folders/route.ts), so this only ever fires for legacy data or the documented
+  // 23505-race fallback. Display-only warning, not a new validation rule.
   const duplicateFolderNames = useMemo(() => {
     const counts = new Map<string, number>();
-    for (const f of rootFolders) {
+    for (const f of currentLevelFolders) {
       const key = f.name.trim().toLowerCase();
       counts.set(key, (counts.get(key) ?? 0) + 1);
     }
     return new Set(Array.from(counts.entries()).filter(([, n]) => n > 1).map(([name]) => name));
-  }, [rootFolders]);
+  }, [currentLevelFolders]);
 
   const visibleFolders = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    const list = q ? rootFolders.filter((f) => f.name.toLowerCase().includes(q)) : rootFolders;
+    const list = q ? currentLevelFolders.filter((f) => f.name.toLowerCase().includes(q)) : currentLevelFolders;
     return [...list].sort((a, b) => (sortBy === "name" ? a.name.localeCompare(b.name) : new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
-  }, [rootFolders, searchQuery, sortBy]);
+  }, [currentLevelFolders, searchQuery, sortBy]);
 
   // Client-side version grouping (no schema change): files sharing an exact filename within the
   // same folder collapse into one visible tile — the newest by created_at — with a "vN · latest"
@@ -164,11 +181,34 @@ export function FilesTab({
     if (e.dataTransfer.files.length > 0) handleFiles(e.dataTransfer.files, openFolderId);
   };
 
-  const handleCreateFolder = async () => {
-    if (!newFolderName.trim()) return;
-    await onCreateFolder(newFolderName.trim());
+  // Case-insensitive next-free "{name} (n)" suffix — mirrors a standard OS duplicate-file
+  // rename convention; checks "(1)", "(2)", ... in order for the lowest free slot.
+  const nextAvailableFolderName = (base: string, existing: string[]): string => {
+    const lower = new Set(existing.map((n) => n.trim().toLowerCase()));
+    if (!lower.has(base.trim().toLowerCase())) return base;
+    let n = 1;
+    while (lower.has(`${base} (${n})`.toLowerCase())) n += 1;
+    return `${base} (${n})`;
+  };
+
+  // Both the Enter-key path (NewFolderTile's onKeyDown) and the blur-to-save path route through
+  // here. `finalName` is set only by DuplicateFolderModal's confirm action — that name is already
+  // known-unique against the siblings checked when the prompt was raised, so it skips the check
+  // and creates directly (the API's own unique-constraint 400 remains the backstop for a race).
+  const submitCreateFolder = async (finalName?: string) => {
+    const name = (finalName ?? newFolderName).trim();
+    if (!name) return;
+    if (!finalName) {
+      const existingNames = currentLevelFolders.map((f) => f.name);
+      if (existingNames.some((n) => n.trim().toLowerCase() === name.toLowerCase())) {
+        setDuplicatePrompt({ name, suggested: nextAvailableFolderName(name, existingNames) });
+        return;
+      }
+    }
+    await onCreateFolder(name, openFolderId);
     setNewFolderName("");
     setNewFolderOpen(false);
+    setDuplicatePrompt(null);
   };
 
   return (
@@ -183,16 +223,25 @@ export function FilesTab({
       )}
 
       <div className="flex items-center gap-2.5 mb-3.5 flex-wrap">
-        <div className="flex items-center gap-1.5 text-[13px] flex-1 min-w-[180px]">
-          <button type="button" onClick={() => onOpenFolder(null)} className={cn("cursor-pointer border-none bg-transparent px-0 font-medium", openFolder ? "text-[#5F6A88] hover:text-[#007BFF]" : textPrimary)}>
+        <div className="flex items-center gap-1.5 text-[13px] flex-1 min-w-[180px] flex-wrap">
+          <button type="button" onClick={() => onOpenFolder(null)} className={cn("cursor-pointer border-none bg-transparent px-0 font-medium", breadcrumbChain.length > 0 ? "text-[#5F6A88] hover:text-[#007BFF]" : textPrimary)}>
             Files
           </button>
-          {openFolder && (
-            <>
-              <ChevronRight size={13} className="text-[#5F6A88]" />
-              <span className={cn("font-medium", textPrimary)}>{openFolder.name}</span>
-            </>
-          )}
+          {breadcrumbChain.map((crumb, i) => {
+            const isLast = i === breadcrumbChain.length - 1;
+            return (
+              <Fragment key={crumb.id}>
+                <ChevronRight size={13} className="text-[#5F6A88]" />
+                {isLast ? (
+                  <span className={cn("font-medium", textPrimary)}>{crumb.name}</span>
+                ) : (
+                  <button type="button" onClick={() => onOpenFolder(crumb.id)} className="cursor-pointer border-none bg-transparent px-0 font-medium text-[#5F6A88] hover:text-[#007BFF]">
+                    {crumb.name}
+                  </button>
+                )}
+              </Fragment>
+            );
+          })}
           <IconTip label="This area is a drag-and-drop zone — open a folder, then drop files anywhere in it to upload. Right-click a file or folder for more actions.">
             <span className="inline-flex text-[#A8B3CC] cursor-help"><CircleQuestionMark size={14} /></span>
           </IconTip>
@@ -202,8 +251,8 @@ export function FilesTab({
           <input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={openFolder ? "Search files" : "Search folders"}
-            className="w-full text-[12px] rounded-full border border-[#E2E7F2] bg-[#F4F6FB] pl-8 pr-3 py-2 outline-none transition-colors focus:border-[#007BFF] focus:bg-white focus:shadow-[0_0_0_3px_rgba(0,123,255,0.14)]"
+            placeholder={openFolder ? "Search files & folders" : "Search folders"}
+            className="w-full text-[12px] text-[#0B1533] placeholder:text-[#5F6A88] rounded-full border border-[#E2E7F2] bg-[#F4F6FB] pl-8 pr-3 py-2 outline-none transition-colors focus:border-[#007BFF] focus:bg-white focus:shadow-[0_0_0_3px_rgba(0,123,255,0.14)]"
           />
         </div>
         <button
@@ -213,18 +262,20 @@ export function FilesTab({
         >
           <ArrowUpDown size={12} /> Sort: {sortBy === "newest" ? "Newest" : "Name"}
         </button>
-        <div className="flex items-center rounded-full border border-[#E2E7F2] bg-white p-0.5 shrink-0">
-          <IconTip label="Grid view">
-            <button type="button" onClick={() => setViewMode("grid")} aria-label="Grid view" aria-pressed={viewMode === "grid"} className={cn("p-1.5 rounded-full cursor-pointer border-none transition-colors", viewMode === "grid" ? "bg-[#E5F1FF] text-[#007BFF]" : "bg-transparent text-[#5F6A88]")}>
-              <LayoutGrid size={14} />
-            </button>
-          </IconTip>
-          <IconTip label="List view">
-            <button type="button" onClick={() => setViewMode("list")} aria-label="List view" aria-pressed={viewMode === "list"} className={cn("p-1.5 rounded-full cursor-pointer border-none transition-colors", viewMode === "list" ? "bg-[#E5F1FF] text-[#007BFF]" : "bg-transparent text-[#5F6A88]")}>
-              <List size={14} />
-            </button>
-          </IconTip>
-        </div>
+        {openFolder && (
+          <div className="flex items-center rounded-full border border-[#E2E7F2] bg-white p-0.5 shrink-0">
+            <IconTip label="Grid view">
+              <button type="button" onClick={() => setViewMode("grid")} aria-label="Grid view" aria-pressed={viewMode === "grid"} className={cn("p-1.5 rounded-full cursor-pointer border-none transition-colors", viewMode === "grid" ? "bg-[#E5F1FF] text-[#007BFF]" : "bg-transparent text-[#5F6A88]")}>
+                <LayoutGrid size={14} />
+              </button>
+            </IconTip>
+            <IconTip label="List view">
+              <button type="button" onClick={() => setViewMode("list")} aria-label="List view" aria-pressed={viewMode === "list"} className={cn("p-1.5 rounded-full cursor-pointer border-none transition-colors", viewMode === "list" ? "bg-[#E5F1FF] text-[#007BFF]" : "bg-transparent text-[#5F6A88]")}>
+                <List size={14} />
+              </button>
+            </IconTip>
+          </div>
+        )}
         {openFolder && canEdit && (
           <>
             <input ref={fileInputRef} type="file" multiple className="hidden" onChange={(e) => e.target.files && handleFiles(e.target.files, openFolderId!)} />
@@ -256,7 +307,7 @@ export function FilesTab({
       )}
 
       {!openFolder ? (
-        rootFolders.length === 0 ? (
+        currentLevelFolders.length === 0 ? (
           <EmptyPanel text="No folders yet — folders are created automatically per deliverable, or add your own." />
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
@@ -280,7 +331,7 @@ export function FilesTab({
               />
             ))}
             {!searchQuery && canEdit && (
-              <NewFolderTile open={newFolderOpen} name={newFolderName} onOpen={() => setNewFolderOpen(true)} onNameChange={setNewFolderName} onCreate={handleCreateFolder} onCancel={() => { setNewFolderOpen(false); setNewFolderName(""); }} />
+              <NewFolderTile open={newFolderOpen} name={newFolderName} onOpen={() => setNewFolderOpen(true)} onNameChange={setNewFolderName} onCreate={() => submitCreateFolder()} onCancel={() => { setNewFolderOpen(false); setNewFolderName(""); setDuplicatePrompt(null); }} />
             )}
             {visibleFolders.length === 0 && searchQuery && (
               <p className={cn("text-[12.5px] col-span-full text-center py-6", textMuted)}>No folders match &ldquo;{searchQuery}&rdquo;.</p>
@@ -288,6 +339,38 @@ export function FilesTab({
           </div>
         )
       ) : (
+        <div className="flex flex-col gap-3.5">
+          {/* Sub-folders (task 220) — folders inside the currently open folder, rendered above its
+              files, matching ../_onboarding-wizard.tsx's Storage folder + KB grouping. */}
+          {(visibleFolders.length > 0 || (!searchQuery && canEdit)) && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
+              {visibleFolders.map((folder) => (
+                <FolderTile
+                  key={folder.id}
+                  folder={folder}
+                  fileCount={fileCountByFolder.get(folder.id) ?? 0}
+                  canEdit={canEdit}
+                  duplicateWarning={duplicateFolderNames.has(folder.name.trim().toLowerCase())}
+                  onOpen={() => onOpenFolder(folder.id)}
+                  onPermissionChange={(u) => onFolderPermissionChange(folder.id, u)}
+                  onRename={() => setRenameTarget({ kind: "folder", id: folder.id, name: folder.name })}
+                  onDelete={() => onDeleteFolder(folder.id)}
+                  staffDirectory={staffDirectory}
+                  isDropTarget={dragOverFolderId === folder.id}
+                  onDragOverTile={(e) => { e.preventDefault(); e.stopPropagation(); if (canEdit) setDragOverFolderId(folder.id); }}
+                  onDragLeaveTile={(e) => { e.stopPropagation(); setDragOverFolderId((id) => (id === folder.id ? null : id)); }}
+                  onDropTile={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverFolderId(null); if (canEdit && e.dataTransfer.files.length > 0) handleFiles(e.dataTransfer.files, folder.id); }}
+                  onContextMenu={openContextMenu}
+                />
+              ))}
+              {!searchQuery && canEdit && (
+                <NewFolderTile open={newFolderOpen} name={newFolderName} onOpen={() => setNewFolderOpen(true)} onNameChange={setNewFolderName} onCreate={() => submitCreateFolder()} onCancel={() => { setNewFolderOpen(false); setNewFolderName(""); setDuplicatePrompt(null); }} />
+              )}
+            </div>
+          )}
+          {visibleFolders.length === 0 && searchQuery && currentLevelFolders.length > 0 && (
+            <p className={cn("text-[12.5px] text-center", textMuted)}>No sub-folders match &ldquo;{searchQuery}&rdquo;.</p>
+          )}
         <div
           onDragOver={(e) => { e.preventDefault(); if (canEdit) setDragOver(true); }}
           onDragLeave={() => setDragOver(false)}
@@ -355,6 +438,7 @@ export function FilesTab({
             </div>
           )}
         </div>
+        </div>
       )}
 
       {renameTarget && (
@@ -371,6 +455,14 @@ export function FilesTab({
           currentFolderId={openFolderId}
           onClose={() => setMoveTargetAssetIds(null)}
           onSubmit={async (folderId) => { await Promise.all(moveTargetAssetIds.map((id) => onMoveAsset(id, folderId))); clearSelection(); }}
+        />
+      )}
+      {duplicatePrompt && (
+        <DuplicateFolderModal
+          name={duplicatePrompt.name}
+          suggestedName={duplicatePrompt.suggested}
+          onCancel={() => setDuplicatePrompt(null)}
+          onConfirm={() => submitCreateFolder(duplicatePrompt.suggested)}
         />
       )}
     </div>
@@ -395,7 +487,7 @@ function NewFolderTile({
 }) {
   if (open) {
     return (
-      <div className="flex flex-col items-center justify-center gap-2 rounded-[14px] border border-dashed border-[#A8C6F5] bg-[#F0F7FF] p-4 min-h-26">
+      <div className="flex flex-col items-center justify-center gap-1.5 rounded-[14px] border border-dashed border-[#A8C6F5] bg-[#F0F7FF] p-4 min-h-26">
         <input
           autoFocus
           value={name}
@@ -403,8 +495,9 @@ function NewFolderTile({
           onKeyDown={(e) => { if (e.key === "Enter") onCreate(); if (e.key === "Escape") onCancel(); }}
           onBlur={() => (name.trim() ? onCreate() : onCancel())}
           placeholder="Folder name"
-          className="w-full text-[12.5px] rounded-[8px] border border-[#A8C6F5] bg-white px-2.5 py-2 outline-none text-center"
+          className="w-full text-[12.5px] text-[#0B1533] placeholder:text-[#5F6A88] rounded-[8px] border border-[#A8C6F5] bg-white px-2.5 py-2 outline-none text-center"
         />
+        <p className={cn("text-[10.5px]", textMuted)}>Press Enter to save</p>
       </div>
     );
   }

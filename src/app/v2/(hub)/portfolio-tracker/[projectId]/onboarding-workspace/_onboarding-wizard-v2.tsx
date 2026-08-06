@@ -19,7 +19,6 @@ import { ChecklistTab } from "./_checklist-tab";
 const WIZARD_ROLES = ["admin", "super_admin", "marketing", "pm"];
 const WRITE_ROLES = ["admin", "super_admin", "marketing"];
 const PHASE1 = getPhaseByNumber(1);
-const PHASE2 = getPhaseByNumber(2);
 // Task 204 — same Phase 1 deliverable config the Checklist tab renders (_checklist-tab.tsx:9),
 // used here to gate the "Proceed to Phase 2" button on every deliverable being done.
 const DELIVERABLES = PHASE1.deliverables;
@@ -34,6 +33,7 @@ export default function OnboardingWizardV2({ project, role }: { project: WizardV
   const [internalDeliverables, setInternalDeliverables] = useState<InternalDeliverableRow[]>([]);
   const [wizardData, setWizardData] = useState<Record<string, Record<string, unknown>>>({});
   const [currentDay, setCurrentDay] = useState(1);
+  const [programmeStartedAt, setProgrammeStartedAt] = useState<string | null>(null);
   const [isPhaseActive, setIsPhaseActive] = useState(true);
   const [staffDirectory, setStaffDirectory] = useState<StaffPerson[]>([]);
   const [openFolderId, setOpenFolderId] = useState<string | null>(null);
@@ -63,7 +63,10 @@ export default function OnboardingWizardV2({ project, role }: { project: WizardV
         setWizardData(phase1?.wizard_data ?? {});
         setDeliverables((data.deliverables ?? []).filter((d: DeliverableRow) => d.phase_number === 1));
         setInternalDeliverables(data.internal_deliverables ?? []);
-        if (data.programme_started_at) setCurrentDay(getCurrentProgrammeDay(data.programme_started_at));
+        if (data.programme_started_at) {
+          setCurrentDay(getCurrentProgrammeDay(data.programme_started_at));
+          setProgrammeStartedAt(data.programme_started_at);
+        }
       }
       if (foldersRes.ok) setFolders(await foldersRes.json());
       if (assetsRes.ok) {
@@ -168,11 +171,11 @@ export default function OnboardingWizardV2({ project, role }: { project: WizardV
     setFolders((prev) => prev.map((f) => (f.id === folderId ? updated : f)));
   };
 
-  const handleCreateFolder = async (name: string) => {
+  const handleCreateFolder = async (name: string, parentFolderId: string | null = null) => {
     const res = await fetch(`/api/customers/${project.customer_id}/assets/folders`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ projectId: project.id, phaseNumber: 1, name }),
+      body: JSON.stringify({ projectId: project.id, phaseNumber: 1, name, parent_folder_id: parentFolderId }),
     });
     if (!res.ok) return;
     const created: AssetFolder = await res.json();
@@ -348,7 +351,7 @@ export default function OnboardingWizardV2({ project, role }: { project: WizardV
         dayStart={PHASE1.dayStart}
         dayEnd={PHASE1.dayEnd}
         overdueCount={overdueCount}
-        milestoneLabel={`${PHASE2.name} starts`}
+        startedAt={programmeStartedAt}
         tab={tab}
         tabCounts={{ files: filesCount, access: accessCount, checklist: `${doneDeliverableCount}/${DELIVERABLES.length}` }}
         onTabChange={setTab}

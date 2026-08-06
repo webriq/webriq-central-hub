@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ customerId: string; assetId: string }> }
 ) {
   try {
@@ -14,7 +14,7 @@ export async function GET(
     const { customerId, assetId } = await params;
     const { data: asset, error } = await supabase
       .from("customer_assets")
-      .select("type, file_path, allowed_roles, allowed_user_ids")
+      .select("type, file_path, file_name, allowed_roles, allowed_user_ids")
       .eq("id", assetId)
       .eq("customer_id", customerId)
       .maybeSingle();
@@ -41,9 +41,13 @@ export async function GET(
       return NextResponse.json({ error: "Not permitted to access this file" }, { status: 403 });
     }
 
+    // ?download=1 (Notes card's Download button) sets Content-Disposition: attachment via
+    // Supabase Storage's own `download` option, so the browser saves the file with its real
+    // name instead of navigating to it — the eye/preview button omits this param.
+    const download = new URL(request.url).searchParams.get("download") === "1";
     const { data: signed, error: signError } = await adminClient.storage
       .from("customer-assets")
-      .createSignedUrl(asset.file_path, 60);
+      .createSignedUrl(asset.file_path, 60, download ? { download: asset.file_name ?? true } : undefined);
 
     if (signError || !signed) {
       console.error("Customer asset signed URL error:", signError);

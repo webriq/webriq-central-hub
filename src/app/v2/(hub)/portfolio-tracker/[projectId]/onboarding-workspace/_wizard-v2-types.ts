@@ -21,6 +21,10 @@ export type AssetRow = {
   project_id: string | null;
   folder_id: string | null;
   source_asset_id: string | null;
+  uploaded_by: string | null;
+  // Not a real DB column — flattened server-side (assets GET route) from the
+  // profiles!customer_assets_uploaded_by_fkey embed, so display code doesn't need its own join.
+  uploader_name?: string | null;
   created_at: string;
 };
 

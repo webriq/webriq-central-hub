@@ -35,7 +35,7 @@ export async function GET(
     const { customerId } = await params;
     const { data, error } = await supabase
       .from("customer_assets")
-      .select("*")
+      .select("*, uploader:profiles!customer_assets_uploaded_by_fkey(full_name)")
       .eq("customer_id", customerId)
       .order("created_at", { ascending: true });
 
@@ -44,7 +44,9 @@ export async function GET(
       return NextResponse.json({ error: "Failed to fetch assets" }, { status: 500 });
     }
 
-    const visible = (data ?? []).filter((a) => canSeeAsset(myRole, user.id, a.allowed_roles, a.allowed_user_ids));
+    const visible = (data ?? [])
+      .filter((a) => canSeeAsset(myRole, user.id, a.allowed_roles, a.allowed_user_ids))
+      .map(({ uploader, ...a }) => ({ ...a, uploader_name: uploader?.full_name ?? null }));
     return NextResponse.json(visible);
   } catch (err) {
     console.error("GET /api/customers/[customerId]/assets unexpected error:", err);
@@ -124,6 +126,7 @@ export async function POST(
         phase_number: Number.isInteger(phase_number) ? phase_number : null,
         project_id: project_id ?? null,
         folder_id: folder_id ?? null,
+        uploaded_by: user.id,
       })
       .select()
       .single();

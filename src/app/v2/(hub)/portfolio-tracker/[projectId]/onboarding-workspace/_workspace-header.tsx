@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { ChevronRight, ArrowUpRight } from "lucide-react";
+import { ArrowLeft, ArrowUpRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { V2_ROUTES } from "@/config/constants";
 import { getPhaseByNumber } from "@/config/customer-phases";
@@ -20,7 +20,7 @@ const TICK_DAYS = getPhaseByNumber(1).deliverables.slice(1, -1).map((d) => d.day
 // orchestrator under the file-length ceiling (nextjs-file-length-best-practices.md).
 export function WorkspaceHeader({
   companyName, projectRouteId, classification, existingWebsite,
-  currentDay, dayStart, dayEnd, overdueCount, milestoneLabel,
+  currentDay, dayStart, dayEnd, overdueCount, startedAt,
   tab, tabCounts, onTabChange, cta,
 }: {
   companyName: string;
@@ -31,32 +31,30 @@ export function WorkspaceHeader({
   dayStart: number;
   dayEnd: number;
   overdueCount: number;
-  milestoneLabel: string;
+  startedAt: string | null;
   tab: WizardTabKey;
   tabCounts: { files: number; access: number; checklist: string };
   onTabChange: (tab: WizardTabKey) => void;
   cta?: ReactNode;
 }) {
-  // "Portfolio Tracker" points at this specific project's original detail page, not the flat
-  // list — the mockup's breadcrumb doesn't include a 4th "project" crumb level, so this label
-  // does double duty as the way back to the project (same destination the old "Back to {project
-  // name}" button used), rather than dropping that navigation path entirely.
+  // Points at this specific project's timeline page (the original, non-/v2 route) — same
+  // destination the old "Back to {project name}" button used, per user feedback replacing the
+  // 3-level breadcrumb with a single back-link.
   const portfolioTrackerHref = projectRouteId ? `${V2_ROUTES.PORTFOLIO_TRACKER}/${projectRouteId}` : V2_ROUTES.PORTFOLIO_TRACKER;
 
   return (
     <div className="mb-5">
-      <nav className="flex items-center gap-1.5 text-[12px] mb-4">
-        <Link href={V2_ROUTES.DASHBOARD} className={cn("font-medium underline underline-offset-2 transition-colors", textMuted, "hover:text-[#0063D6]")}>Work</Link>
-        <ChevronRight size={12} className="text-[#5F6A88]/60" />
-        <Link href={portfolioTrackerHref} className={cn("font-medium underline underline-offset-2 transition-colors", textMuted, "hover:text-[#0063D6]")}>Portfolio Tracker</Link>
-        <ChevronRight size={12} className="text-[#5F6A88]/60" />
-        <span className={cn("font-semibold", textPrimary)}>{companyName}</span>
-      </nav>
+      <Link
+        href={portfolioTrackerHref}
+        className={cn("inline-flex items-center gap-1.5 text-[12.5px] font-medium mb-4 transition-colors", textMuted, "hover:text-[#0063D6]")}
+      >
+        <ArrowLeft size={14} /> Back to Tracker
+      </Link>
 
       <div className="flex items-start justify-between gap-6 flex-wrap mb-1.5">
         <div>
           <h1 className={cn("font-heading text-[24px] font-bold tracking-[-0.015em] flex items-center gap-2.5 flex-wrap", textPrimary)}>
-            {companyName} — Onboarding workspace
+            {companyName} — Onboarding Workspace
             <span className="inline-flex items-center gap-1.5 text-[10px] font-bold tracking-wide px-2 py-0.5 rounded-[5px] bg-[#FFEFE3] text-[#E2762F]">
               <span className="w-1.5 h-1.5 rounded-full bg-current" />Onboard
             </span>
@@ -89,7 +87,8 @@ export function WorkspaceHeader({
           dayStart={dayStart}
           dayEnd={dayEnd}
           overdueCount={overdueCount}
-          milestoneLabel={milestoneLabel}
+          startedAt={startedAt}
+          onReviewChecklist={() => onTabChange("checklist")}
           tickDays={TICK_DAYS}
         />
       </div>
@@ -99,7 +98,7 @@ export function WorkspaceHeader({
           { id: "business-info", label: "Business info" },
           { id: "files", label: "Files", count: String(tabCounts.files) },
           { id: "access", label: "Access", count: String(tabCounts.access) },
-          { id: "checklist", label: "Checklist", count: tabCounts.checklist },
+          { id: "checklist", label: "Checklist", count: tabCounts.checklist, alert: overdueCount > 0 },
         ]}
         active={tab}
         onChange={onTabChange}

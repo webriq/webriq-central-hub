@@ -4,11 +4,9 @@ import { Check, Loader2, FolderOpen, KeyRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DeliverableRow, InternalDeliverableRow } from "./_wizard-v2-types";
 import { textPrimary, textMuted, cardCls, DueBadge } from "./_shared-ui";
-import { ProgrammeTrack } from "./_programme-track";
 import { getPhaseByNumber, internalDeliverablesForSubPhase } from "@/config/customer-phases";
 
 const PHASE1 = getPhaseByNumber(1);
-const PHASE2 = getPhaseByNumber(2);
 const DELIVERABLES = PHASE1.deliverables;
 
 // Marketing/admin-only checklist visibility — mirrors ../_onboarding-wizard.tsx's rule exactly
@@ -59,8 +57,6 @@ export function ChecklistTab({
 
   return (
     <div className="flex flex-col gap-3.5">
-      <ProgrammeTrack currentDay={currentDay} dayStart={PHASE1.dayStart} dayEnd={PHASE1.dayEnd} milestoneLabel={`${PHASE2.name} starts`} />
-
       <div className="flex items-center gap-4 flex-wrap px-1">
         <div>
           <div className={cn("font-heading text-[22px] font-bold tracking-[-0.02em] leading-none", textPrimary)}>
@@ -75,8 +71,19 @@ export function ChecklistTab({
         </div>
         <div className="w-px h-8 bg-[#E2E7F2]" />
         <div>
-          <div className={cn("text-[18px] font-semibold leading-none", textMuted)}>Day {currentDay}</div>
-          <div className={cn("text-[11px] mt-1", textMuted)}>of {PHASE1.dayEnd} — {PHASE1.name} phase</div>
+          {currentDay > PHASE1.dayEnd ? (
+            <>
+              <div className="text-[18px] font-semibold leading-none text-[#C0392B]">
+                {currentDay - PHASE1.dayEnd} Day{currentDay - PHASE1.dayEnd !== 1 ? "s" : ""}
+              </div>
+              <div className="text-[11px] mt-1 text-[#C0392B]">Overdue</div>
+            </>
+          ) : (
+            <>
+              <div className={cn("text-[18px] font-semibold leading-none", textMuted)}>Day {currentDay}</div>
+              <div className={cn("text-[11px] mt-1", textMuted)}>of {PHASE1.dayEnd} — {PHASE1.name} phase</div>
+            </>
+          )}
         </div>
       </div>
 
@@ -87,13 +94,13 @@ export function ChecklistTab({
           <div key={config.key} className={cn(cardCls, "p-4")}>
             <div className="flex items-center justify-between gap-3 mb-1">
               <div className="flex items-center gap-2.5 min-w-0">
-                <span
+                {/* <span
                   className="w-6 h-6 rounded-full shrink-0 flex items-center justify-center text-[9px] font-bold text-white"
                   style={{ background: colorFor(config.owner) }}
                   title={config.owner}
                 >
                   {initialsFor(config.owner)}
-                </span>
+                </span> */}
                 <span className={cn("text-[13.5px] font-semibold truncate", textPrimary)}>{config.name}</span>
               </div>
               <DueBadge currentDay={currentDay} dayStart={config.dayStart} dayEnd={config.dayEnd} done={status === "done"} />
@@ -117,7 +124,7 @@ export function ChecklistTab({
                         {toggling ? (
                           <Loader2 size={17} className="shrink-0 animate-spin text-[#5F6A88]" />
                         ) : (
-                          <span className={cn("w-[17px] h-[17px] shrink-0 rounded-[5px] border-[1.5px] flex items-center justify-center", done ? "bg-[#177E48] border-[#177E48]" : "border-[#C7CEDD]")}>
+                          <span className={cn("w-4.25 h-4.25 shrink-0 rounded-[5px] border-[1.5px] flex items-center justify-center", done ? "bg-auth-ok border-auth-ok" : "border-[#C7CEDD]")}>
                             {done && <Check size={11} className="text-white" />}
                           </span>
                         )}
@@ -127,7 +134,7 @@ export function ChecklistTab({
                         <button
                           type="button"
                           onClick={() => (evidence.tab === "files" ? onOpenFolder(evidence.folderName ?? "Business Files") : onGoToAccess())}
-                          className="shrink-0 inline-flex items-center gap-1 text-[11px] font-semibold text-[#007BFF] bg-transparent border-none cursor-pointer hover:underline"
+                          className="shrink-0 inline-flex items-center gap-1 text-[11px] font-semibold text-auth-blue bg-transparent border-none cursor-pointer hover:underline"
                         >
                           {evidence.tab === "files" ? <FolderOpen size={11} /> : <KeyRound size={11} />}
                           Attach from {evidence.tab === "files" ? "Files" : "Access"}
