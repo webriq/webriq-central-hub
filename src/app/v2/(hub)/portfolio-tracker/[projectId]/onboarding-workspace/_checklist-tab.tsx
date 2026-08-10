@@ -18,7 +18,7 @@ const INTERNAL_HIDDEN_ROLES = ["pm", "developer", "hr"];
 // checkboxes with a PENDING tag), so this mapping intentionally covers exactly those two rather
 // than inventing evidence links the design doesn't call for.
 const EVIDENCE_LINKS: Record<string, { tab: "files" | "access"; folderName?: string }> = {
-  "implementation-file": { tab: "files", folderName: "Checklist" },
+  "implementation-file": { tab: "files", folderName: "Migration Checklist" },
   "credentials-external": { tab: "access" },
 };
 

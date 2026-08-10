@@ -15,6 +15,7 @@ import { BusinessInfoTab } from "./_business-info-tab";
 import { FilesTab } from "./_files-tab";
 import { AccessTab } from "./_access-tab";
 import { ChecklistTab } from "./_checklist-tab";
+import { buildWorkspaceQueryString, resolveFolderPath, folderNamePath } from "./_workspace-url-params";
 
 const WIZARD_ROLES = ["admin", "super_admin", "marketing", "pm"];
 const WRITE_ROLES = ["admin", "super_admin", "marketing"];
@@ -23,9 +24,19 @@ const PHASE1 = getPhaseByNumber(1);
 // used here to gate the "Proceed to Phase 2" button on every deliverable being done.
 const DELIVERABLES = PHASE1.deliverables;
 
-export default function OnboardingWizardV2({ project, role }: { project: WizardV2Project; role: string | null }) {
+export default function OnboardingWizardV2({
+  project, role, initialTab, initialFolderPath,
+}: {
+  project: WizardV2Project;
+  role: string | null;
+  // Task 222 — deep-link target from ?tab=&parent_folder=&sub_folder_l1=... (parsed server-side
+  // in page.tsx via _workspace-url-params.ts). initialFolderPath is a root-to-leaf folder NAME
+  // path, resolved to a folder id once `folders` has loaded (see the effect below).
+  initialTab?: WizardTabKey;
+  initialFolderPath?: string[];
+}) {
   const router = useRouter();
-  const [tab, setTab] = useState<WizardTabKey>("business-info");
+  const [tab, setTab] = useState<WizardTabKey>(initialTab ?? "business-info");
   const [loading, setLoading] = useState(true);
   const [assets, setAssets] = useState<AssetRow[]>([]);
   const [folders, setFolders] = useState<AssetFolder[]>([]);
@@ -43,6 +54,7 @@ export default function OnboardingWizardV2({ project, role }: { project: WizardV
   const [phaseTransition, setPhaseTransition] = useState(false);
   const [phaseDone, setPhaseDone] = useState(false);
   const notesFolderRequested = useRef(false);
+  const initialFolderApplied = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -96,6 +108,37 @@ export default function OnboardingWizardV2({ project, role }: { project: WizardV
       .then((created: AssetFolder | null) => { if (created) setFolders((prev) => [...prev, created]); })
       .catch(() => { /* non-fatal — Business Info's "open in Files" link just won't resolve until a refresh */ });
   }, [loading, folders, project.customer_id, project.id]);
+
+  // Task 222 — resolves the ?parent_folder=&sub_folder_l1=... deep-link (a root-to-leaf folder
+  // NAME path) to a folder id once folders have loaded. Only commits once the *whole* path
+  // resolves (folderNamePath's length matches) — a shorter match usually means a lazily-created
+  // folder (e.g. "Notes", created by the effect above) hasn't landed in `folders` yet, so this
+  // effect re-checks whenever `folders` changes instead of settling for a shallower folder.
+  useEffect(() => {
+    if (loading || initialFolderApplied.current || !initialFolderPath || initialFolderPath.length === 0) return;
+    const resolvedId = resolveFolderPath(folders, initialFolderPath);
+    if (folderNamePath(folders, resolvedId).length < initialFolderPath.length) return;
+    // Deferred a tick (matches the fetch().then() pattern the "Notes" auto-create effect above
+    // uses) rather than calling the setters synchronously in the effect body — avoids
+    // react-hooks/set-state-in-effect's cascading-render warning for a same-tick setState.
+    queueMicrotask(() => {
+      setTab("files");
+      setOpenFolderId(resolvedId);
+      initialFolderApplied.current = true;
+    });
+  }, [loading, folders, initialFolderPath]);
+
+  // Task 222 — keeps the address bar in sync with the current tab/folder as the user navigates
+  // inside the Workspace (tab bar, folder tiles, breadcrumbs, "Go to Notes folder", "Attach from
+  // Files" all flow through setTab/setOpenFolderId). Uses the native History API rather than
+  // router.replace: this page is `force-dynamic`, so a router navigation on every folder click
+  // would re-run the server component (loadOnboardingDetailData) on every click — replaceState
+  // updates the URL with zero data refetch and no risk to already-mounted local state.
+  useEffect(() => {
+    if (loading) return;
+    const qs = buildWorkspaceQueryString(tab, folderNamePath(folders, openFolderId));
+    window.history.replaceState(null, "", `${window.location.pathname}?${qs}`);
+  }, [tab, openFolderId, folders, loading]);
 
   const isPM = role === "pm";
   const isWriteRole = !!role && WRITE_ROLES.includes(role);

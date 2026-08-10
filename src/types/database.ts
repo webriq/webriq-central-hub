@@ -1846,6 +1846,7 @@ export interface Database {
           actual_completed_date: string | null;
           is_manual_override: boolean;
           override_note: string | null;
+          delay_note: string | null;
           wizard_data: Json;
           created_at: string;
           updated_at: string;
@@ -1860,6 +1861,7 @@ export interface Database {
           actual_completed_date?: string | null;
           is_manual_override?: boolean;
           override_note?: string | null;
+          delay_note?: string | null;
           wizard_data?: Json;
           created_at?: string;
           updated_at?: string;
@@ -1874,6 +1876,7 @@ export interface Database {
           actual_completed_date?: string | null;
           is_manual_override?: boolean;
           override_note?: string | null;
+          delay_note?: string | null;
           wizard_data?: Json;
           updated_at?: string;
         };

@@ -8,9 +8,9 @@ import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip
 import {
   CalendarClock, Flag, Bell, CheckCircle2, Check, Clock, ChevronDown, ChevronRight, PlayCircle,
   Users, AlertTriangle, Info, ArrowLeft, ListChecks, Locate, Crown, X, ShieldAlert,
-  Settings,
+  Settings, ClipboardList, type LucideIcon,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { V2_ROUTES } from "@/config/constants";
 import {
@@ -20,7 +20,8 @@ import {
 import type { CustomerPhaseRow, CustomerDeliverableRow, OnboardingInternalDeliverableRow } from "@/types/database";
 import { isRoleGatedByMembership, canManageProjectMembers, canSetProjectOwner, canManagePhase1Membership } from "@/lib/programme/membership-rules";
 import OnboardingWizard from "./_onboarding-wizard";
-import { stepKeyToWizardParams, FIRST_WIZARD_STEP_PARAMS } from "./_wizard-step-params";
+import { DELIVERABLE_WORKSPACE_TARGET, buildWorkspaceQueryString } from "./onboarding-workspace/_workspace-url-params";
+import { StatusSummaryDrawer } from "./_status-summary-drawer";
 
 // Shared shape for both project_members and phase_members rows (task 155 gave both an
 // is_owner column, mirroring each other exactly).
@@ -98,6 +99,17 @@ const PHASE_HEX: Record<number, string> = {
   3: "#6A48E0",
   4: "#0B8A93",
   5: "#177E48",
+};
+
+// Light-tint twins of PHASE_HEX (same values as PHASE_VISUALS' `bg` classes, as raw hex) — used
+// for the 120-day programme track's gradient fill, matching the light-to-solid gradient shape
+// the Onboarding Workspace's ProgrammeTrack already uses for its own phase-progress bar.
+const PHASE_TINT_HEX: Record<number, string> = {
+  1: "#FFEFE3",
+  2: "#E5F1FF",
+  3: "#EFEAFD",
+  4: "#E2F6F7",
+  5: "#E3F5EA",
 };
 
 // ─── Reminder chip palette ─────────────────────────────────────────────────────
@@ -706,11 +718,18 @@ function JumpToPhaseMenu({
 
 // ─── Stat chip ─────────────────────────────────────────────────────────────────
 
-function StatChip({ label, value }: { label: string; value: string | number }) {
+function StatChip({ icon: Icon, label, value }: { icon?: LucideIcon; label: string; value: string | number }) {
   return (
-    <div className="rounded-lg border border-[#E2E7F2] bg-[#F4F6FB] px-3 py-1.5 text-center">
-      <div className={cn("text-sm font-bold text-[#0B1533]")}>{value}</div>
-      <div className="whitespace-nowrap text-[9px] uppercase tracking-wide text-[#5F6A88]">{label}</div>
+    <div className="flex h-full items-center gap-2 rounded-lg border border-[#E2E7F2] bg-[#F4F6FB] px-3.5">
+      {Icon && (
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white text-[#5F6A88]">
+          <Icon size={12} />
+        </span>
+      )}
+      <div>
+        <div className={cn("font-mono text-xl font-bold leading-tight text-[#0B1533]")}>{value}</div>
+        <div className="whitespace-nowrap text-[9px] uppercase tracking-wide text-[#5F6A88]">{label}</div>
+      </div>
     </div>
   );
 }
@@ -1048,6 +1067,7 @@ export default function OnboardingDetail({
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
   const [ownerPanelOpen, setOwnerPanelOpen] = useState(false);
   const [collaboratorsPanelOpen, setCollaboratorsPanelOpen] = useState(false);
+  const [summaryOpen, setSummaryOpen] = useState(false);
   const [membershipBusy, setMembershipBusy] = useState(false);
   const [membershipError, setMembershipError] = useState<string | null>(null);
 
@@ -1341,11 +1361,14 @@ export default function OnboardingDetail({
   // which never assigns phase ownership — phase_members only has a concept for Phase 1.
   const startAtPhase = (phaseNumber: 1 | 2 | 3 | 4 | 5) => (phaseNumber === 1 ? handleStart() : handleJump(phaseNumber));
 
+  // Task 222 — swimlane deliverable cards now open the Onboarding Workspace (tabbed rebuild)
+  // instead of the inline Onboarding Wizard, deep-linked to that deliverable's mapped
+  // tab/folder (see _workspace-url-params.ts). The inline Wizard (wizardOpen/OnboardingWizard
+  // below) stays reachable only via a direct ?phase=&deliverable= URL hit — untouched here.
   const handleOpenWizardStep = (deliverableKey: string) => {
-    setWizardStartStepKey(deliverableKey);
-    setWizardOpen(true);
-    const stepParams = stepKeyToWizardParams(deliverableKey) ?? FIRST_WIZARD_STEP_PARAMS;
-    router.push(`${V2_ROUTES.PORTFOLIO_TRACKER}/${projectUrlKey}?phase=${stepParams.phase}&deliverable=${stepParams.deliverable}`, { scroll: false });
+    const target = DELIVERABLE_WORKSPACE_TARGET[deliverableKey] ?? { tab: "business-info" as const };
+    const qs = buildWorkspaceQueryString(target.tab, target.folderPath);
+    router.push(`${V2_ROUTES.PORTFOLIO_TRACKER}/${projectUrlKey}/onboarding-workspace?${qs}`, { scroll: false });
   };
 
   const handleScheduleChange = async (phaseNumber: number, deliverableKey: string, dayStart: number, dayEnd: number) => {
@@ -1576,6 +1599,10 @@ export default function OnboardingDetail({
   const activePhase = PROGRAMME_PHASES.find((p) => p.number === activePhaseNumber) ?? PROGRAMME_PHASES[0];
   const isComplete = phases.find((p) => p.phase_number === 5)?.status === "completed";
   const progressPct = Math.min(100, Math.round((currentDay / 120) * 100));
+  // Whole-programme overdue (mirrors ProgrammeTrack's own per-phase overdue flag, at 120-day
+  // scale) — currentDay isn't capped at 120, so a stalled project can genuinely pass it.
+  const programmeOverdue = !isComplete && currentDay > 120;
+  const daysOverdue120 = currentDay - 120;
   const phaseStatusMap = new Map(phases.map((p) => [p.phase_number, p.status]));
   const deliverableStatusMap = new Map(deliverables.map((d) => [d.deliverable_key, d.status]));
   const deliverableOverrideMap = new Map(
@@ -1712,23 +1739,55 @@ export default function OnboardingDetail({
               onClose={() => setCollaboratorsPanelOpen(false)}
             />
           )}
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-            <div className="flex min-w-[240px] flex-1 items-center gap-3">
-              <div className="h-2 flex-1 overflow-hidden rounded-full bg-[#EDF0F7]">
-                <div
-                  className={cn("h-full rounded-full transition-[width] duration-700", isComplete ? "bg-[#177E48]" : visual.solid)}
-                  style={{ width: `${progressPct}%` }}
-                />
+          <div className="mb-4 flex flex-col gap-4 lg:flex-row lg:gap-6">
+            <div className="min-w-0 lg:flex-1">
+              <div className="mb-2.5 flex flex-wrap items-baseline justify-between gap-3">
+                <span className="text-[11px] font-bold uppercase tracking-wide text-[#0B1533]">120-Day Programme Progress</span>
+                <span className={cn("font-mono text-[11px]", programmeOverdue ? "font-semibold text-[#C0392B]" : "text-[#5F6A88]")}>
+                  {isComplete ? (
+                    "Complete"
+                  ) : programmeOverdue ? (
+                    <>{daysOverdue120} DAY{daysOverdue120 === 1 ? "" : "S"} OVERDUE</>
+                  ) : (
+                    <>DAY {currentDay} OF 120</>
+                  )}
+                </span>
               </div>
-              <div className={cn("shrink-0 text-lg font-bold text-[#0B1533]")}>
-                Day {currentDay}
-                <span className="ml-1 text-xs font-normal text-[#5F6A88]">/ 120</span>
+              <div className="relative h-5 rounded-full bg-[#EDF0F7]">
+                <div
+                  className="absolute inset-y-0 left-0 rounded-full transition-[width] duration-700"
+                  style={{
+                    width: `${progressPct}%`,
+                    background: isComplete
+                      ? "#177E48"
+                      : programmeOverdue
+                        ? "linear-gradient(90deg,#FDE8E6,#C0392B)"
+                        : `linear-gradient(90deg, ${PHASE_TINT_HEX[activePhaseNumber] ?? PHASE_TINT_HEX[1]}, ${PHASE_HEX[activePhaseNumber] ?? PHASE_HEX[1]})`,
+                  }}
+                />
+                <div
+                  className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-full bg-[#071133] px-1.5 py-0.5 font-mono text-[9px] font-semibold text-white shadow-[0_1px_3px_rgba(7,17,51,.35)]"
+                  style={{ left: `clamp(28px, ${progressPct}%, calc(100% - 28px))` }}
+                >
+                  DAY {currentDay}
+                </div>
+              </div>
+              <div className="mt-1.5 flex justify-between font-mono text-[9px] uppercase text-[#5F6A88]">
+                <span>Day 1 ({formatDate(startDate).toUpperCase()})</span>
+                <span>Day 120 ({formatDate(addDays(startDate, 119)).toUpperCase()})</span>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <StatChip label="Days left" value={daysRemaining} />
-              <StatChip label="Phases done" value={phasesCompleted} />
-              <StatChip label="Deliverables" value={`${doneDeliverables}/${totalDeliverables}`} />
+            <div className="flex items-center gap-2 flex-wrap lg:shrink-0 lg:flex-nowrap">
+              <StatChip icon={Clock} label="Days left" value={daysRemaining} />
+              <StatChip icon={CheckCircle2} label="Phases done" value={phasesCompleted} />
+              <StatChip icon={ListChecks} label="Deliverables" value={`${doneDeliverables}/${totalDeliverables}`} />
+              <button
+                type="button"
+                onClick={() => setSummaryOpen(true)}
+                className="inline-flex cursor-pointer items-center gap-1.5 self-start rounded-full border border-[#E2E7F2] bg-white px-3.5 py-2 text-[12px] font-semibold text-[#3A4565] transition-colors hover:border-[#A8C6F5] hover:text-[#007BFF]"
+              >
+                <ClipboardList size={13} /> Status Summary
+              </button>
             </div>
           </div>
         </div>
@@ -1831,6 +1890,8 @@ export default function OnboardingDetail({
       >
         <Locate size={20} />
       </button>
+
+      <StatusSummaryDrawer open={summaryOpen} onClose={() => setSummaryOpen(false)} projectUuid={project.id} />
     </div>
   );
 }

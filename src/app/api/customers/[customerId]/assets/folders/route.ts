@@ -33,7 +33,7 @@ const LABEL_TO_SYSTEM_FOLDER: Record<string, string> = {
   "Business Facts": "Business Files",
   "Documents": "Business Files",
   "Outcome Target": "Outcome Target",
-  "Migration Checklist": "Checklist",
+  "Migration Checklist": "Migration Checklist",
   "Content Map": "Content Map",
   "HTML Mockup": "HTML Mockup",
   // Task 199 — the auto-generated build spec is paired 1:1 with its HTML mockup and belongs
@@ -48,7 +48,7 @@ const LABEL_TO_SYSTEM_FOLDER: Record<string, string> = {
 const SYSTEM_FOLDER_TREE: { name: string; children?: string[] }[] = [
   { name: "Business Files", children: ["Branding", "Proposals", "Collateral"] },
   { name: "Outcome Target" },
-  { name: "Checklist" },
+  { name: "Migration Checklist" },
   { name: "Content Map" },
   { name: "HTML Mockup" },
   { name: "Other" },

@@ -6,7 +6,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   ChartGantt, Plus, Upload, Building2, CalendarClock, Clock3, Search, X,
-  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ClipboardList,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { V2_ROUTES } from "@/config/constants";
@@ -296,22 +296,30 @@ export default function OnboardingList({ role, currentUserId }: { role: string |
                   : "Projects currently going through Phase 1 onboarding."}
               </p>
             </div>
-            {canCreate && (
-              <div className="flex items-center gap-2 shrink-0">
-                <Link
-                  href={V2_ROUTES.PORTFOLIO_TRACKER_IMPORT}
-                  className="inline-flex items-center gap-2 px-[15px] py-2 rounded-full border text-[12px] font-semibold transition-colors cursor-pointer border-[#E2E7F2] bg-white text-[#3A4565] hover:border-[#A8C6F5] hover:text-[#0B1533]"
-                >
-                  <Upload size={14} /> Import Project
-                </Link>
-                <Link
-                  href={V2_ROUTES.PORTFOLIO_TRACKER_NEW}
-                  className="inline-flex items-center gap-2 px-[15px] py-2 rounded-full text-[12px] font-semibold transition-colors cursor-pointer bg-[#FB914E] text-[#471F02] hover:bg-[#E2762F] hover:text-white"
-                >
-                  <Plus size={14} /> New Project
-                </Link>
-              </div>
-            )}
+            <div className="flex items-center gap-2 shrink-0">
+              <Link
+                href={V2_ROUTES.PORTFOLIO_TRACKER_STATUS_REPORT}
+                className="inline-flex items-center gap-2 px-[15px] py-2 rounded-full border text-[12px] font-semibold transition-colors cursor-pointer border-[#E2E7F2] bg-white text-[#3A4565] hover:border-[#A8C6F5] hover:text-[#0B1533]"
+              >
+                <ClipboardList size={14} /> Status Report
+              </Link>
+              {canCreate && (
+                <>
+                  <Link
+                    href={V2_ROUTES.PORTFOLIO_TRACKER_IMPORT}
+                    className="inline-flex items-center gap-2 px-[15px] py-2 rounded-full border text-[12px] font-semibold transition-colors cursor-pointer border-[#E2E7F2] bg-white text-[#3A4565] hover:border-[#A8C6F5] hover:text-[#0B1533]"
+                  >
+                    <Upload size={14} /> Import Project
+                  </Link>
+                  <Link
+                    href={V2_ROUTES.PORTFOLIO_TRACKER_NEW}
+                    className="inline-flex items-center gap-2 px-[15px] py-2 rounded-full text-[12px] font-semibold transition-colors cursor-pointer bg-[#FB914E] text-[#471F02] hover:bg-[#E2762F] hover:text-white"
+                  >
+                    <Plus size={14} /> New Project
+                  </Link>
+                </>
+              )}
+            </div>
           </div>
 
           {/* Toolbar: search + status filter + pagination */}

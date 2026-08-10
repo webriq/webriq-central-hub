@@ -43,6 +43,7 @@ export const V2_ROUTES = {
   PORTFOLIO_TRACKER: "/v2/portfolio-tracker",
   PORTFOLIO_TRACKER_NEW: "/v2/portfolio-tracker/new",
   PORTFOLIO_TRACKER_IMPORT: "/v2/portfolio-tracker/import",
+  PORTFOLIO_TRACKER_STATUS_REPORT: "/v2/portfolio-tracker/status-report",
   DASHBOARD_TASKS: "/v2/dashboard/tasks",
   DASHBOARD_PIPELINE: "/v2/dashboard/pipeline",
   DASHBOARD_CHAT: "/v2/dashboard/chat",
