@@ -78,9 +78,13 @@ export async function GET(
   return NextResponse.json({ entries, canAdd, canSeeSource });
 }
 
-// POST /api/v2/tasks/[taskId]/time-logs — manual entry, developer-assignee-only. Takes a
-// start_time/end_time period (not a raw hours number) — hours is always computed server-side,
-// never trusted from the client, matching every timer route's existing rule.
+// POST /api/v2/tasks/[taskId]/time-logs — manual entry, assignee-only (any internal role; task
+// 226 widened this from developer-only so a PM/admin/hr/super_admin can also log their own hours
+// against a task they're assigned to, from the dedicated Time Logs page — the real restriction
+// against logging time *for someone else* is structural: `employee_id` below is always the
+// caller's own id, never client-supplied). Takes a start_time/end_time period (not a raw hours
+// number) — hours is always computed server-side, never trusted from the client, matching every
+// timer route's existing rule.
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ taskId: string }> }
@@ -91,8 +95,8 @@ export async function POST(
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
-  if (profile?.role !== "developer") {
-    return NextResponse.json({ error: "Only developers can log time" }, { status: 403 });
+  if (!profile?.role || profile.role === "client") {
+    return NextResponse.json({ error: "You do not have permission to log time" }, { status: 403 });
   }
 
   const { data: task } = await supabase.from("tasks").select("id, assignees, project_id").eq("id", taskId).maybeSingle();

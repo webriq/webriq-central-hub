@@ -6,7 +6,7 @@ import {
   LayoutDashboard, FolderKanban, Inbox, Cpu, Users,
   Megaphone, BookOpen, Settings, ChevronLeft,
   Circle, LogOut, Building2,
-  ChartGantt,
+  ChartGantt, Clock,
 } from "lucide-react";
 import { V2_ROUTES } from "@/config/constants";
 import { cn } from "@/lib/utils";
@@ -42,6 +42,11 @@ function getNavGroups(role: string | null): NavGroup[] {
     ...(!isDev ? [
       { label: "Desk",          icon: <Inbox size={18} />,           href: V2_ROUTES.DASHBOARD_TASKS },
       { label: "Orchestration", icon: <Cpu size={18} />,             href: V2_ROUTES.ORCHESTRATION },
+    ] : []),
+    // Task 226 — time_logs RLS grants no role but client/marketing any access
+    // (time_logs_manager_read / time_logs_developer_own / time_logs_developer_read_all).
+    ...(role !== "client" && role !== "marketing" ? [
+      { label: "Time Logs",    icon: <Clock size={18} />,          href: V2_ROUTES.DASHBOARD_TIMELOGS },
     ] : []),
   ];
 

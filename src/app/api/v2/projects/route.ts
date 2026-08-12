@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
 
   let q = supabase
     .from("projects")
-    .select("id,name,project_type,status,customer_id,description,created_at,updated_at")
+    .select("id,project_id,name,project_type,status,customer_id,description,created_at,updated_at")
     .order("updated_at", { ascending: false });
   if (customerId) q = q.eq("customer_id", customerId);
   if (status && (VALID_STATUS as readonly string[]).includes(status)) {
