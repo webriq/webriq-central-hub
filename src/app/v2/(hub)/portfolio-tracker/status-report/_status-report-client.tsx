@@ -3,17 +3,43 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ClipboardList, Search, X, ArrowLeft } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { V2_ROUTES } from "@/config/constants";
-import { PROGRAMME_PHASES } from "@/config/customer-phases";
-import type { HealthTone, ProjectStatusReportItem, StatusReportResponse } from "./_status-report-types";
+import { PROGRAMME_PHASES, CLASSIFICATIONS } from "@/config/customer-phases";
+import type { ProjectStatusReportItem, StatusReportResponse } from "./_status-report-types";
 import { HEALTH_LABEL } from "./_status-report-types";
 import StatusReportTable from "./_status-report-table";
+import { FilterMultiSelect } from "../_filter-multi-select";
+import { SortSelect } from "../_sort-select";
 
-type HealthFilter = "all" | Exclude<HealthTone, null>;
-type SortBy = "overdue" | "name";
+// Health filter — checkbox multi-select (task 224), mirrors /v2/projects' FilterMultiSelect.
+// "All" selected means unfiltered (not an exact .in() match), so rows with health === null
+// (no active/overdue phase to roll up) still show up when nothing has been deliberately
+// narrowed — see task 224's Key Design Decision on this.
+const HEALTH_OPTIONS = (["needs_attention", "at_risk", "on_track", "ahead_of_schedule"] as const).map((h) => ({
+  value: h,
+  label: HEALTH_LABEL[h],
+}));
+// "unclassified" covers legacy/pre-classification-system projects (classification: null).
+const CLASSIFICATION_OPTIONS = [
+  ...CLASSIFICATIONS.map((c) => ({ value: c, label: c })),
+  { value: "unclassified", label: "Unclassified" },
+] as const;
+// Phase filter — checkbox multi-select (task 224 follow-up amendment), same pattern as Health/
+// Classification above.
+const PHASE_OPTIONS = PROGRAMME_PHASES.map((p) => ({ value: String(p.number), label: p.name }));
 
-const HEALTH_FILTERS: HealthFilter[] = ["all", "needs_attention", "at_risk", "on_track", "ahead_of_schedule"];
+// Sort — styled like /v2/projects' SortSelect pill (task 224 follow-up amendment), options
+// adapted to this report's actual data: no `updated_at` field exists here, so "Recently
+// updated" has no analog — "Programme start" newest/oldest fills the equivalent role.
+type SortBy = "overdue" | "name_asc" | "name_desc" | "days_left_asc" | "started_newest" | "started_oldest";
+const SORT_OPTIONS: { value: SortBy; label: string }[] = [
+  { value: "overdue", label: "Most overdue first" },
+  { value: "name_asc", label: "Project name (A–Z)" },
+  { value: "name_desc", label: "Project name (Z–A)" },
+  { value: "days_left_asc", label: "Days left (soonest)" },
+  { value: "started_newest", label: "Programme start (newest)" },
+  { value: "started_oldest", label: "Programme start (oldest)" },
+];
 
 export default function StatusReportClient({ role }: { role: string | null }) {
   const [projects, setProjects] = useState<ProjectStatusReportItem[]>([]);
@@ -23,8 +49,9 @@ export default function StatusReportClient({ role }: { role: string | null }) {
   const [retryKey, setRetryKey] = useState(0);
 
   const [search, setSearch] = useState("");
-  const [healthFilter, setHealthFilter] = useState<HealthFilter>("all");
-  const [phaseFilter, setPhaseFilter] = useState<number | "all">("all");
+  const [healthSelected, setHealthSelected] = useState<string[]>(() => HEALTH_OPTIONS.map((o) => o.value));
+  const [classificationSelected, setClassificationSelected] = useState<string[]>(() => CLASSIFICATION_OPTIONS.map((o) => o.value));
+  const [phaseSelected, setPhaseSelected] = useState<string[]>(() => PHASE_OPTIONS.map((o) => o.value));
   const [includeCompleted, setIncludeCompleted] = useState(false);
   const [sortBy, setSortBy] = useState<SortBy>("overdue");
 
@@ -64,19 +91,47 @@ export default function StatusReportClient({ role }: { role: string | null }) {
     if (!includeCompleted) list = list.filter((p) => !p.isFullyCompleted);
     const q = search.trim().toLowerCase();
     if (q) list = list.filter((p) => `${p.projectName} ${p.companyName}`.toLowerCase().includes(q));
-    if (healthFilter !== "all") list = list.filter((p) => p.health === healthFilter);
-    if (phaseFilter !== "all") list = list.filter((p) => p.currentPhase.phaseNumber === phaseFilter);
+    // "All" selected (full selection) means unfiltered — a null-health row (no active/overdue
+    // phase) still passes through untouched unless the user has deliberately narrowed the set.
+    if (healthSelected.length !== HEALTH_OPTIONS.length) {
+      list = list.filter((p) => p.health !== null && healthSelected.includes(p.health));
+    }
+    if (classificationSelected.length !== CLASSIFICATION_OPTIONS.length) {
+      list = list.filter((p) => classificationSelected.includes(p.classification ?? "unclassified"));
+    }
+    if (phaseSelected.length !== PHASE_OPTIONS.length) {
+      list = list.filter((p) => phaseSelected.includes(String(p.currentPhase.phaseNumber)));
+    }
 
     const sorted = [...list];
-    if (sortBy === "overdue") {
-      sorted.sort((a, b) => b.currentPhase.daysOverdue - a.currentPhase.daysOverdue);
-    } else {
-      sorted.sort((a, b) => a.projectName.localeCompare(b.projectName));
+    switch (sortBy) {
+      case "overdue":
+        sorted.sort((a, b) => b.currentPhase.daysOverdue - a.currentPhase.daysOverdue);
+        break;
+      case "name_asc":
+        sorted.sort((a, b) => a.projectName.localeCompare(b.projectName));
+        break;
+      case "name_desc":
+        sorted.sort((a, b) => b.projectName.localeCompare(a.projectName));
+        break;
+      case "days_left_asc":
+        sorted.sort((a, b) => a.programmeDaysLeft - b.programmeDaysLeft);
+        break;
+      case "started_newest":
+        sorted.sort((a, b) => new Date(b.programmeStartedAt).getTime() - new Date(a.programmeStartedAt).getTime());
+        break;
+      case "started_oldest":
+        sorted.sort((a, b) => new Date(a.programmeStartedAt).getTime() - new Date(b.programmeStartedAt).getTime());
+        break;
     }
     return sorted;
-  }, [projects, search, healthFilter, phaseFilter, includeCompleted, sortBy]);
+  }, [projects, search, healthSelected, classificationSelected, phaseSelected, includeCompleted, sortBy]);
 
-  const isFiltered = !!search.trim() || healthFilter !== "all" || phaseFilter !== "all" || includeCompleted;
+  const isFiltered = !!search.trim()
+    || healthSelected.length !== HEALTH_OPTIONS.length
+    || classificationSelected.length !== CLASSIFICATION_OPTIONS.length
+    || phaseSelected.length !== PHASE_OPTIONS.length
+    || includeCompleted;
 
   return (
     <div>
@@ -107,41 +162,36 @@ export default function StatusReportClient({ role }: { role: string | null }) {
               />
             </div>
 
-            <div className="flex items-center gap-1.5 flex-wrap shrink-0">
-              {HEALTH_FILTERS.map((h) => (
-                <button
-                  key={h}
-                  onClick={() => setHealthFilter(h)}
-                  aria-pressed={healthFilter === h}
-                  className={cn(
-                    "px-3 py-[4.5px] rounded-full border text-[11px] font-semibold transition-colors cursor-pointer",
-                    healthFilter === h ? "bg-[#071133] border-[#071133] text-white" : "bg-white border-[#E2E7F2] text-[#5F6A88] hover:border-[#A8C6F5] hover:text-[#0B1533]"
-                  )}
-                >
-                  {h === "all" ? "All" : HEALTH_LABEL[h]}
-                </button>
-              ))}
-            </div>
+            {/* Health filter — checkbox multi-select, "All" syncs with every option. Mirrors
+                /v2/projects' FilterMultiSelect (task 224). */}
+            <FilterMultiSelect
+              label="Health"
+              options={HEALTH_OPTIONS}
+              selected={healthSelected}
+              onChange={setHealthSelected}
+            />
 
-            <select
-              value={phaseFilter}
-              onChange={(e) => setPhaseFilter(e.target.value === "all" ? "all" : Number(e.target.value))}
-              className="h-8 px-2.5 pr-6 rounded-lg border border-[#E2E7F2] bg-white text-[12px] text-[#3A4565] outline-none focus:border-[#007BFF] focus:ring-[3px] focus:ring-[#007BFF]/[0.14] cursor-pointer shrink-0"
-            >
-              <option value="all">All phases</option>
-              {PROGRAMME_PHASES.map((p) => (
-                <option key={p.number} value={p.number}>{p.name}</option>
-              ))}
-            </select>
+            {/* Classification filter — StackShift I/II/Access/Access Plus, PipelineForge,
+                Discrete Development, plus "Unclassified" for legacy/pre-classification rows. */}
+            <FilterMultiSelect
+              label="Classification"
+              options={CLASSIFICATION_OPTIONS}
+              selected={classificationSelected}
+              onChange={setClassificationSelected}
+            />
 
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as SortBy)}
-              className="h-8 px-2.5 pr-6 rounded-lg border border-[#E2E7F2] bg-white text-[12px] text-[#3A4565] outline-none focus:border-[#007BFF] focus:ring-[3px] focus:ring-[#007BFF]/[0.14] cursor-pointer shrink-0"
-            >
-              <option value="overdue">Most overdue first</option>
-              <option value="name">Project name</option>
-            </select>
+            {/* Phase filter — checkbox multi-select, "All" syncs with every option (task 224
+                follow-up amendment; was previously a native single-select). */}
+            <FilterMultiSelect
+              label="Phase"
+              options={PHASE_OPTIONS}
+              selected={phaseSelected}
+              onChange={setPhaseSelected}
+            />
+
+            {/* Sort — pill style matching /v2/projects' SortSelect (task 224 follow-up
+                amendment; was previously a plain rounded-lg <select>). */}
+            <SortSelect value={sortBy} onChange={(v) => setSortBy(v as SortBy)} options={SORT_OPTIONS} />
 
             <label className="flex items-center gap-1.5 text-[12px] font-medium text-[#3A4565] cursor-pointer shrink-0">
               <input type="checkbox" checked={includeCompleted} onChange={(e) => setIncludeCompleted(e.target.checked)} className="cursor-pointer" />
@@ -150,7 +200,13 @@ export default function StatusReportClient({ role }: { role: string | null }) {
 
             {isFiltered && (
               <button
-                onClick={() => { setSearch(""); setHealthFilter("all"); setPhaseFilter("all"); setIncludeCompleted(false); }}
+                onClick={() => {
+                  setSearch("");
+                  setHealthSelected(HEALTH_OPTIONS.map((o) => o.value));
+                  setClassificationSelected(CLASSIFICATION_OPTIONS.map((o) => o.value));
+                  setPhaseSelected(PHASE_OPTIONS.map((o) => o.value));
+                  setIncludeCompleted(false);
+                }}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#E2E7F2] bg-white text-[12px] text-[#3A4565] hover:bg-[#F0F7FF] cursor-pointer shrink-0 transition-colors"
               >
                 <X size={13} /> Clear filters

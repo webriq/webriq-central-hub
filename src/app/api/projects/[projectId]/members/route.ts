@@ -9,6 +9,9 @@ import {
   getProjectMembership,
   getProjectCreator,
   transferProjectOwnership,
+  addPhaseMember,
+  transferPhaseOwnership,
+  phaseHasMembers,
 } from "@/lib/programme/phase-membership";
 import { createNotification } from "@/lib/notifications";
 
@@ -169,6 +172,19 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (error) {
       console.error("PATCH /api/projects/[projectId]/members error:", error);
       return NextResponse.json({ error: "Failed to transfer ownership" }, { status: 500 });
+    }
+
+    // Task 225 — project_members.is_owner and phase_members.is_owner (phase 1) are separate
+    // records; Status Report / Status Summary drawer / Portfolio Tracker listing all read the
+    // assignee from phase_members, not project_members. Sync them so "Set Project Owner" is a
+    // single action from the user's perspective. Only when Phase 1 already has real membership —
+    // see phaseHasMembers's own comment for why an empty phase must stay untouched. Best-effort:
+    // don't fail the whole ownership transfer if this secondary sync errors.
+    if (await phaseHasMembers(projectId, 1)) {
+      const { error: addErr } = await addPhaseMember(projectId, 1, targetUserId, user.id);
+      if (addErr) console.error("PATCH /api/projects/[projectId]/members Phase 1 sync (add) error:", addErr);
+      const { error: phaseTransferErr } = await transferPhaseOwnership(projectId, 1, targetUserId);
+      if (phaseTransferErr) console.error("PATCH /api/projects/[projectId]/members Phase 1 sync (transfer) error:", phaseTransferErr);
     }
 
     // Notifications — best-effort; actor is never notified about their own action (also

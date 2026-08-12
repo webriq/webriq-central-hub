@@ -38,7 +38,7 @@ export default function StatusReportRowDetail({
 }) {
   return (
     <div className="rounded-[10px] border border-[#EDF0F7] bg-white overflow-x-auto">
-      <table className="w-full text-left border-collapse min-w-[940px]">
+      <table className="w-full text-left border-collapse min-w-235">
         <thead>
           <tr className="border-b border-[#EDF0F7]">
             <th className="px-3 py-2 text-[9.5px] font-bold uppercase tracking-[0.09em] text-[#5F6A88]">Phase</th>

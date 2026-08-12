@@ -37,6 +37,18 @@ export async function getPhaseMembership(
   return { isMember: !!data, isOwner: !!data?.is_owner };
 }
 
+// Task 225 — lets the project-owner-transfer route decide whether Phase 1 sync is safe (task
+// 153's "zero members = unrestricted" invariant must not be broken by implicitly creating the
+// first phase_members row as a side effect of transferring project ownership).
+export async function phaseHasMembers(projectId: string, phaseNumber: number): Promise<boolean> {
+  const { count } = await adminClient
+    .from("phase_members")
+    .select("id", { count: "exact", head: true })
+    .eq("project_id", projectId)
+    .eq("phase_number", phaseNumber);
+  return !!count && count > 0;
+}
+
 // isOwner (task 155): the project creator is inserted with isOwner: true; every other caller
 // (e.g. the Phase-1 starter's auto-membership upsert in seed.ts) stays a plain, non-owner
 // member — a project only gets an owner via creation or an explicit Super Admin transfer.
@@ -80,6 +92,10 @@ export async function getProjectMembership(
 
 // Task 155 — mirrors transferPhaseOwnership exactly, scoped by project_id only (no
 // phase_number). targetUserId must already be a project member (add first if not).
+//
+// Demote-then-promote (reverted from a same-session delete-the-former-owner variant per
+// explicit product decision — the former owner should stay a plain collaborator, not lose their
+// membership row, when ownership transfers away from them).
 export async function transferProjectOwnership(projectId: string, targetUserId: string): Promise<{ error: string | null }> {
   const { error: demoteError } = await adminClient
     .from("project_members")
@@ -118,6 +134,10 @@ export async function removePhaseMember(projectId: string, phaseNumber: number, 
 
 // Demote-then-promote, same transaction shape as upsertPrimaryContact (src/lib/customers/
 // primary-contact.ts, task 151). targetUserId must already be a phase member (add first if not).
+//
+// Reverted from a same-session delete-the-former-owner variant per explicit product decision —
+// the former phase owner should stay a plain member, not lose their phase_members row, when
+// phase ownership transfers away from them.
 export async function transferPhaseOwnership(
   projectId: string,
   phaseNumber: number,

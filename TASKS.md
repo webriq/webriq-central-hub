@@ -19,6 +19,8 @@
 
 | ID | Title | Priority | Type | Doc | Date |
 |----|-------|----------|------|-----|------|
+| 225 | Portfolio Tracker Owner Transfer Doesn't Sync Phase 1 Owner (Stale "Danessa" Assignee on Listing/Status Report/Status Summary After Setting Project Owner to "Dannea Moneva") + Status Summary Tooltip Behind Drawer (z-index) | HIGH | bugfix | _docs/task/225-portfolio-tracker-owner-transfer-phase-sync-tooltip-zindex.md | 2026-08-10 |
+| 224 | Portfolio Tracker & Status Report — Filter UI Parity with `/v2/projects` (checkbox-dropdown `FilterMultiSelect` replacing single-select pill rows) + New Project Classification Filter (StackShift I/II/Access/Access Plus, PipelineForge, Discrete Development) | MEDIUM | enhancement | _docs/task/224-portfolio-tracker-status-report-filter-classification.md | 2026-08-10 |
 | 221 | Portfolio Tracker Status Report — Fold Overdue Into Used/Allotted (color-coded overdue/remaining/ahead), Completed-Only Date Column, Early-Completion Health Status (green) | HIGH | enhancement | _docs/task/221-portfolio-tracker-status-report-page.md | 2026-08-10 |
 | 222 | Swimlane Items Redirect to Onboarding Workspace (Not Wizard) + URL Params for Tabs/Folders (Kickoff→Business Info, Outcome Target/Migration Checklist/Content Map/HTML Mockup/Storage+KB/Client Sign-off→Files w/ folder, Migration Checklist folder rename) | HIGH | enhancement | _docs/task/222-swimlane-redirect-to-onboarding-workspace-url-params.md | 2026-08-07 |
 | 220 | Files Tab Fixes — Nested-Button Hydration Errors, In-App Preview on View, Invisible Search/New-Folder Text, Enter-to-Save + Duplicate-Name Confirm, Equal Folder Tile Heights, Sub-Folders | HIGH | bugfix | _docs/task/220-files-tab-hydration-preview-input-visibility-subfolder-fixes.md | 2026-08-06 |

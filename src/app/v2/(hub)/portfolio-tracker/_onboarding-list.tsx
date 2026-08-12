@@ -10,10 +10,12 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { V2_ROUTES } from "@/config/constants";
-import { PROGRAMME_PHASES } from "@/config/customer-phases";
+import { PROGRAMME_PHASES, CLASSIFICATIONS } from "@/config/customer-phases";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Chip, PhaseChip, OnboardingStatusPill } from "../dashboard/_components/dashboard-shared";
 import { isRoleGatedByMembership } from "@/lib/programme/membership-rules";
+import { FilterMultiSelect, parseMultiParam } from "./_filter-multi-select";
+import { SortSelect } from "./_sort-select";
 
 export type OnboardingProjectListItem = {
   id: string;
@@ -196,11 +198,52 @@ function ProjectCard({ item, editable }: { item: OnboardingProjectListItem; edit
 // code, after the DB fetch, and is shared by 3 other dashboards — DB-side pagination there is a
 // separate, riskier follow-up, out of proportion to this task's realistic dataset size).
 
-const STATUS_FILTERS = ["all", "draft", "scheduled", "in_progress"] as const;
-const STATUS_FILTER_LABELS: Record<(typeof STATUS_FILTERS)[number], string> = {
-  all: "All", draft: "Draft", scheduled: "Scheduled", in_progress: "In Progress",
-};
+// Full status enum (task 224 — the old pill row omitted "completed" entirely).
+const STATUS_OPTIONS = [
+  { value: "draft", label: "Draft" },
+  { value: "scheduled", label: "Scheduled" },
+  { value: "in_progress", label: "In Progress" },
+  { value: "completed", label: "Completed" },
+] as const;
+// "unclassified" covers legacy/Zoho-imported projects that predate the classification system
+// (classification: null) — same population the card footer already labels "Unclassified".
+const CLASSIFICATION_OPTIONS = [
+  ...CLASSIFICATIONS.map((c) => ({ value: c, label: c })),
+  { value: "unclassified", label: "Unclassified" },
+] as const;
+// Sort — pill style matching /v2/projects' SortSelect (task 224 follow-up amendment; this page
+// previously had no sort control at all). "Newest"/"Oldest" use programme_started_at, falling
+// back to scheduled_onboarding_start_at for not-yet-started rows; drafts with neither sort last
+// regardless of direction.
+const SORT_OPTIONS = [
+  { value: "newest", label: "Newest first" },
+  { value: "oldest", label: "Oldest first" },
+  { value: "name_asc", label: "Name (A–Z)" },
+  { value: "name_desc", label: "Name (Z–A)" },
+  { value: "due_soonest", label: "Handover date (soonest)" },
+] as const;
 const PAGE_SIZES = [9, 18, 36] as const;
+
+// NaN (missing date) always sorts last, regardless of direction — separate ascending/descending
+// comparators rather than swapping operands, since swapping would put a NaN operand *first*
+// for the descending case instead of last.
+function compareNullableAsc(a: number, b: number): number {
+  if (Number.isNaN(a) && Number.isNaN(b)) return 0;
+  if (Number.isNaN(a)) return 1;
+  if (Number.isNaN(b)) return -1;
+  return a - b;
+}
+function compareNullableDesc(a: number, b: number): number {
+  if (Number.isNaN(a) && Number.isNaN(b)) return 0;
+  if (Number.isNaN(a)) return 1;
+  if (Number.isNaN(b)) return -1;
+  return b - a;
+}
+
+function effectiveStartTime(p: OnboardingProjectListItem): number {
+  const d = p.programme_started_at ?? p.scheduled_onboarding_start_at;
+  return d ? new Date(d).getTime() : Number.NaN;
+}
 
 export default function OnboardingList({ role, currentUserId }: { role: string | null; currentUserId: string | null }) {
   const router = useRouter();
@@ -214,7 +257,9 @@ export default function OnboardingList({ role, currentUserId }: { role: string |
 
   const [searchInput, setSearchInput] = useState(searchParams.get("search") ?? "");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const statusValue = (searchParams.get("status") ?? "all") as (typeof STATUS_FILTERS)[number];
+  const statusSelected = parseMultiParam(searchParams.get("status"), STATUS_OPTIONS);
+  const classificationSelected = parseMultiParam(searchParams.get("classification"), CLASSIFICATION_OPTIONS);
+  const sortValue = searchParams.get("sort") ?? "newest";
   const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10) || 1);
   const pageSize = Math.max(1, parseInt(searchParams.get("pageSize") ?? String(PAGE_SIZES[0]), 10) || PAGE_SIZES[0]);
 
@@ -255,19 +300,52 @@ export default function OnboardingList({ role, currentUserId }: { role: string |
     return `${V2_ROUTES.PORTFOLIO_TRACKER}?${p.toString()}`;
   }
 
+  // Encodes a checkbox-group selection back into the URL: a full selection clears the param
+  // entirely (equivalent "All"/unfiltered state, keeps URLs clean), an empty selection writes
+  // an explicit empty string, otherwise a comma-separated list. Mirrors /v2/projects.
+  function handleMultiChange(key: "status" | "classification", next: string[], optionsCount: number) {
+    const value = next.length === optionsCount ? null : next.length === 0 ? "" : next.join(",");
+    router.push(buildUrl({ [key]: value, page: 1 }));
+  }
+
   const searchQ = (searchParams.get("search") ?? "").trim().toLowerCase();
   const filtered = projects.filter((p) => {
     const matchesSearch = !searchQ || `${p.project_name} ${p.company_name}`.toLowerCase().includes(searchQ);
-    const matchesStatus = statusValue === "all" || p.status === statusValue;
-    return matchesSearch && matchesStatus;
+    const matchesStatus = statusSelected.includes(p.status);
+    const matchesClassification = classificationSelected.includes(p.classification ?? "unclassified");
+    return matchesSearch && matchesStatus && matchesClassification;
   });
 
-  const total = filtered.length;
+  const sorted = [...filtered];
+  switch (sortValue) {
+    case "oldest":
+      sorted.sort((a, b) => compareNullableAsc(effectiveStartTime(a), effectiveStartTime(b)));
+      break;
+    case "name_asc":
+      sorted.sort((a, b) => a.project_name.localeCompare(b.project_name));
+      break;
+    case "name_desc":
+      sorted.sort((a, b) => b.project_name.localeCompare(a.project_name));
+      break;
+    case "due_soonest":
+      sorted.sort((a, b) => compareNullableAsc(
+        a.target_handover_date ? new Date(a.target_handover_date).getTime() : Number.NaN,
+        b.target_handover_date ? new Date(b.target_handover_date).getTime() : Number.NaN
+      ));
+      break;
+    case "newest":
+    default:
+      sorted.sort((a, b) => compareNullableDesc(effectiveStartTime(a), effectiveStartTime(b)));
+  }
+
+  const total = sorted.length;
   const from = (page - 1) * pageSize;
-  const paginated = filtered.slice(from, from + pageSize);
+  const paginated = sorted.slice(from, from + pageSize);
   const hasNext = from + pageSize < total;
   const hasPrev = page > 1;
-  const isFiltered = searchQ.length > 0 || statusValue !== "all";
+  const isFiltered = searchQ.length > 0
+    || statusSelected.length !== STATUS_OPTIONS.length
+    || classificationSelected.length !== CLASSIFICATION_OPTIONS.length;
 
   const roleEditable = role === "marketing" || role === "admin" || role === "super_admin";
   // A gated role (pm/marketing) that's a project/Phase-1 member (item.members, task 154's
@@ -322,7 +400,7 @@ export default function OnboardingList({ role, currentUserId }: { role: string |
             </div>
           </div>
 
-          {/* Toolbar: search + status filter + pagination */}
+          {/* Toolbar: search + filters + sort + pagination */}
           <div className="flex items-center gap-3 flex-wrap">
             <div className="relative min-w-[220px] max-w-xs flex-shrink-0">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#5F6A88]" />
@@ -341,23 +419,31 @@ export default function OnboardingList({ role, currentUserId }: { role: string |
               />
             </div>
 
-            {/* Filter pills — DESIGN.md: individual floating pills, active fills navy (never blue,
-                so filters read as selection state, not an action) — not a segmented-control group. */}
-            <div className="flex items-center gap-1.5 flex-wrap shrink-0">
-              {STATUS_FILTERS.map((s) => (
-                <button
-                  key={s}
-                  onClick={() => router.push(buildUrl({ status: s === "all" ? null : s, page: 1 }))}
-                  aria-pressed={statusValue === s}
-                  className={cn(
-                    "px-3 py-[4.5px] rounded-full border text-[11px] font-semibold transition-colors cursor-pointer",
-                    statusValue === s ? "bg-[#071133] border-[#071133] text-white" : "bg-white border-[#E2E7F2] text-[#5F6A88] hover:border-[#A8C6F5] hover:text-[#0B1533]"
-                  )}
-                >
-                  {STATUS_FILTER_LABELS[s]}
-                </button>
-              ))}
-            </div>
+            {/* Status filter — checkbox multi-select, "All" syncs with every option. Mirrors
+                /v2/projects' FilterMultiSelect (task 224). */}
+            <FilterMultiSelect
+              label="Status"
+              options={STATUS_OPTIONS}
+              selected={statusSelected}
+              onChange={(next) => handleMultiChange("status", next, STATUS_OPTIONS.length)}
+            />
+
+            {/* Classification filter — StackShift I/II/Access/Access Plus, PipelineForge,
+                Discrete Development, plus "Unclassified" for legacy/pre-classification rows. */}
+            <FilterMultiSelect
+              label="Classification"
+              options={CLASSIFICATION_OPTIONS}
+              selected={classificationSelected}
+              onChange={(next) => handleMultiChange("classification", next, CLASSIFICATION_OPTIONS.length)}
+            />
+
+            {/* Sort — pill style matching /v2/projects' SortSelect (task 224 follow-up amendment;
+                this page previously had no sort control). */}
+            <SortSelect
+              value={sortValue}
+              onChange={(v) => router.push(buildUrl({ sort: v === "newest" ? null : v, page: 1 }))}
+              options={SORT_OPTIONS}
+            />
 
             {isFiltered && (
               <button
