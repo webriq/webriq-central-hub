@@ -53,6 +53,8 @@ export async function GET(request: Request) {
         customer_products(classification)
       `)
       .not("programme_started_at", "is", null)
+      // Soft-deleted projects (task 231) are excluded from the status report.
+      .neq("status", "deleted")
       .order("programme_started_at", { ascending: true });
     if (projectId) projectsQuery = projectsQuery.eq("id", projectId);
 
@@ -85,7 +87,9 @@ export async function GET(request: Request) {
     const [phasesRes, deliverablesRes, membersRes] = await Promise.all([
       supabase
         .from("customer_phases")
-        .select("project_id, phase_number, status, actual_start_date, actual_completed_date, delay_note")
+        .select(
+          "project_id, phase_number, status, actual_start_date, actual_completed_date, delay_note, custom_name, day_start_override, day_end_override, sort_order"
+        )
         .in("project_id", projectIds),
       supabase.from("customer_deliverables").select("project_id, phase_number, status").in("project_id", projectIds),
       supabase.from("phase_members").select("id, project_id, phase_number, user_id, is_owner").in("project_id", projectIds),
@@ -141,9 +145,15 @@ export async function GET(request: Request) {
         const companyName = (p.customers as unknown as { company_name: string } | null)?.company_name ?? "Unknown";
         const classification = (p.customer_products as unknown as { classification: string | null } | null)?.classification ?? null;
 
+        // Task 246: derive the phase-number set from this project's own rows (defaults + any
+        // customs) instead of a hardcoded 1-5 loop — a custom phase's deliverables/assignees would
+        // otherwise never make it into the report.
+        const projectPhaseRows = phasesByProject.get(p.id) ?? [];
+        const projectPhaseNumbers = projectPhaseRows.map((r) => r.phase_number);
+
         const deliverableRows = deliverablesByProject.get(p.id) ?? [];
         const deliverableRatioByPhase: Record<number, number | null> = {};
-        for (let phaseNumber = 1; phaseNumber <= 5; phaseNumber++) {
+        for (const phaseNumber of projectPhaseNumbers) {
           const rowsForPhase = deliverableRows.filter((r) => r.phase_number === phaseNumber);
           deliverableRatioByPhase[phaseNumber] =
             rowsForPhase.length === 0 ? null : rowsForPhase.filter((r) => r.status === "done").length / rowsForPhase.length;
@@ -151,13 +161,13 @@ export async function GET(request: Request) {
 
         const assigneesByPhase: Record<number, PhaseAssigneeMember[]> = {};
         const projectAssignees = assigneesByProject.get(p.id);
-        for (let phaseNumber = 1; phaseNumber <= 5; phaseNumber++) {
+        for (const phaseNumber of projectPhaseNumbers) {
           assigneesByPhase[phaseNumber] = projectAssignees?.get(phaseNumber) ?? [];
         }
 
-        const { currentProgrammeDay, phases } = buildPhaseBreakdown({
+        const { currentProgrammeDay, totalProgrammeDays, phases } = buildPhaseBreakdown({
           programmeStartedAt: p.programme_started_at as string,
-          phaseRows: phasesByProject.get(p.id) ?? [],
+          phaseRows: projectPhaseRows,
           deliverableRatioByPhase,
           assigneesByPhase,
         });
@@ -171,11 +181,13 @@ export async function GET(request: Request) {
           classification,
           programmeStartedAt: p.programme_started_at as string,
           currentProgrammeDay,
-          programmeDaysLeft: programmeDaysLeft(currentProgrammeDay),
+          programmeDaysLeft: programmeDaysLeft(currentProgrammeDay, totalProgrammeDays),
           currentPhase: currentPhaseOf(phases),
           health: rollupHealth(phases.map((ph) => ph.health)),
           phases,
-          isFullyCompleted: phases[4]?.status === "completed",
+          // Last phase by sort_order (buildPhaseBreakdown already returns `phases` in that order)
+          // — was hardcoded phases[4] (phase 5) before task 246.
+          isFullyCompleted: phases[phases.length - 1]?.status === "completed",
         };
       });
 

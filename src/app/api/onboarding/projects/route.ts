@@ -11,9 +11,14 @@ import {
   deriveProductNamesMulti,
   deriveProjectTypeMulti,
   getCurrentProgrammeDay,
-  getPhaseByNumber,
+  resolveEffectivePhase,
+  DEFAULT_PROGRAMME_DAYS,
+  type PhasePlanInput,
+  type CustomPhaseSeed,
+  type DefaultPhaseOverride,
 } from "@/config/customer-phases";
 import { seedAndStartProgramme } from "@/lib/programme/seed";
+import { seedCustomPhases } from "@/lib/programme/seed-custom-phases";
 import { addProjectMember, isRoleGatedByMembership } from "@/lib/programme/phase-membership";
 import { scheduleProjectAutostart } from "@/lib/qstash";
 
@@ -52,12 +57,16 @@ export async function GET() {
     name,
     customer_id,
     programme_started_at,
+    programme_duration_days,
     scheduled_onboarding_start_at,
     customer_product_id,
+    created_at,
     customers(company_name),
     customer_products(classification)
   `)
   .gte("created_at", "2026-07-06T00:00:00Z")
+  // Soft-deleted projects (task 231) never appear on the Portfolio Tracker list.
+  .neq("status", "deleted")
   .order("created_at", { ascending: false });
 
     if (error) {
@@ -84,20 +93,31 @@ export async function GET() {
 
     const projectIds = projects.map((p) => p.id);
     const activePhaseByProject = new Map<string, number>();
-    // Task 168 follow-up: a project whose Phase 5 (Optimize) is marked `completed` has finished
-    // the full 120-day programme — the `status` field below distinguishes this from `in_progress`
-    // so completed programmes graduate out of "currently in the programme" views (Programme
-    // board/Clients table on `/v2/dashboard`, stat tiles) instead of appearing active forever.
+    const activePhaseNameByProject = new Map<string, string>();
+    // Task 168 follow-up: a project whose *last* phase (by sort_order — task 246; was hardcoded
+    // phase_number === 5) is marked `completed` has finished its full programme — the `status`
+    // field below distinguishes this from `in_progress` so completed programmes graduate out of
+    // "currently in the programme" views (Programme board/Clients table on `/v2/dashboard`, stat
+    // tiles) instead of appearing active forever. Fetches every phase row (not just
+    // active/completed) since determining "last by sort_order" needs the full per-project set.
     const completedProjectIds = new Set<string>();
     if (projectIds.length > 0) {
       const { data: phases } = await supabase
         .from("customer_phases")
-        .select("project_id, phase_number, status")
-        .in("project_id", projectIds)
-        .in("status", ["active", "completed"]);
+        .select("project_id, phase_number, status, custom_name, day_start_override, day_end_override, sort_order")
+        .in("project_id", projectIds);
+      const phasesByProject = new Map<string, typeof phases>();
       for (const row of phases ?? []) {
-        if (row.status === "active") activePhaseByProject.set(row.project_id, row.phase_number);
-        if (row.status === "completed" && row.phase_number === 5) completedProjectIds.add(row.project_id);
+        if (row.status === "active") {
+          activePhaseByProject.set(row.project_id, row.phase_number);
+          activePhaseNameByProject.set(row.project_id, resolveEffectivePhase(row).name);
+        }
+        if (!phasesByProject.has(row.project_id)) phasesByProject.set(row.project_id, []);
+        phasesByProject.get(row.project_id)!.push(row);
+      }
+      for (const [projectId, rows] of phasesByProject) {
+        const last = rows!.reduce((max, r) => (r.sort_order > max.sort_order ? r : max), rows![0]);
+        if (last.status === "completed") completedProjectIds.add(projectId);
       }
     }
 
@@ -128,7 +148,8 @@ export async function GET() {
       const companyName = (p.customers as unknown as { company_name: string } | null)?.company_name ?? "Unknown";
       const classification = (p.customer_products as unknown as { classification: string | null } | null)?.classification ?? null;
       const activePhaseNumber = activePhaseByProject.get(p.id) ?? null;
-      const currentDay = p.programme_started_at ? Math.min(120, getCurrentProgrammeDay(p.programme_started_at)) : null;
+      const durationDays = p.programme_duration_days ?? DEFAULT_PROGRAMME_DAYS;
+      const currentDay = p.programme_started_at ? Math.min(durationDays, getCurrentProgrammeDay(p.programme_started_at)) : null;
       const targetHandoverDate = p.programme_started_at
         ? new Date(new Date(p.programme_started_at).getTime() + 14 * 86_400_000).toISOString()
         : p.scheduled_onboarding_start_at
@@ -143,12 +164,14 @@ export async function GET() {
         customer_id: p.customer_id,
         classification,
         current_phase_number: activePhaseNumber,
-        current_phase_name: activePhaseNumber ? getPhaseByNumber(activePhaseNumber).name : null,
+        current_phase_name: activePhaseNumber ? (activePhaseNameByProject.get(p.id) ?? null) : null,
         current_day: currentDay,
-        progress_pct: currentDay ? Math.min(100, Math.round((currentDay / 120) * 100)) : 0,
+        programme_duration_days: durationDays,
+        progress_pct: currentDay ? Math.min(100, Math.round((currentDay / durationDays) * 100)) : 0,
         programme_started_at: p.programme_started_at,
         scheduled_onboarding_start_at: p.scheduled_onboarding_start_at,
         target_handover_date: targetHandoverDate,
+        created_at: p.created_at,
         status: completedProjectIds.has(p.id)
           ? "completed"
           : p.programme_started_at ? "in_progress" : p.scheduled_onboarding_start_at ? "scheduled" : "draft",
@@ -171,6 +194,34 @@ type NewProjectBody = {
   contact: { name: string; email?: string; phone?: string };
   classifications: Classification[];
   project_name: string;
+  // Task 246 (Requirement G) — StackShift II only, ignored for every other classification: opts
+  // this card into the same specialized `customer_phases` engine StackShift I always uses,
+  // instead of the generic `milestones`/`tasklists` model every other classification (including
+  // StackShift II with this unset/false) uses. Mirrors the wizard's own "Generate default phases"
+  // checkbox — sent `true` only when that checkbox is on. StackShift II with this unset/false
+  // behaves exactly as before this task (fully free-form via `phase_plan`).
+  use_default_phase_engine?: boolean;
+  // Task 239 — StackShift I (and, per Requirement G, StackShift II with use_default_phase_engine)
+  // only: overrides the default 120-day programme length.
+  programme_duration_days?: number;
+  // Task 239 — every classification NOT on the customer_phases engine: custom phases/
+  // deliverables/checklist items, seeded into the generic milestones/tasklists/tasks tables
+  // instead of customer_phases/customer_deliverables. Omitted/empty is valid ("skip for now").
+  phase_plan?: PhasePlanInput;
+  // Task 244 — customer_phases engine only: the default phase numbers this specific project opts
+  // out of. Every project still gets a `customer_phases` row for every phase in its plan —
+  // excluded phases are seeded `status: "skipped"` with zero deliverable rows, instead of being
+  // removed. Omitted/empty is valid (all default phases included, today's behavior).
+  skip_phase_numbers?: number[];
+  // Task 246 — customer_phases engine only: phases the PM added beyond the fixed 5 at intake, via
+  // the New Project wizard's PhaseBuilder "Add custom phase" control. Omitted/empty is valid (no
+  // custom phases, today's behavior, byte-identical seeding).
+  custom_phases?: CustomPhaseSeed[];
+  // Task 249 — customer_phases engine only: PM-edited day ranges for the 5 default phases (and,
+  // for phase 2-5, their computed deliverable day sub-ranges), via the New Project wizard's now
+  // per-phase-editable Day X to Y inputs. Omitted/empty is valid (no default-phase overrides,
+  // today's behavior, byte-identical seeding).
+  default_phase_overrides?: DefaultPhaseOverride[];
 };
 
 // POST — the "New Project" intake (marketing/admin/super_admin only). Explicitly NOT the same
@@ -206,6 +257,102 @@ export async function POST(request: NextRequest) {
     }
     if (body.mode === "save_scheduled" && !body.scheduled_start_at) {
       return NextResponse.json({ error: "scheduled_start_at is required when mode is save_scheduled" }, { status: 400 });
+    }
+
+    // Task 239: programme_duration_days/skip_phase_numbers/custom_phases only apply to the
+    // specialized customer_phases engine; phase_plan only applies to the generic milestones/
+    // tasklists/tasks model every other card uses instead. Each card sent by the wizard only ever
+    // contains one primary classification (+ optionally PipelineForge), so `isStackShiftI` is
+    // exact. Task 246 (Requirement G): StackShift II opts into the same engine by sending
+    // `use_default_phase_engine: true` — this re-points its "Generate default phases" path onto
+    // customer_phases instead of the generic model it used before this task; StackShift II
+    // without that flag is unaffected (still the generic model, exactly as before).
+    const isStackShiftI = body.classifications.includes("StackShift I");
+    const isStackShiftII = body.classifications.includes("StackShift II");
+    if (body.use_default_phase_engine !== undefined && !isStackShiftII) {
+      return NextResponse.json({ error: "use_default_phase_engine only applies to StackShift II" }, { status: 400 });
+    }
+    const usesCustomerPhasesEngine = isStackShiftI || (isStackShiftII && body.use_default_phase_engine === true);
+    if (body.programme_duration_days !== undefined) {
+      if (!usesCustomerPhasesEngine) {
+        return NextResponse.json({ error: "programme_duration_days only applies to the customer_phases engine" }, { status: 400 });
+      }
+      if (!Number.isInteger(body.programme_duration_days) || body.programme_duration_days < 1) {
+        return NextResponse.json({ error: "programme_duration_days must be a positive integer" }, { status: 400 });
+      }
+    }
+    if (body.phase_plan !== undefined && usesCustomerPhasesEngine) {
+      return NextResponse.json({ error: "phase_plan is not supported for the customer_phases engine" }, { status: 400 });
+    }
+    // Task 244: mirrors programme_duration_days' own per-classification validation pattern above.
+    if (body.skip_phase_numbers !== undefined) {
+      if (!usesCustomerPhasesEngine) {
+        return NextResponse.json({ error: "skip_phase_numbers only applies to the customer_phases engine" }, { status: 400 });
+      }
+      if (
+        !Array.isArray(body.skip_phase_numbers) ||
+        !body.skip_phase_numbers.every((n) => Number.isInteger(n) && n > 0)
+      ) {
+        return NextResponse.json({ error: "skip_phase_numbers must be an array of positive integers" }, { status: 400 });
+      }
+    }
+    // Task 246: same per-classification pattern — custom phases only apply to the customer_phases
+    // engine.
+    if (body.custom_phases !== undefined) {
+      if (!usesCustomerPhasesEngine) {
+        return NextResponse.json({ error: "custom_phases only applies to the customer_phases engine" }, { status: 400 });
+      }
+      const valid =
+        Array.isArray(body.custom_phases) &&
+        body.custom_phases.every(
+          (c) =>
+            c &&
+            typeof c === "object" &&
+            Number.isInteger(c.phaseNumber) &&
+            c.phaseNumber > 0 &&
+            Number.isFinite(c.sortOrder) &&
+            typeof c.name === "string" &&
+            c.name.trim().length > 0 &&
+            Number.isInteger(c.dayStart) &&
+            Number.isInteger(c.dayEnd) &&
+            c.dayStart <= c.dayEnd &&
+            Array.isArray(c.deliverables) &&
+            c.deliverables.every((d) => d && typeof d.name === "string")
+        );
+      if (!valid) {
+        return NextResponse.json({ error: "custom_phases is malformed" }, { status: 400 });
+      }
+    }
+    // Task 249: same per-classification pattern as custom_phases above.
+    if (body.default_phase_overrides !== undefined) {
+      if (!usesCustomerPhasesEngine) {
+        return NextResponse.json({ error: "default_phase_overrides only applies to the customer_phases engine" }, { status: 400 });
+      }
+      const valid =
+        Array.isArray(body.default_phase_overrides) &&
+        body.default_phase_overrides.every(
+          (o) =>
+            o &&
+            typeof o === "object" &&
+            Number.isInteger(o.phaseNumber) &&
+            o.phaseNumber > 0 &&
+            Number.isInteger(o.dayStart) &&
+            Number.isInteger(o.dayEnd) &&
+            o.dayStart <= o.dayEnd &&
+            (o.deliverables === undefined ||
+              (Array.isArray(o.deliverables) &&
+                o.deliverables.every(
+                  (d) =>
+                    d &&
+                    typeof d.key === "string" &&
+                    Number.isInteger(d.dayStart) &&
+                    Number.isInteger(d.dayEnd) &&
+                    d.dayStart <= d.dayEnd
+                )))
+        );
+      if (!valid) {
+        return NextResponse.json({ error: "default_phase_overrides is malformed" }, { status: 400 });
+      }
     }
 
     // Task 195: the wizard's own check-name pre-check (GET .../check-name) only runs once,
@@ -310,6 +457,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Failed to create product" }, { status: 500 });
     }
 
+    const programmeDurationDays = body.programme_duration_days ?? DEFAULT_PROGRAMME_DAYS;
+
     const { data: project, error: projectError } = await supabase
       .from("projects")
       .insert({
@@ -321,6 +470,17 @@ export async function POST(request: NextRequest) {
         onboarding_visible_at: null,
         scheduled_onboarding_start_at: body.mode === "save_scheduled" ? body.scheduled_start_at : null,
         scheduled_start_phase: scheduledStartPhase,
+        programme_duration_days: programmeDurationDays,
+        uses_customer_phases_engine: usesCustomerPhasesEngine,
+        // Task 248: persisted for every mode (not just "start") — closes the previously-silent
+        // gap where a Draft/Scheduled project's skip/custom-phase intake selection was discarded,
+        // only ever seeded correctly when the wizard submitted mode: "start" directly. Empty
+        // arrays for a non-customer_phases-engine project (usesCustomerPhasesEngine already
+        // guards skip_phase_numbers/custom_phases being set on the request body above).
+        draft_skip_phase_numbers: body.skip_phase_numbers ?? [],
+        draft_custom_phases: body.custom_phases ?? [],
+        // Task 249: same "persisted for every mode" pattern as the two fields above.
+        draft_default_phase_overrides: body.default_phase_overrides ?? [],
       })
       .select("id, project_id, customer_id")
       .single();
@@ -334,10 +494,40 @@ export async function POST(request: NextRequest) {
     const { error: memberError } = await addProjectMember(project.id, user.id, user.id, true);
     if (memberError) console.error("POST /api/onboarding/projects project_members insert error:", memberError);
 
-    if (body.mode === "start") {
-      const result = await seedAndStartProgramme({ id: project.id, customer_id: project.customer_id }, companyName, user.id);
+    // Task 239/240, extended by task 246 Requirement G: the 120-day customer_phases/
+    // customer_deliverables engine covers StackShift I always, and StackShift II when it opted in
+    // via use_default_phase_engine — every other card (including StackShift II without that flag)
+    // has no "programme started" concept and must not seed those tables (the phase_plan block
+    // below is its equivalent initial structure, seeded regardless of mode).
+    if (body.mode === "start" && usesCustomerPhasesEngine) {
+      const result = await seedAndStartProgramme(
+        { id: project.id, customer_id: project.customer_id },
+        companyName,
+        user.id,
+        1,
+        programmeDurationDays,
+        body.skip_phase_numbers ?? [],
+        body.custom_phases ?? [],
+        body.default_phase_overrides ?? []
+      );
       if (result.error) {
         return NextResponse.json({ error: result.error }, { status: 500 });
+      }
+    }
+    // Task 248 (closes the gap formerly noted here for task 246/244): skip_phase_numbers/
+    // custom_phases are now also written onto `draft_skip_phase_numbers`/`draft_custom_phases`
+    // above (the `projects` insert), regardless of mode — so a save_scheduled (or plain "save")
+    // submission's skip/custom-phase configuration survives to whenever the programme actually
+    // starts (qstash-start / scheduled-autostart cron / the manual "Start Onboarding" button),
+    // instead of always seeding the 5 vanilla defaults.
+
+    // Task 239: seed the generic phase plan (any classification except StackShift I) regardless
+    // of `mode` — these project types have no separate "programme started" concept the way
+    // StackShift I's 120-day clock does; the plan is just this project's initial PM structure.
+    if (body.phase_plan && body.phase_plan.phases.length > 0) {
+      const customPhaseResult = await seedCustomPhases(project.id, user.id, body.phase_plan);
+      if (customPhaseResult.error) {
+        return NextResponse.json({ error: customPhaseResult.error }, { status: 500 });
       }
     }
 

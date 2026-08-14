@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { sendCliqNotification } from "@/lib/zoho";
 import { notifyProjectMembers } from "@/lib/notifications";
-import { getPhaseByNumber } from "@/config/customer-phases";
+import { resolveEffectivePhase } from "@/config/customer-phases";
 
 const WRITE_ROLES = ["admin", "super_admin", "marketing"];
 
@@ -28,8 +28,8 @@ export async function POST(
 
     const body = await request.json();
     const phaseNumber = Number(body?.phase_number);
-    if (!Number.isInteger(phaseNumber) || phaseNumber < 1 || phaseNumber > 5) {
-      return NextResponse.json({ error: "phase_number must be an integer between 1 and 5" }, { status: 400 });
+    if (!Number.isInteger(phaseNumber) || phaseNumber <= 0) {
+      return NextResponse.json({ error: "phase_number must be a positive integer" }, { status: 400 });
     }
 
     const { projectId } = await params;
@@ -44,9 +44,27 @@ export async function POST(
     }
     const companyName = (project.customers as unknown as { company_name: string } | null)?.company_name ?? "Customer";
 
+    // Task 246: "next phase" is derived from this project's actual seeded phase order
+    // (sort_order), not a hardcoded phaseNumber+1/phaseNumber===5 — a custom phase can sit
+    // anywhere in that order.
+    const { data: allPhaseRows, error: allPhasesError } = await supabase
+      .from("customer_phases")
+      .select("phase_number, sort_order, custom_name, day_start_override, day_end_override")
+      .eq("project_id", projectId)
+      .order("sort_order");
+    if (allPhasesError || !allPhaseRows) {
+      console.error("POST .../complete-phase phase list fetch error:", allPhasesError);
+      return NextResponse.json({ error: "Failed to load programme phases" }, { status: 500 });
+    }
+    const currentIndex = allPhaseRows.findIndex((p) => p.phase_number === phaseNumber);
+    if (currentIndex === -1) {
+      return NextResponse.json({ error: "phase_number does not match any configured phase" }, { status: 400 });
+    }
+    const currentPhase = resolveEffectivePhase(allPhaseRows[currentIndex]);
+    const nextPhaseRow = allPhaseRows[currentIndex + 1] ?? null;
+    const nextPhaseNumber = nextPhaseRow?.phase_number ?? null;
+
     const today = new Date().toISOString().slice(0, 10);
-    const currentPhase = getPhaseByNumber(phaseNumber);
-    const nextPhaseNumber = phaseNumber < 5 ? phaseNumber + 1 : null;
 
     const { error: completeError } = await supabase
       .from("customer_phases")
@@ -131,8 +149,8 @@ export async function POST(
         console.error("POST .../complete-phase advance error:", advanceError);
         return NextResponse.json({ error: "Failed to advance to next phase" }, { status: 500 });
       }
-      const nextPhase = getPhaseByNumber(nextPhaseNumber);
-      const handoffMessage = `${companyName}: Phase ${phaseNumber} (${currentPhase.name}) complete — handed over to Phase ${nextPhaseNumber}: ${nextPhase.name} (owner: ${nextPhase.owner}).`;
+      const nextPhase = resolveEffectivePhase(nextPhaseRow!);
+      const handoffMessage = `${companyName}: Phase ${phaseNumber} (${currentPhase.name}) complete — handed over to Phase ${nextPhaseNumber}: ${nextPhase.name}${nextPhase.owner ? ` (owner: ${nextPhase.owner})` : ""}.`;
       await sendCliqNotification(handoffMessage, "pm");
       await notifyProjectMembers(projectId, {
         type: "programme_phase_complete",
@@ -142,12 +160,12 @@ export async function POST(
         actorId: user.id,
       });
     } else {
-      const completeMessage = `${companyName}: 120-Day Programme complete — all 5 phases delivered.`;
+      const completeMessage = `${companyName}: 120-Day Programme complete — all ${allPhaseRows.length} phases delivered.`;
       await sendCliqNotification(completeMessage, "pm");
       await notifyProjectMembers(projectId, {
         type: "programme_complete",
         title: "120-Day Programme complete",
-        body: `${actorName} completed the final phase — all 5 phases delivered${project.name ? ` · ${project.name}` : ""}.`,
+        body: `${actorName} completed the final phase — all ${allPhaseRows.length} phases delivered${project.name ? ` · ${project.name}` : ""}.`,
         url: project.project_id ? `/v2/portfolio-tracker/${project.project_id}` : undefined,
         actorId: user.id,
       });

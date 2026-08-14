@@ -22,6 +22,13 @@ export default async function IssueDetailPage({
   if (!project) notFound();
   if (!(await isProjectVisibleToCurrentUser(project.id))) notFound();
 
+  const { data: claimsData } = await supabase.auth.getClaims();
+  const currentUserId = (claimsData?.claims?.sub as string | undefined) ?? "";
+  const { data: profile } = currentUserId
+    ? await supabase.from("profiles").select("role").eq("id", currentUserId).maybeSingle()
+    : { data: null };
+  const currentUserRole = profile?.role ?? null;
+
   const [{ data: issue }, { data: allMembers }] = await Promise.all([
     supabase.from("issues").select("*").eq("display_id", issueId).eq("project_id", project.id).single(),
     supabase
@@ -38,6 +45,8 @@ export default async function IssueDetailPage({
       issue={issue}
       project={project}
       allMembers={allMembers ?? []}
+      currentUserId={currentUserId}
+      currentUserRole={currentUserRole}
     />
   );
 }

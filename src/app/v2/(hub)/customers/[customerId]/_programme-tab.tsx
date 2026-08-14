@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { CalendarClock, CheckCircle2, Clock, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { PROGRAMME_PHASES, getCurrentProgrammeDay } from "@/config/customer-phases";
+import { getCurrentProgrammeDay, resolveEffectivePhase } from "@/config/customer-phases";
 import type { CustomerPhaseRow, CustomerDeliverableRow, ProjectRow } from "@/types/database";
 
 interface ProgrammeTabProps {
@@ -98,8 +98,19 @@ export default function ProgrammeTab({ customerId, isDark }: ProgrammeTabProps) 
         if (!state || !state.phases.length) return null;
         const started = state.phases.find((p) => p.phase_number === 1)?.actual_start_date;
         const startedAt = started ? new Date(started).toISOString() : null;
-        const currentDay = startedAt ? Math.min(120, getCurrentProgrammeDay(startedAt)) : null;
-        const isComplete = state.phases.find((p) => p.phase_number === 5)?.status === "completed";
+        const durationDays = project.programme_duration_days ?? 120;
+        const currentDay = startedAt ? Math.min(durationDays, getCurrentProgrammeDay(startedAt)) : null;
+        // Task 246: this project's actual phase set (defaults + any customs), ordered by
+        // sort_order — "last phase" and the render loop below both derive from it instead of a
+        // hardcoded phase_number === 5 / PROGRAMME_PHASES.map.
+        const sortedPhases = [...state.phases].sort((a, b) => a.sort_order - b.sort_order);
+        const deliverablesByPhaseNumber = new Map<number, typeof state.deliverables>();
+        for (const d of state.deliverables) {
+          if (!deliverablesByPhaseNumber.has(d.phase_number)) deliverablesByPhaseNumber.set(d.phase_number, []);
+          deliverablesByPhaseNumber.get(d.phase_number)!.push(d);
+        }
+        const orderedPhases = sortedPhases.map((p) => resolveEffectivePhase(p, deliverablesByPhaseNumber.get(p.phase_number) ?? []));
+        const isComplete = sortedPhases.length > 0 && sortedPhases[sortedPhases.length - 1].status === "completed";
         const phaseStatusMap = new Map(state.phases.map((p) => [p.phase_number, p.status]));
 
         return (
@@ -108,16 +119,18 @@ export default function ProgrammeTab({ customerId, isDark }: ProgrammeTabProps) 
               <div>
                 <div className={cn("text-[14px] font-bold", textPrimary)}>{project.name}</div>
                 {currentDay !== null && (
-                  <div className={cn("text-[12px]", textMuted)}>Day {currentDay} / 120{isComplete ? " · Programme complete" : ""}</div>
+                  <div className={cn("text-[12px]", textMuted)}>Day {currentDay} / {durationDays}{isComplete ? " · Programme complete" : ""}</div>
                 )}
               </div>
             </div>
             <div className="flex flex-col gap-2">
-              {PROGRAMME_PHASES.map((phase) => {
+              {orderedPhases.map((phase) => {
                 const dbStatus = phaseStatusMap.get(phase.number) ?? "not_started";
                 const phaseDeliverables = state.deliverables.filter((d) => d.phase_number === phase.number);
                 const doneCount = phaseDeliverables.filter((d) => d.status === "done").length;
-                const style = PHASE_STYLES[phase.number];
+                // Task 246: a custom phase (number 6+) has no dedicated PHASE_STYLES entry —
+                // falls back to phase 5's neutral palette.
+                const style = PHASE_STYLES[phase.number] ?? PHASE_STYLES[5];
                 return (
                   <div key={phase.number} className={cn("flex items-center gap-3 px-3 py-2.5 rounded-lg", isDark ? "bg-white/[0.02]" : "bg-slate-50/60")}>
                     <div className={cn("w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-[12px] font-bold", dbStatus === "not_started" ? (isDark ? "bg-white/[0.06] text-slate-500" : "bg-slate-100 text-slate-400") : cn(isDark ? style.bgDark : style.bg, isDark ? style.textDark : style.text))}>

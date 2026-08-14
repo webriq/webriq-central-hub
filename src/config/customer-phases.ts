@@ -21,7 +21,12 @@ export type DeliverableConfig = {
 };
 
 export type PhaseConfig = {
-  number: 1 | 2 | 3 | 4 | 5;
+  // Task 246: widened from `1 | 2 | 3 | 4 | 5` — a project can now have custom phases (phase_number
+  // 6+, or any number once RESOLVE-time identity is caller-assigned) beyond the fixed 5. Every
+  // PROGRAMME_PHASES entry below is still statically 1-5; this widening only affects code that
+  // builds a PhaseConfig-shaped object for a project's *actual* phase set (see
+  // resolveEffectivePhase below), not this static array itself.
+  number: number;
   name: string;
   shortName: string;
   dayStart: number;
@@ -132,8 +137,175 @@ export function getPhaseByNumber(n: number): PhaseConfig {
   return phase;
 }
 
+// Task 244: StackShift I default-phase skip (per project, at intake) — shared by
+// seedAndStartProgramme/seedProgrammeAtPhase (seed.ts) and the "Jump to phase" PATCH route's own
+// backdate math, so both agree on which phase is actually "active" when the requested target
+// phase is itself in the skip set. If every phase is skipped, there's no valid "active" phase —
+// the requested phaseNumber is returned as-is, purely for the (now moot) backdate calculation.
+//
+// Task 246: generalized from "walk PROGRAMME_PHASES in phase_number order" to "walk the caller's
+// own ordered phase list" — once a project can have custom phases inserted anywhere, phase_number
+// order no longer matches display/adjacency order; only sort_order does (see PhaseOrderEntry).
+export type PhaseOrderEntry = { number: number; sortOrder: number };
+
+export function resolveEffectivePhaseNumber(
+  phases: PhaseOrderEntry[],
+  phaseNumber: number,
+  skipPhaseNumbers: number[] = []
+): number {
+  const skipSet = new Set(skipPhaseNumbers);
+  const ordered = [...phases].sort((a, b) => a.sortOrder - b.sortOrder);
+  if (ordered.every((p) => skipSet.has(p.number))) return phaseNumber;
+  if (!skipSet.has(phaseNumber)) return phaseNumber;
+  const targetSortOrder = ordered.find((p) => p.number === phaseNumber)?.sortOrder ?? -Infinity;
+  return (
+    ordered.find((p) => p.sortOrder >= targetSortOrder && !skipSet.has(p.number)) ??
+    ordered.find((p) => !skipSet.has(p.number))
+  )!.number;
+}
+
+export type PhaseDayRangeEntry = PhaseOrderEntry & { dayStart: number; dayEnd: number };
+
+// Chat follow-up to task 244/248: a skipped phase never happens for this project, so the
+// calendar days statically allocated to it (PROGRAMME_PHASES' fixed 1-120 reference scale)
+// shouldn't appear on the progress bar/timeline at all, nor count as "already elapsed" the way a
+// merely-bypassed-but-real earlier phase's days do. compressReferenceDay maps a static reference
+// day (a phase's or deliverable's own dayStart/dayEnd, or the grid's own max reference day) onto
+// a "skip-compressed" scale with every entirely-earlier skipped phase's span removed — the same
+// scale `currentDay` (via the backdated `programme_started_at`) lives on once a skipped phase
+// precedes the active one, and the scale the Portfolio Tracker's Swimlane/progress-bar/timeline
+// now render every non-skipped phase and deliverable on. Identity (no-op) when nothing is
+// skipped, so every pre-existing call site that never skips a phase is unaffected.
+export function compressReferenceDay(
+  referenceDay: number,
+  phases: PhaseDayRangeEntry[],
+  skipPhaseNumbers: number[] = []
+): number {
+  if (skipPhaseNumbers.length === 0) return referenceDay;
+  const skipSet = new Set(skipPhaseNumbers);
+  const ordered = [...phases].sort((a, b) => a.sortOrder - b.sortOrder);
+  let removed = 0;
+  for (const p of ordered) {
+    if (p.dayEnd > referenceDay) break;
+    if (skipSet.has(p.number)) removed += p.dayEnd - p.dayStart + 1;
+  }
+  return referenceDay - removed;
+}
+
+// The compressed-scale start day of `effectivePhaseNumber` (already resolved via
+// resolveEffectivePhaseNumber) — 1 plus the day-span of every earlier, non-skipped phase. Feeds
+// the same `scaleDay(..., durationDays)` call every backdate site already made against
+// `targetPhase.dayStart` — identical result whenever nothing earlier was skipped, since that sum
+// then equals the target phase's own static dayStart exactly.
+export function resolveEffectiveStartDay(
+  phases: PhaseDayRangeEntry[],
+  effectivePhaseNumber: number,
+  skipPhaseNumbers: number[] = []
+): number {
+  const targetPhase = phases.find((p) => p.number === effectivePhaseNumber);
+  if (!targetPhase) return 1;
+  return compressReferenceDay(targetPhase.dayStart, phases, skipPhaseNumbers);
+}
+
 export function getDeliverable(phaseNumber: number, key: string): DeliverableConfig | undefined {
   return getPhaseByNumber(phaseNumber).deliverables.find((d) => d.key === key);
+}
+
+// ─── Project-aware phase/deliverable resolution (task 246) ──────────────────
+// customer_phases/customer_deliverables (migration 103) carry nullable override columns —
+// custom_name/day_start_override/day_end_override/sort_order on customer_phases,
+// custom_name/custom_description/custom_owner on customer_deliverables. When every override on a
+// row is null (every pre-migration row, and any of the 5 defaults a PM never edited), the
+// effective phase/deliverable is identical to its PROGRAMME_PHASES static entry. A phase_number
+// with no static entry at all (6+, i.e. any PM-added custom phase) resolves entirely from its own
+// row + deliverable rows — there is no PROGRAMME_PHASES fallback for those.
+
+// Deliberately NOT named CustomerPhaseRow/CustomerDeliverableRow — those names are already taken
+// by src/types/database.ts's full generated Row types. These are the minimal subset
+// resolveEffectivePhase/Deliverable actually need, so a caller can pass a partial select() result
+// without pulling in the full Row shape.
+export type PhaseOverrideRow = {
+  phase_number: number;
+  custom_name: string | null;
+  day_start_override: number | null;
+  day_end_override: number | null;
+  sort_order: number;
+};
+
+export type DeliverableOverrideRow = {
+  deliverable_key: string;
+  custom_name: string | null;
+  custom_description: string | null;
+  custom_owner: string | null;
+};
+
+export function resolveEffectiveDeliverable(phaseNumber: number, row: DeliverableOverrideRow): DeliverableConfig {
+  const staticDeliverable = PROGRAMME_PHASES.find((p) => p.number === phaseNumber)?.deliverables.find(
+    (d) => d.key === row.deliverable_key
+  );
+  return {
+    key: row.deliverable_key,
+    name: row.custom_name ?? staticDeliverable?.name ?? row.deliverable_key,
+    description: row.custom_description ?? staticDeliverable?.description ?? "",
+    dayStart: staticDeliverable?.dayStart ?? 1,
+    dayEnd: staticDeliverable?.dayEnd ?? 1,
+    owner: row.custom_owner ?? staticDeliverable?.owner ?? "",
+  };
+}
+
+// deliverableRows should be every customer_deliverables row for this phase — pass `[]` only when
+// truly none have been seeded yet (falls back to the static deliverable list for a default phase,
+// or an empty list for a custom one, matching "no deliverables configured" rather than guessing).
+export function resolveEffectivePhase(row: PhaseOverrideRow, deliverableRows: DeliverableOverrideRow[] = []): PhaseConfig & { sortOrder: number } {
+  const staticPhase = PROGRAMME_PHASES.find((p) => p.number === row.phase_number);
+  const name = row.custom_name ?? staticPhase?.name ?? `Phase ${row.phase_number}`;
+  return {
+    number: row.phase_number,
+    name,
+    shortName: row.custom_name ?? staticPhase?.shortName ?? name,
+    dayStart: row.day_start_override ?? staticPhase?.dayStart ?? 1,
+    dayEnd: row.day_end_override ?? staticPhase?.dayEnd ?? 1,
+    owner: staticPhase?.owner ?? "",
+    sortOrder: row.sort_order,
+    deliverables:
+      deliverableRows.length > 0
+        ? deliverableRows.map((d) => resolveEffectiveDeliverable(row.phase_number, d))
+        : (staticPhase?.deliverables ?? []),
+  };
+}
+
+// Deterministic, collision-resistant-enough deliverable_key for a PM-typed custom deliverable
+// name — customer_deliverables' unique(customer_id, phase_number, deliverable_key) only needs
+// uniqueness within one phase, so a slug + short suffix on empty/duplicate input is sufficient.
+export function slugifyDeliverableKey(name: string, fallbackIndex: number): string {
+  const slug = name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return slug || `custom-deliverable-${fallbackIndex}`;
+}
+
+// ─── Configurable programme length (task 239) ────────────────────────────────
+// StackShift I's programme length can be overridden per project at intake (default stays 120).
+// PROGRAMME_PHASES' dayStart/dayEnd values are never mutated — they stay the fixed 1-120
+// "reference" scale shared by every customer; scaleDay() converts a reference day into the real
+// programme day for a project whose total length differs from the default, so display sites (Day
+// X of Y, progress %, Gantt bar widths) and seed.ts's phase/deliverable day-range seeding can both
+// derive the same real-calendar numbers from the one static config.
+export const DEFAULT_PROGRAMME_DAYS = 120;
+
+export function scaleDay(referenceDay: number, durationDays: number = DEFAULT_PROGRAMME_DAYS): number {
+  if (durationDays === DEFAULT_PROGRAMME_DAYS) return referenceDay;
+  return Math.max(1, Math.round((referenceDay * durationDays) / DEFAULT_PROGRAMME_DAYS));
+}
+
+// Inverse of scaleDay — converts a project's real elapsed programme day back into the fixed
+// 1-120 reference scale, so PROGRAMME_PHASES/getPhaseForDay (which only know the reference
+// scale) can be used to look up which phase a real (possibly custom-duration) day falls in.
+export function unscaleDay(realDay: number, durationDays: number = DEFAULT_PROGRAMME_DAYS): number {
+  if (durationDays === DEFAULT_PROGRAMME_DAYS) return realDay;
+  return Math.max(1, Math.round((realDay * DEFAULT_PROGRAMME_DAYS) / durationDays));
 }
 
 // ─── Internal deliverables (QBR "2.3 Bert's Internal Deliverables") ─────────
@@ -234,4 +406,128 @@ export function deriveProjectSuffixMulti(selected: Classification[]): "Website" 
 
 export function deriveProjectTypeMulti(selected: Classification[]): "Content Site" | "Custom App" {
   return selected.includes("Discrete Development") ? "Custom App" : "Content Site";
+}
+
+// ─── Generic phase plan (task 239) ───────────────────────────────────────────
+// Every classification except StackShift I stores its phases/deliverables/checklist in the
+// generic milestones/tasklists/tasks tables (see seed-custom-phases.ts) instead of
+// customer_phases/customer_deliverables. This is the shape a New Project wizard submission
+// sends for that seeding.
+//
+// dayStart/dayEnd (task 252): the free-form phase builder now captures a day range per phase
+// (PM-editable, same "Day X to Y" control fixed-phases mode already had) — required here, not
+// nullable, since phasePlanDraftToInput always resolves a value before submission (falls back to
+// a sensible default if a PM somehow leaves it unset). A deliverable's own range is never
+// separately PM-edited — auto-distributed across its phase's range via applyDeliverableDayRanges,
+// mirroring how StackShift I's own Phase 2-5 deliverables are already distributed.
+export type ChecklistItemPlan = { title: string };
+export type DeliverablePlan = { name: string; dayStart: number; dayEnd: number; checklist: ChecklistItemPlan[] };
+export type PhasePlan = { name: string; dayStart: number; dayEnd: number; deliverables: DeliverablePlan[] };
+export type PhasePlanInput = { phases: PhasePlan[] };
+
+// ─── Custom phases beyond the fixed 5 (task 246) ─────────────────────────────
+// Wire shape carried from the New Project wizard (fixed-phases mode's "Add custom phase") through
+// POST /api/onboarding/projects into seed.ts. `phaseNumber` is a caller-assigned stable identity
+// (must not collide with 1-5 or any other custom phase in the same submission — the wizard assigns
+// these via a running counter, see _new-project-types.ts); `sortOrder` is purely display position
+// among the full phase set (defaults + customs) for this project. Deliverables carry no day range
+// (matches the generic phase_plan's DeliverablePlan shape, task 239) — a custom phase's day range
+// lives on the phase itself only.
+export type CustomPhaseSeed = {
+  phaseNumber: number;
+  sortOrder: number;
+  name: string;
+  dayStart: number;
+  dayEnd: number;
+  // Task 249: every custom phase (always number 6+, never "Onboard") gets its deliverables'
+  // day sub-ranges computed via applyDeliverableDayRanges below, same as a default phase 2-5 —
+  // day granularity is no longer optional/absent for custom deliverables.
+  deliverables: { name: string; dayStart: number; dayEnd: number }[];
+};
+
+// ─── Auto-distributed deliverable day ranges (task 249) ──────────────────────
+// Largest-remainder method: split `totalDays` as evenly as possible across `count` deliverables,
+// giving the extra day(s) to the first entries in order. `count <= 0` returns `[]`. `base` is
+// floored at 1 — a phase span shorter than its own deliverable count is a validation error
+// surfaced in the wizard (see _new-project-types.ts's phasePlanValidationErrors), not a silent
+// clamp; distributeDaysAcrossCount itself just never returns a non-positive size.
+//
+// Worked example (from the request): distributeDaysAcrossCount(15, 6) -> [3, 3, 3, 2, 2, 2].
+export function distributeDaysAcrossCount(totalDays: number, count: number): number[] {
+  if (count <= 0) return [];
+  const base = Math.max(1, Math.floor(totalDays / count));
+  const remainder = Math.max(0, totalDays - base * count);
+  return Array.from({ length: count }, (_, i) => base + (i < remainder ? 1 : 0));
+}
+
+// Converts distributeDaysAcrossCount's sizes into absolute, sequential [dayStart, dayEnd] pairs
+// starting at `dayStart` — the shape both the wizard's read-only deliverable badges and
+// customPhasesFromDraft/defaultPhaseOverridesFromDraft (_new-project-types.ts) need. Deliberately
+// takes primitive dayStart/dayEnd/count (not a PhaseDraft) so this stays here alongside
+// distributeDaysAcrossCount without importing the wizard-only PhaseDraft type (which itself
+// imports from this module — a PhaseDraft param would be a circular import).
+export function applyDeliverableDayRanges(dayStart: number, dayEnd: number, count: number): { dayStart: number; dayEnd: number }[] {
+  const sizes = distributeDaysAcrossCount(dayEnd - dayStart + 1, count);
+  let cursor = dayStart;
+  return sizes.map((size) => {
+    const start = cursor;
+    const end = cursor + size - 1;
+    cursor = end + 1;
+    return { dayStart: start, dayEnd: end };
+  });
+}
+
+// ─── Per-phase day-range + deliverable-distribution overrides for the 5 defaults (task 249) ──
+// Wire shape carried from the New Project wizard through POST /api/onboarding/projects into
+// seed.ts — the default-phase counterpart to CustomPhaseSeed above. `deliverables` is omitted for
+// Phase 1/Onboard (its deliverables' day ranges are never redistributed, per the request) and for
+// any phase 2-5 entry the PM didn't touch; when present, `key` must match that phase's static
+// PROGRAMME_PHASES deliverable key so seed.ts's override lookup can match it.
+export type DefaultPhaseOverride = {
+  phaseNumber: number;
+  dayStart: number;
+  dayEnd: number;
+  deliverables?: { key: string; dayStart: number; dayEnd: number }[];
+};
+
+// ─── Ordered phase plan: defaults + customs merged (task 248) ───────────────
+// Shared core of "merge PROGRAMME_PHASES' 5 defaults with any PM-added custom phases into one
+// sort_order-ordered list" — extracted from seed.ts's buildSeedPhaseEntries (task 246) so the
+// same merge+sort+dense-reindex logic isn't duplicated between the server-side seed path and the
+// Portfolio Tracker "not started" screen's dynamic Start button / skip-aware Jump-to-phase menu
+// (task 248), which both need to agree on phase order and day ranges before any customer_phases
+// row exists yet. seed.ts's buildSeedPhaseEntries wraps this, adding its own deliverable rows on
+// top — this function only carries what a phase-level (not deliverable-level) consumer needs.
+export type OrderedPhaseSummary = {
+  number: number;
+  name: string;
+  dayStart: number;
+  dayEnd: number;
+  sortOrder: number;
+  isCustom: boolean;
+};
+
+export function buildOrderedPhasePlan(customPhases: CustomPhaseSeed[] = []): OrderedPhaseSummary[] {
+  const defaults: OrderedPhaseSummary[] = PROGRAMME_PHASES.map((p) => ({
+    number: p.number,
+    name: p.name,
+    dayStart: p.dayStart,
+    dayEnd: p.dayEnd,
+    sortOrder: p.number,
+    isCustom: false,
+  }));
+  const customs: OrderedPhaseSummary[] = customPhases.map((c) => ({
+    number: c.phaseNumber,
+    name: c.name,
+    dayStart: c.dayStart,
+    dayEnd: c.dayEnd,
+    sortOrder: c.sortOrder,
+    isCustom: true,
+  }));
+  // Dense-reindexed to 1..N here (not left as the fractional sortOrder custom phases carry) —
+  // mirrors seed.ts's own existing behavior exactly, so a custom phase's sortOrder colliding with
+  // a default's resolves the same way in both places (stable sort keeps the default first).
+  return [...defaults, ...customs]
+    .sort((a, b) => a.sortOrder - b.sortOrder)
+    .map((entry, i) => ({ ...entry, sortOrder: i + 1 }));
 }

@@ -4,20 +4,26 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
 import { cn } from "@/lib/utils";
+import { normalizeZohoDescriptionHtml } from "../_pm-shared";
 
-// Editable rich-text renderer for the task detail page's Description field (task 206).
-// Same Tiptap stack/toolbar shape as `[projectId]/_task-description-editor.tsx` (task 205's
-// New Task modal editor) — rebuilt locally rather than imported, since that component has no
-// onBlur-save concept and its own top comment scopes it to creation only. StarterKit already
-// bundles the Link extension with target="_blank" defaults, so imported/typed links render
-// clickable with zero extra config (verified against node_modules, not assumed).
-export function TaskDescriptionField({
-  projectId,
+// Editable rich-text renderer for a detail page's Description field (task 206, task detail).
+// Task 234 relocates this from tasks/[taskId]/_task-description-field.tsx to this shared
+// [projectId]/ level (same directory _task-timer-button.tsx already lives at, for the same
+// reason: shared by both tasks/[taskId]/ and issues/[issueId]/) and replaces the hard-coded
+// tasks-only image upload endpoint with an `uploadUrl` prop so issue detail can point it at its
+// own description-images route. Same Tiptap stack/toolbar shape as
+// `[projectId]/_task-description-editor.tsx` (task 205's New Task modal editor) — rebuilt
+// locally rather than imported, since that component has no onBlur-save concept and its own top
+// comment scopes it to creation only. StarterKit already bundles the Link extension with
+// target="_blank" defaults, so imported/typed links render clickable with zero extra config
+// (verified against node_modules, not assumed).
+export function DescriptionField({
+  uploadUrl,
   value,
   onSave,
   readOnly = false,
 }: {
-  projectId: string;
+  uploadUrl: string;
   value: string;
   onSave: (html: string) => void;
   readOnly?: boolean;
@@ -26,7 +32,7 @@ export function TaskDescriptionField({
     if (readOnly) return;
     const fd = new FormData();
     fd.append("file", file);
-    const res = await fetch(`/api/v2/projects/${projectId}/tasks/description-images`, {
+    const res = await fetch(uploadUrl, {
       method: "POST",
       body: fd,
     });
@@ -40,7 +46,7 @@ export function TaskDescriptionField({
       StarterKit.configure({ link: { openOnClick: false } }),
       Image,
     ],
-    content: value,
+    content: normalizeZohoDescriptionHtml(value),
     editable: !readOnly,
     immediatelyRender: false,
     editorProps: {
@@ -49,6 +55,16 @@ export function TaskDescriptionField({
           "outline-none px-3 py-2.5 text-[13px] min-h-[100px] leading-relaxed",
           "[&_p]:my-1 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pl-5 [&_ol]:pl-5 [&_li]:my-0.5",
           "[&_a]:text-[#0063D6] [&_a]:underline [&_img]:max-w-full [&_img]:rounded-[8px] [&_img]:my-1.5",
+          // Blank-line dividers from Zoho-imported HTML (task 238's normalizeZohoDescriptionHtml)
+          // parse into a <p> whose only content is a real hardBreak immediately followed by
+          // ProseMirror's own trailing-break companion <br> — i.e. exactly
+          // `<p><br><br class="ProseMirror-trailingBreak"></p>`. Every <p> already gets the same
+          // `[&_p]:my-1` margin above, so relying on that pair's own two-line-box rendering to make
+          // this specific paragraph read as "one blank line" makes the height an emergent side
+          // effect of how a given browser lays out two stacked <br>s, not something this stylesheet
+          // actually controls. Hide both <br>s and size the paragraph itself explicitly instead, so
+          // the blank-line height is deterministic.
+          "[&_p:has(>br+br.ProseMirror-trailingBreak)]:min-h-[1em] [&_p:has(>br+br.ProseMirror-trailingBreak)>br]:hidden",
           "text-[#3A4565]"
         ),
       },

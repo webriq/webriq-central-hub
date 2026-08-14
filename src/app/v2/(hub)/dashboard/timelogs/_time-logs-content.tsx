@@ -6,7 +6,7 @@ import { TimePeriodPicker } from "./_time-period-picker";
 import { TimeLogsTable } from "./_time-logs-table";
 import { TimeLogEntryModal } from "./_time-log-entry-modal";
 import { SearchableSelect } from "./_searchable-select";
-import { ConfirmDialog } from "./_confirm-dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { exportTimeLogsToPdf } from "./_export-pdf";
 import {
   defaultPeriod, periodToRange,

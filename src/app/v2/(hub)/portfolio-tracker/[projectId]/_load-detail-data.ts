@@ -2,6 +2,8 @@ import { redirect, notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { V2_ROUTES } from "@/config/constants";
+import type { Database } from "@/types/database";
+import type { CustomPhaseSeed } from "@/config/customer-phases";
 
 // pm/developer can view the Timeline (task 146) — Wizard access within it is further split
 // by role inside OnboardingDetail/OnboardingWizard, not here.
@@ -25,8 +27,10 @@ export async function loadOnboardingDetailData(projectId: string) {
 
   const { data: project, error } = await supabase
     .from("projects")
-    .select("id, name, customer_id, project_id, created_by, scheduled_onboarding_start_at, scheduled_start_phase, existing_website, customer_product_id, customers(company_name)")
+    .select("id, name, customer_id, project_id, created_by, programme_started_at, scheduled_onboarding_start_at, scheduled_start_phase, existing_website, customer_product_id, uses_customer_phases_engine, draft_skip_phase_numbers, draft_custom_phases, customers(company_name)")
     .eq("project_id", projectId)
+    // Soft-deleted projects (task 231) 404 through this loader.
+    .neq("status", "deleted")
     .single();
 
   if (error || !project) {
@@ -34,6 +38,25 @@ export async function loadOnboardingDetailData(projectId: string) {
   }
 
   const companyName = (project.customers as unknown as { company_name: string } | null)?.company_name ?? "Customer";
+
+  // Task 247: a project not on the specialized customer_phases engine (StackShift Access/Access
+  // Plus/Discrete Development, or StackShift II without the engine opt-in) never gets
+  // customer_phases/customer_deliverables rows — its detail page instead reads the generic
+  // milestones/tasklists/tasks model (task 239's seedCustomPhases). Fetched here only when needed,
+  // mirroring the Projects module's own _get-project-detail-data.ts query shape exactly.
+  let milestones: Database["public"]["Tables"]["milestones"]["Row"][] = [];
+  let tasklists: Database["public"]["Tables"]["tasklists"]["Row"][] = [];
+  let genericTasks: Database["public"]["Tables"]["tasks"]["Row"][] = [];
+  if (!project.uses_customer_phases_engine) {
+    const [milestonesRes, tasklistsRes, tasksRes] = await Promise.all([
+      supabase.from("milestones").select("*").eq("project_id", project.id).order("position", { ascending: true, nullsFirst: false }),
+      supabase.from("tasklists").select("*").eq("project_id", project.id),
+      supabase.from("tasks").select("*").eq("project_id", project.id),
+    ]);
+    milestones = milestonesRes.data ?? [];
+    tasklists = tasklistsRes.data ?? [];
+    genericTasks = tasksRes.data ?? [];
+  }
 
   // Task 217 — Onboarding Workspace v2's title-row classification chip ("StackShift I" etc.)
   // needs the linked customer_products row; a separate lookup (not an embed) since
@@ -127,15 +150,28 @@ export async function loadOnboardingDetailData(projectId: string) {
       primary_contact_phone: primaryContact?.phone ?? null,
       created_by: project.created_by,
       created_by_name: createdByName,
+      // Task 251: previously omitted here (StackShift I's OnboardingDetail reads its own copy via
+      // a separate client-side fetchProgramme() call) — now selected for every engine so
+      // GenericPhaseView can gate its not-started/Scheduled/Draft screen on it too.
+      programme_started_at: project.programme_started_at,
       scheduled_onboarding_start_at: project.scheduled_onboarding_start_at,
       scheduled_start_phase: project.scheduled_start_phase,
       existing_website: project.existing_website,
       classification,
+      uses_customer_phases_engine: project.uses_customer_phases_engine,
+      // Task 248: the intake-time skip/custom-phase selection, persisted regardless of start mode
+      // — drives the "not started"/scheduled screen's dynamic Start button + skip-aware
+      // Jump-to-phase menu.
+      draft_skip_phase_numbers: project.draft_skip_phase_numbers,
+      draft_custom_phases: project.draft_custom_phases as CustomPhaseSeed[],
     },
     role,
     userId,
     phase1Members,
     projectMembers,
+    milestones,
+    tasklists,
+    genericTasks,
   };
 }
 

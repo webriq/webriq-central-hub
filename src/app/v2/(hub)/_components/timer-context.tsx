@@ -7,6 +7,8 @@ export type ActiveTimerRow = {
   id: string;
   task_id: string | null;
   task_title: string | null;
+  issue_id: string | null;
+  issue_title: string | null;
   project_id: string | null;
   status: "running" | "paused" | null;
   accumulated_seconds: number;
@@ -16,11 +18,14 @@ export type ActiveTimerRow = {
   break_duration_minutes: number | null;
 };
 
+// Task 234 — widened from task-only to accept either a task or an issue.
+export type TimerEntityRef = { taskId: string } | { issueId: string };
+
 type TimerContextValue = {
   timer: ActiveTimerRow | null;
   elapsedSeconds: number;
   breakRemainingSeconds: number | null;
-  startTimer: (taskId: string, projectId: string) => Promise<boolean>;
+  startTimer: (entity: TimerEntityRef, projectId: string) => Promise<boolean>;
   pauseTimer: () => Promise<void>;
   resumeTimer: () => Promise<void>;
   stopTimer: () => Promise<number | null>;
@@ -65,7 +70,7 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const elapsedSeconds = useMemo(() => {
-    if (!timer?.task_id) return 0;
+    if (!timer?.task_id && !timer?.issue_id) return 0;
     if (timer.status === "running" && timer.segment_started_at) {
       return timer.accumulated_seconds + Math.max(0, (now - new Date(timer.segment_started_at).getTime()) / 1000);
     }
@@ -95,8 +100,12 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
     if (breakRemainingSeconds === 0) void cancelBreak();
   }, [breakRemainingSeconds, cancelBreak]);
 
-  const startTimer = useCallback(async (taskId: string, projectId: string) => {
-    const data = await postJson("/api/v2/timer/start", { task_id: taskId, project_id: projectId });
+  const startTimer = useCallback(async (entity: TimerEntityRef, projectId: string) => {
+    const data = await postJson("/api/v2/timer/start", {
+      task_id: "taskId" in entity ? entity.taskId : undefined,
+      issue_id: "issueId" in entity ? entity.issueId : undefined,
+      project_id: projectId,
+    });
     if (!data) return false;
     setTimer(data.timer ?? null);
     return true;

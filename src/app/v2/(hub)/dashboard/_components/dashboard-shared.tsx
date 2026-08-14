@@ -287,8 +287,16 @@ export function OnboardingStatusPill({ status, isDark = false }: { status: strin
 // Day 1-120 pill track, phase-boundary ticks at days 15/30/60/90, phase-hue gradient fill,
 // navy day-marker pill. Inline styles used only for the multi-background-position tick marks
 // and the dynamic fill width/gradient — neither is expressible as static Tailwind utilities.
-export function ProgrammeTrack({ currentDay, phaseNumber }: { currentDay: number; phaseNumber: number | null }) {
-  const pct = Math.min(100, Math.max(0, (currentDay / 120) * 100));
+export function ProgrammeTrack({
+  currentDay,
+  phaseNumber,
+  durationDays = 120,
+}: {
+  currentDay: number;
+  phaseNumber: number | null;
+  durationDays?: number;
+}) {
+  const pct = Math.min(100, Math.max(0, (currentDay / durationDays) * 100));
   const gradient = phaseNumber ? PHASE_GRADIENT[phaseNumber] : "linear-gradient(90deg,#BBDCFF,#007BFF)";
   return (
     <div className="relative h-[22px] rounded-full bg-[#EDF0F7]">

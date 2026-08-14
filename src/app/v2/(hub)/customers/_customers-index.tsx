@@ -6,7 +6,7 @@ import { Building2, Search, FolderKanban, Mail, Plus, ChevronLeft, ChevronRight,
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { V2_ROUTES } from "@/config/constants";
-import { getCurrentProgrammeDay, getPhaseForDay } from "@/config/customer-phases";
+import { getCurrentProgrammeDay, getPhaseForDay, unscaleDay } from "@/config/customer-phases";
 import { Chip } from "../dashboard/_components/dashboard-shared";
 
 export type CustomerProductProgress = {
@@ -27,6 +27,10 @@ export type CustomerListItem = {
   // Derived from the customer's *visible* project(s) only — hidden (still-onboarding) projects
   // never surface here. `null` = no visible project has started its 120-day clock.
   programme_started_at: string | null;
+  // Task 239 — the programme_duration_days of whichever project's programme_started_at was used
+  // above (its most-recently-started visible project); defaults to 120 when there's no started
+  // project to pull it from.
+  programme_duration_days: number;
 };
 
 export type PaginationMeta = { page: number; pageSize: number; total: number };
@@ -70,13 +74,13 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-function ProgrammeBadge({ programmeStartedAt }: { programmeStartedAt: string }) {
-  const day = Math.min(120, getCurrentProgrammeDay(programmeStartedAt));
-  const phase = getPhaseForDay(day);
+function ProgrammeBadge({ programmeStartedAt, durationDays }: { programmeStartedAt: string; durationDays: number }) {
+  const day = Math.min(durationDays, getCurrentProgrammeDay(programmeStartedAt));
+  const phase = getPhaseForDay(unscaleDay(day, durationDays));
   return (
     <div className="inline-flex items-center gap-1 text-[10.5px] font-mono text-[#5F6A88] mt-0.5">
       <CalendarClock size={10} />
-      Day {day}/120 · Phase {phase.number}
+      Day {day}/{durationDays} · Phase {phase.number}
     </div>
   );
 }
@@ -328,7 +332,7 @@ export default function CustomersIndex({
                   <div className="text-[13px] font-medium text-[#0B1533] truncate group-hover:text-[#007BFF]">{c.company_name}</div>
                   <div className="text-[11px] font-mono text-[#5F6A88] truncate">{c.customer_id}</div>
                   {c.programme_started_at && (
-                    <ProgrammeBadge programmeStartedAt={c.programme_started_at} />
+                    <ProgrammeBadge programmeStartedAt={c.programme_started_at} durationDays={c.programme_duration_days} />
                   )}
                 </button>
                 <div className="min-w-0">

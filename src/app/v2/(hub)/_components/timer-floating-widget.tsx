@@ -22,7 +22,8 @@ export default function TimerFloatingWidget() {
   const [open, setOpen] = useState(false);
   const { timer, elapsedSeconds, breakRemainingSeconds, pauseTimer, resumeTimer, stopTimer, startBreak, cancelBreak } = useTimer();
 
-  const hasTask = !!timer?.task_id;
+  // Task 234 — "entity" covers either a task or an issue; the widget doesn't care which.
+  const hasEntity = !!timer?.task_id || !!timer?.issue_id;
   const onBreak = !!timer?.break_type;
   const breakMeta = timer?.break_type ? BREAK_META[timer.break_type] : null;
   const breakLabel = timer?.break_type ? BREAK_LABELS[timer.break_type] : null;
@@ -51,12 +52,12 @@ export default function TimerFloatingWidget() {
 
           <div className="p-4 flex flex-col gap-4">
             {/* ── Active task timer ── */}
-            {hasTask ? (
+            {hasEntity ? (
               <div className="flex flex-col gap-2">
                 <div className="flex items-center gap-2 min-w-0">
                   <Timer size={14} className="text-[#007BFF] shrink-0" />
                   <span className="text-[12px] font-medium text-[#3A4565] truncate flex-1">
-                    {timer!.task_title ?? "Untitled task"}
+                    {timer!.task_title ?? timer!.issue_title ?? "Untitled item"}
                   </span>
                   <span className="text-[12px] font-mono font-semibold text-[#0B1533] tabular-nums shrink-0">
                     {formatMMSS(elapsedSeconds)}
@@ -87,10 +88,10 @@ export default function TimerFloatingWidget() {
                 )}
               </div>
             ) : (
-              <p className="text-[12px] text-[#5F6A88]">No timer running. Start one from a task you&apos;re assigned to.</p>
+              <p className="text-[12px] text-[#5F6A88]">No timer running. Start one from a task or issue you&apos;re assigned to.</p>
             )}
 
-            {(hasTask) && <div className="h-px bg-[#EDF0F7]" />}
+            {(hasEntity) && <div className="h-px bg-[#EDF0F7]" />}
 
             {/* ── Break controls ── */}
             {onBreak && breakMeta ? (
@@ -141,7 +142,7 @@ export default function TimerFloatingWidget() {
             className={
               onBreak
                 ? "flex items-center gap-1.5 h-11 px-3.5 rounded-full bg-[#FFF3D6] text-[#8A5A00] shadow-[0_8px_24px_rgba(7,17,51,0.10)] hover:bg-[#FCE9B8] transition-colors cursor-pointer"
-                : hasTask
+                : hasEntity
                 ? "flex items-center gap-1.5 h-11 px-3.5 rounded-full bg-[#E5F1FF] text-[#0063D6] shadow-[0_8px_24px_rgba(7,17,51,0.10)] hover:bg-[#D6E9FF] transition-colors cursor-pointer"
                 : "flex items-center justify-center w-11 h-11 rounded-full bg-[#071133] text-white shadow-[0_8px_24px_rgba(7,17,51,0.10)] hover:bg-[#0C1B4A] transition-colors cursor-pointer"
             }
@@ -151,7 +152,7 @@ export default function TimerFloatingWidget() {
                 <breakMeta.icon size={16} />
                 <span className="text-[12px] font-mono font-semibold tabular-nums">{formatMMSS(breakRemainingSeconds ?? 0)}</span>
               </>
-            ) : hasTask ? (
+            ) : hasEntity ? (
               <>
                 <Timer size={16} />
                 <span className="text-[12px] font-mono font-semibold tabular-nums">{formatMMSS(elapsedSeconds)}</span>

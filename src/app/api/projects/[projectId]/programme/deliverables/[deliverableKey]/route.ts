@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getDeliverable } from "@/config/customer-phases";
+import { resolveEffectiveDeliverable } from "@/config/customer-phases";
 import { notifyProjectMembers } from "@/lib/notifications";
 
 const WRITE_ROLES = ["admin", "super_admin", "marketing"];
@@ -24,26 +24,33 @@ export async function PATCH(
     const phaseNumber = Number(body?.phase_number);
     const status = body?.status;
 
-    if (!Number.isInteger(phaseNumber) || phaseNumber < 1 || phaseNumber > 5) {
-      return NextResponse.json({ error: "phase_number must be an integer between 1 and 5" }, { status: 400 });
+    if (!Number.isInteger(phaseNumber) || phaseNumber <= 0) {
+      return NextResponse.json({ error: "phase_number must be a positive integer" }, { status: 400 });
     }
     if (!STATUSES.includes(status)) {
       return NextResponse.json({ error: "status must be one of pending, in_progress, done" }, { status: 400 });
     }
 
     const { projectId, deliverableKey } = await params;
-    const deliverableConfig = getDeliverable(phaseNumber, deliverableKey);
-    if (!deliverableConfig) {
-      return NextResponse.json({ error: "Unknown deliverable for that phase" }, { status: 400 });
-    }
-
+    // Task 246: existence + display name now come from the row itself, not a static
+    // getDeliverable(phaseNumber, key) lookup — that lookup throws for a custom phase's
+    // phase_number, which has no PROGRAMME_PHASES entry to look up.
     const { data: previous } = await supabase
       .from("customer_deliverables")
-      .select("status")
+      .select("status, custom_name")
       .eq("project_id", projectId)
       .eq("phase_number", phaseNumber)
       .eq("deliverable_key", deliverableKey)
       .maybeSingle();
+    if (!previous) {
+      return NextResponse.json({ error: "Unknown deliverable for that phase" }, { status: 400 });
+    }
+    const deliverableConfig = resolveEffectiveDeliverable(phaseNumber, {
+      deliverable_key: deliverableKey,
+      custom_name: previous.custom_name,
+      custom_description: null,
+      custom_owner: null,
+    });
 
     const { data, error } = await supabase
       .from("customer_deliverables")

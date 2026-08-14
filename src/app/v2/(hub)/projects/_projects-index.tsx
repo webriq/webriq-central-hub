@@ -14,6 +14,7 @@ import { V2_ROUTES } from "@/config/constants";
 import { TagChip, businessDaysRemaining, PROJECT_TYPES } from "./_pm-shared";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Chip } from "../dashboard/_components/dashboard-shared";
+import { ProjectCardMenu } from "./_project-card-menu";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -369,6 +370,7 @@ export default function ProjectsIndex({
   initialView = "grid",
   canManageTags = false,
   canCreateProject = false,
+  canDeleteProjects = false,
 }: {
   projects: ProjectListItem[];
   customers: CustomerOption[];
@@ -376,6 +378,7 @@ export default function ProjectsIndex({
   initialView?: "grid" | "list";
   canManageTags?: boolean;
   canCreateProject?: boolean;
+  canDeleteProjects?: boolean;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -617,7 +620,7 @@ export default function ProjectsIndex({
         {projects.length === 0 ? (
           <EmptyState isFiltered={isFiltered} />
         ) : view === "grid" ? (
-          <GridView projects={projects} canManageTags={canManageTags} getTagsFor={getTagsFor} removeTag={removeTag} />
+          <GridView projects={projects} canManageTags={canManageTags} canDeleteProjects={canDeleteProjects} getTagsFor={getTagsFor} removeTag={removeTag} />
         ) : (
           <ListView projects={projects} canManageTags={canManageTags} getTagsFor={getTagsFor} removeTag={removeTag} />
         )}
@@ -658,10 +661,11 @@ function EmptyState({ isFiltered }: { isFiltered: boolean }) {
 // ─── Grid view ────────────────────────────────────────────────────────────────
 
 function GridView({
-  projects, canManageTags, getTagsFor, removeTag,
+  projects, canManageTags, canDeleteProjects, getTagsFor, removeTag,
 }: {
   projects: ProjectListItem[];
   canManageTags: boolean;
+  canDeleteProjects: boolean;
   getTagsFor: (p: ProjectListItem) => string[];
   removeTag: (id: string, projectId: string | null, currentTags: string[], tag: string) => void;
 }) {
@@ -685,7 +689,12 @@ function GridView({
                   <Building2 size={11} /> {p.company_name}
                 </div>
               </div>
-              <ProjectStatusChip status={p.status} pct={pct} />
+              <div className="flex items-center gap-1 shrink-0">
+                <ProjectStatusChip status={p.status} pct={pct} />
+                {canDeleteProjects && p.project_id && (
+                  <ProjectCardMenu projectId={p.project_id} projectName={p.name} />
+                )}
+              </div>
             </div>
 
             {/* Project type + days left */}

@@ -47,6 +47,8 @@ export default async function ProjectsPage({
   const canManageTags = role === "admin" || role === "pm" || role === "super_admin";
   // Task 209 — separate capability from canManageTags even though the role set matches today.
   const canCreateProject = role === "admin" || role === "pm" || role === "super_admin";
+  // Task 232 — separate capability, same reasoning as canCreateProject above.
+  const canDeleteProjects = role === "admin" || role === "pm" || role === "super_admin";
 
   // Task 208 — developer role only sees projects they're a member of or have an assigned task in.
   const developerProjectIds = role === "developer" && user
@@ -67,6 +69,9 @@ export default async function ProjectsPage({
   let projectsQuery = supabase
     .from("projects")
     .select("id,project_id,name,project_type,status,customer_id,end_date,tags,owner_name,updated_at,external_project_id,customer_product_id", { count: "exact" })
+    // Soft-deleted projects (task 231) never appear here, regardless of the status filter —
+    // "Deleted" isn't a browsable status, so this is unconditional, not folded into statusValues.
+    .neq("status", "deleted")
     .order(sortSpec.column, { ascending: sortSpec.ascending, nullsFirst: sortSpec.nullsFirst });
 
   if (customerParam) {
@@ -197,6 +202,7 @@ export default async function ProjectsPage({
       paginationMeta={paginationMeta}
       initialView={(params.view === "list" ? "list" : "grid") as "grid" | "list"}
       canManageTags={canManageTags}
+      canDeleteProjects={canDeleteProjects}
       canCreateProject={canCreateProject}
     />
   );

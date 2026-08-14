@@ -2,18 +2,18 @@
 
 import { AlertTriangle } from "lucide-react";
 
-// Reusable styled confirmation popup (task 230, Requirement 2) — replaces
-// `_time-logs-content.tsx`'s native `confirm("Delete this time log entry? This cannot be
-// undone.")` with the same visual chrome `TimeLogEntryModal` already uses (`fixed inset-0 z-50 …
-// bg-[#0B1533]/40` overlay, white `rounded-[14px]` card), so a destructive action gets a
-// consistent, on-brand confirmation instead of the browser's own dialog.
+// Reusable styled confirmation popup (originated in timelogs' _confirm-dialog.tsx, task 230;
+// promoted here in task 231 once a second and third page needed the same irreversible-action
+// confirmation) — replaces native `window.confirm()` with on-brand chrome (`fixed inset-0 …
+// bg-[#0B1533]/40` overlay, white `rounded-[14px]` card).
 export function ConfirmDialog({
-  open, title, body, confirmLabel = "Delete", onConfirm, onCancel,
+  open, title, body, confirmLabel = "Delete", confirmDisabled = false, onConfirm, onCancel,
 }: {
   open: boolean;
   title: string;
   body: string;
   confirmLabel?: string;
+  confirmDisabled?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 }) {
@@ -43,7 +43,8 @@ export function ConfirmDialog({
           <button
             type="button"
             onClick={onConfirm}
-            className="px-3.5 py-1.5 rounded-full bg-[#C0392B] text-white text-[12px] font-semibold hover:bg-[#A5301F] cursor-pointer transition-colors"
+            disabled={confirmDisabled}
+            className="px-3.5 py-1.5 rounded-full bg-[#C0392B] text-white text-[12px] font-semibold hover:bg-[#A5301F] cursor-pointer transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {confirmLabel}
           </button>

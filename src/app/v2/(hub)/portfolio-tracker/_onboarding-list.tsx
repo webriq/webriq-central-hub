@@ -16,6 +16,7 @@ import { Chip, PhaseChip, OnboardingStatusPill } from "../dashboard/_components/
 import { isRoleGatedByMembership } from "@/lib/programme/membership-rules";
 import { FilterMultiSelect, parseMultiParam } from "./_filter-multi-select";
 import { SortSelect } from "./_sort-select";
+import { PortfolioCardMenu } from "./_portfolio-card-menu";
 
 export type OnboardingProjectListItem = {
   id: string;
@@ -27,10 +28,12 @@ export type OnboardingProjectListItem = {
   current_phase_number: number | null;
   current_phase_name: string | null;
   current_day: number | null;
+  programme_duration_days: number;
   progress_pct: number;
   programme_started_at: string | null;
   scheduled_onboarding_start_at: string | null;
   target_handover_date: string | null;
+  created_at: string;
   // "completed" (task 168 follow-up) = Phase 5 (Optimize) status is `completed` in `customer_phases`.
   status: "draft" | "scheduled" | "in_progress" | "completed";
   // Task 154: deduped union of project_members + Phase 1 phase_members (task 153).
@@ -118,8 +121,16 @@ function formatDate(iso: string | null): string {
 // Fixed 4-slot layout — header / company / progress-or-status row / phase row / footer — always
 // rendered (never conditionally omitted) so every card in a grid row is the same height
 // regardless of project state. See task 167.
-function ProjectCard({ item, editable }: { item: OnboardingProjectListItem; editable: boolean }) {
+function ProjectCard({
+  item, editable, canDelete, onDeleted,
+}: {
+  item: OnboardingProjectListItem;
+  editable: boolean;
+  canDelete: boolean;
+  onDeleted: () => void;
+}) {
   const router = useRouter();
+  const showMenu = canDelete && !!item.project_id;
 
   const content = (
     <div
@@ -136,7 +147,13 @@ function ProjectCard({ item, editable }: { item: OnboardingProjectListItem; edit
             <Building2 size={11} /> {item.company_name}
           </div>
         </div>
-        <OnboardingStatusPill status={item.status} />
+        <div className="flex items-center gap-1 shrink-0">
+          <OnboardingStatusPill status={item.status} />
+          {/* Reserves room for the overlaid PortfolioCardMenu (rendered as a sibling outside this
+              card's button, not nested inside it — see the return below) so the status pill shifts
+              left instead of being covered. */}
+          {showMenu && <div className="w-6 h-6" />}
+        </div>
       </div>
 
       {/* Progress row — always present */}
@@ -145,7 +162,7 @@ function ProjectCard({ item, editable }: { item: OnboardingProjectListItem; edit
           <div className="h-full rounded-full bg-[#007BFF] transition-[width] duration-300" style={{ width: `${item.current_day ? item.progress_pct : 0}%` }} />
         </div>
         <span className="text-[11px] font-mono shrink-0 text-[#5F6A88]">
-          {item.current_day ? `Day ${item.current_day}/120` : "Day —/120"}
+          {item.current_day ? `Day ${item.current_day}/${item.programme_duration_days}` : `Day —/${item.programme_duration_days}`}
         </span>
       </div>
 
@@ -181,14 +198,28 @@ function ProjectCard({ item, editable }: { item: OnboardingProjectListItem; edit
     </div>
   );
 
-  if (!editable) return <div className="h-full">{content}</div>;
+  // The menu is rendered as a sibling here, outside the button below — never nested inside it.
+  // A <button> cannot contain another <button> (invalid HTML; browsers force-close the outer one),
+  // so PortfolioCardMenu's own trigger button must live outside this card's clickable wrapper,
+  // overlaid via absolute positioning instead (task 233).
   return (
-    <button
-      onClick={() => router.push(`${V2_ROUTES.PORTFOLIO_TRACKER}/${item.project_id ?? item.id}`)}
-      className="h-full text-left w-full bg-transparent border-none p-0 cursor-pointer"
-    >
-      {content}
-    </button>
+    <div className="relative h-full">
+      {editable ? (
+        <button
+          onClick={() => router.push(`${V2_ROUTES.PORTFOLIO_TRACKER}/${item.project_id ?? item.id}`)}
+          className="h-full text-left w-full bg-transparent border-none p-0 cursor-pointer"
+        >
+          {content}
+        </button>
+      ) : (
+        <div className="h-full">{content}</div>
+      )}
+      {showMenu && (
+        <div className="absolute top-4 right-4">
+          <PortfolioCardMenu projectId={item.project_id!} projectName={item.project_name} onDeleted={onDeleted} />
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -212,9 +243,11 @@ const CLASSIFICATION_OPTIONS = [
   { value: "unclassified", label: "Unclassified" },
 ] as const;
 // Sort — pill style matching /v2/projects' SortSelect (task 224 follow-up amendment; this page
-// previously had no sort control at all). "Newest"/"Oldest" use programme_started_at, falling
-// back to scheduled_onboarding_start_at for not-yet-started rows; drafts with neither sort last
-// regardless of direction.
+// previously had no sort control at all). Task 247: "Newest"/"Oldest" sort by `created_at` (every
+// project has one, regardless of classification) instead of `programme_started_at` — that field
+// is StackShift-I-specific and null for generic-engine projects (StackShift Access/Access
+// Plus/Discrete Development, or StackShift II without the customer_phases engine opt-in), which
+// previously always sorted last regardless of when they were actually created.
 const SORT_OPTIONS = [
   { value: "newest", label: "Newest first" },
   { value: "oldest", label: "Oldest first" },
@@ -224,25 +257,13 @@ const SORT_OPTIONS = [
 ] as const;
 const PAGE_SIZES = [9, 18, 36] as const;
 
-// NaN (missing date) always sorts last, regardless of direction — separate ascending/descending
-// comparators rather than swapping operands, since swapping would put a NaN operand *first*
-// for the descending case instead of last.
+// NaN (missing date) always sorts last — used only by "due_soonest" now (task 247 moved
+// "newest"/"oldest" onto `created_at`, always present, so they no longer need NaN handling).
 function compareNullableAsc(a: number, b: number): number {
   if (Number.isNaN(a) && Number.isNaN(b)) return 0;
   if (Number.isNaN(a)) return 1;
   if (Number.isNaN(b)) return -1;
   return a - b;
-}
-function compareNullableDesc(a: number, b: number): number {
-  if (Number.isNaN(a) && Number.isNaN(b)) return 0;
-  if (Number.isNaN(a)) return 1;
-  if (Number.isNaN(b)) return -1;
-  return b - a;
-}
-
-function effectiveStartTime(p: OnboardingProjectListItem): number {
-  const d = p.programme_started_at ?? p.scheduled_onboarding_start_at;
-  return d ? new Date(d).getTime() : Number.NaN;
 }
 
 export default function OnboardingList({ role, currentUserId }: { role: string | null; currentUserId: string | null }) {
@@ -319,7 +340,7 @@ export default function OnboardingList({ role, currentUserId }: { role: string |
   const sorted = [...filtered];
   switch (sortValue) {
     case "oldest":
-      sorted.sort((a, b) => compareNullableAsc(effectiveStartTime(a), effectiveStartTime(b)));
+      sorted.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
       break;
     case "name_asc":
       sorted.sort((a, b) => a.project_name.localeCompare(b.project_name));
@@ -335,7 +356,7 @@ export default function OnboardingList({ role, currentUserId }: { role: string |
       break;
     case "newest":
     default:
-      sorted.sort((a, b) => compareNullableDesc(effectiveStartTime(a), effectiveStartTime(b)));
+      sorted.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   }
 
   const total = sorted.length;
@@ -354,6 +375,10 @@ export default function OnboardingList({ role, currentUserId }: { role: string |
   // this list previously didn't account for at all (editable was role-only).
   const canOpenProject = (item: OnboardingProjectListItem) =>
     roleEditable || (isRoleGatedByMembership(role) && !!currentUserId && item.members.some((m) => m.id === currentUserId));
+  // Task 233 — a separate capability from roleEditable above (different role set: pm can delete
+  // but isn't roleEditable; marketing is roleEditable but must not see Delete) and independent of
+  // project membership — deletion is a role capability, not a membership one.
+  const canDeleteProjects = role === "admin" || role === "pm" || role === "super_admin";
 
   const totalDays = PROGRAMME_PHASES[PROGRAMME_PHASES.length - 1].dayEnd;
   const phaseCount = PROGRAMME_PHASES.length;
@@ -540,7 +565,13 @@ export default function OnboardingList({ role, currentUserId }: { role: string |
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 items-stretch">
           {paginated.map((p) => (
-            <ProjectCard key={p.id} item={p} editable={canOpenProject(p)} />
+            <ProjectCard
+              key={p.id}
+              item={p}
+              editable={canOpenProject(p)}
+              canDelete={canDeleteProjects}
+              onDeleted={() => { setLoading(true); setRetryKey((k) => k + 1); }}
+            />
           ))}
         </div>
       )}

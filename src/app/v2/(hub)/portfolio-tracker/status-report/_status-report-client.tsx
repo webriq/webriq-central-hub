@@ -100,7 +100,15 @@ export default function StatusReportClient({ role }: { role: string | null }) {
       list = list.filter((p) => classificationSelected.includes(p.classification ?? "unclassified"));
     }
     if (phaseSelected.length !== PHASE_OPTIONS.length) {
-      list = list.filter((p) => phaseSelected.includes(String(p.currentPhase.phaseNumber)));
+      // Task 246: PHASE_OPTIONS only lists the 5 defaults — a project currently active in a
+      // custom phase (number 6+) has no corresponding checkbox, so it must never be excluded by
+      // this filter (there's no way for the PM to "select" it back). Only phase numbers that
+      // actually appear in PHASE_OPTIONS are subject to the filter at all.
+      list = list.filter(
+        (p) =>
+          !PHASE_OPTIONS.some((o) => o.value === String(p.currentPhase.phaseNumber)) ||
+          phaseSelected.includes(String(p.currentPhase.phaseNumber))
+      );
     }
 
     const sorted = [...list];

@@ -143,6 +143,45 @@ export function decodeHtmlEntities(input: string): string {
   });
 }
 
+// ─── Zoho-imported description HTML normalization (task 238) ───────────────
+// Zoho's exporter wraps every line in `<div>...<br/></div>` — the trailing <br/> is Zoho's own
+// line terminator, not an intentional blank line. Left as-is, Tiptap turns each <div> into its own
+// <p> node and keeps the trailing <br/> as a real hardBreak inside it, so *every* line renders with
+// one extra blank line appended (not just Zoho's genuinely-blank <div><br/></div> rows).
+//
+// Content-carrying divs (`<div>text<br/></div>`) get their trailing <br/> stripped — it's just
+// Zoho's own line terminator, not a real break, and keeping it would render one unwanted blank line
+// after every single line of text.
+//
+// Genuinely-blank divs (`<div><br/></div>`, nothing else inside) are deliberately left untouched.
+// A paragraph whose only content is a trailing hardBreak gets ProseMirror's own extra
+// "ProseMirror-trailingBreak" companion <br> so the empty line stays visible/clickable — which is
+// exactly the double-height blank line Zoho's source intends at that point. Stripping *these* too
+// (first cut of this fix) flattened every blank-line divider down to the same tight spacing as a
+// normal line-to-line gap, losing the visual grouping Zoho's own rendering shows.
+// Scoped to </div>, </li>, </td> only — never </p>. Zoho's exporter never emits <p> tags; our own
+// Tiptap editor's serializer does, and a user's intentional trailing hard-break (Shift+Enter at a
+// paragraph's end) inside a <p> must survive a save/reload round-trip unchanged.
+function collapseZohoLineBreaks(html: string): string {
+  return html.replace(
+    /(?<!<(?:div|li|td)>\s*)(<br\s*\/?>)\s*(?=<\/(?:div|li|td)>)/gi,
+    ""
+  );
+}
+
+// Zoho's inline description images are portal-relative (`/portal/viewInlineAttachment/image?file=...`)
+// with no host, so they 404 rendered as-is in the browser. Prepend the portal host.
+function absolutizeZohoInlineImages(html: string): string {
+  return html.replace(
+    /\bsrc=(["'])(\/portal\/viewInlineAttachment\/image[^"']*)\1/gi,
+    (_match, quote: string, path: string) => `src=${quote}https://crmplus.zoho.com${path}${quote}`
+  );
+}
+
+export function normalizeZohoDescriptionHtml(html: string): string {
+  return absolutizeZohoInlineImages(collapseZohoLineBreaks(html));
+}
+
 // ─── Small presentational helpers ───────────────────────────────────────────
 export function StatusBadge({ status }: { status: TaskStatus }) {
   const norm = normalizeStatus(status);
@@ -163,6 +202,17 @@ export function PriorityBadge({ priority }: { priority: TaskPriority }) {
     <span className="inline-flex items-center gap-1 text-[11px] font-medium" style={{ color: p.text }}>
       <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: p.dot }} />
       {p.label}
+    </span>
+  );
+}
+
+export function SeverityBadge({ severity }: { severity: string | null }) {
+  const norm = normalizeSeverity(severity);
+  const s = SEVERITY_STYLE[norm] ?? SEVERITY_STYLE["None"];
+  return (
+    <span className="inline-flex items-center gap-1 text-[11px] font-medium" style={{ color: s.text }}>
+      <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: s.dot }} />
+      {s.label}
     </span>
   );
 }

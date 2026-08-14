@@ -24,6 +24,9 @@ export async function getProjectDetailData(projectId: string): Promise<ProjectDe
     .from("projects")
     .select("*")
     .eq("project_id", projectId)
+    // Soft-deleted projects (task 231) 404 through this loader — direct/bookmarked links stop
+    // resolving once a project is deleted.
+    .neq("status", "deleted")
     .single();
 
   if (!project) return null;

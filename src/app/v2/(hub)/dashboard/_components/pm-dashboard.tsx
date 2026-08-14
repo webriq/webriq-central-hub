@@ -70,7 +70,7 @@ function exportWeeklyReport(projects: OnboardingProjectListItem[]) {
     p.company_name,
     p.classification ?? "",
     p.current_phase_name ?? "",
-    p.current_day != null ? `${p.current_day} / 120` : "",
+    p.current_day != null ? `${p.current_day} / ${p.programme_duration_days}` : "",
     p.status,
     p.target_handover_date ? new Date(p.target_handover_date).toLocaleDateString("en-US") : "",
   ]);
@@ -177,7 +177,7 @@ function ProgrammeBoard({ projects, loading }: { projects: OnboardingProjectList
               <div className="text-[10px] text-[#5F6A88] truncate">{p.classification ?? "Unclassified"}</div>
             </div>
           </div>
-          <ProgrammeTrack currentDay={p.current_day ?? 1} phaseNumber={p.current_phase_number} />
+          <ProgrammeTrack currentDay={p.current_day ?? 1} phaseNumber={p.current_phase_number} durationDays={p.programme_duration_days} />
           <div className="flex items-center gap-2 justify-end">
             {p.current_phase_number && p.current_phase_name && (
               <PhaseChip phaseNumber={p.current_phase_number} phaseName={p.current_phase_name} />
@@ -226,7 +226,7 @@ function ClientsTable({ projects, loading }: { projects: OnboardingProjectListIt
                   {p.current_phase_number && p.current_phase_name ? <PhaseChip phaseNumber={p.current_phase_number} phaseName={p.current_phase_name} /> : <span className="text-[11px] text-[#5F6A88]">—</span>}
                 </td>
                 <td className="px-3 py-2.5 border-b border-[#EDF0F7]">
-                  <span className="font-mono text-[11px] text-[#3A4565]">{p.current_day != null ? `${p.current_day} / 120` : "—"}</span>
+                  <span className="font-mono text-[11px] text-[#3A4565]">{p.current_day != null ? `${p.current_day} / ${p.programme_duration_days}` : "—"}</span>
                 </td>
                 <td className="px-3 py-2.5 border-b border-[#EDF0F7]">
                   <OnboardingStatusPill status={p.status} />

@@ -549,7 +549,7 @@ export interface Database {
           customer_id: string;
           name: string;
           project_type: string;
-          status: "active" | "on_hold" | "completed" | "archived";
+          status: "active" | "on_hold" | "completed" | "archived" | "deleted";
           customer_product_id: string | null;
           description: string | null;
           created_by: string | null;
@@ -573,6 +573,11 @@ export interface Database {
           scheduled_onboarding_start_at: string | null;
           scheduled_start_phase: number | null;
           qstash_message_id: string | null;
+          programme_duration_days: number;
+          uses_customer_phases_engine: boolean;
+          draft_skip_phase_numbers: number[];
+          draft_custom_phases: Json;
+          draft_default_phase_overrides: Json;
           created_at: string;
           updated_at: string;
         };
@@ -581,7 +586,7 @@ export interface Database {
           customer_id: string;
           name: string;
           project_type: string;
-          status?: "active" | "on_hold" | "completed" | "archived";
+          status?: "active" | "on_hold" | "completed" | "archived" | "deleted";
           customer_product_id?: string | null;
           description?: string | null;
           created_by?: string | null;
@@ -605,6 +610,11 @@ export interface Database {
           scheduled_onboarding_start_at?: string | null;
           scheduled_start_phase?: number | null;
           qstash_message_id?: string | null;
+          programme_duration_days?: number;
+          uses_customer_phases_engine?: boolean;
+          draft_skip_phase_numbers?: number[];
+          draft_custom_phases?: Json;
+          draft_default_phase_overrides?: Json;
           created_at?: string;
           updated_at?: string;
         };
@@ -613,7 +623,7 @@ export interface Database {
           customer_id?: string;
           name?: string;
           project_type?: string;
-          status?: "active" | "on_hold" | "completed" | "archived";
+          status?: "active" | "on_hold" | "completed" | "archived" | "deleted";
           customer_product_id?: string | null;
           description?: string | null;
           created_by?: string | null;
@@ -637,6 +647,11 @@ export interface Database {
           scheduled_onboarding_start_at?: string | null;
           scheduled_start_phase?: number | null;
           qstash_message_id?: string | null;
+          programme_duration_days?: number;
+          uses_customer_phases_engine?: boolean;
+          draft_skip_phase_numbers?: number[];
+          draft_custom_phases?: Json;
+          draft_default_phase_overrides?: Json;
           updated_at?: string;
         };
         Relationships: [
@@ -703,6 +718,7 @@ export interface Database {
           id: string;
           user_id: string;
           task_id: string | null;
+          issue_id: string | null;
           project_id: string | null;
           status: string | null;
           accumulated_seconds: number;
@@ -718,6 +734,7 @@ export interface Database {
           id?: string;
           user_id: string;
           task_id?: string | null;
+          issue_id?: string | null;
           project_id?: string | null;
           status?: string | null;
           accumulated_seconds?: number;
@@ -733,6 +750,7 @@ export interface Database {
           id?: string;
           user_id?: string;
           task_id?: string | null;
+          issue_id?: string | null;
           project_id?: string | null;
           status?: string | null;
           accumulated_seconds?: number;
@@ -757,6 +775,13 @@ export interface Database {
             columns: ["task_id"];
             isOneToOne: false;
             referencedRelation: "tasks";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "active_timers_issue_id_fkey";
+            columns: ["issue_id"];
+            isOneToOne: false;
+            referencedRelation: "issues";
             referencedColumns: ["id"];
           },
           {
@@ -822,6 +847,8 @@ export interface Database {
           position: number | null;
           is_default: boolean;
           milestone_id: string | null;
+          day_start: number | null;
+          day_end: number | null;
           created_at: string;
           updated_at: string;
         };
@@ -833,6 +860,8 @@ export interface Database {
           position?: number | null;
           is_default?: boolean;
           milestone_id?: string | null;
+          day_start?: number | null;
+          day_end?: number | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -844,6 +873,8 @@ export interface Database {
           position?: number | null;
           is_default?: boolean;
           milestone_id?: string | null;
+          day_start?: number | null;
+          day_end?: number | null;
           updated_at?: string;
         };
         Relationships: [
@@ -877,6 +908,8 @@ export interface Database {
           flag: string | null;
           assignee_name: string | null;
           assignee_email: string | null;
+          assignee_id: string | null;
+          created_by: string | null;
           due_date: string | null;
           created_at: string;
           updated_at: string;
@@ -896,6 +929,8 @@ export interface Database {
           flag?: string | null;
           assignee_name?: string | null;
           assignee_email?: string | null;
+          assignee_id?: string | null;
+          created_by?: string | null;
           due_date?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -915,6 +950,8 @@ export interface Database {
           flag?: string | null;
           assignee_name?: string | null;
           assignee_email?: string | null;
+          assignee_id?: string | null;
+          created_by?: string | null;
           due_date?: string | null;
           updated_at?: string;
           source_meta?: Record<string, unknown>;
@@ -933,6 +970,20 @@ export interface Database {
             columns: ["task_id"];
             isOneToOne: false;
             referencedRelation: "tasks";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "issues_assignee_id_fkey";
+            columns: ["assignee_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "issues_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
             referencedColumns: ["id"];
           }
         ];
@@ -1188,6 +1239,8 @@ export interface Database {
           due_date: string | null;
           status: "planned" | "active" | "completed";
           position: number | null;
+          day_start: number | null;
+          day_end: number | null;
           created_by: string | null;
           created_at: string;
           updated_at: string;
@@ -1202,6 +1255,8 @@ export interface Database {
           due_date?: string | null;
           status?: "planned" | "active" | "completed";
           position?: number | null;
+          day_start?: number | null;
+          day_end?: number | null;
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -1216,6 +1271,8 @@ export interface Database {
           due_date?: string | null;
           status?: "planned" | "active" | "completed";
           position?: number | null;
+          day_start?: number | null;
+          day_end?: number | null;
           created_by?: string | null;
           updated_at?: string;
         };
@@ -1848,6 +1905,10 @@ export interface Database {
           override_note: string | null;
           delay_note: string | null;
           wizard_data: Json;
+          custom_name: string | null;
+          day_start_override: number | null;
+          day_end_override: number | null;
+          sort_order: number;
           created_at: string;
           updated_at: string;
         };
@@ -1863,6 +1924,10 @@ export interface Database {
           override_note?: string | null;
           delay_note?: string | null;
           wizard_data?: Json;
+          custom_name?: string | null;
+          day_start_override?: number | null;
+          day_end_override?: number | null;
+          sort_order: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -1878,6 +1943,10 @@ export interface Database {
           override_note?: string | null;
           delay_note?: string | null;
           wizard_data?: Json;
+          custom_name?: string | null;
+          day_start_override?: number | null;
+          day_end_override?: number | null;
+          sort_order?: number;
           updated_at?: string;
         };
         Relationships: [
@@ -1908,6 +1977,9 @@ export interface Database {
           completed_at: string | null;
           day_start_override: number | null;
           day_end_override: number | null;
+          custom_name: string | null;
+          custom_description: string | null;
+          custom_owner: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -1921,6 +1993,9 @@ export interface Database {
           completed_at?: string | null;
           day_start_override?: number | null;
           day_end_override?: number | null;
+          custom_name?: string | null;
+          custom_description?: string | null;
+          custom_owner?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -1934,6 +2009,9 @@ export interface Database {
           completed_at?: string | null;
           day_start_override?: number | null;
           day_end_override?: number | null;
+          custom_name?: string | null;
+          custom_description?: string | null;
+          custom_owner?: string | null;
           updated_at?: string;
         };
         Relationships: [

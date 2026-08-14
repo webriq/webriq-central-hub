@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { sendCliqNotification } from "@/lib/zoho";
 import { notifyProjectMembers } from "@/lib/notifications";
-import { PROGRAMME_PHASES, getCurrentProgrammeDay } from "@/config/customer-phases";
+import { PROGRAMME_PHASES, getCurrentProgrammeDay, scaleDay, resolveEffectivePhase } from "@/config/customer-phases";
 
 const PAGE = 1000; // Supabase/PostgREST default response cap — see CLAUDE.md's pagination convention.
 
@@ -58,11 +58,11 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const projects = await fetchAllPaginated<{ id: string; project_id: string | null; name: string | null; customer_id: string; programme_started_at: string; customers: { company_name: string } | null }>(
+    const projects = await fetchAllPaginated<{ id: string; project_id: string | null; name: string | null; customer_id: string; programme_started_at: string; programme_duration_days: number; customers: { company_name: string } | null }>(
       async (from, to) =>
         adminClient
           .from("projects")
-          .select("id, project_id, name, customer_id, programme_started_at, customers(company_name)")
+          .select("id, project_id, name, customer_id, programme_started_at, programme_duration_days, customers(company_name)")
           .not("programme_started_at", "is", null)
           .range(from, to)
     );
@@ -73,8 +73,20 @@ export async function POST(req: NextRequest) {
 
     const projectIds = projects.map((p) => p.id);
     const [phases, phase1Deliverables] = await Promise.all([
-      fetchAllPaginated<{ project_id: string; phase_number: number; status: string }>(async (from, to) =>
-        adminClient.from("customer_phases").select("project_id, phase_number, status").in("project_id", projectIds).range(from, to)
+      fetchAllPaginated<{
+        project_id: string;
+        phase_number: number;
+        status: string;
+        custom_name: string | null;
+        day_start_override: number | null;
+        day_end_override: number | null;
+        sort_order: number;
+      }>(async (from, to) =>
+        adminClient
+          .from("customer_phases")
+          .select("project_id, phase_number, status, custom_name, day_start_override, day_end_override, sort_order")
+          .in("project_id", projectIds)
+          .range(from, to)
       ),
       fetchAllPaginated<{ project_id: string; deliverable_key: string; status: string }>(async (from, to) =>
         adminClient
@@ -87,11 +99,18 @@ export async function POST(req: NextRequest) {
     ]);
 
     const phaseStatusByProject = new Map<string, Map<number, string>>();
+    // Task 246: per-project phase list (defaults + any customs), ordered by sort_order — the
+    // "last phase" and "phase running late" checks below need the project's *actual* phase set,
+    // not PROGRAMME_PHASES' fixed 5, or a custom phase silently never gets a late reminder.
+    const phasesByProject = new Map<string, typeof phases>();
     for (const p of phases) {
       const m = phaseStatusByProject.get(p.project_id) ?? new Map<number, string>();
       m.set(p.phase_number, p.status);
       phaseStatusByProject.set(p.project_id, m);
+      if (!phasesByProject.has(p.project_id)) phasesByProject.set(p.project_id, []);
+      phasesByProject.get(p.project_id)!.push(p);
     }
+    for (const rows of phasesByProject.values()) rows!.sort((a, b) => a.sort_order - b.sort_order);
     const deliverableStatusByProject = new Map<string, Map<string, string>>();
     for (const d of phase1Deliverables) {
       const m = deliverableStatusByProject.get(d.project_id) ?? new Map<string, string>();
@@ -105,7 +124,9 @@ export async function POST(req: NextRequest) {
     for (const project of projects) {
       const companyName = project.customers?.company_name ?? "Customer";
       const phaseStatus = phaseStatusByProject.get(project.id) ?? new Map<number, string>();
-      if (phaseStatus.get(5) === "completed") continue; // full programme already delivered
+      const projectPhases = phasesByProject.get(project.id) ?? [];
+      const lastPhase = projectPhases[projectPhases.length - 1];
+      if (lastPhase?.status === "completed") continue; // full programme already delivered
 
       const day = getCurrentProgrammeDay(project.programme_started_at);
       const deliverableStatus = deliverableStatusByProject.get(project.id) ?? new Map<string, string>();
@@ -115,32 +136,42 @@ export async function POST(req: NextRequest) {
       if (phaseStatus.get(1) !== "completed" && phaseStatus.get(1) !== "skipped") {
         for (const d of phase1.deliverables) {
           if (deliverableStatus.get(d.key) === "done") continue;
-          const diff = d.dayEnd - day;
+          const dEnd = scaleDay(d.dayEnd, project.programme_duration_days);
+          const diff = dEnd - day;
           if (diff > 0 && diff <= 5) {
             if (await notifyOnce(project.id, project.customer_id, `due-${d.key}`, `${companyName}: due in ${diff} day${diff === 1 ? "" : "s"} — ${d.name}.`, "pm", project.project_id ?? undefined, project.name ?? undefined)) sent++;
           } else if (diff <= 0) {
-            if (await notifyOnce(project.id, project.customer_id, `overdue-${d.key}`, `${companyName}: overdue — ${d.name} (was due Day ${d.dayEnd}).`, "pm", project.project_id ?? undefined, project.name ?? undefined)) sent++;
+            if (await notifyOnce(project.id, project.customer_id, `overdue-${d.key}`, `${companyName}: overdue — ${d.name} (was due Day ${dEnd}).`, "pm", project.project_id ?? undefined, project.name ?? undefined)) sent++;
           }
         }
       }
 
-      // Calendar-only checks, independent of deliverable completion — cover all 5 phases.
-      if (day === 16) {
-        if (await notifyOnce(project.id, project.customer_id, "day16-handover", `${companyName}: Day 16 — Phase 2 (Migrate & Rebrand) begins.`, "pm", project.project_id ?? undefined, project.name ?? undefined)) sent++;
+      // Calendar-only checks, independent of deliverable completion — cover all 5 phases. Reference
+      // days (16/21/26/15/30) are scaled the same way phase/deliverable boundaries are above, so
+      // these gates still land at the right relative point in a custom-duration programme.
+      const day16 = scaleDay(16, project.programme_duration_days);
+      const day21 = scaleDay(21, project.programme_duration_days);
+      const day26 = scaleDay(26, project.programme_duration_days);
+      const day15 = scaleDay(15, project.programme_duration_days);
+      const day30 = scaleDay(30, project.programme_duration_days);
+      if (day === day16) {
+        if (await notifyOnce(project.id, project.customer_id, "day16-handover", `${companyName}: Day ${day16} — Phase 2 (Migrate & Rebrand) begins.`, "pm", project.project_id ?? undefined, project.name ?? undefined)) sent++;
       }
-      if (day === 16 || day === 21 || day === 26) {
+      if (day === day16 || day === day21 || day === day26) {
         if (await notifyOnce(project.id, project.customer_id, `dev5day-${day}`, `${companyName}: 5-day status check — please update your Phase 2 progress.`, "dev", project.project_id ?? undefined, project.name ?? undefined)) sent++;
       }
-      if (day === 15) {
-        if (await notifyOnce(project.id, project.customer_id, "gate15", `${companyName}: Day 15 gate — client sign-off due.`, "pm", project.project_id ?? undefined, project.name ?? undefined)) sent++;
+      if (day === day15) {
+        if (await notifyOnce(project.id, project.customer_id, "gate15", `${companyName}: Day ${day15} gate — client sign-off due.`, "pm", project.project_id ?? undefined, project.name ?? undefined)) sent++;
       }
-      if (day === 30) {
-        if (await notifyOnce(project.id, project.customer_id, "gate30", `${companyName}: Day 30 gate — client approval due.`, "pm", project.project_id ?? undefined, project.name ?? undefined)) sent++;
+      if (day === day30) {
+        if (await notifyOnce(project.id, project.customer_id, "gate30", `${companyName}: Day ${day30} gate — client approval due.`, "pm", project.project_id ?? undefined, project.name ?? undefined)) sent++;
       }
-      for (const phase of PROGRAMME_PHASES) {
+      for (const row of projectPhases) {
+        const phase = resolveEffectivePhase(row);
         const status = phaseStatus.get(phase.number);
-        if (day > phase.dayEnd && status !== "completed" && status !== "skipped") {
-          if (await notifyOnce(project.id, project.customer_id, `phase-late-${phase.number}`, `${companyName}: Phase ${phase.number} (${phase.name}) is running late — was due by Day ${phase.dayEnd}.`, "pm", project.project_id ?? undefined, project.name ?? undefined)) sent++;
+        const phaseEnd = scaleDay(phase.dayEnd, project.programme_duration_days);
+        if (day > phaseEnd && status !== "completed" && status !== "skipped") {
+          if (await notifyOnce(project.id, project.customer_id, `phase-late-${phase.number}`, `${companyName}: Phase ${phase.number} (${phase.name}) is running late — was due by Day ${phaseEnd}.`, "pm", project.project_id ?? undefined, project.name ?? undefined)) sent++;
         }
       }
     }

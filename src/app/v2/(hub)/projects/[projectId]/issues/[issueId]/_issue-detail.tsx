@@ -4,10 +4,14 @@ import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Trash2, Loader2 } from "lucide-react";
 import {
-  type Issue, type IssueSeverity,
-  STATUS_LABEL, STATUS_STYLE, SEVERITY_OPTS, SEVERITY_STYLE,
-  normalizeStatus, normalizeSeverity,
+  type Issue, type IssueSeverity, type TaskStatus,
+  STATUS_LABEL, StatusBadge, SeverityBadge, SEVERITY_OPTS,
+  normalizeStatus, normalizeSeverity, decodeHtmlEntities,
 } from "../../../_pm-shared";
+import { DescriptionField } from "../../_description-field";
+import { IssueAttachmentsCommentsPanel } from "./_issue-attachments-comments-panel";
+import { getIssueEditPermission } from "@/lib/issues/permissions";
+import { TaskTimerButton } from "../../_task-timer-button";
 
 const STATUS_OPTS = [
   "open", "in_progress", "ready_for_qa", "testing_completed",
@@ -15,6 +19,11 @@ const STATUS_OPTS = [
 ] as const;
 
 type MemberOption = { id: string; full_name: string | null; avatar_url: string | null };
+
+// Forms-spec input class (DESIGN.md §4) — matches `_task-detail.tsx`'s own `inputClass` exactly
+// for visual parity between the two detail pages (task 234).
+const inputClass =
+  "w-full px-2.5 py-1.5 rounded-[10px] border text-[12px] outline-none transition-colors border-[#E2E7F2] bg-[#F4F6FB] text-[#3A4565] focus:border-[#007BFF] focus:bg-white focus:ring-[3px] focus:ring-[#007BFF]/[0.14]";
 
 // ─── Local layout helpers — outside component per rerender-no-inline-components ─
 
@@ -26,13 +35,13 @@ function Card({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
-      <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100">
-        <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+    <div className="rounded-[14px] border border-[#E2E7F2] bg-white shadow-[0_1px_2px_rgba(7,17,51,0.05)] overflow-hidden">
+      <div className="flex items-center justify-between px-[18px] py-3.5 border-b border-[#EDF0F7]">
+        <span className="font-heading text-[15px] font-semibold text-[#0B1533]">
           {title}
         </span>
       </div>
-      <div className="p-5">{children}</div>
+      <div className="p-[18px]">{children}</div>
     </div>
   );
 }
@@ -40,7 +49,7 @@ function Card({
 function Meta({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <span className="text-[12px] font-medium text-slate-600">{label}</span>
+      <span className="text-[11px] font-semibold text-[#0B1533]">{label}</span>
       {children}
     </div>
   );
@@ -52,25 +61,46 @@ export default function IssueDetailClient({
   issue,
   project,
   allMembers,
+  currentUserId,
+  currentUserRole,
 }: {
   issue: Issue;
   project: { id: string; name: string; customer_id: string; project_id: string | null };
   allMembers: MemberOption[];
+  currentUserId: string;
+  currentUserRole: string | null;
 }) {
   const router = useRouter();
+  const projectId = project.project_id ?? project.id;
 
-  const [title, setTitle] = useState(issue.title);
+  // Task 234 — creator: full edit. Assignee-only: status limited to in_progress/ready_for_qa +
+  // timer access. Neither: fully read-only. Mirrors getTaskEditPermission's shape but is its own
+  // function — see src/lib/issues/permissions.ts for why.
+  const perm = getIssueEditPermission(currentUserRole, currentUserId, issue);
+  // Delete stays PM/Admin/super_admin-only regardless of the creator edit tier (Decision 4) —
+  // issues_pm_write RLS grants no developer delete policy, even for a creator.
+  const canDelete = currentUserRole === "admin" || currentUserRole === "pm" || currentUserRole === "super_admin";
+
+  const [title, setTitle] = useState(() => decodeHtmlEntities(issue.title));
   const [description, setDescription] = useState(issue.description ?? "");
   const [status, setStatus] = useState<string>(normalizeStatus(issue.status));
   const [severity, setSeverity] = useState<IssueSeverity>(normalizeSeverity(issue.severity));
-  const [assigneeId, setAssigneeId] = useState<string>(
-    () => allMembers.find((m) => m.full_name === issue.assignee_name)?.id ?? ""
-  );
+  const [assigneeId, setAssigneeId] = useState<string>(issue.assignee_id ?? "");
   const [dueDate, setDueDate] = useState(issue.due_date ?? "");
   const [deleting, setDeleting] = useState(false);
 
-  const ss = STATUS_STYLE[status] ?? STATUS_STYLE["open"];
-  const sv = SEVERITY_STYLE[severity] ?? SEVERITY_STYLE["None"];
+  // Task 237 — bumped whenever the header timer button logs an entry, so the Time Logs tab
+  // (which fetches its own data on mount and has no other refresh hook) picks it up live.
+  // Mirrors `_task-detail.tsx`'s identical `timeLogsRefreshKey` wiring; task 234 left this as a
+  // no-op placeholder since the Time Logs tab didn't exist yet.
+  const [timeLogsRefreshKey, setTimeLogsRefreshKey] = useState(0);
+  const handleHoursLogged = useCallback(() => {
+    setTimeLogsRefreshKey((k) => k + 1);
+  }, []);
+
+  const statusOptions = perm.allowedStatusValues === "all"
+    ? STATUS_OPTS
+    : Array.from(new Set([status, ...perm.allowedStatusValues]));
 
   const goToIssues = useCallback(() => {
     if (project.project_id) router.push(`/v2/projects/${project.project_id}/issues`);
@@ -92,22 +122,22 @@ export default function IssueDetailClient({
     if (trimmed && trimmed !== issue.title) void saveField({ title: trimmed });
   }, [title, issue.title, saveField]);
 
-  const saveDescription = useCallback(() => {
-    if (description !== (issue.description ?? ""))
-      void saveField({ description: description.trim() || null });
-  }, [description, issue.description, saveField]);
-
   function saveAssignee(nextId: string) {
     setAssigneeId(nextId);
     const member = allMembers.find((m) => m.id === nextId);
+    // assignee_id is now the source of truth (migration 100); assignee_name is kept in sync for
+    // display/back-compat with Zoho-sourced UI, assignee_email is cleared — this selector never
+    // sets a free-text-only email, and re-deriving it from a stale value once assignee_id is the
+    // real link would just be misleading.
     void saveField({
+      assignee_id: nextId || null,
       assignee_name: member?.full_name ?? null,
-      assignee_email: member ? null : issue.assignee_email,
+      assignee_email: null,
     });
   }
 
   async function handleDelete() {
-    if (!confirm("Delete this issue?")) return;
+    if (!confirm("Delete this issue? This cannot be undone.")) return;
     setDeleting(true);
     await fetch(`/api/v2/issues/${issue.id}`, { method: "DELETE" });
     goToIssues();
@@ -116,10 +146,10 @@ export default function IssueDetailClient({
   return (
     <div className="flex flex-col h-full min-h-0">
       {/* Header */}
-      <div className="px-8 pt-6 pb-5 bg-white border-b border-slate-100 shrink-0">
+      <div className="px-8 pt-6 pb-5 bg-white border-b border-[#E2E7F2] shrink-0">
         <button
           onClick={goToIssues}
-          className="inline-flex items-center gap-1.5 text-[12px] text-slate-500 hover:text-slate-700 mb-3 cursor-pointer"
+          className="inline-flex items-center gap-1.5 text-[12px] text-[#5F6A88] hover:text-[#0B1533] mb-3 cursor-pointer transition-colors"
         >
           <ArrowLeft size={14} /> {project.name}
         </button>
@@ -127,59 +157,49 @@ export default function IssueDetailClient({
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-2 flex-wrap">
-              <span className="text-[11px] font-mono text-slate-400 bg-slate-100 px-2 py-0.5 rounded">
+              <span className="text-[11px] font-mono text-[#5F6A88] bg-[#EDF0F7] px-2 py-0.5 rounded-[5px]">
                 ISSUE · {issue.display_id ?? issue.prefix ?? issue.id}
               </span>
-              <span
-                className="inline-flex items-center text-[10px] font-medium px-2 py-0.5 rounded-full border whitespace-nowrap"
-                style={{ color: ss.text, background: ss.bg, borderColor: ss.border }}
-              >
-                {STATUS_LABEL[status as keyof typeof STATUS_LABEL] ?? status}
-              </span>
-              <span className="inline-flex items-center gap-1 text-[11px] font-medium" style={{ color: sv.text }}>
-                <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: sv.dot }} />
-                {sv.label}
-              </span>
+              <StatusBadge status={status as TaskStatus} />
+              <SeverityBadge severity={severity} />
+              {perm.canStartTimer && (
+                <TaskTimerButton
+                  issueId={issue.id}
+                  projectId={issue.project_id}
+                  onHoursLogged={handleHoursLogged}
+                  prominent
+                />
+              )}
             </div>
             <textarea
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               onBlur={saveTitle}
+              readOnly={!perm.canEditDetails}
               rows={2}
-              className="text-[22px] font-bold text-slate-900 tracking-[-0.02em] outline-none resize-none leading-snug w-full border-0 focus:bg-slate-50 rounded-lg px-2 -mx-2"
+              className="font-heading text-[22px] font-bold text-[#0B1533] tracking-[-0.02em] outline-none resize-none leading-snug w-full border-0 focus:bg-[#F4F6FB] rounded-lg px-2 -mx-2 transition-colors read-only:focus:bg-transparent"
             />
           </div>
-          <button
-            onClick={() => void handleDelete()}
-            disabled={deleting}
-            className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 cursor-pointer shrink-0 mt-1 disabled:opacity-45"
-            title="Delete issue"
-          >
-            {deleting ? <Loader2 size={18} className="animate-spin" /> : <Trash2 size={18} />}
-          </button>
+          {canDelete && (
+            <button
+              onClick={() => void handleDelete()}
+              disabled={deleting}
+              className="p-2 rounded-full text-[#5F6A88] hover:text-[#C0392B] hover:bg-[#FDE8E6] cursor-pointer shrink-0 mt-1 transition-colors disabled:opacity-45"
+              aria-label="Delete issue"
+              title="Delete issue"
+            >
+              {deleting ? <Loader2 size={18} className="animate-spin" /> : <Trash2 size={18} />}
+            </button>
+          )}
         </div>
       </div>
 
       {/* Content */}
-      <div className="bg-slate-50 flex-1 overflow-y-auto p-8">
+      <div className="bg-[#F4F6FB] flex-1 overflow-y-auto p-8">
         <div className="flex gap-6 max-w-5xl">
 
-          {/* Left — main content */}
-          <div className="flex-1 flex flex-col gap-5 min-w-0">
-            <Card title="Description">
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                onBlur={saveDescription}
-                rows={5}
-                placeholder="Add a description…"
-                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-[13px] text-slate-700 outline-none focus:border-slate-400 resize-none"
-              />
-            </Card>
-          </div>
-
-          {/* Right — sidebar */}
-          <div className="w-72 shrink-0 flex flex-col gap-5">
+          {/* Left — sidebar */}
+          <div className="w-72 shrink-0">
             <Card title="Details">
               <div className="flex flex-col gap-4">
 
@@ -191,10 +211,11 @@ export default function IssueDetailClient({
                       setStatus(next);
                       void saveField({ status: next });
                     }}
-                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-[12px] text-slate-700 outline-none focus:border-slate-400 bg-white cursor-pointer"
+                    disabled={!perm.canChangeStatus}
+                    className={`${inputClass} bg-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-60`}
                   >
-                    {STATUS_OPTS.map((s) => (
-                      <option key={s} value={s}>{STATUS_LABEL[s]}</option>
+                    {statusOptions.map((s) => (
+                      <option key={s} value={s}>{STATUS_LABEL[s as TaskStatus] ?? s}</option>
                     ))}
                   </select>
                 </Meta>
@@ -207,13 +228,11 @@ export default function IssueDetailClient({
                       setSeverity(next);
                       void saveField({ severity: next });
                     }}
-                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-[12px] outline-none focus:border-slate-400 bg-white cursor-pointer"
-                    style={{ color: sv.text }}
+                    disabled={!perm.canEditDetails}
+                    className={`${inputClass} bg-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-60`}
                   >
                     {SEVERITY_OPTS.map((s) => (
-                      <option key={s} value={s} className="text-slate-700">
-                        {SEVERITY_STYLE[s].label}
-                      </option>
+                      <option key={s} value={s}>{s}</option>
                     ))}
                   </select>
                 </Meta>
@@ -222,7 +241,8 @@ export default function IssueDetailClient({
                   <select
                     value={assigneeId}
                     onChange={(e) => saveAssignee(e.target.value)}
-                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-[12px] text-slate-700 outline-none focus:border-slate-400 bg-white cursor-pointer"
+                    disabled={!perm.canEditDetails}
+                    className={`${inputClass} bg-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-60`}
                   >
                     <option value="">Unassigned</option>
                     {allMembers.map((m) => (
@@ -240,12 +260,37 @@ export default function IssueDetailClient({
                       setDueDate(next);
                       void saveField({ due_date: next || null });
                     }}
-                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-[12px] text-slate-700 outline-none focus:border-slate-400"
+                    disabled={!perm.canEditDetails}
+                    className={`${inputClass} disabled:cursor-not-allowed disabled:opacity-60`}
                   />
                 </Meta>
 
               </div>
             </Card>
+          </div>
+
+          {/* Right — main content */}
+          <div className="flex-1 flex flex-col gap-5 min-w-0">
+            <Card title="Description">
+              <DescriptionField
+                uploadUrl={`/api/v2/projects/${projectId}/issues/description-images`}
+                value={description}
+                readOnly={!perm.canEditDetails}
+                onSave={(html) => {
+                  setDescription(html);
+                  void saveField({ description: html || null });
+                }}
+              />
+            </Card>
+
+            <IssueAttachmentsCommentsPanel
+              projectId={projectId}
+              issueId={issue.id}
+              canEdit={perm.canEditDetails}
+              currentUserId={currentUserId}
+              currentUserRole={currentUserRole}
+              timeLogsRefreshKey={timeLogsRefreshKey}
+            />
           </div>
 
         </div>

@@ -93,12 +93,13 @@ export default async function CustomersPage({
   // Project count + onboarding products, scoped to just this page's customers.
   const visibleProjectCount = new Map<string, number>();
   const programmeStartedAtByCustomer = new Map<string, string>();
+  const programmeDurationDaysByCustomer = new Map<string, number>();
   const productsByCustomer = new Map<string, CustomerListItem["customer_products"]>();
   const contactCountByCustomer = new Map<string, number>();
 
   if (pageCustomerIds.length > 0) {
     const [projectsRes, productsRes, contactsRes] = await Promise.all([
-      supabase.from("projects").select("customer_id, onboarding_visible_at, programme_started_at").in("customer_id", pageCustomerIds),
+      supabase.from("projects").select("customer_id, onboarding_visible_at, programme_started_at, programme_duration_days").in("customer_id", pageCustomerIds),
       supabase.from("customer_products").select("id,customer_id,product_name,completed_percentage").in("customer_id", pageCustomerIds),
       supabase.from("contacts").select("customer_id").in("customer_id", pageCustomerIds).not("customer_id", "is", null),
     ]);
@@ -114,6 +115,7 @@ export default async function CustomersPage({
         const existing = programmeStartedAtByCustomer.get(p.customer_id);
         if (!existing || p.programme_started_at > existing) {
           programmeStartedAtByCustomer.set(p.customer_id, p.programme_started_at);
+          programmeDurationDaysByCustomer.set(p.customer_id, p.programme_duration_days);
         }
       }
     }
@@ -138,6 +140,7 @@ export default async function CustomersPage({
     customer_products: productsByCustomer.get(c.customer_id) ?? [],
     desk_contact_count: contactCountByCustomer.get(c.customer_id) ?? 0,
     programme_started_at: programmeStartedAtByCustomer.get(c.customer_id) ?? null,
+    programme_duration_days: programmeDurationDaysByCustomer.get(c.customer_id) ?? 120,
   }));
 
   const paginationMeta: PaginationMeta = {

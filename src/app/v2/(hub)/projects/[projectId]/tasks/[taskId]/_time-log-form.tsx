@@ -10,6 +10,11 @@ import type { Json } from "@/types/database";
 // whether `initial` is passed, mirroring `_comment-editor.tsx`'s reuse pattern. Editing a
 // timer-sourced entry's period only corrects `start_time`/`end_time`/`hours`/`date_logged` — its
 // `timeline` event history is left untouched server-side (task 215 decision).
+//
+// Task 237 — takes `apiBasePath` (e.g. `/api/v2/tasks/{id}/time-logs`) instead of a raw
+// `taskId`, so Issue Detail's Time Logs tab can import this component directly and point it at
+// its own `/api/v2/issues/{id}/time-logs` route, mirroring how `TaskAttachmentViewerModal`
+// takes a caller-supplied `fetchUrl` instead of assuming a task-specific URL shape.
 const inputClass =
   "w-full px-2.5 py-1.5 rounded-[10px] border text-[12px] outline-none transition-colors border-[#E2E7F2] bg-[#F4F6FB] text-[#3A4565] focus:border-[#007BFF] focus:bg-white focus:ring-[3px] focus:ring-[#007BFF]/[0.14]";
 
@@ -40,12 +45,12 @@ function combineDateTime(date: string, time: string): string {
 }
 
 export function TimeLogForm({
-  taskId,
+  apiBasePath,
   initial,
   onSaved,
   onCancel,
 }: {
-  taskId: string;
+  apiBasePath: string;
   initial?: TimeLogEntry;
   onSaved: (entry: TimeLogEntry) => void;
   onCancel: () => void;
@@ -71,9 +76,7 @@ export function TimeLogForm({
     setSaving(true);
     setError(null);
 
-    const url = initial
-      ? `/api/v2/tasks/${taskId}/time-logs/${initial.id}`
-      : `/api/v2/tasks/${taskId}/time-logs`;
+    const url = initial ? `${apiBasePath}/${initial.id}` : apiBasePath;
     const res = await fetch(url, {
       method: initial ? "PATCH" : "POST",
       headers: { "Content-Type": "application/json" },

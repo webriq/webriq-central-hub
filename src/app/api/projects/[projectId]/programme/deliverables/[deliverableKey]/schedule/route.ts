@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getDeliverable, getPhaseByNumber } from "@/config/customer-phases";
+import { resolveEffectivePhase } from "@/config/customer-phases";
 
 const WRITE_ROLES = ["admin", "super_admin", "marketing"];
 
@@ -23,8 +23,8 @@ export async function PATCH(
     const dayStart = Number(body?.day_start);
     const dayEnd = Number(body?.day_end);
 
-    if (!Number.isInteger(phaseNumber) || phaseNumber < 1 || phaseNumber > 5) {
-      return NextResponse.json({ error: "phase_number must be an integer between 1 and 5" }, { status: 400 });
+    if (!Number.isInteger(phaseNumber) || phaseNumber <= 0) {
+      return NextResponse.json({ error: "phase_number must be a positive integer" }, { status: 400 });
     }
     if (!Number.isInteger(dayStart) || !Number.isInteger(dayEnd)) {
       return NextResponse.json({ error: "day_start and day_end must be integers" }, { status: 400 });
@@ -34,11 +34,29 @@ export async function PATCH(
     }
 
     const { projectId, deliverableKey } = await params;
-    if (!getDeliverable(phaseNumber, deliverableKey)) {
+    // Task 246: existence check + phase day-range bound now come from this project's own rows,
+    // not a static getDeliverable/getPhaseByNumber lookup — both throw/return undefined for a
+    // custom phase's phase_number, which has no PROGRAMME_PHASES entry.
+    const { count: deliverableExists } = await supabase
+      .from("customer_deliverables")
+      .select("id", { count: "exact", head: true })
+      .eq("project_id", projectId)
+      .eq("phase_number", phaseNumber)
+      .eq("deliverable_key", deliverableKey);
+    if (!deliverableExists) {
       return NextResponse.json({ error: "Unknown deliverable for that phase" }, { status: 400 });
     }
 
-    const phase = getPhaseByNumber(phaseNumber);
+    const { data: phaseRow } = await supabase
+      .from("customer_phases")
+      .select("phase_number, custom_name, day_start_override, day_end_override, sort_order")
+      .eq("project_id", projectId)
+      .eq("phase_number", phaseNumber)
+      .maybeSingle();
+    if (!phaseRow) {
+      return NextResponse.json({ error: "Unknown phase for that project" }, { status: 400 });
+    }
+    const phase = resolveEffectivePhase(phaseRow);
     if (dayStart < phase.dayStart || dayEnd > phase.dayEnd) {
       return NextResponse.json(
         { error: `day_start/day_end must fall within phase ${phaseNumber}'s range (${phase.dayStart}-${phase.dayEnd})` },

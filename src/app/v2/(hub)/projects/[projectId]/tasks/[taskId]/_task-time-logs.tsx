@@ -66,9 +66,11 @@ export function TaskTimeLogs({ taskId, refreshKey }: { taskId: string; refreshKe
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
+  const apiBasePath = `/api/v2/tasks/${taskId}/time-logs`;
+
   useEffect(() => {
     const ctrl = new AbortController();
-    fetch(`/api/v2/tasks/${taskId}/time-logs`, { signal: ctrl.signal })
+    fetch(apiBasePath, { signal: ctrl.signal })
       .then((r) => (r.ok ? r.json() : { entries: [], canAdd: false, canSeeSource: false }))
       .then((data: { entries: TimeLogEntry[]; canAdd: boolean; canSeeSource: boolean }) => {
         setEntries(data.entries);
@@ -79,11 +81,12 @@ export function TaskTimeLogs({ taskId, refreshKey }: { taskId: string; refreshKe
       .finally(() => setLoading(false));
     return () => ctrl.abort();
     // Task 218 — `refreshKey` refetches after the header TaskTimerButton logs an entry via stop.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [taskId, refreshKey]);
 
   async function handleDelete(id: string) {
     if (!confirm("Delete this time log entry? This cannot be undone.")) return;
-    const res = await fetch(`/api/v2/tasks/${taskId}/time-logs/${id}`, { method: "DELETE" });
+    const res = await fetch(`${apiBasePath}/${id}`, { method: "DELETE" });
     if (res.ok) setEntries((prev) => prev.filter((e) => e.id !== id));
   }
 
@@ -117,7 +120,7 @@ export function TaskTimeLogs({ taskId, refreshKey }: { taskId: string; refreshKe
 
       {adding && (
         <TimeLogForm
-          taskId={taskId}
+          apiBasePath={apiBasePath}
           onSaved={(entry) => {
             setEntries((prev) => [entry, ...prev]);
             setAdding(false);
@@ -153,7 +156,7 @@ export function TaskTimeLogs({ taskId, refreshKey }: { taskId: string; refreshKe
                   editingId === entry.id ? (
                     <TimeLogForm
                       key={entry.id}
-                      taskId={taskId}
+                      apiBasePath={apiBasePath}
                       initial={entry}
                       onSaved={(updated) => {
                         setEntries((prev) => prev.map((e) => (e.id === updated.id ? updated : e)));

@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { MessageSquare, Loader2, FileText, Image as ImageIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { formatRelativeTime, cn } from "@/lib/utils";
+import { formatRelativeTime, formatDate, cn } from "@/lib/utils";
+import { formatClockTime } from "@/lib/timer/format";
 import { OwnerChip } from "../../../_pm-shared";
 import { CommentEditor } from "./_comment-editor";
 import { TaskAttachmentPicker } from "../../_task-attachment-picker";
@@ -165,12 +166,17 @@ export function TaskComments({ taskId }: { taskId: string }) {
       ) : (
         <ul className="flex flex-col gap-3.5">
           {comments.map((c) => (
-            <li key={c.id} className="flex items-start gap-2.5">
+            <li key={c.id} className="flex items-start gap-2.5 group">
               <OwnerChip name={c.author_name} />
               <div className="flex-1 min-w-0">
                 <div className="flex items-baseline gap-2">
                   <span className="text-[12px] font-semibold text-[#0B1533]">{c.author_name}</span>
-                  <span className="text-[10px] font-mono text-[#5F6A88]">{formatRelativeTime(c.created_at)}</span>
+                  <span className="text-[10px] font-mono text-[#5F6A88] whitespace-nowrap">
+                    {formatRelativeTime(c.created_at)}
+                    <span className="inline-block max-w-0 group-hover:max-w-[200px] overflow-hidden whitespace-nowrap text-[#8A93AC] transition-[max-width] duration-200 ease-out">
+                      {" · "}{formatDate(c.created_at)} {formatClockTime(c.created_at)}
+                    </span>
+                  </span>
                 </div>
                 <div
                   className={cn(

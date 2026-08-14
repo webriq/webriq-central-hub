@@ -60,3 +60,6 @@ supabase/.temp/
 
 .claude/hooks/
 .codex/
+
+.clinerules
+.vexp/coverage.json

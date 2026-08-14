@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
-import { DayPicker } from "react-day-picker";
 import {
   ArrowLeft,
   ArrowRight,
@@ -13,7 +12,6 @@ import {
   Mail,
   Phone,
   Search,
-  CalendarClock,
   Sparkles,
   ExternalLink,
   Copy,
@@ -23,21 +21,42 @@ import {
   ShieldCheck,
   GitBranch,
   Code2,
-  X,
-  ChevronLeft,
-  ChevronRight,
+  AlertTriangle,
+  RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { V2_ROUTES } from "@/config/constants";
-import { CLASSIFICATIONS, type Classification, STACKSHIFT_VARIANTS, deriveProjectSuffixMulti, PROGRAMME_PHASES } from "@/config/customer-phases";
+import { type Classification, deriveProjectSuffixMulti } from "@/config/customer-phases";
+import TypeConfigCard from "./_type-config-card";
+import PhasesStep from "./_phases-step";
+import {
+  PRIMARY_TYPES,
+  initTypeCardState,
+  phasePlanDraftToInput,
+  skipPhaseNumbersFromDraft,
+  customPhasesFromDraft,
+  defaultPhaseOverridesFromDraft,
+  phasePlanValidationErrors,
+  programmeDurationError,
+  phasePlanEmptyNameErrors,
+  emptyNameFieldId,
+  scheduledStartError,
+  type TypeCardState,
+} from "./_new-project-types";
 
 type CustomerMatch = { customer_id: string; company_name: string };
-type Step = 1 | 2 | 3;
+type Step = 1 | 2 | 3 | 4;
+// Task 240 — outcome of one type-card's create call, part of a multi-type submission.
+type SubmitOutcome = { classification: Classification; projectName: string; status: "success" | "error"; project_id?: string; error?: string };
 
+// Task 244: split the old 3-step wizard's "Project Details" step in two — a dedicated "Phases &
+// Deliverables" step now holds the (often long) phase/deliverable/checklist builder, so "Project
+// Setup" stays a short, quick-to-scan config form (name, add-on, duration, schedule per type).
 const STEPS: { id: Step; label: string }[] = [
   { id: 1, label: "Company & Contact" },
-  { id: 2, label: "Project Details" },
-  { id: 3, label: "Review & Create" },
+  { id: 2, label: "Project Setup" },
+  { id: 3, label: "Phases & Deliverables" },
+  { id: 4, label: "Review & Create" },
 ];
 
 const stepVariants = {
@@ -71,15 +90,22 @@ const CLASSIFICATION_DESC: Record<Classification, string> = {
 
 // ─── Step indicator ───────────────────────────────────────────────────────────
 
+// Task 244 follow-up: was a flex row where each step's connector shared leftover space with its
+// own label column (`flex-1` wrapper, label sized to its own text) — a long label like "Company &
+// Contact" left almost no room for its trailing connector while a short one like "Project Setup"
+// stretched its connector long, so the 4 connector segments ended up wildly uneven widths. A CSS
+// grid with dedicated `1fr` connector columns (separate from the `auto`-sized circle/label
+// columns) makes every connector segment equal width regardless of label length.
 function StepIndicator({ current }: { current: Step }) {
+  const gridTemplateColumns = STEPS.map((_, i) => (i < STEPS.length - 1 ? "auto 1fr" : "auto")).join(" ");
   return (
-    <div className="mb-10 flex items-center">
+    <div className="mb-10 grid items-start" style={{ gridTemplateColumns }}>
       {STEPS.map((step, i) => {
         const done = step.id < current;
         const active = step.id === current;
         return (
-          <div key={step.id} className={cn("flex items-center", i < STEPS.length - 1 ? "flex-1" : "flex-none")}>
-            <div className="flex flex-col items-center gap-2">
+          <Fragment key={step.id}>
+            <div className="flex flex-col items-center gap-2 px-1">
               <motion.div
                 animate={{
                   background: done || active ? "#007BFF" : "#EDF0F7",
@@ -107,10 +133,10 @@ function StepIndicator({ current }: { current: Step }) {
               <motion.div
                 animate={{ background: done ? "#007BFF" : "#EDF0F7" }}
                 transition={{ duration: 0.4 }}
-                className="mt-[-18px] ml-2 mr-2 h-0.5 flex-1"
+                className="mt-[17px] h-0.5 min-w-[16px]"
               />
             )}
-          </div>
+          </Fragment>
         );
       })}
     </div>
@@ -119,7 +145,7 @@ function StepIndicator({ current }: { current: Step }) {
 
 // ─── Input field ──────────────────────────────────────────────────────────────
 
-function Field({
+export function Field({
   id,
   label,
   type = "text",
@@ -173,215 +199,6 @@ function Field({
         )}
       </div>
       {error && <span className="text-xs text-[#C0392B]">{error}</span>}
-    </div>
-  );
-}
-
-// ─── Date & time picker ────────────────────────────────────────────────────────
-// Custom-rendered (react-day-picker, headless) instead of the native <input
-// type="datetime-local"> control — the native picker's appearance varies wildly across
-// browsers/OS (Chrome's inline spinner vs. Safari's wheel UI vs. Firefox's), so this renders
-// identically everywhere and matches the form's own styling instead of the OS chrome.
-const HOURS_12 = Array.from({ length: 12 }, (_, i) => i + 1);
-const MINUTES_60 = Array.from({ length: 60 }, (_, i) => i);
-
-function DateTimePicker({
-  value,
-  onChange,
-  min,
-  max,
-  disabled,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  min: Date;
-  max: Date;
-  disabled?: boolean;
-}) {
-  const [open, setOpen] = useState(false);
-  const [placement, setPlacement] = useState<"bottom" | "top">("bottom");
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
-  const selectedDate = value ? new Date(value) : undefined;
-
-  useEffect(() => {
-    if (!open) return;
-    function handleOutside(e: MouseEvent) {
-      const target = e.target as Node;
-      if (triggerRef.current?.contains(target) || panelRef.current?.contains(target)) return;
-      setOpen(false);
-    }
-    document.addEventListener("mousedown", handleOutside);
-    return () => document.removeEventListener("mousedown", handleOutside);
-  }, [open]);
-
-  // Flip above the field when there isn't enough room below, so opening the picker never
-  // forces extra scrolling to see it — mirrors the trigger's own rect, no portal needed since
-  // this only ever renders inside a page that scrolls as a whole (no clipping ancestor).
-  useLayoutEffect(() => {
-    if (!open) return;
-    function computePlacement() {
-      const trigger = triggerRef.current;
-      const panel = panelRef.current;
-      if (!trigger || !panel) return;
-      const gap = 6;
-      const triggerRect = trigger.getBoundingClientRect();
-      const panelHeight = panel.getBoundingClientRect().height;
-      const spaceBelow = window.innerHeight - triggerRect.bottom;
-      const spaceAbove = triggerRect.top;
-      setPlacement(spaceBelow < panelHeight + gap && spaceAbove > spaceBelow ? "top" : "bottom");
-    }
-    computePlacement();
-    window.addEventListener("resize", computePlacement);
-    return () => window.removeEventListener("resize", computePlacement);
-  }, [open]);
-
-  function commit(d: Date) {
-    const pad = (n: number) => String(n).padStart(2, "0");
-    onChange(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`);
-  }
-
-  function handleDaySelect(d: Date | undefined) {
-    if (!d) return;
-    const next = new Date(d);
-    next.setHours(selectedDate ? selectedDate.getHours() : 9, selectedDate ? selectedDate.getMinutes() : 0, 0, 0);
-    commit(next);
-  }
-
-  function handleTimeChange(patch: { hour12?: number; minute?: number; pm?: boolean }) {
-    const base = selectedDate ? new Date(selectedDate) : new Date();
-    const currentHour12 = base.getHours() % 12 || 12;
-    const currentPm = base.getHours() >= 12;
-    const hour12 = patch.hour12 ?? currentHour12;
-    const pm = patch.pm ?? currentPm;
-    const minute = patch.minute ?? base.getMinutes();
-    base.setHours((hour12 % 12) + (pm ? 12 : 0), minute, 0, 0);
-    commit(base);
-  }
-
-  const hour12 = selectedDate ? selectedDate.getHours() % 12 || 12 : 9;
-  const minute = selectedDate ? selectedDate.getMinutes() : 0;
-  const isPm = selectedDate ? selectedDate.getHours() >= 12 : false;
-
-  return (
-    <div className="relative">
-      <button
-        ref={triggerRef}
-        type="button"
-        onClick={() => !disabled && setOpen((o) => !o)}
-        disabled={disabled}
-        className={cn(
-          "flex w-full cursor-pointer items-center gap-2 rounded-[9px] border px-3.5 py-[11px] text-left text-sm outline-none transition-colors duration-150",
-          disabled
-            ? "cursor-not-allowed border-[#E2E7F2] bg-[#EDF0F7] text-[#5F6A88]"
-            : open
-              ? "border-[#007BFF] bg-white text-[#0B1533] shadow-[0_0_0_3px_rgba(0,123,255,0.14)]"
-              : "border-[#E2E7F2] bg-[#F4F6FB] text-[#0B1533] hover:border-[#A8C6F5]"
-        )}
-      >
-        <CalendarClock size={15} className="shrink-0 text-[#5F6A88]" />
-        {selectedDate ? (
-          selectedDate.toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })
-        ) : (
-          <span className="text-[#5F6A88]">Pick a date &amp; time</span>
-        )}
-      </button>
-
-      {open && !disabled && (
-        <div
-          ref={panelRef}
-          className={cn(
-            "absolute left-0 z-30 flex overflow-hidden rounded-xl border border-[#E2E7F2] bg-white shadow-[0_8px_24px_rgba(7,17,51,0.10)]",
-            placement === "top" ? "bottom-[calc(100%+6px)]" : "top-[calc(100%+6px)]"
-          )}
-        >
-          <DayPicker
-            mode="single"
-            selected={selectedDate}
-            onSelect={handleDaySelect}
-            disabled={{ before: min, after: max }}
-            showOutsideDays
-            classNames={{
-              root: "p-3",
-              months: "flex",
-              month: "flex flex-col gap-2",
-              month_caption: "relative flex h-8 items-center justify-center px-8",
-              caption_label: "text-[13px] font-bold text-[#0B1533]",
-              nav: "absolute inset-x-1 top-0 flex h-8 items-center justify-between",
-              button_previous:
-                "flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border-none bg-transparent text-[#5F6A88] transition-colors hover:bg-[#EDF0F7] disabled:cursor-not-allowed disabled:opacity-30",
-              button_next:
-                "flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border-none bg-transparent text-[#5F6A88] transition-colors hover:bg-[#EDF0F7] disabled:cursor-not-allowed disabled:opacity-30",
-              month_grid: "w-full border-collapse",
-              weekdays: "flex",
-              weekday: "w-8 text-center text-[10px] font-semibold uppercase tracking-wide text-[#5F6A88]",
-              weeks: "mt-1 flex flex-col gap-0.5",
-              week: "flex",
-              day: "p-0 text-center",
-              day_button:
-                "flex h-8 w-8 cursor-pointer items-center justify-center rounded-md border-none bg-transparent text-[13px] text-[#0B1533] transition-colors hover:bg-[#EDF0F7]",
-              selected: "[&>button]:bg-[#007BFF] [&>button]:font-semibold [&>button]:text-white [&>button]:hover:bg-[#007BFF]",
-              today: "[&>button]:font-bold [&>button]:text-[#007BFF]",
-              outside: "[&>button]:text-[#B7BFD6]",
-              disabled: "[&>button]:cursor-not-allowed [&>button]:text-[#E2E7F2] [&>button]:hover:bg-transparent",
-            }}
-            components={{
-              Chevron: ({ orientation }) =>
-                orientation === "left" ? <ChevronLeft size={14} /> : <ChevronRight size={14} />,
-            }}
-          />
-          <div className="flex w-[168px] flex-col gap-3 border-l border-[#EDF0F7] p-3.5">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-[#5F6A88]">Time</div>
-            <div className="flex items-center gap-1.5">
-              <select
-                value={hour12}
-                onChange={(e) => handleTimeChange({ hour12: Number(e.target.value) })}
-                className="h-9 w-full cursor-pointer rounded-[8px] border border-[#E2E7F2] bg-white text-center text-sm text-[#0B1533] outline-none focus:border-[#007BFF]"
-              >
-                {HOURS_12.map((h) => (
-                  <option key={h} value={h}>
-                    {String(h).padStart(2, "0")}
-                  </option>
-                ))}
-              </select>
-              <span className="text-sm font-semibold text-[#5F6A88]">:</span>
-              <select
-                value={minute}
-                onChange={(e) => handleTimeChange({ minute: Number(e.target.value) })}
-                className="h-9 w-full cursor-pointer rounded-[8px] border border-[#E2E7F2] bg-white text-center text-sm text-[#0B1533] outline-none focus:border-[#007BFF]"
-              >
-                {MINUTES_60.map((m) => (
-                  <option key={m} value={m}>
-                    {String(m).padStart(2, "0")}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex w-fit items-center gap-1 rounded-lg bg-[#EDF0F7] p-1">
-              {([false, true] as const).map((pm) => (
-                <button
-                  key={String(pm)}
-                  type="button"
-                  onClick={() => handleTimeChange({ pm })}
-                  className={cn(
-                    "cursor-pointer rounded-md border-none px-3 py-1.5 text-xs font-medium transition-colors",
-                    isPm === pm ? "bg-white text-[#0B1533] shadow-sm" : "bg-transparent text-[#5F6A88] hover:text-[#0B1533]"
-                  )}
-                >
-                  {pm ? "PM" : "AM"}
-                </button>
-              ))}
-            </div>
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              className="mt-auto cursor-pointer rounded-full border-none bg-[#007BFF] py-2 text-xs font-semibold text-white transition-colors hover:bg-[#0063D6]"
-            >
-              Done
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -444,25 +261,37 @@ function ReviewRow({ label, value, mono }: { label: string; value: string; mono?
   );
 }
 
-// ─── Success screen ───────────────────────────────────────────────────────────
+// ─── Success / results screen ──────────────────────────────────────────────────
+// Task 240: a submission can create several projects at once (one per selected type). This
+// lists every outcome — successes with a "View" link each, failures with the error and a single
+// "Retry failed" action that re-runs only the failed types (already-created projects are real,
+// independently valid, and are never rolled back or re-submitted).
 
 function SuccessScreen({
-  projectName,
+  results,
   customerId,
   showCustomerId,
   copied,
   onCopy,
   onBack,
   onView,
+  onRetry,
+  retrying,
 }: {
-  projectName: string;
+  results: SubmitOutcome[];
   customerId: string;
   showCustomerId: boolean;
   copied: boolean;
   onCopy: () => void;
   onBack: () => void;
-  onView: () => void;
+  onView: (projectId: string) => void;
+  onRetry: () => void;
+  retrying: boolean;
 }) {
+  const succeeded = results.filter((r) => r.status === "success");
+  const failed = results.filter((r) => r.status === "error");
+  const allSucceeded = failed.length === 0;
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.96 }}
@@ -474,15 +303,28 @@ function SuccessScreen({
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
         transition={{ delay: 0.1, type: "spring", stiffness: 300, damping: 18 }}
-        className="mx-auto mb-6 flex h-[72px] w-[72px] items-center justify-center rounded-full bg-[#177E48] shadow-[0_4px_16px_rgba(23,126,72,0.28)]"
+        className={cn(
+          "mx-auto mb-6 flex h-[72px] w-[72px] items-center justify-center rounded-full shadow-[0_4px_16px_rgba(23,126,72,0.28)]",
+          allSucceeded ? "bg-[#177E48]" : "bg-[#FB914E]"
+        )}
       >
-        <Check size={34} color="#FFFFFF" strokeWidth={2.5} />
+        {allSucceeded ? <Check size={34} color="#FFFFFF" strokeWidth={2.5} /> : <AlertTriangle size={32} color="#FFFFFF" strokeWidth={2.5} />}
       </motion.div>
 
-      <h2 className="font-heading mb-1.5 text-2xl font-bold tracking-[-0.025em] text-[#0B1533]">{projectName} is ready</h2>
-      <p className="mb-7 text-sm leading-relaxed text-[#5F6A88]">Project created successfully and added to the onboarding queue.</p>
+      <h2 className="font-heading mb-1.5 text-2xl font-bold tracking-[-0.025em] text-[#0B1533]">
+        {allSucceeded
+          ? succeeded.length === 1
+            ? `${succeeded[0].projectName} is ready`
+            : `${succeeded.length} projects are ready`
+          : `${succeeded.length} of ${results.length} projects created`}
+      </h2>
+      <p className="mb-7 text-sm leading-relaxed text-[#5F6A88]">
+        {allSucceeded
+          ? "Created successfully and added to the onboarding queue."
+          : "Some types failed to create — the ones below succeeded and are safe; retry the rest."}
+      </p>
 
-      {showCustomerId && (
+      {showCustomerId && customerId && (
         <div className="mb-3 flex items-center gap-2 rounded-[10px] border border-[#E2E7F2] bg-[#F4F6FB] px-3.5 py-3 text-left">
           <div className="min-w-0 flex-1">
             <div className="mb-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-[#5F6A88]">Customer ID</div>
@@ -502,6 +344,33 @@ function SuccessScreen({
         </div>
       )}
 
+      <div className="mb-5 divide-y divide-[#EDF0F7] rounded-[10px] border border-[#E2E7F2] text-left">
+        {results.map((r) => (
+          <div key={r.classification} className="flex items-center justify-between gap-3 px-3.5 py-2.5">
+            <div className="min-w-0">
+              <div className="truncate text-[13px] font-medium text-[#0B1533]">{r.projectName}</div>
+              <div className="text-[11px] text-[#5F6A88]">
+                {r.classification}
+                {r.status === "error" && <span className="text-[#C0392B]"> — {r.error}</span>}
+              </div>
+            </div>
+            {r.status === "success" && r.project_id ? (
+              <button
+                type="button"
+                onClick={() => onView(r.project_id!)}
+                className="flex shrink-0 cursor-pointer items-center gap-1 border-none bg-transparent p-0 text-xs font-semibold text-[#007BFF] transition-colors hover:text-[#0063D6]"
+              >
+                View <ExternalLink size={11} />
+              </button>
+            ) : (
+              <span className="flex shrink-0 items-center gap-1 text-xs font-semibold text-[#C0392B]">
+                <AlertTriangle size={11} /> Failed
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
+
       <div className="flex gap-2.5">
         <button
           type="button"
@@ -510,13 +379,26 @@ function SuccessScreen({
         >
           Back to projects
         </button>
-        <button
-          type="button"
-          onClick={onView}
-          className="flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-full border-none bg-[#007BFF] px-4 py-[11px] text-[13px] font-semibold text-white shadow-[0_2px_8px_rgba(0,123,255,0.3)] transition-colors hover:bg-[#0063D6]"
-        >
-          View project <ExternalLink size={13} />
-        </button>
+        {allSucceeded ? (
+          succeeded.length === 1 && succeeded[0].project_id ? (
+            <button
+              type="button"
+              onClick={() => onView(succeeded[0].project_id!)}
+              className="flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-full border-none bg-[#007BFF] px-4 py-[11px] text-[13px] font-semibold text-white shadow-[0_2px_8px_rgba(0,123,255,0.3)] transition-colors hover:bg-[#0063D6]"
+            >
+              View project <ExternalLink size={13} />
+            </button>
+          ) : null
+        ) : (
+          <button
+            type="button"
+            onClick={onRetry}
+            disabled={retrying}
+            className="flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-full border-none bg-[#FB914E] px-4 py-[11px] text-[13px] font-semibold text-[#471F02] shadow-[0_2px_8px_rgba(251,145,78,0.3)] transition-colors hover:bg-[#E2762F] hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {retrying ? "Retrying…" : <><RefreshCw size={13} /> Retry failed ({failed.length})</>}
+          </button>
+        )}
       </div>
     </motion.div>
   );
@@ -542,8 +424,8 @@ export default function NewProjectWizard({ role }: { role: string | null }) {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Task 195: `submitting` state alone is an async, best-effort re-entrancy guard — a second
   // click can still fire before React re-renders `disabled`. This ref is checked/set
-  // synchronously, before any await, so a rapid double-invoke of submit()/startAtPhase() can't
-  // send two requests.
+  // synchronously, before any await, so a rapid double-invoke of runSubmission() can't send two
+  // overlapping requests.
   const submitLockRef = useRef(false);
 
   const [contactName, setContactName] = useState("");
@@ -553,16 +435,20 @@ export default function NewProjectWizard({ role }: { role: string | null }) {
   const [errors1, setErrors1] = useState<Record<string, string>>({});
   const [validatingStep, setValidatingStep] = useState(false);
 
-  const [classifications, setClassifications] = useState<Classification[]>([]);
+  // Task 240: the 5 primary types are independently multi-selectable — each selected type gets
+  // its own TypeCardState (name/duration/phase-plan/PipelineForge-addon), and submitting creates
+  // one project per selected type. PipelineForge itself is never a member of `selectedTypes` — it
+  // only ever exists as a per-card `pipelineforgeAddon` flag.
+  const [selectedTypes, setSelectedTypes] = useState<Classification[]>([]);
   const [classificationError, setClassificationError] = useState("");
-  const [projectName, setProjectName] = useState("");
-  const [projectNameTouched, setProjectNameTouched] = useState(false);
-  const [projectNameError, setProjectNameError] = useState("");
-  const [scheduledAt, setScheduledAt] = useState("");
-  const [scheduleExpanded, setScheduleExpanded] = useState(false);
-  const [startPhase, setStartPhase] = useState<1 | 2 | 3 | 4 | 5>(1);
+  const [cardsByType, setCardsByType] = useState<Partial<Record<Classification, TypeCardState>>>({});
+  // Task 249 (Requirement D) — step 3 -> 4 transition guard's error message, keyed by nothing in
+  // particular (only one message shown at a time, for the first invalid card found).
+  const [phasesStepError, setPhasesStepError] = useState("");
 
-  // Scheduling bounds: no scheduling into the past, and no more than a year out.
+  // Scheduling bounds: no scheduling into the past, and no more than a year out. Task 244: shared
+  // by every card's own DateTimePicker now (was a single wizard-level scheduledAt/scheduleExpanded
+  // pair applied uniformly to the whole submission before this task).
   const { scheduleMin, scheduleMax } = useMemo(() => {
     const now = new Date();
     const oneYearOut = new Date(now);
@@ -570,30 +456,46 @@ export default function NewProjectWizard({ role }: { role: string | null }) {
     return { scheduleMin: now, scheduleMax: oneYearOut };
   }, []);
 
-  function toggleClassification(c: Classification) {
-    setClassifications((prev) => {
-      if (prev.includes(c)) return prev.filter((x) => x !== c);
-      if (STACKSHIFT_VARIANTS.includes(c)) {
-        // At most one StackShift variant: swap it in, drop any other StackShift variant, keep
-        // everything else (PipelineForge / Discrete Development) untouched.
-        return [...prev.filter((x) => !STACKSHIFT_VARIANTS.includes(x)), c];
-      }
-      return [...prev, c];
-    });
+  // Task 240: no more "at most one StackShift variant" swap rule — any number of the 5 primary
+  // types can be selected simultaneously, each an independent tracker with its own card.
+  // `selectedTypes` is read directly (not via a functional updater) since this only ever runs
+  // synchronously from a click handler — React state updaters must stay pure, so the two setState
+  // calls below are siblings, not one nested inside the other's updater.
+  function toggleType(c: Classification) {
+    if (selectedTypes.includes(c)) {
+      setSelectedTypes((prev) => prev.filter((x) => x !== c));
+      setCardsByType((cards) => {
+        const next = { ...cards };
+        delete next[c];
+        return next;
+      });
+    } else {
+      setSelectedTypes((prev) => [...prev, c]);
+      setCardsByType((cards) => ({ ...cards, [c]: initTypeCardState(c) }));
+    }
     setClassificationError("");
   }
 
-  const [submitting, setSubmitting] = useState<"save" | "save_scheduled" | "start" | null>(null);
+  function updateCard(c: Classification, next: TypeCardState) {
+    setCardsByType((cards) => ({ ...cards, [c]: next }));
+  }
+
+  // Task 244: no longer a single global action kind — each card's own `startMode` decides its
+  // request's `mode`, so "in flight" is now just a boolean across the whole submission loop.
+  const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<{ project_id: string; customer_id: string; isNewCustomer: boolean } | null>(null);
+  const [submitResults, setSubmitResults] = useState<SubmitOutcome[] | null>(null);
+  const [resolvedCustomerId, setResolvedCustomerId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
   const companyName = companyMode === "existing" ? selectedCustomer?.company_name ?? "" : newCompanyName;
   // Derived at render time, not synced via effect — task 123 hit react-hooks/set-state-in-effect
   // doing this the naive way; this form must not regress it.
-  const displayedProjectName = projectNameTouched || !companyName.trim()
-    ? projectName
-    : `${companyName.trim()} ${deriveProjectSuffixMulti(classifications)}`;
+  function displayedNameForCard(classification: Classification, card: TypeCardState): string {
+    if (card.projectNameTouched || !companyName.trim()) return card.projectName;
+    const suffixTypes: Classification[] = [classification, ...(card.pipelineforgeAddon ? (["PipelineForge"] as Classification[]) : [])];
+    return `${companyName.trim()} ${deriveProjectSuffixMulti(suffixTypes)}`;
+  }
 
   function handleSearchChange(value: string) {
     setExistingSearch(value);
@@ -615,6 +517,31 @@ export default function NewProjectWizard({ role }: { role: string | null }) {
     }, 300);
   }
 
+  // Task 244 follow-up: scrolls the first invalid field into view and focuses it after a
+  // validation failure, instead of leaving the PM to spot a small red error string unassisted.
+  // Wrapped in requestAnimationFrame — the id being targeted may belong to an element whose error
+  // state (and therefore visibility, e.g. a newly-expanded Step 3 section) was just set via
+  // setState in this same tick, so the DOM needs a frame to catch up before scrollIntoView/focus.
+  // Chat follow-up: accepts a fallback chain of ids, not just one — an empty phase/deliverable/
+  // checklist-item name can be nested inside a collapsed phase or type section (both default open,
+  // but either can be collapsed by the PM before hitting Continue), so the exact field might not
+  // be in the DOM. Scrolls to the first candidate that's actually rendered, falling back outward
+  // (offending phase's own container, then the whole type section) so the PM always lands
+  // somewhere useful instead of the call silently doing nothing.
+  function scrollToField(id: string | string[]) {
+    const candidates = Array.isArray(id) ? id : [id];
+    requestAnimationFrame(() => {
+      for (const candidateId of candidates) {
+        const el = document.getElementById(candidateId);
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+          el.focus({ preventScroll: true });
+          return;
+        }
+      }
+    });
+  }
+
   async function goNext() {
     if (step === 1) {
       const errs: Record<string, string> = {};
@@ -623,6 +550,7 @@ export default function NewProjectWizard({ role }: { role: string | null }) {
       if (contactEmail.trim() && !/^\S+@\S+\.\S+$/.test(contactEmail)) errs.contactEmail = "Enter a valid email address.";
       if (Object.keys(errs).length) {
         setErrors1(errs);
+        scrollToField(errs.companyName ? "company-name" : "contact-email");
         return;
       }
       setErrors1({});
@@ -634,6 +562,7 @@ export default function NewProjectWizard({ role }: { role: string | null }) {
           const data = await res.json().catch(() => ({}));
           if (data.exists) {
             setErrors1({ companyName: "A company with this name already exists." });
+            scrollToField("company-name");
             return;
           }
         } finally {
@@ -642,28 +571,103 @@ export default function NewProjectWizard({ role }: { role: string | null }) {
       }
     }
     if (step === 2) {
-      if (classifications.length === 0) {
+      if (selectedTypes.length === 0) {
         setClassificationError("Select at least one classification.");
+        scrollToField("classification-grid");
         return;
       }
       setClassificationError("");
-      if (!displayedProjectName.trim()) {
-        setProjectNameError("Project name is required.");
+
+      // Per-card name validation: required, and unique across every card in this submission
+      // (they'll be created as N separate projects in one go — a repeated name would collide at
+      // the API's own uniqueness check anyway, but catching it here gives a clearer per-card error).
+      const names = selectedTypes.map((t) => displayedNameForCard(t, cardsByType[t]!).trim());
+      const errorsByType = new Map<Classification, string>();
+      selectedTypes.forEach((t, i) => {
+        if (!names[i]) errorsByType.set(t, "Project name is required.");
+      });
+      selectedTypes.forEach((t, i) => {
+        if (errorsByType.has(t)) return;
+        const dupIndex = names.findIndex((n, j) => j !== i && n.toLowerCase() === names[i].toLowerCase());
+        if (dupIndex !== -1) errorsByType.set(t, "Project names must be unique across the types you're creating.");
+      });
+      if (errorsByType.size > 0) {
+        setCardsByType((prev) => {
+          const next = { ...prev };
+          for (const [t, message] of errorsByType) next[t] = { ...next[t]!, projectNameError: message };
+          return next;
+        });
+        const firstErrored = selectedTypes.find((t) => errorsByType.has(t));
+        if (firstErrored) scrollToField(`project-name-${firstErrored}`);
         return;
       }
-      setProjectNameError("");
 
       setValidatingStep(true);
       try {
-        const res = await fetch(`/api/onboarding/projects/check-name?name=${encodeURIComponent(displayedProjectName.trim())}`);
-        const data = await res.json().catch(() => ({}));
-        if (data.exists) {
-          setProjectNameError("A project with this name already exists.");
+        const checks = await Promise.all(
+          selectedTypes.map(async (t, i) => {
+            const res = await fetch(`/api/onboarding/projects/check-name?name=${encodeURIComponent(names[i])}`);
+            const data = await res.json().catch(() => ({}));
+            return { t, exists: !!data.exists };
+          })
+        );
+        const existing = checks.filter((c) => c.exists);
+        if (existing.length > 0) {
+          setCardsByType((prev) => {
+            const next = { ...prev };
+            for (const { t } of existing) next[t] = { ...next[t]!, projectNameError: "A project with this name already exists." };
+            return next;
+          });
+          const firstExisting = selectedTypes.find((t) => existing.some((e) => e.t === t));
+          if (firstExisting) scrollToField(`project-name-${firstExisting}`);
           return;
         }
       } finally {
         setValidatingStep(false);
       }
+    }
+    if (step === 3) {
+      // Task 249 (Requirement D) + chat follow-up: blocks progression on, per type in display
+      // order, the first of (a) an invalid day range (dayEnd < dayStart, a phase span shorter than
+      // its own deliverable count, or any phase's day range running past the card's own Programme
+      // duration — including the reciprocal case where the duration field itself was set shorter
+      // than the last phase's target day) or (b) an empty phase/deliverable/checklist-item name —
+      // both would otherwise submit silently wrong/dropped rather than surfaced to the PM
+      // (phasePlanDraftToInput, defaultPhaseOverridesFromDraft, and customPhasesFromDraft all just
+      // skip blank rows).
+      for (const t of selectedTypes) {
+        const card = cardsByType[t]!;
+        const usesFixedPhases = t === "StackShift I" || (t === "StackShift II" && card.useDefaultPhases);
+        const mode: "fixed-phases" | "free-form" = usesFixedPhases ? "fixed-phases" : "free-form";
+
+        if (
+          usesFixedPhases &&
+          (phasePlanValidationErrors(card.phasePlan, card.durationDays).size > 0 ||
+            programmeDurationError(card.phasePlan, card.durationDays) != null)
+        ) {
+          setPhasesStepError(`Fix the day-range errors for ${t} before continuing.`);
+          scrollToField(`phases-step-${t}`);
+          return;
+        }
+
+        const nameErrors = phasePlanEmptyNameErrors(card.phasePlan, mode);
+        if (nameErrors.size > 0) {
+          const [firstId, firstError] = nameErrors.entries().next().value!;
+          setPhasesStepError(`Fix the empty name${nameErrors.size === 1 ? "" : "s"} for ${t} before continuing.`);
+          scrollToField([emptyNameFieldId(firstId, firstError.kind), `phase-${firstError.phaseId}`, `phases-step-${t}`]);
+          return;
+        }
+
+        // Task 251: a card set to "Scheduled" with no date picked (or a picked moment already in
+        // the past) previously only surfaced at the Review step's submit-time banner — now blocked
+        // here too, same pattern as the day-range/empty-name checks above.
+        if (scheduledStartError(card.startMode, card.scheduledStartAt, scheduleMin)) {
+          setPhasesStepError(`Fix the scheduled start for ${t} before continuing.`);
+          scrollToField([`schedule-${t}`, `phases-step-${t}`]);
+          return;
+        }
+      }
+      setPhasesStepError("");
     }
     setDirection(1);
     setStep((s) => (s + 1) as Step);
@@ -674,123 +678,169 @@ export default function NewProjectWizard({ role }: { role: string | null }) {
       router.push(V2_ROUTES.PORTFOLIO_TRACKER);
       return;
     }
-    if (step === 3) setScheduleExpanded(false);
     setDirection(-1);
     setStep((s) => (s - 1) as Step);
   }
 
-  function buildCreatePayload(mode: "save" | "save_scheduled" | "start") {
+  // Task 244: `mode`/`scheduled_start_at`/`start_phase` are now derived entirely from the card
+  // itself (its own `startMode`/`scheduledStartAt`/`startPhase`) instead of being passed in from a
+  // single wizard-level action shared by the whole submission.
+  function buildCreatePayload(
+    classification: Classification,
+    card: TypeCardState,
+    customerId: string | null,
+    projectName: string,
+    mode: "save" | "save_scheduled" | "start"
+  ) {
+    const isStackShiftI = classification === "StackShift I";
+    // Task 246 (Requirement G): StackShift II opts into the same customer_phases engine StackShift
+    // I always uses by checking "Generate default phases" — every other card (including StackShift
+    // II with that checkbox off) stays on the generic phase_plan model, unchanged.
+    const isStackShiftII = classification === "StackShift II";
+    const usesCustomerPhasesEngine = isStackShiftI || (isStackShiftII && card.useDefaultPhases);
+    const cardClassifications: Classification[] = [classification, ...(card.pipelineforgeAddon ? (["PipelineForge"] as Classification[]) : [])];
+    const skipPhaseNumbers = usesCustomerPhasesEngine ? skipPhaseNumbersFromDraft(card.phasePlan) : [];
+    const customPhases = usesCustomerPhasesEngine ? customPhasesFromDraft(card.phasePlan) : [];
+    const defaultPhaseOverrides = usesCustomerPhasesEngine ? defaultPhaseOverridesFromDraft(card.phasePlan) : [];
     return {
       mode,
-      scheduled_start_at: mode === "save_scheduled" ? new Date(scheduledAt).toISOString() : undefined,
+      scheduled_start_at: mode === "save_scheduled" ? new Date(card.scheduledStartAt).toISOString() : undefined,
       // Carries the "Start at phase" selection through to a scheduled start too, so the
-      // auto-start cron seeds the right phase once the scheduled time arrives.
-      start_phase: mode === "save_scheduled" && canManagePhases ? startPhase : undefined,
-      customer: companyMode === "existing" ? { existing_customer_id: selectedCustomer!.customer_id } : { company_name: newCompanyName.trim() },
+      // auto-start cron seeds the right phase once the scheduled time arrives. Only meaningful
+      // for a card on the customer_phases engine — the API rejects start_phase for any other
+      // classification's programme_duration_days/phase_plan pairing anyway.
+      start_phase: mode === "save_scheduled" && canManagePhases && usesCustomerPhasesEngine ? card.startPhase : undefined,
+      // After the first call in a multi-type submission resolves the customer, every subsequent
+      // call reuses it — mirrors how `companyMode === "existing"` already works for a single
+      // project today, just generalized to N calls.
+      customer: customerId
+        ? { existing_customer_id: customerId }
+        : companyMode === "existing"
+          ? { existing_customer_id: selectedCustomer!.customer_id }
+          : { company_name: newCompanyName.trim() },
       contact: { name: contactName.trim(), email: contactEmail.trim() || undefined, phone: contactPhone.trim() || undefined },
-      classifications,
-      project_name: displayedProjectName.trim(),
+      classifications: cardClassifications,
+      project_name: projectName,
+      use_default_phase_engine: isStackShiftII ? card.useDefaultPhases : undefined,
+      programme_duration_days: usesCustomerPhasesEngine ? card.durationDays : undefined,
+      phase_plan: usesCustomerPhasesEngine ? undefined : phasePlanDraftToInput(card.phasePlan),
+      // Task 244 — customer_phases engine only: the default-phase(s) this specific project opts
+      // out of. Task 248 persists this on the `projects` row for every mode server-side; task 249
+      // fixed this call site to actually SEND it for every mode too (was gated to `mode ===
+      // "start"` only, which meant a Draft/Scheduled submission never sent it in the first place —
+      // 248's server-side persistence had nothing to read). The jump-to-phase two-step (create +
+      // PATCH) relays it separately via runSubmission's own PATCH call below, for the immediate
+      // "start at phase N" path.
+      skip_phase_numbers: usesCustomerPhasesEngine && skipPhaseNumbers.length > 0 ? skipPhaseNumbers : undefined,
+      // Task 246 — customer_phases engine only; same mode-gating fix as skip_phase_numbers above.
+      custom_phases: usesCustomerPhasesEngine && customPhases.length > 0 ? customPhases : undefined,
+      // Task 249 — customer_phases engine only: PM-edited day ranges for the 5 default phases
+      // (and their computed phase 2-5 deliverable sub-ranges), sent for every mode same as the two
+      // fields above.
+      default_phase_overrides: usesCustomerPhasesEngine && defaultPhaseOverrides.length > 0 ? defaultPhaseOverrides : undefined,
     };
   }
 
-  async function submit(mode: "save" | "save_scheduled" | "start") {
+  // Runs one POST per target type, sequentially (not Promise.all — the first call must resolve
+  // the customer before the rest can reuse it). A per-card Phase 2-5 jump (StackShift I only,
+  // mirrors the Timeline's existing "Jump to phase" override) creates with mode "save" then
+  // PATCHes .../programme/phase, same two-step shape the single-project wizard used before this
+  // task; every other card just sends its own `startMode`-derived mode outright. A failed type
+  // does not roll back or block already-succeeded types — `typesOverride` lets the failed-only
+  // retry re-run just those, each with its own already-configured card settings.
+  async function runSubmission(typesOverride?: Classification[]) {
+    const targets = typesOverride ?? selectedTypes;
     const isValid =
       (companyMode === "new" ? newCompanyName.trim().length > 0 : !!selectedCustomer) &&
-      displayedProjectName.trim().length > 0;
+      targets.every((t) => displayedNameForCard(t, cardsByType[t]!).trim().length > 0);
     if (!isValid) {
       setSubmitError("Company and project name are required.");
+      scrollToField("submit-error");
       return;
     }
-    if (mode === "save_scheduled" && !scheduledAt) {
-      setSubmitError("Pick a schedule date/time to Save + Set Schedule.");
+    const missingSchedule = targets.filter((t) => cardsByType[t]!.startMode === "scheduled" && !cardsByType[t]!.scheduledStartAt);
+    if (missingSchedule.length > 0) {
+      setSubmitError(`Pick a schedule date/time for: ${missingSchedule.join(", ")}.`);
+      scrollToField("submit-error");
       return;
     }
     if (submitLockRef.current) return;
     submitLockRef.current = true;
-    setSubmitting(mode);
+    setSubmitting(true);
     setSubmitError(null);
-    try {
-      const res = await fetch("/api/onboarding/projects", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(buildCreatePayload(mode)),
-      });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error ?? "Failed to create project");
-      }
-      const data = (await res.json()) as { project_id: string; customer_id: string };
-      setSuccess({ project_id: data.project_id, customer_id: data.customer_id, isNewCustomer: companyMode === "new" });
-    } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : "Failed to create project");
-    } finally {
-      setSubmitting(null);
-      submitLockRef.current = false;
-    }
-  }
 
-  // Phase 1 reuses the existing mode: "start" path unchanged (seedAndStartProgramme). Phase 2-5
-  // creates the project without that phase-1-only seed, then reuses the Timeline's existing
-  // "Jump to phase" override (PATCH .../programme/phase) to seed all 5 phases with the target
-  // marked active/backdated and earlier phases "skipped" — rather than duplicating that seeding
-  // logic here. Only shown to roles that can manage phases (canManagePhases, mirroring
-  // _onboarding-detail.tsx exactly — pm/developer never see this, same boundary as the Timeline).
-  async function startAtPhase(phaseNumber: 1 | 2 | 3 | 4 | 5) {
-    const isValid =
-      (companyMode === "new" ? newCompanyName.trim().length > 0 : !!selectedCustomer) &&
-      displayedProjectName.trim().length > 0;
-    if (!isValid) {
-      setSubmitError("Company and project name are required.");
-      return;
-    }
-    if (submitLockRef.current) return;
-    submitLockRef.current = true;
-    setSubmitting("start");
-    setSubmitError(null);
-    try {
-      if (phaseNumber === 1) {
+    let customerId = resolvedCustomerId;
+    const priorResults = (submitResults ?? []).filter((r) => !targets.includes(r.classification));
+    const newResults: SubmitOutcome[] = [];
+
+    for (const type of targets) {
+      const card = cardsByType[type]!;
+      const projectName = displayedNameForCard(type, card).trim();
+      const usesCustomerPhasesEngine = type === "StackShift I" || (type === "StackShift II" && card.useDefaultPhases);
+      const jumpToPhase = usesCustomerPhasesEngine && card.startMode === "now" && card.startPhase !== 1;
+      const effectiveMode: "save" | "save_scheduled" | "start" =
+        card.startMode === "draft" ? "save" : card.startMode === "scheduled" ? "save_scheduled" : jumpToPhase ? "save" : "start";
+
+      try {
         const res = await fetch("/api/onboarding/projects", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(buildCreatePayload("start")),
+          body: JSON.stringify(buildCreatePayload(type, card, customerId, projectName, effectiveMode)),
         });
         if (!res.ok) {
           const d = await res.json().catch(() => ({}));
-          throw new Error(d.error ?? "Failed to create project");
+          newResults.push({ classification: type, projectName, status: "error", error: d.error ?? "Failed to create project" });
+          continue;
         }
         const data = (await res.json()) as { project_id: string; customer_id: string };
-        setSuccess({ project_id: data.project_id, customer_id: data.customer_id, isNewCustomer: companyMode === "new" });
-        return;
-      }
+        if (!customerId) customerId = data.customer_id;
 
-      const createRes = await fetch("/api/onboarding/projects", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(buildCreatePayload("save")),
-      });
-      if (!createRes.ok) {
-        const d = await createRes.json().catch(() => ({}));
-        throw new Error(d.error ?? "Failed to create project");
-      }
-      const created = (await createRes.json()) as { project_id: string; customer_id: string };
+        if (jumpToPhase) {
+          const skipPhaseNumbers = skipPhaseNumbersFromDraft(card.phasePlan);
+          const customPhases = customPhasesFromDraft(card.phasePlan);
+          // Task 249: relayed the same way skip_phase_numbers/custom_phases already are — a PM
+          // who both edited a default phase's day range and chose "Start at phase N" at intake
+          // shouldn't lose the day-range edit on this two-step (create + PATCH) path.
+          const defaultPhaseOverrides = defaultPhaseOverridesFromDraft(card.phasePlan);
+          const phaseRes = await fetch(`/api/projects/${data.project_id}/programme/phase`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              phase_number: card.startPhase,
+              skip_phase_numbers: skipPhaseNumbers.length > 0 ? skipPhaseNumbers : undefined,
+              custom_phases: customPhases.length > 0 ? customPhases : undefined,
+              default_phase_overrides: defaultPhaseOverrides.length > 0 ? defaultPhaseOverrides : undefined,
+            }),
+          });
+          if (!phaseRes.ok) {
+            const d = await phaseRes.json().catch(() => ({}));
+            newResults.push({
+              classification: type,
+              projectName,
+              status: "error",
+              project_id: data.project_id,
+              error: d.error ?? `Project created, but failed to start at Phase ${card.startPhase}.`,
+            });
+            continue;
+          }
+        }
 
-      const phaseRes = await fetch(`/api/projects/${created.project_id}/programme/phase`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phase_number: phaseNumber }),
-      });
-      if (!phaseRes.ok) {
-        const d = await phaseRes.json().catch(() => ({}));
-        throw new Error(d.error ?? `Project created, but failed to start at Phase ${phaseNumber}.`);
+        newResults.push({ classification: type, projectName, status: "success", project_id: data.project_id });
+      } catch (err) {
+        newResults.push({ classification: type, projectName, status: "error", error: err instanceof Error ? err.message : "Failed to create project" });
       }
-
-      setSuccess({ project_id: created.project_id, customer_id: created.customer_id, isNewCustomer: companyMode === "new" });
-    } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : "Failed to create project");
-    } finally {
-      setSubmitting(null);
-      submitLockRef.current = false;
     }
+
+    setSubmitResults([...priorResults, ...newResults]);
+    if (customerId) setResolvedCustomerId(customerId);
+    setSubmitting(false);
+    submitLockRef.current = false;
+  }
+
+  function retryFailed() {
+    const failedTypes = (submitResults ?? []).filter((r) => r.status === "error").map((r) => r.classification);
+    if (failedTypes.length === 0) return;
+    runSubmission(failedTypes);
   }
 
   function copyCustomerId(id: string) {
@@ -801,7 +851,7 @@ export default function NewProjectWizard({ role }: { role: string | null }) {
 
   return (
     <div className="flex min-h-full flex-col items-center bg-[#F4F6FB] px-6 py-10">
-      {!success && (
+      {!submitResults && (
         <div className="mb-2 w-full max-w-[560px]">
           <button
             type="button"
@@ -815,15 +865,17 @@ export default function NewProjectWizard({ role }: { role: string | null }) {
       )}
 
       <div className="w-full max-w-[560px] rounded-[14px] border border-[#E2E7F2] bg-white px-10 py-9 shadow-[0_1px_2px_rgba(7,17,51,0.05)]">
-        {success ? (
+        {submitResults ? (
           <SuccessScreen
-            projectName={displayedProjectName}
-            customerId={success.customer_id}
-            showCustomerId={success.isNewCustomer}
+            results={submitResults}
+            customerId={resolvedCustomerId ?? ""}
+            showCustomerId={companyMode === "new"}
             copied={copied}
-            onCopy={() => copyCustomerId(success.customer_id)}
+            onCopy={() => copyCustomerId(resolvedCustomerId ?? "")}
             onBack={() => router.push(V2_ROUTES.PORTFOLIO_TRACKER)}
-            onView={() => router.push(`${V2_ROUTES.PORTFOLIO_TRACKER}/${success.project_id}`)}
+            onView={(projectId) => router.push(`${V2_ROUTES.PORTFOLIO_TRACKER}/${projectId}`)}
+            onRetry={retryFailed}
+            retrying={!!submitting}
           />
         ) : (
           <>
@@ -912,6 +964,7 @@ export default function NewProjectWizard({ role }: { role: string | null }) {
                           </label>
                           <div className="relative">
                             <input
+                              id="company-name"
                               value={existingSearch}
                               onChange={(e) => handleSearchChange(e.target.value)}
                               placeholder="Search existing customers…"
@@ -1022,42 +1075,65 @@ export default function NewProjectWizard({ role }: { role: string | null }) {
                 {step === 2 && (
                   <div>
                     <div className="mb-6">
-                      <h2 className="font-heading mb-1 text-xl font-bold tracking-[-0.02em] text-[#0B1533]">Project details</h2>
+                      <h2 className="font-heading mb-1 text-xl font-bold tracking-[-0.02em] text-[#0B1533]">Project setup</h2>
                       <p className="text-[13px] text-[#5F6A88]">
-                        Choose the engagement type. This drives which product and project type get created.
+                        Choose one or more engagement types — StackShift I/II, Access, Access Plus, and Discrete Development are
+                        distinct trackers, each created as its own project.
                       </p>
                     </div>
 
-                    <div className="mb-6 flex flex-col gap-2">
+                    <div id="classification-grid" className="mb-6 flex flex-col gap-2">
                       <div className="grid grid-cols-2 gap-3">
-                        {CLASSIFICATIONS.map((c) => (
-                          <ClassificationCard key={c} classification={c} selected={classifications.includes(c)} onSelect={() => toggleClassification(c)} />
+                        {PRIMARY_TYPES.map((c) => (
+                          <ClassificationCard key={c} classification={c} selected={selectedTypes.includes(c)} onSelect={() => toggleType(c)} />
                         ))}
                       </div>
                       {classificationError && <span className="text-xs text-[#C0392B]">{classificationError}</span>}
                     </div>
 
-                    <div className="mb-6 h-px bg-[#EDF0F7]" />
-
-                    <div className="flex flex-col gap-4.5">
-                      <Field
-                        id="project-name"
-                        label="Project name"
-                        value={displayedProjectName}
-                        onChange={(v) => {
-                          setProjectName(v);
-                          setProjectNameTouched(true);
-                          setProjectNameError("");
-                        }}
-                        placeholder="Auto-generated from company + classification"
-                        required
-                        error={projectNameError}
-                      />
-                    </div>
+                    {selectedTypes.length > 0 && (
+                      <>
+                        <div className="mb-6 h-px bg-[#EDF0F7]" />
+                        <div className="flex flex-col gap-3.5">
+                          {selectedTypes.map((type) => (
+                            <TypeConfigCard
+                              key={type}
+                              classification={type}
+                              state={cardsByType[type]!}
+                              displayedName={displayedNameForCard(type, cardsByType[type]!)}
+                              onChange={(next) => updateCard(type, next)}
+                              onRemove={() => toggleType(type)}
+                            />
+                          ))}
+                        </div>
+                      </>
+                    )}
                   </div>
                 )}
 
                 {step === 3 && (
+                  <div>
+                    <div className="mb-6">
+                      <h2 className="font-heading mb-1 text-xl font-bold tracking-[-0.02em] text-[#0B1533]">Phases &amp; deliverables</h2>
+                      <p className="text-[13px] text-[#5F6A88]">
+                        Set up the plan for each project — StackShift I&apos;s default phases can be deselected per project;
+                        every other type starts from a free-form builder, or skip for now and add phases later.
+                      </p>
+                    </div>
+                    <PhasesStep
+                      selectedTypes={selectedTypes}
+                      cardsByType={cardsByType}
+                      onChangeCard={updateCard}
+                      getDisplayName={displayedNameForCard}
+                      canManagePhases={canManagePhases}
+                      scheduleMin={scheduleMin}
+                      scheduleMax={scheduleMax}
+                    />
+                    {phasesStepError && <p className="mt-3 text-xs text-[#C0392B]">{phasesStepError}</p>}
+                  </div>
+                )}
+
+                {step === 4 && (
                   <div>
                     <div className="mb-6">
                       <h2 className="font-heading mb-1 text-xl font-bold tracking-[-0.02em] text-[#0B1533]">Review &amp; create</h2>
@@ -1069,15 +1145,48 @@ export default function NewProjectWizard({ role }: { role: string | null }) {
                       <ReviewRow label="Primary contact" value={contactName || "—"} />
                       <ReviewRow label="Contact email" value={contactEmail || "—"} />
                       {contactPhone.trim() && <ReviewRow label="Phone" value={contactPhone} />}
-                      <ReviewRow label="Classification" value={classifications.length > 0 ? classifications.join(", ") : "—"} />
-                      <ReviewRow label="Project name" value={displayedProjectName || "—"} />
-                      {scheduledAt && (
-                        <ReviewRow
-                          label="Scheduled start"
-                          value={new Date(scheduledAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
-                          mono
-                        />
-                      )}
+                    </div>
+
+                    <div className="mb-4 flex flex-col gap-2">
+                      {selectedTypes.map((type) => {
+                        const card = cardsByType[type]!;
+                        const phaseCount = card.phasePlan.phases.length;
+                        const includedCount = card.phasePlan.phases.filter((p) => p.included).length;
+                        const isStackShiftI = type === "StackShift I";
+                        const isStackShiftII = type === "StackShift II";
+                        const usesFixedPhases = isStackShiftI || (isStackShiftII && card.useDefaultPhases);
+                        const phaseSummary = usesFixedPhases
+                          ? `${includedCount} of ${phaseCount} phase${phaseCount === 1 ? "" : "s"} included`
+                          : phaseCount === 0
+                            ? "No phases yet — skipped for now"
+                            : `${phaseCount} phase${phaseCount === 1 ? "" : "s"} planned`;
+                        const startSummary =
+                          card.startMode === "draft"
+                            ? "Draft — not started"
+                            : card.startMode === "scheduled"
+                              ? card.scheduledStartAt
+                                ? `Scheduled ${new Date(card.scheduledStartAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}`
+                                : "Scheduled — pick a date"
+                              : usesFixedPhases && canManagePhases && card.startPhase !== 1
+                                ? `Starts now at Phase ${card.startPhase}`
+                                : "Starts immediately";
+                        return (
+                          <div key={type} className="rounded-[9px] border border-[#E2E7F2] bg-white px-3.5 py-2.5">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-[13px] font-semibold text-[#0B1533]">{displayedNameForCard(type, card) || "—"}</span>
+                              {card.pipelineforgeAddon && (
+                                <span className="shrink-0 rounded-full bg-[#E5F1FF] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#0063D6]">
+                                  + PipelineForge
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[11px] text-[#5F6A88]">
+                              {type} · {card.durationDays}-day duration · {phaseSummary}
+                            </div>
+                            <div className="text-[11px] text-[#5F6A88]">{startSummary}</div>
+                          </div>
+                        );
+                      })}
                     </div>
 
                     {companyMode === "new" && (
@@ -1089,13 +1198,17 @@ export default function NewProjectWizard({ role }: { role: string | null }) {
                       </div>
                     )}
 
-                    {submitError && <p className="mt-3 text-xs text-[#C0392B]">{submitError}</p>}
+                    {submitError && (
+                      <p id="submit-error" tabIndex={-1} className="mt-3 text-xs text-[#C0392B] outline-none">
+                        {submitError}
+                      </p>
+                    )}
                   </div>
                 )}
               </motion.div>
             </AnimatePresence>
 
-            {step < 3 ? (
+            {step < 4 ? (
               <div className="mt-7 flex items-center justify-between">
                 <button
                   type="button"
@@ -1119,123 +1232,36 @@ export default function NewProjectWizard({ role }: { role: string | null }) {
                 </button>
               </div>
             ) : (
-              <div className="mt-7 flex flex-col gap-2.5">
-                {canManagePhases && (
-                  <div className="flex flex-col gap-1.5">
-                    <label htmlFor="start-phase" className="text-[13px] font-medium text-[#0B1533]">
-                      Start at phase
-                    </label>
-                    <select
-                      id="start-phase"
-                      value={startPhase}
-                      onChange={(e) => setStartPhase(Number(e.target.value) as 1 | 2 | 3 | 4 | 5)}
-                      disabled={!!submitting}
-                      className="h-[42px] w-full cursor-pointer appearance-none rounded-[9px] border border-[#E2E7F2] bg-[#F4F6FB] px-3.5 pr-8 text-sm text-[#0B1533] outline-none transition-colors focus:border-[#007BFF] disabled:cursor-not-allowed disabled:opacity-60"
-                      style={{
-                        backgroundImage:
-                          "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%235F6A88'/%3E%3C/svg%3E\")",
-                        backgroundRepeat: "no-repeat",
-                        backgroundPosition: "right 14px center",
-                      }}
-                    >
-                      {PROGRAMME_PHASES.map((p) => (
-                        <option key={p.number} value={p.number}>
-                          Phase {p.number}: {p.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-                {!scheduleExpanded && (
-                  <button
-                    type="button"
-                    onClick={() => (canManagePhases ? startAtPhase(startPhase) : submit("start"))}
-                    disabled={!!submitting}
-                    className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-full border-none bg-[#FB914E] px-5 py-3 text-[13px] font-semibold text-[#471F02] transition-colors hover:bg-[#E2762F] hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {submitting === "start" ? (
-                      "Starting…"
-                    ) : canManagePhases ? (
-                      <>
-                        <Check size={14} strokeWidth={2.5} /> Start Phase {startPhase}: {PROGRAMME_PHASES.find((p) => p.number === startPhase)?.name} Now
-                      </>
-                    ) : (
-                      <>
-                        <Check size={14} strokeWidth={2.5} /> Start onboarding (Day 1 now)
-                      </>
-                    )}
-                  </button>
-                )}
-                {scheduleExpanded && (
-                  <div className="flex items-end gap-2">
-                    <div className="flex-1">
-                      <label htmlFor="scheduled-start" className="mb-1.5 block text-[13px] font-medium text-[#0B1533]">
-                        Scheduled start
-                      </label>
-                      <DateTimePicker value={scheduledAt} onChange={setScheduledAt} min={scheduleMin} max={scheduleMax} />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setScheduleExpanded(false);
-                        setScheduledAt("");
-                        setSubmitError(null);
-                      }}
-                      aria-label="Cancel scheduling"
-                      className="mb-0.5 flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-[#E2E7F2] bg-transparent text-[#5F6A88] transition-colors hover:border-[#A8C6F5] hover:bg-[#F4F6FB]"
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                )}
-                <div className="flex gap-2.5">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setScheduleExpanded(false);
-                      setScheduledAt("");
-                      submit("save");
-                    }}
-                    disabled={!!submitting}
-                    className="flex-1 cursor-pointer rounded-full border border-[#E2E7F2] bg-transparent px-4 py-2.5 text-[13px] font-medium text-[#3A4565] transition-colors hover:border-[#A8C6F5] hover:bg-[#F4F6FB] disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {submitting === "save" ? "Saving…" : "Just save"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (!scheduleExpanded) {
-                        setScheduleExpanded(true);
-                        return;
-                      }
-                      submit("save_scheduled");
-                    }}
-                    disabled={!!submitting}
-                    className={cn(
-                      "flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-full text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60",
-                      scheduleExpanded
-                        ? "border-none bg-[#FB914E] font-semibold text-[#471F02] hover:bg-[#E2762F] hover:text-white"
-                        : "border border-[#E2E7F2] bg-transparent px-4 py-2.5 text-[#3A4565] hover:border-[#A8C6F5] hover:bg-[#F4F6FB]"
-                    )}
-                  >
-                    {submitting === "save_scheduled" ? (
-                      "Saving…"
-                    ) : scheduleExpanded ? (
-                      <>
-                        <Check size={14} strokeWidth={2.5} /> Confirm &amp; schedule
-                      </>
-                    ) : (
-                      "Save + set schedule"
-                    )}
-                  </button>
-                </div>
+              // Task 244: duration/schedule/"start at phase" now live per card on Step 3
+              // (Phases & Deliverables) — every selected card already carries its own resolved
+              // mode by Review, so this footer is a single submit action instead of the old 3-way
+              // Just Save / Save + Set Schedule / Start Now buttons applied uniformly.
+              // Task 244 follow-up: matches steps 1-3's row layout/Back-button styling exactly
+              // (was a stacked full-width CTA over a bare text link, visually inconsistent with
+              // every other step's footer).
+              <div className="mt-7 flex items-center justify-between">
                 <button
                   type="button"
                   onClick={goBack}
-                  disabled={!!submitting}
-                  className="mt-1 flex cursor-pointer items-center gap-1.5 self-start border-none bg-transparent px-1 py-1 text-xs font-medium text-[#5F6A88] transition-colors hover:text-[#007BFF] disabled:opacity-60"
+                  disabled={submitting}
+                  className="flex cursor-pointer items-center gap-1.5 rounded-full border border-[#E2E7F2] bg-transparent px-4 py-2.5 text-[13px] font-medium text-[#3A4565] transition-colors hover:border-[#A8C6F5] hover:bg-[#F4F6FB] disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  <ArrowLeft size={13} /> Back
+                  <ArrowLeft size={14} /> Back
+                </button>
+                <button
+                  type="button"
+                  onClick={() => runSubmission()}
+                  disabled={submitting}
+                  className="flex cursor-pointer items-center gap-1.5 rounded-full border-none bg-[#FB914E] px-5 py-2.5 text-[13px] font-semibold text-[#471F02] shadow-[0_2px_10px_rgba(251,145,78,0.3)] transition-colors hover:bg-[#E2762F] hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {submitting ? (
+                    "Creating…"
+                  ) : (
+                    <>
+                      <Check size={14} strokeWidth={2.5} />
+                      {selectedTypes.length === 1 ? "Create project" : `Create ${selectedTypes.length} projects`}
+                    </>
+                  )}
                 </button>
               </div>
             )}

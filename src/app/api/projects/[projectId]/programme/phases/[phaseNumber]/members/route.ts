@@ -21,7 +21,7 @@ import {
 
 function parsePhaseNumber(raw: string): number | null {
   const n = Number(raw);
-  return Number.isInteger(n) && n >= 1 && n <= 5 ? n : null;
+  return Number.isInteger(n) && n > 0 ? n : null;
 }
 
 export async function GET(
@@ -35,7 +35,7 @@ export async function GET(
 
     const { projectId, phaseNumber: phaseNumberRaw } = await params;
     const phaseNumber = parsePhaseNumber(phaseNumberRaw);
-    if (!phaseNumber) return NextResponse.json({ error: "phaseNumber must be an integer between 1 and 5" }, { status: 400 });
+    if (!phaseNumber) return NextResponse.json({ error: "phaseNumber must be a positive integer" }, { status: 400 });
 
     // profiles!phase_members_user_id_fkey: phase_members has two FKs to profiles (user_id and
     // added_by) — a bare `profiles(...)` embed is ambiguous (PGRST201) without naming which one
@@ -74,7 +74,7 @@ export async function POST(
 
     const { projectId, phaseNumber: phaseNumberRaw } = await params;
     const phaseNumber = parsePhaseNumber(phaseNumberRaw);
-    if (!phaseNumber) return NextResponse.json({ error: "phaseNumber must be an integer between 1 and 5" }, { status: 400 });
+    if (!phaseNumber) return NextResponse.json({ error: "phaseNumber must be a positive integer" }, { status: 400 });
 
     const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
     const myMembership = await getPhaseMembership(supabase, projectId, phaseNumber, user.id);
@@ -117,7 +117,7 @@ export async function PATCH(
 
     const { projectId, phaseNumber: phaseNumberRaw } = await params;
     const phaseNumber = parsePhaseNumber(phaseNumberRaw);
-    if (!phaseNumber) return NextResponse.json({ error: "phaseNumber must be an integer between 1 and 5" }, { status: 400 });
+    if (!phaseNumber) return NextResponse.json({ error: "phaseNumber must be a positive integer" }, { status: 400 });
 
     const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
     const myMembership = await getPhaseMembership(supabase, projectId, phaseNumber, user.id);
@@ -158,7 +158,7 @@ export async function DELETE(
 
     const { projectId, phaseNumber: phaseNumberRaw } = await params;
     const phaseNumber = parsePhaseNumber(phaseNumberRaw);
-    if (!phaseNumber) return NextResponse.json({ error: "phaseNumber must be an integer between 1 and 5" }, { status: 400 });
+    if (!phaseNumber) return NextResponse.json({ error: "phaseNumber must be a positive integer" }, { status: 400 });
 
     const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
     const myMembership = await getPhaseMembership(supabase, projectId, phaseNumber, user.id);

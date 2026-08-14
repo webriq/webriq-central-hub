@@ -8,7 +8,7 @@ import {
   STATUS_LABEL, PRIORITY_STYLE, StatusBadge, PriorityBadge, AssigneeChip,
   decodeHtmlEntities,
 } from "../../../_pm-shared";
-import { TaskDescriptionField } from "./_task-description-field";
+import { DescriptionField } from "../../_description-field";
 import { TaskAttachmentsCommentsPanel } from "./_task-attachments-comments-panel";
 import { getTaskEditPermission } from "@/lib/tasks/permissions";
 import { TaskTimerButton } from "../../_task-timer-button";
@@ -105,7 +105,7 @@ export default function TaskDetailClient({
   // Task 218 — bumped whenever the header timer button logs an entry, so the Time Logs tab
   // (which fetches its own data on mount and has no other refresh hook) picks it up live.
   const [timeLogsRefreshKey, setTimeLogsRefreshKey] = useState(0);
-  const handleHoursLogged = useCallback(() => {
+  const handleHoursLogged = useCallback((_hours: number) => {
     setTimeLogsRefreshKey((k) => k + 1);
   }, []);
 
@@ -344,8 +344,8 @@ export default function TaskDetailClient({
 
             {/* Description */}
             <Card title="Description">
-              <TaskDescriptionField
-                projectId={projectId}
+              <DescriptionField
+                uploadUrl={`/api/v2/projects/${projectId}/tasks/description-images`}
                 value={description}
                 readOnly={!perm.canEditDetails}
                 onSave={(html) => {

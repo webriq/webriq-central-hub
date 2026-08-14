@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { verifySignatureAppRouter } from "@upstash/qstash/nextjs";
 import { adminClient } from "@/lib/supabase/admin";
 import { seedAndStartProgramme } from "@/lib/programme/seed";
+import type { CustomPhaseSeed, DefaultPhaseOverride } from "@/config/customer-phases";
 
 // QStash callback for a scheduled onboarding start (chat follow-up to task 157) — fires once,
 // at the exact scheduled_onboarding_start_at instant, instead of waiting for the next cron poll
@@ -18,7 +19,9 @@ async function handler(request: Request, context: { params: Promise<{ projectId:
 
   const { data: project, error } = await adminClient
     .from("projects")
-    .select("id, customer_id, programme_started_at, customers(company_name)")
+    .select(
+      "id, customer_id, programme_started_at, programme_duration_days, uses_customer_phases_engine, draft_skip_phase_numbers, draft_custom_phases, draft_default_phase_overrides, customers(company_name)"
+    )
     .eq("id", projectId)
     .maybeSingle();
 
@@ -30,8 +33,34 @@ async function handler(request: Request, context: { params: Promise<{ projectId:
     return NextResponse.json({ skipped: true, reason: "already started" });
   }
 
+  // Task 251: same generic-engine branch as the 15-minute cron (scheduled-autostart/route.ts) —
+  // a generic-engine project has no customer_phases concept, so this one-shot QStash callback
+  // must not call seedAndStartProgramme for it either. Its milestones/tasklists/tasks were already
+  // seeded at intake; only the programme_started_at gate needs flipping.
+  if (!project.uses_customer_phases_engine) {
+    const { error: updateError } = await adminClient
+      .from("projects")
+      .update({ programme_started_at: new Date().toISOString(), qstash_message_id: null })
+      .eq("id", projectId);
+    if (updateError) {
+      return NextResponse.json({ error: "Failed to start onboarding" }, { status: 500 });
+    }
+    return NextResponse.json({ started: true });
+  }
+
   const companyName = (project.customers as unknown as { company_name: string } | null)?.company_name ?? "Customer";
-  const result = await seedAndStartProgramme({ id: project.id, customer_id: project.customer_id }, companyName, undefined, phaseNumber);
+  // Task 248: same fix as the manual "Start Onboarding" route — read back the skip/custom-phase
+  // selection persisted at intake instead of always seeding the 5 vanilla defaults.
+  const result = await seedAndStartProgramme(
+    { id: project.id, customer_id: project.customer_id },
+    companyName,
+    undefined,
+    phaseNumber,
+    project.programme_duration_days,
+    project.draft_skip_phase_numbers ?? [],
+    (project.draft_custom_phases as CustomPhaseSeed[] | null) ?? [],
+    (project.draft_default_phase_overrides as DefaultPhaseOverride[] | null) ?? []
+  );
 
   await adminClient.from("projects").update({ qstash_message_id: null }).eq("id", projectId);
 

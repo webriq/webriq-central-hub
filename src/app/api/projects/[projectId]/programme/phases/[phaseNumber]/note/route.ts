@@ -9,12 +9,12 @@ const WRITE_ROLES = ["admin", "super_admin", "marketing"];
 
 function parsePhaseNumber(raw: string): number | null {
   const n = Number(raw);
-  return Number.isInteger(n) && n >= 1 && n <= 5 ? n : null;
+  return Number.isInteger(n) && n > 0 ? n : null;
 }
 
-// Every project with programme_started_at set already has all 5 customer_phases rows
-// (seedAndStartProgramme/seedProgrammeAtPhase insert them up front) — a plain update is enough,
-// no upsert needed.
+// Every project with programme_started_at set already has a customer_phases row for every phase
+// in its plan (seedAndStartProgramme/seedProgrammeAtPhase insert them up front, defaults + any
+// customs — task 246) — a plain update is enough, no upsert needed.
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ projectId: string; phaseNumber: string }> }
@@ -31,7 +31,7 @@ export async function PATCH(
 
     const { projectId, phaseNumber: phaseNumberRaw } = await params;
     const phaseNumber = parsePhaseNumber(phaseNumberRaw);
-    if (!phaseNumber) return NextResponse.json({ error: "phaseNumber must be an integer between 1 and 5" }, { status: 400 });
+    if (!phaseNumber) return NextResponse.json({ error: "phaseNumber must be a positive integer" }, { status: 400 });
 
     const body = await request.json();
     const note: string | null = typeof body?.note === "string" && body.note.trim() ? body.note.trim() : null;

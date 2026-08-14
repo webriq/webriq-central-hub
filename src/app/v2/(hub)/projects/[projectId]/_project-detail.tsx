@@ -23,8 +23,10 @@ import IssueListView, { type IssueSortKey, type IssueSortDir } from "./_issue-li
 import IssueBoardView from "./_issue-board-view";
 import IssueCalendarView from "./_issue-calendar-view";
 import MilestonePanel from "./_milestone-panel";
+import MilestoneSwimlane from "./_milestone-swimlane";
 import { TaskDescriptionEditor } from "./_task-description-editor";
 import { TaskAttachmentPicker } from "./_task-attachment-picker";
+import { DeleteProjectAction } from "./_delete-project-action";
 
 type ViewId = "board" | "list" | "calendar";
 type PrimaryTab = "tasks" | "issues" | "milestones";
@@ -102,6 +104,7 @@ export default function ProjectDetail({
   allMembers,
   initialHoursById,
   activeTab,
+  initialScrollTasklistId,
 }: {
   project: Project;
   companyName: string;
@@ -115,10 +118,14 @@ export default function ProjectDetail({
   allMembers: { id: string; full_name: string | null; avatar_url: string | null; role: string }[];
   initialHoursById: Record<string, number>;
   activeTab: PrimaryTab;
+  // Task 241 — `?tasklist=<id>` deep-link from the StackShift Timeline's Phase 2-5 swimlane cards.
+  initialScrollTasklistId?: string;
 }) {
   const router = useRouter();
   const primaryTab = activeTab;
   const [view, setView] = useState<ViewId>("list");
+  // Task 242 — Table (existing MilestonePanel, default) vs. Swimlane (new, read + navigate only).
+  const [milestoneView, setMilestoneView] = useState<"table" | "swimlane">("table");
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [milestones, setMilestones] = useState<Milestone[]>(initialMilestones);
   const [tasklists, setTasklists] = useState<Tasklist[]>(initialTasklists);
@@ -427,12 +434,19 @@ export default function ProjectDetail({
               {companyName} · {project.project_type}
             </p>
           </div>
-          <button
-            onClick={() => (primaryTab === "issues" ? setCreateIssueOpen(true) : setCreateDefaults({}))}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#FB914E] text-[#471F02] text-[13px] font-medium hover:bg-[#E2762F] hover:text-white transition-colors cursor-pointer shrink-0"
-          >
-            <Plus size={16} /> {primaryTab === "issues" ? "New Issue" : "New Task"}
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <DeleteProjectAction
+              projectId={project.project_id}
+              projectName={project.name}
+              currentUserRole={currentUserRole}
+            />
+            <button
+              onClick={() => (primaryTab === "issues" ? setCreateIssueOpen(true) : setCreateDefaults({}))}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#FB914E] text-[#471F02] text-[13px] font-medium hover:bg-[#E2762F] hover:text-white transition-colors cursor-pointer"
+            >
+              <Plus size={16} /> {primaryTab === "issues" ? "New Issue" : "New Task"}
+            </button>
+          </div>
         </div>
 
         {/* Primary tabs */}
@@ -550,6 +564,7 @@ export default function ProjectDetail({
                   onCreateNew={() => setCreateDefaults({})}
                   hasActiveFilters={hasActiveFilters}
                   onClearFilters={clearFilters}
+                  scrollToTasklistId={initialScrollTasklistId}
                 />
               )}
               {view === "calendar" && (
@@ -648,14 +663,40 @@ export default function ProjectDetail({
         {/* ── Milestones tab ── */}
         {primaryTab === "milestones" && (
           <div className="px-8 py-5 overflow-y-auto h-full">
-            <MilestonePanel
-              projectId={project.id}
-              projectSlug={project.project_id ?? project.id}
-              milestones={milestones}
-              tasks={tasks}
-              onUpsert={upsertMilestone}
-              onRemove={removeMilestone}
-            />
+            <div className="mb-3 flex justify-end">
+              <div className="flex items-center gap-0.5 border border-[#E2E7F2] rounded-full p-1 bg-white shrink-0">
+                {(["table", "swimlane"] as const).map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => setMilestoneView(v)}
+                    className={cn(
+                      "cursor-pointer rounded-full px-3 py-1.5 text-[12px] font-medium capitalize transition-colors",
+                      milestoneView === v ? "bg-[#071133] text-white" : "text-[#5F6A88] hover:text-[#0B1533]"
+                    )}
+                  >
+                    {v}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {milestoneView === "table" ? (
+              <MilestonePanel
+                projectId={project.id}
+                projectSlug={project.project_id ?? project.id}
+                milestones={milestones}
+                tasks={tasks}
+                onUpsert={upsertMilestone}
+                onRemove={removeMilestone}
+              />
+            ) : (
+              <MilestoneSwimlane
+                milestones={milestones}
+                tasklists={tasklists}
+                tasks={tasks}
+                projectUrlKey={project.project_id ?? project.id}
+              />
+            )}
           </div>
         )}
       </div>

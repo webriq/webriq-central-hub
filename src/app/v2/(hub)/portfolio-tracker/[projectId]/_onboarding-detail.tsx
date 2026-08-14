@@ -6,26 +6,32 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import {
-  CalendarClock, Flag, Bell, CheckCircle2, Check, Clock, ChevronDown, ChevronRight, PlayCircle,
+  CalendarClock, Flag, Bell, CheckCircle2, Check, Clock, ChevronDown, PlayCircle,
   Users, AlertTriangle, Info, ArrowLeft, ListChecks, Locate, Crown, X, ShieldAlert,
-  Settings, ClipboardList, type LucideIcon,
+  Settings, ClipboardList, Plus, Minus, type LucideIcon,
 } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { V2_ROUTES } from "@/config/constants";
 import {
-  PROGRAMME_PHASES, getCurrentProgrammeDay, getPhaseForDay, getPhaseByNumber,
+  PROGRAMME_PHASES, getCurrentProgrammeDay, getPhaseForDay,
   internalDeliverablesForSubPhase, type PhaseConfig, type DeliverableConfig,
+  DEFAULT_PROGRAMME_DAYS, scaleDay, unscaleDay, resolveEffectivePhase,
+  buildOrderedPhasePlan, resolveEffectivePhaseNumber, compressReferenceDay,
+  type CustomPhaseSeed,
 } from "@/config/customer-phases";
-import type { CustomerPhaseRow, CustomerDeliverableRow, OnboardingInternalDeliverableRow } from "@/types/database";
+import type { CustomerPhaseRow, CustomerDeliverableRow, OnboardingInternalDeliverableRow, Database } from "@/types/database";
 import { isRoleGatedByMembership, canManageProjectMembers, canSetProjectOwner, canManagePhase1Membership } from "@/lib/programme/membership-rules";
 import OnboardingWizard from "./_onboarding-wizard";
 import { DELIVERABLE_WORKSPACE_TARGET, buildWorkspaceQueryString } from "./onboarding-workspace/_workspace-url-params";
 import { StatusSummaryDrawer } from "./_status-summary-drawer";
+import { DeleteProjectMenuItem, DELETE_PROJECT_ROLES } from "./_delete-project-menu-item";
+import GenericPhaseView from "./_generic-phase-view";
 
 // Shared shape for both project_members and phase_members rows (task 155 gave both an
-// is_owner column, mirroring each other exactly).
-type MemberRow = { id: string; user_id: string; is_owner: boolean; full_name: string | null; role: string | null };
+// is_owner column, mirroring each other exactly). Exported: task 247's _generic-phase-view.tsx
+// (same [projectId] route, not a cross-module import) reuses this shape for its own header.
+export type MemberRow = { id: string; user_id: string; is_owner: boolean; full_name: string | null; role: string | null };
 
 interface OnboardingDetailProps {
   project: {
@@ -41,11 +47,25 @@ interface OnboardingDetailProps {
     // canManageProjectMembers/canSetProjectOwner's "is this caller the creator" check.
     created_by: string | null;
     created_by_name: string | null;
+    // Task 251: the SSR-fetched copy — StackShift I's own not-started screen below still uses its
+    // separate client-side fetchProgramme() state (`programmeStartedAt`), so this field is only
+    // actually consumed by GenericPhaseView (passed through wholesale via the `project` prop).
+    programme_started_at: string | null;
     // Chat follow-up to task 157: surfaces the New Project intake's "Save + Set Schedule" state
     // on the not-started card — when to expect auto-start and which phase, plus a way to
     // override it (start now, at the scheduled phase or a different one).
     scheduled_onboarding_start_at: string | null;
     scheduled_start_phase: number | null;
+    // Task 247 — false for every classification except StackShift I (and StackShift II when the
+    // PM opted into the engine at intake, task 239's use_default_phase_engine). Decides whether
+    // this page renders the specialized customer_phases Timeline/Gantt below, or delegates to
+    // _generic-phase-view.tsx for the generic milestones/tasklists/tasks model.
+    uses_customer_phases_engine: boolean;
+    // Task 248 — the intake-time skip/custom-phase selection (tasks 244/246), persisted
+    // regardless of start mode. Drives the "not started"/scheduled screen's dynamic Start button
+    // label + skip-aware Jump-to-phase menu, before any customer_phases row exists yet.
+    draft_skip_phase_numbers: number[];
+    draft_custom_phases: CustomPhaseSeed[];
   };
   // Task 150(c): set when the page's ?phase=&deliverable= query params resolved to a real
   // deliverable key (see _wizard-step-params.ts) — opens the wizard immediately on that step
@@ -59,21 +79,26 @@ interface OnboardingDetailProps {
   currentUserId: string;
   phase1Members: MemberRow[];
   projectMembers: MemberRow[];
+  // Task 247 — only populated (by _load-detail-data.ts) when uses_customer_phases_engine is
+  // false; empty arrays otherwise.
+  milestones: Database["public"]["Tables"]["milestones"]["Row"][];
+  tasklists: Database["public"]["Tables"]["tasklists"]["Row"][];
+  genericTasks: Database["public"]["Tables"]["tasks"]["Row"][];
 }
 
 // ─── Gantt grid constants ─────────────────────────────────────────────────────
 
-const TOTAL_DAYS = 120;
-const DAY_WIDTH = 80;
-const ROW_HEIGHT = 56;
-const ROW_GAP = 6;
-const LABEL_WIDTH = 200;
+export const TOTAL_DAYS = 120;
+export const DAY_WIDTH = 80;
+export const ROW_HEIGHT = 56;
+export const ROW_GAP = 6;
+export const LABEL_WIDTH = 200;
 // Extra top space in each swimlane row so track-0 deliverable cards' internal-deliverables badge
 // (which pokes above the card via `-top-1.5`) has room to render without being clipped.
-const LANE_TOP_PADDING = 8;
+export const LANE_TOP_PADDING = 8;
 // Vertical breathing room within each track's ROW_HEIGHT slot — shrinks the rendered card height
 // by 2x this amount so it sits centered in its row instead of flush against the top edge.
-const CARD_INSET = 8;
+export const CARD_INSET = 8;
 
 // ─── Per-phase palette — DESIGN.md's fixed 5-phase-hue vocabulary (task 168), matching the same
 // values already shipped in dashboard-shared.tsx's PHASE_TONE/PHASE_GRADIENT (tasks 166/167):
@@ -81,9 +106,9 @@ const CARD_INSET = 8;
 // A phase hue is never reused for a non-phase meaning — this replaces the old, unrelated
 // blue/violet/teal/amber/slate mapping this file used before v2.0.
 
-type PhaseVisual = { border: string; bg: string; ring: string; text: string; solid: string; iconBg: string; iconText: string };
+export type PhaseVisual = { border: string; bg: string; ring: string; text: string; solid: string; iconBg: string; iconText: string };
 
-const PHASE_VISUALS: Record<number, PhaseVisual> = {
+export const PHASE_VISUALS: Record<number, PhaseVisual> = {
   1: { border: "border-[#E2762F]", bg: "bg-[#FFEFE3]", ring: "shadow-[0_0_0_3px_rgba(226,118,47,0.12)]", text: "text-[#E2762F]", solid: "bg-[#E2762F]", iconBg: "bg-[#E2762F]/15", iconText: "text-[#E2762F]" },
   2: { border: "border-[#0063D6]", bg: "bg-[#E5F1FF]", ring: "shadow-[0_0_0_3px_rgba(0,99,214,0.12)]", text: "text-[#0063D6]", solid: "bg-[#0063D6]", iconBg: "bg-[#0063D6]/15", iconText: "text-[#0063D6]" },
   3: { border: "border-[#6A48E0]", bg: "bg-[#EFEAFD]", ring: "shadow-[0_0_0_3px_rgba(106,72,224,0.12)]", text: "text-[#6A48E0]", solid: "bg-[#6A48E0]", iconBg: "bg-[#6A48E0]/15", iconText: "text-[#6A48E0]" },
@@ -93,7 +118,7 @@ const PHASE_VISUALS: Record<number, PhaseVisual> = {
 
 // Raw hex twins of PHASE_VISUALS' colors — needed for the DeliverableCard progress-fill/stripe
 // gradients, which are computed dynamically (percentage-driven) and can't be static Tailwind classes.
-const PHASE_HEX: Record<number, string> = {
+export const PHASE_HEX: Record<number, string> = {
   1: "#E2762F",
   2: "#0063D6",
   3: "#6A48E0",
@@ -104,7 +129,7 @@ const PHASE_HEX: Record<number, string> = {
 // Light-tint twins of PHASE_HEX (same values as PHASE_VISUALS' `bg` classes, as raw hex) — used
 // for the 120-day programme track's gradient fill, matching the light-to-solid gradient shape
 // the Onboarding Workspace's ProgrammeTrack already uses for its own phase-progress bar.
-const PHASE_TINT_HEX: Record<number, string> = {
+export const PHASE_TINT_HEX: Record<number, string> = {
   1: "#FFEFE3",
   2: "#E5F1FF",
   3: "#EFEAFD",
@@ -123,38 +148,57 @@ const REMINDER_STYLE: Record<ReminderItem["type"], { bg: string; border: string;
   success: { bg: "bg-[#E3F5EA]", border: "border-[#BEE7CD]", title: "text-[#177E48]", icon: <CheckCircle2 size={13} className="text-[#177E48]" /> },
 };
 
-function buildReminders(day: number, phaseStatus: Map<number, string>, deliverableStatus: Map<string, string>): ReminderItem[] {
-  if (phaseStatus.get(5) === "completed") {
-    return [{ key: "done", type: "success", title: "Programme complete", body: "All 5 phases delivered." }];
+// Task 246: takes orderedPhases (this project's actual phase set, defaults + any customs,
+// resolved + ordered by sort_order) instead of calling getPhaseByNumber directly — that call
+// throws for a custom phase's number, which has no PROGRAMME_PHASES entry to look up.
+function buildReminders(
+  day: number,
+  phaseStatus: Map<number, string>,
+  deliverableStatus: Map<string, string>,
+  // Chat follow-up to task 244: expects phases already skip-compressed (see the "already started"
+  // render's compressedPhases) — a skipped phase's own dayStart/dayEnd is irrelevant here since
+  // phaseStatus never marks one "active", so the day-range fallback lookup below never matches it.
+  orderedPhases: (PhaseConfig & { sortOrder: number })[],
+  durationDays: number = DEFAULT_PROGRAMME_DAYS
+): ReminderItem[] {
+  const lastPhase = orderedPhases[orderedPhases.length - 1];
+  if (lastPhase && phaseStatus.get(lastPhase.number) === "completed") {
+    return [{ key: "done", type: "success", title: "Programme complete", body: `All ${orderedPhases.length} phases delivered.` }];
   }
   const activePhaseNumber = [...phaseStatus.entries()].find(([, status]) => status === "active")?.[0];
-  const phase = activePhaseNumber ? getPhaseByNumber(activePhaseNumber) : getPhaseForDay(day);
+  const phase =
+    orderedPhases.find((p) => p.number === activePhaseNumber) ??
+    orderedPhases.find((p) => day >= scaleDay(p.dayStart, durationDays) && day <= scaleDay(p.dayEnd, durationDays)) ??
+    orderedPhases[0] ??
+    getPhaseForDay(unscaleDay(day, durationDays));
   const items: ReminderItem[] = [];
-  // Phase 1 is a fixed 15-day window — if it's still active well past Day 15, this project
-  // should already be in a later phase (e.g. a CSV-imported Kickoff Date that's more than 15
-  // days old). One clear phase-level warning here is more useful than 5+ individual
+  const phase1End = scaleDay(15, durationDays);
+  // Phase 1 is a fixed window (15 reference days) — if it's still active well past that, this
+  // project should already be in a later phase (e.g. a CSV-imported Kickoff Date that's more
+  // than 15 days old). One clear phase-level warning here is more useful than 5+ individual
   // "Overdue: {deliverable}" entries competing for the reminder strip's slots.
-  if (phase.number === 1 && day > 15) {
+  if (phase.number === 1 && day > phase1End) {
     items.push({
       key: "phase1-overdue",
       type: "warning",
       title: "Phase 1 Overdue",
-      body: `Day ${day} — past the 15-day Onboarding window. This project should already be in a later phase.`,
+      body: `Day ${day} — past the ${phase1End}-day Onboarding window. This project should already be in a later phase.`,
     });
   } else if (phase.number === 1) {
     for (const d of phase.deliverables) {
       if (deliverableStatus.get(d.key) === "done") continue;
-      const diff = d.dayEnd - day;
+      const dEnd = scaleDay(d.dayEnd, durationDays);
+      const diff = dEnd - day;
       if (diff > 0 && diff <= 5) {
         items.push({ key: `due-${d.key}`, type: diff <= 2 ? "warning" : "reminder", title: `Due in ${diff} day${diff === 1 ? "" : "s"}: ${d.name}`, body: d.description });
       } else if (diff <= 0) {
-        items.push({ key: `overdue-${d.key}`, type: "warning", title: `Overdue: ${d.name}`, body: `Was due by Day ${d.dayEnd}.` });
+        items.push({ key: `overdue-${d.key}`, type: "warning", title: `Overdue: ${d.name}`, body: `Was due by Day ${dEnd}.` });
       }
     }
   }
-  if (day === 15 && phaseStatus.get(1) !== "completed") items.push({ key: "gate15", type: "warning", title: "Gate — Day 15", body: "Client sign-off due before Phase 2 begins." });
+  if (day === phase1End && phaseStatus.get(1) !== "completed") items.push({ key: "gate15", type: "warning", title: `Gate — Day ${phase1End}`, body: "Client sign-off due before Phase 2 begins." });
   if (items.length === 0) {
-    const daysLeft = Math.max(0, phase.dayEnd - day);
+    const daysLeft = Math.max(0, scaleDay(phase.dayEnd, durationDays) - day);
     items.push({ key: "ontrack", type: "info", title: `On track — Phase ${phase.number}: ${phase.name}`, body: `${daysLeft} days remaining. Owner: ${phase.owner}.` });
   }
   return items.slice(0, 5);
@@ -180,7 +224,7 @@ function ownerChips(owner: string): { label: string; colorClass: string }[] {
 
 // ─── Overlap-stacking (generic, but only Phase 2 Day 16 needs a 2nd track today) ──
 
-function assignTracks(items: { dayStart: number; dayEnd: number }[]): number[] {
+export function assignTracks(items: { dayStart: number; dayEnd: number }[]): number[] {
   const trackEnds: number[] = [];
   const tracks: number[] = [];
   for (const item of items) {
@@ -196,7 +240,7 @@ function assignTracks(items: { dayStart: number; dayEnd: number }[]): number[] {
   return tracks;
 }
 
-function addDays(date: Date, n: number): Date {
+export function addDays(date: Date, n: number): Date {
   const d = new Date(date);
   d.setDate(d.getDate() + n);
   return d;
@@ -211,7 +255,7 @@ function formatDeliverableDateRange(startDate: Date, dayStart: number, dayEnd: n
 
 // ─── Date column header ────────────────────────────────────────────────────────
 
-function DateColumnHeader({ date, isToday }: { date: Date; isToday: boolean }) {
+export function DateColumnHeader({ date, isToday }: { date: Date; isToday: boolean }) {
   return (
     <div
       className={cn("flex h-12 shrink-0 flex-col items-center justify-center border-r border-[#EDF0F7]", isToday && "bg-[#FFEFE3]")}
@@ -581,7 +625,8 @@ function DeliverableCard({
 
 function Swimlane({
   phase, dbStatus, deliverableStatusMap, deliverableOverrideMap, internalByKey, collapsed, onToggleCollapse,
-  onOpenWizardStep, expandedDeliverable, onExpandDeliverable, index, startDate, role, canEditSchedule, onScheduleChange,
+  onOpenDeliverable, expandedDeliverable, onExpandDeliverable, index, startDate, role, canEditSchedule, onScheduleChange,
+  totalDays = TOTAL_DAYS,
 }: {
   phase: PhaseConfig;
   dbStatus: string;
@@ -590,7 +635,9 @@ function Swimlane({
   internalByKey: Map<string, OnboardingInternalDeliverableRow>;
   collapsed: boolean;
   onToggleCollapse: () => void;
-  onOpenWizardStep: (key: string) => void;
+  // Task 241 — phase-aware (was Phase-1-only `(key: string) => void`); Phase 2-5 now open too,
+  // routed to Projects > Tasks instead of the Onboarding Workspace.
+  onOpenDeliverable: (phaseNumber: number, key: string) => void;
   expandedDeliverable: string | null;
   onExpandDeliverable: (key: string | null) => void;
   index: number;
@@ -598,10 +645,19 @@ function Swimlane({
   role: string | null;
   canEditSchedule: boolean;
   onScheduleChange: (phaseNumber: number, deliverableKey: string, dayStart: number, dayEnd: number) => void;
+  // Chat follow-up to task 244: the shared grid's actual (skip-compressed) column count for this
+  // project — defaults to the static 120-reference-day constant for any caller that hasn't been
+  // updated to pass a compressed value (none currently; kept for a safe/explicit default).
+  totalDays?: number;
 }) {
-  const visual = PHASE_VISUALS[phase.number];
-  // Developer never opens the Wizard (task 146) — Phase 1 bars stay inert for that role.
-  const interactive = phase.number === 1 && role !== "developer";
+  // Task 246: a custom phase (number 6+) has no dedicated PHASE_VISUALS entry — falls back to
+  // phase 1's palette, matching the same ?? PHASE_VISUALS[1]/PHASE_HEX[1] convention already used
+  // elsewhere in this file (line ~1698, ~432) for an unresolvable phase number.
+  const visual = PHASE_VISUALS[phase.number] ?? PHASE_VISUALS[1];
+  // Developer never opens anything (task 146); a skipped phase's deliverables are inert for
+  // everyone (chat follow-up) — they're shown only for reference when a PM expands the row out of
+  // curiosity, never actionable since this phase doesn't apply to the project.
+  const interactive = role !== "developer" && dbStatus !== "skipped";
   // Effective span = per-project override (migration 071) ?? the static config default — never
   // mutates PROGRAMME_PHASES, which is shared by every customer.
   const effectiveDeliverables = phase.deliverables.map((d) => {
@@ -627,20 +683,35 @@ function Swimlane({
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
-              <span className={cn("truncate text-[12.5px] font-bold text-[#0B1533]")}>{phase.name}</span>
+              <span className={cn("truncate text-[12.5px] font-bold", dbStatus === "skipped" ? "text-[#5F6A88]" : "text-[#0B1533]")}>{phase.name}</span>
               {dbStatus === "active" && <span className="h-1.5 w-1.5 shrink-0 animate-pulse motion-reduce:animate-none rounded-full bg-[#007BFF]" />}
+              {/* Task 244: a StackShift I phase a PM excluded at intake reuses the same "skipped"
+                  status a time-based "jump to phase" produces — labeled here so it reads as "not
+                  part of this project" rather than "already passed". */}
+              {dbStatus === "skipped" && (
+                <span className="shrink-0 rounded-full bg-slate-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-slate-400">
+                  Skipped
+                </span>
+              )}
             </div>
             <div className={cn("font-mono truncate text-[10px] text-[#5F6A88]")}>
-              D{phase.dayStart}–{phase.dayEnd} · {doneCount}/{phase.deliverables.length}
+              {/* Chat follow-up: a skipped phase's calendar days were compressed out of the
+                  shared grid entirely — showing a day range here would misleadingly imply it
+                  still occupies that span. */}
+              {dbStatus !== "skipped" && <>D{phase.dayStart}–{phase.dayEnd} · </>}
+              {doneCount}/{phase.deliverables.length}
             </div>
           </div>
-          {collapsed ? <ChevronRight size={14} className="shrink-0 text-[#5F6A88]" /> : <ChevronDown size={14} className="shrink-0 text-[#5F6A88]" />}
+          {/* Chat follow-up: swapped for a directionless +/− toggle — a down/right chevron implied
+              a vertical list would drop below, but the revealed content is a horizontal timeline
+              lane instead, which read as confusing. */}
+          {collapsed ? <Plus size={14} className="shrink-0 text-[#5F6A88]" /> : <Minus size={14} className="shrink-0 text-[#5F6A88]" />}
         </button>
       </div>
 
       <div
         className="relative overflow-visible z-1"
-        style={{ width: TOTAL_DAYS * DAY_WIDTH, height: collapsed ? 0 : laneHeight, paddingTop: collapsed ? 0 : LANE_TOP_PADDING }}
+        style={{ width: totalDays * DAY_WIDTH, height: collapsed ? 0 : laneHeight, paddingTop: collapsed ? 0 : LANE_TOP_PADDING }}
       >
         {!collapsed && effectiveDeliverables.map((d, i) => {
           const subInternal = phase.number === 1 ? internalDeliverablesForSubPhase(d.key) : [];
@@ -658,8 +729,8 @@ function Swimlane({
               phaseNumber={phase.number}
               phaseVisual={visual}
               startDate={startDate}
-              onOpenWizardStep={interactive ? () => onOpenWizardStep(d.key) : undefined}
-              canEditSchedule={canEditSchedule}
+              onOpenWizardStep={interactive ? () => onOpenDeliverable(phase.number, d.key) : undefined}
+              canEditSchedule={canEditSchedule && dbStatus !== "skipped"}
               phaseDayStart={phase.dayStart}
               phaseDayEnd={phase.dayEnd}
               onScheduleChange={(dayStart, dayEnd) => onScheduleChange(phase.number, d.key, dayStart, dayEnd)}
@@ -673,11 +744,31 @@ function Swimlane({
 
 // ─── Jump to phase menu ────────────────────────────────────────────────────────
 
+// Minimal shape this menu actually needs — satisfied by both PhaseConfig (the "already started"
+// call site's orderedPhases) and OrderedPhaseSummary (task 248's pre-seed "not started" call
+// site's buildOrderedPhasePlan output), so either can be passed without a cast.
+type JumpPhaseOption = { number: number; name: string; dayStart: number; dayEnd: number };
+
 function JumpToPhaseMenu({
-  open, setOpen, note, setNote, onJump, jumping,
+  open, setOpen, note, setNote, onJump, jumping, phases = PROGRAMME_PHASES, skipSet, currentPhaseNumber,
 }: {
   open: boolean; setOpen: (v: boolean) => void; note: string; setNote: (v: string) => void;
   onJump: (phaseNumber: number) => void; jumping: boolean;
+  // Task 246: defaults to PROGRAMME_PHASES for the pre-seed "not started" call site (no per-project
+  // phase set exists yet); the "already started" call site passes this project's actual
+  // orderedPhases (defaults + any customs) instead.
+  phases?: JumpPhaseOption[];
+  // Task 248: phase numbers this project's PM excluded at intake — shown in the list (not
+  // filtered out, so the full plan stays visible) but disabled with a not-allowed cursor and a
+  // "Skipped" pill, matching the Swimlane's own existing skipped-phase badge treatment. Chat
+  // follow-up: the "already started" call site now passes its own DB-status-derived skip set
+  // (customer_phases.status === "skipped") — the authoritative source once a project has seeded,
+  // rather than leaving it undefined/every phase enabled as before.
+  skipSet?: Set<number>;
+  // Chat follow-up: the phase this project is currently active in — shown disabled with a
+  // "Current" pill instead of "Skipped", since jumping to the phase you're already in is a no-op.
+  // Undefined for the pre-seed "not started" call site, which has no active phase yet.
+  currentPhaseNumber?: number;
 }) {
   return (
     <div className="relative">
@@ -691,17 +782,36 @@ function JumpToPhaseMenu({
       {open && (
         <div className="absolute right-0 top-[calc(100%+6px)] z-30 min-w-64 overflow-hidden rounded-xl border border-[#E2E7F2] bg-white shadow-lg">
           <div className="px-3.5 pb-1.5 pt-3 text-[10px] font-bold uppercase tracking-wider text-[#5F6A88]">Manually tag starting phase</div>
-          {PROGRAMME_PHASES.map((p) => (
-            <button
-              key={p.number}
-              type="button"
-              onClick={() => onJump(p.number)}
-              disabled={jumping}
-              className="w-full cursor-pointer border-none bg-transparent px-3.5 py-2 text-left text-[13px] text-[#0B1533] transition-colors hover:bg-[#F4F6FB] disabled:opacity-50"
-            >
-              {p.name} (Day {p.dayStart}–{p.dayEnd})
-            </button>
-          ))}
+          {phases.map((p) => {
+            const skipped = skipSet?.has(p.number) ?? false;
+            const isCurrent = !skipped && p.number === currentPhaseNumber;
+            const disabled = skipped || isCurrent;
+            return (
+              <button
+                key={p.number}
+                type="button"
+                onClick={() => onJump(p.number)}
+                disabled={jumping || disabled}
+                aria-disabled={disabled}
+                className={cn(
+                  "flex w-full items-center gap-1.5 border-none bg-transparent px-3.5 py-2 text-left text-[13px] transition-colors disabled:opacity-50",
+                  disabled ? "cursor-not-allowed text-[#5F6A88]" : "cursor-pointer text-[#0B1533] hover:bg-[#F4F6FB]"
+                )}
+              >
+                <span>{p.name} (Day {p.dayStart}–{p.dayEnd})</span>
+                {skipped && (
+                  <span className="shrink-0 rounded-full bg-slate-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-slate-400">
+                    Skipped
+                  </span>
+                )}
+                {isCurrent && (
+                  <span className="shrink-0 rounded-full bg-[#E5F1FF] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#007BFF]">
+                    Current
+                  </span>
+                )}
+              </button>
+            );
+          })}
           <div className="px-3.5 pb-3.5 pt-1">
             <input
               value={note}
@@ -718,7 +828,7 @@ function JumpToPhaseMenu({
 
 // ─── Stat chip ─────────────────────────────────────────────────────────────────
 
-function StatChip({ icon: Icon, label, value }: { icon?: LucideIcon; label: string; value: string | number }) {
+export function StatChip({ icon: Icon, label, value }: { icon?: LucideIcon; label: string; value: string | number }) {
   return (
     <div className="flex h-full items-center gap-2 rounded-lg border border-[#E2E7F2] bg-[#F4F6FB] px-3.5">
       {Icon && (
@@ -754,7 +864,7 @@ function AvatarTip({ label, children }: { label: string; children: React.ReactEl
 // forwardRef so this can be used directly as an AvatarTip/TooltipTrigger render target (Base UI
 // clones the child and attaches a ref + event handlers — a plain function component can't
 // receive either) for the single-avatar call sites (Owner row, OwnerPanel's current owner).
-const AvatarCircle = forwardRef<HTMLDivElement, { name: string | null; size?: number; ring?: boolean } & HTMLAttributes<HTMLDivElement>>(
+export const AvatarCircle = forwardRef<HTMLDivElement, { name: string | null; size?: number; ring?: boolean } & HTMLAttributes<HTMLDivElement>>(
   ({ name, size = 22, ring, className, style, ...props }, ref) => {
     const initials = (name ?? "?").split(" ").filter(Boolean).map((w) => w[0]).join("").slice(0, 2).toUpperCase() || "?";
     const colors = ["#0063D6", "#6A48E0", "#0B8A93", "#B85512", "#177E48", "#44508A"];
@@ -773,7 +883,7 @@ const AvatarCircle = forwardRef<HTMLDivElement, { name: string | null; size?: nu
 );
 AvatarCircle.displayName = "AvatarCircle";
 
-function CollaboratorAvatars({ members, max = 5 }: { members: MemberRow[]; max?: number }) {
+export function CollaboratorAvatars({ members, max = 5 }: { members: MemberRow[]; max?: number }) {
   if (members.length === 0) return <span className="text-[11.5px] text-[#5F6A88]">None yet</span>;
 
   // A single collaborator has nothing to lift above — tooltip only, no hover animation.
@@ -857,7 +967,7 @@ function PanelHeader({ label, onClose }: { label: string; onClose: () => void })
 // Task 157 — "Set Project Owner": pick a new owner from existing project members (super_admin/
 // admin/creator only). Transfer target must already be a collaborator — add them via "Add
 // Collaborators" first if they aren't one yet.
-function OwnerPanel({ projectMembers, busy, error, onTransferOwnership, onClose }: {
+export function OwnerPanel({ projectMembers, busy, error, onTransferOwnership, onClose }: {
   projectMembers: MemberRow[];
   busy: boolean;
   error: string | null;
@@ -905,7 +1015,7 @@ function OwnerPanel({ projectMembers, busy, error, onTransferOwnership, onClose 
 // input's onBlur). Task 201 changed adding from immediate-add-on-click to stage-then-confirm —
 // clicking a candidate stages them as a removable chip; one "Add N" click batches all staged
 // picks into a single POST (and therefore a single combined notification server-side).
-function CollaboratorsPanel({
+export function CollaboratorsPanel({
   projectMembers, staffDirectory, busy, error, onAdd, onRemove, onClose,
 }: {
   projectMembers: MemberRow[];
@@ -1026,6 +1136,7 @@ function CollaboratorsPanel({
 
 export default function OnboardingDetail({
   project, initialWizardStepKey, role, currentUserId, phase1Members: initialPhase1Members, projectMembers: initialProjectMembers,
+  milestones: initialMilestones, tasklists: initialTasklists, genericTasks: initialGenericTasks,
 }: OnboardingDetailProps) {
   const router = useRouter();
   // Task 150(b): the URL segment is the human-readable project_id, not the UUID — falls back
@@ -1043,10 +1154,29 @@ export default function OnboardingDetail({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [programmeStartedAt, setProgrammeStartedAt] = useState<string | null>(null);
+  // Task 239 — StackShift I's configurable programme length; defaults to 120 until the fetch
+  // below resolves, matching every project's DB default.
+  const [programmeDurationDays, setProgrammeDurationDays] = useState<number>(DEFAULT_PROGRAMME_DAYS);
   const [phases, setPhases] = useState<CustomerPhaseRow[]>([]);
   const [deliverables, setDeliverables] = useState<CustomerDeliverableRow[]>([]);
+  // Task 241 — Phase 2-5's generic-model tasklist ids, keyed by `programme-deliverable-{phase}-{key}`
+  // (their `external_id`), for the Timeline's deliverable cards to resolve a click into a Projects
+  // > Tasks deep link. Empty for a project whose programme started before this shipped — degrades
+  // to a bare /tasks link, not a crash (see handleOpenPhaseDeliverable).
+  const [tasklistIdByExternalId, setTasklistIdByExternalId] = useState<Map<string, string>>(new Map());
   const [internalDeliverables, setInternalDeliverables] = useState<OnboardingInternalDeliverableRow[]>([]);
   const [collapsedPhases, setCollapsedPhases] = useState<Set<number>>(new Set());
+  // Chat follow-up: default collapse state — only the active phase starts expanded, every other
+  // phase (skipped, not-started, or completed) starts collapsed. Applied once, the first time
+  // `phases` loads, so it doesn't fight a PM's own later manual expand/collapse on refetch (e.g.
+  // after a Jump-to-phase action).
+  const collapseDefaultsAppliedRef = useRef(false);
+  useEffect(() => {
+    if (collapseDefaultsAppliedRef.current || phases.length === 0) return;
+    collapseDefaultsAppliedRef.current = true;
+    const active = phases.find((p) => p.status === "active")?.phase_number;
+    setCollapsedPhases(new Set(phases.filter((p) => p.phase_number !== active).map((p) => p.phase_number)));
+  }, [phases]);
   const [expandedDeliverable, setExpandedDeliverable] = useState<string | null>(null);
   const [wizardOpen, setWizardOpen] = useState(!!initialWizardStepKey);
   const [wizardStartStepKey, setWizardStartStepKey] = useState<string | undefined>(initialWizardStepKey);
@@ -1055,7 +1185,13 @@ export default function OnboardingDetail({
   const [jumpNote, setJumpNote] = useState("");
   const [jumping, setJumping] = useState(false);
   // Scheduled-start card's "Select Phase" alternative — excludes the already-scheduled phase.
-  const [altPhase, setAltPhase] = useState<1 | 2 | 3 | 4 | 5 | null>(null);
+  // Task 248: now sourced from this project's actual orderedPlan (defaults + any customs from
+  // project.draft_custom_phases, computed inline below) instead of the static PROGRAMME_PHASES —
+  // closes the previously-documented gap where a project's intake-time custom phases were only
+  // ever persisted for an immediate mode:"start" submission, never for one reaching this
+  // "not started yet" screen later. number (not 1|2|3|4|5) since resolveEffectivePhaseNumber's
+  // generalized signature takes a plain number.
+  const [altPhase, setAltPhase] = useState<number | null>(null);
   const isMountedRef = useRef(true);
   const scrollRef = useRef<HTMLDivElement>(null);
   const scrolledToTodayRef = useRef(false);
@@ -1093,6 +1229,9 @@ export default function OnboardingDetail({
   const isCreator = !!project.created_by && project.created_by === currentUserId;
   const canManageProjMembers = canManageProjectMembers(role, isCreator);
   const canSetOwner = canSetProjectOwner(role, isCreator);
+  // Task 231 — independent of membership/ownership rights above; admin/pm/super_admin can
+  // always delete regardless of whether they can manage members or set the owner.
+  const canDeleteProject = !!role && DELETE_PROJECT_ROLES.includes(role);
   const projectOwner = projectMembers.find((m) => m.is_owner) ?? null;
   // "Default to the creator of the project if any" — legacy projects that predate task 153 may
   // have created_by set but no project_members row (and therefore no is_owner match) yet.
@@ -1251,9 +1390,13 @@ export default function OnboardingDetail({
       const data = await res.json();
       if (!isMountedRef.current) return;
       setProgrammeStartedAt(data.programme_started_at ?? null);
+      setProgrammeDurationDays(data.project?.programme_duration_days ?? DEFAULT_PROGRAMME_DAYS);
       setPhases(data.phases ?? []);
       setDeliverables(data.deliverables ?? []);
       setInternalDeliverables(data.internal_deliverables ?? []);
+      setTasklistIdByExternalId(
+        new Map((data.phase_tasklists ?? []).map((t: { id: string; external_id: string }) => [t.external_id, t.id]))
+      );
       setError(null);
     } catch {
       if (isMountedRef.current) setError("Failed to load onboarding programme data.");
@@ -1263,6 +1406,10 @@ export default function OnboardingDetail({
   };
 
   useEffect(() => {
+    // Task 247: a generic-engine project never has customer_phases/programme_started_at data —
+    // fetching it here would be a wasted request. loading defaults to true above only for the
+    // customer_phases path; the generic branch (below, after all hooks) doesn't read `loading`.
+    if (!project.uses_customer_phases_engine) return;
     isMountedRef.current = true;
     fetch(`/api/projects/${project.id}/programme`)
       .then(async (res) => {
@@ -1270,17 +1417,22 @@ export default function OnboardingDetail({
         const data = await res.json();
         if (!isMountedRef.current) return;
         setProgrammeStartedAt(data.programme_started_at ?? null);
+        setProgrammeDurationDays(data.project?.programme_duration_days ?? DEFAULT_PROGRAMME_DAYS);
         setPhases(data.phases ?? []);
         setDeliverables(data.deliverables ?? []);
         setInternalDeliverables(data.internal_deliverables ?? []);
+        setTasklistIdByExternalId(
+          new Map((data.phase_tasklists ?? []).map((t: { id: string; external_id: string }) => [t.external_id, t.id]))
+        );
         setError(null);
       })
       .catch(() => { if (isMountedRef.current) setError("Failed to load onboarding programme data."); })
       .finally(() => { if (isMountedRef.current) setLoading(false); });
     return () => { isMountedRef.current = false; };
-  }, [project.id]);
+  }, [project.id, project.uses_customer_phases_engine]);
 
   useEffect(() => {
+    if (!project.uses_customer_phases_engine) return;
     const supabase = createClient();
     const channel = supabase
       .channel(`v2_onboarding_${project.id}`)
@@ -1289,7 +1441,7 @@ export default function OnboardingDetail({
         if (!row?.id) return;
         setPhases((prev) => {
           const idx = prev.findIndex((p) => p.id === row.id);
-          if (idx === -1) return [...prev, row].sort((a, b) => a.phase_number - b.phase_number);
+          if (idx === -1) return [...prev, row].sort((a, b) => a.sort_order - b.sort_order);
           const next = [...prev];
           next[idx] = row;
           return next;
@@ -1308,7 +1460,7 @@ export default function OnboardingDetail({
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [project.id]);
+  }, [project.id, project.uses_customer_phases_engine]);
 
   // Wheel-to-horizontal-scroll: hovering the Gantt grid pans it left/right on wheel/trackpad input
   // instead of scrolling the page. Native `addEventListener` (not JSX onWheel) is required so
@@ -1339,10 +1491,22 @@ export default function OnboardingDetail({
   const handleJump = async (phaseNumber: number) => {
     setJumping(true);
     try {
+      // Task 248: relay this project's persisted intake-time skip/custom-phase selection —
+      // the route already supports both fields (its not-started branch seeds through
+      // seedProgrammeAtPhase using them), but this call site never sent them, so a Draft
+      // project's skip/custom configuration was previously lost the moment a PM used "Jump to
+      // phase" instead of the plain Start button. Harmless to always include: the route's
+      // already-started branch re-statuses from the DB's own stored phases and ignores both
+      // fields entirely.
       const res = await fetch(`/api/projects/${project.id}/programme/phase`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phase_number: phaseNumber, note: jumpNote.trim() || undefined }),
+        body: JSON.stringify({
+          phase_number: phaseNumber,
+          note: jumpNote.trim() || undefined,
+          skip_phase_numbers: project.draft_skip_phase_numbers,
+          custom_phases: project.draft_custom_phases,
+        }),
       });
       if (!res.ok) throw new Error();
       setJumpOpen(false);
@@ -1359,7 +1523,7 @@ export default function OnboardingDetail({
   // through handleStart (assigns the starter as Phase 1 owner, task 153) same as the normal
   // Start Onboarding button; any other phase goes through the existing Jump-to-phase override,
   // which never assigns phase ownership — phase_members only has a concept for Phase 1.
-  const startAtPhase = (phaseNumber: 1 | 2 | 3 | 4 | 5) => (phaseNumber === 1 ? handleStart() : handleJump(phaseNumber));
+  const startAtPhase = (phaseNumber: number) => (phaseNumber === 1 ? handleStart() : handleJump(phaseNumber));
 
   // Task 222 — swimlane deliverable cards now open the Onboarding Workspace (tabbed rebuild)
   // instead of the inline Onboarding Wizard, deep-linked to that deliverable's mapped
@@ -1369,6 +1533,22 @@ export default function OnboardingDetail({
     const target = DELIVERABLE_WORKSPACE_TARGET[deliverableKey] ?? { tab: "business-info" as const };
     const qs = buildWorkspaceQueryString(target.tab, target.folderPath);
     router.push(`${V2_ROUTES.PORTFOLIO_TRACKER}/${projectUrlKey}/onboarding-workspace?${qs}`, { scroll: false });
+  };
+
+  // Task 241 — Phase 1 keeps its task-222 destination (Onboarding Workspace) unchanged; Phase 2-5
+  // deliverable cards (newly interactive) go to Projects > Tasks instead, scoped to that
+  // deliverable's tasklist when the mapping is known. A project whose programme started before
+  // this shipped has no Phase 2-5 tasklists seeded — falls back to a bare /tasks link rather than
+  // erroring.
+  const handleOpenPhaseDeliverable = (phaseNumber: number, deliverableKey: string) => {
+    if (phaseNumber === 1) {
+      handleOpenWizardStep(deliverableKey);
+      return;
+    }
+    const tasklistId = tasklistIdByExternalId.get(`programme-deliverable-${project.id}-${phaseNumber}-${deliverableKey}`);
+    router.push(
+      tasklistId ? `${V2_ROUTES.PROJECTS}/${projectUrlKey}/tasks?tasklist=${tasklistId}` : `${V2_ROUTES.PROJECTS}/${projectUrlKey}/tasks`
+    );
   };
 
   const handleScheduleChange = async (phaseNumber: number, deliverableKey: string, dayStart: number, dayEnd: number) => {
@@ -1407,6 +1587,37 @@ export default function OnboardingDetail({
       <ArrowLeft size={13} /> Back to Projects
     </button>
   );
+
+  // Task 247: a project not on the specialized customer_phases engine never has a Wizard, a
+  // customer_phases-backed Timeline, or a `programme_started_at` — delegate entirely to the
+  // generic milestones/tasklists/tasks view instead of falling into the StackShift-shaped
+  // "not started" screen below. Placed after every hook above (Rules of Hooks) but before any
+  // StackShift-only state (wizardOpen/isPhase1Restricted/programmeStartedAt) is used.
+  if (!project.uses_customer_phases_engine) {
+    return (
+      <GenericPhaseView
+        project={project}
+        backLink={backLink}
+        projectUrlKey={projectUrlKey}
+        initialMilestones={initialMilestones}
+        tasklists={initialTasklists}
+        tasks={initialGenericTasks}
+        ownerDisplayName={ownerDisplayName}
+        collaborators={collaborators}
+        projectMembers={projectMembers}
+        staffDirectory={staffDirectory}
+        canManageProjMembers={canManageProjMembers}
+        canSetOwner={canSetOwner}
+        canDeleteProject={canDeleteProject}
+        canManagePhases={canManagePhases}
+        membershipBusy={membershipBusy}
+        membershipError={membershipError}
+        onAddProjectMembers={handleAddProjectMembers}
+        onRemoveProjectMember={handleRemoveProjectMember}
+        onTransferProjectOwnership={handleTransferProjectOwnership}
+      />
+    );
+  }
 
   if (wizardOpen && isPhase1Restricted) {
     return (
@@ -1480,8 +1691,24 @@ export default function OnboardingDetail({
 
   if (!programmeStartedAt) {
     const hasSchedule = !!project.scheduled_onboarding_start_at;
-    const scheduledPhaseNumber = (project.scheduled_start_phase ?? 1) as 1 | 2 | 3 | 4 | 5;
-    const scheduledPhase = getPhaseByNumber(scheduledPhaseNumber);
+    // Task 248: this project's actual phase set (defaults minus any skipped, plus any customs
+    // configured at intake) — merged and sort_order-ordered the same way seed.ts's own
+    // buildSeedPhaseEntries resolves it at actual seed time, so the button label/Jump-to-phase
+    // menu shown here never disagrees with what clicking them will actually seed.
+    const orderedPlan = buildOrderedPhasePlan(project.draft_custom_phases);
+    const skipSet = new Set(project.draft_skip_phase_numbers);
+    const firstActivePhase = orderedPlan.find((p) => !skipSet.has(p.number)) ?? orderedPlan[0] ?? PROGRAMME_PHASES[0];
+
+    // scheduled_start_phase (the literal phase a schedule targets) stays capped to the 5 defaults
+    // by POST /api/onboarding/projects' own validation (1-5). It defaults to Phase 1 whenever the
+    // New Project form's "Start at phase" selector was left untouched — including when the PM
+    // instead skipped Phase 1 via the phase builder's own per-phase checkbox, which doesn't sync
+    // that selector. Resolved the same way seedAndStartProgramme itself resolves it at actual
+    // auto-start time (resolveEffectivePhaseNumber's before/target/after cascade), so this card
+    // never advertises a phase that will never run — it shows whichever phase will actually start.
+    const rawScheduledPhaseNumber = (project.scheduled_start_phase ?? 1) as number;
+    const scheduledPhaseNumber = resolveEffectivePhaseNumber(orderedPlan, rawScheduledPhaseNumber, project.draft_skip_phase_numbers);
+    const scheduledPhase = orderedPlan.find((p) => p.number === scheduledPhaseNumber) ?? firstActivePhase;
     const scheduledDate = project.scheduled_onboarding_start_at ? new Date(project.scheduled_onboarding_start_at) : null;
     const busy = starting || jumping;
 
@@ -1514,7 +1741,7 @@ export default function OnboardingDetail({
             </div>
           ) : (
             <p className="mx-auto mb-6 max-w-md text-[13px] text-[#5F6A88]">
-              Start the 120-day programme to begin tracking Phase 1 — or jump straight to whichever phase they&apos;re actually starting from.
+              Start the {programmeDurationDays}-day programme to begin tracking Phase 1 — or jump straight to whichever phase they&apos;re actually starting from.
             </p>
           )}
 
@@ -1542,7 +1769,7 @@ export default function OnboardingDetail({
                   <div className="relative">
                     <select
                       value={altPhase ?? ""}
-                      onChange={(e) => setAltPhase(e.target.value ? (Number(e.target.value) as 1 | 2 | 3 | 4 | 5) : null)}
+                      onChange={(e) => setAltPhase(e.target.value ? Number(e.target.value) : null)}
                       disabled={busy}
                       className="h-9 cursor-pointer appearance-none rounded-[9px] border-[1.5px] border-[#E2E7F2] bg-white py-1.5 pl-3 pr-8 text-[13px] text-[#0B1533] outline-none transition-colors focus:border-[#007BFF] focus:ring-[3px] focus:ring-[#007BFF]/[0.14] disabled:cursor-not-allowed disabled:opacity-60"
                       style={{
@@ -1553,11 +1780,14 @@ export default function OnboardingDetail({
                       }}
                     >
                       <option value="">Select Phase</option>
-                      {PROGRAMME_PHASES.filter((p) => p.number !== scheduledPhaseNumber).map((p) => (
-                        <option key={p.number} value={p.number}>
-                          Phase {p.number}: {p.name}
-                        </option>
-                      ))}
+                      {orderedPlan
+                        .filter((p) => p.number !== scheduledPhaseNumber)
+                        .map((p) => (
+                          <option key={p.number} value={p.number} disabled={skipSet.has(p.number)}>
+                            Phase {p.number}: {p.name}
+                            {skipSet.has(p.number) ? " (Skipped)" : ""}
+                          </option>
+                        ))}
                     </select>
                   </div>
                   {altPhase && (
@@ -1576,13 +1806,22 @@ export default function OnboardingDetail({
               <div className="flex items-center justify-center gap-2">
                 <button
                   type="button"
-                  onClick={handleStart}
+                  onClick={() => startAtPhase(firstActivePhase.number)}
                   disabled={starting}
                   className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border-none bg-[#007BFF] px-4 py-2 text-[13px] font-semibold text-white shadow-[0_2px_10px_rgba(0,123,255,0.3)] transition-opacity hover:opacity-90 disabled:opacity-50"
                 >
-                  <PlayCircle size={15} /> {starting ? "Starting…" : "Start Onboarding"}
+                  <PlayCircle size={15} /> {starting ? "Starting…" : `Start ${firstActivePhase.name}`}
                 </button>
-                <JumpToPhaseMenu open={jumpOpen} setOpen={setJumpOpen} note={jumpNote} setNote={setJumpNote} onJump={handleJump} jumping={jumping} />
+                <JumpToPhaseMenu
+                  open={jumpOpen}
+                  setOpen={setJumpOpen}
+                  note={jumpNote}
+                  setNote={setJumpNote}
+                  onJump={handleJump}
+                  jumping={jumping}
+                  phases={orderedPlan}
+                  skipSet={skipSet}
+                />
               </div>
             )
           ) : (
@@ -1595,15 +1834,65 @@ export default function OnboardingDetail({
 
   const currentDay = getCurrentProgrammeDay(programmeStartedAt);
   const startDate = new Date(programmeStartedAt);
-  const activePhaseNumber = phases.find((p) => p.status === "active")?.phase_number ?? getPhaseForDay(currentDay).number;
-  const activePhase = PROGRAMME_PHASES.find((p) => p.number === activePhaseNumber) ?? PROGRAMME_PHASES[0];
-  const isComplete = phases.find((p) => p.phase_number === 5)?.status === "completed";
-  const progressPct = Math.min(100, Math.round((currentDay / 120) * 100));
-  // Whole-programme overdue (mirrors ProgrammeTrack's own per-phase overdue flag, at 120-day
-  // scale) — currentDay isn't capped at 120, so a stalled project can genuinely pass it.
-  const programmeOverdue = !isComplete && currentDay > 120;
-  const daysOverdue120 = currentDay - 120;
+  // Task 246: this project's actual phase set (defaults + any customs) resolved via
+  // resolveEffectivePhase and ordered by sort_order — the Swimlane loop and every phase-count/
+  // "last phase" derivation below reads from this instead of the static PROGRAMME_PHASES array.
+  const sortedPhaseRows = [...phases].sort((a, b) => a.sort_order - b.sort_order);
+  const deliverablesByPhaseNumber = new Map<number, typeof deliverables>();
+  for (const d of deliverables) {
+    if (!deliverablesByPhaseNumber.has(d.phase_number)) deliverablesByPhaseNumber.set(d.phase_number, []);
+    deliverablesByPhaseNumber.get(d.phase_number)!.push(d);
+  }
+  const orderedPhases = sortedPhaseRows.map((p) => resolveEffectivePhase(p, deliverablesByPhaseNumber.get(p.phase_number) ?? []));
+  const activePhaseNumber = phases.find((p) => p.status === "active")?.phase_number ?? getPhaseForDay(unscaleDay(currentDay, programmeDurationDays)).number;
+  const activePhase = orderedPhases.find((p) => p.number === activePhaseNumber) ?? orderedPhases[0] ?? PROGRAMME_PHASES[0];
+  const isComplete = sortedPhaseRows.length > 0 && sortedPhaseRows[sortedPhaseRows.length - 1].status === "completed";
   const phaseStatusMap = new Map(phases.map((p) => [p.phase_number, p.status]));
+  // Chat follow-up to task 244: this project's *permanently* excluded phases — sourced from
+  // project.draft_skip_phase_numbers (the PM's own intake-time configuration), not each phase
+  // row's DB status. A phase's DB status also reads "skipped" for a merely time-bypassed phase
+  // (an unrelated manual Jump-to-phase landing past it — same status value, different meaning,
+  // see the already-started PATCH route's own permanentSkipSet fix) — that kind of "skipped" is
+  // temporary and should keep its calendar days and stay jumpable, unlike a phase the PM opted
+  // this project out of entirely.
+  const startedSkipNumbers = project.draft_skip_phase_numbers;
+  // Chat follow-up to task 244: skipped phases no longer occupy any calendar days on the shared
+  // grid/progress bar/timeline at all — Day 1 now aligns with the first non-skipped phase, not
+  // Onboard's static reference day 1. Every non-skipped phase (and its own deliverables) gets its
+  // dayStart/dayEnd re-expressed on this skip-compressed scale for rendering; a skipped phase's
+  // row keeps its original static range (shown only if a PM manually expands its now-default-
+  // collapsed, disabled row for historical reference — never part of the shared grid's columns).
+  // Both the Swimlane loop and buildReminders read from this single compressed source, so the
+  // "days remaining" reminder and the Gantt grid always agree.
+  const compressedPhases = orderedPhases.map((p) =>
+    startedSkipNumbers.includes(p.number)
+      ? p
+      : {
+          ...p,
+          dayStart: compressReferenceDay(p.dayStart, orderedPhases, startedSkipNumbers),
+          dayEnd: compressReferenceDay(p.dayEnd, orderedPhases, startedSkipNumbers),
+          deliverables: p.deliverables.map((d) => ({
+            ...d,
+            dayStart: compressReferenceDay(d.dayStart, orderedPhases, startedSkipNumbers),
+            dayEnd: compressReferenceDay(d.dayEnd, orderedPhases, startedSkipNumbers),
+          })),
+        }
+  );
+  // Chat follow-up: the grid's own visible column count (reference scale), compressed the same
+  // way — Optimize's static dayEnd (120) minus every skipped phase's day-span before it.
+  const visibleTotalDays = compressReferenceDay(TOTAL_DAYS, orderedPhases, startedSkipNumbers);
+  // The same compressed total, converted to this project's real calendar-day scale — what the
+  // progress bar/header actually display as "the programme length" now that skipped phases'
+  // days are excluded from it. `programmeDurationDays` itself keeps its original (PM-configured)
+  // value everywhere else — it's still the correct scale ratio for scaleDay/unscaleDay, since that
+  // never changed; only the *displayed* total shrinks.
+  const visibleDurationDays = scaleDay(visibleTotalDays, programmeDurationDays);
+  const progressPct = Math.min(100, Math.round((currentDay / visibleDurationDays) * 100));
+  // Whole-programme overdue (mirrors ProgrammeTrack's own per-phase overdue flag, at the
+  // project's own compressed programme length) — currentDay isn't capped at visibleDurationDays,
+  // so a stalled project can genuinely pass it.
+  const programmeOverdue = !isComplete && currentDay > visibleDurationDays;
+  const daysOverdue120 = currentDay - visibleDurationDays;
   const deliverableStatusMap = new Map(deliverables.map((d) => [d.deliverable_key, d.status]));
   const deliverableOverrideMap = new Map(
     deliverables
@@ -1611,23 +1900,36 @@ export default function OnboardingDetail({
       .map((d) => [d.deliverable_key, { dayStart: d.day_start_override as number, dayEnd: d.day_end_override as number }])
   );
   const remindersDeliverableMap = new Map(deliverables.filter((d) => d.phase_number === 1).map((d) => [d.deliverable_key, d.status]));
-  const reminders = buildReminders(currentDay, phaseStatusMap, remindersDeliverableMap);
+  const reminders = buildReminders(currentDay, phaseStatusMap, remindersDeliverableMap, compressedPhases, programmeDurationDays);
   const visual = PHASE_VISUALS[activePhaseNumber] ?? PHASE_VISUALS[1];
   const internalByKey = new Map(internalDeliverables.map((d) => [d.deliverable_key, d]));
   const isManualOverride = phases.find((p) => p.phase_number === activePhaseNumber)?.is_manual_override;
 
-  const totalDeliverables = PROGRAMME_PHASES.reduce((s, p) => s + p.deliverables.length, 0);
+  // Chat follow-up: excludes skipped phases — a skipped phase is seeded with zero
+  // customer_deliverables rows (seed.ts), but resolveEffectivePhase falls back to the static
+  // default deliverable list whenever a phase has zero rows (to support legacy pre-seed data), so
+  // without this filter a skipped phase's full static deliverable count re-appears in the total.
+  const totalDeliverables = orderedPhases
+    .filter((p) => phaseStatusMap.get(p.number) !== "skipped")
+    .reduce((s, p) => s + p.deliverables.length, 0);
   const doneDeliverables = deliverables.filter((d) => d.status === "done").length;
   const phasesCompleted = phases.filter((p) => p.status === "completed").length;
-  const daysRemaining = Math.max(0, 120 - currentDay);
+  const daysRemaining = Math.max(0, visibleDurationDays - currentDay);
+
+  // Chat follow-up to task 244: the Swimlane's grid columns and every non-skipped phase's own
+  // dayStart/dayEnd (compressedPhases, above) now live on the same skip-compressed reference
+  // scale currentDay itself is backdated against — unscaling currentDay is enough to land the
+  // "today" marker on the right column; no separate decompress step needed once the grid is
+  // compressed too. Identity (no-op) whenever nothing is skipped.
+  const gridMarkerDay = unscaleDay(currentDay, programmeDurationDays);
 
   function scrollToToday(behavior: ScrollBehavior = "auto") {
     if (!scrollRef.current) return;
-    const target = Math.max(0, LABEL_WIDTH + (currentDay - 1) * DAY_WIDTH - (scrollRef.current.clientWidth - LABEL_WIDTH) / 2);
+    const target = Math.max(0, LABEL_WIDTH + (gridMarkerDay - 1) * DAY_WIDTH - (scrollRef.current.clientWidth - LABEL_WIDTH) / 2);
     scrollRef.current.scrollTo({ left: target, behavior });
   }
 
-  const days = Array.from({ length: TOTAL_DAYS }, (_, i) => i + 1);
+  const days = Array.from({ length: visibleTotalDays }, (_, i) => i + 1);
 
   return (
     <div className={cn("min-h-full bg-[#F4F6FB] px-7 py-8")}>
@@ -1664,7 +1966,7 @@ export default function OnboardingDetail({
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {(canManageProjMembers || canSetOwner) && (
+              {(canManageProjMembers || canSetOwner || canDeleteProject) && (
                 <div className="relative">
                   <button
                     type="button"
@@ -1698,14 +2000,33 @@ export default function OnboardingDetail({
                           <Users size={13} className="text-[#5F6A88]" /> Manage Collaborators
                         </button>
                       )}
+                      {canDeleteProject && (
+                        <>
+                          {(canManageProjMembers || canSetOwner) && <div className="my-1 border-t border-[#EDF0F7]" />}
+                          <DeleteProjectMenuItem projectUrlKey={projectUrlKey} projectName={project.name} />
+                        </>
+                      )}
                     </div>
                   )}
                 </div>
               )}
               {canManagePhases && (
-                <JumpToPhaseMenu open={jumpOpen} setOpen={setJumpOpen} note={jumpNote} setNote={setJumpNote} onJump={handleJump} jumping={jumping} />
+                <JumpToPhaseMenu
+                  open={jumpOpen}
+                  setOpen={setJumpOpen}
+                  note={jumpNote}
+                  setNote={setJumpNote}
+                  onJump={handleJump}
+                  jumping={jumping}
+                  phases={compressedPhases}
+                  skipSet={new Set(startedSkipNumbers)}
+                  currentPhaseNumber={activePhaseNumber}
+                />
               )}
-              {!isComplete && phases.some((p) => p.phase_number === 1) && canOpenWizard && (
+              {/* Chat follow-up: also requires Phase 1's own row not be skipped — every project
+                  still gets a phase_number 1 row regardless (seed.ts), so the bare existence
+                  check alone can't tell a real Phase 1 apart from an excluded one. */}
+              {!isComplete && phases.some((p) => p.phase_number === 1 && p.status !== "skipped") && canOpenWizard && (
                 <button
                   type="button"
                   onClick={() => {
@@ -1742,14 +2063,14 @@ export default function OnboardingDetail({
           <div className="mb-4 flex flex-col gap-4 lg:flex-row lg:gap-6">
             <div className="min-w-0 lg:flex-1">
               <div className="mb-2.5 flex flex-wrap items-baseline justify-between gap-3">
-                <span className="text-[11px] font-bold uppercase tracking-wide text-[#0B1533]">120-Day Programme Progress</span>
+                <span className="text-[11px] font-bold uppercase tracking-wide text-[#0B1533]">{visibleDurationDays}-Day Programme Progress</span>
                 <span className={cn("font-mono text-[11px]", programmeOverdue ? "font-semibold text-[#C0392B]" : "text-[#5F6A88]")}>
                   {isComplete ? (
                     "Complete"
                   ) : programmeOverdue ? (
                     <>{daysOverdue120} DAY{daysOverdue120 === 1 ? "" : "S"} OVERDUE</>
                   ) : (
-                    <>DAY {currentDay} OF 120</>
+                    <>DAY {currentDay} OF {visibleDurationDays}</>
                   )}
                 </span>
               </div>
@@ -1774,7 +2095,7 @@ export default function OnboardingDetail({
               </div>
               <div className="mt-1.5 flex justify-between font-mono text-[9px] uppercase text-[#5F6A88]">
                 <span>Day 1 ({formatDate(startDate).toUpperCase()})</span>
-                <span>Day 120 ({formatDate(addDays(startDate, 119)).toUpperCase()})</span>
+                <span>Day {visibleDurationDays} ({formatDate(addDays(startDate, visibleDurationDays - 1)).toUpperCase()})</span>
               </div>
             </div>
             <div className="flex items-center gap-2 flex-wrap lg:shrink-0 lg:flex-nowrap">
@@ -1831,26 +2152,26 @@ export default function OnboardingDetail({
             }}
             className="overflow-x-auto rounded-2xl"
           >
-            <div className="relative" style={{ width: LABEL_WIDTH + TOTAL_DAYS * DAY_WIDTH }}>
+            <div className="relative" style={{ width: LABEL_WIDTH + visibleTotalDays * DAY_WIDTH }}>
               <div className="flex border-b border-[#E2E7F2]">
                 <div className="sticky left-0 shrink-0 border-r z-3 border-[#E2E7F2] bg-white" style={{ width: LABEL_WIDTH }} />
                 {days.map((day) => (
-                  <DateColumnHeader key={day} date={addDays(startDate, day - 1)} isToday={day === currentDay} />
+                  <DateColumnHeader key={day} date={addDays(startDate, day - 1)} isToday={day === gridMarkerDay} />
                 ))}
               </div>
 
-              {currentDay <= TOTAL_DAYS && (
+              {gridMarkerDay <= visibleTotalDays && (
                 <div
                   className="pointer-events-none absolute bottom-0 top-0 z-2 w-0 border-l-2 border-dashed border-[#FB914E]"
-                  style={{ left: LABEL_WIDTH + (currentDay - 1) * DAY_WIDTH + DAY_WIDTH / 2 }}
+                  style={{ left: LABEL_WIDTH + (gridMarkerDay - 1) * DAY_WIDTH + DAY_WIDTH / 2 }}
                 >
                   <div className="absolute -top-0.5 left-1/2 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded border border-[#F9C9A0] bg-[#FFEFE3] px-1.5 py-0.5 text-[9px] font-bold text-[#FB914E]">
-                    Day {currentDay}
+                    Day {gridMarkerDay}
                   </div>
                 </div>
               )}
 
-              {PROGRAMME_PHASES.map((phase, index) => (
+              {compressedPhases.map((phase, index) => (
                 <Swimlane
                   key={phase.number}
                   phase={phase}
@@ -1867,7 +2188,7 @@ export default function OnboardingDetail({
                       return next;
                     })
                   }
-                  onOpenWizardStep={handleOpenWizardStep}
+                  onOpenDeliverable={handleOpenPhaseDeliverable}
                   expandedDeliverable={expandedDeliverable}
                   onExpandDeliverable={setExpandedDeliverable}
                   canEditSchedule={canEditSchedule}
@@ -1875,6 +2196,7 @@ export default function OnboardingDetail({
                   index={index}
                   startDate={startDate}
                   role={role}
+                  totalDays={visibleTotalDays}
                 />
               ))}
             </div>

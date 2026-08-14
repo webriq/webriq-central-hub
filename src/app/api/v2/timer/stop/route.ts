@@ -4,9 +4,10 @@ import { attachTaskTitle } from "@/lib/timer/serialize";
 import { appendTimerEvent, type TimerEvent } from "@/lib/timer/timeline";
 
 // POST /api/v2/timer/stop — computes final hours server-side (never trust a client-supplied
-// duration), logs to time_logs, then clears the timer portion of the row. If a break is still
-// active, the row survives with only its break_* fields (a break can outlive the task timer
-// that triggered it); otherwise the row is deleted.
+// duration), logs to time_logs (task_id or issue_id, task 234 widens this from task-only), then
+// clears the timer portion of the row. If a break is still active, the row survives with only
+// its break_* fields (a break can outlive the task/issue timer that triggered it); otherwise the
+// row is deleted.
 export async function POST() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -14,11 +15,11 @@ export async function POST() {
 
   const { data: existing } = await supabase
     .from("active_timers")
-    .select("id, task_id, project_id, status, accumulated_seconds, segment_started_at, break_type, timeline")
+    .select("id, task_id, issue_id, project_id, status, accumulated_seconds, segment_started_at, break_type, timeline")
     .eq("user_id", user.id)
     .maybeSingle();
 
-  if (!existing?.task_id || !existing.project_id) {
+  if (!existing || (!existing.task_id && !existing.issue_id) || !existing.project_id) {
     return NextResponse.json({ error: "No active timer to stop" }, { status: 400 });
   }
 
@@ -36,6 +37,7 @@ export async function POST() {
   if (hours > 0) {
     const { error: logError } = await supabase.from("time_logs").insert({
       task_id: existing.task_id,
+      issue_id: existing.issue_id,
       project_id: existing.project_id,
       employee_id: user.id,
       date_logged: now.slice(0, 10),
@@ -57,6 +59,7 @@ export async function POST() {
       .from("active_timers")
       .update({
         task_id: null,
+        issue_id: null,
         project_id: null,
         status: null,
         accumulated_seconds: 0,

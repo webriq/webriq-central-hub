@@ -3,33 +3,33 @@
 import { Play, Pause, Square, Coffee, Timer } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
-import { useTimer } from "../../_components/timer-context";
+import { useTimer, type TimerEntityRef } from "../../_components/timer-context";
 import { formatMMSS } from "@/lib/timer/format";
 
 // Task 209 — replaces the old local-useState TimerButton. State now lives server-side
 // (active_timers, via TimerContext) so it survives navigation/refresh and can be seen/paused
 // from the hub-wide floating break widget, wherever the developer currently is.
-export function TaskTimerButton({
-  taskId,
-  projectId,
-  onHoursLogged,
-  prominent = false,
-}: {
-  taskId: string;
+// Task 234 — widened to accept either a task or an issue (mutually exclusive, `entity` prop).
+type TaskTimerButtonProps = TimerEntityRef & {
   projectId: string;
-  onHoursLogged: (taskId: string, hours: number) => void;
-  // Task 218 — opt-in, larger brand-orange "start" affordance for the task detail page header.
-  // Defaults to false so the list view's compact row icon is unchanged.
+  // Task 218 — bumped after a stop so the caller's Time Logs tab (task 214) can refetch.
+  // Optional — Issue Detail doesn't have a Time Logs tab yet (task 237 adds it).
+  onHoursLogged?: (hours: number) => void;
+  // Task 218 — opt-in, larger brand-orange "start" affordance for the task/issue detail page
+  // header. Defaults to false so the list view's compact row icon is unchanged.
   prominent?: boolean;
-}) {
+};
+
+export function TaskTimerButton({ projectId, onHoursLogged, prominent = false, ...entity }: TaskTimerButtonProps) {
   const { timer, elapsedSeconds, startTimer, pauseTimer, resumeTimer, stopTimer } = useTimer();
 
-  const isThisTask = timer?.task_id === taskId;
-  const isOtherActive = !!timer?.task_id && !isThisTask;
+  const entityId = "taskId" in entity ? entity.taskId : entity.issueId;
+  const isThisEntity = "taskId" in entity ? timer?.task_id === entityId : timer?.issue_id === entityId;
+  const isOtherActive = (!!timer?.task_id || !!timer?.issue_id) && !isThisEntity;
 
   async function handleStop() {
     const hours = await stopTimer();
-    if (hours) onHoursLogged(taskId, hours);
+    if (hours) onHoursLogged?.(hours);
   }
 
   if (isOtherActive) {
@@ -40,17 +40,17 @@ export function TaskTimerButton({
             <Play size={13} />
           </span>
         } />
-        <TooltipContent side="top">Timer running on another task</TooltipContent>
+        <TooltipContent side="top">Timer running on another task or issue</TooltipContent>
       </Tooltip>
     );
   }
 
-  if (!isThisTask || !timer) {
+  if (!isThisEntity || !timer) {
     return (
       <Tooltip>
         <TooltipTrigger render={
           <button
-            onClick={() => void startTimer(taskId, projectId)}
+            onClick={() => void startTimer(entity, projectId)}
             className={cn(
               "flex items-center justify-center transition-colors cursor-pointer",
               prominent

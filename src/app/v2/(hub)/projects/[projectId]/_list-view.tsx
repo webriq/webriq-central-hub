@@ -210,6 +210,7 @@ export default function ListView({
   hasActiveFilters,
   onClearFilters,
   onCreateNew,
+  scrollToTasklistId,
 }: {
   tasks: Task[];
   tasklists: Tasklist[];
@@ -229,6 +230,9 @@ export default function ListView({
   hasActiveFilters: boolean;
   onClearFilters: () => void;
   onCreateNew?: () => void;
+  // Task 241 — deep-link target from a Timeline swimlane deliverable card (`?tasklist=<id>`):
+  // scrolls that tasklist's group into view once its rows are on the page.
+  scrollToTasklistId?: string;
 }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
@@ -321,6 +325,22 @@ export default function ListView({
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tasks, tasklists, sortKey, sortDir]);
+
+  // Task 241 — scroll a deep-linked tasklist group into view once, the first time its rows are on
+  // the page. Groups start expanded by default (`collapsed` is only ever populated by an explicit
+  // user toggle), so no auto-expand is needed — the id just needs to exist in the DOM. Guarded by
+  // a ref (not just a `[scrollToTasklistId]` dep) because `groups` — needed in the dep array so
+  // the effect re-checks after the group's rows actually render — changes on every task edit/sort
+  // for the lifetime of the page; without the guard, any later edit would re-trigger a jarring
+  // scroll back to this group even after the user had scrolled elsewhere.
+  const scrolledToTasklistRef = useRef(false);
+  useEffect(() => {
+    if (!scrollToTasklistId || scrolledToTasklistRef.current) return;
+    const node = document.getElementById(`tasklist-group-${scrollToTasklistId}`);
+    if (!node) return;
+    node.scrollIntoView({ behavior: "smooth", block: "start" });
+    scrolledToTasklistRef.current = true;
+  }, [scrollToTasklistId, groups]);
 
   const childrenByParent = useMemo(() => {
     const map = new Map<string, Task[]>();
@@ -474,7 +494,7 @@ export default function ListView({
             const allGroupSelected = groupTaskIds.length > 0 && groupTaskIds.every((id) => selected.has(id));
 
             return (
-              <div key={g.id}>
+              <div key={g.id} id={`tasklist-group-${g.id}`}>
                 <div className="flex items-center bg-[#F4F6FB] border-b border-[#E2E7F2]">
                   <div className="w-8 shrink-0 flex items-center justify-center">
                     <input
@@ -660,7 +680,12 @@ function Row({
       {/* Timer */}
       <div className="flex items-center justify-center">
         {isAssignedToMe && (
-          <TaskTimerButton taskId={task.id} projectId={task.project_id} onHoursLogged={onHoursLogged} prominent />
+          <TaskTimerButton
+            taskId={task.id}
+            projectId={task.project_id}
+            onHoursLogged={(hours) => onHoursLogged(task.id, hours)}
+            prominent
+          />
         )}
       </div>
     </div>

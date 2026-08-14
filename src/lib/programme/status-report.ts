@@ -10,7 +10,7 @@
 // phase can finish in fewer days than its allotment (e.g. Onboard done in 10 of its 15 days) or
 // more (used > allotted), which is the whole point of the Used/Allotted + Overdue columns.
 
-import { PROGRAMME_PHASES, getCurrentProgrammeDay } from "@/config/customer-phases";
+import { PROGRAMME_PHASES, getCurrentProgrammeDay, resolveEffectivePhase } from "@/config/customer-phases";
 
 export type PhaseStatus = "pending" | "in_progress" | "completed" | "overdue" | "skipped";
 export type HealthTone = "on_track" | "at_risk" | "needs_attention" | "ahead_of_schedule" | null;
@@ -21,6 +21,10 @@ export const RISK_THRESHOLD_DAYS_OVERDUE = 3; // more than this many days over a
 export const RISK_THRESHOLD_DAYS_REMAINING = 2; // an active phase with this many allotted days or fewer left...
 export const RISK_THRESHOLD_DELIVERABLE_RATIO = 0.5; // ...and below this deliverable-completion ratio => early-warning at_risk
 
+// Static fallback (120) — used only when a project's actual phase set isn't available. Task 246:
+// a project's real total can now exceed this once a custom phase pushes past day 120;
+// buildPhaseBreakdown below derives the real per-project total from phaseRows instead of assuming
+// this constant, and returns it as totalProgrammeDays.
 export const TOTAL_PROGRAMME_DAYS = PROGRAMME_PHASES[PROGRAMME_PHASES.length - 1].dayEnd;
 
 // Fallback text shown when a phase has no real phase_members assignee yet — generic role-team
@@ -35,8 +39,8 @@ export const ASSIGNEE_PLACEHOLDER: Record<number, string> = {
   5: "PM + Dev",
 };
 
-export function programmeDaysLeft(currentProgrammeDay: number): number {
-  return Math.max(0, TOTAL_PROGRAMME_DAYS - currentProgrammeDay);
+export function programmeDaysLeft(currentProgrammeDay: number, totalProgrammeDays: number = TOTAL_PROGRAMME_DAYS): number {
+  return Math.max(0, totalProgrammeDays - currentProgrammeDay);
 }
 
 export type CustomerPhaseRow = {
@@ -45,6 +49,13 @@ export type CustomerPhaseRow = {
   actual_start_date: string | null;
   actual_completed_date: string | null;
   delay_note: string | null;
+  // Task 246 — override columns read via resolveEffectivePhase; null on every pre-migration row
+  // and any of the 5 defaults a PM never edited (falls back to PROGRAMME_PHASES, byte-identical
+  // to pre-task-246 behavior).
+  custom_name: string | null;
+  day_start_override: number | null;
+  day_end_override: number | null;
+  sort_order: number;
 };
 
 export type PhaseAssigneeMember = { id: string; fullName: string; roleLabel: string };
@@ -142,14 +153,23 @@ export type ProjectPhaseInputs = {
 
 export type ProjectPhaseBreakdown = {
   currentProgrammeDay: number;
+  totalProgrammeDays: number;
   phases: PhaseDerived[];
 };
 
+// Task 246: iterates the project's own phaseRows (defaults + any customs, resolved via
+// resolveEffectivePhase) instead of the static PROGRAMME_PHASES array — a custom phase now gets a
+// report row too, and totalProgrammeDays reflects this project's actual last phase, not a fixed
+// 120. Falls back to PROGRAMME_PHASES directly when phaseRows is empty (e.g. not yet seeded),
+// preserving the pre-task-246 default shape.
 export function buildPhaseBreakdown(inputs: ProjectPhaseInputs): ProjectPhaseBreakdown {
-  const currentProgrammeDay = Math.min(TOTAL_PROGRAMME_DAYS, getCurrentProgrammeDay(inputs.programmeStartedAt));
+  const orderedRows = [...inputs.phaseRows].sort((a, b) => a.sort_order - b.sort_order);
+  const resolvedPhases = orderedRows.length > 0 ? orderedRows.map((row) => resolveEffectivePhase(row)) : PROGRAMME_PHASES;
+  const totalProgrammeDays = resolvedPhases.reduce((max, p) => Math.max(max, p.dayEnd), TOTAL_PROGRAMME_DAYS);
+  const currentProgrammeDay = Math.min(totalProgrammeDays, getCurrentProgrammeDay(inputs.programmeStartedAt));
   const rowByPhaseNumber = new Map(inputs.phaseRows.map((r) => [r.phase_number, r]));
 
-  const phases = PROGRAMME_PHASES.map((phase): PhaseDerived => {
+  const phases = resolvedPhases.map((phase): PhaseDerived => {
     const row = rowByPhaseNumber.get(phase.number);
     const allotedDays = phase.dayEnd - phase.dayStart + 1;
     const usedDays = computeUsedDays(row?.actual_start_date ?? null, row?.actual_completed_date ?? null);
@@ -179,7 +199,7 @@ export function buildPhaseBreakdown(inputs: ProjectPhaseInputs): ProjectPhaseBre
     };
   });
 
-  return { currentProgrammeDay, phases };
+  return { currentProgrammeDay, totalProgrammeDays, phases };
 }
 
 // The phase to headline in the collapsed table row — the first non-completed/non-skipped phase

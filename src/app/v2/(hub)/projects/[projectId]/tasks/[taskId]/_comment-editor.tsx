@@ -7,7 +7,7 @@ import Image from "@tiptap/extension-image";
 import { cn } from "@/lib/utils";
 
 // Rich-text comment composer (task 212) — same Tiptap stack/toolbar as
-// ../_task-description-field.tsx, rebuilt locally rather than shared: a composer tracks its
+// ../_description-field.tsx, rebuilt locally rather than shared: a composer tracks its
 // content live via onUpdate (not onBlur) and resets via a parent-driven `key` remount (see
 // TaskComments), a different lifecycle than the Description field's edit-in-place/save-on-blur.
 export function CommentEditor({
