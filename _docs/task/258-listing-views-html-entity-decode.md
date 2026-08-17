@@ -4,7 +4,7 @@
 **Priority:** MEDIUM
 **Type:** bug
 **Recommended Tier:** fast
-**Status:** Testing
+**Status:** Completed
 
 ---
 
@@ -178,3 +178,18 @@ PASS
 
 ### Required Fixes
 - None.
+
+## Final Summary
+
+Closed task 194's leftover Requirement A scope (listing/board/calendar/milestone-detail HTML-entity decoding — the task-detail and issue-detail halves already shipped via tasks 206/234). Fixed the reported bug: a task title like "Fix ShipStation &amp; Test Orders Cleanup" rendering the literal string `&amp;` instead of `&` on the Tasks tab, because React doesn't decode HTML entities in interpolated JSX text and Zoho's export encoded `&` at import time.
+
+Wrapped 24 raw title/name interpolations across 11 files in the existing `decodeHtmlEntities()` helper (`_pm-shared.tsx`, unmodified — already proven in `_task-detail.tsx`/`_issue-detail.tsx`): task titles (list/board/calendar views), issue titles (list/board/calendar views), tasklist/group names (list view header, milestone swimlane deliverable cards), milestone names (swimlane lane header, milestone panel, milestone bar chip + its rename input), subtask titles (task drawer), and milestone-detail's task rows. Also included 3 sites beyond 194's original 7-site scope (tasklist/milestone names, subtask titles) since they're the identical defect class with the identical one-line fix.
+
+`_milestone-bar.tsx`'s rename input decodes for display (`defaultValue`) but its `onBlur` change-detection guard was deliberately left comparing against the raw `m.name`, so opening and blurring the field without editing still correctly no-ops instead of firing a spurious PATCH.
+
+`npx tsc --noEmit` and `pnpm lint` both clean (lint's only output is the 2 pre-existing unrelated warnings in `_checklist-tab.tsx` seen across other recent tasks). No live browser verification was run in this session — no dev server/browser session was started during implementation — this is a disclosed gap, consistent with several other recently completed tasks in this tracker; the change itself is low-risk (a pure wrap-on-read of an already-shipped, unmodified utility function around existing interpolations, no new logic, no styling changes) and mirrors an identical, already-verified-in-production pattern from tasks 206/234.
+
+```bash
+npx tsc --noEmit   # PASS
+pnpm lint          # PASS (2 pre-existing warnings in _checklist-tab.tsx, unrelated)
+```
