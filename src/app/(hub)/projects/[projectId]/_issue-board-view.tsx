@@ -9,7 +9,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { Calendar } from "lucide-react";
 import {
-  type Issue, BOARD_COLUMNS, SEVERITY_STYLE, formatDueDate, normalizeStatus, normalizeSeverity,
+  type Issue, BOARD_COLUMNS, SEVERITY_STYLE, formatDueDate, normalizeStatus, normalizeSeverity, decodeHtmlEntities,
 } from "../_pm-shared";
 
 // Issues have no `position` column (unlike tasks) — board drag only changes status
@@ -153,7 +153,7 @@ function CardBody({ issue, dragging }: { issue: Issue; dragging?: boolean }) {
     >
       <div className="flex items-start gap-2">
         <span className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0" style={{ background: sv.dot }} />
-        <p className="text-[13px] font-medium text-[#0B1533] leading-snug flex-1">{issue.title}</p>
+        <p className="text-[13px] font-medium text-[#0B1533] leading-snug flex-1">{decodeHtmlEntities(issue.title)}</p>
       </div>
       <div className="flex items-center gap-2 mt-2.5 pl-3.5 flex-wrap">
         <span className="text-[10px] font-medium" style={{ color: sv.text }}>{sv.label}</span>

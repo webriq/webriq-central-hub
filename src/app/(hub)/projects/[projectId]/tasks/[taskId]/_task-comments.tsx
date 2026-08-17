@@ -5,7 +5,7 @@ import { MessageSquare, Loader2, FileText, Image as ImageIcon } from "lucide-rea
 import { createClient } from "@/lib/supabase/client";
 import { formatRelativeTime, formatDate, cn } from "@/lib/utils";
 import { formatClockTime } from "@/lib/timer/format";
-import { OwnerChip } from "../../../_pm-shared";
+import { OwnerChip, normalizeZohoDescriptionHtml } from "../../../_pm-shared";
 import { CommentEditor } from "./_comment-editor";
 import { TaskAttachmentPicker } from "../../_task-attachment-picker";
 import { TaskAttachmentViewerModal } from "./_task-attachment-viewer-modal";
@@ -164,16 +164,21 @@ export function TaskComments({ taskId }: { taskId: string }) {
           <p className="text-[12px] text-[#5F6A88]">No comments yet</p>
         </div>
       ) : (
-        <ul className="flex flex-col gap-3.5">
+        <ul className="flex flex-col divide-y divide-dashed divide-[#E2E7F2]">
           {comments.map((c) => (
-            <li key={c.id} className="flex items-start gap-2.5 group">
+            <li key={c.id} className="flex items-start gap-2.5 group pt-1.75 pb-1.75 first:pt-0 last:pb-0">
               <OwnerChip name={c.author_name} />
               <div className="flex-1 min-w-0">
                 <div className="flex items-baseline gap-2">
                   <span className="text-[12px] font-semibold text-[#0B1533]">{c.author_name}</span>
                   <span className="text-[10px] font-mono text-[#5F6A88] whitespace-nowrap">
                     {formatRelativeTime(c.created_at)}
-                    <span className="inline-block max-w-0 group-hover:max-w-[200px] overflow-hidden whitespace-nowrap text-[#8A93AC] transition-[max-width] duration-200 ease-out">
+                    {/* Task 257, Requirement D — same fix as _issue-comments.tsx: `inline-block` +
+                        `overflow-hidden` falls back to the bottom margin edge as the baseline
+                        (CSS2.1 §10.8.1), which differs from the surrounding text baseline and makes
+                        this `items-baseline` row jump on hover. `inline-flex` doesn't have that
+                        overflow-triggered special case. */}
+                    <span className="inline-flex items-baseline max-w-0 group-hover:max-w-[200px] overflow-hidden whitespace-nowrap text-[#8A93AC] transition-[max-width] duration-200 ease-out">
                       {" · "}{formatDate(c.created_at)} {formatClockTime(c.created_at)}
                     </span>
                   </span>
@@ -181,11 +186,20 @@ export function TaskComments({ taskId }: { taskId: string }) {
                 <div
                   className={cn(
                     "text-[13px] text-[#3A4565] leading-relaxed mt-0.5",
+                    // `<div>`-per-line spacing (Zoho-imported comment bodies use the same raw
+                    // `<div>text<br/></div>` line shape the Description field normalizes — but
+                    // Description gets converted to `<p>` for free by Tiptap's HTML parser, while
+                    // this is a raw dangerouslySetInnerHTML render, so `<div>` needs its own
+                    // margin rule mirroring `<p>`'s or every line renders flush against the next).
+                    "[&_div]:my-1 [&_div:first-child]:mt-0 [&_div:last-child]:mb-0",
                     "[&_p]:my-1 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pl-5 [&_ol]:pl-5 [&_li]:my-0.5",
                     "[&_a]:text-[#0063D6] [&_a]:underline [&_img]:max-w-full [&_img]:rounded-[8px] [&_img]:my-1.5"
                   )}
-                  // Staff-authored comment HTML — same trust boundary as the Description field's rendered content (task 206)
-                  dangerouslySetInnerHTML={{ __html: c.body }}
+                  // Staff-authored comment HTML — same trust boundary as the Description field's rendered content (task 206).
+                  // normalizeZohoDescriptionHtml absolutizes Zoho's portal-relative inline image
+                  // srcs and strips Zoho's own per-line trailing <br/> — same treatment Description
+                  // gets, needed here for the same reason (task 257 follow-up).
+                  dangerouslySetInnerHTML={{ __html: normalizeZohoDescriptionHtml(c.body) }}
                 />
                 {c.attachments.length > 0 && (
                   <ul className="flex flex-col gap-1 mt-1.5">

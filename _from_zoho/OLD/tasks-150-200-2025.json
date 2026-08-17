@@ -1204,8 +1204,8 @@
     "billing_type": "none",
     "log_hours": {
       "billable_hours": "00:00",
-      "non_billable_hours": "14:00",
-      "total_hours": "14:00"
+      "non_billable_hours": "13:30",
+      "total_hours": "13:30"
     },
     "association_info": {
       "has_reminder": false,
@@ -3100,97 +3100,6 @@
       "has_forums": false,
       "has_subtasks": false,
       "has_bugs": true
-    },
-    "_zoho_project_id": "1512955000000427355"
-  },
-  {
-    "project": {
-      "id": "1512955000000427355",
-      "name": "PeerSource"
-    },
-    "milestone": {
-      "id": "1512955000000000073",
-      "name": "None"
-    },
-    "tasklist": {
-      "id": "1512955000000936593",
-      "name": "General"
-    },
-    "id": "1512955000020112035",
-    "prefix": "",
-    "name": "Oncology Testimonials update",
-    "description": "<div style=\"font-size:0.9285rem\"><ol style=\"outline:0px; color:rgb(0, 0, 0); font-style:normal; font-weight:400; letter-spacing:0.2px; orphans:2; text-indent:0px; text-transform:none; widows:2; word-spacing:0px; white-space:normal; background-color:rgb(255, 255, 255); margin-top:0in\" type=\"1\" start=\"1\"><li style=\"outline:0px; margin-left:0in\"><span style=\"outline:0px\">Underneath the Google Reviews widget, we have 7 testimonials.&nbsp; Can we please get rid of all the commas after the titles, i.e. “Administrative Director of Cancer Center , , ” and “Director of Radiation Oncology , “</span><br/></li></ol><div><br/></div><div><a target=\"_blank\" href=\"https://www.mypeersource.com/oncology/testimonials\">https://www.mypeersource.com/oncology/testimonials<img src=\"/portal/viewInlineAttachment/image?file=projects-f942295bd562df6a41cfc90397b807249430665407b8cc3825241bfd9dd8830e90070779d19a326541bb54f22e5a0089\" width=\"400\" height=\"190\"/></a><br/></div></div>",
-    "status": {
-      "id": "1512955000000016071",
-      "name": "Closed",
-      "color": "#a9b2c0",
-      "color_hexcode": "#a9b2c0",
-      "is_closed_type": true
-    },
-    "priority": "none",
-    "owners_and_work": {
-      "work_type": "standard",
-      "total_work": "12:00",
-      "unit": "hours_per_day",
-      "copy_task_duration": true,
-      "owners": [
-        {
-          "zuid": 900288881,
-          "zpuid": "1512955000017126081",
-          "name": "Miguel Franco Trinidad",
-          "email": "miguel.trinidad@webriq.services",
-          "first_name": "Miguel Franco",
-          "last_name": "Trinidad",
-          "work_values": "12:00"
-        }
-      ],
-      "refresh_business_hours": false
-    },
-    "start_date": "2026-08-09T23:00:00.000Z",
-    "end_date": "2026-08-10T11:00:00.000Z",
-    "completed_on": "2026-08-10T07:29:14.861Z",
-    "duration": {
-      "value": "1",
-      "type": "days"
-    },
-    "completion_percentage": 100,
-    "sequence": {
-      "sequence": 400712486
-    },
-    "depth": 0,
-    "created_time": "2026-08-10T01:45:38.200Z",
-    "last_modified_time": "2026-08-10T07:29:14.861Z",
-    "is_completed": true,
-    "created_via": "web",
-    "created_by": {
-      "zuid": 871125681,
-      "zpuid": "1512955000013630159",
-      "name": "April",
-      "email": "april.trocio@webriq.services",
-      "first_name": "April Grace",
-      "last_name": "Trocio"
-    },
-    "updated_by": {
-      "zuid": 871125681,
-      "zpuid": "1512955000013630159",
-      "name": "April",
-      "email": "april.trocio@webriq.services",
-      "first_name": "April Grace",
-      "last_name": "Trocio"
-    },
-    "billing_type": "none",
-    "log_hours": {
-      "billable_hours": "00:00",
-      "non_billable_hours": "00:25",
-      "total_hours": "00:25"
-    },
-    "association_info": {
-      "has_reminder": false,
-      "has_recurrence": false,
-      "has_comments": true,
-      "has_attachments": false,
-      "has_forums": false,
-      "has_subtasks": false
     },
     "_zoho_project_id": "1512955000000427355"
   },
@@ -9492,7 +9401,7 @@
     },
     "depth": 0,
     "created_time": "2025-07-27T23:31:00.740Z",
-    "last_modified_time": "2026-07-01T07:28:48.608Z",
+    "last_modified_time": "2026-06-01T02:03:42.154Z",
     "is_completed": false,
     "created_via": "web",
     "created_by": {
@@ -12513,8 +12422,8 @@
     "billing_type": "none",
     "log_hours": {
       "billable_hours": "00:00",
-      "non_billable_hours": "78:35",
-      "total_hours": "78:35"
+      "non_billable_hours": "73:02",
+      "total_hours": "73:02"
     },
     "association_info": {
       "has_reminder": false,
@@ -12636,11 +12545,11 @@
     "name": "WebriQ Revamp",
     "description": "<div style=\"font-size:0.9285rem\"><div><br/></div></div>",
     "status": {
-      "id": "1512955000000016071",
-      "name": "Closed",
-      "color": "#f56b62",
-      "color_hexcode": "#f56b62",
-      "is_closed_type": true
+      "id": "1512955000000043013",
+      "name": "In progress",
+      "color": "#fbc11e",
+      "color_hexcode": "#fbc11e",
+      "is_closed_type": false
     },
     "priority": "none",
     "owners_and_work": {
@@ -12670,19 +12579,18 @@
       ],
       "refresh_business_hours": false
     },
-    "completed_on": "2026-07-06T09:59:46.480Z",
     "duration": {
       "value": "0",
       "type": "days"
     },
-    "completion_percentage": 100,
+    "completion_percentage": 0,
     "sequence": {
-      "sequence": 7283178563
+      "sequence": 2427726187
     },
     "depth": 0,
     "created_time": "2026-06-18T09:22:47.475Z",
-    "last_modified_time": "2026-07-06T09:59:46.480Z",
-    "is_completed": true,
+    "last_modified_time": "2026-06-19T03:05:35.765Z",
+    "is_completed": false,
     "created_via": "web",
     "created_by": {
       "zuid": 814277754,
@@ -12705,457 +12613,6 @@
       "billable_hours": "00:00",
       "non_billable_hours": "53:04",
       "total_hours": "53:04"
-    },
-    "association_info": {
-      "has_reminder": false,
-      "has_recurrence": false,
-      "has_comments": false,
-      "has_attachments": false,
-      "has_forums": false,
-      "has_subtasks": true
-    },
-    "_zoho_project_id": "1512955000000233480"
-  },
-  {
-    "project": {
-      "id": "1512955000000233480",
-      "name": "WebriQ"
-    },
-    "milestone": {
-      "id": "1512955000000000073",
-      "name": "None"
-    },
-    "tasklist": {
-      "id": "1512955000000233526",
-      "name": "General"
-    },
-    "id": "1512955000019707124",
-    "prefix": "",
-    "name": "WebriQ Updates",
-    "description": "<div style=\"font-size:0.9285rem\"><div><br/></div></div>",
-    "status": {
-      "id": "1512955000000043013",
-      "name": "In progress",
-      "color": "#fbc11e",
-      "color_hexcode": "#fbc11e",
-      "is_closed_type": false
-    },
-    "priority": "none",
-    "owners_and_work": {
-      "work_type": "standard",
-      "total_work": "00:00",
-      "unit": "hours_per_day",
-      "copy_task_duration": true,
-      "owners": [
-        {
-          "zuid": 836253155,
-          "zpuid": "1512955000010419263",
-          "name": "Ulrick Sanchez",
-          "email": "ulrick.sanchez@webriq.services",
-          "first_name": "Ulrick",
-          "last_name": "Sanchez",
-          "work_values": "0"
-        }
-      ],
-      "refresh_business_hours": false
-    },
-    "duration": {
-      "value": "0",
-      "type": "days"
-    },
-    "completion_percentage": 0,
-    "sequence": {
-      "sequence": 9161745699363382000
-    },
-    "depth": 0,
-    "created_time": "2026-06-30T06:36:51.513Z",
-    "last_modified_time": "2026-06-30T06:36:56.907Z",
-    "is_completed": false,
-    "created_via": "web",
-    "created_by": {
-      "zuid": 836253155,
-      "zpuid": "1512955000010419263",
-      "name": "Ulrick Sanchez",
-      "email": "ulrick.sanchez@webriq.services",
-      "first_name": "Ulrick",
-      "last_name": "Sanchez"
-    },
-    "updated_by": {
-      "zuid": 836253155,
-      "zpuid": "1512955000010419263",
-      "name": "Ulrick Sanchez",
-      "email": "ulrick.sanchez@webriq.services",
-      "first_name": "Ulrick",
-      "last_name": "Sanchez"
-    },
-    "billing_type": "none",
-    "log_hours": {
-      "billable_hours": "00:00",
-      "non_billable_hours": "18:12",
-      "total_hours": "18:12"
-    },
-    "association_info": {
-      "has_reminder": false,
-      "has_recurrence": false,
-      "has_comments": false,
-      "has_attachments": false,
-      "has_forums": false,
-      "has_subtasks": false
-    },
-    "_zoho_project_id": "1512955000000233480"
-  },
-  {
-    "project": {
-      "id": "1512955000000233480",
-      "name": "WebriQ"
-    },
-    "milestone": {
-      "id": "1512955000000000073",
-      "name": "None"
-    },
-    "tasklist": {
-      "id": "1512955000000233526",
-      "name": "General"
-    },
-    "parental_info": {
-      "parent_task_id": "1512955000016502001",
-      "root_task_id": "1512955000016502001"
-    },
-    "id": "1512955000019713101",
-    "prefix": "",
-    "name": "July 2026 | WebriQ.Com Blog (16+)",
-    "description": "",
-    "status": {
-      "id": "1512955000000043013",
-      "name": "In progress",
-      "color": "#fbc11e",
-      "color_hexcode": "#fbc11e",
-      "is_closed_type": false
-    },
-    "priority": "none",
-    "owners_and_work": {
-      "work_type": "standard",
-      "total_work": "00:00",
-      "unit": "hours_per_day",
-      "copy_task_duration": true,
-      "owners": [
-        {
-          "zuid": 836251664,
-          "zpuid": "1512955000010417288",
-          "name": "Eri",
-          "email": "erica.inocian@webriq.services",
-          "first_name": "Erica",
-          "last_name": "Inocian",
-          "work_values": "0"
-        }
-      ],
-      "refresh_business_hours": false
-    },
-    "duration": {
-      "value": "0",
-      "type": "days"
-    },
-    "completion_percentage": 0,
-    "sequence": {
-      "sequence": 9161745699363382000,
-      "subtask_sequence": 151090578732419
-    },
-    "depth": 1,
-    "created_time": "2026-07-01T07:28:48.608Z",
-    "last_modified_time": "2026-07-01T07:28:55.471Z",
-    "is_completed": false,
-    "created_via": "web",
-    "created_by": {
-      "zuid": 836251664,
-      "zpuid": "1512955000010417288",
-      "name": "Eri",
-      "email": "erica.inocian@webriq.services",
-      "first_name": "Erica",
-      "last_name": "Inocian"
-    },
-    "updated_by": {
-      "zuid": 836251664,
-      "zpuid": "1512955000010417288",
-      "name": "Eri",
-      "email": "erica.inocian@webriq.services",
-      "first_name": "Erica",
-      "last_name": "Inocian"
-    },
-    "billing_type": "none",
-    "log_hours": {
-      "billable_hours": "00:00",
-      "non_billable_hours": "55:16",
-      "total_hours": "55:16"
-    },
-    "association_info": {
-      "has_reminder": false,
-      "has_recurrence": false,
-      "has_comments": false,
-      "has_attachments": false,
-      "has_forums": false,
-      "has_subtasks": false,
-      "has_parents": true
-    },
-    "_zoho_project_id": "1512955000000233480"
-  },
-  {
-    "project": {
-      "id": "1512955000000233480",
-      "name": "WebriQ"
-    },
-    "milestone": {
-      "id": "1512955000000000073",
-      "name": "None"
-    },
-    "tasklist": {
-      "id": "1512955000012387246",
-      "name": "Learn NextJS"
-    },
-    "parental_info": {
-      "parent_task_id": "1512955000019642012",
-      "root_task_id": "1512955000019642012"
-    },
-    "id": "1512955000019730005",
-    "prefix": "",
-    "name": "Fix Agents pages",
-    "description": "<div style=\"font-size:0.9285rem\"><div><br /></div></div>",
-    "status": {
-      "id": "1512955000000016071",
-      "name": "Closed",
-      "color": "#f56b62",
-      "color_hexcode": "#f56b62",
-      "is_closed_type": true
-    },
-    "priority": "none",
-    "owners_and_work": {
-      "work_type": "standard",
-      "total_work": "00:00",
-      "unit": "hours_per_day",
-      "copy_task_duration": true,
-      "owners": [
-        {
-          "zuid": 814277754,
-          "zpuid": "1512955000009122237",
-          "name": "Mariel Genodiala",
-          "email": "mariel.genodiala@webriq.services",
-          "first_name": "Mariel",
-          "last_name": "Genodiala",
-          "work_values": "0"
-        }
-      ],
-      "refresh_business_hours": false
-    },
-    "completed_on": "2026-07-01T10:20:02.474Z",
-    "duration": {
-      "value": "0",
-      "type": "days"
-    },
-    "completion_percentage": 100,
-    "sequence": {
-      "sequence": 4855452376,
-      "subtask_sequence": 75
-    },
-    "depth": 1,
-    "created_time": "2026-07-01T10:19:22.385Z",
-    "last_modified_time": "2026-07-01T10:20:02.474Z",
-    "is_completed": true,
-    "created_via": "web",
-    "created_by": {
-      "zuid": 814277754,
-      "zpuid": "1512955000009122237",
-      "name": "Mariel Genodiala",
-      "email": "mariel.genodiala@webriq.services",
-      "first_name": "Mariel",
-      "last_name": "Genodiala"
-    },
-    "updated_by": {
-      "zuid": 814277754,
-      "zpuid": "1512955000009122237",
-      "name": "Mariel Genodiala",
-      "email": "mariel.genodiala@webriq.services",
-      "first_name": "Mariel",
-      "last_name": "Genodiala"
-    },
-    "billing_type": "none",
-    "log_hours": {
-      "billable_hours": "00:00",
-      "non_billable_hours": "03:06",
-      "total_hours": "03:06"
-    },
-    "association_info": {
-      "has_reminder": false,
-      "has_recurrence": false,
-      "has_comments": false,
-      "has_attachments": false,
-      "has_forums": false,
-      "has_subtasks": false,
-      "has_parents": true
-    },
-    "_zoho_project_id": "1512955000000233480"
-  },
-  {
-    "project": {
-      "id": "1512955000000233480",
-      "name": "WebriQ"
-    },
-    "milestone": {
-      "id": "1512955000000000073",
-      "name": "None"
-    },
-    "tasklist": {
-      "id": "1512955000000233526",
-      "name": "General"
-    },
-    "id": "1512955000019730103",
-    "prefix": "",
-    "name": "WebriQ Site Updates",
-    "status": {
-      "id": "1512955000000043013",
-      "name": "In progress",
-      "color": "#fbc11e",
-      "color_hexcode": "#fbc11e",
-      "is_closed_type": false
-    },
-    "priority": "none",
-    "owners_and_work": {
-      "work_type": "standard",
-      "total_work": "00:00",
-      "unit": "hours",
-      "copy_task_duration": false,
-      "owners": [
-        {
-          "zuid": 854392166,
-          "zpuid": "1512955000012444001",
-          "name": "Mark John Mejias",
-          "email": "markjohn.mejias@webriq.services",
-          "first_name": "Mark John",
-          "last_name": "Mejias",
-          "work_values": "0"
-        }
-      ],
-      "refresh_business_hours": false
-    },
-    "duration": {
-      "value": "0",
-      "type": "days"
-    },
-    "completion_percentage": 0,
-    "sequence": {
-      "sequence": 9161745699363382000
-    },
-    "depth": 0,
-    "created_time": "2026-07-02T07:16:49.453Z",
-    "last_modified_time": "2026-07-02T07:17:04.849Z",
-    "is_completed": false,
-    "created_via": "Projects",
-    "created_by": {
-      "zuid": 854392166,
-      "zpuid": "1512955000012444001",
-      "name": "Mark John Mejias",
-      "email": "markjohn.mejias@webriq.services",
-      "first_name": "Mark John",
-      "last_name": "Mejias"
-    },
-    "updated_by": {
-      "zuid": 854392166,
-      "zpuid": "1512955000012444001",
-      "name": "Mark John Mejias",
-      "email": "markjohn.mejias@webriq.services",
-      "first_name": "Mark John",
-      "last_name": "Mejias"
-    },
-    "billing_type": "none",
-    "log_hours": {
-      "billable_hours": "00:00",
-      "non_billable_hours": "23:38",
-      "total_hours": "23:38"
-    },
-    "association_info": {
-      "has_reminder": false,
-      "has_recurrence": false,
-      "has_comments": false,
-      "has_attachments": false,
-      "has_forums": false,
-      "has_subtasks": false
-    },
-    "_zoho_project_id": "1512955000000233480"
-  },
-  {
-    "project": {
-      "id": "1512955000000233480",
-      "name": "WebriQ"
-    },
-    "milestone": {
-      "id": "1512955000000000073",
-      "name": "None"
-    },
-    "tasklist": {
-      "id": "1512955000000233526",
-      "name": "General"
-    },
-    "id": "1512955000019894001",
-    "prefix": "",
-    "name": "WebriQ Site QA / QC",
-    "status": {
-      "id": "1512955000000043013",
-      "name": "In progress",
-      "color": "#fbc11e",
-      "color_hexcode": "#fbc11e",
-      "is_closed_type": false
-    },
-    "priority": "none",
-    "owners_and_work": {
-      "work_type": "standard",
-      "total_work": "00:00",
-      "unit": "hours",
-      "copy_task_duration": false,
-      "owners": [
-        {
-          "zuid": 854392166,
-          "zpuid": "1512955000012444001",
-          "name": "Mark John Mejias",
-          "email": "markjohn.mejias@webriq.services",
-          "first_name": "Mark John",
-          "last_name": "Mejias",
-          "work_values": "0"
-        }
-      ],
-      "refresh_business_hours": false
-    },
-    "duration": {
-      "value": "0",
-      "type": "days"
-    },
-    "completion_percentage": 0,
-    "sequence": {
-      "sequence": 9161745699363382000
-    },
-    "depth": 0,
-    "created_time": "2026-07-17T08:39:11.663Z",
-    "last_modified_time": "2026-07-17T08:39:24.456Z",
-    "is_completed": false,
-    "created_via": "Projects",
-    "created_by": {
-      "zuid": 854392166,
-      "zpuid": "1512955000012444001",
-      "name": "Mark John Mejias",
-      "email": "markjohn.mejias@webriq.services",
-      "first_name": "Mark John",
-      "last_name": "Mejias"
-    },
-    "updated_by": {
-      "zuid": 854392166,
-      "zpuid": "1512955000012444001",
-      "name": "Mark John Mejias",
-      "email": "markjohn.mejias@webriq.services",
-      "first_name": "Mark John",
-      "last_name": "Mejias"
-    },
-    "billing_type": "none",
-    "log_hours": {
-      "billable_hours": "00:00",
-      "non_billable_hours": "01:11",
-      "total_hours": "01:11"
     },
     "association_info": {
       "has_reminder": false,
@@ -13255,5 +12712,2148 @@
       "has_parents": true
     },
     "_zoho_project_id": "1512955000000177087"
+  },
+  {
+    "project": {
+      "id": "1512955000000082224",
+      "name": "Swamp Fox Optics"
+    },
+    "milestone": {
+      "id": "1512955000000000073",
+      "name": "None"
+    },
+    "tasklist": {
+      "id": "1512955000000881353",
+      "name": "General"
+    },
+    "id": "1512955000015731503",
+    "prefix": "",
+    "name": "Custom Link in the Shop Categories",
+    "description": "<b>Loom:&nbsp;</b><div><div><a style=\"color:rgb(18, 100, 163); text-decoration:none; cursor:pointer; font-family:Slack-Lato, Slack-Fractions, appleLogo, sans-serif; font-size:15px; font-style:normal; font-weight:400; letter-spacing:normal; orphans:2; text-align:left; text-indent:0px; text-transform:none; widows:2; word-spacing:0px; white-space:normal; background-color:rgb(255, 255, 255)\" href=\"https://www.loom.com/share/c32bab970b3d492196eb30a3f1bd78ca\" target=\"_blank\">https://www.loom.com/share/c32bab970b3d492196eb30a3f1bd78ca</a><span style=\"background-color:rgb(255, 255, 255)\"><span style=\"color:rgb(29, 28, 29)\"><span style=\"font-family:Slack-Lato, Slack-Fractions, appleLogo, sans-serif\"><span style=\"font-size:15px; font-style:normal; font-weight:400; letter-spacing:normal; orphans:2; text-align:left; text-indent:0px; text-transform:none; widows:2; word-spacing:0px; white-space:normal; float:none\">.<br /></span></span></span></span></div><span style=\"background-color:rgb(248, 248, 248)\"><span style=\"color:rgb(29, 28, 29)\"><span style=\"font-family:Slack-Lato, Slack-Fractions, appleLogo, sans-serif\"><span style=\"font-size:15px; font-style:normal; font-weight:400; letter-spacing:normal; orphans:2; text-align:left; text-indent:0px; text-transform:none; widows:2; word-spacing:0px; white-space:normal; float:none\"><br />Yes basically, it will probably have to be adjusted on the &quot;add item&quot;. currently in order to add a parent level item like &quot;Hot Deals&quot; or &quot;Dot Sights&quot; it must be a collection. if that changes to be a collection or a link to a page in the site that would be what we need.<br /></span></span></span></span></div>",
+    "status": {
+      "id": "1512955000000016071",
+      "name": "Closed",
+      "color": "#f56b62",
+      "color_hexcode": "#f56b62",
+      "is_closed_type": true
+    },
+    "priority": "none",
+    "owners_and_work": {
+      "work_type": "standard",
+      "total_work": "00:00",
+      "unit": "hours_per_day",
+      "copy_task_duration": true,
+      "owners": [
+        {
+          "zuid": 740314075,
+          "zpuid": "1512955000002745423",
+          "name": "Yel",
+          "email": "mariel.filosopo@webriq.services",
+          "first_name": "Mariel Ann",
+          "last_name": "Filosopo",
+          "work_values": "0"
+        }
+      ],
+      "refresh_business_hours": false
+    },
+    "completed_on": "2025-12-17T05:27:47.281Z",
+    "duration": {
+      "value": "0",
+      "type": "days"
+    },
+    "completion_percentage": 100,
+    "sequence": {
+      "sequence": -520658300551698050
+    },
+    "depth": 0,
+    "created_time": "2025-05-27T03:36:39.956Z",
+    "last_modified_time": "2025-12-17T05:27:47.281Z",
+    "is_completed": true,
+    "created_via": "web",
+    "created_by": {
+      "zuid": 649537174,
+      "zpuid": "1512955000000050317",
+      "name": "Eleazar",
+      "email": "eleazar@webriq.services",
+      "first_name": "Eleazar",
+      "last_name": "Junsan"
+    },
+    "billing_type": "none",
+    "log_hours": {
+      "billable_hours": "02:53",
+      "non_billable_hours": "00:00",
+      "total_hours": "02:53"
+    },
+    "association_info": {
+      "has_reminder": false,
+      "has_recurrence": false,
+      "has_comments": true,
+      "has_attachments": true,
+      "has_forums": false,
+      "has_subtasks": false
+    },
+    "_zoho_project_id": "1512955000000082224"
+  },
+  {
+    "project": {
+      "id": "1512955000000082224",
+      "name": "Swamp Fox Optics"
+    },
+    "milestone": {
+      "id": "1512955000000000073",
+      "name": "None"
+    },
+    "tasklist": {
+      "id": "1512955000000881353",
+      "name": "General"
+    },
+    "id": "1512955000016522464",
+    "prefix": "",
+    "name": "Verify Adding Review to Product Page",
+    "description": "<div><div>Current process:<br /></div><div>1. User submits a review in the products page eg: Sentinel<br /></div><div>2. Admin received the Review via email.<br /></div></div><div>3. Admin goes to Sanity - Products - Sentinel - Reviews and manually add the Review<br /></div><div>4. Publish the new review<br /></div><div>5. Site rebuild and the Review should now become visible in the Sentinel product page<br /></div><div><br /></div><div>Verify if after a review is added from the studio its displayed on the product page (post build)<br /></div>",
+    "status": {
+      "id": "1512955000000016071",
+      "name": "Closed",
+      "color": "#f56b62",
+      "color_hexcode": "#f56b62",
+      "is_closed_type": true
+    },
+    "priority": "none",
+    "owners_and_work": {
+      "work_type": "standard",
+      "total_work": "00:00",
+      "unit": "hours_per_day",
+      "copy_task_duration": true,
+      "owners": [
+        {
+          "zuid": 740314075,
+          "zpuid": "1512955000002745423",
+          "name": "Yel",
+          "email": "mariel.filosopo@webriq.services",
+          "first_name": "Mariel Ann",
+          "last_name": "Filosopo",
+          "work_values": "0"
+        }
+      ],
+      "refresh_business_hours": false
+    },
+    "completed_on": "2025-07-31T05:29:59.000Z",
+    "duration": {
+      "value": "0",
+      "type": "days"
+    },
+    "completion_percentage": 100,
+    "sequence": {
+      "sequence": -520658300551698050
+    },
+    "depth": 0,
+    "created_time": "2025-07-31T06:03:24.194Z",
+    "last_modified_time": "2025-10-07T03:07:33.856Z",
+    "is_completed": true,
+    "created_via": "web",
+    "created_by": {
+      "zuid": 740314075,
+      "zpuid": "1512955000002745423",
+      "name": "Yel",
+      "email": "mariel.filosopo@webriq.services",
+      "first_name": "Mariel Ann",
+      "last_name": "Filosopo"
+    },
+    "billing_type": "none",
+    "log_hours": {
+      "billable_hours": "00:00",
+      "non_billable_hours": "01:02",
+      "total_hours": "01:02"
+    },
+    "association_info": {
+      "has_reminder": false,
+      "has_recurrence": false,
+      "has_comments": true,
+      "has_attachments": false,
+      "has_forums": false,
+      "has_subtasks": false
+    },
+    "_zoho_project_id": "1512955000000082224"
+  },
+  {
+    "project": {
+      "id": "1512955000000082224",
+      "name": "Swamp Fox Optics"
+    },
+    "milestone": {
+      "id": "1512955000000000073",
+      "name": "None"
+    },
+    "tasklist": {
+      "id": "1512955000000881353",
+      "name": "General"
+    },
+    "id": "1512955000016699346",
+    "prefix": "",
+    "name": "Product Reviews update",
+    "description": "<div><br /></div><pre style=\"margin:0px 26px 0px 0px; padding:0.1px 0px 0px; outline:0px; border:0px; vertical-align:baseline; background:rgb(247, 247, 247); font-family:inherit; text-shadow:none; text-align:left; overflow-wrap:break-word; white-space:pre-wrap; color:rgb(34, 34, 34); font-size:15.008px; font-style:normal; font-weight:400; letter-spacing:0.01px; orphans:2; text-indent:0px; text-transform:none; widows:2; word-spacing:0px\" dir=\"auto\"><div>Current Workflow:<br /></div><div>1. User leave a product reviews in the product_xyz<br /></div><div>2. Swampfox gets email notification from the WebriQ form reviews<br /></div><div>3. Swampfox team needs to manually do the following:<br /></div><div>    1. Login to Sanity<br /></div><div>    2. Go to the Products page -&gt; reviews tab -&gt; add the new review<br /></div><div>    3. Publish the review and done.<br /></div><div><br /></div><div>Current challenge:<br /></div><div>- The current integration is using a &quot;manual schema&quot; to add the review using a 'dropdown' field in Sanity which is open buggy meaning it does not scroll to the bottom of the reviews making it hard to manage.<br /></div><div><br /></div><div>Propose Solution:<br /></div><div>- Create a separate &quot;Reviews&quot; schema in Sanity<br /></div><div>- Reference the reviews from the product pages.<br /></div></pre><div><br /></div>",
+    "status": {
+      "id": "1512955000000043013",
+      "name": "In progress",
+      "color": "#fbc11e",
+      "color_hexcode": "#fbc11e",
+      "is_closed_type": false
+    },
+    "priority": "none",
+    "owners_and_work": {
+      "work_type": "standard",
+      "total_work": "96:00",
+      "unit": "hours_per_day",
+      "copy_task_duration": true,
+      "owners": [
+        {
+          "zuid": 845829841,
+          "zpuid": "1512955000011450285",
+          "name": "Renato Dulog",
+          "email": "renato.dulog@webriq.services",
+          "first_name": "Renato",
+          "last_name": "Dulog",
+          "work_values": "12:00"
+        },
+        {
+          "zuid": 854392166,
+          "zpuid": "1512955000012444001",
+          "name": "Mark John Mejias",
+          "email": "markjohn.mejias@webriq.services",
+          "first_name": "Mark John",
+          "last_name": "Mejias",
+          "work_values": "12:00"
+        }
+      ],
+      "refresh_business_hours": false
+    },
+    "start_date": "2025-08-11T23:00:00.000Z",
+    "end_date": "2025-08-15T11:00:00.000Z",
+    "duration": {
+      "value": "4",
+      "type": "days"
+    },
+    "completion_percentage": 0,
+    "sequence": {
+      "sequence": 8963042886578927000
+    },
+    "depth": 0,
+    "created_time": "2025-08-12T03:13:54.875Z",
+    "last_modified_time": "2025-08-26T01:38:59.583Z",
+    "is_completed": false,
+    "created_via": "web",
+    "created_by": {
+      "zuid": 871125681,
+      "zpuid": "1512955000013630159",
+      "name": "April",
+      "email": "april.trocio@webriq.services",
+      "first_name": "April Grace",
+      "last_name": "Trocio"
+    },
+    "billing_type": "none",
+    "log_hours": {
+      "billable_hours": "00:00",
+      "non_billable_hours": "15:23",
+      "total_hours": "15:23"
+    },
+    "association_info": {
+      "has_reminder": false,
+      "has_recurrence": false,
+      "has_comments": false,
+      "has_attachments": false,
+      "has_forums": false,
+      "has_subtasks": true
+    },
+    "_zoho_project_id": "1512955000000082224"
+  },
+  {
+    "project": {
+      "id": "1512955000000082224",
+      "name": "Swamp Fox Optics"
+    },
+    "milestone": {
+      "id": "1512955000000000073",
+      "name": "None"
+    },
+    "tasklist": {
+      "id": "1512955000000881353",
+      "name": "General"
+    },
+    "parental_info": {
+      "parent_task_id": "1512955000016699346",
+      "root_task_id": "1512955000016699346"
+    },
+    "id": "1512955000016737078",
+    "prefix": "",
+    "name": "Migrate reviews",
+    "description": "",
+    "status": {
+      "id": "1512955000000016068",
+      "name": "Open",
+      "color": "#74cb80",
+      "color_hexcode": "#74cb80",
+      "is_closed_type": false
+    },
+    "priority": "none",
+    "owners_and_work": {
+      "work_type": "standard",
+      "total_work": "00:00",
+      "unit": "hours_per_day",
+      "copy_task_duration": true,
+      "owners": [
+        {
+          "zuid": 854392166,
+          "zpuid": "1512955000012444001",
+          "name": "Mark John Mejias",
+          "email": "markjohn.mejias@webriq.services",
+          "first_name": "Mark John",
+          "last_name": "Mejias",
+          "work_values": "0"
+        }
+      ],
+      "refresh_business_hours": false
+    },
+    "duration": {
+      "value": "0",
+      "type": "days"
+    },
+    "completion_percentage": 0,
+    "sequence": {
+      "sequence": 8963042886578927000,
+      "subtask_sequence": 1
+    },
+    "depth": 1,
+    "created_time": "2025-08-14T03:11:52.672Z",
+    "last_modified_time": "2025-08-14T03:12:21.241Z",
+    "is_completed": false,
+    "created_via": "web",
+    "created_by": {
+      "zuid": 854392166,
+      "zpuid": "1512955000012444001",
+      "name": "Mark John Mejias",
+      "email": "markjohn.mejias@webriq.services",
+      "first_name": "Mark John",
+      "last_name": "Mejias"
+    },
+    "billing_type": "none",
+    "log_hours": {
+      "billable_hours": "00:00",
+      "non_billable_hours": "08:28",
+      "total_hours": "08:28"
+    },
+    "association_info": {
+      "has_reminder": false,
+      "has_recurrence": false,
+      "has_comments": false,
+      "has_attachments": false,
+      "has_forums": false,
+      "has_subtasks": false,
+      "has_parents": true
+    },
+    "_zoho_project_id": "1512955000000082224"
+  },
+  {
+    "project": {
+      "id": "1512955000000082224",
+      "name": "Swamp Fox Optics"
+    },
+    "milestone": {
+      "id": "1512955000000000073",
+      "name": "None"
+    },
+    "tasklist": {
+      "id": "1512955000000881353",
+      "name": "General"
+    },
+    "parental_info": {
+      "parent_task_id": "1512955000016699346",
+      "root_task_id": "1512955000016699346"
+    },
+    "id": "1512955000016737084",
+    "prefix": "",
+    "name": "Create new schema",
+    "description": "",
+    "status": {
+      "id": "1512955000000016068",
+      "name": "Open",
+      "color": "#74cb80",
+      "color_hexcode": "#74cb80",
+      "is_closed_type": false
+    },
+    "priority": "none",
+    "owners_and_work": {
+      "work_type": "standard",
+      "total_work": "00:00",
+      "unit": "hours_per_day",
+      "copy_task_duration": true,
+      "owners": [
+        {
+          "zuid": 854392166,
+          "zpuid": "1512955000012444001",
+          "name": "Mark John Mejias",
+          "email": "markjohn.mejias@webriq.services",
+          "first_name": "Mark John",
+          "last_name": "Mejias",
+          "work_values": "0"
+        }
+      ],
+      "refresh_business_hours": false
+    },
+    "duration": {
+      "value": "0",
+      "type": "days"
+    },
+    "completion_percentage": 0,
+    "sequence": {
+      "sequence": 8963042886578927000,
+      "subtask_sequence": 2
+    },
+    "depth": 1,
+    "created_time": "2025-08-14T03:12:12.183Z",
+    "last_modified_time": "2025-08-14T03:12:19.533Z",
+    "is_completed": false,
+    "created_via": "web",
+    "created_by": {
+      "zuid": 854392166,
+      "zpuid": "1512955000012444001",
+      "name": "Mark John Mejias",
+      "email": "markjohn.mejias@webriq.services",
+      "first_name": "Mark John",
+      "last_name": "Mejias"
+    },
+    "billing_type": "none",
+    "log_hours": {
+      "billable_hours": "00:00",
+      "non_billable_hours": "01:04",
+      "total_hours": "01:04"
+    },
+    "association_info": {
+      "has_reminder": false,
+      "has_recurrence": false,
+      "has_comments": false,
+      "has_attachments": false,
+      "has_forums": false,
+      "has_subtasks": false,
+      "has_parents": true
+    },
+    "_zoho_project_id": "1512955000000082224"
+  },
+  {
+    "project": {
+      "id": "1512955000000082224",
+      "name": "Swamp Fox Optics"
+    },
+    "milestone": {
+      "id": "1512955000000000073",
+      "name": "None"
+    },
+    "tasklist": {
+      "id": "1512955000000881353",
+      "name": "General"
+    },
+    "parental_info": {
+      "parent_task_id": "1512955000016699346",
+      "root_task_id": "1512955000016699346"
+    },
+    "id": "1512955000016754423",
+    "prefix": "",
+    "name": "Check on sanity write issue in live preview",
+    "description": "",
+    "status": {
+      "id": "1512955000000016068",
+      "name": "Open",
+      "color": "#74cb80",
+      "color_hexcode": "#74cb80",
+      "is_closed_type": false
+    },
+    "priority": "none",
+    "owners_and_work": {
+      "work_type": "standard",
+      "total_work": "00:00",
+      "unit": "hours_per_day",
+      "copy_task_duration": true,
+      "owners": [
+        {
+          "zuid": 854392166,
+          "zpuid": "1512955000012444001",
+          "name": "Mark John Mejias",
+          "email": "markjohn.mejias@webriq.services",
+          "first_name": "Mark John",
+          "last_name": "Mejias",
+          "work_values": "0"
+        }
+      ],
+      "refresh_business_hours": false
+    },
+    "duration": {
+      "value": "0",
+      "type": "days"
+    },
+    "completion_percentage": 0,
+    "sequence": {
+      "sequence": 8963042886578927000,
+      "subtask_sequence": 6
+    },
+    "depth": 1,
+    "created_time": "2025-08-18T02:05:17.534Z",
+    "last_modified_time": "2025-08-18T02:05:22.423Z",
+    "is_completed": false,
+    "created_via": "web",
+    "created_by": {
+      "zuid": 854392166,
+      "zpuid": "1512955000012444001",
+      "name": "Mark John Mejias",
+      "email": "markjohn.mejias@webriq.services",
+      "first_name": "Mark John",
+      "last_name": "Mejias"
+    },
+    "billing_type": "none",
+    "log_hours": {
+      "billable_hours": "00:00",
+      "non_billable_hours": "02:50",
+      "total_hours": "02:50"
+    },
+    "association_info": {
+      "has_reminder": false,
+      "has_recurrence": false,
+      "has_comments": false,
+      "has_attachments": false,
+      "has_forums": false,
+      "has_subtasks": false,
+      "has_parents": true
+    },
+    "_zoho_project_id": "1512955000000082224"
+  },
+  {
+    "project": {
+      "id": "1512955000000082224",
+      "name": "Swamp Fox Optics"
+    },
+    "milestone": {
+      "id": "1512955000000000073",
+      "name": "None"
+    },
+    "tasklist": {
+      "id": "1512955000000881353",
+      "name": "General"
+    },
+    "parental_info": {
+      "parent_task_id": "1512955000016699346",
+      "root_task_id": "1512955000016699346"
+    },
+    "id": "1512955000016765195",
+    "prefix": "",
+    "name": "Implement new review data source in the frontend",
+    "description": "",
+    "status": {
+      "id": "1512955000000016068",
+      "name": "Open",
+      "color": "#74cb80",
+      "color_hexcode": "#74cb80",
+      "is_closed_type": false
+    },
+    "priority": "none",
+    "owners_and_work": {
+      "work_type": "standard",
+      "total_work": "00:00",
+      "unit": "hours_per_day",
+      "copy_task_duration": true,
+      "owners": [
+        {
+          "zuid": 854392166,
+          "zpuid": "1512955000012444001",
+          "name": "Mark John Mejias",
+          "email": "markjohn.mejias@webriq.services",
+          "first_name": "Mark John",
+          "last_name": "Mejias",
+          "work_values": "0"
+        }
+      ],
+      "refresh_business_hours": false
+    },
+    "duration": {
+      "value": "0",
+      "type": "days"
+    },
+    "completion_percentage": 0,
+    "sequence": {
+      "sequence": 8963042886578927000,
+      "subtask_sequence": 3
+    },
+    "depth": 1,
+    "created_time": "2025-08-15T03:20:40.953Z",
+    "last_modified_time": "2025-08-15T03:20:49.543Z",
+    "is_completed": false,
+    "created_via": "web",
+    "created_by": {
+      "zuid": 854392166,
+      "zpuid": "1512955000012444001",
+      "name": "Mark John Mejias",
+      "email": "markjohn.mejias@webriq.services",
+      "first_name": "Mark John",
+      "last_name": "Mejias"
+    },
+    "billing_type": "none",
+    "log_hours": {
+      "billable_hours": "00:00",
+      "non_billable_hours": "05:19",
+      "total_hours": "05:19"
+    },
+    "association_info": {
+      "has_reminder": false,
+      "has_recurrence": false,
+      "has_comments": false,
+      "has_attachments": false,
+      "has_forums": false,
+      "has_subtasks": false,
+      "has_parents": true
+    },
+    "_zoho_project_id": "1512955000000082224"
+  },
+  {
+    "project": {
+      "id": "1512955000000082224",
+      "name": "Swamp Fox Optics"
+    },
+    "milestone": {
+      "id": "1512955000000000073",
+      "name": "None"
+    },
+    "tasklist": {
+      "id": "1512955000000881353",
+      "name": "General"
+    },
+    "parental_info": {
+      "parent_task_id": "1512955000016699346",
+      "root_task_id": "1512955000016699346"
+    },
+    "id": "1512955000016765530",
+    "prefix": "",
+    "name": "Review CRUD",
+    "description": "",
+    "status": {
+      "id": "1512955000000016068",
+      "name": "Open",
+      "color": "#74cb80",
+      "color_hexcode": "#74cb80",
+      "is_closed_type": false
+    },
+    "priority": "none",
+    "owners_and_work": {
+      "work_type": "standard",
+      "total_work": "00:00",
+      "unit": "hours_per_day",
+      "copy_task_duration": true,
+      "owners": [
+        {
+          "zuid": 854392166,
+          "zpuid": "1512955000012444001",
+          "name": "Mark John Mejias",
+          "email": "markjohn.mejias@webriq.services",
+          "first_name": "Mark John",
+          "last_name": "Mejias",
+          "work_values": "0"
+        }
+      ],
+      "refresh_business_hours": false
+    },
+    "duration": {
+      "value": "0",
+      "type": "days"
+    },
+    "completion_percentage": 0,
+    "sequence": {
+      "sequence": 8963042886578927000,
+      "subtask_sequence": 4
+    },
+    "depth": 1,
+    "created_time": "2025-08-15T08:39:09.043Z",
+    "last_modified_time": "2025-08-15T08:39:25.975Z",
+    "is_completed": false,
+    "created_via": "web",
+    "created_by": {
+      "zuid": 854392166,
+      "zpuid": "1512955000012444001",
+      "name": "Mark John Mejias",
+      "email": "markjohn.mejias@webriq.services",
+      "first_name": "Mark John",
+      "last_name": "Mejias"
+    },
+    "billing_type": "none",
+    "log_hours": {
+      "billable_hours": "00:00",
+      "non_billable_hours": "01:29",
+      "total_hours": "01:29"
+    },
+    "association_info": {
+      "has_reminder": false,
+      "has_recurrence": false,
+      "has_comments": false,
+      "has_attachments": false,
+      "has_forums": false,
+      "has_subtasks": false,
+      "has_parents": true
+    },
+    "_zoho_project_id": "1512955000000082224"
+  },
+  {
+    "project": {
+      "id": "1512955000000082224",
+      "name": "Swamp Fox Optics"
+    },
+    "milestone": {
+      "id": "1512955000000000073",
+      "name": "None"
+    },
+    "tasklist": {
+      "id": "1512955000000881353",
+      "name": "General"
+    },
+    "parental_info": {
+      "parent_task_id": "1512955000016699346",
+      "root_task_id": "1512955000016699346"
+    },
+    "id": "1512955000016765575",
+    "prefix": "",
+    "name": "Add user login",
+    "description": "",
+    "status": {
+      "id": "1512955000000016068",
+      "name": "Open",
+      "color": "#74cb80",
+      "color_hexcode": "#74cb80",
+      "is_closed_type": false
+    },
+    "priority": "none",
+    "owners_and_work": {
+      "work_type": "standard",
+      "total_work": "00:00",
+      "unit": "hours_per_day",
+      "copy_task_duration": true,
+      "owners": [
+        {
+          "zuid": 854392166,
+          "zpuid": "1512955000012444001",
+          "name": "Mark John Mejias",
+          "email": "markjohn.mejias@webriq.services",
+          "first_name": "Mark John",
+          "last_name": "Mejias",
+          "work_values": "0"
+        }
+      ],
+      "refresh_business_hours": false
+    },
+    "duration": {
+      "value": "0",
+      "type": "days"
+    },
+    "completion_percentage": 0,
+    "sequence": {
+      "sequence": 8963042886578927000,
+      "subtask_sequence": 5
+    },
+    "depth": 1,
+    "created_time": "2025-08-15T10:08:28.029Z",
+    "last_modified_time": "2025-08-15T10:08:34.174Z",
+    "is_completed": false,
+    "created_via": "web",
+    "created_by": {
+      "zuid": 854392166,
+      "zpuid": "1512955000012444001",
+      "name": "Mark John Mejias",
+      "email": "markjohn.mejias@webriq.services",
+      "first_name": "Mark John",
+      "last_name": "Mejias"
+    },
+    "billing_type": "none",
+    "log_hours": {
+      "billable_hours": "00:00",
+      "non_billable_hours": "01:30",
+      "total_hours": "01:30"
+    },
+    "association_info": {
+      "has_reminder": false,
+      "has_recurrence": false,
+      "has_comments": false,
+      "has_attachments": false,
+      "has_forums": false,
+      "has_subtasks": false,
+      "has_parents": true
+    },
+    "_zoho_project_id": "1512955000000082224"
+  },
+  {
+    "project": {
+      "id": "1512955000000082224",
+      "name": "Swamp Fox Optics"
+    },
+    "milestone": {
+      "id": "1512955000000000073",
+      "name": "None"
+    },
+    "tasklist": {
+      "id": "1512955000000881353",
+      "name": "General"
+    },
+    "parental_info": {
+      "parent_task_id": "1512955000016699346",
+      "root_task_id": "1512955000016699346"
+    },
+    "id": "1512955000016774798",
+    "prefix": "",
+    "name": "Update product page create review to the new schema data point",
+    "description": "",
+    "status": {
+      "id": "1512955000000016068",
+      "name": "Open",
+      "color": "#74cb80",
+      "color_hexcode": "#74cb80",
+      "is_closed_type": false
+    },
+    "priority": "none",
+    "owners_and_work": {
+      "work_type": "standard",
+      "total_work": "00:00",
+      "unit": "hours_per_day",
+      "copy_task_duration": true,
+      "owners": [
+        {
+          "zuid": 854392166,
+          "zpuid": "1512955000012444001",
+          "name": "Mark John Mejias",
+          "email": "markjohn.mejias@webriq.services",
+          "first_name": "Mark John",
+          "last_name": "Mejias",
+          "work_values": "0"
+        }
+      ],
+      "refresh_business_hours": false
+    },
+    "duration": {
+      "value": "0",
+      "type": "days"
+    },
+    "completion_percentage": 0,
+    "sequence": {
+      "sequence": 8963042886578927000,
+      "subtask_sequence": 7
+    },
+    "depth": 1,
+    "created_time": "2025-08-19T08:46:50.112Z",
+    "last_modified_time": "2025-08-19T08:46:55.043Z",
+    "is_completed": false,
+    "created_via": "web",
+    "created_by": {
+      "zuid": 854392166,
+      "zpuid": "1512955000012444001",
+      "name": "Mark John Mejias",
+      "email": "markjohn.mejias@webriq.services",
+      "first_name": "Mark John",
+      "last_name": "Mejias"
+    },
+    "billing_type": "none",
+    "log_hours": {
+      "billable_hours": "00:00",
+      "non_billable_hours": "12:44",
+      "total_hours": "12:44"
+    },
+    "association_info": {
+      "has_reminder": false,
+      "has_recurrence": false,
+      "has_comments": false,
+      "has_attachments": false,
+      "has_forums": false,
+      "has_subtasks": false,
+      "has_parents": true
+    },
+    "_zoho_project_id": "1512955000000082224"
+  },
+  {
+    "project": {
+      "id": "1512955000000082224",
+      "name": "Swamp Fox Optics"
+    },
+    "milestone": {
+      "id": "1512955000000000073",
+      "name": "None"
+    },
+    "tasklist": {
+      "id": "1512955000000881353",
+      "name": "General"
+    },
+    "parental_info": {
+      "parent_task_id": "1512955000016699346",
+      "root_task_id": "1512955000016699346"
+    },
+    "id": "1512955000016817005",
+    "prefix": "",
+    "name": "Update customer write review to use webriq form",
+    "description": "",
+    "status": {
+      "id": "1512955000000016068",
+      "name": "Open",
+      "color": "#74cb80",
+      "color_hexcode": "#74cb80",
+      "is_closed_type": false
+    },
+    "priority": "none",
+    "owners_and_work": {
+      "work_type": "standard",
+      "total_work": "00:00",
+      "unit": "hours_per_day",
+      "copy_task_duration": true,
+      "owners": [
+        {
+          "zuid": 854392166,
+          "zpuid": "1512955000012444001",
+          "name": "Mark John Mejias",
+          "email": "markjohn.mejias@webriq.services",
+          "first_name": "Mark John",
+          "last_name": "Mejias",
+          "work_values": "0"
+        }
+      ],
+      "refresh_business_hours": false
+    },
+    "duration": {
+      "value": "0",
+      "type": "days"
+    },
+    "completion_percentage": 0,
+    "sequence": {
+      "sequence": 8963042886578927000,
+      "subtask_sequence": 8
+    },
+    "depth": 1,
+    "created_time": "2025-08-25T03:17:03.594Z",
+    "last_modified_time": "2025-08-25T03:19:21.028Z",
+    "is_completed": false,
+    "created_via": "web",
+    "created_by": {
+      "zuid": 854392166,
+      "zpuid": "1512955000012444001",
+      "name": "Mark John Mejias",
+      "email": "markjohn.mejias@webriq.services",
+      "first_name": "Mark John",
+      "last_name": "Mejias"
+    },
+    "billing_type": "none",
+    "log_hours": {
+      "billable_hours": "00:00",
+      "non_billable_hours": "06:37",
+      "total_hours": "06:37"
+    },
+    "association_info": {
+      "has_reminder": false,
+      "has_recurrence": false,
+      "has_comments": false,
+      "has_attachments": false,
+      "has_forums": false,
+      "has_subtasks": false,
+      "has_parents": true
+    },
+    "_zoho_project_id": "1512955000000082224"
+  },
+  {
+    "project": {
+      "id": "1512955000000082224",
+      "name": "Swamp Fox Optics"
+    },
+    "milestone": {
+      "id": "1512955000000000073",
+      "name": "None"
+    },
+    "tasklist": {
+      "id": "1512955000000881353",
+      "name": "General"
+    },
+    "parental_info": {
+      "parent_task_id": "1512955000016699346",
+      "root_task_id": "1512955000016699346"
+    },
+    "id": "1512955000016818091",
+    "prefix": "",
+    "name": "Optimize requests",
+    "description": "",
+    "status": {
+      "id": "1512955000000016068",
+      "name": "Open",
+      "color": "#74cb80",
+      "color_hexcode": "#74cb80",
+      "is_closed_type": false
+    },
+    "priority": "none",
+    "owners_and_work": {
+      "work_type": "standard",
+      "total_work": "00:00",
+      "unit": "hours_per_day",
+      "copy_task_duration": true,
+      "owners": [
+        {
+          "zuid": 854392166,
+          "zpuid": "1512955000012444001",
+          "name": "Mark John Mejias",
+          "email": "markjohn.mejias@webriq.services",
+          "first_name": "Mark John",
+          "last_name": "Mejias",
+          "work_values": "0"
+        }
+      ],
+      "refresh_business_hours": false
+    },
+    "duration": {
+      "value": "0",
+      "type": "days"
+    },
+    "completion_percentage": 0,
+    "sequence": {
+      "sequence": 8963042886578927000,
+      "subtask_sequence": 9
+    },
+    "depth": 1,
+    "created_time": "2025-08-26T01:38:59.583Z",
+    "last_modified_time": "2025-08-26T01:39:05.490Z",
+    "is_completed": false,
+    "created_via": "web",
+    "created_by": {
+      "zuid": 854392166,
+      "zpuid": "1512955000012444001",
+      "name": "Mark John Mejias",
+      "email": "markjohn.mejias@webriq.services",
+      "first_name": "Mark John",
+      "last_name": "Mejias"
+    },
+    "billing_type": "none",
+    "log_hours": {
+      "billable_hours": "00:00",
+      "non_billable_hours": "02:23",
+      "total_hours": "02:23"
+    },
+    "association_info": {
+      "has_reminder": false,
+      "has_recurrence": false,
+      "has_comments": false,
+      "has_attachments": false,
+      "has_forums": false,
+      "has_subtasks": false,
+      "has_parents": true
+    },
+    "_zoho_project_id": "1512955000000082224"
+  },
+  {
+    "project": {
+      "id": "1512955000000082224",
+      "name": "Swamp Fox Optics"
+    },
+    "milestone": {
+      "id": "1512955000000000073",
+      "name": "None"
+    },
+    "tasklist": {
+      "id": "1512955000000881353",
+      "name": "General"
+    },
+    "id": "1512955000016861819",
+    "prefix": "",
+    "name": "Add Product and star rating filter",
+    "description": "",
+    "status": {
+      "id": "1512955000000016068",
+      "name": "Open",
+      "color": "#74cb80",
+      "color_hexcode": "#74cb80",
+      "is_closed_type": false
+    },
+    "priority": "none",
+    "owners_and_work": {
+      "work_type": "standard",
+      "total_work": "00:00",
+      "unit": "hours_per_day",
+      "copy_task_duration": true,
+      "owners": [
+        {
+          "zuid": 854392166,
+          "zpuid": "1512955000012444001",
+          "name": "Mark John Mejias",
+          "email": "markjohn.mejias@webriq.services",
+          "first_name": "Mark John",
+          "last_name": "Mejias",
+          "work_values": "0"
+        }
+      ],
+      "refresh_business_hours": false
+    },
+    "duration": {
+      "value": "0",
+      "type": "days"
+    },
+    "completion_percentage": 0,
+    "sequence": {
+      "sequence": 8963042886578927000
+    },
+    "depth": 0,
+    "created_time": "2025-08-29T08:55:40.579Z",
+    "last_modified_time": "2025-08-29T08:55:50.390Z",
+    "is_completed": false,
+    "created_via": "web",
+    "created_by": {
+      "zuid": 854392166,
+      "zpuid": "1512955000012444001",
+      "name": "Mark John Mejias",
+      "email": "markjohn.mejias@webriq.services",
+      "first_name": "Mark John",
+      "last_name": "Mejias"
+    },
+    "billing_type": "none",
+    "log_hours": {
+      "billable_hours": "00:00",
+      "non_billable_hours": "05:13",
+      "total_hours": "05:13"
+    },
+    "association_info": {
+      "has_reminder": false,
+      "has_recurrence": false,
+      "has_comments": false,
+      "has_attachments": false,
+      "has_forums": false,
+      "has_subtasks": false
+    },
+    "_zoho_project_id": "1512955000000082224"
+  },
+  {
+    "project": {
+      "id": "1512955000000082224",
+      "name": "Swamp Fox Optics"
+    },
+    "milestone": {
+      "id": "1512955000000000073",
+      "name": "None"
+    },
+    "tasklist": {
+      "id": "1512955000000881353",
+      "name": "General"
+    },
+    "id": "1512955000016903359",
+    "prefix": "",
+    "name": "Update review schema with email",
+    "description": "",
+    "status": {
+      "id": "1512955000000016068",
+      "name": "Open",
+      "color": "#74cb80",
+      "color_hexcode": "#74cb80",
+      "is_closed_type": false
+    },
+    "priority": "none",
+    "owners_and_work": {
+      "work_type": "standard",
+      "total_work": "00:00",
+      "unit": "hours_per_day",
+      "copy_task_duration": true,
+      "owners": [
+        {
+          "zuid": 854392166,
+          "zpuid": "1512955000012444001",
+          "name": "Mark John Mejias",
+          "email": "markjohn.mejias@webriq.services",
+          "first_name": "Mark John",
+          "last_name": "Mejias",
+          "work_values": "0"
+        }
+      ],
+      "refresh_business_hours": false
+    },
+    "duration": {
+      "value": "0",
+      "type": "days"
+    },
+    "completion_percentage": 0,
+    "sequence": {
+      "sequence": 8963042886578927000
+    },
+    "depth": 0,
+    "created_time": "2025-09-03T09:56:46.706Z",
+    "last_modified_time": "2025-09-03T09:56:52.838Z",
+    "is_completed": false,
+    "created_via": "web",
+    "created_by": {
+      "zuid": 854392166,
+      "zpuid": "1512955000012444001",
+      "name": "Mark John Mejias",
+      "email": "markjohn.mejias@webriq.services",
+      "first_name": "Mark John",
+      "last_name": "Mejias"
+    },
+    "billing_type": "none",
+    "log_hours": {
+      "billable_hours": "00:00",
+      "non_billable_hours": "01:38",
+      "total_hours": "01:38"
+    },
+    "association_info": {
+      "has_reminder": false,
+      "has_recurrence": false,
+      "has_comments": false,
+      "has_attachments": false,
+      "has_forums": false,
+      "has_subtasks": false
+    },
+    "_zoho_project_id": "1512955000000082224"
+  },
+  {
+    "project": {
+      "id": "1512955000000082224",
+      "name": "Swamp Fox Optics"
+    },
+    "milestone": {
+      "id": "1512955000000000073",
+      "name": "None"
+    },
+    "tasklist": {
+      "id": "1512955000000881353",
+      "name": "General"
+    },
+    "id": "1512955000017176101",
+    "prefix": "",
+    "name": "Checking publish error",
+    "description": "",
+    "status": {
+      "id": "1512955000000016068",
+      "name": "Open",
+      "color": "#74cb80",
+      "color_hexcode": "#74cb80",
+      "is_closed_type": false
+    },
+    "priority": "none",
+    "owners_and_work": {
+      "work_type": "standard",
+      "total_work": "00:00",
+      "unit": "hours_per_day",
+      "copy_task_duration": true,
+      "owners": [
+        {
+          "zuid": 854392166,
+          "zpuid": "1512955000012444001",
+          "name": "Mark John Mejias",
+          "email": "markjohn.mejias@webriq.services",
+          "first_name": "Mark John",
+          "last_name": "Mejias",
+          "work_values": "0"
+        }
+      ],
+      "refresh_business_hours": false
+    },
+    "duration": {
+      "value": "0",
+      "type": "days"
+    },
+    "completion_percentage": 0,
+    "sequence": {
+      "sequence": 8963042886578927000
+    },
+    "depth": 0,
+    "created_time": "2025-09-30T04:10:04.742Z",
+    "last_modified_time": "2025-09-30T04:10:09.289Z",
+    "is_completed": false,
+    "created_via": "web",
+    "created_by": {
+      "zuid": 854392166,
+      "zpuid": "1512955000012444001",
+      "name": "Mark John Mejias",
+      "email": "markjohn.mejias@webriq.services",
+      "first_name": "Mark John",
+      "last_name": "Mejias"
+    },
+    "billing_type": "none",
+    "log_hours": {
+      "billable_hours": "00:00",
+      "non_billable_hours": "03:15",
+      "total_hours": "03:15"
+    },
+    "association_info": {
+      "has_reminder": false,
+      "has_recurrence": false,
+      "has_comments": false,
+      "has_attachments": false,
+      "has_forums": false,
+      "has_subtasks": false
+    },
+    "_zoho_project_id": "1512955000000082224"
+  },
+  {
+    "project": {
+      "id": "1512955000000082224",
+      "name": "Swamp Fox Optics"
+    },
+    "milestone": {
+      "id": "1512955000000000073",
+      "name": "None"
+    },
+    "tasklist": {
+      "id": "1512955000000881353",
+      "name": "General"
+    },
+    "id": "1512955000017299094",
+    "prefix": "",
+    "name": "[Live] Review schema QA/QC",
+    "description": "",
+    "status": {
+      "id": "1512955000000016068",
+      "name": "Open",
+      "color": "#74cb80",
+      "color_hexcode": "#74cb80",
+      "is_closed_type": false
+    },
+    "priority": "none",
+    "owners_and_work": {
+      "work_type": "standard",
+      "total_work": "00:00",
+      "unit": "hours_per_day",
+      "copy_task_duration": true,
+      "owners": [
+        {
+          "zuid": 854392166,
+          "zpuid": "1512955000012444001",
+          "name": "Mark John Mejias",
+          "email": "markjohn.mejias@webriq.services",
+          "first_name": "Mark John",
+          "last_name": "Mejias",
+          "work_values": "0"
+        }
+      ],
+      "refresh_business_hours": false
+    },
+    "duration": {
+      "value": "0",
+      "type": "days"
+    },
+    "completion_percentage": 0,
+    "sequence": {
+      "sequence": 8963042886578927000
+    },
+    "depth": 0,
+    "created_time": "2025-10-16T02:36:06.597Z",
+    "last_modified_time": "2025-10-16T02:36:14.135Z",
+    "is_completed": false,
+    "created_via": "web",
+    "created_by": {
+      "zuid": 854392166,
+      "zpuid": "1512955000012444001",
+      "name": "Mark John Mejias",
+      "email": "markjohn.mejias@webriq.services",
+      "first_name": "Mark John",
+      "last_name": "Mejias"
+    },
+    "billing_type": "none",
+    "log_hours": {
+      "billable_hours": "00:00",
+      "non_billable_hours": "02:16",
+      "total_hours": "02:16"
+    },
+    "association_info": {
+      "has_reminder": false,
+      "has_recurrence": false,
+      "has_comments": false,
+      "has_attachments": false,
+      "has_forums": false,
+      "has_subtasks": false
+    },
+    "_zoho_project_id": "1512955000000082224"
+  },
+  {
+    "project": {
+      "id": "1512955000000082224",
+      "name": "Swamp Fox Optics"
+    },
+    "milestone": {
+      "id": "1512955000000000073",
+      "name": "None"
+    },
+    "tasklist": {
+      "id": "1512955000000881353",
+      "name": "General"
+    },
+    "id": "1512955000017430039",
+    "prefix": "",
+    "name": "Add route query in shop page to open review tab on load",
+    "description": "",
+    "status": {
+      "id": "1512955000000016068",
+      "name": "Open",
+      "color": "#74cb80",
+      "color_hexcode": "#74cb80",
+      "is_closed_type": false
+    },
+    "priority": "none",
+    "owners_and_work": {
+      "work_type": "standard",
+      "total_work": "00:00",
+      "unit": "hours_per_day",
+      "copy_task_duration": true,
+      "owners": [
+        {
+          "zuid": 854392166,
+          "zpuid": "1512955000012444001",
+          "name": "Mark John Mejias",
+          "email": "markjohn.mejias@webriq.services",
+          "first_name": "Mark John",
+          "last_name": "Mejias",
+          "work_values": "0"
+        }
+      ],
+      "refresh_business_hours": false
+    },
+    "duration": {
+      "value": "0",
+      "type": "days"
+    },
+    "completion_percentage": 0,
+    "sequence": {
+      "sequence": 8963042886578927000
+    },
+    "depth": 0,
+    "created_time": "2025-10-30T04:44:33.607Z",
+    "last_modified_time": "2025-10-30T04:44:40.006Z",
+    "is_completed": false,
+    "created_via": "web",
+    "created_by": {
+      "zuid": 854392166,
+      "zpuid": "1512955000012444001",
+      "name": "Mark John Mejias",
+      "email": "markjohn.mejias@webriq.services",
+      "first_name": "Mark John",
+      "last_name": "Mejias"
+    },
+    "billing_type": "none",
+    "log_hours": {
+      "billable_hours": "00:00",
+      "non_billable_hours": "01:23",
+      "total_hours": "01:23"
+    },
+    "association_info": {
+      "has_reminder": false,
+      "has_recurrence": false,
+      "has_comments": false,
+      "has_attachments": false,
+      "has_forums": false,
+      "has_subtasks": false
+    },
+    "_zoho_project_id": "1512955000000082224"
+  },
+  {
+    "project": {
+      "id": "1512955000000082224",
+      "name": "Swamp Fox Optics"
+    },
+    "milestone": {
+      "id": "1512955000000000073",
+      "name": "None"
+    },
+    "tasklist": {
+      "id": "1512955000000881353",
+      "name": "General"
+    },
+    "id": "1512955000017510035",
+    "prefix": "",
+    "name": "Checking on publish icon not working issue",
+    "description": "",
+    "status": {
+      "id": "1512955000000016068",
+      "name": "Open",
+      "color": "#74cb80",
+      "color_hexcode": "#74cb80",
+      "is_closed_type": false
+    },
+    "priority": "none",
+    "owners_and_work": {
+      "work_type": "standard",
+      "total_work": "00:00",
+      "unit": "hours_per_day",
+      "copy_task_duration": true,
+      "owners": [
+        {
+          "zuid": 854392166,
+          "zpuid": "1512955000012444001",
+          "name": "Mark John Mejias",
+          "email": "markjohn.mejias@webriq.services",
+          "first_name": "Mark John",
+          "last_name": "Mejias",
+          "work_values": "0"
+        }
+      ],
+      "refresh_business_hours": false
+    },
+    "duration": {
+      "value": "0",
+      "type": "days"
+    },
+    "completion_percentage": 0,
+    "sequence": {
+      "sequence": 8963042886578927000
+    },
+    "depth": 0,
+    "created_time": "2025-11-06T02:46:06.184Z",
+    "last_modified_time": "2025-11-06T02:46:10.738Z",
+    "is_completed": false,
+    "created_via": "web",
+    "created_by": {
+      "zuid": 854392166,
+      "zpuid": "1512955000012444001",
+      "name": "Mark John Mejias",
+      "email": "markjohn.mejias@webriq.services",
+      "first_name": "Mark John",
+      "last_name": "Mejias"
+    },
+    "billing_type": "none",
+    "log_hours": {
+      "billable_hours": "00:00",
+      "non_billable_hours": "01:28",
+      "total_hours": "01:28"
+    },
+    "association_info": {
+      "has_reminder": false,
+      "has_recurrence": false,
+      "has_comments": false,
+      "has_attachments": false,
+      "has_forums": false,
+      "has_subtasks": false
+    },
+    "_zoho_project_id": "1512955000000082224"
+  },
+  {
+    "project": {
+      "id": "1512955000000082224",
+      "name": "Swamp Fox Optics"
+    },
+    "milestone": {
+      "id": "1512955000000000073",
+      "name": "None"
+    },
+    "tasklist": {
+      "id": "1512955000000881353",
+      "name": "General"
+    },
+    "id": "1512955000018116079",
+    "prefix": "",
+    "name": "Cart Revamp",
+    "description": "<div>Hello @Eleazar, we got a project that we want to get started on asap. We are planning to start offering a lot more merch and patches and want to also increase our average order value with upsells and free gifts. spec and images below. Let me know what you think. <br/></div><div><br/></div><div>Project Scope for Cart Revamp<br/></div><div><br/></div><div>Cart page redesign<br/></div><div>- open slideout modal on desktop and full screen modal on mobile<br/></div><div>- design will feature a quantity selection and a trash icon to remove items from the cart<br/></div><div><br/></div><div>New components on cart page:<br/></div><div>1. “Free Gift” progress tracker.<br/></div><div>2. Select your free gift drawer<br/></div><div>3. Upsell Drawer<br/></div><div><br/></div><div><br/></div><div>The free gift component will need a section in Sanity that allows us to populate a free gift category and a cart value threshold for that category. The free gift progress tracker should display “Spend $X more to earn a free gift!” with X being the $ value needed to reach the free gift threshold. (throughout the year we may have a free gift like a patch that is given at $100, or we may have a Jacket that is offered at $300)<br/></div><div><br/></div><div>Upsell components will need a new section on product pages in sanity (similar to related products) that allows us to set upsell products to display for that product if the product is in the cart.<br/></div><div><br/></div><div>Upsell products AND free gifts need to be linked to the products variants, not the parent product id, due to needing the add to cart button to directly and immediately add the correct sku. For example the Warhorse would have the 34mm ring diameter Hostile Engagement mount as an upsell, we wouldn't want the add to cart button to allow the user to select the variant as they may select the wrong ring diameter. This means we would need a way to set the correct variant for each upsell product and not just select the product page from sanity.<br/></div><div><br/></div><div>Logic for upsell can be hardcoded. If a product is added to cart and none of the upsell products are in the cart then the upsell component should display on the cart. If 2 products with upsell products are added to the cart and no upsell products are in the cart all upsell products should show in the drawer, if only 1 product has an upsell product in the cart then only display the upsell products for the item that doesn't have any in the cart.<br/></div><div><br/></div><div>The free gift logic for pricing will be handled in Bigcommerce, so the component just needs to add the correct sku to the cart and display the promo price of $0, bigcommerce will handle the logic of “If cart value &gt;$X, make sku sck45039 $0”<br/></div><div><br/></div><div>If every item in the cart has a valid upsell product also in the cart the upsell drawer should be hidden<br/></div><div><br/></div><div>If a free gift has been selected and the free gift is in the cart the free gift drawer should be hidden<br/></div><div><br/></div><div>By default if the cart value is &lt; the free gift threshold the upsell component should display as expanded<br/></div><div><br/></div><div>Only one component on the cart should open at a time, like a toggle, if the upsell component is opened the free gift component should close, if the free gift component is then expanded the upsell component should close.<br/></div><div><br/></div><div>The icons under the upsell component and the free gift component should display the number of applicable upsell components/ free gifts, with a solid infill indicating the current item and a stroked circle showing the remaining items. If there are 8 items it should show 1 solid circle and 7 stroked circles, the user should be able to swipe or click and drag the free gift window to display the next item in the carousel. If there is only 1 item don't display any dots.<br/></div><div><br/></div><div>The free gift component should show the item's regular price (set in sanity for that product) as a strike-through, with $0 displayed under the strike-through price.<br/></div><div><a target=\"_blank\" href=\"https://docs.google.com/document/d/1MhycDg9X4zrwZ52lB2a2382sQ1kKTlM6AhZXwt26kZY/edit?usp=sharing\">https://docs.google.com/document/d/1MhycDg9X4zrwZ52lB2a2382sQ1kKTlM6AhZXwt26kZY/edit?usp=sharing</a><br/><br/><img src=\"/portal/viewInlineAttachment/image?file=projects-f942295bd562df6a41cfc90397b807245609ec415b8c810cb0a440fd25dcf3ad3bd862ba1a66d701ae3b0ab9c65fc9a7\" width=\"400\" height=\"277\"/><br/></div>",
+    "status": {
+      "id": "1512955000000081609",
+      "name": "Completed task",
+      "color": "#74cb80",
+      "color_hexcode": "#74cb80",
+      "is_closed_type": false
+    },
+    "priority": "none",
+    "owners_and_work": {
+      "work_type": "standard",
+      "total_work": "00:00",
+      "unit": "hours_per_day",
+      "copy_task_duration": true,
+      "owners": [
+        {
+          "zuid": 760791628,
+          "zpuid": "1512955000003339043",
+          "name": "Jaymar",
+          "email": "jaymar.matiga@webriq.services",
+          "first_name": "Jaymar",
+          "last_name": "Matiga",
+          "work_values": "0"
+        },
+        {
+          "zuid": 878388388,
+          "zpuid": "1512955000014419118",
+          "name": "Jacob Balane",
+          "email": "jacob.balane@webriq.services",
+          "first_name": "Jacob",
+          "last_name": "Balane",
+          "work_values": "0"
+        }
+      ],
+      "refresh_business_hours": false
+    },
+    "duration": {
+      "value": "0",
+      "type": "days"
+    },
+    "completion_percentage": 0,
+    "sequence": {
+      "sequence": 8963042886578927000
+    },
+    "depth": 0,
+    "created_time": "2026-01-15T03:03:35.682Z",
+    "last_modified_time": "2026-02-03T02:24:41.358Z",
+    "is_completed": false,
+    "created_via": "web",
+    "created_by": {
+      "zuid": 871125681,
+      "zpuid": "1512955000013630159",
+      "name": "April",
+      "email": "april.trocio@webriq.services",
+      "first_name": "April Grace",
+      "last_name": "Trocio"
+    },
+    "billing_type": "none",
+    "log_hours": {
+      "billable_hours": "00:41",
+      "non_billable_hours": "75:51",
+      "total_hours": "76:32"
+    },
+    "association_info": {
+      "has_reminder": false,
+      "has_recurrence": false,
+      "has_comments": true,
+      "has_attachments": true,
+      "has_forums": false,
+      "has_subtasks": false
+    },
+    "_zoho_project_id": "1512955000000082224"
+  },
+  {
+    "project": {
+      "id": "1512955000000082224",
+      "name": "Swamp Fox Optics"
+    },
+    "milestone": {
+      "id": "1512955000000000073",
+      "name": "None"
+    },
+    "tasklist": {
+      "id": "1512955000000881353",
+      "name": "General"
+    },
+    "id": "1512955000018312057",
+    "prefix": "",
+    "name": "Homepage Slider Request",
+    "description": "<p>Hello <b>@Eleazar</b> or <b>@Customer Support</b>, we are looking to add a slider to the home page to replace the static hero image. In the past I have used sliderrevolution for wordpress, is there anything similar available for our site?<br/></p><p>We want the ability to add separate text lines or blocks, background images, fore-ground images that can slide in, customizable animations for different elements and responsive controls for desktop vs mobile. Is there anything available that we wouldn't have to develop from scratch?<br/></p><div><br/></div>",
+    "status": {
+      "id": "1512955000000016071",
+      "name": "Closed",
+      "color": "#f56b62",
+      "color_hexcode": "#f56b62",
+      "is_closed_type": true
+    },
+    "priority": "none",
+    "owners_and_work": {
+      "work_type": "standard",
+      "total_work": "00:00",
+      "unit": "hours_per_day",
+      "copy_task_duration": true,
+      "owners": [
+        {
+          "zuid": 878388388,
+          "zpuid": "1512955000014419118",
+          "name": "Jacob Balane",
+          "email": "jacob.balane@webriq.services",
+          "first_name": "Jacob",
+          "last_name": "Balane",
+          "work_values": "0"
+        }
+      ],
+      "refresh_business_hours": false
+    },
+    "completed_on": "2026-03-02T01:03:40.109Z",
+    "duration": {
+      "value": "0",
+      "type": "days"
+    },
+    "completion_percentage": 100,
+    "sequence": {
+      "sequence": -520658300551698050
+    },
+    "depth": 0,
+    "created_time": "2026-02-05T03:07:45.089Z",
+    "last_modified_time": "2026-03-02T01:03:40.109Z",
+    "is_completed": true,
+    "created_via": "web",
+    "created_by": {
+      "zuid": 878388388,
+      "zpuid": "1512955000014419118",
+      "name": "Jacob Balane",
+      "email": "jacob.balane@webriq.services",
+      "first_name": "Jacob",
+      "last_name": "Balane"
+    },
+    "updated_by": {
+      "zuid": 878388388,
+      "zpuid": "1512955000014419118",
+      "name": "Jacob Balane",
+      "email": "jacob.balane@webriq.services",
+      "first_name": "Jacob",
+      "last_name": "Balane"
+    },
+    "billing_type": "none",
+    "log_hours": {
+      "billable_hours": "00:00",
+      "non_billable_hours": "53:04",
+      "total_hours": "53:04"
+    },
+    "association_info": {
+      "has_reminder": false,
+      "has_recurrence": false,
+      "has_comments": true,
+      "has_attachments": true,
+      "has_forums": false,
+      "has_subtasks": false
+    },
+    "_zoho_project_id": "1512955000000082224"
+  },
+  {
+    "project": {
+      "id": "1512955000000082224",
+      "name": "Swamp Fox Optics"
+    },
+    "milestone": {
+      "id": "1512955000000000073",
+      "name": "None"
+    },
+    "tasklist": {
+      "id": "1512955000000881353",
+      "name": "General"
+    },
+    "id": "1512955000018550146",
+    "prefix": "",
+    "name": "Fix Homepage Issue",
+    "description": "<pre style=\"margin:0px 26px 0px 0px; padding:0.1px 0px 0px; outline:0px; border:0px; vertical-align:baseline; background:rgb(241, 244, 247); font-family:inherit; text-shadow:none; text-align:left; overflow-wrap:break-word; white-space:pre-wrap; font-size:15.008px; font-style:normal; font-weight:400; letter-spacing:0.01px; orphans:2; text-indent:0px; text-transform:none; widows:2; word-spacing:0px; color:rgb(34, 34, 34)\" id=\"posted-message-container\" dir=\"auto\"><div>the problem is something is broken in the builds, probably relating to the slider implementation. When you go to the home page of the latest builds <a style=\"margin:0px; padding:1px 0px; outline:0px; border:0px; vertical-align:baseline; background:transparent; font-family:inherit; text-shadow:none; text-decoration:none; color:rgb(25, 145, 235)\" target=\"_blank\" href=\"https://69a11c1d61865300084e00f3--dxp-site-swampfoxoptics-u93r.netlify.app/\">https://69a11c1d61865300084e00f3--dxp-site-swampfoxoptics-u93r.netlify.app/</a>  its black.<br/></div><div><br/></div><div>We published the latest deploy and the home page of our site went down, we reverted to a previous build, but still need to get the blog nav fixed. <br/></div></pre><div><br/></div>",
+    "status": {
+      "id": "1512955000000016071",
+      "name": "Closed",
+      "color": "#f56b62",
+      "color_hexcode": "#f56b62",
+      "is_closed_type": true
+    },
+    "priority": "none",
+    "owners_and_work": {
+      "work_type": "standard",
+      "total_work": "00:00",
+      "unit": "hours_per_day",
+      "copy_task_duration": true,
+      "owners": [
+        {
+          "zuid": 878388388,
+          "zpuid": "1512955000014419118",
+          "name": "Jacob Balane",
+          "email": "jacob.balane@webriq.services",
+          "first_name": "Jacob",
+          "last_name": "Balane",
+          "work_values": "0"
+        }
+      ],
+      "refresh_business_hours": false
+    },
+    "completed_on": "2026-03-03T02:17:44.870Z",
+    "duration": {
+      "value": "0",
+      "type": "days"
+    },
+    "completion_percentage": 100,
+    "sequence": {
+      "sequence": -520658300551698050
+    },
+    "depth": 0,
+    "created_time": "2026-03-02T01:40:07.329Z",
+    "last_modified_time": "2026-03-03T02:17:44.870Z",
+    "is_completed": true,
+    "created_via": "web",
+    "created_by": {
+      "zuid": 878388388,
+      "zpuid": "1512955000014419118",
+      "name": "Jacob Balane",
+      "email": "jacob.balane@webriq.services",
+      "first_name": "Jacob",
+      "last_name": "Balane"
+    },
+    "updated_by": {
+      "zuid": 878388388,
+      "zpuid": "1512955000014419118",
+      "name": "Jacob Balane",
+      "email": "jacob.balane@webriq.services",
+      "first_name": "Jacob",
+      "last_name": "Balane"
+    },
+    "billing_type": "none",
+    "log_hours": {
+      "billable_hours": "00:00",
+      "non_billable_hours": "02:53",
+      "total_hours": "02:53"
+    },
+    "association_info": {
+      "has_reminder": false,
+      "has_recurrence": false,
+      "has_comments": true,
+      "has_attachments": false,
+      "has_forums": false,
+      "has_subtasks": false
+    },
+    "_zoho_project_id": "1512955000000082224"
+  },
+  {
+    "project": {
+      "id": "1512955000000082224",
+      "name": "Swamp Fox Optics"
+    },
+    "milestone": {
+      "id": "1512955000000000073",
+      "name": "None"
+    },
+    "tasklist": {
+      "id": "1512955000000881353",
+      "name": "General"
+    },
+    "id": "1512955000018641009",
+    "prefix": "",
+    "name": "Sanity Issue",
+    "description": "<div style=\"font-size:0.9285rem; line-height:normal; font-family:Puvi\"><div><br/></div></div>",
+    "status": {
+      "id": "1512955000000016071",
+      "name": "Closed",
+      "color": "#f56b62",
+      "color_hexcode": "#f56b62",
+      "is_closed_type": true
+    },
+    "priority": "none",
+    "owners_and_work": {
+      "work_type": "standard",
+      "total_work": "00:00",
+      "unit": "hours_per_day",
+      "copy_task_duration": true,
+      "owners": [
+        {
+          "zuid": 878388388,
+          "zpuid": "1512955000014419118",
+          "name": "Jacob Balane",
+          "email": "jacob.balane@webriq.services",
+          "first_name": "Jacob",
+          "last_name": "Balane",
+          "work_values": "0"
+        }
+      ],
+      "refresh_business_hours": false
+    },
+    "completed_on": "2026-04-10T02:06:05.174Z",
+    "duration": {
+      "value": "0",
+      "type": "days"
+    },
+    "completion_percentage": 100,
+    "sequence": {
+      "sequence": -520658300551698050
+    },
+    "depth": 0,
+    "created_time": "2026-03-05T03:31:56.578Z",
+    "last_modified_time": "2026-04-10T02:06:05.174Z",
+    "is_completed": true,
+    "created_via": "web",
+    "created_by": {
+      "zuid": 878388388,
+      "zpuid": "1512955000014419118",
+      "name": "Jacob Balane",
+      "email": "jacob.balane@webriq.services",
+      "first_name": "Jacob",
+      "last_name": "Balane"
+    },
+    "updated_by": {
+      "zuid": 878388388,
+      "zpuid": "1512955000014419118",
+      "name": "Jacob Balane",
+      "email": "jacob.balane@webriq.services",
+      "first_name": "Jacob",
+      "last_name": "Balane"
+    },
+    "billing_type": "none",
+    "log_hours": {
+      "billable_hours": "00:00",
+      "non_billable_hours": "04:26",
+      "total_hours": "04:26"
+    },
+    "association_info": {
+      "has_reminder": false,
+      "has_recurrence": false,
+      "has_comments": false,
+      "has_attachments": false,
+      "has_forums": false,
+      "has_subtasks": false
+    },
+    "_zoho_project_id": "1512955000000082224"
+  },
+  {
+    "project": {
+      "id": "1512955000000082224",
+      "name": "Swamp Fox Optics"
+    },
+    "milestone": {
+      "id": "1512955000000000073",
+      "name": "None"
+    },
+    "tasklist": {
+      "id": "1512955000000881353",
+      "name": "General"
+    },
+    "id": "1512955000018680262",
+    "prefix": "",
+    "name": "Update Blog Landing Page UX (Featured Posts + Filters)",
+    "description": "<div style=\"font-size:0.9285rem; font-family:Puvi\"><div>Hello Team, please see client request below<br/><br/><br/></div><div>I had our new Marketing employee take a stab at mocking up and specing out a change to our blog landing page. basically we would like to revamp the featured post section, and add filters to the listing page so we can improve the navigation and ux.<br/></div><div><br/></div><div>Please see attached files for a quick and dirty mockup to illustrate what we are looking for but don't take it as a necessity to replicate everything 1 to 1.<br/></div></div>",
+    "status": {
+      "id": "1512955000000043055",
+      "name": "Ready for QA/QC",
+      "color": "#74cb80",
+      "color_hexcode": "#74cb80",
+      "is_closed_type": false
+    },
+    "priority": "none",
+    "owners_and_work": {
+      "work_type": "standard",
+      "total_work": "48:00",
+      "unit": "hours_per_day",
+      "copy_task_duration": true,
+      "owners": [
+        {
+          "zuid": 845830651,
+          "zpuid": "1512955000011450287",
+          "name": "Kenet",
+          "email": "kenet.medez@webriq.services",
+          "first_name": "Kenet",
+          "last_name": "Medez",
+          "work_values": "12:00"
+        },
+        {
+          "zuid": 900288881,
+          "zpuid": "1512955000017126081",
+          "name": "Miguel Franco Trinidad",
+          "email": "miguel.trinidad@webriq.services",
+          "first_name": "Miguel Franco",
+          "last_name": "Trinidad",
+          "work_values": "12:00"
+        }
+      ],
+      "refresh_business_hours": false
+    },
+    "start_date": "2026-03-10T23:00:00.000Z",
+    "end_date": "2026-03-12T11:00:00.000Z",
+    "duration": {
+      "value": "2",
+      "type": "days"
+    },
+    "completion_percentage": 0,
+    "sequence": {
+      "sequence": 8963042886578927000
+    },
+    "depth": 0,
+    "created_time": "2026-03-11T02:44:32.213Z",
+    "last_modified_time": "2026-04-28T08:03:13.260Z",
+    "is_completed": false,
+    "created_via": "web",
+    "created_by": {
+      "zuid": 871125681,
+      "zpuid": "1512955000013630159",
+      "name": "April",
+      "email": "april.trocio@webriq.services",
+      "first_name": "April Grace",
+      "last_name": "Trocio"
+    },
+    "updated_by": {
+      "zuid": 845830651,
+      "zpuid": "1512955000011450287",
+      "name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "first_name": "Kenet",
+      "last_name": "Medez"
+    },
+    "billing_type": "none",
+    "log_hours": {
+      "billable_hours": "00:00",
+      "non_billable_hours": "17:58",
+      "total_hours": "17:58"
+    },
+    "association_info": {
+      "has_reminder": false,
+      "has_recurrence": false,
+      "has_comments": true,
+      "has_attachments": true,
+      "has_forums": false,
+      "has_subtasks": false
+    },
+    "_zoho_project_id": "1512955000000082224"
+  },
+  {
+    "project": {
+      "id": "1512955000000082224",
+      "name": "Swamp Fox Optics"
+    },
+    "milestone": {
+      "id": "1512955000000000073",
+      "name": "None"
+    },
+    "tasklist": {
+      "id": "1512955000000881353",
+      "name": "General"
+    },
+    "id": "1512955000018872312",
+    "prefix": "",
+    "name": "Issue on product pages",
+    "description": "<div style=\"font-size:0.9285rem\"><div>Hello Team, could you please check this issue encountered by the client. thank you</div><div><br/></div><div>we are having an issue updating / unpublishing some product pages.<br/></div><div>We have numerous black friday product pages we want to unpublish in order to clean up our sanity backend and when we try to unpublish them we get the attached error.<br/></div><div><br/></div><div>We also need to update some live product pages &quot;Freedom Mount&quot;, &quot;Liberator II&quot; and &quot;Trihawk&quot; and encounter the same error when trying to save.<br/></div><div><br/></div><div>We dropped the prices on the 3 above products so getting the pages published so they display the correct price range is high priority.<br/></div><div><br/></div><div>Let me know if you have any questions, Thank you!<img src=\"/portal/viewInlineAttachment/image?file=projects-f942295bd562df6a41cfc90397b807240785c9a4d0f4d876b5c07227acb27cfb9d54ee79de2511775db6f2686a7765d5\" width=\"400\" height=\"270\"/><br/></div></div>",
+    "status": {
+      "id": "1512955000000043055",
+      "name": "Ready for QA/QC",
+      "color": "#74cb80",
+      "color_hexcode": "#74cb80",
+      "is_closed_type": false
+    },
+    "priority": "none",
+    "owners_and_work": {
+      "work_type": "standard",
+      "total_work": "12:00",
+      "unit": "hours_per_day",
+      "copy_task_duration": true,
+      "owners": [
+        {
+          "zuid": 900288881,
+          "zpuid": "1512955000017126081",
+          "name": "Miguel Franco Trinidad",
+          "email": "miguel.trinidad@webriq.services",
+          "first_name": "Miguel Franco",
+          "last_name": "Trinidad",
+          "work_values": "12:00"
+        }
+      ],
+      "refresh_business_hours": false
+    },
+    "start_date": "2026-03-31T23:00:00.000Z",
+    "end_date": "2026-04-01T11:00:00.000Z",
+    "duration": {
+      "value": "1",
+      "type": "days"
+    },
+    "completion_percentage": 0,
+    "sequence": {
+      "sequence": 8442384586027229000
+    },
+    "depth": 0,
+    "created_time": "2026-04-01T00:20:44.602Z",
+    "last_modified_time": "2026-04-07T08:22:03.874Z",
+    "is_completed": false,
+    "created_via": "web",
+    "created_by": {
+      "zuid": 871125681,
+      "zpuid": "1512955000013630159",
+      "name": "April",
+      "email": "april.trocio@webriq.services",
+      "first_name": "April Grace",
+      "last_name": "Trocio"
+    },
+    "updated_by": {
+      "zuid": 900288881,
+      "zpuid": "1512955000017126081",
+      "name": "Miguel Franco Trinidad",
+      "email": "miguel.trinidad@webriq.services",
+      "first_name": "Miguel Franco",
+      "last_name": "Trinidad"
+    },
+    "billing_type": "none",
+    "log_hours": {
+      "billable_hours": "00:00",
+      "non_billable_hours": "09:47",
+      "total_hours": "09:47"
+    },
+    "association_info": {
+      "has_reminder": false,
+      "has_recurrence": false,
+      "has_comments": true,
+      "has_attachments": false,
+      "has_forums": false,
+      "has_subtasks": false
+    },
+    "_zoho_project_id": "1512955000000082224"
+  },
+  {
+    "project": {
+      "id": "1512955000000082224",
+      "name": "Swamp Fox Optics"
+    },
+    "milestone": {
+      "id": "1512955000000000073",
+      "name": "None"
+    },
+    "tasklist": {
+      "id": "1512955000000881353",
+      "name": "General"
+    },
+    "id": "1512955000019268086",
+    "prefix": "",
+    "name": "Blog Feed and Navigation Sync Errors on /blog Page",
+    "description": "<div style=\"font-size:0.9285rem\"><div style=\"margin:0; padding:0; color:rgb(29, 28, 29); margin:4px 0; padding:0\">Hello <span style=\"color:inherit\"><a style=\"color:rgb(18, 100, 163); text-decoration:none; background-color:rgb(232, 245, 250); color:rgb(18, 100, 163); padding:0 2px; border-radius:3px; font-weight:500\" href=\"https://webriqsupport.slack.com/team/UEAEKFYBF\" target=\"_blank\">@Customer Support</a></span>, we have two issues that need to be addressed:<br/></div><ol style=\"margin:4px 0 4px 24px; padding:0; list-style-position:outside\"><li style=\"margin:2px 0; padding:0; color:rgb(29, 28, 29)\">Blog categories are showing on the blog page even though they are disabled on the &quot;use for navigation&quot; setting.<br/></li><li style=\"margin:2px 0; padding:0; color:rgb(29, 28, 29)\">Blogs are showing on the /blog page even without them being added to the blog posts component section on the /blog page.<br/></li></ol><div style=\"margin:0; padding:0; color:rgb(29, 28, 29); margin:4px 0; padding:0\"><div><br/></div><div><br/></div><div>see attached images for reference, please let me know if you have any questions.<br/></div><div><br/></div></div></div>",
+    "status": {
+      "id": "1512955000000016071",
+      "name": "Closed",
+      "color": "#f56b62",
+      "color_hexcode": "#f56b62",
+      "is_closed_type": true
+    },
+    "priority": "medium",
+    "owners_and_work": {
+      "work_type": "standard",
+      "total_work": "12:00",
+      "unit": "hours_per_day",
+      "copy_task_duration": true,
+      "owners": [
+        {
+          "zuid": 845830651,
+          "zpuid": "1512955000011450287",
+          "name": "Kenet",
+          "email": "kenet.medez@webriq.services",
+          "first_name": "Kenet",
+          "last_name": "Medez",
+          "work_values": "12:00"
+        }
+      ],
+      "refresh_business_hours": false
+    },
+    "start_date": "2026-05-12T23:00:00.000Z",
+    "end_date": "2026-05-13T11:00:00.000Z",
+    "completed_on": "2026-05-13T09:53:03.773Z",
+    "duration": {
+      "value": "1",
+      "type": "days"
+    },
+    "completion_percentage": 100,
+    "sequence": {
+      "sequence": -520658300551698050
+    },
+    "depth": 0,
+    "created_time": "2026-05-13T00:05:31.347Z",
+    "last_modified_time": "2026-05-13T09:53:03.773Z",
+    "is_completed": true,
+    "created_via": "web",
+    "created_by": {
+      "zuid": 871125681,
+      "zpuid": "1512955000013630159",
+      "name": "April",
+      "email": "april.trocio@webriq.services",
+      "first_name": "April Grace",
+      "last_name": "Trocio"
+    },
+    "updated_by": {
+      "zuid": 871125681,
+      "zpuid": "1512955000013630159",
+      "name": "April",
+      "email": "april.trocio@webriq.services",
+      "first_name": "April Grace",
+      "last_name": "Trocio"
+    },
+    "billing_type": "none",
+    "log_hours": {
+      "billable_hours": "00:00",
+      "non_billable_hours": "01:43",
+      "total_hours": "01:43"
+    },
+    "association_info": {
+      "has_reminder": false,
+      "has_recurrence": false,
+      "has_comments": true,
+      "has_attachments": true,
+      "has_forums": false,
+      "has_subtasks": false
+    },
+    "_zoho_project_id": "1512955000000082224"
   }
 ]

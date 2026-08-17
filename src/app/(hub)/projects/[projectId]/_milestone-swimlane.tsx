@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { ClipboardList, Flag } from "lucide-react";
 import { V2_ROUTES } from "@/config/constants";
-import { type Milestone, type Tasklist, type Task } from "../_pm-shared";
+import { type Milestone, type Tasklist, type Task, decodeHtmlEntities } from "../_pm-shared";
 
 // Position first (task-239/240-seeded milestones always set it); falls back to start_date, then
 // created_at, for any milestone created another way (e.g. directly via MilestonePanel's table)
@@ -99,7 +99,7 @@ export default function MilestoneSwimlane({
         return (
           <div key={m.id} className="rounded-[12px] border border-[#E2E7F2] bg-white p-4">
             <div className="mb-3 flex items-center justify-between gap-2">
-              <span className="text-[13px] font-bold text-[#0B1533]">{m.name}</span>
+              <span className="text-[13px] font-bold text-[#0B1533]">{decodeHtmlEntities(m.name)}</span>
               <span className="shrink-0 rounded-full bg-[#EDF0F7] px-2.5 py-0.5 text-[11px] font-semibold text-[#5F6A88]">
                 {counts.done}/{counts.total} done
               </span>
@@ -121,7 +121,7 @@ export default function MilestoneSwimlane({
                       onClick={() => openTasklist(tl.id)}
                       className="flex cursor-pointer flex-col items-start gap-1 rounded-[9px] border border-[#E2E7F2] bg-[#F9FAFC] px-3.5 py-3 text-left transition-colors hover:border-[#A8C6F5] hover:bg-[#F0F7FF]"
                     >
-                      <span className="text-[12.5px] font-semibold text-[#0B1533]">{tl.name}</span>
+                      <span className="text-[12.5px] font-semibold text-[#0B1533]">{decodeHtmlEntities(tl.name)}</span>
                       <span className="text-[11px] text-[#5F6A88]">{tlCounts.done}/{tlCounts.total} tasks done</span>
                     </button>
                   );

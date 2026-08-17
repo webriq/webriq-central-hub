@@ -113,7 +113,7 @@ export default function V2HubSidebar({ userRole, displayName }: V2HubSidebarProp
           height: 64,
           borderColor: "#1E293B",
           paddingLeft: collapsed ? 0 : 24,
-          paddingRight: collapsed ? 0 : 16,
+          paddingRight: collapsed ? 0 : 8,
           justifyContent: collapsed ? "center" : "space-between",
         }}
       >
@@ -130,8 +130,9 @@ export default function V2HubSidebar({ userRole, displayName }: V2HubSidebarProp
           <>
             <div className="flex items-center gap-2.5">
               <Image src="/logo.png" alt="Logo" width={36} height={36} />
-              <span className="text-[18px] font-bold text-white tracking-[-0.02em]">
-                WebriQ<span style={{ color: "#2563EB" }}>.</span>
+              <span className="font-mono text-base font-bold tracking-tight whitespace-nowrap">
+                <span className="text-white">WebriQ</span>{" "}
+                <span className="text-brand-orange">Central Hub</span>
               </span>
             </div>
             <button

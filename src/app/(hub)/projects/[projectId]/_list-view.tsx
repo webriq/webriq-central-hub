@@ -7,7 +7,7 @@ import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip
 import {
   type Task, type Tasklist, type TaskStatus,
   STATUS_LABEL, STATUS_STYLE, PRIORITY_STYLE,
-  formatDueDate, normalizeStatus,
+  formatDueDate, normalizeStatus, decodeHtmlEntities,
 } from "../_pm-shared";
 import { getTaskEditPermission } from "@/lib/tasks/permissions";
 import { TaskTimerButton } from "./_task-timer-button";
@@ -512,7 +512,7 @@ export default function ListView({
                     {isCollapsed
                       ? <ChevronRight size={13} className="text-[#5F6A88] shrink-0" />
                       : <ChevronDown size={13} className="text-[#5F6A88] shrink-0" />}
-                    <span className="text-[12px] font-bold text-[#3A4565]">{g.name}</span>
+                    <span className="text-[12px] font-bold text-[#3A4565]">{decodeHtmlEntities(g.name)}</span>
                     <span className="text-[10px] font-semibold text-[#5F6A88] bg-[#EDF0F7] rounded-full px-1.5 py-0.5 leading-none">
                       {g.tasks.length}
                     </span>
@@ -622,7 +622,7 @@ function Row({
         )}
         <button onClick={onOpen} className="text-left min-w-0 cursor-pointer group flex-1">
           <span className="text-[13px] text-[#3A4565] truncate block group-hover:text-[#007BFF] transition-colors font-medium">
-            {task.title}
+            {decodeHtmlEntities(task.title)}
           </span>
         </button>
         {childrenCount > 0 && !isExpanded && (

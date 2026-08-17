@@ -6,7 +6,7 @@ import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip
 import {
   type Issue, type TaskStatus, type IssueSeverity,
   STATUS_LABEL, STATUS_STYLE, SEVERITY_STYLE,
-  formatDueDate, normalizeStatus, normalizeSeverity,
+  formatDueDate, normalizeStatus, normalizeSeverity, decodeHtmlEntities,
 } from "../_pm-shared";
 
 export type IssueSortKey = "title" | "status" | "severity" | "due_date";
@@ -351,7 +351,7 @@ export default function IssueListView({
 
                 <button onClick={() => onOpen(issue)} className="text-left min-w-0 cursor-pointer group">
                   <span className="text-[13px] text-[#3A4565] truncate block group-hover:text-[#007BFF] transition-colors font-medium">
-                    {issue.title}
+                    {decodeHtmlEntities(issue.title)}
                   </span>
                 </button>
 

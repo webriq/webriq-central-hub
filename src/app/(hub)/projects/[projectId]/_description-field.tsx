@@ -1,10 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
+import Placeholder from "@tiptap/extension-placeholder";
 import { cn } from "@/lib/utils";
 import { normalizeZohoDescriptionHtml } from "../_pm-shared";
+import { ImageLightboxModal } from "./_image-lightbox-modal";
 
 // Editable rich-text renderer for a detail page's Description field (task 206, task detail).
 // Task 234 relocates this from tasks/[taskId]/_task-description-field.tsx to this shared
@@ -22,12 +25,24 @@ export function DescriptionField({
   value,
   onSave,
   readOnly = false,
+  fullBleed = false,
+  scrollable = false,
 }: {
   uploadUrl: string;
   value: string;
   onSave: (html: string) => void;
   readOnly?: boolean;
+  // Drop the field's own corner radius so it covers the full, edge-to-edge content area of a
+  // `noPadding` `AccordionCard` — the parent's own `rounded-[14px] overflow-hidden` clips the
+  // bottom corners to match, so no radius is needed here.
+  fullBleed?: boolean;
+  // Cap the editor body at 420px and let it scroll internally past that — the toolbar (outside
+  // this wrapper) stays fixed/visible regardless of content length.
+  scrollable?: boolean;
 }) {
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+  const isEmptyReadOnly = readOnly && !value;
+
   async function uploadAndInsertImage(file: File) {
     if (readOnly) return;
     const fd = new FormData();
@@ -45,11 +60,20 @@ export function DescriptionField({
     extensions: [
       StarterKit.configure({ link: { openOnClick: false } }),
       Image,
+      Placeholder.configure({ placeholder: "Add a description…" }),
     ],
     content: normalizeZohoDescriptionHtml(value),
     editable: !readOnly,
     immediatelyRender: false,
     editorProps: {
+      handleClickOn(_view, _pos, node, _nodePos, event) {
+        if (node.type.name === "image") {
+          event.preventDefault();
+          setLightboxSrc(node.attrs.src as string);
+          return true;
+        }
+        return false;
+      },
       attributes: {
         class: cn(
           "outline-none px-3 py-2.5 text-[13px] min-h-[100px] leading-relaxed",
@@ -65,6 +89,10 @@ export function DescriptionField({
           // actually controls. Hide both <br>s and size the paragraph itself explicitly instead, so
           // the blank-line height is deterministic.
           "[&_p:has(>br+br.ProseMirror-trailingBreak)]:min-h-[1em] [&_p:has(>br+br.ProseMirror-trailingBreak)>br]:hidden",
+          // Tiptap's Placeholder extension marks the empty node `.is-editor-empty` with a
+          // `data-placeholder` attribute rather than rendering literal text — surface it via ::before.
+          "[&_.is-editor-empty:first-child::before]:content-[attr(data-placeholder)] [&_.is-editor-empty:first-child::before]:text-[#8A93AC] [&_.is-editor-empty:first-child::before]:float-left [&_.is-editor-empty:first-child::before]:h-0 [&_.is-editor-empty:first-child::before]:pointer-events-none",
+          "[&_img]:cursor-zoom-in",
           "text-[#3A4565]"
         ),
       },
@@ -94,9 +122,17 @@ export function DescriptionField({
     { label: "•", title: "Bullet list", action: () => editor?.chain().focus().toggleBulletList().run(), active: () => editor?.isActive("bulletList") ?? false },
   ];
 
+  // Read-only + empty — skip the editor shell entirely rather than showing a blank box
+  // (task 257, Requirement A: explicit empty state). `useEditor` above still runs (rules-of-hooks
+  // requires every hook to run unconditionally) — its instance is simply never rendered here.
+  if (isEmptyReadOnly) {
+    return <p className="text-[13px] text-[#5F6A88] px-3 py-2.5">No description provided.</p>;
+  }
+
   return (
     <div className={cn(
-      "rounded-[10px] border overflow-hidden transition-colors border-[#E2E7F2]",
+      "border overflow-hidden transition-colors border-[#E2E7F2]",
+      !fullBleed && "rounded-[10px]",
       readOnly ? "bg-white" : "bg-[#F4F6FB] focus-within:border-[#007BFF] focus-within:bg-white focus-within:ring-[3px] focus-within:ring-[#007BFF]/[0.14]"
     )}>
       {!readOnly && (
@@ -119,7 +155,12 @@ export function DescriptionField({
           <span className="text-[10px] text-[#5F6A88] ml-2">Paste or drag an image to embed it</span>
         </div>
       )}
-      <EditorContent editor={editor} />
+      <div className={cn(scrollable && "max-h-[420px] overflow-y-auto")}>
+        <EditorContent editor={editor} />
+      </div>
+      {lightboxSrc && (
+        <ImageLightboxModal src={lightboxSrc} alt="Description image" onClose={() => setLightboxSrc(null)} />
+      )}
     </div>
   );
 }

@@ -23,7 +23,7 @@ type ZohoTaskRaw = {
   tasklist?: { id?: string; id_string?: string };
   milestone?: { id?: string; id_string?: string; name?: string };
   parental_info?: { parent_task_id?: string; root_task_id?: string };
-  owners_and_work?: Record<string, unknown>;
+  owners_and_work?: { owners?: Array<{ email?: string }> } & Record<string, unknown>;
   log_hours?: Record<string, unknown>;
   association_info?: Record<string, unknown>;
   duration?: unknown;
@@ -49,6 +49,7 @@ type TaskRow = {
   description: string | null;
   priority: "critical" | "high" | "normal" | "low";
   status: string;
+  assignees: string[] | null;
   due_date: string | null;
   start_date: string | null;
   completion_percentage: number;
@@ -63,6 +64,14 @@ const CHUNK_DELAY_MS = 100;
 
 function omitNulls(obj: Record<string, unknown>): Record<string, unknown> {
   return Object.fromEntries(Object.entries(obj).filter(([, v]) => v != null));
+}
+
+function ownerEmails(t: ZohoTaskRaw): string[] {
+  const owners = t.owners_and_work?.owners;
+  if (!Array.isArray(owners)) return [];
+  return owners
+    .map((o) => o.email?.toLowerCase())
+    .filter((email): email is string => !!email);
 }
 
 export async function POST() {
@@ -117,6 +126,13 @@ export async function POST() {
         const { data: milestoneRows } = await adminClient.from("milestones").select("id, external_id");
         const milestoneMap = new Map((milestoneRows ?? []).map((m) => [String(m.external_id), m.id as string]));
 
+        const { data: hubUserRows } = await adminClient.from("hub_users").select("id, email");
+        const hubUserMap = new Map(
+          (hubUserRows ?? [])
+            .filter((u) => u.email)
+            .map((u) => [String(u.email).toLowerCase(), u.id as string])
+        );
+
         let imported = 0;
         let skipped = 0;
         let parentsResolved = 0;
@@ -145,6 +161,10 @@ export async function POST() {
             : "";
           const milestoneId = milestoneExtId ? (milestoneMap.get(milestoneExtId) ?? null) : null;
 
+          const assignees = ownerEmails(t)
+            .map((email) => hubUserMap.get(email))
+            .filter((id): id is string => !!id);
+
           rows.push({
             external_id: externalId,
             project_id: projectId,
@@ -155,6 +175,7 @@ export async function POST() {
             description: t.description ?? null,
             priority: mapPriority(t.priority ?? ""),
             status: mapTaskStatus(t.status?.name ?? "", t.is_completed ?? false),
+            assignees: assignees.length > 0 ? assignees : null,
             due_date: t.end_date ?? t.due_date ?? null,
             start_date: t.start_date ?? null,
             completion_percentage: t.completion_percentage ?? 0,

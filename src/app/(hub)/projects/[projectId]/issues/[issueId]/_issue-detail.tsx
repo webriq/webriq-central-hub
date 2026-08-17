@@ -9,7 +9,9 @@ import {
   normalizeStatus, normalizeSeverity, decodeHtmlEntities,
 } from "../../../_pm-shared";
 import { DescriptionField } from "../../_description-field";
+import { AccordionCard } from "../../_accordion-card";
 import { IssueAttachmentsCommentsPanel } from "./_issue-attachments-comments-panel";
+import { IssueQuickAccessPanel, type QuickAccessTask, type QuickAccessIssue } from "./_issue-quick-access-panel";
 import { getIssueEditPermission } from "@/lib/issues/permissions";
 import { TaskTimerButton } from "../../_task-timer-button";
 
@@ -26,25 +28,8 @@ const inputClass =
   "w-full px-2.5 py-1.5 rounded-[10px] border text-[12px] outline-none transition-colors border-[#E2E7F2] bg-[#F4F6FB] text-[#3A4565] focus:border-[#007BFF] focus:bg-white focus:ring-[3px] focus:ring-[#007BFF]/[0.14]";
 
 // ─── Local layout helpers — outside component per rerender-no-inline-components ─
-
-function Card({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="rounded-[14px] border border-[#E2E7F2] bg-white shadow-[0_1px_2px_rgba(7,17,51,0.05)] overflow-hidden">
-      <div className="flex items-center justify-between px-[18px] py-3.5 border-b border-[#EDF0F7]">
-        <span className="font-heading text-[15px] font-semibold text-[#0B1533]">
-          {title}
-        </span>
-      </div>
-      <div className="p-[18px]">{children}</div>
-    </div>
-  );
-}
+// Task 257, Requirement C — the local `Card` helper is replaced by the shared, collapsible
+// `AccordionCard` (`../../_accordion-card.tsx`); `Meta` stays, still used inside Details fields.
 
 function Meta({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -63,12 +48,16 @@ export default function IssueDetailClient({
   allMembers,
   currentUserId,
   currentUserRole,
+  quickAccessTasks,
+  quickAccessIssues,
 }: {
   issue: Issue;
   project: { id: string; name: string; customer_id: string; project_id: string | null };
   allMembers: MemberOption[];
   currentUserId: string;
   currentUserRole: string | null;
+  quickAccessTasks: QuickAccessTask[];
+  quickAccessIssues: QuickAccessIssue[];
 }) {
   const router = useRouter();
   const projectId = project.project_id ?? project.id;
@@ -196,11 +185,11 @@ export default function IssueDetailClient({
 
       {/* Content */}
       <div className="bg-[#F4F6FB] flex-1 overflow-y-auto p-8">
-        <div className="flex gap-6 max-w-5xl">
+        <div className="flex gap-6">
 
           {/* Left — sidebar */}
-          <div className="w-72 shrink-0">
-            <Card title="Details">
+          <div className="w-72 shrink-0 flex flex-col gap-5">
+            <AccordionCard title="Details">
               <div className="flex flex-col gap-4">
 
                 <Meta label="Status">
@@ -266,22 +255,31 @@ export default function IssueDetailClient({
                 </Meta>
 
               </div>
-            </Card>
+            </AccordionCard>
+
+            <AccordionCard title="Other Assigned" defaultOpen={false}>
+              <IssueQuickAccessPanel
+                tasks={quickAccessTasks}
+                issues={quickAccessIssues}
+                projectId={projectId}
+              />
+            </AccordionCard>
           </div>
 
           {/* Right — main content */}
           <div className="flex-1 flex flex-col gap-5 min-w-0">
-            <Card title="Description">
+            <AccordionCard title="Description" noPadding>
               <DescriptionField
                 uploadUrl={`/api/v2/projects/${projectId}/issues/description-images`}
                 value={description}
                 readOnly={!perm.canEditDetails}
+                fullBleed
                 onSave={(html) => {
                   setDescription(html);
                   void saveField({ description: html || null });
                 }}
               />
-            </Card>
+            </AccordionCard>
 
             <IssueAttachmentsCommentsPanel
               projectId={projectId}

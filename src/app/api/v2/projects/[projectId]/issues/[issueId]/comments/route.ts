@@ -13,6 +13,23 @@ import { adminClient } from "@/lib/supabase/admin";
 // situation task_comments has, so author display names are resolved with a second `profiles`
 // lookup, falling back to the row's own `author_name`/`author_email` (Zoho-imported comments
 // with no Hub account).
+// Task 257, Requirement E — `source_meta.attachments` (zoho-import/issue-comments/route.ts) is
+// metadata-only (name/size/type, no download_url, no `attachments` table row — the files were
+// never migrated). Externally-sourced JSONB, validated defensively rather than trusted as typed.
+type LegacyAttachment = { name: string; size: number | null; type: string | null };
+function legacyAttachmentsFrom(sourceMeta: unknown): LegacyAttachment[] {
+  if (!sourceMeta || typeof sourceMeta !== "object") return [];
+  const raw = (sourceMeta as Record<string, unknown>).attachments;
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((a): a is Record<string, unknown> => !!a && typeof a === "object")
+    .map((a) => ({
+      name: typeof a.name === "string" ? a.name : "Untitled attachment",
+      size: typeof a.size === "number" ? a.size : null,
+      type: typeof a.type === "string" ? a.type : null,
+    }));
+}
+
 function resolveAuthorName(
   row: { author_id: string | null; author_name: string | null; author_email: string | null },
   profileNames: Map<string, string>
@@ -42,7 +59,7 @@ export async function GET(
 
   const { data: comments, error } = await supabase
     .from("issue_comments")
-    .select("id, body, created_at, author_id, author_name, author_email")
+    .select("id, body, created_at, author_id, author_name, author_email, source_meta")
     .eq("issue_id", issue.id)
     .order("created_at", { ascending: true });
 
@@ -82,6 +99,7 @@ export async function GET(
     author_id: c.author_id,
     author_name: resolveAuthorName(c, profileNames),
     attachments: attachmentsByComment.get(c.id) ?? [],
+    legacyAttachments: legacyAttachmentsFrom(c.source_meta),
   }));
 
   return NextResponse.json(result);

@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { type Issue, SEVERITY_STYLE, normalizeSeverity } from "../_pm-shared";
+import { type Issue, SEVERITY_STYLE, normalizeSeverity, decodeHtmlEntities } from "../_pm-shared";
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -107,7 +107,7 @@ export default function IssueCalendarView({
                         className="flex items-center gap-1 text-left px-1.5 py-1 rounded bg-[#F4F6FB] hover:bg-[#F0F7FF] border border-[#EDF0F7] cursor-pointer transition-colors"
                       >
                         <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: sv.dot }} />
-                        <span className="text-[11px] text-[#3A4565] truncate">{issue.title}</span>
+                        <span className="text-[11px] text-[#3A4565] truncate">{decodeHtmlEntities(issue.title)}</span>
                       </button>
                     );
                   })}

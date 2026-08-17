@@ -22,7 +22,13 @@ const ALLOWED_MIME_TYPES = [
 const IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "gif", "webp"];
 const OFFICE_EXTENSIONS = { word: ["doc", "docx"], excel: ["xls", "xlsx"] };
 
-type AttachmentRow = { id: string; filename: string; size: number | null; created_at: string };
+// Task 257, Requirement F — `source`/`commentId`/`fetchUrl` come from the GET route's merge of
+// issue-native + comment-uploaded attachments; comment-sourced rows are read-only here (delete
+// happens on the parent comment, not this tab).
+type AttachmentRow = {
+  id: string; filename: string; size: number | null; created_at: string;
+  source: "issue" | "comment"; commentId: string | null; fetchUrl: string;
+};
 
 function formatFileSize(bytes: number | null): string {
   if (bytes == null) return "";
@@ -67,9 +73,7 @@ function FileTypeTile({ ext }: { ext: string }) {
   );
 }
 
-function AttachmentThumbnail({
-  file, projectId, issueId,
-}: { file: AttachmentRow; projectId: string; issueId: string }) {
+function AttachmentThumbnail({ file }: { file: AttachmentRow }) {
   const ext = extensionOf(file.filename);
   const isImage = IMAGE_EXTENSIONS.includes(ext);
   const [url, setUrl] = useState<string | null>(null);
@@ -78,12 +82,12 @@ function AttachmentThumbnail({
   useEffect(() => {
     if (!isImage) return;
     let cancelled = false;
-    fetch(`/api/v2/projects/${projectId}/issues/${issueId}/attachments/${file.id}/file-url`)
+    fetch(file.fetchUrl)
       .then((res) => (res.ok ? res.json() : Promise.reject()))
       .then((data: { url: string }) => { if (!cancelled) setUrl(data.url); })
       .catch(() => { if (!cancelled) setFailed(true); });
     return () => { cancelled = true; };
-  }, [file.id, isImage, projectId, issueId]);
+  }, [file.fetchUrl, isImage]);
 
   if (isImage && url && !failed) {
     return (
@@ -105,10 +109,12 @@ export function IssueAttachments({
   projectId,
   issueId,
   canEdit,
+  onCountChange,
 }: {
   projectId: string;
   issueId: string;
   canEdit: boolean;
+  onCountChange?: (n: number) => void;
 }) {
   const [attachments, setAttachments] = useState<AttachmentRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -122,14 +128,21 @@ export function IssueAttachments({
     const ctrl = new AbortController();
     fetch(`/api/v2/projects/${projectId}/issues/${issueId}/attachments`, { signal: ctrl.signal })
       .then((r) => (r.ok ? r.json() : []))
-      .then((data: AttachmentRow[]) => setAttachments(data))
+      .then((data: AttachmentRow[]) => {
+        setAttachments(data);
+        onCountChange?.(data.length);
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
     return () => ctrl.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- onCountChange is a stable useCallback from the panel; including it would refire this fetch on every parent render
   }, [projectId, issueId]);
 
   // Realtime sync (mirrors _task-attachments.tsx's identical pattern) — patches local state
-  // directly from the event payload instead of refetching.
+  // directly from the event payload instead of refetching. Scoped to `entity_id=eq.${issueId}`,
+  // so this only ever matches issue-native rows — a comment-uploaded attachment (entity_id is
+  // the comment's id, not the issue's) won't live-patch in here; it appears on next mount/tab
+  // switch via the merged GET fetch above (task 257, Requirement F).
   useEffect(() => {
     const supabase = createClient();
     const channel = supabase
@@ -139,19 +152,33 @@ export function IssueAttachments({
         { event: "*", schema: "public", table: "attachments", filter: `entity_id=eq.${issueId}` },
         (payload) => {
           if (payload.eventType === "INSERT") {
-            const row = payload.new as AttachmentRow & { entity_type: string };
+            const row = payload.new as { id: string; filename: string; size: number | null; created_at: string; entity_type: string };
             if (row.entity_type !== "issue") return;
-            setAttachments((prev) => (prev.some((a) => a.id === row.id) ? prev : [...prev, row]));
+            const shaped: AttachmentRow = {
+              id: row.id, filename: row.filename, size: row.size, created_at: row.created_at,
+              source: "issue", commentId: null,
+              fetchUrl: `/api/v2/projects/${projectId}/issues/${issueId}/attachments/${row.id}/file-url`,
+            };
+            setAttachments((prev) => {
+              const next = prev.some((a) => a.id === shaped.id) ? prev : [...prev, shaped];
+              onCountChange?.(next.length);
+              return next;
+            });
           } else if (payload.eventType === "DELETE") {
             const old = payload.old as { id: string; entity_type?: string };
             if (old.entity_type && old.entity_type !== "issue") return;
-            setAttachments((prev) => prev.filter((a) => a.id !== old.id));
+            setAttachments((prev) => {
+              const next = prev.filter((a) => a.id !== old.id);
+              onCountChange?.(next.length);
+              return next;
+            });
           }
         }
       )
       .subscribe();
     return () => { void supabase.removeChannel(channel); };
-  }, [issueId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- onCountChange is a stable useCallback from the panel
+  }, [issueId, projectId]);
 
   async function handleUpload(file: File) {
     setError(null);
@@ -172,15 +199,31 @@ export function IssueAttachments({
       setError(body.error ?? "Failed to upload file.");
       return;
     }
-    const data: AttachmentRow = await res.json();
-    setAttachments((prev) => (prev.some((a) => a.id === data.id) ? prev : [...prev, data]));
+    // POST returns the raw `attachments` insert row (no source/fetchUrl) — shape it the same way
+    // the GET merge does for issue-native rows.
+    const raw: { id: string; filename: string; size: number | null; created_at: string } = await res.json();
+    const data: AttachmentRow = {
+      ...raw, source: "issue", commentId: null,
+      fetchUrl: `/api/v2/projects/${projectId}/issues/${issueId}/attachments/${raw.id}/file-url`,
+    };
+    setAttachments((prev) => {
+      const next = prev.some((a) => a.id === data.id) ? prev : [...prev, data];
+      onCountChange?.(next.length);
+      return next;
+    });
   }
 
   async function handleDelete(id: string) {
     setDeletingId(id);
     const res = await fetch(`/api/v2/projects/${projectId}/issues/${issueId}/attachments/${id}`, { method: "DELETE" });
     setDeletingId(null);
-    if (res.ok) setAttachments((prev) => prev.filter((a) => a.id !== id));
+    if (res.ok) {
+      setAttachments((prev) => {
+        const next = prev.filter((a) => a.id !== id);
+        onCountChange?.(next.length);
+        return next;
+      });
+    }
   }
 
   if (loading) {
@@ -232,7 +275,7 @@ export function IssueAttachments({
               key={file.id}
               className="relative flex flex-col rounded-[10px] border border-[#E2E7F2] bg-white overflow-hidden"
             >
-              {canEdit && (
+              {canEdit && file.source === "issue" && (
                 <button
                   type="button"
                   onClick={() => void handleDelete(file.id)}
@@ -243,8 +286,16 @@ export function IssueAttachments({
                   {deletingId === file.id ? <Loader2 size={12} className="animate-spin" /> : <X size={12} />}
                 </button>
               )}
+              {file.source === "comment" && (
+                <span
+                  className="absolute top-1.5 left-1.5 z-10 text-[10px] font-medium text-[#5F6A88] bg-white/90 px-1.5 py-0.5 rounded-full"
+                  title="Uploaded on a comment — delete it from the Comments tab"
+                >
+                  From comment
+                </span>
+              )}
               <div className="aspect-square">
-                <AttachmentThumbnail file={file} projectId={projectId} issueId={issueId} />
+                <AttachmentThumbnail file={file} />
               </div>
               <div className="flex flex-col gap-1 px-2.5 py-2">
                 <span className="text-[11.5px] font-medium text-[#3A4565] truncate" title={file.filename}>
@@ -269,7 +320,7 @@ export function IssueAttachments({
       {viewing && (
         <TaskAttachmentViewerModal
           attachment={viewing}
-          fetchUrl={`/api/v2/projects/${projectId}/issues/${issueId}/attachments/${viewing.id}/file-url`}
+          fetchUrl={viewing.fetchUrl}
           onClose={() => setViewing(null)}
         />
       )}

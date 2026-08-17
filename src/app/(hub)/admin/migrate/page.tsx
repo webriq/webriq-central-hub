@@ -114,6 +114,7 @@ interface IssueAttachmentsImportState {
 }
 
 const EXPORT_LEVELS = [
+  { key: "projects", label: "Projects", desc: "All projects in the portal — export first, every other level below reads project IDs from the downloaded projects.json" },
   { key: "users", label: "Users", desc: "All Zoho portal users — can run independently" },
   { key: "milestones", label: "Milestones", desc: "All milestones across every project — export before Tasklists" },
   { key: "tasklists", label: "Tasklists", desc: "All tasklists across every project" },

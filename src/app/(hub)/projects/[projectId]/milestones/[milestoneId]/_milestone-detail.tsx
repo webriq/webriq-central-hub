@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Trash2, Loader2, Flag } from "lucide-react";
 import {
   type Milestone, type Task,
-  STATUS_LABEL, STATUS_STYLE, normalizeStatus,
+  STATUS_LABEL, STATUS_STYLE, normalizeStatus, decodeHtmlEntities,
 } from "../../../_pm-shared";
 
 const M_STATUS_OPTS = ["planned", "active", "completed"] as const;
@@ -179,7 +179,7 @@ export default function MilestoneDetailClient({
                         onClick={() => project.project_id && router.push(`/projects/${project.project_id}/tasks/${t.display_id}`)}
                         className="flex items-center justify-between gap-3 px-2.5 py-2 rounded-lg hover:bg-slate-50 cursor-pointer text-left transition-colors"
                       >
-                        <span className="text-[13px] text-slate-700 truncate">{t.title}</span>
+                        <span className="text-[13px] text-slate-700 truncate">{decodeHtmlEntities(t.title)}</span>
                         <span
                           className="inline-flex items-center text-[10px] font-medium px-2 py-0.5 rounded-full border whitespace-nowrap shrink-0"
                           style={{ color: ts.text, background: ts.bg, borderColor: ts.border }}

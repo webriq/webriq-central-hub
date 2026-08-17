@@ -35,6 +35,7 @@ type IssueRow = {
   flag: string | null;
   assignee_name: string | null;
   assignee_email: string | null;
+  assignee_id: string | null;
   due_date: string | null;
   created_at?: string;
   source_meta: Record<string, unknown>;
@@ -98,6 +99,13 @@ export async function POST() {
   const projectMap = new Map((projectRows ?? []).map((p) => [String(p.external_project_id), p.id as string]));
   console.log(`[issues] project lookup map built: ${projectMap.size} projects`);
 
+  const { data: hubUserRows } = await adminClient.from("hub_users").select("id, email");
+  const hubUserMap = new Map(
+    (hubUserRows ?? [])
+      .filter((u) => u.email)
+      .map((u) => [String(u.email).toLowerCase(), u.id as string])
+  );
+
   const result: ImportResult = { imported: 0, updated: 0, skipped: 0, errors: [] };
   const rows: IssueRow[] = [];
 
@@ -112,6 +120,8 @@ export async function POST() {
       continue;
     }
 
+    const assigneeEmail = cleanName(issue.assignee?.email);
+
     rows.push({
       external_id: externalId,
       project_id: projectId,
@@ -122,7 +132,8 @@ export async function POST() {
       severity: issue.severity?.value ?? null,
       flag: issue.flag ?? null,
       assignee_name: cleanName(issue.assignee?.name),
-      assignee_email: cleanName(issue.assignee?.email),
+      assignee_email: assigneeEmail,
+      assignee_id: assigneeEmail ? (hubUserMap.get(assigneeEmail.toLowerCase()) ?? null) : null,
       due_date: toDateOnly(issue.due_date),
       created_at: issue.created_time ?? undefined,
       source_meta: {

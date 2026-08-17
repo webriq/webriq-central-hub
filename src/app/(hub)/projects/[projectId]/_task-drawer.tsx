@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import {
   type Task, type Milestone, type TaskStatus, type TaskPriority,
-  STATUS_LABEL, PRIORITY_STYLE,
+  STATUS_LABEL, PRIORITY_STYLE, decodeHtmlEntities,
 } from "../_pm-shared";
 
 const STATUS_OPTS: TaskStatus[] = ["open", "in_progress", "ready_for_qa", "testing_completed", "for_client_approval", "ready_to_merge", "post_live_qa", "closed"];
@@ -213,7 +213,7 @@ export default function TaskDrawer({
                         : <Square size={16} className="text-slate-300" />}
                     </button>
                     <span className={`text-[13px] flex-1 ${s.status === "closed" ? "line-through text-slate-400" : "text-slate-700"}`}>
-                      {s.title}
+                      {decodeHtmlEntities(s.title)}
                     </span>
                     <button onClick={() => deleteSubtask(s.id)} className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-slate-300 hover:text-red-500 cursor-pointer transition-opacity">
                       <Trash2 size={13} />

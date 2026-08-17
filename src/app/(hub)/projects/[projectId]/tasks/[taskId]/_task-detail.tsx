@@ -28,9 +28,14 @@ const inputClass =
 
 function Card({
   title,
+  noPadding = false,
   children,
 }: {
   title: string;
+  // Skip the default content padding for a child that needs to cover the full card body
+  // edge-to-edge (e.g. Description's rich-text field) — mirrors AccordionCard's own
+  // `noPadding` prop (`../../_accordion-card.tsx`), used on the Issue Detail equivalent.
+  noPadding?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -40,7 +45,7 @@ function Card({
           {title}
         </span>
       </div>
-      <div className="p-[18px]">{children}</div>
+      <div className={noPadding ? undefined : "p-[18px]"}>{children}</div>
     </div>
   );
 }
@@ -189,7 +194,7 @@ export default function TaskDetailClient({
 
       {/* Content */}
       <div className="bg-[#F4F6FB] flex-1 overflow-y-auto p-8">
-        <div className="flex gap-6 max-w-5xl">
+        <div className="flex gap-6">
 
           {/* Left — sidebar */}
           <div className="w-72 shrink-0">
@@ -343,11 +348,13 @@ export default function TaskDetailClient({
           <div className="flex-1 flex flex-col gap-5 min-w-0">
 
             {/* Description */}
-            <Card title="Description">
+            <Card title="Description" noPadding>
               <DescriptionField
                 uploadUrl={`/api/v2/projects/${projectId}/tasks/description-images`}
                 value={description}
                 readOnly={!perm.canEditDetails}
+                fullBleed
+                scrollable
                 onSave={(html) => {
                   setDescription(html);
                   void saveField({ description: html || null });

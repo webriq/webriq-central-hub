@@ -12,7 +12,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { useDroppable } from "@dnd-kit/core";
 import { Plus, Calendar, GitPullRequest } from "lucide-react";
 import {
-  type Task, type TaskStatus, BOARD_COLUMNS, PRIORITY_STYLE, midpoint, formatDueDate,
+  type Task, type TaskStatus, BOARD_COLUMNS, PRIORITY_STYLE, midpoint, formatDueDate, decodeHtmlEntities,
 } from "../_pm-shared";
 import { getTaskEditPermission } from "@/lib/tasks/permissions";
 
@@ -202,7 +202,7 @@ function CardBody({ task, dragging }: { task: Task; dragging?: boolean }) {
     >
       <div className="flex items-start gap-2">
         <span className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0" style={{ background: p.dot }} />
-        <p className="text-[13px] font-medium text-[#0B1533] leading-snug flex-1">{task.title}</p>
+        <p className="text-[13px] font-medium text-[#0B1533] leading-snug flex-1">{decodeHtmlEntities(task.title)}</p>
       </div>
       {(due || task.github_pr_url || (task.labels && task.labels.length > 0)) && (
         <div className="flex items-center gap-2 mt-2.5 pl-3.5 flex-wrap">

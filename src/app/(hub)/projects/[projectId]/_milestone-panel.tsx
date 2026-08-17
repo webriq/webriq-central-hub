@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import { Pencil, Trash2, Plus, Check, X, Loader2, Flag } from "lucide-react";
-import { type Milestone, type Task, formatDueDate } from "../_pm-shared";
+import { type Milestone, type Task, formatDueDate, decodeHtmlEntities } from "../_pm-shared";
 
 const M_STATUS_STYLE: Record<string, { text: string; bg: string; border: string }> = {
   planned:   { text: "#64748B", bg: "#F8FAFC", border: "#E2E8F0" },
@@ -193,7 +193,7 @@ export default function MilestonePanel({
                           href={`/projects/${projectSlug}/milestones/${m.id}`}
                           className="text-[13px] text-slate-700 font-medium hover:text-slate-900 hover:underline"
                         >
-                          {m.name}
+                          {decodeHtmlEntities(m.name)}
                         </Link>
                       </td>
                       <td className="px-4 py-2.5">

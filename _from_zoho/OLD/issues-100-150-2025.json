@@ -965,11 +965,11 @@
       "last_name": "Baraquil"
     },
     "status": {
-      "id": "1512955000000030087",
-      "name": "Closed",
-      "color": "#a9b2c0",
-      "color_hexcode": "#a9b2c0",
-      "is_closed_type": true
+      "id": "1512955000001903944",
+      "name": "For Client Approval",
+      "color": "#e6cb4c",
+      "color_hexcode": "#e6cb4c",
+      "is_closed_type": false
     },
     "assignee": {
       "zuid": 845829049,
@@ -1066,92 +1066,6 @@
       "last_name": "Genodiala"
     },
     "due_date": "2026-07-03T11:00:00.000Z",
-    "severity": {
-      "id": "1512955000000030141",
-      "value": "None"
-    },
-    "added_via": "web",
-    "subscription_type": "Standard",
-    "_zoho_project_id": "1512955000003691025"
-  },
-  {
-    "id": "1512955000019777092",
-    "prefix": "OS1-I65",
-    "name": "careers page crashing",
-    "project": {
-      "id": "1512955000003691025",
-      "name": "One Source Associates"
-    },
-    "description": "<div>We are receiving this error when we try to go to our Careers page:<br/></div><div><br/></div><div><img src=\"/portal/viewInlineAttachment/image?file=projects-f942295bd562df6a41cfc90397b8072457383f6eab879993f85b5de19a36fbc8b6a30d234e4523aaaa591d3b55567f5d\" width=\"400\" height=\"306\"/><br/></div>",
-    "flag": "Internal",
-    "created_time": "2026-07-07T16:08:27.080Z",
-    "created_by": {
-      "zuid": 847035989,
-      "zpuid": "1512955000011632080",
-      "name": "Niña",
-      "email": "nina.baraquil@webriq.services",
-      "first_name": "Niña Anjerrie",
-      "last_name": "Baraquil"
-    },
-    "status": {
-      "id": "1512955000000030087",
-      "name": "Closed",
-      "color": "#a9b2c0",
-      "color_hexcode": "#a9b2c0",
-      "is_closed_type": true
-    },
-    "assignee": {
-      "zuid": 845829049,
-      "zpuid": "1512955000011449057",
-      "name": "Ericka Dichon",
-      "email": "ericka.dichon@webriq.services",
-      "first_name": "Ericka",
-      "last_name": "Dichon"
-    },
-    "due_date": "2026-07-21T13:00:00.000Z",
-    "severity": {
-      "id": "1512955000000030141",
-      "value": "None"
-    },
-    "added_via": "web",
-    "subscription_type": "Standard",
-    "_zoho_project_id": "1512955000003691025"
-  },
-  {
-    "id": "1512955000019934140",
-    "prefix": "OS1-I66",
-    "name": "portfolio question",
-    "project": {
-      "id": "1512955000003691025",
-      "name": "One Source Associates"
-    },
-    "description": "<p style=\"margin:0in; font-style:normal; font-weight:400; letter-spacing:normal; orphans:2; text-indent:0px; text-transform:none; widows:2; word-spacing:0px; white-space:normal; color:rgb(0, 0, 0); background-color:rgb(255, 255, 255)\">Is there a way to adjust for when one image in the portfolio is horizontal and one is vertical?<br/></p><p style=\"margin:0in; font-style:normal; font-weight:400; letter-spacing:normal; orphans:2; text-indent:0px; text-transform:none; widows:2; word-spacing:0px; white-space:normal; color:rgb(0, 0, 0); background-color:rgb(255, 255, 255)\">&nbsp;<br/></p><p style=\"margin:0in; font-style:normal; font-weight:400; letter-spacing:normal; orphans:2; text-indent:0px; text-transform:none; widows:2; word-spacing:0px; white-space:normal; color:rgb(0, 0, 0); background-color:rgb(255, 255, 255)\">The crop/hotspot isn’t working like the preview shows. It is cutting off most of the photo. We’d like to show more of the full photo even if it doesn’t fill the space and there is a white border.<br/></p><div><br/></div><div><img src=\"/portal/viewInlineAttachment/image?file=projects-f942295bd562df6a41cfc90397b8072451921084f89dfb38804f3b19de2a7f1abbacd633dc13c355f79e7e877ebeb466\" width=\"400\" height=\"217\"/><br/></div><div><br/></div><div><span style=\"font-style:normal; font-weight:400; letter-spacing:normal; orphans:2; text-indent:0px; text-transform:none; widows:2; word-spacing:0px; white-space:normal; float:none; color:rgb(0, 0, 0); background-color:rgb(255, 255, 255); display:inline !important\">This is the full image:</span><br/></div><div><br/></div><div><span style=\"font-style:normal; font-weight:400; letter-spacing:normal; orphans:2; text-indent:0px; text-transform:none; widows:2; word-spacing:0px; white-space:normal; float:none; color:rgb(0, 0, 0); background-color:rgb(255, 255, 255); display:inline !important\"><img src=\"/portal/viewInlineAttachment/image?file=projects-f942295bd562df6a41cfc90397b807244a6e225afb19eb6cf5e4933e98f7a24fb071538989f6f3b0f4687792540f7154\" width=\"400\" height=\"604\"/>​</span><br/></div><div><br/></div>",
-    "flag": "Internal",
-    "created_time": "2026-07-24T03:59:33.088Z",
-    "created_by": {
-      "zuid": 847035989,
-      "zpuid": "1512955000011632080",
-      "name": "Niña",
-      "email": "nina.baraquil@webriq.services",
-      "first_name": "Niña Anjerrie",
-      "last_name": "Baraquil"
-    },
-    "status": {
-      "id": "1512955000000030087",
-      "name": "Closed",
-      "color": "#a9b2c0",
-      "color_hexcode": "#a9b2c0",
-      "is_closed_type": true
-    },
-    "assignee": {
-      "zuid": 814277754,
-      "zpuid": "1512955000009122237",
-      "name": "Mariel Genodiala",
-      "email": "mariel.genodiala@webriq.services",
-      "first_name": "Mariel",
-      "last_name": "Genodiala"
-    },
-    "due_date": "2026-07-27T11:00:00.000Z",
     "severity": {
       "id": "1512955000000030141",
       "value": "None"

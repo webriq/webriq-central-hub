@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Flag, Plus, X, Check, Trash2, Loader2 } from "lucide-react";
-import { type Milestone, formatDueDate } from "../_pm-shared";
+import { type Milestone, formatDueDate, decodeHtmlEntities } from "../_pm-shared";
 
 const M_STATUS_STYLE: Record<string, { text: string; bg: string; border: string }> = {
   planned:   { text: "#64748B", bg: "#F8FAFC", border: "#E2E8F0" },
@@ -75,14 +75,14 @@ export default function MilestoneBar({
               className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[12px] font-medium cursor-pointer hover:opacity-80"
               style={{ color: c.text, background: c.bg, borderColor: c.border }}
             >
-              {m.name}
+              {decodeHtmlEntities(m.name)}
               {dueLabel && <span className="opacity-70">· {dueLabel}</span>}
             </button>
 
             {isEditing && (
               <div className="absolute top-full left-0 mt-1.5 z-20 w-56 rounded-lg bg-white border border-slate-200 shadow-lg p-3 flex flex-col gap-2.5" onClick={(e) => e.stopPropagation()}>
                 <input
-                  defaultValue={m.name}
+                  defaultValue={decodeHtmlEntities(m.name)}
                   onBlur={(e) => { if (e.target.value.trim() && e.target.value !== m.name) patchMilestone(m.id, { name: e.target.value.trim() }); }}
                   className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-[12px] text-slate-700 outline-none focus:border-slate-400"
                 />
