@@ -624,14 +624,13 @@ function DeliverableCard({
 // ─── Swimlane ──────────────────────────────────────────────────────────────────
 
 function Swimlane({
-  phase, dbStatus, deliverableStatusMap, deliverableOverrideMap, internalByKey, collapsed, onToggleCollapse,
+  phase, dbStatus, deliverableStatusMap, internalByKey, collapsed, onToggleCollapse,
   onOpenDeliverable, expandedDeliverable, onExpandDeliverable, index, startDate, role, canEditSchedule, onScheduleChange,
   totalDays = TOTAL_DAYS,
 }: {
   phase: PhaseConfig;
   dbStatus: string;
   deliverableStatusMap: Map<string, string>;
-  deliverableOverrideMap: Map<string, { dayStart: number; dayEnd: number }>;
   internalByKey: Map<string, OnboardingInternalDeliverableRow>;
   collapsed: boolean;
   onToggleCollapse: () => void;
@@ -658,12 +657,11 @@ function Swimlane({
   // everyone (chat follow-up) — they're shown only for reference when a PM expands the row out of
   // curiosity, never actionable since this phase doesn't apply to the project.
   const interactive = role !== "developer" && dbStatus !== "skipped";
-  // Effective span = per-project override (migration 071) ?? the static config default — never
-  // mutates PROGRAMME_PHASES, which is shared by every customer.
-  const effectiveDeliverables = phase.deliverables.map((d) => {
-    const override = deliverableOverrideMap.get(d.key);
-    return override ? { ...d, dayStart: override.dayStart, dayEnd: override.dayEnd } : d;
-  });
+  // Task 253: effective span (per-project override ?? the static config default) is now resolved
+  // upstream by resolveEffectiveDeliverable (customer-phases.ts) for every phase.deliverables
+  // entry, so there's no separate override map to merge here anymore — never mutates
+  // PROGRAMME_PHASES, which is shared by every customer.
+  const effectiveDeliverables = phase.deliverables;
   const tracks = assignTracks(effectiveDeliverables.map((d) => ({ dayStart: d.dayStart, dayEnd: d.dayEnd })));
   const trackCount = tracks.length > 0 ? Math.max(...tracks) + 1 : 1;
   const laneHeight = trackCount * ROW_HEIGHT + (trackCount - 1) * ROW_GAP + 8 + LANE_TOP_PADDING;
@@ -677,36 +675,47 @@ function Swimlane({
       className="flex border-b border-[#E2E7F2]"
     >
       <div className={cn("sticky left-0  z-2 shrink-0 border-r border-[#E2E7F2] px-3.5 py-3", visual.bg)} style={{ width: LABEL_WIDTH }}>
-        <button type="button" onClick={onToggleCollapse} className="flex w-full cursor-pointer items-center gap-2 border-none bg-transparent p-0 text-left">
-          <div className={cn("flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[12px] font-bold", visual.iconBg, visual.iconText)}>
-            {dbStatus === "completed" ? <CheckCircle2 size={13} /> : phase.number}
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5">
-              <span className={cn("truncate text-[12.5px] font-bold", dbStatus === "skipped" ? "text-[#5F6A88]" : "text-[#0B1533]")}>{phase.name}</span>
-              {dbStatus === "active" && <span className="h-1.5 w-1.5 shrink-0 animate-pulse motion-reduce:animate-none rounded-full bg-[#007BFF]" />}
-              {/* Task 244: a StackShift I phase a PM excluded at intake reuses the same "skipped"
-                  status a time-based "jump to phase" produces — labeled here so it reads as "not
-                  part of this project" rather than "already passed". */}
-              {dbStatus === "skipped" && (
+        {/* Task 254: a skipped phase's lane is always empty regardless of collapsed state (it's
+            excluded from the shared grid/day range entirely, see the D{}–{} suppression below) —
+            there's nothing to reveal by toggling it, so it renders as an inert <div> instead of
+            the collapse-toggle <button> non-skipped phases still use. */}
+        {dbStatus === "skipped" ? (
+          <div className="flex w-full items-center gap-2 p-0 text-left">
+            <div className={cn("flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[12px] font-bold", visual.iconBg, visual.iconText)}>
+              {phase.number}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5">
+                <span className="truncate text-[12.5px] font-bold text-[#5F6A88]">{phase.name}</span>
+                {/* Task 244: a StackShift I phase a PM excluded at intake reuses the same "skipped"
+                    status a time-based "jump to phase" produces — labeled here so it reads as "not
+                    part of this project" rather than "already passed". */}
                 <span className="shrink-0 rounded-full bg-slate-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-slate-400">
                   Skipped
                 </span>
-              )}
-            </div>
-            <div className={cn("font-mono truncate text-[10px] text-[#5F6A88]")}>
-              {/* Chat follow-up: a skipped phase's calendar days were compressed out of the
-                  shared grid entirely — showing a day range here would misleadingly imply it
-                  still occupies that span. */}
-              {dbStatus !== "skipped" && <>D{phase.dayStart}–{phase.dayEnd} · </>}
-              {doneCount}/{phase.deliverables.length}
+              </div>
             </div>
           </div>
-          {/* Chat follow-up: swapped for a directionless +/− toggle — a down/right chevron implied
-              a vertical list would drop below, but the revealed content is a horizontal timeline
-              lane instead, which read as confusing. */}
-          {collapsed ? <Plus size={14} className="shrink-0 text-[#5F6A88]" /> : <Minus size={14} className="shrink-0 text-[#5F6A88]" />}
-        </button>
+        ) : (
+          <button type="button" onClick={onToggleCollapse} className="flex w-full cursor-pointer items-center gap-2 border-none bg-transparent p-0 text-left">
+            <div className={cn("flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[12px] font-bold", visual.iconBg, visual.iconText)}>
+              {dbStatus === "completed" ? <CheckCircle2 size={13} /> : phase.number}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5">
+                <span className="truncate text-[12.5px] font-bold text-[#0B1533]">{phase.name}</span>
+                {dbStatus === "active" && <span className="h-1.5 w-1.5 shrink-0 animate-pulse motion-reduce:animate-none rounded-full bg-[#007BFF]" />}
+              </div>
+              <div className={cn("font-mono truncate text-[10px] text-[#5F6A88]")}>
+                D{phase.dayStart}–{phase.dayEnd} · {doneCount}/{phase.deliverables.length}
+              </div>
+            </div>
+            {/* Chat follow-up: swapped for a directionless +/− toggle — a down/right chevron implied
+                a vertical list would drop below, but the revealed content is a horizontal timeline
+                lane instead, which read as confusing. */}
+            {collapsed ? <Plus size={14} className="shrink-0 text-[#5F6A88]" /> : <Minus size={14} className="shrink-0 text-[#5F6A88]" />}
+          </button>
+        )}
       </div>
 
       <div
@@ -798,7 +807,10 @@ function JumpToPhaseMenu({
                   disabled ? "cursor-not-allowed text-[#5F6A88]" : "cursor-pointer text-[#0B1533] hover:bg-[#F4F6FB]"
                 )}
               >
-                <span>{p.name} (Day {p.dayStart}–{p.dayEnd})</span>
+                {/* Task 253: a skipped phase occupies no calendar days (compressed out of the
+                    shared grid entirely, same as the Swimlane phase-row header) — showing a day
+                    range here would misleadingly imply it still does. */}
+                <span>{p.name}{!skipped && ` (Day ${p.dayStart}–${p.dayEnd})`}</span>
                 {skipped && (
                   <span className="shrink-0 rounded-full bg-slate-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-slate-400">
                     Skipped
@@ -1551,12 +1563,20 @@ export default function OnboardingDetail({
     );
   };
 
+  // Task 253: the drag-resize UI now operates in display-scaled day coordinates (see
+  // displayPhases below — dayStart/dayEnd on-screen are scaleDay'd to this project's real
+  // programmeDurationDays), but day_start_override/day_end_override are stored on the same
+  // unscaled (skip-)compressed reference scale every other override write uses (seed.ts).
+  // unscaleDay inverts the display scaling before it reaches local state or the API — a no-op
+  // whenever programmeDurationDays is the 120-day default.
   const handleScheduleChange = async (phaseNumber: number, deliverableKey: string, dayStart: number, dayEnd: number) => {
+    const referenceDayStart = unscaleDay(dayStart, programmeDurationDays);
+    const referenceDayEnd = unscaleDay(dayEnd, programmeDurationDays);
     const previous = deliverables;
     setDeliverables((prev) =>
       prev.map((d) =>
         d.phase_number === phaseNumber && d.deliverable_key === deliverableKey
-          ? { ...d, day_start_override: dayStart, day_end_override: dayEnd }
+          ? { ...d, day_start_override: referenceDayStart, day_end_override: referenceDayEnd }
           : d
       )
     );
@@ -1564,7 +1584,7 @@ export default function OnboardingDetail({
       const res = await fetch(`/api/projects/${project.id}/programme/deliverables/${deliverableKey}/schedule`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phase_number: phaseNumber, day_start: dayStart, day_end: dayEnd }),
+        body: JSON.stringify({ phase_number: phaseNumber, day_start: referenceDayStart, day_end: referenceDayEnd }),
       });
       if (!res.ok) throw new Error();
     } catch {
@@ -1860,8 +1880,9 @@ export default function OnboardingDetail({
   // grid/progress bar/timeline at all — Day 1 now aligns with the first non-skipped phase, not
   // Onboard's static reference day 1. Every non-skipped phase (and its own deliverables) gets its
   // dayStart/dayEnd re-expressed on this skip-compressed scale for rendering; a skipped phase's
-  // row keeps its original static range (shown only if a PM manually expands its now-default-
-  // collapsed, disabled row for historical reference — never part of the shared grid's columns).
+  // row keeps its original static range, though it's never actually displayed — task 254 removed
+  // the skipped-row collapse toggle entirely (it starts, and permanently stays, collapsed), so
+  // there's no way to expand it and see this anymore.
   // Both the Swimlane loop and buildReminders read from this single compressed source, so the
   // "days remaining" reminder and the Gantt grid always agree.
   const compressedPhases = orderedPhases.map((p) =>
@@ -1887,6 +1908,22 @@ export default function OnboardingDetail({
   // value everywhere else — it's still the correct scale ratio for scaleDay/unscaleDay, since that
   // never changed; only the *displayed* total shrinks.
   const visibleDurationDays = scaleDay(visibleTotalDays, programmeDurationDays);
+  // Task 253: compressedPhases is the storage-compatible (skip-)compressed reference scale used
+  // by buildReminders and by the drag-resize round-trip (handleScheduleChange unscales back onto
+  // it). Everything actually rendered to the user — Swimlane bars, the Jump-to-phase dropdown,
+  // deliverable date badges — needs the *further* scaleDay conversion to this project's real
+  // programmeDurationDays, same as visibleDurationDays above, so a phase's own displayed day range
+  // can never exceed the header's own displayed total. Identity (no-op) at the 120-day default.
+  const displayPhases = compressedPhases.map((p) => ({
+    ...p,
+    dayStart: scaleDay(p.dayStart, programmeDurationDays),
+    dayEnd: scaleDay(p.dayEnd, programmeDurationDays),
+    deliverables: p.deliverables.map((d) => ({
+      ...d,
+      dayStart: scaleDay(d.dayStart, programmeDurationDays),
+      dayEnd: scaleDay(d.dayEnd, programmeDurationDays),
+    })),
+  }));
   const progressPct = Math.min(100, Math.round((currentDay / visibleDurationDays) * 100));
   // Whole-programme overdue (mirrors ProgrammeTrack's own per-phase overdue flag, at the
   // project's own compressed programme length) — currentDay isn't capped at visibleDurationDays,
@@ -1894,11 +1931,6 @@ export default function OnboardingDetail({
   const programmeOverdue = !isComplete && currentDay > visibleDurationDays;
   const daysOverdue120 = currentDay - visibleDurationDays;
   const deliverableStatusMap = new Map(deliverables.map((d) => [d.deliverable_key, d.status]));
-  const deliverableOverrideMap = new Map(
-    deliverables
-      .filter((d) => d.day_start_override != null && d.day_end_override != null)
-      .map((d) => [d.deliverable_key, { dayStart: d.day_start_override as number, dayEnd: d.day_end_override as number }])
-  );
   const remindersDeliverableMap = new Map(deliverables.filter((d) => d.phase_number === 1).map((d) => [d.deliverable_key, d.status]));
   const reminders = buildReminders(currentDay, phaseStatusMap, remindersDeliverableMap, compressedPhases, programmeDurationDays);
   const visual = PHASE_VISUALS[activePhaseNumber] ?? PHASE_VISUALS[1];
@@ -1916,12 +1948,11 @@ export default function OnboardingDetail({
   const phasesCompleted = phases.filter((p) => p.status === "completed").length;
   const daysRemaining = Math.max(0, visibleDurationDays - currentDay);
 
-  // Chat follow-up to task 244: the Swimlane's grid columns and every non-skipped phase's own
-  // dayStart/dayEnd (compressedPhases, above) now live on the same skip-compressed reference
-  // scale currentDay itself is backdated against — unscaling currentDay is enough to land the
-  // "today" marker on the right column; no separate decompress step needed once the grid is
-  // compressed too. Identity (no-op) whenever nothing is skipped.
-  const gridMarkerDay = unscaleDay(currentDay, programmeDurationDays);
+  // Task 253: the grid's own axis is now visibleDurationDays (real, scaled days — see the `days`
+  // array below), the same scale currentDay already lives on, so the "today" marker needs no
+  // conversion anymore — it used to unscale onto the (skip-)compressed *reference* scale the grid
+  // used to render on before this task moved the grid itself onto the display-scaled axis.
+  const gridMarkerDay = currentDay;
 
   function scrollToToday(behavior: ScrollBehavior = "auto") {
     if (!scrollRef.current) return;
@@ -1929,7 +1960,12 @@ export default function OnboardingDetail({
     scrollRef.current.scrollTo({ left: target, behavior });
   }
 
-  const days = Array.from({ length: visibleTotalDays }, (_, i) => i + 1);
+  // Task 253: the grid's column axis is the display-scaled total (visibleDurationDays), not the
+  // raw (skip-)compressed reference total (visibleTotalDays) — see displayPhases above. 1 column
+  // now always represents 1 real calendar day of this project's actual programme_duration_days,
+  // so DateColumnHeader's addDays(startDate, day - 1) below is finally accurate for a non-default
+  // duration. Identity (no-op) at the 120-day default, where the two totals are equal.
+  const days = Array.from({ length: visibleDurationDays }, (_, i) => i + 1);
 
   return (
     <div className={cn("min-h-full bg-[#F4F6FB] px-7 py-8")}>
@@ -2018,7 +2054,7 @@ export default function OnboardingDetail({
                   setNote={setJumpNote}
                   onJump={handleJump}
                   jumping={jumping}
-                  phases={compressedPhases}
+                  phases={displayPhases}
                   skipSet={new Set(startedSkipNumbers)}
                   currentPhaseNumber={activePhaseNumber}
                 />
@@ -2152,7 +2188,7 @@ export default function OnboardingDetail({
             }}
             className="overflow-x-auto rounded-2xl"
           >
-            <div className="relative" style={{ width: LABEL_WIDTH + visibleTotalDays * DAY_WIDTH }}>
+            <div className="relative" style={{ width: LABEL_WIDTH + visibleDurationDays * DAY_WIDTH }}>
               <div className="flex border-b border-[#E2E7F2]">
                 <div className="sticky left-0 shrink-0 border-r z-3 border-[#E2E7F2] bg-white" style={{ width: LABEL_WIDTH }} />
                 {days.map((day) => (
@@ -2160,7 +2196,7 @@ export default function OnboardingDetail({
                 ))}
               </div>
 
-              {gridMarkerDay <= visibleTotalDays && (
+              {gridMarkerDay <= visibleDurationDays && (
                 <div
                   className="pointer-events-none absolute bottom-0 top-0 z-2 w-0 border-l-2 border-dashed border-[#FB914E]"
                   style={{ left: LABEL_WIDTH + (gridMarkerDay - 1) * DAY_WIDTH + DAY_WIDTH / 2 }}
@@ -2171,13 +2207,12 @@ export default function OnboardingDetail({
                 </div>
               )}
 
-              {compressedPhases.map((phase, index) => (
+              {displayPhases.map((phase, index) => (
                 <Swimlane
                   key={phase.number}
                   phase={phase}
                   dbStatus={phaseStatusMap.get(phase.number) ?? "not_started"}
                   deliverableStatusMap={deliverableStatusMap}
-                  deliverableOverrideMap={deliverableOverrideMap}
                   internalByKey={internalByKey}
                   collapsed={collapsedPhases.has(phase.number)}
                   onToggleCollapse={() =>
@@ -2196,7 +2231,7 @@ export default function OnboardingDetail({
                   index={index}
                   startDate={startDate}
                   role={role}
-                  totalDays={visibleTotalDays}
+                  totalDays={visibleDurationDays}
                 />
               ))}
             </div>

@@ -237,6 +237,14 @@ export type DeliverableOverrideRow = {
   custom_name: string | null;
   custom_description: string | null;
   custom_owner: string | null;
+  // Task 253: optional (not required on every caller — e.g. the schedule PATCH route only needs
+  // this function for its resolved `name`, never passes these) — mirrors PhaseOverrideRow's own
+  // day_start_override/day_end_override on customer_phases. When present and non-null, this is
+  // the customer_deliverables row's own day range (a PM's manual drag-reschedule); previously this
+  // function ignored these columns entirely and every caller but one fell back to the static
+  // default even for a manually-rescheduled deliverable.
+  day_start_override?: number | null;
+  day_end_override?: number | null;
 };
 
 export function resolveEffectiveDeliverable(phaseNumber: number, row: DeliverableOverrideRow): DeliverableConfig {
@@ -247,8 +255,8 @@ export function resolveEffectiveDeliverable(phaseNumber: number, row: Deliverabl
     key: row.deliverable_key,
     name: row.custom_name ?? staticDeliverable?.name ?? row.deliverable_key,
     description: row.custom_description ?? staticDeliverable?.description ?? "",
-    dayStart: staticDeliverable?.dayStart ?? 1,
-    dayEnd: staticDeliverable?.dayEnd ?? 1,
+    dayStart: row.day_start_override ?? staticDeliverable?.dayStart ?? 1,
+    dayEnd: row.day_end_override ?? staticDeliverable?.dayEnd ?? 1,
     owner: row.custom_owner ?? staticDeliverable?.owner ?? "",
   };
 }
