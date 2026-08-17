@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { cn } from "@/lib/utils";
 import type { ProductName } from "@/types/hub";
 import ProductSelector from "@/components/onboarding/product-selector";
-import { ROUTES } from "@/config/constants";
+import { V2_ROUTES } from "@/config/constants";
 
 type Step = "info" | "products" | "review";
 
@@ -101,13 +101,13 @@ export default function NewCustomerPage() {
 
           <div className="flex gap-3 justify-center">
             <a
-              href={`/dashboard/customers/${createdCustomer.customer_id}`}
+              href={`${V2_ROUTES.CUSTOMERS}/${createdCustomer.customer_id}`}
               className="font-[inherit] py-2.5 px-5.5 bg-brand-orange text-white text-[13px] font-semibold rounded-full no-underline inline-block"
             >
               View Customer Profile
             </a>
             <a
-              href={ROUTES.DASHBOARD}
+              href={V2_ROUTES.DASHBOARD}
               className="font-[inherit] py-2.5 px-5.5 bg-transparent text-slate-500 text-[13px] font-medium rounded-full no-underline border-[1.5px] border-slate-200 inline-block"
             >
               Go to Dashboard

@@ -30,6 +30,9 @@ export default function AuthCallbackPage() {
       return;
     }
 
+    const returnToParam = params.get("returnTo");
+    const safeReturn = returnToParam && returnToParam.startsWith("/") && !returnToParam.startsWith("//") ? returnToParam : "/dashboard";
+
     supabase.auth
       .setSession({ access_token: accessToken, refresh_token: refreshToken })
       .then(async ({ data, error }) => {
@@ -44,11 +47,11 @@ export default function AuthCallbackPage() {
         const displayName = (data.session.user.user_metadata?.display_name as string) ?? "";
         console.log("[auth/callback] session established for:", email);
 
-        let destination = "/v2/dashboard";
+        let destination = safeReturn;
         try {
           const { syncZohoRole } = await import("@/app/(auth)/sync-zoho-role");
           const role = await syncZohoRole(userId, email, displayName);
-          if (!role || role === "pending") destination = "/v2/auth/pending";
+          if (!role || role === "pending") destination = "/auth/pending";
         } catch (err) {
           console.warn("[auth/callback] syncZohoRole error:", err);
         }

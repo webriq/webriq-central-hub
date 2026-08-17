@@ -15,11 +15,11 @@ import {
   Layers,
 } from "lucide-react";
 import AuroraBackground from "@/components/hub/aurora-background";
-import { ROUTES } from "@/config/constants";
+import { V2_ROUTES } from "@/config/constants";
 
 const modules = [
   {
-    href: ROUTES.DASHBOARD,
+    href: V2_ROUTES.DASHBOARD,
     title: "PM Dashboard",
     description: "Tasks, tickets, daily digest, Zoho sync",
     icon: LayoutDashboard,
@@ -28,7 +28,7 @@ const modules = [
     size: "lg",
   },
   {
-    href: ROUTES.ORCHESTRATION,
+    href: V2_ROUTES.ORCHESTRATION,
     title: "AI Orchestration",
     description: "Assessment → Plan → Execute → Reply pipeline",
     icon: Bot,
@@ -37,7 +37,7 @@ const modules = [
     size: "lg",
   },
   {
-    href: ROUTES.CUSTOMERS_ONBOARD,
+    href: V2_ROUTES.CUSTOMERS_ONBOARD,
     title: "Onboarding",
     description: "Customer creation, dynamic forms, progress tracking",
     icon: UserPlus,
@@ -46,7 +46,7 @@ const modules = [
     size: "sm",
   },
   {
-    href: ROUTES.ORCHESTRATION,
+    href: V2_ROUTES.ORCHESTRATION,
     title: "Classification",
     description: "Zoho webhook → Haiku classification engine",
     icon: ScanSearch,
@@ -55,7 +55,7 @@ const modules = [
     size: "sm",
   },
   {
-    href: ROUTES.DASHBOARD,
+    href: V2_ROUTES.DASHBOARD,
     title: "Dev Dashboard",
     description: "Assigned tasks, self-assignment, time logs",
     icon: Code2,
@@ -64,7 +64,7 @@ const modules = [
     size: "sm",
   },
   {
-    href: ROUTES.KB,
+    href: V2_ROUTES.KB,
     title: "Knowledge Base",
     description: "Playbooks, internal KB, customer context",
     icon: BookOpen,

@@ -9,7 +9,7 @@ export async function GET() {
 
   return NextResponse.json({
     issuer,
-    authorization_endpoint: `${issuer}/v2/oauth/authorize`,
+    authorization_endpoint: `${issuer}/oauth/authorize`,
     token_endpoint: `${issuer}/api/oauth/token`,
     registration_endpoint: `${issuer}/api/oauth/register`,
     response_types_supported: ["code"],

@@ -25,7 +25,7 @@ export async function sendInvitationEmail(to: string, fullName: string, tempPass
       `Email: ${to}`,
       `Temporary Password: ${tempPassword}`,
       ``,
-      `Sign in at: ${process.env.NEXT_PUBLIC_APP_URL ?? "https://hub.webriq.com"}/v2/auth/login`,
+      `Sign in at: ${process.env.NEXT_PUBLIC_APP_URL ?? "https://hub.webriq.com"}/auth/login`,
       `You will be prompted to set a new password after your first login.`,
     ].join("\n"),
   });

@@ -1,126 +1,170 @@
-import { requireRole } from "@/lib/auth/require-role";
-import { createClient } from "@/lib/supabase/server";
-import { adminClient } from "@/lib/supabase/admin";
-import { cn } from "@/lib/utils";
-import { approveHubUser } from "@/app/(hub)/actions/approve-hub-user";
+"use client";
 
-const ROLE_BADGE: Record<string, string> = {
-  "Super Admin": "bg-purple-50 text-purple-700 border border-purple-200",
-  "Admin":       "bg-red-50 text-red-700 border border-red-200",
-  "PM":          "bg-blue-50 text-blue-700 border border-blue-200",
-  "Developer":   "bg-green-50 text-green-700 border border-green-200",
-  "Other":       "bg-slate-50 text-slate-600 border border-slate-200",
-};
+import { useState } from "react";
+import { User, Mail, ShieldCheck, Copy, Check } from "lucide-react";
+import { inviteUser } from "@/app/(auth)/actions";
 
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString("en-US", {
-    year: "numeric", month: "short", day: "numeric",
-  });
-}
+type Role = "pm" | "developer" | "hr" | "admin" | "super_admin";
 
-export default async function HubUsersPage() {
-  await requireRole("/admin/hub-users");
+const ROLES: { value: Role; label: string }[] = [
+  { value: "pm", label: "Project Manager" },
+  { value: "developer", label: "Developer" },
+  { value: "hr", label: "HR" },
+  { value: "admin", label: "Admin" },
+  { value: "super_admin", label: "Super Admin" },
+];
 
-  const supabase = await createClient();
-  const { data: claims } = await supabase.auth.getClaims();
-  const currentUserId = claims?.claims?.sub ?? null;
+export default function HubUsersPage() {
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState<Role>("pm");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<{ tempPassword: string; email: string } | null>(null);
+  const [copied, setCopied] = useState(false);
 
-  const { data: users } = await adminClient
-    .from("hub_users")
-    .select("id, email, first_name, last_name, role, external_id, is_invited, created_at")
-    .order("created_at", { ascending: false });
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    setResult(null);
+    setLoading(true);
 
-  const rows = users ?? [];
-  const pendingCount = rows.filter((u) => !u.role).length;
-  const approveAction = approveHubUser.bind(null, "/admin/hub-users");
+    const res = await inviteUser(email, fullName, role);
+
+    if (res.error) {
+      setError(res.error);
+      setLoading(false);
+      return;
+    }
+
+    setResult({ tempPassword: res.tempPassword!, email });
+    setFullName("");
+    setEmail("");
+    setRole("pm");
+    setLoading(false);
+  }
+
+  async function handleCopy() {
+    if (!result) return;
+    await navigator.clipboard.writeText(result.tempPassword);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
 
   return (
-    <div className="flex-1 overflow-y-auto py-6.5 px-8 bg-[#f5f4f1]">
-      <div className="mb-6">
-        <h1 className="text-xl font-bold text-slate-900">Hub Users</h1>
-        <p className="text-[13px] text-slate-400 mt-0.5">
-          {rows.length} registered users
-          {pendingCount > 0 && (
-            <span className="ml-2 text-amber-600 font-semibold">· {pendingCount} pending approval</span>
-          )}
+    <div className="py-8 px-8 max-w-xl">
+      <div className="mb-8">
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Invite Hub User</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Create a new account and send an invitation email with a temporary password.
         </p>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-xl shadow-[0_1px_4px_rgba(0,0,0,0.04)] overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-slate-100 bg-slate-50">
-              {["First Name", "Last Name", "Email", "Role", "External ID", "Invited", "Joined", "Actions"].map((h) => (
-                <th key={h} className="text-left py-3 px-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider">{h}</th>
+      <form onSubmit={handleSubmit} className="space-y-5">
+
+        {/* Full name */}
+        <div className="space-y-2">
+          <label htmlFor="fullName" className="text-sm font-medium leading-none text-foreground">
+            Full name
+          </label>
+          <div className="relative">
+            <User className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+            <input
+              id="fullName"
+              type="text"
+              required
+              placeholder="Ada Lovelace"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              className="flex w-full h-11 rounded-md border border-input bg-background pl-10 pr-3 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brand-orange"
+            />
+          </div>
+        </div>
+
+        {/* Email */}
+        <div className="space-y-2">
+          <label htmlFor="inviteEmail" className="text-sm font-medium leading-none text-foreground">
+            Email address
+          </label>
+          <div className="relative">
+            <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+            <input
+              id="inviteEmail"
+              type="email"
+              required
+              placeholder="ada@company.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="flex w-full h-11 rounded-md border border-input bg-background pl-10 pr-3 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brand-orange"
+            />
+          </div>
+        </div>
+
+        {/* Role */}
+        <div className="space-y-2">
+          <label htmlFor="role" className="text-sm font-medium leading-none text-foreground">
+            Role
+          </label>
+          <div className="relative">
+            <ShieldCheck className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+            <select
+              id="role"
+              value={role}
+              onChange={(e) => setRole(e.target.value as Role)}
+              className="flex w-full h-11 rounded-md border border-input bg-background pl-10 pr-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brand-orange appearance-none cursor-pointer"
+            >
+              {ROLES.map((r) => (
+                <option key={r.value} value={r.value}>{r.label}</option>
               ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.length === 0 ? (
-              <tr>
-                <td colSpan={8} className="py-10 text-center text-[13px] text-slate-400">
-                  No users found.
-                </td>
-              </tr>
-            ) : rows.map((user, i) => (
-              <tr key={user.id} className={cn("border-b border-slate-100 last:border-0", i % 2 === 0 ? "bg-white" : "bg-slate-50/40")}>
-                <td className="py-3 px-4 text-[13px] font-semibold text-slate-900">{user.first_name ?? "—"}</td>
-                <td className="py-3 px-4 text-[13px] text-slate-700">{user.last_name ?? "—"}</td>
-                <td className="py-3 px-4">
-                  <div className="text-[12px] text-slate-500">
-                    {user.email}
-                    {user.id === currentUserId && (
-                      <span className="ml-1.5 text-[10px] font-semibold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">(You)</span>
-                    )}
-                  </div>
-                </td>
-                <td className="py-3 px-4">
-                  <span className={cn("text-[11px] font-semibold px-2 py-0.5 rounded", ROLE_BADGE[user.role ?? ""] ?? "bg-amber-50 text-amber-700 border border-amber-200")}>
-                    {user.role ?? "Unassigned"}
-                  </span>
-                </td>
-                <td className="py-3 px-4">
-                  <span className="text-[12px] font-mono text-slate-500">{user.external_id ?? "—"}</span>
-                </td>
-                <td className="py-3 px-4">
-                  <span className={cn("text-[11px] font-semibold px-2 py-0.5 rounded", user.is_invited ? "bg-green-50 text-green-700 border border-green-200" : "bg-slate-50 text-slate-500 border border-slate-200")}>
-                    {user.is_invited ? "Yes" : "No"}
-                  </span>
-                </td>
-                <td className="py-3 px-4 text-[12px] text-slate-400">
-                  {user.created_at ? formatDate(user.created_at) : "—"}
-                </td>
-                <td className="py-3 px-4">
-                  <div className="flex items-center gap-2">
-                    {!user.role && (
-                      <form action={approveAction} className="flex items-center gap-1.5">
-                        <input type="hidden" name="userId" value={user.id} />
-                        <select name="role" className="text-[11px] border border-slate-200 rounded px-1.5 py-0.5 text-slate-700 bg-white">
-                          <option value="Super Admin">Super Admin</option>
-                          <option value="PM">PM</option>
-                          <option value="Admin">Admin</option>
-                          <option value="Developer">Developer</option>
-                          <option value="Other">Other</option>
-                        </select>
-                        <button type="submit" className="text-[11px] font-semibold text-white bg-slate-800 hover:bg-slate-900 px-2.5 py-0.5 rounded">
-                          Assign
-                        </button>
-                      </form>
-                    )}
-                    {user.role && !user.is_invited && (
-                      <form method="POST" action={`/api/admin/hub-users/${user.id}/invite`}>
-                        <button type="submit" className="text-[11px] font-semibold text-white bg-blue-600 hover:bg-blue-700 px-2.5 py-0.5 rounded">
-                          Send Invite
-                        </button>
-                      </form>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </select>
+          </div>
+        </div>
+
+        {error && (
+          <div className="rounded-lg px-4 py-2.5 text-sm text-destructive bg-destructive/10 border border-destructive/20">
+            {error}
+          </div>
+        )}
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="inline-flex items-center justify-center h-11 px-6 rounded-md bg-brand-orange text-white font-semibold text-sm shadow cursor-pointer hover:bg-brand-orange/90 transition-all disabled:opacity-60 disabled:pointer-events-none"
+        >
+          {loading ? "Sending invite…" : "Send invitation"}
+        </button>
+      </form>
+
+      {/* Success result */}
+      {result && (
+        <div className="mt-8 rounded-lg border border-border bg-card p-5 space-y-3">
+          <p className="text-sm font-medium text-foreground">
+            Invitation sent to <span className="text-brand-orange">{result.email}</span>
+          </p>
+          <div className="space-y-1.5">
+            <p className="text-xs text-muted-foreground">Temporary password (shown once):</p>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 rounded-md bg-muted px-3 py-2 text-sm font-mono tracking-wide text-foreground break-all">
+                {result.tempPassword}
+              </code>
+              <button
+                type="button"
+                onClick={handleCopy}
+                aria-label="Copy password"
+                className="shrink-0 flex items-center justify-center h-9 w-9 rounded-md border border-border bg-background hover:bg-muted transition-colors cursor-pointer"
+              >
+                {copied
+                  ? <Check className="h-4 w-4 text-green-500" aria-hidden />
+                  : <Copy className="h-4 w-4 text-muted-foreground" aria-hidden />
+                }
+              </button>
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            The user will be prompted to set a new password on first login.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

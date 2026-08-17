@@ -19,6 +19,8 @@ const eslintConfig = defineConfig([
     "_backup (DO NOT READ)/**",
     "_design/**",
     "_design_(OLD)/**",
+    "src/app/_hub_(OLD)/**",
+    "src/app/_auth_(OLD)/**",
     "_docs/**",
     "_WebriQ_Central_Hub_SCRUM_Tracker/**",
     ".claude/**",

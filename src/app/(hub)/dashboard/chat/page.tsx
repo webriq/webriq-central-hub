@@ -1,7 +1,7 @@
-import { requireRole } from "@/lib/auth/require-role";
-import ChatContent from "./_content";
-
-export default async function DashboardChatPage() {
-  await requireRole("/dashboard/chat");
-  return <ChatContent />;
+export default function ChatPage() {
+  return (
+    <div className="py-6.5 px-8">
+      <p className="text-sm text-muted-foreground">v2 · Ops Chat · Sprint 1C</p>
+    </div>
+  );
 }

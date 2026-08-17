@@ -102,7 +102,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       ]);
       const actorName = actorProfile?.full_name ?? "Someone";
       const projectName = project?.name ?? "this project";
-      const url = project?.project_id ? `/v2/portfolio-tracker/${project.project_id}` : undefined;
+      const url = project?.project_id ? `/portfolio-tracker/${project.project_id}` : undefined;
       const addedNames = addedIds.map((id) => addedProfiles?.find((p) => p.id === id)?.full_name ?? "Unnamed");
 
       await Promise.all(addedIds.map((id) => createNotification(id, {
@@ -199,7 +199,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       const actorName = actorProfile?.full_name ?? "Someone";
       const newOwnerName = targetProfile?.full_name ?? "Unnamed";
       const projectName = project?.name ?? "this project";
-      const url = project?.project_id ? `/v2/portfolio-tracker/${project.project_id}` : undefined;
+      const url = project?.project_id ? `/portfolio-tracker/${project.project_id}` : undefined;
 
       if (targetUserId !== user.id) {
         await createNotification(targetUserId, {

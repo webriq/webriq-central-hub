@@ -4,17 +4,23 @@ import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
-import { Archive } from "lucide-react";
+import { Archive, ArrowLeft } from "lucide-react";
 import type { UploadedFile } from "@/types/onboarding";
 import FileUpload from "@/components/onboarding/file-upload";
 import { usePMSettings } from "@/hooks/use-pm-settings";
 import type { CustomerRow, CustomerProductRow, ProjectRow, Database } from "@/types/database";
 import type { ProductName } from "@/types/hub";
 import { getIncompleteSections, getOnboardingSchema, computeCompletionPercentage } from "@/config/onboarding-schemas";
+import { V2_ROUTES } from "@/config/constants";
+import ProgrammeTab from "./_programme-tab";
 
 type ClassificationRow = Database["public"]["Tables"]["classification_records"]["Row"];
 type AssetRow = Database["public"]["Tables"]["customer_assets"]["Row"];
-type NavSection = "company" | "contact" | "products" | "assets" | "activity" | "projects" | "settings";
+type CustomerDeskContact = Pick<
+  Database["public"]["Tables"]["contacts"]["Row"],
+  "id" | "first_name" | "last_name" | "email" | "secondary_email" | "phone" | "mobile" | "title"
+>;
+type NavSection = "company" | "contact" | "products" | "programme" | "assets" | "activity" | "projects" | "settings";
 
 interface CustomerProfileClientProps {
   customer: CustomerRow & { customer_products: CustomerProductRow[] };
@@ -93,7 +99,7 @@ const assetTypeCls = (type: AssetRow["type"], isDark: boolean) =>
 // (src/app/api/customers/[customerId]/assets/upload/route.ts).
 const ASSET_TYPE_HELP: Record<AssetRow["type"], string> = {
   link: "e.g. staging URL, admin dashboard, documentation page.",
-  file: "Accepted: images, PDF, Word docs, Excel spreadsheets — up to 25MB.",
+  file: "Accepted: images, PDF, Word docs, Excel spreadsheets, HTML, Markdown, plain text — up to 25MB.",
   credential: "e.g. payment API keys, DNS registrar access, CMS admin login. Store references only (e.g. LastPass item name, vault path) — not actual passwords or API keys.",
 };
 
@@ -224,14 +230,35 @@ export default function CustomerProfileClient({ customer, zohoPortalName }: Cust
     masked: boolean;
     fields: { label: string; value: string }[];
     allowedRoles: string[];
+    allowedUserIds: string[];
   }>({
-    type: "link", label: "", value: "", masked: false, fields: [{ label: "", value: "" }], allowedRoles: [],
+    type: "link", label: "", value: "", masked: false, fields: [{ label: "", value: "" }], allowedRoles: [], allowedUserIds: [],
   });
   const [addAssetFile, setAddAssetFile] = useState<File | null>(null);
   const [addAssetSaving, setAddAssetSaving] = useState(false);
   const [addAssetError, setAddAssetError] = useState<string | null>(null);
   const [revealedAssets, setRevealedAssets] = useState<Set<string>>(new Set());
+  // Sharing picker (task 138) — lightweight staff directory, fetched once on first open of
+  // the Add Asset modal rather than on every page load.
+  const [staffDirectory, setStaffDirectory] = useState<{ id: string; full_name: string | null; role: string }[]>([]);
+  const hasFetchedStaffDirectoryRef = useRef(false);
   const [openingAssetId, setOpeningAssetId] = useState<string | null>(null);
+
+  // Desk Contacts (Zoho Desk, matched — task 117/119)
+  const [deskContacts, setDeskContacts] = useState<CustomerDeskContact[]>([]);
+  const [deskContactsLoading, setDeskContactsLoading] = useState(false);
+  const hasFetchedDeskContactsRef = useRef(false);
+
+  useEffect(() => {
+    if (activeSection !== "contact" || hasFetchedDeskContactsRef.current) return;
+    hasFetchedDeskContactsRef.current = true;
+    setDeskContactsLoading(true);
+    fetch(`/api/customers/${customer.customer_id}/contacts`)
+      .then((r) => r.json())
+      .then((data: unknown) => setDeskContacts(Array.isArray(data) ? (data as CustomerDeskContact[]) : []))
+      .catch(() => {})
+      .finally(() => setDeskContactsLoading(false));
+  }, [activeSection, customer.customer_id]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -265,6 +292,15 @@ export default function CustomerProfileClient({ customer, zohoPortalName }: Cust
       .catch(() => {})
       .finally(() => setAssetsLoading(false));
   }, [activeSection, customer.customer_id]);
+
+  useEffect(() => {
+    if (!showAddAsset || hasFetchedStaffDirectoryRef.current) return;
+    hasFetchedStaffDirectoryRef.current = true;
+    fetch("/api/staff-directory")
+      .then(r => r.json())
+      .then((data: unknown) => setStaffDirectory(Array.isArray(data) ? data as { id: string; full_name: string | null; role: string }[] : []))
+      .catch(() => {});
+  }, [showAddAsset]);
 
   const [form, setForm] = useState<EditForm>({
     company_name: customer.company_name ?? "",
@@ -446,6 +482,48 @@ export default function CustomerProfileClient({ customer, zohoPortalName }: Cust
     } finally {
       setSaving(false);
     }
+  };
+
+  // Primary Contact select/deselect (task 120) — writes into the same customers.contact_name/
+  // contact_email fields the Edit modal above already uses; no new schema.
+  const [primaryContactSavingId, setPrimaryContactSavingId] = useState<string | null>(null);
+  const [primaryContactError, setPrimaryContactError] = useState<string | null>(null);
+
+  function isPrimaryContact(contact: CustomerDeskContact): boolean {
+    return !!customer.contact_email && !!contact.email &&
+      customer.contact_email.trim().toLowerCase() === contact.email.trim().toLowerCase();
+  }
+
+  async function patchPrimaryContact(contactName: string | null, contactEmail: string | null) {
+    try {
+      const res = await fetch(`/api/customers/${customer.customer_id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contact_name: contactName, contact_email: contactEmail }),
+      });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        throw new Error(json.error ?? "Failed to update primary contact");
+      }
+      router.refresh();
+    } catch (err) {
+      setPrimaryContactError(err instanceof Error ? err.message : "Failed to update primary contact");
+    }
+  }
+
+  const handleSetPrimaryContact = async (contact: CustomerDeskContact) => {
+    setPrimaryContactSavingId(contact.id);
+    setPrimaryContactError(null);
+    const fullName = [contact.first_name, contact.last_name].filter(Boolean).join(" ") || null;
+    await patchPrimaryContact(fullName, contact.email ?? null);
+    setPrimaryContactSavingId(null);
+  };
+
+  const handleRemovePrimaryContact = async (contactId: string) => {
+    setPrimaryContactSavingId(contactId);
+    setPrimaryContactError(null);
+    await patchPrimaryContact(null, null);
+    setPrimaryContactSavingId(null);
   };
 
   const handleArchiveProduct = async () => {
@@ -638,6 +716,7 @@ export default function CustomerProfileClient({ customer, zohoPortalName }: Cust
         label: addAssetForm.label.trim(),
         masked: addAssetForm.masked,
         allowed_roles: addAssetForm.allowedRoles,
+        allowed_user_ids: addAssetForm.allowedUserIds,
         ...(addAssetForm.type === "link" ? { value: addAssetForm.value.trim() } : {}),
         ...(addAssetForm.type === "credential" ? { fields: cleanFields } : {}),
         ...(addAssetForm.type === "file" && filePayload ? filePayload : {}),
@@ -655,7 +734,7 @@ export default function CustomerProfileClient({ customer, zohoPortalName }: Cust
       const newAsset: AssetRow = await res.json();
       setAssets(prev => [...prev, newAsset]);
       setShowAddAsset(false);
-      setAddAssetForm({ type: "link", label: "", value: "", masked: false, fields: [{ label: "", value: "" }], allowedRoles: [] });
+      setAddAssetForm({ type: "link", label: "", value: "", masked: false, fields: [{ label: "", value: "" }], allowedRoles: [], allowedUserIds: [] });
       setAddAssetFile(null);
     } catch (err) {
       setAddAssetError(err instanceof Error ? err.message : "Failed to add asset");
@@ -704,6 +783,7 @@ export default function CustomerProfileClient({ customer, zohoPortalName }: Cust
     { id: "company", label: "Company Info" },
     { id: "contact", label: "Primary Contact" },
     { id: "products", label: `Products (${totalProductCount})` },
+    { id: "programme", label: "120-Day Programme" },
     { id: "assets", label: "Assets" },
     { id: "projects", label: `Projects (${projects.length})` },
     { id: "activity", label: `Activity (${classifications.length})` },
@@ -1577,6 +1657,37 @@ export default function CustomerProfileClient({ customer, zohoPortalName }: Cust
                 </div>
               </div>
 
+              <div>
+                <label className={labelCls}>Share with specific people</label>
+                <p className="text-[11px] text-slate-400 mb-1.5">Optional — additive on top of the roles above, e.g. share with one person outside the selected roles.</p>
+                <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
+                  {staffDirectory.length === 0 && (
+                    <span className="text-[12px] text-slate-400">No staff directory entries found.</span>
+                  )}
+                  {staffDirectory.map(person => {
+                    const active = addAssetForm.allowedUserIds.includes(person.id);
+                    return (
+                      <button
+                        key={person.id}
+                        type="button"
+                        onClick={() => setAddAssetForm(f => ({
+                          ...f,
+                          allowedUserIds: active ? f.allowedUserIds.filter(id => id !== person.id) : [...f.allowedUserIds, person.id],
+                        }))}
+                        className={cn(
+                          "px-3 py-1.5 rounded-full text-[12px] font-medium border cursor-pointer transition-colors",
+                          active
+                            ? "bg-brand text-white border-brand"
+                            : "bg-transparent text-slate-500 border-slate-200 hover:border-slate-300"
+                        )}
+                      >
+                        {person.full_name ?? "Unnamed"}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               <p className="text-[11px] text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
                 {ASSET_TYPE_HELP[addAssetForm.type]}
               </p>
@@ -1608,6 +1719,12 @@ export default function CustomerProfileClient({ customer, zohoPortalName }: Cust
 
       {/* Page content */}
       <div className="p-6 max-w-5xl mx-auto">
+          <button
+            onClick={() => router.push(V2_ROUTES.CUSTOMERS)}
+            className="inline-flex items-center gap-1.5 text-[12px] font-medium text-slate-500 hover:text-brand transition-colors bg-transparent border-none cursor-pointer mb-3 p-0"
+          >
+            <ArrowLeft size={14} /> Back to Customers
+          </button>
           {/* Header card — always visible */}
           <div className={cn(sectionCls, "px-6")}>
             <div className="flex justify-between items-start flex-wrap gap-4">
@@ -1715,16 +1832,80 @@ export default function CustomerProfileClient({ customer, zohoPortalName }: Cust
             <div className={sectionCls}>
               <div className={sectionTitleCls}>Primary Contact</div>
               <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-x-6 gap-y-3">
-                {[
-                  { label: "Contact Name", value: customer.contact_name || "—" },
-                  { label: "Email", value: customer.contact_email || "—" },
-                ].map(({ label, value }) => (
-                  <div key={label}>
-                    <div className="text-[11px] text-slate-400 mb-0.5">{label}</div>
-                    <div className={cn("text-[13px] font-medium", textPrimary)}>{value}</div>
-                  </div>
-                ))}
+                {(() => {
+                  const matched = deskContacts.find((c) => isPrimaryContact(c));
+                  const fields = [
+                    { label: "Contact Name", value: customer.contact_name || "—" },
+                    { label: "Email", value: customer.contact_email || "—" },
+                  ];
+                  if (matched) {
+                    fields.push(
+                      { label: "Phone", value: matched.phone ?? matched.mobile ?? "—" },
+                      { label: "Title", value: matched.title ?? "—" }
+                    );
+                  }
+                  return fields.map(({ label, value }) => (
+                    <div key={label}>
+                      <div className="text-[11px] text-slate-400 mb-0.5">{label}</div>
+                      <div className={cn("text-[13px] font-medium", textPrimary)}>{value}</div>
+                    </div>
+                  ));
+                })()}
               </div>
+            </div>
+          )}
+
+          {/* Desk Contacts (Zoho Desk, matched — task 117/119) */}
+          {activeSection === "contact" && (
+            <div className={cn(sectionCls, "mt-4")}>
+              <div className={sectionTitleCls}>
+                Desk Contacts{deskContacts.length > 0 && ` (${deskContacts.length})`}
+              </div>
+              {deskContactsLoading ? (
+                <div className="text-[13px] text-slate-400 text-center py-4">Loading…</div>
+              ) : deskContacts.length === 0 ? (
+                <div className={cn("text-[13px] text-slate-400 text-center py-4 rounded-lg border border-dashed", isDark ? "bg-white/[0.02] border-white/[0.08]" : "bg-slate-50 border-slate-200")}>
+                  No Desk contacts matched to this customer yet.
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {deskContacts.map((c) => {
+                    const primary = isPrimaryContact(c);
+                    return (
+                      <div key={c.id} className={cn("flex items-center gap-3 py-2.5 px-3 rounded-lg border", isDark ? "border-white/[0.06] bg-white/[0.03]" : "border-slate-100 bg-slate-50/50")}>
+                        <div className="min-w-0 flex-1">
+                          <div className={cn("text-[13px] font-medium flex items-center gap-1.5", textPrimary)}>
+                            {[c.first_name, c.last_name].filter(Boolean).join(" ") || "—"}
+                            {primary && (
+                              <span className="text-[10px] font-semibold text-brand border border-brand/30 rounded-full px-1.5 py-px">
+                                Primary
+                              </span>
+                            )}
+                          </div>
+                          {c.title && <div className="text-[11px] text-slate-400 truncate">{c.title}</div>}
+                        </div>
+                        <div className="text-[12px] text-slate-500 truncate min-w-0 flex-1">{c.email ?? "—"}</div>
+                        <div className="text-[12px] text-slate-500 shrink-0">{c.phone ?? c.mobile ?? "—"}</div>
+                        <button
+                          onClick={() => (primary ? handleRemovePrimaryContact(c.id) : handleSetPrimaryContact(c))}
+                          disabled={primaryContactSavingId === c.id}
+                          className={cn(
+                            "shrink-0 text-[11px] font-medium px-2.5 py-1 rounded-full border cursor-pointer transition-colors disabled:opacity-50",
+                            primary
+                              ? "text-slate-400 border-slate-200 hover:border-red-300 hover:text-red-500 bg-transparent"
+                              : "text-brand border-brand/30 hover:bg-brand/5 bg-transparent"
+                          )}
+                        >
+                          {primaryContactSavingId === c.id ? "…" : primary ? "Remove Primary" : "Set as Primary"}
+                        </button>
+                      </div>
+                    );
+                  })}
+                  {primaryContactError && (
+                    <p className="text-[11px] text-red-500 mt-1">{primaryContactError}</p>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -2026,6 +2207,11 @@ export default function CustomerProfileClient({ customer, zohoPortalName }: Cust
             </>
           )}
 
+          {/* 120-Day Programme */}
+          {activeSection === "programme" && (
+            <ProgrammeTab customerId={customer.customer_id} isDark={isDark} />
+          )}
+
           {/* Assets */}
           {activeSection === "assets" && (
             <div className={sectionCls}>
@@ -2058,6 +2244,11 @@ export default function CustomerProfileClient({ customer, zohoPortalName }: Cust
                       ? (asset.fields as { label: string; value: string }[])
                       : [];
                     const hasRoleRestriction = !!asset.allowed_roles && asset.allowed_roles.length > 0;
+                    const hasUserRestriction = !!asset.allowed_user_ids && asset.allowed_user_ids.length > 0;
+                    const permissionBadge = [
+                      hasRoleRestriction ? asset.allowed_roles!.map(r => ASSET_ROLE_LABELS[r] ?? r).join(", ") : null,
+                      hasUserRestriction ? `${asset.allowed_user_ids!.length} ${asset.allowed_user_ids!.length === 1 ? "person" : "people"}` : null,
+                    ].filter(Boolean).join(" + ");
                     return (
                       <div key={asset.id} className={cn("flex items-center gap-3 py-2.5 px-3 rounded-lg border", isDark ? "border-white/[0.06] bg-white/[0.03]" : "border-slate-100 bg-slate-50/50")}>
                         <span className={cn("text-[10px] font-bold rounded px-1.5 py-px shrink-0", assetTypeCls(asset.type, isDark))}>
@@ -2083,9 +2274,9 @@ export default function CustomerProfileClient({ customer, zohoPortalName }: Cust
                             <span className="text-[12px] text-slate-500 font-mono truncate">{asset.value}</span>
                           )}
                         </div>
-                        {hasRoleRestriction && (
+                        {(hasRoleRestriction || hasUserRestriction) && (
                           <span className="text-[10px] font-medium text-slate-400 border border-slate-200 rounded-full px-2 py-0.5 shrink-0 whitespace-nowrap">
-                            {asset.allowed_roles!.map(r => ASSET_ROLE_LABELS[r] ?? r).join(", ")}
+                            {permissionBadge}
                           </span>
                         )}
                         <div className="flex items-center gap-1.5 shrink-0">

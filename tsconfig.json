@@ -31,5 +31,12 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules", "worker", "_design"]
+  "exclude": [
+    "node_modules",
+    "worker",
+    "_design",
+    "src/app/_hub_(OLD)",
+    "src/app/_auth_(OLD)",
+    "src/components/hub/hub-sidebar.tsx"
+  ]
 }

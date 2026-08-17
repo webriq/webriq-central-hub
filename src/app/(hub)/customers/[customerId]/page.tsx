@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import CustomerProfileClient from "./client";
 
+export const dynamic = "force-dynamic";
+
 interface CustomerProfilePageProps {
   params: Promise<{ customerId: string }>;
 }
@@ -40,8 +42,11 @@ export default async function CustomerProfilePage({ params }: CustomerProfilePag
   }
 
   return (
-    <div className="p-6 overflow-y-auto flex-1 max-w-240 mx-auto">
-      <CustomerProfileClient customer={customer} zohoPortalName={process.env.ZOHO_PORTAL_NAME ?? "" } />
+    <div className="px-8 py-6 max-w-240 mx-auto">
+      <CustomerProfileClient
+        customer={customer}
+        zohoPortalName={process.env.NEXT_PUBLIC_ZOHO_PORTAL_NAME ?? ""}
+      />
     </div>
   );
 }

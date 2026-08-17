@@ -46,7 +46,7 @@ export async function POST(
     return NextResponse.json({ error: "Failed to generate invite link" }, { status: 500 });
   }
 
-  const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL}/v2/auth/register?token_hash=${hashedToken}&type=recovery`;
+  const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL}/auth/register?token_hash=${hashedToken}&type=recovery`;
 
   await sendHubInviteEmail(
     target.email,

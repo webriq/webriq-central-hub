@@ -1,7 +1,7 @@
-import { requireRole } from "@/lib/auth/require-role";
-import PipelineContent from "./_content";
-
-export default async function DashboardPipelinePage() {
-  await requireRole("/dashboard/pipeline");
-  return <PipelineContent />;
+export default function PipelinePage() {
+  return (
+    <div className="py-6.5 px-8">
+      <p className="text-sm text-muted-foreground">v2 · Pipeline · Sprint 1A</p>
+    </div>
+  );
 }

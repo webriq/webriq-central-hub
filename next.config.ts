@@ -17,6 +17,22 @@ const nextConfig: NextConfig = {
   // turbopack: {} silences the webpack-config conflict warning in Next.js 16 dev mode.
   // @ducanh2912/next-pwa injects webpack config but PWA is disabled in dev — no conflict at runtime.
   turbopack: {},
+  async redirects() {
+    // Task 255 — v2 tree promoted to app root; keep bookmarked/shared /v2/* links
+    // (and cached MCP OAuth authorization_endpoint metadata) resolving correctly.
+    return [
+      {
+        source: "/v2",
+        destination: "/",
+        permanent: false,
+      },
+      {
+        source: "/v2/:path*",
+        destination: "/:path*",
+        permanent: false,
+      },
+    ];
+  },
   experimental: {
     serverActions: {
       bodySizeLimit: "10mb",

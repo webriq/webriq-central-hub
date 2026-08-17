@@ -1,20 +1,3 @@
-export const ROUTES = {
-  HOME: "/",
-  DASHBOARD: "/dashboard",
-  DASHBOARD_CUSTOMERS: "/dashboard/customers",
-  DASHBOARD_TASKS: "/dashboard/tasks",
-  DASHBOARD_PIPELINE: "/dashboard/pipeline",
-  DASHBOARD_CHAT: "/dashboard/chat",
-  DASHBOARD_TIMELOGS: "/dashboard/timelogs",
-  DASHBOARD_SETTINGS: "/dashboard/settings",
-  DASHBOARD_USERS: "/dashboard/users",
-  CUSTOMERS_ONBOARD: "/dashboard/customers/onboard",
-  ORCHESTRATION: "/orchestration",
-  KB: "/kb",
-  AUTH_LOGIN: "/auth/login",
-  AUTH_SIGNUP: "/auth/signup",
-} as const;
-
 // LLM pricing per million tokens (USD)
 // Used by llm_invocation_logs cost_usd computation
 export const LLM_PRICING: Record<string, { input: number; output: number }> = {
@@ -36,27 +19,27 @@ export function computeLLMCost(modelId: string, inputTokens: number, outputToken
 }
 
 export const V2_ROUTES = {
-  HOME: "/v2",
-  DASHBOARD: "/v2/dashboard",
-  PROJECTS: "/v2/projects",
-  CUSTOMERS: "/v2/customers",
-  PORTFOLIO_TRACKER: "/v2/portfolio-tracker",
-  PORTFOLIO_TRACKER_NEW: "/v2/portfolio-tracker/new",
-  PORTFOLIO_TRACKER_IMPORT: "/v2/portfolio-tracker/import",
-  PORTFOLIO_TRACKER_STATUS_REPORT: "/v2/portfolio-tracker/status-report",
-  DASHBOARD_TASKS: "/v2/dashboard/tasks",
-  DASHBOARD_PIPELINE: "/v2/dashboard/pipeline",
-  DASHBOARD_CHAT: "/v2/dashboard/chat",
-  DASHBOARD_TIMELOGS: "/v2/dashboard/timelogs",
-  DASHBOARD_SETTINGS: "/v2/dashboard/settings",
-  DASHBOARD_USERS: "/v2/dashboard/users",
-  CUSTOMERS_ONBOARD: "/v2/customers/onboard",
-  ORCHESTRATION: "/v2/orchestration",
-  KB: "/v2/kb",
-  AUTH_LOGIN: "/v2/auth/login",
-  AUTH_SIGNUP: "/v2/auth/signup",
-  AUTH_PENDING: "/v2/auth/pending",
-  CALLBACK: "/v2/callback",
+  HOME: "/",
+  DASHBOARD: "/dashboard",
+  PROJECTS: "/projects",
+  CUSTOMERS: "/customers",
+  PORTFOLIO_TRACKER: "/portfolio-tracker",
+  PORTFOLIO_TRACKER_NEW: "/portfolio-tracker/new",
+  PORTFOLIO_TRACKER_IMPORT: "/portfolio-tracker/import",
+  PORTFOLIO_TRACKER_STATUS_REPORT: "/portfolio-tracker/status-report",
+  DASHBOARD_TASKS: "/dashboard/tasks",
+  DASHBOARD_PIPELINE: "/dashboard/pipeline",
+  DASHBOARD_CHAT: "/dashboard/chat",
+  DASHBOARD_TIMELOGS: "/dashboard/timelogs",
+  DASHBOARD_SETTINGS: "/dashboard/settings",
+  DASHBOARD_USERS: "/dashboard/users",
+  CUSTOMERS_ONBOARD: "/customers/onboard",
+  ORCHESTRATION: "/orchestration",
+  KB: "/kb",
+  AUTH_LOGIN: "/auth/login",
+  AUTH_SIGNUP: "/auth/signup",
+  AUTH_PENDING: "/auth/pending",
+  CALLBACK: "/callback",
 } as const;
 
 export const APP_NAME = "WebriQ Central Hub";

@@ -1,7 +1,7 @@
-import { requireRole } from "@/lib/auth/require-role";
-import SettingsContent from "./_content";
-
-export default async function DashboardSettingsPage() {
-  const role = await requireRole("/dashboard/settings");
-  return <SettingsContent isDev={role === "dev"} />;
+export default function SettingsPage() {
+  return (
+    <div className="py-6.5 px-8">
+      <p className="text-sm text-muted-foreground">v2 · Settings · Sprint 1A</p>
+    </div>
+  );
 }

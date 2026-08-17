@@ -5,7 +5,7 @@ export async function setGateCookie(name: string, value: string, maxAgeSeconds: 
   cookieStore.set(name, value, {
     httpOnly: true,
     secure: true,
-    path: "/v2",
+    path: "/",
     sameSite: "lax",
     maxAge: maxAgeSeconds,
   });
@@ -13,5 +13,5 @@ export async function setGateCookie(name: string, value: string, maxAgeSeconds: 
 
 export async function clearGateCookie(name: string) {
   const cookieStore = await cookies();
-  cookieStore.set(name, "", { maxAge: 0, path: "/v2", httpOnly: true });
+  cookieStore.set(name, "", { maxAge: 0, path: "/", httpOnly: true });
 }
