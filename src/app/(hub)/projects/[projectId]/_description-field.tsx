@@ -32,9 +32,10 @@ export function DescriptionField({
   value: string;
   onSave: (html: string) => void;
   readOnly?: boolean;
-  // Drop the field's own corner radius so it covers the full, edge-to-edge content area of a
-  // `noPadding` `AccordionCard` — the parent's own `rounded-[14px] overflow-hidden` clips the
-  // bottom corners to match, so no radius is needed here.
+  // Covers the full, edge-to-edge content area of a `noPadding` Card/AccordionCard — the bottom
+  // corners get their own matching radius (see the render below) rather than the field's normal
+  // `rounded-[10px]`, since the parent's `overflow-hidden` alone doesn't clip a flush 0-radius
+  // child cleanly (task 270).
   fullBleed?: boolean;
   // Cap the editor body at 420px and let it scroll internally past that — the toolbar (outside
   // this wrapper) stays fixed/visible regardless of content length.

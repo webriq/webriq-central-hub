@@ -42,28 +42,29 @@ export async function loadOnboardingProjectsList(
   const from = (params.page - 1) * params.pageSize;
   const to = from + params.pageSize - 1;
 
+  // Legacy/Zoho-imported projects with no real classification (no customer_product_id at all, or
+  // a customer_products row whose classification is null — same population the card footer used
+  // to label "Unclassified") are excluded from every query this page runs, independent of the
+  // classification filter's state (task 272) — they're import noise, not real programme-tracked
+  // projects. A stray "unclassified" value in classificationValues (e.g. an old bookmarked URL,
+  // since that filter option no longer exists in the UI) is stripped rather than treated as a
+  // request to re-include them.
+  const classificationValues = params.classificationValues?.filter((v) => v !== "unclassified") ?? null;
+
   // Two-step lookup for classification, since it lives on the joined customer_products row, not
   // on projects itself — mirrors /projects/page.tsx's own two-step customer-name search pattern.
-  // "unclassified" covers both projects with no customer_product_id at all AND customer_products
-  // rows whose classification is null (legacy/Zoho-imported data, same population the card
-  // footer already labels "Unclassified" client-side today).
   let classificationOrParts: string[] | null = null;
-  if (params.classificationValues !== null) {
-    const wantsUnclassified = params.classificationValues.includes("unclassified");
-    const realValues = params.classificationValues.filter((v) => v !== "unclassified");
+  if (classificationValues !== null) {
     const matchingProductIds: string[] = [];
-    if (realValues.length > 0) {
-      const { data } = await supabase.from("customer_products").select("id").in("classification", realValues);
+    if (classificationValues.length > 0) {
+      const { data } = await supabase.from("customer_products").select("id").in("classification", classificationValues);
       matchingProductIds.push(...(data ?? []).map((r) => r.id));
     }
-    if (wantsUnclassified) {
-      const { data } = await supabase.from("customer_products").select("id").is("classification", null);
-      matchingProductIds.push(...(data ?? []).map((r) => r.id));
-    }
-    classificationOrParts = [];
-    if (wantsUnclassified) classificationOrParts.push("customer_product_id.is.null");
-    if (matchingProductIds.length > 0) classificationOrParts.push(`customer_product_id.in.(${matchingProductIds.join(",")})`);
+    classificationOrParts = matchingProductIds.length > 0 ? [`customer_product_id.in.(${matchingProductIds.join(",")})`] : [];
   }
+
+  const { data: nullClassificationProducts } = await supabase.from("customer_products").select("id").is("classification", null);
+  const nullClassificationProductIds = (nullClassificationProducts ?? []).map((r) => r.id);
 
   // Task 153: marketing/pm only see projects they're a member of; a project with zero
   // project_members rows is unrestricted (backward compatibility for already in-progress
@@ -103,8 +104,12 @@ export async function loadOnboardingProjectsList(
     )
     .gte("created_at", "2026-07-06T00:00:00Z")
     .neq("status", "deleted")
+    .not("customer_product_id", "is", null)
     .order(sortSpec.column, { ascending: sortSpec.ascending, nullsFirst: sortSpec.nullsFirst });
 
+  if (nullClassificationProductIds.length > 0) {
+    query = query.not("customer_product_id", "in", `(${nullClassificationProductIds.join(",")})`);
+  }
   if (params.statusValues !== null) {
     const statusFilter = params.statusValues.length > 0 ? params.statusValues : ["__none__"];
     query = query.in("onboarding_status", statusFilter);

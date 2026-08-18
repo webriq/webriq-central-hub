@@ -1,10 +1,10 @@
-# 270: Task Detail Page — Description Bottom Radius Fix, Attachment Upload Section, Attachments/Comments Tab Swap
+# 270: Task Detail Page — Description Bottom Radius Fix, Attachment Upload Section, Attachments/Comments Tab Redesign
 
 **Created:** 2026-08-18
 **Priority:** MEDIUM
 **Type:** bugfix + enhancement
 **Recommended Tier:** balanced
-**Status:** Planned
+**Status:** Completed (2026-08-18)
 
 ---
 
@@ -266,3 +266,30 @@ Implemented Requirements A, B, C, D as scoped, plus one user-approved scope addi
 - `npx tsc --noEmit` — PASS
 - `pnpm lint` — PASS (2 pre-existing warnings in `_checklist-tab.tsx`, unrelated to this task — same warnings task 257 also flagged as pre-existing)
 - Browser (Chrome, real seeded dev data, task `3A64D17C01-T0001`) — PASS: Description bottom corners rounded (zoomed screenshot confirms no square notch), drag-and-drop zone present below Description, a real file uploaded through it appeared live in the Attachments tab (count updated 0→1 automatically via existing Realtime), tab order is Comments/Attachments/Time Logs with Comments active by default and live counts on both, test attachment cleaned up (storage object + DB row) directly via Supabase's REST/Storage APIs afterward. Spot-checked a separate real issue (`87BCA04A01-I0065`) to confirm Issue Detail is unaffected — its own tab order/style (already Comments-first, underline-with-counts from task 257) is unchanged, no upload zone was added there (correctly out of scope). No console errors observed during any step.
+
+---
+
+## Quality Gate Notes
+
+### Result
+PASS
+
+### Standards Review
+- Found and fixed one stale doc comment: `_description-field.tsx`'s `fullBleed` prop JSDoc (lines 35-38) still described the old, incorrect "no radius needed — parent's overflow-hidden clips it" reasoning after Requirement A's fix replaced that behavior with an explicit `rounded-b-[13px]`. Left uncorrected, it directly contradicted the newer explanatory comment a few lines below in the same file's render body. Updated to describe the actual current behavior; re-ran `tsc`/`lint` clean after the change.
+- No unused code, dead code, or commented-out implementation in any of the six changed files.
+- No `any` or untyped escape hatches — `AttachmentUploadZone`, the two `onCountChange` additions, and the panel's count state are all fully typed.
+- No deep nesting; guard clauses used appropriately (`if (disabled) return`, `if (!res.ok) return null`, etc.).
+- Each file keeps clear single responsibility — the new `_attachment-upload-zone.tsx` only handles upload UI/validation, no attachment-listing or count logic leaked into it.
+- Names describe behavior accurately (`AttachmentUploadZone`, `uploadOne`/`uploadFiles`, `onCommentsCount`/`onAttachmentsCount`).
+- The `ALLOWED_MIME_TYPES`/`MAX_FILE_SIZE` duplication between `_attachment-upload-zone.tsx` and the task/issue attachments POST routes is intentional and documented inline — matches this codebase's existing, established duplication convention between the task- and issue-side routes themselves (not a new pattern introduced by this task).
+- Errors handled intentionally: per-file upload errors surface inline in the drop zone; no silent failures.
+- No secrets, credentials, or debug logging introduced. The two one-off cleanup scripts used to remove the live-test attachment (`.cleanup-task270.mjs`, `.cleanup-task270-storage.mjs`) were temporary, ran from the project root only to reach `.env`, and were deleted immediately after use — not part of the shipped diff.
+- Project conventions followed: explicit paired Tailwind classes (no `dark:`, no `style={{}}` for non-CSS-var values), page-scoped `Card`/`Meta` helpers left as local functions rather than needlessly extracted, `eslint-disable-next-line react-hooks/exhaustive-deps` comments added with the same justification text already used at the identical Issue-side call sites.
+
+### Deviations
+- **Medium — tab visual redesign, user-approved live.** The approved task doc's Requirement D and Out-of-Scope section limited Task Detail's tab change to reorder/default only, explicitly keeping the pill-switcher visual and declining Issue Detail's underline-with-counts redesign as not requested. Mid-implementation the user sent an explicit follow-up ("Follow the same tab UI with the Issues details page") plus a screenshot of Issue Detail's underline-tab bar, clarifying they wanted full visual parity. This is a meaningful, user-visible change beyond the written doc — but it was explicitly approved in chat before implementation, not assumed or silently expanded, so it does not meet the Major bar ("violates requirements... without approval"). Implemented by porting the exact pattern already shipped and verified on Issue Detail (task 257), not a new design. No other Out-of-Scope boundary from the approved doc was touched.
+- No other deviations — Requirements A, B, C were implemented exactly as scoped.
+
+### Completion Note
+
+User requested the task be marked complete directly after the quality gate passed, skipping a separate formal `test` stage. Unlike tasks where that shortcut leaves acceptance criteria unexercised, every acceptance criterion here was already walked live in the browser during the implementation stage itself (not deferred to structural review) — the bottom-corner radius fix (zoomed screenshot), a real end-to-end file upload through the new drop zone (confirmed live in the Attachments tab via the existing Realtime subscription, then cleaned up), and the reordered/redesigned tab bar with live counts, all on the exact task the original request's screenshots showed (`3A64D17C01-T0001`). A separate real issue was also spot-checked to confirm no Issue Detail regression. No gap between "quality gate passed" and "verified working" for this task.

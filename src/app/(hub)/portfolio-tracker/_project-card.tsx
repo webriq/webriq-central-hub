@@ -43,7 +43,7 @@ export function ProjectCard({
     >
       {/* Header: title + status */}
       <div className="flex items-start justify-between gap-3 mb-2.5">
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <EditableProjectTitle
             ref={titleRef}
             name={item.project_name}
@@ -108,19 +108,33 @@ export function ProjectCard({
     </div>
   );
 
-  // The menu is rendered as a sibling here, outside the button below — never nested inside it.
-  // A <button> cannot contain another <button> (invalid HTML; browsers force-close the outer one),
-  // so PortfolioCardMenu's own trigger button must live outside this card's clickable wrapper,
-  // overlaid via absolute positioning instead (task 233).
+  // The menu is rendered as a sibling here, outside the clickable wrapper below — never nested
+  // inside it. A <button> cannot contain another <button> (invalid HTML; browsers force-close the
+  // outer one), so PortfolioCardMenu's own trigger button must live outside this card's clickable
+  // wrapper, overlaid via absolute positioning instead (task 233).
+  //
+  // The wrapper itself is a <div role="button">, not a real <button> (Post-QA Round 4, task 268)
+  // — `content` also nests EditableProjectTitle's `<input>` while renaming, and a real <button>
+  // element has a native "Space/Enter activates" behavior that fires independent of this
+  // component's own event handling: it triggered even when a nested descendant (the rename
+  // input) had focus and called stopPropagation(), reported live as Space/Enter redirecting to
+  // the project detail page mid-rename instead of typing/saving. A plain div has no such built-in
+  // default action — keyboard activation (Enter only, matching link/button convention) is
+  // implemented manually below and correctly respects the input's stopPropagation().
   return (
     <div className="relative h-full">
       {editable ? (
-        <button
+        <div
+          role="button"
+          tabIndex={0}
           onClick={() => router.push(`${V2_ROUTES.PORTFOLIO_TRACKER}/${item.project_id ?? item.id}`)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") router.push(`${V2_ROUTES.PORTFOLIO_TRACKER}/${item.project_id ?? item.id}`);
+          }}
           className="h-full text-left w-full bg-transparent border-none p-0 cursor-pointer"
         >
           {content}
-        </button>
+        </div>
       ) : (
         <div className="h-full">{content}</div>
       )}

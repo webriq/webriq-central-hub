@@ -22,6 +22,19 @@ const nextConfig: NextConfig = {
     // (and cached MCP OAuth authorization_endpoint metadata) resolving correctly.
     return [
       {
+        // Official custom domain (centralhub.webriq.cloud) is now attached on Vercel;
+        // permanently redirect the legacy *.vercel.app URL so old bookmarks/links land there.
+        source: "/:path*",
+        has: [
+          {
+            type: "host",
+            value: "webriq-central-hub-lime.vercel.app",
+          },
+        ],
+        destination: "https://centralhub.webriq.cloud/:path*",
+        permanent: true,
+      },
+      {
         source: "/v2",
         destination: "/",
         permanent: false,

@@ -6,11 +6,13 @@ import { cn } from "@/lib/utils";
 
 export type EditableProjectTitleHandle = { startEditing: () => void };
 
-// Task 268 — hover-to-rename card title, shared by both the Projects grid card and the
-// Portfolio Tracker card. Two entry points drive the same `editing` state: hovering the text
-// (per the request's own description of the mechanism) and an external `startEditing()` call
-// (wired to the kebab menu's "Rename Project" item via a forwardRef, so both paths share this
-// one submit/validate/toast implementation instead of two).
+// Task 268 — rename-in-place card title, shared by both the Projects grid card and the
+// Portfolio Tracker card. Edit mode is entered only via an external `startEditing()` call,
+// wired to the kebab menu's "Rename Project" item via a forwardRef. (An earlier version also
+// entered edit mode on hover, per the original request's description — removed per user
+// feedback: hovering the title to silently swap it for an input caused UX problems, e.g.
+// accidental edits from a mouse just passing over the card. The kebab item is now the sole
+// entry point; it still reuses this one submit/validate/toast implementation.)
 //
 // PATCH /api/v2/projects/[projectId] already accepts `{ name }` (task 268 added empty/duplicate
 // validation there) — `projectId` here is the display project_id, matching that route's own key.
@@ -71,7 +73,7 @@ export const EditableProjectTitle = forwardRef<EditableProjectTitleHandle, {
       if (res.status === 409) {
         toast.error(`A project named "${trimmed}" already exists`, {
           id: toastId,
-          action: { label: "Search", onClick: () => onSearchName(trimmed) },
+          action: { label: "View", onClick: () => onSearchName(trimmed) },
         });
         return;
       }
@@ -90,14 +92,7 @@ export const EditableProjectTitle = forwardRef<EditableProjectTitleHandle, {
   }
 
   if (!editing) {
-    return (
-      <span
-        onMouseEnter={() => setEditing(true)}
-        className={cn("cursor-text", className)}
-      >
-        {name}
-      </span>
-    );
+    return <span className={className}>{name}</span>;
   }
 
   return (
@@ -109,13 +104,26 @@ export const EditableProjectTitle = forwardRef<EditableProjectTitleHandle, {
       onChange={(e) => setValue(e.target.value)}
       onBlur={() => { if (value.trim() === name) revert(); }}
       onKeyDown={(e) => {
+        // Always stop propagation — both listing cards' clickable wrappers (an <a> for the
+        // Projects grid, a <button> for Portfolio Tracker) sit as DOM ancestors of this input
+        // (a pre-existing nesting the task doc's Quality Gate Notes already flagged as a risk).
+        // Without this, a bare Space keypress bubbles to the ancestor <button>, whose native
+        // "Space activates" behavior fires a click on it — reported live as Space redirecting to
+        // the project detail page instead of typing a space into the field.
+        e.stopPropagation();
         if (e.key === "Escape") revert();
         if (e.key === "Enter") submit();
       }}
+      onKeyUp={(e) => e.stopPropagation()}
       onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
       onMouseDown={(e) => e.stopPropagation()}
       className={cn(
-        "w-full cursor-text rounded-md border border-[#A8C6F5] bg-white px-1.5 py-0.5 outline-none focus:ring-[3px] focus:ring-[#007BFF]/[0.14] disabled:opacity-60",
+        // pointer-events-auto is hardcoded here (not folded into the shared `className` prop,
+        // which also styles the plain, non-editing <span>) — the stretched-link card pattern
+        // (see _project-grid-view.tsx/_project-card.tsx) sets the whole card's content wrapper
+        // to pointer-events-none so clicks pass through to the underlying full-card link/button;
+        // this input is the one piece that must opt back in to receive clicks/focus itself.
+        "pointer-events-auto w-full cursor-text rounded-md border border-[#A8C6F5] bg-white px-1.5 py-0.5 outline-none focus:ring-[3px] focus:ring-[#007BFF]/[0.14] disabled:opacity-60",
         className
       )}
     />

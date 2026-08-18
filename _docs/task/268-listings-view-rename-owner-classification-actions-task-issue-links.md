@@ -4,7 +4,7 @@
 **Priority:** MEDIUM
 **Type:** feature
 **Recommended Tier:** balanced
-**Status:** Testing (implemented 2026-08-18)
+**Status:** Completed (2026-08-18)
 
 ---
 
@@ -458,23 +458,41 @@ pnpm dev   # then manually exercise, as a super_admin/admin/pm test account:
   the rename duplicate-name toast's "Search" action.
 
 ### Files Changed
+(Updated to reflect final state after the Post-QA rounds below — see that section for the
+chronological story of how rename's UX and DOM structure evolved.)
+
 - `src/components/ui/sonner.tsx` - new, via `npx shadcn add sonner`
 - `src/app/(hub)/layout.tsx` - mount `<Toaster />`
 - `src/app/api/v2/projects/[projectId]/route.ts` - empty/duplicate validation on `name`
 - `src/app/api/v2/projects/[projectId]/classification/route.ts` - new PATCH route
-- `src/components/projects/editable-project-title.tsx` - new shared hover-to-edit title
+- `src/components/projects/editable-project-title.tsx` - new shared rename-in-place title.
+  Final behavior: entered only via the kebab menu's "Rename Project" (`startEditing()` imperative
+  handle) — no hover trigger (removed, Round 1: caused accidental edits). Enter saves, Escape/
+  blur-unchanged reverts, empty/duplicate-name errors and the loading/success toasts are all
+  handled here; the input stops propagation on click/mousedown/keydown/keyup (Round 3) and
+  carries a hardcoded `pointer-events-auto` (Round 4) so it works correctly inside the
+  restructured cards below.
 - `src/components/projects/set-project-owner-modal.tsx` - new shared modal
 - `src/components/projects/update-classification-modal.tsx` - new shared modal
+- `src/components/projects/member-types.ts` - new (quality-gate dedup): shared `MemberRow`/
+  `RawMemberRow`/`mapMembers`, extracted out of both member-fetching modals
 - `src/app/(hub)/projects/page.tsx` - `customer_products` join; `productClassification`/
   `hasProduct`/`canSetOwner` per row
 - `src/app/(hub)/projects/_projects-index.tsx` - new `ProjectListItem` fields; `handleSearchName`
-- `src/app/(hub)/projects/_project-grid-view.tsx` - extracted `ProjectGridCard`; wrapper href,
-  title swap, stat regions, menu props
+- `src/app/(hub)/projects/_project-grid-view.tsx` - extracted `ProjectGridCard`; restructured
+  (Round 4) to the "stretched link" pattern — an empty, absolutely-positioned `<Link>` spans the
+  whole card with zero children, real content renders on top with `pointer-events-none`/
+  `pointer-events-auto` per interactive element — after `stopPropagation()` alone proved
+  insufficient to stop the anchor's native Enter-activation from firing inside the rename input
 - `src/app/(hub)/projects/_project-card-shared.tsx` - `ProgressStat` clickable/tooltip variant
 - `src/app/(hub)/projects/_project-card-menu.tsx` - four new menu items + modal wiring
 - `src/app/(hub)/portfolio-tracker/_load-list-data.ts` - `canSetOwner`/`hasProduct` per row
 - `src/app/(hub)/portfolio-tracker/_onboarding-list.tsx` - new type fields; `handleSearchName`
-- `src/app/(hub)/portfolio-tracker/_project-card.tsx` - title swap, `titleRef`, menu props
+- `src/app/(hub)/portfolio-tracker/_project-card.tsx` - title swap, `titleRef`, menu props;
+  clickable wrapper changed (Round 4) from a real `<button>` to `<div role="button" tabIndex={0}>`
+  with manual `onClick`/`onKeyDown` (Enter only) — a real button's native Space/Enter-activates
+  behavior was firing from inside the nested rename input regardless of `stopPropagation()`;
+  Round 2 also widened the title wrapper to `flex-1` so the rename input isn't cramped
 - `src/app/(hub)/portfolio-tracker/_portfolio-card-menu.tsx` - four new menu items + modal wiring
 
 ### Deviations From Plan
@@ -595,3 +613,150 @@ PASS
 - None. The Medium item above is a verification requirement for the `test` stage, not a code
   change required before proceeding — the existing defense (`preventDefault`/`stopPropagation`)
   matches this codebase's own working precedent for the same nesting shape.
+
+## Post-QA Bug Fix (during `test` stage)
+
+### Round 1 — remove hover-to-edit entry point
+
+**Reported:** Hovering a project name on either listing card silently swapped it for an editable
+`<input>` (the originally-planned mechanism), and this caused UX problems — a mouse just passing
+over the card while browsing (not intending to rename anything) could put the title into edit
+mode, inviting accidental edits.
+
+**Fix:** `src/components/projects/editable-project-title.tsx` — removed the `onMouseEnter={() =>
+setEditing(true)}` handler and the `cursor-text` hint from the text-mode `<span>`. Edit mode is
+now entered *only* via the `startEditing()` imperative handle, which is exclusively wired to the
+kebab menu's "Rename Project" item (`ProjectCardMenu`/`PortfolioCardMenu`, both unchanged — they
+already called `onRename`/`titleRef.current?.startEditing()`, so no other file needed to change).
+The submit/validate/toast implementation (Enter to save, empty/duplicate-name handling, the
+"Search" action link) is untouched — only the entry trigger changed.
+
+**Scope note:** this also narrows (does not fully eliminate) the nested-interactive-element risk
+flagged in this doc's Quality Gate Notes — the `<input>` now only mounts inside the Projects grid
+card's `<Link>` on a deliberate, discrete user action (clicking the kebab item, which already
+closes the menu first) rather than on every passive hover, meaningfully reducing how often that
+nesting is ever exercised. The `test`-stage click-through verification for the tasks/issues
+`ProgressStat` buttons (unaffected by this fix) still applies.
+
+**Verification:** `npx tsc --noEmit` and `pnpm lint` both clean after the fix (same 2
+pre-existing unrelated `_checklist-tab.tsx` warnings only). No other files changed.
+
+### Round 2 — Portfolio Tracker rename input too narrow
+
+**Reported:** On the Portfolio Tracker listing, opening the rename input (via the kebab menu, per
+Round 1's fix) clipped longer project names — the input didn't expand to the card's available
+width the way the Projects grid card's equivalent input does.
+
+**Root cause:** `src/app/(hub)/portfolio-tracker/_project-card.tsx`'s title wrapper was
+`<div className="min-w-0">` — missing `flex-1`, unlike the Projects grid card's matching wrapper
+(`_project-grid-view.tsx`: `<div className="min-w-0 flex-1">`). Without `flex-1`, the wrapper
+(and therefore `EditableProjectTitle`'s `w-full` input inside it) shrinks to its content's
+intrinsic width in the `justify-between` header row instead of expanding to fill the space left
+by the status pill, so the input never got wider than the plain-text title had been.
+
+**Fix:** added `flex-1` to that wrapper div, matching the Projects grid card exactly. No other
+change — `EditableProjectTitle` itself was already correct (`w-full`); it just needed a parent
+that actually grows.
+
+**Verification:** `npx tsc --noEmit` and `pnpm lint` both clean after the fix (same 2
+pre-existing unrelated warnings only). One-line change, no other files affected.
+
+### Round 3 — Space key inside the rename input triggers "View Project" navigation
+
+**Reported:** While typing a rename on the Portfolio Tracker listing, pressing the Space key
+redirected to the project's detail page instead of inserting a space character.
+
+**Root cause:** this is the live confirmation of the nested-interactive-element risk this task
+doc's Quality Gate Notes already flagged (see "Standards Review"/"Deviations" above), specifically
+via keyboard rather than mouse. Portfolio Tracker's card wrapper is a real `<button
+onClick={() => router.push(...)}>` (`_project-card.tsx`), and `EditableProjectTitle`'s `<input>`
+renders as its DOM descendant while editing. Per the browser's native button-activation behavior,
+a `<button>` element fires a synthetic click in response to a Space keyup that reaches it —
+including one that *bubbles up* from a focused descendant like this input — regardless of which
+element actually has focus. The input's `onKeyDown` handler only acted on `Escape`/`Enter` and
+never stopped propagation for any other key, so a Space keyup sailed past it straight to the
+ancestor button's native handler. (Mouse clicks were already safe — `onClick`/`onMouseDown`
+already called `stopPropagation()` — this was specifically a keyboard-only gap.)
+
+**Fix:** `editable-project-title.tsx`'s input now calls `e.stopPropagation()` unconditionally on
+every `onKeyDown` (before the existing Escape/Enter branches) and added an `onKeyUp` handler that
+also unconditionally stops propagation. `stopPropagation()` (not `preventDefault()`) is
+deliberate — it stops the event from reaching the ancestor button's own listener without
+blocking the input's own default typing behavior. Applied to the shared component, so it also
+hardens the Projects grid card's `<a>`-wrapped input, even though anchors don't natively activate
+on Space (browsers only bind their default "Enter" activation there) — defense in depth for the
+same nesting shape, consistent with this task's other nested-interactive-element notes.
+
+**Verification:** `npx tsc --noEmit` and `pnpm lint` both clean after the fix (same 2
+pre-existing unrelated warnings only). One file changed
+(`src/components/projects/editable-project-title.tsx`).
+
+### Round 4 — Round 3's `stopPropagation()` fix was insufficient; structural fix required
+
+**Reported:** After Round 3, pressing Space/Enter inside the rename input still redirected to
+`/portfolio-tracker/<projectId>`.
+
+**Root cause (complete):** Round 3's diagnosis was half right — the trigger is genuinely a
+keyboard key reaching an ancestor `<button>`/`<a>` — but the proposed fix (`stopPropagation()` on
+the input's `onKeyDown`/`onKeyUp`) doesn't work, because the browser's native "Space/Enter
+activates this button/link" behavior is **not implemented as a JavaScript event listener that
+participates in normal bubbling** — it's an internal default action tied to the interactive
+element itself being an ancestor of the currently-focused node. `stopPropagation()` only stops
+*other JS listeners* further up the DOM from receiving the event; it cannot suppress a native
+default action that isn't itself a listener in that chain. This is the exact same class of bug
+task 264's Round 2 fix (`createPortal`) had already proven, in this same file tree, cannot be
+patched by propagation control alone — only removing the DOM ancestor/descendant relationship
+between the interactive elements actually fixes it. Round 3's fix is harmless (still correct to
+stop propagation for other reasons) but was not the real fix.
+
+**Fix (`src/app/(hub)/portfolio-tracker/_project-card.tsx`):** the card's clickable wrapper
+changed from a real `<button onClick={...}>` to `<div role="button" tabIndex={0} onClick={...}
+onKeyDown={(e) => { if (e.key === "Enter") ...; }}>`. A plain `<div>` has no native default
+action at all — every bit of its "activation" (click-to-navigate, Enter-to-navigate) is
+author-implemented JS that *does* respect normal propagation, so the input's existing
+`stopPropagation()` calls now correctly prevent the wrapper's `onKeyDown` from ever firing for
+keys pressed inside the input. `PortfolioCardMenu` was already rendered as a DOM sibling here
+(task 233), not nested inside the button, so no further restructuring was needed on this card —
+this was purely a "stop using a real `<button>` tag" fix.
+
+**Fix (`src/app/(hub)/projects/_project-grid-view.tsx`):** the same root cause applies to this
+card's `<Link>` wrapper (anchors also have a native "Enter activates" default action, and — more
+urgently — **Enter is the primary way to save a rename**, so this was a live, high-frequency bug
+on the Projects listing too, just not yet reported when this fix was made). Anchors can't be
+swapped for a plain div without losing real link semantics (open-in-new-tab, right-click menu,
+etc.) the way the Portfolio Tracker button could, so this card was restructured to the "stretched
+link" pattern instead: an empty, absolutely-positioned `<Link className="absolute inset-0 z-0">`
+now spans the whole card with zero children (nothing for the "no nested interactive content" rule
+to violate), and all the real visible content renders as a normal sibling on top
+(`pointer-events-none` on that wrapper, `pointer-events-auto` on each genuinely interactive piece:
+the title, the status/kebab-menu group, the tags row, the avatar stack, and the tasks/issues
+`ProgressStat` buttons) so clicks on plain/empty card areas still fall through to the Link
+underneath exactly as before, while interactive elements keep capturing their own input directly
+with no shared ancestor. The hover-border styling moved from the (now content-less, invisible)
+Link to `group-hover` on a new outer wrapper — CSS `:hover` still reaches every ancestor of
+whatever element is actually under the cursor, regardless of `pointer-events`, so this didn't
+need any JS. `EditableProjectTitle`'s input also gained a hardcoded (not prop-driven)
+`pointer-events-auto` so it opts back in to receiving clicks/focus wherever it's used, without
+forcing that on the plain, non-editing `<span>` (which must stay pass-through so clicking
+unedited title text still navigates via the card, same as before).
+
+**Verification:** `npx tsc --noEmit`, `pnpm lint`, and a full `pnpm build` (`--webpack`) all clean
+after the fix (same 2 pre-existing unrelated `_checklist-tab.tsx` warnings only; no build errors).
+Manual browser re-verification of Space/Enter inside the rename input on both listings, plus a
+general click-through pass of the restructured Projects grid card (title, tags, avatar tooltips,
+tasks/issues buttons, kebab menu, and clicking empty card space), is still owed to the `test`
+stage — this was verified via types/lint/build only, per this task's established practice for
+this codebase's auth-gated routes.
+
+### Round 5 — duplicate-name toast action label
+
+**Requested:** change the duplicate-name error toast's action button label from "Search" to
+"View".
+
+**Fix:** `editable-project-title.tsx` — `action: { label: "Search", ... }` → `action: { label:
+"View", ... }`. Purely a label change; the `onClick` behavior is unchanged (still calls
+`onSearchName(trimmed)`, which sets that listing's search bar to the colliding name so the user
+can find/open the existing project — "View" better matches what the user does with what they
+find, since the click itself only filters the list rather than navigating directly).
+
+**Verification:** `npx tsc --noEmit` clean. One-line change, no other files affected.

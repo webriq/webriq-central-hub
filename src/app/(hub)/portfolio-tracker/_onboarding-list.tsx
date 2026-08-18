@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { V2_ROUTES } from "@/config/constants";
-import { PROGRAMME_PHASES, CLASSIFICATIONS } from "@/config/customer-phases";
+import { CLASSIFICATIONS } from "@/config/customer-phases";
 import { isRoleGatedByMembership } from "@/lib/programme/membership-rules";
 import { FilterMultiSelect, parseMultiParam } from "./_filter-multi-select";
 import { SortSelect } from "./_sort-select";
@@ -56,12 +56,9 @@ const STATUS_OPTIONS = [
   { value: "in_progress", label: "In Progress" },
   { value: "completed", label: "Completed" },
 ] as const;
-// "unclassified" covers legacy/Zoho-imported projects that predate the classification system
-// (classification: null) — same population the card footer already labels "Unclassified".
-const CLASSIFICATION_OPTIONS = [
-  ...CLASSIFICATIONS.map((c) => ({ value: c, label: c })),
-  { value: "unclassified", label: "Unclassified" },
-] as const;
+// Legacy/Zoho-imported projects that predate the classification system (classification: null)
+// are excluded from this list entirely (task 272) — no "Unclassified" filter option needed.
+const CLASSIFICATION_OPTIONS = CLASSIFICATIONS.map((c) => ({ value: c, label: c }));
 // Sort — pill style matching /projects' SortSelect (task 224 follow-up amendment; this page
 // previously had no sort control at all).
 const SORT_OPTIONS = [
@@ -71,7 +68,7 @@ const SORT_OPTIONS = [
   { value: "name_desc", label: "Name (Z–A)" },
   { value: "due_soonest", label: "Handover date (soonest)" },
 ] as const;
-const PAGE_SIZES = [9, 18, 36] as const;
+const PAGE_SIZES = [15, 45, 90] as const;
 
 export default function OnboardingList({
   role, currentUserId, projects, paginationMeta, canCreate,
@@ -152,9 +149,6 @@ export default function OnboardingList({
   // project membership — deletion is a role capability, not a membership one.
   const canDeleteProjects = role === "admin" || role === "pm" || role === "super_admin";
 
-  const totalDays = PROGRAMME_PHASES[PROGRAMME_PHASES.length - 1].dayEnd;
-  const phaseCount = PROGRAMME_PHASES.length;
-
   return (
     <div>
       {/* ── Sticky header (title row + toolbar row) ─────────────────────────── */}
@@ -167,7 +161,7 @@ export default function OnboardingList({
               </h1>
               <p className="text-[13px] mt-0.5 text-[#5F6A88]">
                 {roleEditable
-                  ? `${total} client${total === 1 ? "" : "s"} · programme intake and progress across all ${phaseCount} phases (${totalDays}-day full cycle) — Phase 1 is hidden from PM/staff view until handover.`
+                  ? `${total} client${total === 1 ? "" : "s"} · onboarding intake and programme progress across every active project, classification, and phase plan.`
                   : "Projects currently going through Phase 1 onboarding."}
               </p>
             </div>
@@ -258,7 +252,8 @@ export default function OnboardingList({
                 <select
                   value={pageSize}
                   onChange={(e) => navigate(buildUrl({ pageSize: Number(e.target.value), page: 1 }))}
-                  className="h-8 px-2.5 pr-6 rounded-lg border border-[#E2E7F2] bg-white text-[12px] text-[#3A4565] outline-none focus:border-[#007BFF] focus:ring-[3px] focus:ring-[#007BFF]/[0.14] cursor-pointer"
+                  className="h-8 px-2.5 pr-7 rounded-full border border-[#E2E7F2] bg-white text-[12px] text-[#3A4565] outline-none focus:border-[#007BFF] focus:ring-[3px] focus:ring-[#007BFF]/[0.14] cursor-pointer appearance-none"
+                  style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%235F6A88'/%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center" }}
                 >
                   {PAGE_SIZES.map((n) => <option key={n} value={n}>{n} per page</option>)}
                 </select>

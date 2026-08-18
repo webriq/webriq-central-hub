@@ -29,7 +29,7 @@ export default async function OnboardingPage({
   const statusValues = params.status === undefined ? null : params.status === "" ? [] : params.status.split(",");
   const classificationValues = params.classification === undefined ? null : params.classification === "" ? [] : params.classification.split(",");
   const page = Math.max(1, parseInt(params.page ?? "1", 10) || 1);
-  const pageSize = Math.max(1, parseInt(params.pageSize ?? "9", 10) || 9);
+  const pageSize = Math.max(1, parseInt(params.pageSize ?? "15", 10) || 15);
 
   const { projects, paginationMeta, canCreate } = await loadOnboardingProjectsList(userId, role, {
     search: params.search?.trim() ?? "",
