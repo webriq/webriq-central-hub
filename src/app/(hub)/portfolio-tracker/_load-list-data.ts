@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
-import { isRoleGatedByMembership } from "@/lib/programme/membership-rules";
+import { isRoleGatedByMembership, canManageProjectMembers } from "@/lib/programme/membership-rules";
 import { getCurrentProgrammeDay, resolveEffectivePhase, DEFAULT_PROGRAMME_DAYS } from "@/config/customer-phases";
 import type { OnboardingProjectListItem } from "./_onboarding-list";
 
@@ -93,6 +93,7 @@ export async function loadOnboardingProjectsList(
       scheduled_onboarding_start_at,
       customer_product_id,
       created_at,
+      created_by,
       onboarding_status,
       target_handover_at,
       customers(company_name),
@@ -194,6 +195,7 @@ export async function loadOnboardingProjectsList(
       created_at: p.created_at,
       status: (p.onboarding_status ?? "draft") as OnboardingProjectListItem["status"],
       members: [...(memberIdsByProject.get(p.id) ?? [])].map((id) => ({ id, full_name: memberFullNameById.get(id) ?? null })),
+      canManageCollaborators: canManageProjectMembers(role, p.created_by === userId),
     };
   });
 

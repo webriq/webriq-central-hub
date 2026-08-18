@@ -2,11 +2,12 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { MoreVertical, Trash2 } from "lucide-react";
+import { MoreVertical, Trash2, Users } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { ManageCollaboratorsModal } from "@/components/projects/manage-collaborators-modal";
 import { useDeleteProject } from "@/hooks/use-delete-project";
 
-const MENU_WIDTH = 160;
+const MENU_WIDTH = 192;
 const MENU_HEIGHT = 44;
 
 // Grid-card kebab menu (task 232) — soft-deletes a project from the listing without opening it,
@@ -16,10 +17,19 @@ const MENU_HEIGHT = 44;
 // onboarding-workspace/_file-tile.tsx's ActionsMenu. Every handler here calls `preventDefault` (the
 // whole card is a Next.js `<Link>` — matching this file's own `onClick={(e) => e.preventDefault()}`
 // tags-row pattern) and `stopPropagation`.
-export function ProjectCardMenu({ projectId, projectName }: { projectId: string; projectName: string }) {
+export function ProjectCardMenu({
+  projectId, projectDbId, projectName, canDelete, canManageCollaborators,
+}: {
+  projectId: string | null;
+  projectDbId: string;
+  projectName: string;
+  canDelete: boolean;
+  canManageCollaborators: boolean;
+}) {
   const router = useRouter();
   const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [collaboratorsOpen, setCollaboratorsOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const { deleteProject, deleting, error } = useDeleteProject();
 
@@ -48,7 +58,15 @@ export function ProjectCardMenu({ projectId, projectName }: { projectId: string;
     setConfirmOpen(true);
   }
 
+  function openCollaborators(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setMenuPos(null);
+    setCollaboratorsOpen(true);
+  }
+
   async function handleConfirm() {
+    if (!projectId) return;
     const ok = await deleteProject(projectId);
     if (ok) {
       setConfirmOpen(false);
@@ -75,17 +93,28 @@ export function ProjectCardMenu({ projectId, projectName }: { projectId: string;
         <>
           <div className="fixed inset-0 z-40" onClick={closeMenu} />
           <div
-            className="fixed z-50 w-40 rounded-lg border border-[#E2E7F2] bg-white shadow-[0_8px_24px_rgba(7,17,51,.10)] py-1"
+            className="fixed z-50 w-48 rounded-lg border border-[#E2E7F2] bg-white shadow-[0_8px_24px_rgba(7,17,51,.10)] py-1"
             style={{ left: menuPos.x, top: menuPos.y }}
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
           >
-            <button
-              type="button"
-              onClick={openConfirm}
-              className="flex w-full items-center gap-2 border-none bg-transparent px-3 py-1.5 text-left text-[12px] text-[#C0392B] cursor-pointer transition-colors hover:bg-[#FDE8E6]"
-            >
-              <Trash2 size={13} /> Delete Project
-            </button>
+            {canManageCollaborators && (
+              <button
+                type="button"
+                onClick={openCollaborators}
+                className="flex w-full items-center gap-2 border-none bg-transparent px-3 py-1.5 text-left text-[12px] text-[#3A4565] cursor-pointer transition-colors hover:bg-[#F4F6FB]"
+              >
+                <Users size={13} className="text-[#5F6A88]" /> Manage Collaborators
+              </button>
+            )}
+            {canDelete && (
+              <button
+                type="button"
+                onClick={openConfirm}
+                className="flex w-full items-center gap-2 border-none bg-transparent px-3 py-1.5 text-left text-[12px] text-[#C0392B] cursor-pointer transition-colors hover:bg-[#FDE8E6]"
+              >
+                <Trash2 size={13} /> Delete Project
+              </button>
+            )}
           </div>
         </>
       )}
@@ -98,6 +127,12 @@ export function ProjectCardMenu({ projectId, projectName }: { projectId: string;
         confirmDisabled={deleting}
         onConfirm={handleConfirm}
         onCancel={() => setConfirmOpen(false)}
+      />
+      <ManageCollaboratorsModal
+        open={collaboratorsOpen}
+        onClose={() => setCollaboratorsOpen(false)}
+        projectDbId={projectDbId}
+        projectName={projectName}
       />
       {error && (
         <p className="absolute right-0 top-full z-50 mt-1 w-56 rounded-md bg-white px-2 py-1 text-right text-[11px] text-[#C0392B] shadow-[0_4px_12px_rgba(7,17,51,.08)]">

@@ -34,6 +34,7 @@ export type ProjectListItem = {
   issue_done: number;
   classification: "legacy" | "version2";
   members: { id: string; full_name: string | null }[];
+  canManageCollaborators: boolean;
 };
 
 export type CustomerOption = { customer_id: string; company_name: string };

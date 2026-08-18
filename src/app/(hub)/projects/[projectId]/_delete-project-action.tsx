@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { useDeleteProject } from "@/hooks/use-delete-project";
 import { V2_ROUTES } from "@/config/constants";
 
@@ -35,15 +36,19 @@ export function DeleteProjectAction({
 
   return (
     <div className="relative">
-      <button
-        type="button"
-        onClick={() => setConfirmOpen(true)}
-        aria-label="Delete Project"
-        title="Delete Project"
-        className="inline-flex cursor-pointer items-center justify-center rounded-full border border-[#E2E7F2] bg-white p-2.5 text-[#5F6A88] transition-colors hover:border-[#F5B8B1] hover:bg-[#FDE8E6] hover:text-[#C0392B]"
-      >
-        <Trash2 size={13} />
-      </button>
+      <Tooltip>
+        <TooltipTrigger render={
+          <button
+            type="button"
+            onClick={() => setConfirmOpen(true)}
+            aria-label="Delete Project"
+            className="inline-flex cursor-pointer items-center justify-center rounded-full border border-[#E2E7F2] bg-white p-2.5 text-[#5F6A88] transition-colors hover:border-[#F5B8B1] hover:bg-[#FDE8E6] hover:text-[#C0392B]"
+          >
+            <Trash2 size={13} />
+          </button>
+        } />
+        <TooltipContent side="top">Delete Project</TooltipContent>
+      </Tooltip>
 
       {error && (
         <p className="absolute right-0 top-full mt-1 w-56 text-right text-[11px] text-[#C0392B]">

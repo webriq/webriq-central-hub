@@ -40,8 +40,14 @@ export function GridView({
               </div>
               <div className="flex items-center gap-1 shrink-0">
                 <ProjectStatusChip status={p.status} pct={pct} />
-                {canDeleteProjects && p.project_id && (
-                  <ProjectCardMenu projectId={p.project_id} projectName={p.name} />
+                {((canDeleteProjects && p.project_id) || p.canManageCollaborators) && (
+                  <ProjectCardMenu
+                    projectId={p.project_id}
+                    projectDbId={p.id}
+                    projectName={p.name}
+                    canDelete={canDeleteProjects && !!p.project_id}
+                    canManageCollaborators={p.canManageCollaborators}
+                  />
                 )}
               </div>
             </div>

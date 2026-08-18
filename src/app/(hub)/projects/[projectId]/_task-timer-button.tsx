@@ -1,10 +1,11 @@
 "use client";
 
-import { Play, Pause, Square, Coffee, Timer } from "lucide-react";
+import { Play, Pause, Square, Timer } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { useTimer, type TimerEntityRef } from "../../_components/timer-context";
-import { formatMMSS } from "@/lib/timer/format";
+import { formatHHMMSS } from "@/lib/timer/format";
+import { BREAK_ICONS } from "@/lib/timer/constants";
 
 // Task 209 — replaces the old local-useState TimerButton. State now lives server-side
 // (active_timers, via TimerContext) so it survives navigation/refresh and can be seen/paused
@@ -67,12 +68,13 @@ export function TaskTimerButton({ projectId, onHoursLogged, prominent = false, .
   }
 
   if (timer.break_type) {
+    const BreakIcon = BREAK_ICONS[timer.break_type];
     return (
       <Tooltip>
         <TooltipTrigger render={
           <span className="flex items-center gap-1 text-[#8A5A00] cursor-not-allowed">
-            <Coffee size={11} />
-            <span className="text-[10px] font-mono font-semibold tabular-nums">{formatMMSS(elapsedSeconds)}</span>
+            <BreakIcon size={11} />
+            <span className="text-[10px] font-mono font-semibold tabular-nums">{formatHHMMSS(elapsedSeconds)}</span>
           </span>
         } />
         <TooltipContent side="top">Paused — on break</TooltipContent>
@@ -89,7 +91,7 @@ export function TaskTimerButton({ projectId, onHoursLogged, prominent = false, .
             className="flex items-center gap-1 text-[#007BFF] hover:text-[#0063D6] transition-colors cursor-pointer"
           >
             <Pause size={11} />
-            <span className="text-[10px] font-mono font-semibold tabular-nums">{formatMMSS(elapsedSeconds)}</span>
+            <span className="text-[10px] font-mono font-semibold tabular-nums">{formatHHMMSS(elapsedSeconds)}</span>
           </button>
         } />
         <TooltipContent side="top">Pause timer</TooltipContent>
@@ -106,7 +108,7 @@ export function TaskTimerButton({ projectId, onHoursLogged, prominent = false, .
             className="flex items-center gap-1 text-[#5F6A88] hover:text-[#007BFF] transition-colors cursor-pointer"
           >
             <Play size={11} />
-            <span className="text-[10px] font-mono font-semibold tabular-nums">{formatMMSS(elapsedSeconds)}</span>
+            <span className="text-[10px] font-mono font-semibold tabular-nums">{formatHHMMSS(elapsedSeconds)}</span>
           </button>
         } />
         <TooltipContent side="top">Resume timer</TooltipContent>

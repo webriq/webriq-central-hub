@@ -10,6 +10,7 @@ export type ActiveTimerRow = {
   issue_id: string | null;
   issue_title: string | null;
   project_id: string | null;
+  project_name: string | null;
   status: "running" | "paused" | null;
   accumulated_seconds: number;
   segment_started_at: string | null;

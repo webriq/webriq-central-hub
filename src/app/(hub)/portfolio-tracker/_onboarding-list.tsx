@@ -37,6 +37,7 @@ export type OnboardingProjectListItem = {
   status: "draft" | "scheduled" | "in_progress" | "completed";
   // Task 154: deduped union of project_members + Phase 1 phase_members (task 153).
   members: { id: string; full_name: string | null }[];
+  canManageCollaborators: boolean;
 };
 
 // ─── Search / status filter / pagination — server-driven, URL-synced (task 263). Mirrors
@@ -315,6 +316,7 @@ export default function OnboardingList({
               item={p}
               editable={canOpenProject(p)}
               canDelete={canDeleteProjects}
+              canManageCollaborators={p.canManageCollaborators}
               onDeleted={() => router.refresh()}
             />
           ))}

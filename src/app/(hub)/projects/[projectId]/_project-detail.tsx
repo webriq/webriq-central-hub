@@ -27,6 +27,7 @@ import MilestoneSwimlane from "./_milestone-swimlane";
 import { TaskDescriptionEditor } from "./_task-description-editor";
 import { TaskAttachmentPicker } from "./_task-attachment-picker";
 import { DeleteProjectAction } from "./_delete-project-action";
+import { ManageCollaboratorsAction } from "./_manage-collaborators-action";
 
 type ViewId = "board" | "list" | "calendar";
 type PrimaryTab = "tasks" | "issues" | "milestones";
@@ -435,6 +436,12 @@ export default function ProjectDetail({
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            <ManageCollaboratorsAction
+              projectDbId={project.id}
+              projectName={project.name}
+              currentUserRole={currentUserRole}
+              isCreator={project.created_by === currentUserId}
+            />
             <DeleteProjectAction
               projectId={project.project_id}
               projectName={project.name}

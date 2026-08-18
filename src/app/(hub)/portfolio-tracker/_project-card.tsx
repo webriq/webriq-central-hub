@@ -18,15 +18,16 @@ function formatDate(iso: string | null): string {
 // rendered (never conditionally omitted) so every card in a grid row is the same height
 // regardless of project state. See task 167.
 export function ProjectCard({
-  item, editable, canDelete, onDeleted,
+  item, editable, canDelete, canManageCollaborators, onDeleted,
 }: {
   item: OnboardingProjectListItem;
   editable: boolean;
   canDelete: boolean;
+  canManageCollaborators: boolean;
   onDeleted: () => void;
 }) {
   const router = useRouter();
-  const showMenu = canDelete && !!item.project_id;
+  const showMenu = (canDelete && !!item.project_id) || canManageCollaborators;
 
   const content = (
     <div
@@ -112,7 +113,14 @@ export function ProjectCard({
       )}
       {showMenu && (
         <div className="absolute top-4 right-4">
-          <PortfolioCardMenu projectId={item.project_id!} projectName={item.project_name} onDeleted={onDeleted} />
+          <PortfolioCardMenu
+            projectId={item.project_id}
+            projectDbId={item.id}
+            projectName={item.project_name}
+            canDelete={canDelete && !!item.project_id}
+            canManageCollaborators={canManageCollaborators}
+            onDeleted={onDeleted}
+          />
         </div>
       )}
     </div>

@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
+import { canManageProjectMembers } from "@/lib/programme/membership-rules";
 import { getDeveloperAccessibleProjectIds } from "./_project-access";
 import ProjectsIndex, { type ProjectListItem, type CustomerOption, type PaginationMeta } from "./_projects-index";
 
@@ -68,7 +69,7 @@ export default async function ProjectsPage({
   // Build filtered projects query — count: "exact" on the filtered query returns filtered total.
   let projectsQuery = supabase
     .from("projects")
-    .select("id,project_id,name,project_type,status,customer_id,end_date,tags,owner_name,updated_at,external_project_id,customer_product_id", { count: "exact" })
+    .select("id,project_id,name,project_type,status,customer_id,end_date,tags,owner_name,updated_at,external_project_id,customer_product_id,created_by", { count: "exact" })
     // Soft-deleted projects (task 231) never appear here, regardless of the status filter —
     // "Deleted" isn't a browsable status, so this is unconditional, not folded into statusValues.
     .neq("status", "deleted")
@@ -190,6 +191,7 @@ export default async function ProjectsPage({
     issue_done: issueCounts.get(p.id)?.done ?? 0,
     classification: p.external_project_id ? "legacy" : "version2",
     members: (memberIdsByProject.get(p.id) ?? []).map((id) => ({ id, full_name: fullNameMap.get(id) ?? null })),
+    canManageCollaborators: canManageProjectMembers(role ?? null, !!user && p.created_by === user.id),
   }));
 
   const customerOptions: CustomerOption[] = customers.map((c) => ({

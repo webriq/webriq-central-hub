@@ -99,7 +99,7 @@ export function TimePeriodPicker({ value, onChange }: { value: PeriodValue; onCh
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <div className="absolute z-50 top-[calc(100%+8px)] left-0 rounded-[14px] border border-[#E2E7F2] bg-white shadow-[0_8px_24px_rgba(7,17,51,0.10)] p-4">
-            <div className="flex items-center gap-1 mb-3 border-b border-[#EDF0F7]">
+            <div className="flex items-center justify-center gap-1 mb-3 border-b border-[#EDF0F7]">
               {TABS.map((t) => (
                 <button
                   key={t.mode}

@@ -5,6 +5,16 @@ export function formatMMSS(totalSeconds: number): string {
   return `${mm}:${ss}`;
 }
 
+// Live elapsed-timer display — "00:00:00" hh:mm:ss, rolls over past 60 minutes
+// (unlike formatMMSS, which is only correct for durations under an hour).
+export function formatHHMMSS(totalSeconds: number): string {
+  const s = Math.max(0, Math.floor(totalSeconds));
+  const hh = Math.floor(s / 3600).toString().padStart(2, "0");
+  const mm = Math.floor((s % 3600) / 60).toString().padStart(2, "0");
+  const ss = (s % 60).toString().padStart(2, "0");
+  return `${hh}:${mm}:${ss}`;
+}
+
 function decomposeHours(hours: number): { hh: number; mm: number } {
   const totalMinutes = Math.max(0, Math.round(hours * 60));
   return { hh: Math.floor(totalMinutes / 60), mm: totalMinutes % 60 };

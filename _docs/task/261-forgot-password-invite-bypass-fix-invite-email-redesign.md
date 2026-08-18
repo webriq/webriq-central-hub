@@ -33,7 +33,7 @@ Two related fixes to the internal-staff invite flow (`src/app/(hub)/dashboard/us
 - [ ] A user with a still-valid (unexpired), unused invite link is unaffected by this change either way — this fix only closes the *expired/never-clicked* bypass, it does not add any new restriction to an in-progress, valid invite.
 
 ### 2. Invitation email redesign
-- [ ] `sendHubInviteEmail`'s HTML body displays the WebriQ app logo (`public/brand/logo_on_white.png`, 340×75 — designed for a white background, matching the white email card) at the top of the email.
+- [x] `sendHubInviteEmail`'s HTML body displays the WebriQ app logo at the top of the email. **Superseded post-completion** (same session, follow-up request): the single `public/brand/logo_on_white.png` image was replaced with a dual-logo header — `public/company_logo.webp` (company logo, 36×36) + `public/logo.png` (app logo, bumped from an initial 28×28 to 36×36 per follow-up feedback that it read too small) — laid out side by side in a nested table, followed by the "WebriQ Central Hub" wordmark in bold `#1e293b` text. See Implementation Notes below.
 - [ ] Both the `text` and `html` bodies say the link **expires in 10 minutes**, not 24 hours.
 - [ ] General visual polish: branded header, a proper card/container layout (table-based, inline-styled — email clients including Outlook do not reliably support flexbox/external stylesheets), and a CTA button using the app's brand color (`--color-brand-orange: #F97316` from `src/app/globals.css`) instead of the current plain dark-slate button.
 - [ ] The plain-text fallback (`text` field) stays in sync with the corrected copy (still no logo/HTML in the text version — that's expected for a text fallback).
@@ -175,10 +175,11 @@ Manual pass required (no test runner in this repo):
 
 ### Files Changed
 - `src/app/(auth)/actions.ts` - `requestPasswordReset` gated on `last_sign_in_at` before issuing a reset OTP
-- `src/lib/email/mailer.ts` - `sendHubInviteEmail` redesigned (logo, branded table layout, brand-orange CTA) and "24 hours" → "10 minutes" copy fix in `text` + `html`
+- `src/lib/email/mailer.ts` - `sendHubInviteEmail` redesigned (logo, branded table layout, brand-orange CTA) and "24 hours" → "10 minutes" copy fix in `text` + `html`; follow-up swapped the single logo for a `company_logo.webp` + `logo.png` dual-logo header (both 36×36) beside the app name
 
 ### Deviations From Plan
-- None. Implementation matches the Code Context/Implementation Steps blocks as written.
+- None at initial completion. Implementation matched the Code Context/Implementation Steps blocks as written.
+- **Post-completion follow-up (same session):** the user requested the logo swapped from the single `logo_on_white.png` image to a two-logo header — `company_logo.webp` (company) + `logo.png` (app) side by side, followed by the "WebriQ Central Hub" text. Implemented as a nested `<table>` row inside the existing header `<td>`: `companyLogoUrl` (`${appUrl}/company_logo.webp`, 36×36) + `appLogoUrl` (`${appUrl}/logo.png`, initially 28×28) + a `<span>` wordmark (18px/700/`#1e293b`, same Arial stack as the rest of the template). A second follow-up bumped `appLogoUrl` from 28×28 to 36×36 (matching the company logo) after visual feedback that it looked too small next to its counterpart. Net effect: `sendHubInviteEmail`'s header now renders two brand marks instead of one; the rest of the template (card layout, brand-orange CTA, 10-minute copy) is unchanged from the original 261 implementation.
 
 ### Verification Run
 - `npx tsc --noEmit` - PASS (no errors)
