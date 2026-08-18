@@ -65,6 +65,26 @@ export async function PATCH(
     patch.status = body.status as (typeof VALID_STATUS)[number];
   }
 
+  // Task 268 — card-title rename (hover-to-edit + kebab "Rename Project"): reject an empty name
+  // outright, and reject a name that collides with any other non-deleted project (case-
+  // insensitive) so the UI can offer a "search for the existing one" action instead of a
+  // confusing DB-level failure.
+  if (patch.name !== undefined) {
+    if (!patch.name) {
+      return NextResponse.json({ error: "Project name cannot be empty" }, { status: 400 });
+    }
+    const { data: dupe } = await supabase
+      .from("projects")
+      .select("id")
+      .ilike("name", patch.name)
+      .neq("project_id", projectId)
+      .neq("status", "deleted")
+      .maybeSingle();
+    if (dupe) {
+      return NextResponse.json({ error: "duplicate_name", name: patch.name }, { status: 409 });
+    }
+  }
+
   const { data, error } = await supabase
     .from("projects")
     .update(patch)

@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
@@ -147,12 +148,41 @@ export function ProgressRing({ pct, size = 34 }: { pct: number; size?: number })
   );
 }
 
-export function ProgressStat({ label, done, total }: { label: string; done: number; total: number }) {
+// Task 268 — `href`/`tooltipLabel` make this its own click target (tasks/issues regions on the
+// Projects grid card, each navigating independently of the rest of the card). A <button> here,
+// never a nested <a> — the card itself is already a <Link>/<a>, and HTML forbids nested anchors
+// (browsers force-close them), the same nested-interactive-element bug class task 264's Round 2
+// fix (createPortal) worked around for the collaborators modal.
+export function ProgressStat({ label, done, total, href, tooltipLabel }: {
+  label: string; done: number; total: number; href?: string; tooltipLabel?: string;
+}) {
+  const router = useRouter();
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
-  return (
+  const content = (
     <div className="flex flex-col items-center gap-1 shrink-0">
       <ProgressRing pct={pct} />
-      <span className="text-[10px] font-mono text-[#5F6A88] whitespace-nowrap">{done}/{total} {label}</span>
+      <span className="text-[10px] font-mono whitespace-nowrap text-[#5F6A88] group-hover:text-[#007BFF] transition-colors">{done}/{total} {label}</span>
     </div>
+  );
+
+  if (!href) return content;
+
+  const trigger = (
+    <button
+      type="button"
+      onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(href); }}
+      className="group cursor-pointer border-none bg-transparent p-0"
+    >
+      {content}
+    </button>
+  );
+
+  if (!tooltipLabel) return trigger;
+
+  return (
+    <Tooltip>
+      <TooltipTrigger render={trigger} />
+      <TooltipContent side="top">{tooltipLabel}</TooltipContent>
+    </Tooltip>
   );
 }

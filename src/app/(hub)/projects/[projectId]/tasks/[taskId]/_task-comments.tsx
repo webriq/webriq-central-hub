@@ -48,7 +48,15 @@ function formatFileSize(bytes: number | null): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export function TaskComments({ taskId }: { taskId: string }) {
+export function TaskComments({
+  taskId,
+  onCountChange,
+}: {
+  taskId: string;
+  // Task 270 — lifted up to the panel so its tab label can show a live count, mirroring
+  // `_issue-comments.tsx`'s identical `onCountChange` prop (task 257, Requirement G).
+  onCountChange?: (n: number) => void;
+}) {
   const [comments, setComments] = useState<CommentRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [draftHtml, setDraftHtml] = useState("");
@@ -64,8 +72,12 @@ export function TaskComments({ taskId }: { taskId: string }) {
   const fetchComments = useCallback((signal?: AbortSignal) => {
     return fetch(`/api/v2/tasks/${taskId}/comments`, { signal })
       .then((r) => (r.ok ? r.json() : []))
-      .then((data: CommentRow[]) => setComments(data))
+      .then((data: CommentRow[]) => {
+        setComments(data);
+        onCountChange?.(data.length);
+      })
       .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- onCountChange is a stable useCallback from the panel; including it would redefine fetchComments (and refire effects depending on it) on every parent render
   }, [taskId]);
 
   useEffect(() => {
@@ -144,7 +156,11 @@ export function TaskComments({ taskId }: { taskId: string }) {
         }
       }
 
-      setComments((prev) => [...prev, { ...created, attachments }]);
+      setComments((prev) => {
+        const next = [...prev, { ...created, attachments }];
+        onCountChange?.(next.length);
+        return next;
+      });
       setAttachmentFiles([]);
       setResetKey((k) => k + 1);
     }

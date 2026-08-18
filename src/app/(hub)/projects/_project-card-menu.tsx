@@ -2,34 +2,45 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { MoreVertical, Trash2, Users } from "lucide-react";
+import { MoreVertical, Trash2, Users, Eye, Pencil, Crown, Tag } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ManageCollaboratorsModal } from "@/components/projects/manage-collaborators-modal";
+import { SetProjectOwnerModal } from "@/components/projects/set-project-owner-modal";
+import { UpdateClassificationModal } from "@/components/projects/update-classification-modal";
 import { useDeleteProject } from "@/hooks/use-delete-project";
+import { V2_ROUTES } from "@/config/constants";
 
 const MENU_WIDTH = 192;
-const MENU_HEIGHT = 44;
+const MENU_HEIGHT = 280;
 
-// Grid-card kebab menu (task 232) — soft-deletes a project from the listing without opening it,
-// reusing task 231's DELETE endpoint/hook/dialog verbatim. Fixed-position dropdown anchored to the
-// trigger's own rect, not `absolute`-anchored to the card, so adjacent grid cards (plain z-index:auto,
-// later in DOM order) can't paint over it — same technique and reasoning as
-// onboarding-workspace/_file-tile.tsx's ActionsMenu. Every handler here calls `preventDefault` (the
-// whole card is a Next.js `<Link>` — matching this file's own `onClick={(e) => e.preventDefault()}`
-// tags-row pattern) and `stopPropagation`.
+// Grid-card kebab menu (task 232; extended by task 264 with Manage Collaborators, and task 268
+// with View Project / Rename Project / Set Project Owner / Update Classification) — soft-deletes
+// a project from the listing without opening it, reusing task 231's DELETE endpoint/hook/dialog
+// verbatim. Fixed-position dropdown anchored to the trigger's own rect, not `absolute`-anchored to
+// the card, so adjacent grid cards (plain z-index:auto, later in DOM order) can't paint over it —
+// same technique and reasoning as onboarding-workspace/_file-tile.tsx's ActionsMenu. Every handler
+// here calls `preventDefault` (the whole card is a Next.js `<Link>` — matching this file's own
+// `onClick={(e) => e.preventDefault()}` tags-row pattern) and `stopPropagation`.
 export function ProjectCardMenu({
-  projectId, projectDbId, projectName, canDelete, canManageCollaborators,
+  projectId, projectDbId, projectName, canDelete, canManageCollaborators, canSetOwner,
+  hasProduct, currentClassification, onRename,
 }: {
   projectId: string | null;
   projectDbId: string;
   projectName: string;
   canDelete: boolean;
   canManageCollaborators: boolean;
+  canSetOwner: boolean;
+  hasProduct: boolean;
+  currentClassification: string | null;
+  onRename: () => void;
 }) {
   const router = useRouter();
   const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [collaboratorsOpen, setCollaboratorsOpen] = useState(false);
+  const [ownerOpen, setOwnerOpen] = useState(false);
+  const [classificationOpen, setClassificationOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const { deleteProject, deleting, error } = useDeleteProject();
 
@@ -51,6 +62,20 @@ export function ProjectCardMenu({
     setMenuPos(null);
   }
 
+  function openView(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setMenuPos(null);
+    if (projectId) router.push(`${V2_ROUTES.PROJECTS}/${projectId}`);
+  }
+
+  function handleRename(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setMenuPos(null);
+    onRename();
+  }
+
   function openConfirm(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
@@ -63,6 +88,20 @@ export function ProjectCardMenu({
     e.stopPropagation();
     setMenuPos(null);
     setCollaboratorsOpen(true);
+  }
+
+  function openOwner(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setMenuPos(null);
+    setOwnerOpen(true);
+  }
+
+  function openClassification(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setMenuPos(null);
+    setClassificationOpen(true);
   }
 
   async function handleConfirm() {
@@ -97,6 +136,42 @@ export function ProjectCardMenu({
             style={{ left: menuPos.x, top: menuPos.y }}
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
           >
+            {projectId && (
+              <button
+                type="button"
+                onClick={openView}
+                className="flex w-full items-center gap-2 border-none bg-transparent px-3 py-1.5 text-left text-[12px] text-[#3A4565] cursor-pointer transition-colors hover:bg-[#F4F6FB]"
+              >
+                <Eye size={13} className="text-[#5F6A88]" /> View Project
+              </button>
+            )}
+            {canManageCollaborators && (
+              <button
+                type="button"
+                onClick={handleRename}
+                className="flex w-full items-center gap-2 border-none bg-transparent px-3 py-1.5 text-left text-[12px] text-[#3A4565] cursor-pointer transition-colors hover:bg-[#F4F6FB]"
+              >
+                <Pencil size={13} className="text-[#5F6A88]" /> Rename Project
+              </button>
+            )}
+            {canSetOwner && (
+              <button
+                type="button"
+                onClick={openOwner}
+                className="flex w-full items-center gap-2 border-none bg-transparent px-3 py-1.5 text-left text-[12px] text-[#3A4565] cursor-pointer transition-colors hover:bg-[#F4F6FB]"
+              >
+                <Crown size={13} className="text-[#5F6A88]" /> Set Project Owner
+              </button>
+            )}
+            {canManageCollaborators && hasProduct && (
+              <button
+                type="button"
+                onClick={openClassification}
+                className="flex w-full items-center gap-2 border-none bg-transparent px-3 py-1.5 text-left text-[12px] text-[#3A4565] cursor-pointer transition-colors hover:bg-[#F4F6FB]"
+              >
+                <Tag size={13} className="text-[#5F6A88]" /> Update Classification
+              </button>
+            )}
             {canManageCollaborators && (
               <button
                 type="button"
@@ -107,13 +182,16 @@ export function ProjectCardMenu({
               </button>
             )}
             {canDelete && (
-              <button
-                type="button"
-                onClick={openConfirm}
-                className="flex w-full items-center gap-2 border-none bg-transparent px-3 py-1.5 text-left text-[12px] text-[#C0392B] cursor-pointer transition-colors hover:bg-[#FDE8E6]"
-              >
-                <Trash2 size={13} /> Delete Project
-              </button>
+              <>
+                <div className="my-1 border-t border-[#EDF0F7]" />
+                <button
+                  type="button"
+                  onClick={openConfirm}
+                  className="flex w-full items-center gap-2 border-none bg-transparent px-3 py-1.5 text-left text-[12px] text-[#C0392B] cursor-pointer transition-colors hover:bg-[#FDE8E6]"
+                >
+                  <Trash2 size={13} /> Delete Project
+                </button>
+              </>
             )}
           </div>
         </>
@@ -134,6 +212,22 @@ export function ProjectCardMenu({
         projectDbId={projectDbId}
         projectName={projectName}
       />
+      <SetProjectOwnerModal
+        open={ownerOpen}
+        onClose={() => setOwnerOpen(false)}
+        projectDbId={projectDbId}
+        projectName={projectName}
+      />
+      {projectId && (
+        <UpdateClassificationModal
+          open={classificationOpen}
+          onClose={() => setClassificationOpen(false)}
+          projectId={projectId}
+          projectName={projectName}
+          currentClassification={currentClassification}
+          onUpdated={() => router.refresh()}
+        />
+      )}
       {error && (
         <p className="absolute right-0 top-full z-50 mt-1 w-56 rounded-md bg-white px-2 py-1 text-right text-[11px] text-[#C0392B] shadow-[0_4px_12px_rgba(7,17,51,.08)]">
           {error}

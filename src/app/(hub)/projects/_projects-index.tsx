@@ -33,8 +33,15 @@ export type ProjectListItem = {
   issue_total: number;
   issue_done: number;
   classification: "legacy" | "version2";
+  // Task 268 — the real StackShift/PipelineForge/etc. classification (customer_products.
+  // classification, joined via customer_product_id). Deliberately a different field name from
+  // `classification` above, which means something unrelated ("legacy" vs "version2" for the
+  // existing type filter) — do not conflate the two.
+  productClassification: string | null;
+  hasProduct: boolean;
   members: { id: string; full_name: string | null }[];
   canManageCollaborators: boolean;
+  canSetOwner: boolean;
 };
 
 export type CustomerOption = { customer_id: string; company_name: string };
@@ -117,6 +124,13 @@ export default function ProjectsIndex({
 
   function getTagsFor(p: ProjectListItem): string[] {
     return tagOverrides[p.id] ?? p.tags;
+  }
+
+  // Task 268 — the rename duplicate-name error toast's "Search" action lands here: sets this
+  // page's own search bar (and URL) to the colliding name so the user can find the other project.
+  function handleSearchName(name: string) {
+    setSearchInput(name);
+    navigate(buildUrl({ search: name, page: 1 }));
   }
 
   function buildUrl(overrides: Record<string, string | number | null>) {
@@ -325,7 +339,7 @@ export default function ProjectsIndex({
         ) : projects.length === 0 ? (
           <EmptyState isFiltered={isFiltered} />
         ) : view === "grid" ? (
-          <GridView projects={projects} canManageTags={canManageTags} canDeleteProjects={canDeleteProjects} getTagsFor={getTagsFor} removeTag={removeTag} />
+          <GridView projects={projects} canManageTags={canManageTags} canDeleteProjects={canDeleteProjects} getTagsFor={getTagsFor} removeTag={removeTag} onSearchName={handleSearchName} />
         ) : (
           <ListView projects={projects} canManageTags={canManageTags} getTagsFor={getTagsFor} removeTag={removeTag} />
         )}

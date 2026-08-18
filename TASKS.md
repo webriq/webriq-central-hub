@@ -19,6 +19,9 @@
 
 | ID | Title | Priority | Type | Doc | Date |
 |----|-------|----------|------|-----|------|
+| 270 | Task Detail Page — Description Bottom Radius Fix, Attachment Upload Section (Drag-and-Drop), Attachments/Comments Tab Redesign (Underline + Live Counts, Matching Issue Detail) | MEDIUM | bugfix | _docs/task/270-task-detail-description-radius-attachment-upload-tab-reorder.md | 2026-08-18 |
+| 269 | Fix Login Redirect — proxy.ts Intercepts the Post-Login Server Action (Regression from Task 262); other auth forms reviewed, unaffected | HIGH | bugfix | _docs/task/269-fix-login-redirect-proxy-server-action-regression.md | 2026-08-18 |
+| 268 | Portfolio Tracker & Projects Listings — View/Rename/Set Owner/Update Classification Actions, Hover-to-Rename Card Title, Tasks/Issues Click Regions (Sonner Toasts) | MEDIUM | feature | _docs/task/268-listings-view-rename-owner-classification-actions-task-issue-links.md | 2026-08-18 |
 | 265 | Fix Live Timer Widget — HTML Title Decode, Project Name, hh:mm:ss Format, Break Button Alignment, Dynamic Break Icon, Auto-Resume After Break | MEDIUM | bugfix | _docs/task/265-fix-live-timer-widget-title-project-format-breaks.md | 2026-08-18 |
 | 262 | Fix proxy.ts Session-Refresh Header Bug + Missing Auth-State Redirects (Dashboard/Time Logs sidebar clicks intermittently bounce to /auth/login; /auth/login doesn't redirect away when already authenticated) | HIGH | bugfix | _docs/task/262-proxy-auth-redirect-cookie-refresh-fix.md | 2026-08-18 |
 | 255 | v2 → Root Migration — Retire Legacy `(hub)`/`(auth)` (rename to private folders excluded from routing), Promote `v2/(hub)`/`v2/(auth)` to App Root (`/v2/dashboard` → `/dashboard` etc.), `/v2/*` Redirects, Fix Cross-Route-Group Imports/Hardcoded `/v2/` Path Strings | HIGH | refactor | _docs/task/255-v2-to-root-migration-legacy-hub-retirement.md | 2026-08-17 |

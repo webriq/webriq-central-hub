@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Building2, CalendarClock, Clock3 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -7,6 +8,7 @@ import { V2_ROUTES } from "@/config/constants";
 import { Chip, PhaseChip, OnboardingStatusPill } from "../dashboard/_components/dashboard-shared";
 import { AvatarStack } from "./_avatar-stack";
 import { PortfolioCardMenu } from "./_portfolio-card-menu";
+import { EditableProjectTitle, type EditableProjectTitleHandle } from "@/components/projects/editable-project-title";
 import type { OnboardingProjectListItem } from "./_onboarding-list";
 
 function formatDate(iso: string | null): string {
@@ -18,16 +20,19 @@ function formatDate(iso: string | null): string {
 // rendered (never conditionally omitted) so every card in a grid row is the same height
 // regardless of project state. See task 167.
 export function ProjectCard({
-  item, editable, canDelete, canManageCollaborators, onDeleted,
+  item, editable, canDelete, canManageCollaborators, canSetOwner, onDeleted, onSearchName,
 }: {
   item: OnboardingProjectListItem;
   editable: boolean;
   canDelete: boolean;
   canManageCollaborators: boolean;
+  canSetOwner: boolean;
   onDeleted: () => void;
+  onSearchName: (name: string) => void;
 }) {
   const router = useRouter();
-  const showMenu = (canDelete && !!item.project_id) || canManageCollaborators;
+  const showMenu = (canDelete && !!item.project_id) || canManageCollaborators || canSetOwner;
+  const titleRef = useRef<EditableProjectTitleHandle>(null);
 
   const content = (
     <div
@@ -39,7 +44,15 @@ export function ProjectCard({
       {/* Header: title + status */}
       <div className="flex items-start justify-between gap-3 mb-2.5">
         <div className="min-w-0">
-          <div className="text-[13px] font-semibold text-[#0B1533] truncate">{item.project_name}</div>
+          <EditableProjectTitle
+            ref={titleRef}
+            name={item.project_name}
+            projectId={item.project_id}
+            canRename={canManageCollaborators}
+            onRenamed={() => router.refresh()}
+            onSearchName={onSearchName}
+            className="text-[13px] font-semibold text-[#0B1533] truncate block"
+          />
           <div className="inline-flex items-center gap-1 text-[12px] text-[#5F6A88] truncate">
             <Building2 size={11} /> {item.company_name}
           </div>
@@ -119,7 +132,11 @@ export function ProjectCard({
             projectName={item.project_name}
             canDelete={canDelete && !!item.project_id}
             canManageCollaborators={canManageCollaborators}
+            canSetOwner={canSetOwner}
+            hasProduct={item.hasProduct}
+            currentClassification={item.classification}
             onDeleted={onDeleted}
+            onRename={() => titleRef.current?.startEditing()}
           />
         </div>
       )}

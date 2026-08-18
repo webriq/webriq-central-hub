@@ -53,8 +53,11 @@ export async function proxy(request: NextRequest) {
   const nonHubPrefixes = ["/auth/", "/api/", "/callback", "/onboarding"];
   const isHubRoute = pathname !== "/" && !nonHubPrefixes.some((prefix) => pathname.startsWith(prefix));
 
-  // Already authenticated users shouldn't land back on the login form.
-  if (pathname === "/auth/login" && isAuthenticated) {
+  // Already authenticated users shouldn't land back on the login form. Scoped to GET only —
+  // the login form's own postLoginGate Server Action POSTs to this same /auth/login URL right
+  // after signInWithPassword sets the session cookie, so a method-agnostic check here would
+  // hijack that in-flight action and break the login redirect (task 269).
+  if (request.method === "GET" && pathname === "/auth/login" && isAuthenticated) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 

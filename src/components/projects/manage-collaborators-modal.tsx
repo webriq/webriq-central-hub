@@ -3,20 +3,9 @@
 import { useEffect, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { Crown, Users, X } from "lucide-react";
+import { mapMembers, type MemberRow, type RawMemberRow } from "./member-types";
 
-type MemberRow = { id: string; user_id: string; is_owner: boolean; full_name: string | null; role: string | null };
 type StaffPerson = { id: string; full_name: string | null; role: string };
-type RawMemberRow = { id: string; user_id: string; is_owner: boolean; profiles: { full_name: string | null; role: string } | null };
-
-function mapMembers(raw: RawMemberRow[]): MemberRow[] {
-  return raw.map((m) => ({
-    id: m.id,
-    user_id: m.user_id,
-    is_owner: m.is_owner,
-    full_name: m.profiles?.full_name ?? null,
-    role: m.profiles?.role ?? null,
-  }));
-}
 
 // Task 264 — modal version of the Portfolio Tracker detail page's inline "Manage Collaborators"
 // panel (_onboarding-detail.tsx's CollaboratorsPanel), reused across 3 surfaces (Projects listing,

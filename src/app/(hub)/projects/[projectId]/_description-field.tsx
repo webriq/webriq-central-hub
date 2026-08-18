@@ -132,7 +132,12 @@ export function DescriptionField({
   return (
     <div className={cn(
       "border overflow-hidden transition-colors border-[#E2E7F2]",
-      !fullBleed && "rounded-[10px]",
+      // fullBleed sits flush against a `noPadding` parent Card/AccordionCard's own
+      // `rounded-[14px]` — a plain 0-radius child still renders a square corner notch at the
+      // parent's inner edge (overflow-hidden clips what's outside the parent's curve, not a
+      // flush-fitting square border inside it), so the bottom corners need their own matching
+      // radius (13px = parent's 14px minus its 1px border) rather than none at all.
+      fullBleed ? "rounded-b-[13px]" : "rounded-[10px]",
       readOnly ? "bg-white" : "bg-[#F4F6FB] focus-within:border-[#007BFF] focus-within:bg-white focus-within:ring-[3px] focus-within:ring-[#007BFF]/[0.14]"
     )}>
       {!readOnly && (

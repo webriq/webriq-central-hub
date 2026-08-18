@@ -9,6 +9,7 @@ import {
   decodeHtmlEntities,
 } from "../../../_pm-shared";
 import { DescriptionField } from "../../_description-field";
+import { AttachmentUploadZone } from "../../_attachment-upload-zone";
 import { TaskAttachmentsCommentsPanel } from "./_task-attachments-comments-panel";
 import { getTaskEditPermission } from "@/lib/tasks/permissions";
 import { TaskTimerButton } from "../../_task-timer-button";
@@ -361,6 +362,12 @@ export default function TaskDetailClient({
                 }}
               />
             </Card>
+
+            {/* Attachment upload */}
+            <AttachmentUploadZone
+              uploadUrl={`/api/v2/projects/${projectId}/tasks/${task.id}/attachments`}
+              disabled={!perm.canEditDetails}
+            />
 
             {/* Attachments / Comments */}
             <TaskAttachmentsCommentsPanel projectId={projectId} taskId={task.id} timeLogsRefreshKey={timeLogsRefreshKey} />

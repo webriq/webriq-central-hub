@@ -24,6 +24,7 @@ export type OnboardingProjectListItem = {
   company_name: string;
   customer_id: string;
   classification: string | null;
+  hasProduct: boolean;
   current_phase_number: number | null;
   current_phase_name: string | null;
   current_day: number | null;
@@ -38,6 +39,7 @@ export type OnboardingProjectListItem = {
   // Task 154: deduped union of project_members + Phase 1 phase_members (task 153).
   members: { id: string; full_name: string | null }[];
   canManageCollaborators: boolean;
+  canSetOwner: boolean;
 };
 
 // ─── Search / status filter / pagination — server-driven, URL-synced (task 263). Mirrors
@@ -121,6 +123,13 @@ export default function OnboardingList({
   function handleMultiChange(key: "status" | "classification", next: string[], optionsCount: number) {
     const value = next.length === optionsCount ? null : next.length === 0 ? "" : next.join(",");
     navigate(buildUrl({ [key]: value, page: 1 }));
+  }
+
+  // Task 268 — the rename duplicate-name error toast's "Search" action lands here: sets this
+  // page's own search bar (and URL) to the colliding name so the user can find the other project.
+  function handleSearchName(name: string) {
+    setSearchInput(name);
+    navigate(buildUrl({ search: name, page: 1 }));
   }
 
   const { page, pageSize, total } = paginationMeta;
@@ -317,7 +326,9 @@ export default function OnboardingList({
               editable={canOpenProject(p)}
               canDelete={canDeleteProjects}
               canManageCollaborators={p.canManageCollaborators}
+              canSetOwner={p.canSetOwner}
               onDeleted={() => router.refresh()}
+              onSearchName={handleSearchName}
             />
           ))}
         </div>

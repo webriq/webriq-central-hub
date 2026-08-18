@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { Toaster } from "@/components/ui/sonner";
 import V2HubShell from "./_components/v2-hub-shell";
 
 export default async function HubLayout({ children }: { children: React.ReactNode }) {
@@ -33,11 +34,14 @@ export default async function HubLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <V2HubShell
-      userRole={userRole}
-      displayName={userDisplayName}
-    >
-      {children}
-    </V2HubShell>
+    <>
+      <V2HubShell
+        userRole={userRole}
+        displayName={userDisplayName}
+      >
+        {children}
+      </V2HubShell>
+      <Toaster position="bottom-right" />
+    </>
   );
 }
