@@ -166,7 +166,13 @@ export async function requestPasswordReset(email: string): Promise<{ ok: true }>
   const target = await getUserIdByEmail(email);
   if (target) {
     const { locked } = await checkOtpLockout(target.id);
-    if (!locked) {
+    // Invited accounts start with no completed sign-in (Zoho import creates the Auth
+    // user with no password; a fresh invite creates one with an unused temp password).
+    // last_sign_in_at stays null until they actually finish registration — using it here
+    // stops an expired/never-clicked invite from being resurrected via Forgot Password.
+    const { data: authUser } = await adminClient.auth.admin.getUserById(target.id);
+    const hasRegistered = !!authUser.user?.last_sign_in_at;
+    if (!locked && hasRegistered) {
       const bytes = randomBytes(4);
       const code = String(bytes.readUInt32BE(0) % 900000 + 100000);
       const codeHash = createHash("sha256").update(code).digest("hex");

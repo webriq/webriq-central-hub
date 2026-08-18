@@ -32,6 +32,9 @@ export async function sendInvitationEmail(to: string, fullName: string, tempPass
 }
 
 export async function sendHubInviteEmail(to: string, firstName: string, inviteUrl: string) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://hub.webriq.com";
+  const logoUrl = `${appUrl}/brand/logo_on_white.png`;
+
   await transporter.sendMail({
     from: FROM,
     to,
@@ -44,14 +47,27 @@ export async function sendHubInviteEmail(to: string, firstName: string, inviteUr
       `Click the link below to set your password and get started:`,
       `${inviteUrl}`,
       ``,
-      `This link expires in 24 hours.`,
+      `This link expires in 10 minutes.`,
       `If you did not expect this invitation, you can safely ignore this email.`,
     ].join("\n"),
     html: [
-      `<p>Hi ${firstName},</p>`,
-      `<p>You've been invited to join <strong>WebriQ Central Hub</strong>.</p>`,
-      `<p><a href="${inviteUrl}" style="display:inline-block;padding:10px 20px;background:#1e293b;color:#fff;border-radius:6px;text-decoration:none;font-weight:600;">Accept Invitation</a></p>`,
-      `<p style="color:#94a3b8;font-size:12px;">This link expires in 24 hours. If you did not expect this invitation, you can safely ignore this email.</p>`,
+      `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:40px 16px;font-family:Arial,Helvetica,sans-serif;">`,
+      `<tr><td align="center">`,
+      `<table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0;">`,
+      `<tr><td style="padding:32px 32px 24px;text-align:center;">`,
+      `<img src="${logoUrl}" width="170" alt="WebriQ Central Hub" style="display:block;margin:0 auto;max-width:170px;height:auto;">`,
+      `</td></tr>`,
+      `<tr><td style="padding:0 32px 32px;">`,
+      `<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#1e293b;">Hi ${firstName},</p>`,
+      `<p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#1e293b;">You've been invited to join <strong>WebriQ Central Hub</strong>. Click below to set your password and get started.</p>`,
+      `<table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="border-radius:8px;background:#F97316;">`,
+      `<a href="${inviteUrl}" style="display:inline-block;padding:12px 28px;color:#fff;border-radius:8px;text-decoration:none;font-weight:600;font-size:15px;">Accept Invitation</a>`,
+      `</td></tr></table>`,
+      `<p style="margin:24px 0 0;font-size:12px;line-height:1.6;color:#94a3b8;">This link expires in 10 minutes. If you did not expect this invitation, you can safely ignore this email.</p>`,
+      `</td></tr>`,
+      `</table>`,
+      `</td></tr>`,
+      `</table>`,
     ].join(""),
   });
 }
