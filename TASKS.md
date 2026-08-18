@@ -19,6 +19,7 @@
 
 | ID | Title | Priority | Type | Doc | Date |
 |----|-------|----------|------|-----|------|
+| 262 | Fix proxy.ts Session-Refresh Header Bug + Missing Auth-State Redirects (Dashboard/Time Logs sidebar clicks intermittently bounce to /auth/login; /auth/login doesn't redirect away when already authenticated) | HIGH | bugfix | _docs/task/262-proxy-auth-redirect-cookie-refresh-fix.md | 2026-08-18 |
 | 255 | v2 → Root Migration — Retire Legacy `(hub)`/`(auth)` (rename to private folders excluded from routing), Promote `v2/(hub)`/`v2/(auth)` to App Root (`/v2/dashboard` → `/dashboard` etc.), `/v2/*` Redirects, Fix Cross-Route-Group Imports/Hardcoded `/v2/` Path Strings | HIGH | refactor | _docs/task/255-v2-to-root-migration-legacy-hub-retirement.md | 2026-08-17 |
 | 252 | Portfolio Tracker — Skip-Phase Timeline Compression (StackShift I, shipped) + Generic-Engine Swimlane/Overview Parity (Access/Access Plus/Discrete Development/StackShift II w/o opt-in) — day-range migration on milestones/tasklists, free-form intake day-range UI, day-based Gantt rebuild of GenericSwimlane, Jump-to-phase backdating | MEDIUM | enhancement | _docs/task/252-portfolio-tracker-skip-timeline-compression-generic-swimlane-parity.md | 2026-08-14 |
 | 251 | New Project Form — Scheduled Start Validation, StackShift I Phase Collapse-by-Default, Generic-Engine Scheduled/Draft Screen Parity | MEDIUM | enhancement / bug fix | _docs/task/251-new-project-form-schedule-validation-phase-collapse-generic-not-started-screen.md | 2026-08-14 |

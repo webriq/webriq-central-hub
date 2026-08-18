@@ -8,10 +8,20 @@ export async function proxy(request: NextRequest) {
   }
 
   // Forward the requested path to server components so auth guards can build ?returnTo=
-  const requestHeaders = new Headers(request.headers);
-  requestHeaders.set("x-pathname", request.nextUrl.pathname + request.nextUrl.search);
+  const pathnameValue = request.nextUrl.pathname + request.nextUrl.search;
 
-  let supabaseResponse = NextResponse.next({ request: { headers: requestHeaders } });
+  // Builds the forwarded-request headers from the CURRENT request.headers (not a snapshot
+  // taken before any cookie refresh) so a mid-request token refresh — triggered below by
+  // getClaims() — is visible to this same request's Server Components, not just the next
+  // navigation. Task 262: reusing a pre-refresh clone here caused Server Components to see
+  // an expired session cookie and bounce to /auth/login right after a successful refresh.
+  function buildForwardedHeaders(): Headers {
+    const headers = new Headers(request.headers);
+    headers.set("x-pathname", pathnameValue);
+    return headers;
+  }
+
+  let supabaseResponse = NextResponse.next({ request: { headers: buildForwardedHeaders() } });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -23,7 +33,7 @@ export async function proxy(request: NextRequest) {
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-          supabaseResponse = NextResponse.next({ request: { headers: requestHeaders } });
+          supabaseResponse = NextResponse.next({ request: { headers: buildForwardedHeaders() } });
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
           );
@@ -33,7 +43,8 @@ export async function proxy(request: NextRequest) {
   );
 
   // Refresh session if expired — getClaims validates JWT signature against project keys
-  await supabase.auth.getClaims();
+  const { data } = await supabase.auth.getClaims();
+  const isAuthenticated = !!data?.claims;
 
   // Task 255 — hub pages now live at root alongside auth/public/API routes (no more
   // /v2/ prefix to distinguish them), so this gate excludes the known non-hub prefixes
@@ -41,6 +52,17 @@ export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const nonHubPrefixes = ["/auth/", "/api/", "/callback", "/onboarding"];
   const isHubRoute = pathname !== "/" && !nonHubPrefixes.some((prefix) => pathname.startsWith(prefix));
+
+  // Already authenticated users shouldn't land back on the login form.
+  if (pathname === "/auth/login" && isAuthenticated) {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
+
+  // Unauthenticated users can't reach hub routes — bounce to login with a returnTo so the
+  // post-login gate (postLoginGate) can send them back to what they asked for.
+  if (isHubRoute && !isAuthenticated) {
+    return NextResponse.redirect(new URL(`/auth/login?returnTo=${encodeURIComponent(pathnameValue)}`, request.url));
+  }
 
   if (isHubRoute) {
     if (request.cookies.get("change_password_required")?.value) {
