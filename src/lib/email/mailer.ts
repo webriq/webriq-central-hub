@@ -33,7 +33,8 @@ export async function sendInvitationEmail(to: string, fullName: string, tempPass
 
 export async function sendHubInviteEmail(to: string, firstName: string, inviteUrl: string) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://hub.webriq.com";
-  const logoUrl = `${appUrl}/brand/logo_on_white.png`;
+  const companyLogoUrl = `${appUrl}/company_logo.webp`;
+  const appLogoUrl = `${appUrl}/logo.png`;
 
   await transporter.sendMail({
     from: FROM,
@@ -55,7 +56,11 @@ export async function sendHubInviteEmail(to: string, firstName: string, inviteUr
       `<tr><td align="center">`,
       `<table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0;">`,
       `<tr><td style="padding:32px 32px 24px;text-align:center;">`,
-      `<img src="${logoUrl}" width="170" alt="WebriQ Central Hub" style="display:block;margin:0 auto;max-width:170px;height:auto;">`,
+      `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto;"><tr>`,
+      `<td style="padding-right:8px;vertical-align:middle;"><img src="${companyLogoUrl}" width="36" alt="WebriQ" style="display:block;width:36px;height:36px;"></td>`,
+      `<td style="padding-right:10px;vertical-align:middle;"><img src="${appLogoUrl}" width="28" alt="" style="display:block;width:28px;height:28px;"></td>`,
+      `<td style="vertical-align:middle;"><span style="font-size:18px;font-weight:700;color:#1e293b;font-family:Arial,Helvetica,sans-serif;">WebriQ Central Hub</span></td>`,
+      `</tr></table>`,
       `</td></tr>`,
       `<tr><td style="padding:0 32px 32px;">`,
       `<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#1e293b;">Hi ${firstName},</p>`,
