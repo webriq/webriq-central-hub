@@ -49,11 +49,9 @@ export function PortfolioCardMenu({
     const ok = await deleteProject(projectId);
     if (ok) {
       setConfirmOpen(false);
-      // Unlike task 232's Grid card (server-rendered list, where router.refresh() re-runs the
-      // Server Component and yields fresh props), this listing fetches its own data client-side
-      // (`useEffect(..., [retryKey])` in _onboarding-list.tsx) — router.refresh() would be a no-op
-      // here. onDeleted() bumps that retryKey instead, reusing the same refetch mechanism the
-      // listing's own "Try again" button already triggers.
+      // Task 263: this listing is now server-rendered (page.tsx -> _load-list-data.ts), matching
+      // task 232's Grid card — onDeleted() calls router.refresh() to re-run the Server Component
+      // and get fresh props, same as the Projects module.
       onDeleted();
     }
   }

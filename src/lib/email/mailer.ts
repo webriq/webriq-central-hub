@@ -58,7 +58,7 @@ export async function sendHubInviteEmail(to: string, firstName: string, inviteUr
       `<tr><td style="padding:32px 32px 24px;text-align:center;">`,
       `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto;"><tr>`,
       `<td style="padding-right:8px;vertical-align:middle;"><img src="${companyLogoUrl}" width="36" alt="WebriQ" style="display:block;width:36px;height:36px;"></td>`,
-      `<td style="padding-right:10px;vertical-align:middle;"><img src="${appLogoUrl}" width="36" alt="" style="display:block;width:36px;height:36px;"></td>`,
+      `<td style="padding-right:10px;vertical-align:middle;"><img src="${appLogoUrl}" width="36" alt="" style="display:block;width:48px;height:48px;"></td>`,
       `<td style="vertical-align:middle;"><span style="font-size:18px;font-weight:700;color:#1e293b;font-family:Arial,Helvetica,sans-serif;">WebriQ Central Hub</span></td>`,
       `</tr></table>`,
       `</td></tr>`,

@@ -578,6 +578,8 @@ export interface Database {
           draft_skip_phase_numbers: number[];
           draft_custom_phases: Json;
           draft_default_phase_overrides: Json;
+          onboarding_status: string | null;
+          target_handover_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -615,6 +617,8 @@ export interface Database {
           draft_skip_phase_numbers?: number[];
           draft_custom_phases?: Json;
           draft_default_phase_overrides?: Json;
+          onboarding_status?: string | null;
+          target_handover_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -652,6 +656,8 @@ export interface Database {
           draft_skip_phase_numbers?: number[];
           draft_custom_phases?: Json;
           draft_default_phase_overrides?: Json;
+          onboarding_status?: string | null;
+          target_handover_at?: string | null;
           updated_at?: string;
         };
         Relationships: [
@@ -3046,6 +3052,26 @@ export interface Database {
           lane: number;
           execution_steps: Json;
           similarity: number;
+        }[];
+      };
+      get_project_task_counts: {
+        Args: {
+          p_project_ids: string[];
+        };
+        Returns: {
+          project_id: string;
+          total: number;
+          done: number;
+        }[];
+      };
+      get_project_issue_counts: {
+        Args: {
+          p_project_ids: string[];
+        };
+        Returns: {
+          project_id: string;
+          total: number;
+          done: number;
         }[];
       };
     };

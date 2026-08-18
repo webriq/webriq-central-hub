@@ -1,22 +1,21 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { motion } from "framer-motion";
 import {
-  ChartGantt, Plus, Upload, Building2, CalendarClock, Clock3, Search, X,
+  ChartGantt, Plus, Upload, Search, X,
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ClipboardList,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { V2_ROUTES } from "@/config/constants";
 import { PROGRAMME_PHASES, CLASSIFICATIONS } from "@/config/customer-phases";
-import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
-import { Chip, PhaseChip, OnboardingStatusPill } from "../dashboard/_components/dashboard-shared";
 import { isRoleGatedByMembership } from "@/lib/programme/membership-rules";
 import { FilterMultiSelect, parseMultiParam } from "./_filter-multi-select";
 import { SortSelect } from "./_sort-select";
-import { PortfolioCardMenu } from "./_portfolio-card-menu";
+import { ProjectCard } from "./_project-card";
+import { CardSkeletonGrid } from "./_list-skeleton";
+import type { OnboardingPaginationMeta } from "./_load-list-data";
 
 export type OnboardingProjectListItem = {
   id: string;
@@ -40,194 +39,12 @@ export type OnboardingProjectListItem = {
   members: { id: string; full_name: string | null }[];
 };
 
-// Mirrors OwnerChip's initials/color derivation (src/app/(hub)/projects/_pm-shared.tsx) for
-// visual consistency with the Projects module's assignee chips — reimplemented locally (not
-// imported) since it needs overlap + "+N" overflow behavior OwnerChip doesn't have, and
-// Onboarding/Projects are otherwise unrelated feature areas (page-scoped UI convention).
-const AVATAR_COLORS = ["#0063D6", "#6A48E0", "#0B8A93", "#B85512", "#177E48", "#44508A"];
-// Only collapse into a "+N" overflow badge past 5 visible avatars — below that, show everyone.
-const MAX_VISIBLE_AVATARS = 5;
-
-function initialsFor(name: string | null): string {
-  if (!name) return "?";
-  return name.split(" ").filter(Boolean).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
-}
-
-function colorFor(name: string | null): string {
-  if (!name) return "#5F6A88";
-  return AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length];
-}
-
-// Real shadcn/Base UI Tooltip (not a native `title` attribute) for the member's name — mirrors
-// `_onboarding-wizard.tsx`'s `IconTip` pattern (a thin wrapper around Tooltip/TooltipTrigger's
-// `render` prop) rather than duplicating the 3-component composition at every avatar.
-function AvatarTip({ label, children }: { label: string; children: React.ReactElement }) {
-  return (
-    <Tooltip>
-      <TooltipTrigger render={children} />
-      <TooltipContent side="top">{label}</TooltipContent>
-    </Tooltip>
-  );
-}
-
-function AvatarStack({ members }: { members: { id: string; full_name: string | null }[] }) {
-  if (members.length === 0) return null;
-
-  // A single member has nothing to lift above — tooltip only, no hover animation.
-  if (members.length === 1) {
-    const m = members[0];
-    return (
-      <AvatarTip label={m.full_name ?? "Unnamed"}>
-        <div
-          className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-semibold text-white ring-2 ring-white shrink-0"
-          style={{ background: colorFor(m.full_name) }}
-        >
-          {initialsFor(m.full_name)}
-        </div>
-      </AvatarTip>
-    );
-  }
-
-  const visible = members.slice(0, MAX_VISIBLE_AVATARS);
-  const overflow = members.length - visible.length;
-  return (
-    <div className="flex items-center">
-      {visible.map((m, i) => (
-        <AvatarTip key={m.id} label={m.full_name ?? "Unnamed"}>
-          <motion.div
-            className={cn("w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-semibold text-white ring-2 ring-white shrink-0 cursor-default", i > 0 && "-ml-2")}
-            style={{ background: colorFor(m.full_name) }}
-            whileHover={{ y: -4, zIndex: 10 }}
-            transition={{ type: "spring", stiffness: 500, damping: 20 }}
-          >
-            {initialsFor(m.full_name)}
-          </motion.div>
-        </AvatarTip>
-      ))}
-      {overflow > 0 && (
-        <div className="w-6 h-6 -ml-2 rounded-full flex items-center justify-center text-[9px] font-semibold ring-2 ring-white shrink-0 text-[#5F6A88] bg-[#EDF0F7]">
-          +{overflow}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function formatDate(iso: string | null): string {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
-
-// Fixed 4-slot layout — header / company / progress-or-status row / phase row / footer — always
-// rendered (never conditionally omitted) so every card in a grid row is the same height
-// regardless of project state. See task 167.
-function ProjectCard({
-  item, editable, canDelete, onDeleted,
-}: {
-  item: OnboardingProjectListItem;
-  editable: boolean;
-  canDelete: boolean;
-  onDeleted: () => void;
-}) {
-  const router = useRouter();
-  const showMenu = canDelete && !!item.project_id;
-
-  const content = (
-    <div
-      className={cn(
-        "h-full flex flex-col rounded-[14px] border bg-white p-4 transition-colors",
-        editable ? "border-[#E2E7F2] hover:border-[#A8C6F5] cursor-pointer" : "border-[#EDF0F7]"
-      )}
-    >
-      {/* Header: title + status */}
-      <div className="flex items-start justify-between gap-3 mb-2.5">
-        <div className="min-w-0">
-          <div className="text-[13px] font-semibold text-[#0B1533] truncate">{item.project_name}</div>
-          <div className="inline-flex items-center gap-1 text-[12px] text-[#5F6A88] truncate">
-            <Building2 size={11} /> {item.company_name}
-          </div>
-        </div>
-        <div className="flex items-center gap-1 shrink-0">
-          <OnboardingStatusPill status={item.status} />
-          {/* Reserves room for the overlaid PortfolioCardMenu (rendered as a sibling outside this
-              card's button, not nested inside it — see the return below) so the status pill shifts
-              left instead of being covered. */}
-          {showMenu && <div className="w-6 h-6" />}
-        </div>
-      </div>
-
-      {/* Progress row — always present */}
-      <div className="flex items-center gap-2 mb-1.5">
-        <div className="flex-1 h-1.5 rounded-full overflow-hidden bg-[#EDF0F7]">
-          <div className="h-full rounded-full bg-[#007BFF] transition-[width] duration-300" style={{ width: `${item.current_day ? item.progress_pct : 0}%` }} />
-        </div>
-        <span className="text-[11px] font-mono shrink-0 text-[#5F6A88]">
-          {item.current_day ? `Day ${item.current_day}/${item.programme_duration_days}` : `Day —/${item.programme_duration_days}`}
-        </span>
-      </div>
-
-      {/* Phase / status line — always present, one line */}
-      <div className="flex items-center gap-1.5 text-[11.5px] text-[#5F6A88] min-h-[17px] mb-3">
-        {item.current_day ? (
-          <>
-            {item.current_phase_number && item.current_phase_name ? (
-              <PhaseChip phaseNumber={item.current_phase_number} phaseName={item.current_phase_name} />
-            ) : (
-              <span>Onboarding</span>
-            )}
-            {item.current_phase_number === 1 && item.target_handover_date && (
-              <span>· Handover ~{formatDate(item.target_handover_date)}</span>
-            )}
-          </>
-        ) : item.scheduled_onboarding_start_at ? (
-          <span className="inline-flex items-center gap-1.5 text-[#B85512]">
-            <CalendarClock size={12} /> Starts {new Date(item.scheduled_onboarding_start_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
-          </span>
-        ) : (
-          <span className="inline-flex items-center gap-1.5">
-            <Clock3 size={12} /> Awaiting kickoff
-          </span>
-        )}
-      </div>
-
-      {/* Footer — always present */}
-      <div className="mt-auto pt-2.5 border-t border-[#EDF0F7] flex items-center justify-between gap-2">
-        {item.classification ? <Chip tone="neutral">{item.classification}</Chip> : <span className="text-[11px] text-[#5F6A88]">Unclassified</span>}
-        <AvatarStack members={item.members} />
-      </div>
-    </div>
-  );
-
-  // The menu is rendered as a sibling here, outside the button below — never nested inside it.
-  // A <button> cannot contain another <button> (invalid HTML; browsers force-close the outer one),
-  // so PortfolioCardMenu's own trigger button must live outside this card's clickable wrapper,
-  // overlaid via absolute positioning instead (task 233).
-  return (
-    <div className="relative h-full">
-      {editable ? (
-        <button
-          onClick={() => router.push(`${V2_ROUTES.PORTFOLIO_TRACKER}/${item.project_id ?? item.id}`)}
-          className="h-full text-left w-full bg-transparent border-none p-0 cursor-pointer"
-        >
-          {content}
-        </button>
-      ) : (
-        <div className="h-full">{content}</div>
-      )}
-      {showMenu && (
-        <div className="absolute top-4 right-4">
-          <PortfolioCardMenu projectId={item.project_id!} projectName={item.project_name} onDeleted={onDeleted} />
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── Search / status filter / pagination — client-side over the already-fetched list, URL-synced
-// to match /projects' UX (see task 167's "second scope decision" for why this isn't server-side
-// like /projects: GET /api/onboarding/projects does role/membership filtering in application
-// code, after the DB fetch, and is shared by 3 other dashboards — DB-side pagination there is a
-// separate, riskier follow-up, out of proportion to this task's realistic dataset size).
+// ─── Search / status filter / pagination — server-driven, URL-synced (task 263). Mirrors
+// /projects' searchParams -> Supabase query pattern; the initial "fetch everything once, filter
+// client-side" approach (task 167's original design note, since superseded) is gone — see the
+// task 263 doc for why (GET /api/onboarding/projects does role/membership filtering in
+// application code and is shared by 3 dashboards, so this page now has its own server-side query
+// in _load-list-data.ts instead of reusing that route).
 
 // Full status enum (task 224 — the old pill row omitted "completed" entirely).
 const STATUS_OPTIONS = [
@@ -243,11 +60,7 @@ const CLASSIFICATION_OPTIONS = [
   { value: "unclassified", label: "Unclassified" },
 ] as const;
 // Sort — pill style matching /projects' SortSelect (task 224 follow-up amendment; this page
-// previously had no sort control at all). Task 247: "Newest"/"Oldest" sort by `created_at` (every
-// project has one, regardless of classification) instead of `programme_started_at` — that field
-// is StackShift-I-specific and null for generic-engine projects (StackShift Access/Access
-// Plus/Discrete Development, or StackShift II without the customer_phases engine opt-in), which
-// previously always sorted last regardless of when they were actually created.
+// previously had no sort control at all).
 const SORT_OPTIONS = [
   { value: "newest", label: "Newest first" },
   { value: "oldest", label: "Oldest first" },
@@ -257,32 +70,24 @@ const SORT_OPTIONS = [
 ] as const;
 const PAGE_SIZES = [9, 18, 36] as const;
 
-// NaN (missing date) always sorts last — used only by "due_soonest" now (task 247 moved
-// "newest"/"oldest" onto `created_at`, always present, so they no longer need NaN handling).
-function compareNullableAsc(a: number, b: number): number {
-  if (Number.isNaN(a) && Number.isNaN(b)) return 0;
-  if (Number.isNaN(a)) return 1;
-  if (Number.isNaN(b)) return -1;
-  return a - b;
-}
-
-export default function OnboardingList({ role, currentUserId }: { role: string | null; currentUserId: string | null }) {
+export default function OnboardingList({
+  role, currentUserId, projects, paginationMeta, canCreate,
+}: {
+  role: string | null;
+  currentUserId: string | null;
+  projects: OnboardingProjectListItem[];
+  paginationMeta: OnboardingPaginationMeta;
+  canCreate: boolean;
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
-
-  const [projects, setProjects] = useState<OnboardingProjectListItem[]>([]);
-  const [canCreate, setCanCreate] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [retryKey, setRetryKey] = useState(0);
+  const [isPending, startTransition] = useTransition();
 
   const [searchInput, setSearchInput] = useState(searchParams.get("search") ?? "");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const statusSelected = parseMultiParam(searchParams.get("status"), STATUS_OPTIONS);
   const classificationSelected = parseMultiParam(searchParams.get("classification"), CLASSIFICATION_OPTIONS);
   const sortValue = searchParams.get("sort") ?? "newest";
-  const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10) || 1);
-  const pageSize = Math.max(1, parseInt(searchParams.get("pageSize") ?? String(PAGE_SIZES[0]), 10) || PAGE_SIZES[0]);
 
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
@@ -293,26 +98,6 @@ export default function OnboardingList({ role, currentUserId }: { role: string |
     return () => main.removeEventListener("scroll", onScroll);
   }, []);
 
-  useEffect(() => {
-    let ignore = false;
-    // `loading` already starts `true` (initial state) — re-fetches triggered by `retryKey`
-    // flip it back to `true` from the Retry button's own click handler, not here, since a
-    // synchronous setState call in an effect body triggers cascading renders.
-    fetch("/api/onboarding/projects")
-      .then(async (res) => {
-        if (!res.ok) throw new Error();
-        const data = await res.json();
-        if (!ignore) {
-          setProjects(Array.isArray(data.projects) ? data.projects : []);
-          setCanCreate(!!data.canCreate);
-          setError(null);
-        }
-      })
-      .catch(() => { if (!ignore) setError("Failed to load onboarding projects."); })
-      .finally(() => { if (!ignore) setLoading(false); });
-    return () => { ignore = true; };
-  }, [retryKey]);
-
   function buildUrl(overrides: Record<string, string | number | null>) {
     const p = new URLSearchParams(searchParams.toString());
     for (const [k, v] of Object.entries(overrides)) {
@@ -321,50 +106,27 @@ export default function OnboardingList({ role, currentUserId }: { role: string |
     return `${V2_ROUTES.PORTFOLIO_TRACKER}?${p.toString()}`;
   }
 
+  // Every navigation below is wrapped in startTransition — isPending then drives the skeleton
+  // overlay over the results grid. Next.js doesn't re-arm loading.tsx's Suspense boundary for a
+  // same-segment, search-params-only navigation once it has already committed once, so without
+  // this the UI would just sit inert until the new RSC payload streams in (task 263).
+  function navigate(url: string) {
+    startTransition(() => router.push(url));
+  }
+
   // Encodes a checkbox-group selection back into the URL: a full selection clears the param
   // entirely (equivalent "All"/unfiltered state, keeps URLs clean), an empty selection writes
   // an explicit empty string, otherwise a comma-separated list. Mirrors /projects.
   function handleMultiChange(key: "status" | "classification", next: string[], optionsCount: number) {
     const value = next.length === optionsCount ? null : next.length === 0 ? "" : next.join(",");
-    router.push(buildUrl({ [key]: value, page: 1 }));
+    navigate(buildUrl({ [key]: value, page: 1 }));
   }
 
-  const searchQ = (searchParams.get("search") ?? "").trim().toLowerCase();
-  const filtered = projects.filter((p) => {
-    const matchesSearch = !searchQ || `${p.project_name} ${p.company_name}`.toLowerCase().includes(searchQ);
-    const matchesStatus = statusSelected.includes(p.status);
-    const matchesClassification = classificationSelected.includes(p.classification ?? "unclassified");
-    return matchesSearch && matchesStatus && matchesClassification;
-  });
-
-  const sorted = [...filtered];
-  switch (sortValue) {
-    case "oldest":
-      sorted.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-      break;
-    case "name_asc":
-      sorted.sort((a, b) => a.project_name.localeCompare(b.project_name));
-      break;
-    case "name_desc":
-      sorted.sort((a, b) => b.project_name.localeCompare(a.project_name));
-      break;
-    case "due_soonest":
-      sorted.sort((a, b) => compareNullableAsc(
-        a.target_handover_date ? new Date(a.target_handover_date).getTime() : Number.NaN,
-        b.target_handover_date ? new Date(b.target_handover_date).getTime() : Number.NaN
-      ));
-      break;
-    case "newest":
-    default:
-      sorted.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-  }
-
-  const total = sorted.length;
+  const { page, pageSize, total } = paginationMeta;
   const from = (page - 1) * pageSize;
-  const paginated = sorted.slice(from, from + pageSize);
   const hasNext = from + pageSize < total;
   const hasPrev = page > 1;
-  const isFiltered = searchQ.length > 0
+  const isFiltered = (searchParams.get("search") ?? "").length > 0
     || statusSelected.length !== STATUS_OPTIONS.length
     || classificationSelected.length !== CLASSIFICATION_OPTIONS.length;
 
@@ -436,7 +198,7 @@ export default function OnboardingList({ role, currentUserId }: { role: string |
                   setSearchInput(q);
                   if (debounceRef.current) clearTimeout(debounceRef.current);
                   debounceRef.current = setTimeout(() => {
-                    router.push(buildUrl({ search: q || null, page: 1 }));
+                    navigate(buildUrl({ search: q || null, page: 1 }));
                   }, 300);
                 }}
                 placeholder="Search clients or projects…"
@@ -466,13 +228,13 @@ export default function OnboardingList({ role, currentUserId }: { role: string |
                 this page previously had no sort control). */}
             <SortSelect
               value={sortValue}
-              onChange={(v) => router.push(buildUrl({ sort: v === "newest" ? null : v, page: 1 }))}
+              onChange={(v) => navigate(buildUrl({ sort: v === "newest" ? null : v, page: 1 }))}
               options={SORT_OPTIONS}
             />
 
             {isFiltered && (
               <button
-                onClick={() => { setSearchInput(""); router.push(V2_ROUTES.PORTFOLIO_TRACKER); }}
+                onClick={() => { setSearchInput(""); navigate(V2_ROUTES.PORTFOLIO_TRACKER); }}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#E2E7F2] bg-white text-[12px] text-[#3A4565] hover:bg-[#F0F7FF] cursor-pointer shrink-0 transition-colors"
               >
                 <X size={13} /> Clear filters
@@ -485,7 +247,7 @@ export default function OnboardingList({ role, currentUserId }: { role: string |
               <div className="flex items-center gap-2 shrink-0">
                 <select
                   value={pageSize}
-                  onChange={(e) => router.push(buildUrl({ pageSize: Number(e.target.value), page: 1 }))}
+                  onChange={(e) => navigate(buildUrl({ pageSize: Number(e.target.value), page: 1 }))}
                   className="h-8 px-2.5 pr-6 rounded-lg border border-[#E2E7F2] bg-white text-[12px] text-[#3A4565] outline-none focus:border-[#007BFF] focus:ring-[3px] focus:ring-[#007BFF]/[0.14] cursor-pointer"
                 >
                   {PAGE_SIZES.map((n) => <option key={n} value={n}>{n} per page</option>)}
@@ -494,16 +256,16 @@ export default function OnboardingList({ role, currentUserId }: { role: string |
                   {from + 1}–{Math.min(from + pageSize, total)} of {total}
                 </span>
                 <div className="flex items-center gap-1 text-[#5F6A88]">
-                  <button onClick={() => router.push(buildUrl({ page: 1 }))} disabled={!hasPrev} className="flex items-center justify-center w-7 h-7 rounded-full border border-[#E2E7F2] bg-white hover:bg-[#F0F7FF] disabled:opacity-30 disabled:cursor-default cursor-pointer transition-colors" title="First page">
+                  <button onClick={() => navigate(buildUrl({ page: 1 }))} disabled={!hasPrev} className="flex items-center justify-center w-7 h-7 rounded-full border border-[#E2E7F2] bg-white hover:bg-[#F0F7FF] disabled:opacity-30 disabled:cursor-default cursor-pointer transition-colors" title="First page">
                     <ChevronsLeft size={14} />
                   </button>
-                  <button onClick={() => router.push(buildUrl({ page: page - 1 }))} disabled={!hasPrev} className="flex items-center justify-center w-7 h-7 rounded-full border border-[#E2E7F2] bg-white hover:bg-[#F0F7FF] disabled:opacity-30 disabled:cursor-default cursor-pointer transition-colors" title="Previous page">
+                  <button onClick={() => navigate(buildUrl({ page: page - 1 }))} disabled={!hasPrev} className="flex items-center justify-center w-7 h-7 rounded-full border border-[#E2E7F2] bg-white hover:bg-[#F0F7FF] disabled:opacity-30 disabled:cursor-default cursor-pointer transition-colors" title="Previous page">
                     <ChevronLeft size={14} />
                   </button>
-                  <button onClick={() => router.push(buildUrl({ page: page + 1 }))} disabled={!hasNext} className="flex items-center justify-center w-7 h-7 rounded-full border border-[#E2E7F2] bg-white hover:bg-[#F0F7FF] disabled:opacity-30 disabled:cursor-default cursor-pointer transition-colors" title="Next page">
+                  <button onClick={() => navigate(buildUrl({ page: page + 1 }))} disabled={!hasNext} className="flex items-center justify-center w-7 h-7 rounded-full border border-[#E2E7F2] bg-white hover:bg-[#F0F7FF] disabled:opacity-30 disabled:cursor-default cursor-pointer transition-colors" title="Next page">
                     <ChevronRight size={14} />
                   </button>
-                  <button onClick={() => router.push(buildUrl({ page: Math.ceil(total / pageSize) }))} disabled={!hasNext} className="flex items-center justify-center w-7 h-7 rounded-full border border-[#E2E7F2] bg-white hover:bg-[#F0F7FF] disabled:opacity-30 disabled:cursor-default cursor-pointer transition-colors" title="Last page">
+                  <button onClick={() => navigate(buildUrl({ page: Math.ceil(total / pageSize) }))} disabled={!hasNext} className="flex items-center justify-center w-7 h-7 rounded-full border border-[#E2E7F2] bg-white hover:bg-[#F0F7FF] disabled:opacity-30 disabled:cursor-default cursor-pointer transition-colors" title="Last page">
                     <ChevronsRight size={14} />
                   </button>
                 </div>
@@ -515,26 +277,9 @@ export default function OnboardingList({ role, currentUserId }: { role: string |
 
       {/* ── Scrollable content ───────────────────────────────────────────────── */}
       <div className="max-w-350 mx-auto px-8 py-5">
-      {error && (
-        <div className="flex items-center gap-3 mb-4">
-          <p className="text-[13px] text-[#C0392B]">{error}</p>
-          <button
-            type="button"
-            onClick={() => { setLoading(true); setRetryKey((k) => k + 1); }}
-            className="text-[13px] font-medium underline underline-offset-2 transition-colors cursor-pointer bg-transparent border-none p-0 text-[#3A4565] hover:text-[#0B1533]"
-          >
-            Retry
-          </button>
-        </div>
-      )}
-
-      {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="h-40 rounded-[14px] animate-pulse motion-reduce:animate-none bg-[#EDF0F7]" />
-          ))}
-        </div>
-      ) : projects.length === 0 ? (
+      {isPending ? (
+        <CardSkeletonGrid count={pageSize} />
+      ) : projects.length === 0 && !isFiltered ? (
         <div className="flex flex-col items-center justify-center py-20 gap-3 rounded-[14px] border border-[#E2E7F2] bg-white">
           <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-[#F0F7FF]">
             <ChartGantt size={26} className="text-[#007BFF]" />
@@ -546,7 +291,7 @@ export default function OnboardingList({ role, currentUserId }: { role: string |
             </p>
           </div>
         </div>
-      ) : paginated.length === 0 ? (
+      ) : projects.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 gap-3 rounded-[14px] border border-[#E2E7F2] bg-white">
           <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-[#FFF3D6]">
             <Search size={24} className="text-[#8A5A00]" />
@@ -556,7 +301,7 @@ export default function OnboardingList({ role, currentUserId }: { role: string |
             <p className="text-[13px] mt-1 text-[#5F6A88]">Try a different search term or clear the status filter.</p>
           </div>
           <button
-            onClick={() => { setSearchInput(""); router.push(V2_ROUTES.PORTFOLIO_TRACKER); }}
+            onClick={() => { setSearchInput(""); navigate(V2_ROUTES.PORTFOLIO_TRACKER); }}
             className="inline-flex items-center gap-1.5 mt-1 px-3 py-1.5 rounded-full border border-[#E2E7F2] bg-white text-[12px] text-[#3A4565] hover:bg-[#F0F7FF] cursor-pointer transition-colors"
           >
             <X size={13} /> Clear filters
@@ -564,13 +309,13 @@ export default function OnboardingList({ role, currentUserId }: { role: string |
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 items-stretch">
-          {paginated.map((p) => (
+          {projects.map((p) => (
             <ProjectCard
               key={p.id}
               item={p}
               editable={canOpenProject(p)}
               canDelete={canDeleteProjects}
-              onDeleted={() => { setLoading(true); setRetryKey((k) => k + 1); }}
+              onDeleted={() => router.refresh()}
             />
           ))}
         </div>

@@ -114,36 +114,44 @@ export default async function ProjectsPage({
 
   projectsQuery = projectsQuery.range(from, to);
 
-  const [projectsRes, customersRes, taskCountRes, issueCountRes] = await Promise.all([
+  // customers is NOT wrapped in unstable_cache here — that API cannot access cookies() (which
+  // the session-scoped createClient() below needs), and the only workaround (adminClient) is
+  // barred by this codebase's "never bypass RLS for regular reads" rule outside the (public)
+  // onboarding exception. Left as a plain per-request query (task 263 deviation — see task doc).
+  const [projectsRes, customersRes] = await Promise.all([
     projectsQuery,
     supabase.from("customers").select("customer_id,company_name").order("company_name"),
-    supabase.from("tasks").select("project_id,status").is("parent_task_id", null),
-    supabase.from("issues").select("project_id,status"),
   ]);
 
   const customers = customersRes.data ?? [];
   const nameMap = new Map(customers.map((c) => [c.customer_id, c.company_name]));
 
-  const counts = new Map<string, { total: number; done: number }>();
-  for (const t of taskCountRes.data ?? []) {
-    const c = counts.get(t.project_id) ?? { total: 0, done: 0 };
-    c.total += 1;
-    if (t.status === "closed") c.done += 1;
-    counts.set(t.project_id, c);
-  }
-
-  const issueCounts = new Map<string, { total: number; done: number }>();
-  for (const i of issueCountRes.data ?? []) {
-    const c = issueCounts.get(i.project_id) ?? { total: 0, done: 0 };
-    c.total += 1;
-    if (i.status === "closed") c.done += 1;
-    issueCounts.set(i.project_id, c);
-  }
-
   // Multi-member avatars — mirrors /api/onboarding/projects's member-map pattern
   // (project_members → profiles full_name), without the phase_members union
   // (onboarding-specific, not applicable to the native Projects module).
   const projectIds = (projectsRes.data ?? []).map((p) => p.id);
+
+  // Task/issue progress counts — scoped to this page's project IDs only via a DB-side
+  // GROUP BY aggregate (get_project_task_counts/get_project_issue_counts, migration 109),
+  // replacing a prior full-table `select("project_id,status")` over every task/issue in the
+  // database regardless of pageSize.
+  const [taskCountRes, issueCountRes] = projectIds.length > 0
+    ? await Promise.all([
+        supabase.rpc("get_project_task_counts", { p_project_ids: projectIds }),
+        supabase.rpc("get_project_issue_counts", { p_project_ids: projectIds }),
+      ])
+    : [{ data: [] as { project_id: string; total: number; done: number }[] }, { data: [] as { project_id: string; total: number; done: number }[] }];
+
+  const counts = new Map<string, { total: number; done: number }>();
+  for (const row of taskCountRes.data ?? []) {
+    counts.set(row.project_id, { total: row.total, done: row.done });
+  }
+
+  const issueCounts = new Map<string, { total: number; done: number }>();
+  for (const row of issueCountRes.data ?? []) {
+    issueCounts.set(row.project_id, { total: row.total, done: row.done });
+  }
+
   const memberIdsByProject = new Map<string, string[]>();
   const fullNameMap = new Map<string, string | null>();
   if (projectIds.length > 0) {

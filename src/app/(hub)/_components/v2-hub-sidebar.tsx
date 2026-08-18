@@ -130,7 +130,7 @@ export default function V2HubSidebar({ userRole, displayName }: V2HubSidebarProp
           <>
             <div className="flex items-center gap-2.5">
               <Image src="/logo.png" alt="Logo" width={36} height={36} />
-              <span className="font-mono text-base font-bold tracking-tight whitespace-nowrap">
+              <span className="font-heading text-base font-bold tracking-tight whitespace-nowrap">
                 <span className="text-white">WebriQ</span>{" "}
                 <span className="text-brand-orange">Central Hub</span>
               </span>
