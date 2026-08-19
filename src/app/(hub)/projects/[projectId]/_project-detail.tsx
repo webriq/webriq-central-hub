@@ -24,8 +24,9 @@ import IssueBoardView from "./_issue-board-view";
 import IssueCalendarView from "./_issue-calendar-view";
 import MilestonePanel from "./_milestone-panel";
 import MilestoneSwimlane from "./_milestone-swimlane";
-import { TaskDescriptionEditor } from "./_task-description-editor";
 import { TaskAttachmentPicker } from "./_task-attachment-picker";
+import { useUploadQueue, UploadQueuePanel, uploadFileWithProgress } from "./_attachment-dropzone";
+import { CreateTaskModal } from "./_create-task-modal";
 import { DeleteProjectAction } from "./_delete-project-action";
 import { ManageCollaboratorsAction } from "./_manage-collaborators-action";
 
@@ -46,11 +47,13 @@ const PRIMARY_TABS: { id: PrimaryTab; label: string }[] = [
   { id: "milestones", label: "Milestones" },
 ];
 
-const STATUS_OPTS: TaskStatus[] = [
+// Exported (task 274) — `_create-task-modal.tsx` (extracted out of this file) reuses these
+// same Status/Priority option lists rather than duplicating them.
+export const STATUS_OPTS: TaskStatus[] = [
   "open", "in_progress", "ready_for_qa", "testing_completed",
   "for_client_approval", "ready_to_merge", "post_live_qa", "closed",
 ];
-const PRIORITY_OPTS: TaskPriority[] = ["low", "normal", "high", "critical"];
+export const PRIORITY_OPTS: TaskPriority[] = ["low", "normal", "high", "critical"];
 
 const STATUS_FILTER_OPTIONS = STATUS_OPTS.map((s) => ({ value: s, label: STATUS_LABEL[s] }));
 const PRIORITY_FILTER_OPTIONS = PRIORITY_OPTS.map((p) => ({ value: p, label: PRIORITY_STYLE[p].label }));
@@ -863,265 +866,9 @@ function SortSelect({
   );
 }
 
-// ─── Create Task modal ────────────────────────────────────────────────────────
-
-type MemberOptionWithRole = { id: string; full_name: string | null; avatar_url: string | null; role: string };
-
-function CreateTaskModal({
-  projectId,
-  milestones,
-  tasklists,
-  allMembers,
-  defaults,
-  onClose,
-  onCreated,
-  onTasklistCreated,
-}: {
-  projectId: string;
-  milestones: Milestone[];
-  tasklists: Tasklist[];
-  allMembers: MemberOptionWithRole[];
-  defaults: TaskDefaults;
-  onClose: () => void;
-  onCreated: (t: Task) => void;
-  onTasklistCreated: (tl: Tasklist) => void;
-}) {
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [status, setStatus] = useState<TaskStatus>(defaults.status ?? "open");
-  const [priority, setPriority] = useState<TaskPriority>("normal");
-  const [milestoneId, setMilestoneId] = useState<string>(defaults.milestone_id ?? "");
-  const [startDate, setStartDate] = useState<string>("");
-  const [dueDate, setDueDate] = useState<string>(defaults.due_date ?? "");
-  const [tasklistId, setTasklistId] = useState<string>(() => tasklists.find((tl) => tl.is_default)?.id ?? "");
-  const [creatingTasklist, setCreatingTasklist] = useState(false);
-  const [newTasklistName, setNewTasklistName] = useState("");
-  const [assigneeId, setAssigneeId] = useState<string>("");
-  const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [attachmentWarning, setAttachmentWarning] = useState<string | null>(null);
-
-  const developers = allMembers.filter((m) => m.role === "developer");
-
-  async function submit() {
-    if (!title.trim()) { setError("Title is required"); return; }
-    if (!startDate) { setError("Start date is required"); return; }
-    if (!dueDate) { setError("Due date is required"); return; }
-    setSaving(true);
-    setError(null);
-    setAttachmentWarning(null);
-
-    let finalTasklistId = tasklistId;
-    if (creatingTasklist && newTasklistName.trim()) {
-      const tlRes = await fetch(`/api/v2/projects/${projectId}/tasklists`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newTasklistName.trim() }),
-      });
-      if (!tlRes.ok) {
-        const body = await tlRes.json().catch(() => ({}));
-        setError(body.error || "Failed to create task list");
-        setSaving(false);
-        return;
-      }
-      const newTasklist: Tasklist = await tlRes.json();
-      onTasklistCreated(newTasklist);
-      finalTasklistId = newTasklist.id;
-    }
-
-    const res = await fetch(`/api/v2/projects/${projectId}/tasks`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: title.trim(),
-        description: description.trim() || undefined,
-        status,
-        priority,
-        milestone_id: milestoneId || undefined,
-        tasklist_id: finalTasklistId || undefined,
-        start_date: startDate,
-        due_date: dueDate,
-        assignees: assigneeId ? [assigneeId] : undefined,
-      }),
-    });
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      setError(body.error || "Failed to create task");
-      setSaving(false);
-      return;
-    }
-    const task: Task = await res.json();
-
-    if (attachmentFiles.length > 0) {
-      const results = await Promise.allSettled(attachmentFiles.map((file) => {
-        const fd = new FormData();
-        fd.append("file", file);
-        return fetch(`/api/v2/projects/${projectId}/tasks/${task.id}/attachments`, { method: "POST", body: fd });
-      }));
-      const failed = results.filter((r) => r.status === "rejected" || (r.status === "fulfilled" && !r.value.ok)).length;
-      if (failed > 0) {
-        setAttachmentWarning(`Task created — ${failed} of ${attachmentFiles.length} attachment(s) failed to upload.`);
-      }
-    }
-
-    onCreated(task);
-  }
-
-  const inputClass = "w-full px-3 py-2 rounded-[10px] border text-[13px] outline-none transition-colors border-[#E2E7F2] bg-[#F4F6FB] text-[#3A4565] focus:border-[#007BFF] focus:bg-white focus:ring-[3px] focus:ring-[#007BFF]/[0.14]";
-  const labelClass = "text-[11px] font-semibold text-[#0B1533]";
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0B1533]/40 p-4" onClick={onClose}>
-      <div
-        className="w-full max-w-lg rounded-[14px] bg-white shadow-xl border border-[#E2E7F2] overflow-hidden max-h-[90vh] flex flex-col"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[#EDF0F7] shrink-0">
-          <h2 className="text-[15px] font-semibold text-[#0B1533]">New Task</h2>
-          <button onClick={onClose} className="p-1 rounded-md text-[#5F6A88] hover:text-[#0B1533] hover:bg-[#F4F6FB] cursor-pointer transition-colors">
-            <X size={16} />
-          </button>
-        </div>
-        <div className="p-5 flex flex-col gap-4 overflow-y-auto">
-          <label className="flex flex-col gap-1.5">
-            <span className={labelClass}>Title</span>
-            <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              autoFocus
-              className={inputClass}
-              placeholder="What needs to be done?"
-            />
-          </label>
-          <div className="flex flex-col gap-1.5">
-            <span className={labelClass}>Description (optional)</span>
-            <TaskDescriptionEditor projectId={projectId} value={description} onChange={setDescription} />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <span className={labelClass}>Attachments (optional)</span>
-            <TaskAttachmentPicker files={attachmentFiles} onFilesChange={setAttachmentFiles} />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <label className="flex flex-col gap-1.5">
-              <span className={labelClass}>Status</span>
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value as TaskStatus)}
-                className={cn(inputClass, "bg-white capitalize cursor-pointer")}
-              >
-                {STATUS_OPTS.map((s) => <option key={s} value={s}>{s.replace(/_/g, " ")}</option>)}
-              </select>
-            </label>
-            <label className="flex flex-col gap-1.5">
-              <span className={labelClass}>Priority</span>
-              <select
-                value={priority}
-                onChange={(e) => setPriority(e.target.value as TaskPriority)}
-                className={cn(inputClass, "bg-white capitalize cursor-pointer")}
-              >
-                {PRIORITY_OPTS.map((p) => <option key={p} value={p}>{p}</option>)}
-              </select>
-            </label>
-          </div>
-          <div className="grid grid-cols-3 gap-3">
-            <label className="flex flex-col gap-1.5">
-              <span className={labelClass}>Milestone</span>
-              <select
-                value={milestoneId}
-                onChange={(e) => setMilestoneId(e.target.value)}
-                className={cn(inputClass, "bg-white cursor-pointer")}
-              >
-                <option value="">None</option>
-                {milestones.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
-              </select>
-            </label>
-            <label className="flex flex-col gap-1.5">
-              <span className={labelClass}>Start date</span>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className={inputClass}
-              />
-            </label>
-            <label className="flex flex-col gap-1.5">
-              <span className={labelClass}>Due date</span>
-              <input
-                type="date"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-                className={inputClass}
-              />
-            </label>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1.5">
-              <span className={labelClass}>Task list</span>
-              {creatingTasklist ? (
-                <div className="flex items-center gap-1.5">
-                  <input
-                    value={newTasklistName}
-                    onChange={(e) => setNewTasklistName(e.target.value)}
-                    autoFocus
-                    placeholder="New task list name"
-                    className={inputClass}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => { setCreatingTasklist(false); setNewTasklistName(""); }}
-                    aria-label="Cancel new task list"
-                    className="p-2 rounded-[10px] text-[#5F6A88] hover:text-[#0B1533] hover:bg-[#F4F6FB] cursor-pointer transition-colors shrink-0"
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
-              ) : (
-                <select
-                  value={tasklistId}
-                  onChange={(e) => {
-                    if (e.target.value === "__create__") { setCreatingTasklist(true); return; }
-                    setTasklistId(e.target.value);
-                  }}
-                  className={cn(inputClass, "bg-white cursor-pointer")}
-                >
-                  <option value="">No task list</option>
-                  {tasklists.map((tl) => <option key={tl.id} value={tl.id}>{tl.name}</option>)}
-                  <option value="__create__">+ Create new list…</option>
-                </select>
-              )}
-            </div>
-            <label className="flex flex-col gap-1.5">
-              <span className={labelClass}>Assignee</span>
-              <select
-                value={assigneeId}
-                onChange={(e) => setAssigneeId(e.target.value)}
-                className={cn(inputClass, "bg-white cursor-pointer")}
-              >
-                <option value="">Unassigned</option>
-                {developers.map((m) => <option key={m.id} value={m.id}>{m.full_name ?? "Unknown"}</option>)}
-              </select>
-            </label>
-          </div>
-          {error && <p className="text-[12px] text-[#C0392B]">{error}</p>}
-          {attachmentWarning && <p className="text-[12px] text-[#8A5A00]">{attachmentWarning}</p>}
-        </div>
-        <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-[#EDF0F7] bg-[#F4F6FB] shrink-0">
-          <button onClick={onClose} className="px-4 py-2 rounded-full text-[13px] text-[#3A4565] bg-white border border-[#E2E7F2] hover:border-[#A8C6F5] cursor-pointer transition-colors">
-            Cancel
-          </button>
-          <button
-            onClick={submit}
-            disabled={saving}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#007BFF] text-white text-[13px] font-medium hover:bg-[#0063D6] disabled:opacity-45 cursor-pointer transition-colors"
-          >
-            {saving && <Loader2 size={14} className="animate-spin" />} Create
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
+// `CreateTaskModal` extracted to `_create-task-modal.tsx` (task 274) — exported here since
+// the extracted file imports this type back for its own props.
+export type MemberOptionWithRole = { id: string; full_name: string | null; avatar_url: string | null; role: string };
 
 // ─── Create Issue modal ───────────────────────────────────────────────────────
 
@@ -1144,8 +891,26 @@ function CreateIssueModal({
   const [severity, setSeverity] = useState<IssueSeverity>("None");
   const [assigneeId, setAssigneeId] = useState<string>("");
   const [dueDate, setDueDate] = useState<string>("");
+  const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Post-creation upload phase (task 273 follow-up) — see CreateTaskModal's identical pattern for
+  // why `issueIdRef` (not the `createdIssue` state) is what the upload closure reads.
+  const [createdIssue, setCreatedIssue] = useState<Issue | null>(null);
+  const issueIdRef = useRef<string | null>(null);
+  const uploadQueue = useUploadQueue((file, onProgress) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    return uploadFileWithProgress(`/api/v2/projects/${projectId}/issues/${issueIdRef.current}/attachments`, fd, onProgress).then(() => undefined);
+  });
+  const uploading = createdIssue !== null;
+  const allSettled = uploadQueue.items.length > 0 && uploadQueue.items.every((it) => it.status !== "uploading");
+  const hasFailures = uploadQueue.items.some((it) => it.status === "error");
+
+  useEffect(() => {
+    if (uploading && allSettled && !hasFailures) onCreated(createdIssue!);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- onCreated is a stable callback from the parent; only fire once when the queue actually settles
+  }, [uploading, allSettled, hasFailures]);
 
   async function submit() {
     if (!title.trim()) { setError("Title is required"); return; }
@@ -1170,25 +935,60 @@ function CreateIssueModal({
       setSaving(false);
       return;
     }
-    onCreated(await res.json());
+    const issue: Issue = await res.json();
+    setSaving(false);
+
+    if (attachmentFiles.length > 0) {
+      issueIdRef.current = issue.id;
+      setCreatedIssue(issue);
+      uploadQueue.enqueue(attachmentFiles);
+    } else {
+      onCreated(issue);
+    }
   }
 
   const inputClass = "w-full px-3 py-2 rounded-[10px] border text-[13px] outline-none transition-colors border-[#E2E7F2] bg-[#F4F6FB] text-[#3A4565] focus:border-[#007BFF] focus:bg-white focus:ring-[3px] focus:ring-[#007BFF]/[0.14]";
   const labelClass = "text-[11px] font-semibold text-[#0B1533]";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0B1533]/40 p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0B1533]/40 p-4" onClick={uploading ? undefined : onClose}>
       <div
-        className="w-full max-w-md rounded-[14px] bg-white shadow-xl border border-[#E2E7F2] overflow-hidden"
+        className="w-full max-w-lg rounded-[14px] bg-white shadow-xl border border-[#E2E7F2] overflow-hidden max-h-[90vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[#EDF0F7]">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#EDF0F7] shrink-0">
           <h2 className="text-[15px] font-semibold text-[#0B1533]">New Issue</h2>
-          <button onClick={onClose} className="p-1 rounded-md text-[#5F6A88] hover:text-[#0B1533] hover:bg-[#F4F6FB] cursor-pointer transition-colors">
-            <X size={16} />
-          </button>
+          {!uploading && (
+            <button onClick={onClose} className="p-1 rounded-md text-[#5F6A88] hover:text-[#0B1533] hover:bg-[#F4F6FB] cursor-pointer transition-colors">
+              <X size={16} />
+            </button>
+          )}
         </div>
-        <div className="p-5 flex flex-col gap-4">
+        {uploading ? (
+          <>
+            <div className="p-5 flex flex-col gap-3 overflow-y-auto">
+              <p className="text-[13px] text-[#3A4565]">
+                {!allSettled
+                  ? "Issue created — uploading attachments…"
+                  : hasFailures
+                    ? "Issue created. Some attachments failed to upload — retry or continue without them."
+                    : "Issue created — all attachments uploaded."}
+              </p>
+              <UploadQueuePanel items={uploadQueue.items} onRetry={uploadQueue.retry} onDismiss={uploadQueue.dismiss} />
+            </div>
+            <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-[#EDF0F7] bg-[#F4F6FB] shrink-0">
+              <button
+                onClick={() => onCreated(createdIssue!)}
+                disabled={!allSettled}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#007BFF] text-white text-[13px] font-medium hover:bg-[#0063D6] disabled:opacity-45 cursor-pointer transition-colors"
+              >
+                {!allSettled && <Loader2 size={14} className="animate-spin" />} {allSettled ? "Done" : "Uploading…"}
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+        <div className="p-5 flex flex-col gap-4 overflow-y-auto">
           <label className="flex flex-col gap-1.5">
             <span className={labelClass}>Title</span>
             <input
@@ -1208,6 +1008,10 @@ function CreateIssueModal({
               className={cn(inputClass, "resize-none")}
             />
           </label>
+          <div className="flex flex-col gap-1.5">
+            <span className={labelClass}>Attachments (optional)</span>
+            <TaskAttachmentPicker files={attachmentFiles} onFilesChange={setAttachmentFiles} />
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <label className="flex flex-col gap-1.5">
               <span className={labelClass}>Status</span>
@@ -1254,7 +1058,7 @@ function CreateIssueModal({
           </div>
           {error && <p className="text-[12px] text-[#C0392B]">{error}</p>}
         </div>
-        <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-[#EDF0F7] bg-[#F4F6FB]">
+        <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-[#EDF0F7] bg-[#F4F6FB] shrink-0">
           <button onClick={onClose} className="px-4 py-2 rounded-full text-[13px] text-[#3A4565] bg-white border border-[#E2E7F2] hover:border-[#A8C6F5] cursor-pointer transition-colors">
             Cancel
           </button>
@@ -1266,6 +1070,8 @@ function CreateIssueModal({
             {saving && <Loader2 size={14} className="animate-spin" />} Create
           </button>
         </div>
+          </>
+        )}
       </div>
     </div>
   );

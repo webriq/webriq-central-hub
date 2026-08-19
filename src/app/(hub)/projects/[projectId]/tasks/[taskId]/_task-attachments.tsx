@@ -1,17 +1,26 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { FileText, FileSpreadsheet, Image as ImageIcon, Paperclip } from "lucide-react";
+import { FileText, FileSpreadsheet, Image as ImageIcon, Paperclip, Video, ExternalLink } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { TaskAttachmentViewerModal } from "./_task-attachment-viewer-modal";
+import { AttachmentActionsMenu } from "../../_attachment-actions-menu";
 
-// Grid viewer for files staged via the New Task modal's Attachments picker (task 205) —
-// mirrors the onboarding wizard's storage-file grid (task 198/_file-tile.tsx) instead of the
-// original flat file-chip-row list; "View" opens TaskAttachmentViewerModal in-app instead of
-// window.open (task 211). Signed URLs are still minted on-demand (task 206 Decision #4) — the
-// list endpoint returns metadata only.
+// Grid viewer for files staged via the New Task modal's Attachments picker (task 205) — tile
+// layout now matches the Onboarding Workspace's storage-file grid
+// (portfolio-tracker/[projectId]/onboarding-workspace/_file-tile.tsx's FileTile, grid mode)
+// exactly: a header row (generic file icon + truncated filename + kebab), a thumbnail body, and
+// a footer row with file size (task 273 follow-up — user asked for design/flow parity with that
+// screen). Deliberately NOT replicated: the permission badge, version badge, and rename/move
+// actions in that reference — task/issue attachments have no per-file permission or folder data
+// model (task 273's Out-of-Scope explicitly forbids `attachments` schema changes), so those
+// pieces have no equivalent here. "View" opens TaskAttachmentViewerModal in-app instead of
+// window.open (task 211); the whole tile is clickable (no multi-select here, unlike the
+// reference, so click=View directly rather than click=select+kebab=View). Signed URLs are still
+// minted on-demand (task 206 Decision #4) — the list endpoint returns metadata only.
 const IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "gif", "webp"];
 const OFFICE_EXTENSIONS = { word: ["doc", "docx"], excel: ["xls", "xlsx"] };
+const VIDEO_EXTENSIONS = ["mp4", "m4v", "mov", "webm"];
 
 type AttachmentRow = { id: string; filename: string; size: number | null; created_at: string };
 
@@ -50,6 +59,14 @@ function FileTypeTile({ ext }: { ext: string }) {
       <div className="w-full h-full flex flex-col items-center justify-center gap-1 bg-[#FDE8E6]">
         <FileText size={22} className="text-[#C0392B]" />
         <span className="text-[9px] font-bold tracking-wide text-[#C0392B]">PDF</span>
+      </div>
+    );
+  }
+  if (VIDEO_EXTENSIONS.includes(ext)) {
+    return (
+      <div className="w-full h-full flex flex-col items-center justify-center gap-1 bg-[#EFE7FD]">
+        <Video size={22} className="text-[#6E3FD6]" />
+        <span className="text-[9px] font-bold tracking-wide text-[#6E3FD6]">VIDEO</span>
       </div>
     );
   }
@@ -185,27 +202,28 @@ export function TaskAttachments({
     <>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         {attachments.map((file) => (
-          <div
-            key={file.id}
-            className="flex flex-col rounded-[10px] border border-[#E2E7F2] bg-white overflow-hidden"
-          >
-            <div className="aspect-square">
-              <AttachmentThumbnail file={file} projectId={projectId} taskId={taskId} />
-            </div>
-            <div className="flex flex-col gap-1 px-2.5 py-2">
-              <span className="text-[11.5px] font-medium text-[#3A4565] truncate" title={file.filename}>
-                {file.filename}
-              </span>
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[10px] text-[#5F6A88] shrink-0">{formatFileSize(file.size)}</span>
-                <button
-                  type="button"
-                  onClick={() => setViewing(file)}
-                  className="text-[11px] font-semibold text-[#0063D6] hover:underline cursor-pointer shrink-0"
-                >
-                  View
-                </button>
+          <div key={file.id} className="relative">
+            <button
+              type="button"
+              onClick={() => setViewing(file)}
+              aria-label={`View ${file.filename}`}
+              className="w-full aspect-square flex flex-col text-left rounded-[14px] overflow-hidden cursor-pointer border border-[#E2E7F2] bg-white hover:bg-[#F4F8FF] hover:border-[#C7D2E8] transition-colors duration-150"
+            >
+              <div className="flex items-center gap-2 pl-2.5 pr-8 py-2 shrink-0">
+                <FileText size={13} className="text-[#007BFF] shrink-0" />
+                <span title={file.filename} className="text-[11px] font-medium truncate flex-1 text-[#3A4565]">
+                  {file.filename}
+                </span>
               </div>
+              <div className="flex-1 min-h-0 mx-2 mb-2 rounded-md overflow-hidden bg-[#F4F6FB]">
+                <AttachmentThumbnail file={file} projectId={projectId} taskId={taskId} />
+              </div>
+              <div className="flex items-center justify-between gap-1 px-2 pb-2 shrink-0">
+                <span className="text-[9.5px] truncate text-[#5F6A88]">{formatFileSize(file.size)}</span>
+              </div>
+            </button>
+            <div className="absolute top-2 right-2">
+              <AttachmentActionsMenu actions={[{ label: "View", icon: ExternalLink, onClick: () => setViewing(file) }]} />
             </div>
           </div>
         ))}

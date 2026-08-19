@@ -6,23 +6,26 @@ import { X } from "lucide-react";
 
 // In-app file viewer, shared by the Attachments grid (task 211) and comment attachments (task
 // 212) — reduced port of ../../../portfolio-tracker/[projectId]/_onboarding-wizard.tsx's
-// FileViewerModal/FilePreview, scoped to the fixed set of mime types the upload routes
-// allow-list (images, PDF, Word, Excel; no HTML/CSV/Markdown branches, since neither a task nor
-// a comment attachment can ever be those types). Only `filename` is read here — the caller
+// FileViewerModal/FilePreview. Renders inline for image/pdf/office/video; every other type the
+// task 273 MIME widening now allows (HTML/CSS/JS/TS/JSON/MD/TXT/ZIP/RAR) falls to "other" with no
+// dedicated preview — those still fetch a signed URL (force-download, task 273 Requirement G) so
+// "View" downloads them instead of failing silently. Only `filename` is read here — the caller
 // supplies `fetchUrl` directly, so this component doesn't need to know the attachment's id,
 // size, or which entity it belongs to (task 212 Decision #8).
 type AttachmentRow = { filename: string };
 
 const IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "gif", "webp"];
 const OFFICE_EXTENSIONS = ["doc", "docx", "xls", "xlsx"];
+const VIDEO_EXTENSIONS = ["mp4", "m4v", "mov", "webm"];
 
-type FileKind = "image" | "pdf" | "office" | "other";
+type FileKind = "image" | "pdf" | "office" | "video" | "other";
 
 function fileKindFromFilename(filename: string): FileKind {
   const ext = filename.split(".").pop()?.toLowerCase() ?? "";
   if (IMAGE_EXTENSIONS.includes(ext)) return "image";
   if (ext === "pdf") return "pdf";
   if (OFFICE_EXTENSIONS.includes(ext)) return "office";
+  if (VIDEO_EXTENSIONS.includes(ext)) return "video";
   return "other";
 }
 
@@ -125,9 +128,21 @@ export function TaskAttachmentViewerModal({
                   className="w-full h-full border-0"
                 />
               )}
+              {kind === "video" && (
+                <div className="w-full h-full flex items-center justify-center p-4">
+                  <video src={url} controls className="max-w-full max-h-full" />
+                </div>
+              )}
               {kind === "other" && (
-                <div className="absolute inset-0 flex items-center justify-center px-6 text-center">
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-6 text-center">
                   <span className="text-[12.5px] text-[#5F6A88]">Preview not available for this file type.</span>
+                  <a
+                    href={url}
+                    download={attachment.filename}
+                    className="text-[12.5px] font-semibold text-[#0063D6] hover:underline"
+                  >
+                    Download {attachment.filename}
+                  </a>
                 </div>
               )}
             </>

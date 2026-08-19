@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { extensionInfoFor } from "@/config/attachment-types";
 
 // On-demand signed URL for one issue attachment (task 235) — mirrors
-// `.../tasks/[taskId]/attachments/[attachmentId]/file-url/route.ts` exactly; `project-assets`
+// `.../tasks/[taskId]/attachments/[attachmentId]/file-url/route.ts` exactly, including its
+// force-download handling for non-inline-safe categories (task 273, Requirement G); `project-assets`
 // storage RLS already grants admin/super_admin/pm/developer `select` directly, so the
 // session-bound client's own `createSignedUrl` is correctly scoped without a bypass.
+const INLINE_SAFE_CATEGORIES = new Set(["image", "pdf", "word", "excel", "video"]);
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ projectId: string; issueId: string; attachmentId: string }> }
@@ -22,7 +25,7 @@ export async function GET(
 
   const { data: attachment } = await supabase
     .from("attachments")
-    .select("storage_path")
+    .select("storage_path, filename")
     .eq("id", attachmentId)
     .eq("entity_type", "issue")
     .eq("entity_id", issue.id)
@@ -30,9 +33,12 @@ export async function GET(
 
   if (!attachment) return NextResponse.json({ error: "Attachment not found" }, { status: 404 });
 
+  const category = extensionInfoFor(attachment.filename)?.category;
+  const forceDownload = !category || !INLINE_SAFE_CATEGORIES.has(category);
+
   const { data: signed, error: signError } = await supabase.storage
     .from("project-assets")
-    .createSignedUrl(attachment.storage_path, 60);
+    .createSignedUrl(attachment.storage_path, 60, forceDownload ? { download: attachment.filename } : undefined);
 
   if (signError || !signed) {
     console.error("[api/v2/projects/[id]/issues/[issueId]/attachments/[attachmentId]/file-url] sign failed:", signError?.message);

@@ -1124,6 +1124,9 @@ export interface Database {
           assignees: string[] | null;
           due_date: string | null;
           start_date: string | null;
+          due_time: string | null;
+          start_time: string | null;
+          notes: string | null;
           estimate_hours: number | null;
           labels: string[] | null;
           position: number | null;
@@ -1156,6 +1159,9 @@ export interface Database {
           assignees?: string[] | null;
           due_date?: string | null;
           start_date?: string | null;
+          due_time?: string | null;
+          start_time?: string | null;
+          notes?: string | null;
           estimate_hours?: number | null;
           labels?: string[] | null;
           position?: number | null;
@@ -1188,6 +1194,9 @@ export interface Database {
           assignees?: string[] | null;
           due_date?: string | null;
           start_date?: string | null;
+          due_time?: string | null;
+          start_time?: string | null;
+          notes?: string | null;
           estimate_hours?: number | null;
           labels?: string[] | null;
           position?: number | null;

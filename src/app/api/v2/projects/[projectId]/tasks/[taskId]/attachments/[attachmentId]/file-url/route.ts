@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { extensionInfoFor } from "@/config/attachment-types";
 
 // On-demand signed URL for one task attachment (task 206) — mirrors
 // `src/app/api/customers/[customerId]/assets/[assetId]/file-url/route.ts`'s shape, but uses the
@@ -7,6 +8,12 @@ import { createClient } from "@/lib/supabase/server";
 // `customer_assets`' bespoke `allowed_roles`/`allowed_user_ids` logic, while `project-assets`'
 // storage RLS (migration 050) already grants admin/super_admin/pm/developer `select` directly,
 // so the session client's own `createSignedUrl` is correctly scoped without a bypass.
+//
+// Forces `download` (task 273, Requirement G) for any attachment category the viewer modal
+// (TaskAttachmentViewerModal) doesn't render inline via <img>/<iframe> — image/pdf/word/excel
+// stay inline-viewable; everything else (zip/rar/text, now including the widened HTML/JS/CSS/TS
+// allowlist) always downloads instead of ever being navigable as a raw browser-rendered URL.
+const INLINE_SAFE_CATEGORIES = new Set(["image", "pdf", "word", "excel", "video"]);
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ projectId: string; taskId: string; attachmentId: string }> }
@@ -24,7 +31,7 @@ export async function GET(
 
   const { data: attachment } = await supabase
     .from("attachments")
-    .select("storage_path")
+    .select("storage_path, filename")
     .eq("id", attachmentId)
     .eq("entity_type", "task")
     .eq("entity_id", task.id)
@@ -32,9 +39,12 @@ export async function GET(
 
   if (!attachment) return NextResponse.json({ error: "Attachment not found" }, { status: 404 });
 
+  const category = extensionInfoFor(attachment.filename)?.category;
+  const forceDownload = !category || !INLINE_SAFE_CATEGORIES.has(category);
+
   const { data: signed, error: signError } = await supabase.storage
     .from("project-assets")
-    .createSignedUrl(attachment.storage_path, 60);
+    .createSignedUrl(attachment.storage_path, 60, forceDownload ? { download: attachment.filename } : undefined);
 
   if (signError || !signed) {
     console.error("[api/v2/projects/[id]/tasks/[taskId]/attachments/[attachmentId]/file-url] sign failed:", signError?.message);
