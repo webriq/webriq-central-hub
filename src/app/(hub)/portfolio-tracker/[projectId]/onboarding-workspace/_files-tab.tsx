@@ -82,13 +82,37 @@ export function FilesTab({
     return chain;
   }, [openFolderId, foldersById]);
   const filesInOpenFolder = useMemo(() => (openFolderId ? assets.filter((a) => a.type === "file" && a.folder_id === openFolderId) : []), [assets, openFolderId]);
+  // Task 275 — a folder's badge must include files nested inside its sub-folders (folders nest
+  // arbitrarily deep per task 220), not just files whose folder_id matches it directly. Otherwise
+  // a parent folder can show "0 files" while a sub-folder underneath it holds everything, and the
+  // sum of root-level card counts silently diverges from the tab-header total (which counts every
+  // file for the phase regardless of depth).
   const fileCountByFolder = useMemo(() => {
-    const counts = new Map<string, number>();
+    const directCounts = new Map<string, number>();
     for (const a of assets) {
-      if (a.type === "file" && a.folder_id) counts.set(a.folder_id, (counts.get(a.folder_id) ?? 0) + 1);
+      if (a.type === "file" && a.folder_id) directCounts.set(a.folder_id, (directCounts.get(a.folder_id) ?? 0) + 1);
     }
-    return counts;
-  }, [assets]);
+    const childFoldersByParent = new Map<string, AssetFolder[]>();
+    for (const f of folders) {
+      if (!f.parent_folder_id) continue;
+      const siblings = childFoldersByParent.get(f.parent_folder_id) ?? [];
+      siblings.push(f);
+      childFoldersByParent.set(f.parent_folder_id, siblings);
+    }
+    const recursiveCounts = new Map<string, number>();
+    const resolve = (folderId: string, seen: Set<string>): number => {
+      const cached = recursiveCounts.get(folderId);
+      if (cached !== undefined) return cached;
+      if (seen.has(folderId)) return 0; // defensive cycle guard — parent_folder_id chains should never cycle
+      seen.add(folderId);
+      let total = directCounts.get(folderId) ?? 0;
+      for (const child of childFoldersByParent.get(folderId) ?? []) total += resolve(child.id, seen);
+      recursiveCounts.set(folderId, total);
+      return total;
+    };
+    for (const f of folders) resolve(f.id, new Set());
+    return recursiveCounts;
+  }, [assets, folders]);
 
   // Case-insensitive sibling collision, scoped to the current location (root or the currently
   // open folder) — the create-folder API already blocks new duplicates on the happy path

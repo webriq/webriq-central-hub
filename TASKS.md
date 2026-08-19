@@ -19,6 +19,7 @@
 
 | ID | Title | Priority | Type | Doc | Date |
 |----|-------|----------|------|-----|------|
+| 275 | Onboarding Workspace — Files Tab: Folder Card Counts Don't Match Tab Total | HIGH | bugfix | _docs/task/275-onboarding-workspace-files-folder-count-mismatch-fix.md | 2026-08-19 |
 | 269 | Fix Login Redirect — proxy.ts Intercepts the Post-Login Server Action (Regression from Task 262); other auth forms reviewed, unaffected | HIGH | bugfix | _docs/task/269-fix-login-redirect-proxy-server-action-regression.md | 2026-08-18 |
 | 265 | Fix Live Timer Widget — HTML Title Decode, Project Name, hh:mm:ss Format, Break Button Alignment, Dynamic Break Icon, Auto-Resume After Break | MEDIUM | bugfix | _docs/task/265-fix-live-timer-widget-title-project-format-breaks.md | 2026-08-18 |
 | 262 | Fix proxy.ts Session-Refresh Header Bug + Missing Auth-State Redirects (Dashboard/Time Logs sidebar clicks intermittently bounce to /auth/login; /auth/login doesn't redirect away when already authenticated) | HIGH | bugfix | _docs/task/262-proxy-auth-redirect-cookie-refresh-fix.md | 2026-08-18 |
