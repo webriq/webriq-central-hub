@@ -228,6 +228,21 @@ export default function ProjectDetail({
     setTasks((prev) => [...prev, task]);
   }, []);
 
+  // Mirrors bulkDeleteIssues below — DELETE /api/v2/tasks/[taskId] cascades subtasks
+  // server-side, so no separate client-side subtree cleanup is needed here. Returns
+  // deleted/failed counts so the caller can render an accurate success/error toast.
+  const bulkDeleteTasks = useCallback(async (ids: string[]) => {
+    const results = await Promise.all(
+      ids.map(async (id) => {
+        const res = await fetch(`/api/v2/tasks/${id}`, { method: "DELETE" });
+        return { id, ok: res.ok };
+      })
+    );
+    const deletedIds = new Set(results.filter((r) => r.ok).map((r) => r.id));
+    setTasks((prev) => prev.filter((t) => !deletedIds.has(t.id)));
+    return { deleted: deletedIds.size, failed: ids.length - deletedIds.size };
+  }, []);
+
   const addTasklist = useCallback((tasklist: Tasklist) => {
     setTasklists((prev) => [...prev, tasklist]);
   }, []);
@@ -560,6 +575,7 @@ export default function ProjectDetail({
                   tasklists={tasklists}
                   onOpen={(task) => router.push(`/projects/${project.project_id}/tasks/${task.display_id}`)}
                   onUpdate={updateTask}
+                  onBulkDelete={bulkDeleteTasks}
                   currentUserId={currentUserId}
                   currentUserRole={currentUserRole}
                   profilesById={profilesById}

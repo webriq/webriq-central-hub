@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useMemo, useEffect } from "react";
+import { useState, useRef, useLayoutEffect, useMemo, useEffect } from "react";
 import { Users, SearchX, Check, X, Trash2, Bug, Plus } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import {
@@ -56,6 +56,7 @@ function IssueAssigneePicker({
   const [open, setOpen] = useState(false);
   const [panelPos, setPanelPos] = useState({ top: 0, left: 0 });
   const btnRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   function handleOpen() {
     if (btnRef.current) {
@@ -64,6 +65,19 @@ function IssueAssigneePicker({
     }
     setOpen(true);
   }
+
+  // Flips the panel above the trigger when it would otherwise overflow past the bottom of the
+  // viewport — panel height depends on member count, so this measures the actual rendered
+  // height rather than guessing, and runs before paint to avoid a visible jump.
+  useLayoutEffect(() => {
+    if (!open || !btnRef.current || !panelRef.current) return;
+    const btnRect = btnRef.current.getBoundingClientRect();
+    const panelHeight = panelRef.current.offsetHeight;
+    const spaceBelow = window.innerHeight - btnRect.bottom;
+    if (spaceBelow < panelHeight + 8 && btnRect.top > panelHeight + 8) {
+      setPanelPos({ top: btnRect.top - panelHeight - 4, left: btnRect.left });
+    }
+  }, [open]);
 
   function assign(member: MemberProfile) {
     setOpen(false);
@@ -99,6 +113,7 @@ function IssueAssigneePicker({
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <div
+            ref={panelRef}
             className="fixed z-50 w-52 rounded-[10px] border border-[#E2E7F2] bg-white shadow-[0_8px_24px_rgba(7,17,51,0.10)] overflow-hidden"
             style={{ top: panelPos.top, left: panelPos.left }}
           >

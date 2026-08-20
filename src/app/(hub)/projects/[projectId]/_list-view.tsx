@@ -1,7 +1,9 @@
 "use client";
 
-import { Fragment, useState, useMemo, useEffect, useRef } from "react";
+import { Fragment, useState, useMemo, useEffect, useLayoutEffect, useRef } from "react";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ChevronDown, ChevronRight, Users, X, Clock, SearchX, Trash2, ClipboardList, Plus } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import {
@@ -90,6 +92,7 @@ function AssigneePicker({
   const [open, setOpen] = useState(false);
   const [panelPos, setPanelPos] = useState({ top: 0, left: 0 });
   const btnRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const currentAssignees = task.assignees ?? [];
 
   function handleOpen() {
@@ -99,6 +102,19 @@ function AssigneePicker({
     }
     setOpen(true);
   }
+
+  // Flips the panel above the trigger when it would otherwise overflow past the bottom of the
+  // viewport — panel height depends on member count, so this measures the actual rendered
+  // height rather than guessing, and runs before paint to avoid a visible jump.
+  useLayoutEffect(() => {
+    if (!open || !btnRef.current || !panelRef.current) return;
+    const btnRect = btnRef.current.getBoundingClientRect();
+    const panelHeight = panelRef.current.offsetHeight;
+    const spaceBelow = window.innerHeight - btnRect.bottom;
+    if (spaceBelow < panelHeight + 8 && btnRect.top > panelHeight + 8) {
+      setPanelPos({ top: btnRect.top - panelHeight - 4, left: btnRect.left });
+    }
+  }, [open]);
 
   function toggleMember(memberId: string) {
     const next = currentAssignees.includes(memberId)
@@ -146,6 +162,7 @@ function AssigneePicker({
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <div
+            ref={panelRef}
             className="fixed z-50 w-52 rounded-[10px] border border-[#E2E7F2] bg-white shadow-[0_8px_24px_rgba(7,17,51,0.10)] overflow-hidden"
             style={{ top: panelPos.top, left: panelPos.left }}
           >
@@ -196,6 +213,7 @@ export default function ListView({
   tasklists,
   onOpen,
   onUpdate,
+  onBulkDelete,
   currentUserId,
   currentUserRole,
   profilesById,
@@ -216,6 +234,7 @@ export default function ListView({
   tasklists: Tasklist[];
   onOpen: (task: Task) => void;
   onUpdate: (id: string, patch: Partial<Task>) => Promise<boolean>;
+  onBulkDelete: (ids: string[]) => Promise<{ deleted: number; failed: number }>;
   currentUserId: string;
   currentUserRole: string | null;
   profilesById: Record<string, { full_name: string; avatar_url: string | null }>;
@@ -235,6 +254,30 @@ export default function ListView({
   scrollToTasklistId?: string;
 }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [deleting, setDeleting] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  async function handleBulkTrash() {
+    const count = selected.size;
+    setConfirmOpen(false);
+    setDeleting(true);
+    const toastId = toast.loading(`Deleting ${count} task${count === 1 ? "" : "s"}…`);
+    try {
+      const { deleted, failed } = await onBulkDelete(Array.from(selected));
+      if (failed === 0) {
+        toast.success(`Deleted ${deleted} task${deleted === 1 ? "" : "s"}`, { id: toastId });
+      } else if (deleted === 0) {
+        toast.error(`Failed to delete ${failed} task${failed === 1 ? "" : "s"}`, { id: toastId });
+      } else {
+        toast.error(`Deleted ${deleted}, failed to delete ${failed}`, { id: toastId });
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete tasks", { id: toastId });
+    } finally {
+      setDeleting(false);
+      setSelected(new Set());
+    }
+  }
 
   // ─── Sticky-header "stuck" detection ───────────────────────────────────────
   // A zero-height sentinel sits at the card's top edge, just above the sticky
@@ -434,6 +477,16 @@ export default function ListView({
 
   return (
     <div className="h-full flex flex-col min-h-0">
+      <ConfirmDialog
+        open={confirmOpen}
+        title={`Delete ${selected.size} task${selected.size === 1 ? "" : "s"}?`}
+        body="This action is irreversible."
+        confirmLabel={deleting ? "Deleting…" : "Delete"}
+        confirmDisabled={deleting}
+        onConfirm={() => void handleBulkTrash()}
+        onCancel={() => setConfirmOpen(false)}
+      />
+
       {selected.size > 0 && (
         <div className="flex items-center gap-2 px-8 py-2 bg-[#FFF3D6] border-b border-[#F5DFA0] shrink-0">
           <button
@@ -447,8 +500,10 @@ export default function ListView({
           <Tooltip>
             <TooltipTrigger render={
               <button
+                onClick={() => setConfirmOpen(true)}
+                disabled={deleting}
                 aria-label="Trash"
-                className="flex items-center justify-center w-6 h-6 rounded-full border border-[#C0392B]/40 bg-white text-[#C0392B] hover:bg-[#FDE8E6] cursor-pointer transition-colors"
+                className="flex items-center justify-center w-6 h-6 rounded-full border border-[#C0392B]/40 bg-white text-[#C0392B] hover:bg-[#FDE8E6] cursor-pointer transition-colors disabled:opacity-45"
               >
                 <Trash2 size={13} />
               </button>
@@ -586,7 +641,6 @@ function Row({
   const due = formatDueDate(task.due_date);
   const dueColor = getDueColor(task.due_date);
   const totalHours = hoursById[task.id] ?? 0;
-  const isAssignedToMe = task.assignees?.includes(currentUserId) ?? false;
 
   // Task 209 — creator: full edit. Assignee-only: status limited to in_progress/ready_for_qa.
   // Neither: fully read-only.
@@ -679,7 +733,7 @@ function Row({
 
       {/* Timer */}
       <div className="flex items-center justify-center">
-        {isAssignedToMe && (
+        {perm.canStartTimer && (
           <TaskTimerButton
             taskId={task.id}
             projectId={task.project_id}

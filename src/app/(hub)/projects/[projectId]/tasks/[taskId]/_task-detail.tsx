@@ -88,11 +88,11 @@ export default function TaskDetailClient({
     ? STATUS_OPTS
     : Array.from(new Set([task.status as TaskStatus, ...perm.allowedStatusValues]));
 
-  // Task 218 — mirrors the list view's `TaskTimerButton` gate (`_list-view.tsx:569,662`):
-  // only the task's assignee sees the timer control. `TimerProvider` only mounts for the
-  // developer role (`v2-hub-shell.tsx`), and only developers are ever assignees, so this
-  // assignment check is what keeps `useTimer()` from being called without a provider.
-  const isAssignedToMe = task.assignees?.includes(currentUserId) ?? false;
+  // Task 218 — mirrors the list view's `TaskTimerButton` gate (`_list-view.tsx`):
+  // `TimerProvider` only mounts for the developer role (`v2-hub-shell.tsx`), but PM/admin/
+  // super_admin can also be task assignees (see `getProjectDetailData`'s `allMembers` query),
+  // so gating on `perm.canStartTimer` (role-aware, false for non-developers) rather than raw
+  // assignment is what keeps `useTimer()` from being called without a provider.
 
   // Editable text fields
   const [title, setTitle] = useState(() => decodeHtmlEntities(task.title));
@@ -162,7 +162,7 @@ export default function TaskDetailClient({
               </span>
               <StatusBadge status={status} />
               <PriorityBadge priority={priority} />
-              {isAssignedToMe && (
+              {perm.canStartTimer && (
                 <TaskTimerButton
                   taskId={task.id}
                   projectId={task.project_id}
