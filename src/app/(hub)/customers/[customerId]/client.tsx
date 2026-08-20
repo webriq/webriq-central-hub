@@ -7,7 +7,6 @@ import { createClient } from "@/lib/supabase/client";
 import { Archive, ArrowLeft } from "lucide-react";
 import type { UploadedFile } from "@/types/onboarding";
 import FileUpload from "@/components/onboarding/file-upload";
-import { usePMSettings } from "@/hooks/use-pm-settings";
 import type { CustomerRow, CustomerProductRow, ProjectRow, Database } from "@/types/database";
 import type { ProductName } from "@/types/hub";
 import { getIncompleteSections, getOnboardingSchema, computeCompletionPercentage } from "@/config/onboarding-schemas";
@@ -153,8 +152,13 @@ interface EditForm {
 
 export default function CustomerProfileClient({ customer, zohoPortalName }: CustomerProfileClientProps) {
   const router = useRouter();
-  const { settings } = usePMSettings();
-  const isDark = settings.theme === "dark";
+  // Fixed-light — previously read a `theme` preference from usePMSettings/localStorage whose
+  // only writer (the pre-migration hub's Settings tab) was retired by task 255, leaving any
+  // browser with a stale "dark" value permanently stuck dark here with no way to switch back.
+  // Matches the PM dashboard's "fixed-light" precedent for the v2.0 redesign. The `isDark`
+  // ternaries below are intentionally left in place (always resolve to their light branch) —
+  // stripping every one of the 100+ call sites in this file is a separate, larger cleanup.
+  const isDark = false;
   const sectionCls = isDark
     ? "bg-[#121726] border border-white/[0.08] rounded-xl p-5 shadow-[0_1px_4px_rgba(0,0,0,0.15)] mb-4"
     : "bg-white border border-slate-200 rounded-xl p-5 shadow-[0_1px_4px_rgba(0,0,0,0.05)] mb-4";

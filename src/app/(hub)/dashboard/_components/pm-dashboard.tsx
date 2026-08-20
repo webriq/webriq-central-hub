@@ -14,7 +14,7 @@ import { getPhaseByNumber, PROGRAMME_PHASES, INTERNAL_DELIVERABLES } from "@/con
 import {
   Chip, PhaseChip, ProgrammeTrack, OnboardingStatusPill, SkeletonRow,
 } from "./dashboard-shared";
-import type { OnboardingProjectListItem } from "../../portfolio-tracker/_onboarding-list";
+import type { OnboardingProjectListItem } from "../../projects/_v2-listing/_onboarding-list";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -161,7 +161,7 @@ function ProgrammeBoard({ projects, loading }: { projects: OnboardingProjectList
       {projects.map((p, idx) => (
         <Link
           key={p.id}
-          href={p.project_id ? `${V2_ROUTES.PORTFOLIO_TRACKER}/${p.project_id}` : V2_ROUTES.PORTFOLIO_TRACKER}
+          href={p.project_id ? `${V2_ROUTES.PROJECTS_V2}/${p.project_id}` : V2_ROUTES.PROJECTS_V2}
           className="grid items-center gap-4 px-[18px] py-2.5 hover:bg-[#F0F7FF] transition-colors"
           style={{ gridTemplateColumns: "210px 1fr auto" }}
         >
@@ -212,7 +212,7 @@ function ClientsTable({ projects, loading }: { projects: OnboardingProjectListIt
             projects.map((p, idx) => (
               <tr key={p.id} className="hover:bg-[#F0F7FF] transition-colors">
                 <td className="pl-[18px] px-3 py-2.5 border-b border-[#EDF0F7]">
-                  <Link href={p.project_id ? `${V2_ROUTES.PORTFOLIO_TRACKER}/${p.project_id}` : V2_ROUTES.PORTFOLIO_TRACKER} className="flex items-center gap-2.5 min-w-0">
+                  <Link href={p.project_id ? `${V2_ROUTES.PROJECTS_V2}/${p.project_id}` : V2_ROUTES.PROJECTS_V2} className="flex items-center gap-2.5 min-w-0">
                     <span className="w-[22px] h-[22px] rounded-full flex items-center justify-center text-[9px] font-bold text-white shrink-0" style={{ background: AVATAR_COLORS[idx % AVATAR_COLORS.length] }}>
                       {initialsFor(p.company_name)}
                     </span>
@@ -510,7 +510,7 @@ export default function PMDashboard({ displayName = null }: Props) {
       </div>
 
       {/* 120-Day Programme board (signature element) */}
-      <SectionPanel title="120-Day Programme" hint="Each client plotted at their current day · phase widths to scale" link="Open programme view" linkHref={V2_ROUTES.PORTFOLIO_TRACKER} noPad>
+      <SectionPanel title="120-Day Programme" hint="Each client plotted at their current day · phase widths to scale" link="Open programme view" linkHref={V2_ROUTES.PROJECTS_V2} noPad>
         <ProgrammeBoard projects={inProgress} loading={loading} />
       </SectionPanel>
 

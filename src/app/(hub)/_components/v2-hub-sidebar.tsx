@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
-  LayoutDashboard, FolderKanban, Inbox, Cpu, Users,
-  Megaphone, BookOpen, Settings, ChevronLeft,
+  LayoutDashboard, LayoutGrid, Inbox, Cpu, Users,
+  Megaphone, BookOpen, Settings, ChevronLeft, ChevronDown,
   Circle, LogOut, Building2,
   ChartGantt, Clock,
 } from "lucide-react";
@@ -19,6 +20,7 @@ type NavItem = {
   href: string;
   exact?: boolean;
   stub?: boolean;
+  children?: { label: string; href: string }[];
 };
 
 type NavGroup = {
@@ -38,7 +40,15 @@ function getNavGroups(role: string | null): NavGroup[] {
     ...(role !== "client" && !isDev ? [
       { label: "Tracker",     icon: <ChartGantt size={18} />,          href: V2_ROUTES.PORTFOLIO_TRACKER },
     ] : []),
-    { label: "Projects",      icon: <FolderKanban size={18} />,   href: V2_ROUTES.PROJECTS },
+    {
+      label: "Projects",
+      icon: <LayoutGrid size={18} />,
+      href: V2_ROUTES.PROJECTS,
+      children: [
+        { label: "V2 Projects",     href: V2_ROUTES.PROJECTS_V2 },
+        { label: "Legacy Projects", href: V2_ROUTES.PROJECTS_LEGACY },
+      ],
+    },
     ...(!isDev ? [
       { label: "Desk",          icon: <Inbox size={18} />,           href: V2_ROUTES.DASHBOARD_TASKS },
       { label: "Orchestration", icon: <Cpu size={18} />,             href: V2_ROUTES.ORCHESTRATION },
@@ -98,6 +108,10 @@ export default function V2HubSidebar({ userRole, displayName }: V2HubSidebarProp
   const pathname = usePathname();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
+  // Task 279 — "Projects" is the only collapsible nav item today; a single toggle is enough
+  // (null = not yet manually toggled this session, so expand state follows the current route).
+  const [projectsExpanded, setProjectsExpanded] = useState<boolean | null>(null);
+  const shouldReduceMotion = useReducedMotion();
   const navGroups = getNavGroups(userRole);
   const initials = getInitials(displayName);
 
@@ -163,9 +177,106 @@ export default function V2HubSidebar({ userRole, displayName }: V2HubSidebarProp
               </div>
             )}
             {group.items.map(item => {
+              const hasChildren = !!item.children?.length;
+              const childActive = hasChildren && item.children!.some(
+                c => pathname === c.href || pathname.startsWith(c.href + "/")
+              );
               const active = item.exact
                 ? pathname === item.href
-                : pathname === item.href || pathname.startsWith(item.href + "/");
+                : pathname === item.href || pathname.startsWith(item.href + "/") || childActive;
+
+              if (hasChildren) {
+                const isExpanded = collapsed ? false : (projectsExpanded ?? pathname.startsWith(item.href));
+                return (
+                  <div key={item.label}>
+                    <button
+                      onClick={() => {
+                        if (collapsed) { router.push(item.href); return; }
+                        setProjectsExpanded(!isExpanded);
+                      }}
+                      title={collapsed ? item.label : undefined}
+                      aria-expanded={collapsed ? undefined : isExpanded}
+                      className={cn(
+                        "w-full flex items-center gap-2.5 border-l-[3px] text-[14px] transition-all duration-150 cursor-pointer",
+                        collapsed ? "justify-center py-2.5 px-0" : "px-6 py-2.25",
+                        active
+                          ? "border-l-[#2563EB] font-medium"
+                          : "border-l-transparent font-normal"
+                      )}
+                      style={{
+                        background: active ? "#1E293B" : "transparent",
+                        color: active ? "#F1F5F9" : "#94A3B8",
+                      }}
+                      onMouseEnter={e => {
+                        if (!active) {
+                          e.currentTarget.style.background = "#1E293B";
+                          e.currentTarget.style.color = "#F1F5F9";
+                        }
+                      }}
+                      onMouseLeave={e => {
+                        if (!active) {
+                          e.currentTarget.style.background = "transparent";
+                          e.currentTarget.style.color = "#94A3B8";
+                        }
+                      }}
+                    >
+                      <span className="shrink-0">{item.icon}</span>
+                      {!collapsed && (
+                        <>
+                          <span className="flex-1 text-left">{item.label}</span>
+                          <ChevronDown
+                            size={14}
+                            className={cn("shrink-0 transition-transform duration-150", isExpanded ? "rotate-180" : "")}
+                          />
+                        </>
+                      )}
+                    </button>
+                    <AnimatePresence initial={false}>
+                      {isExpanded && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: shouldReduceMotion ? 0 : 0.18, ease: "easeOut" }}
+                          className="overflow-hidden"
+                        >
+                          {item.children!.map(child => {
+                            const childIsActive = pathname === child.href || pathname.startsWith(child.href + "/");
+                            return (
+                              <button
+                                key={child.label}
+                                onClick={() => router.push(child.href)}
+                                className="w-full flex items-center gap-2.5 border-l-[3px] text-[13px] pl-11.5 pr-6 py-2 transition-all duration-150 cursor-pointer"
+                                style={{
+                                  borderColor: childIsActive ? "#2563EB" : "transparent",
+                                  background: childIsActive ? "#1E293B" : "transparent",
+                                  color: childIsActive ? "#F1F5F9" : "#94A3B8",
+                                  fontWeight: childIsActive ? 500 : 400,
+                                }}
+                                onMouseEnter={e => {
+                                  if (!childIsActive) {
+                                    e.currentTarget.style.background = "#1E293B";
+                                    e.currentTarget.style.color = "#F1F5F9";
+                                  }
+                                }}
+                                onMouseLeave={e => {
+                                  if (!childIsActive) {
+                                    e.currentTarget.style.background = "transparent";
+                                    e.currentTarget.style.color = "#94A3B8";
+                                  }
+                                }}
+                              >
+                                <span className="flex-1 text-left">{child.label}</span>
+                              </button>
+                            );
+                          })}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                );
+              }
+
               return (
                 <button
                   key={item.label}

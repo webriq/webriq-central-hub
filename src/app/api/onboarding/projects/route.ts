@@ -543,7 +543,7 @@ export async function POST(request: NextRequest) {
 
     // project_id may be null immediately post-insert only if the display-code trigger somehow
     // didn't fire (shouldn't happen per migration 066) — fall back to the UUID rather than
-    // sending the "New Project" success screen's View link into a broken /portfolio-tracker/null.
+    // sending the "New Project" success screen's View link into a broken /projects/v2/null.
     return NextResponse.json({ project_id: project.project_id ?? project.id, customer_id: customerId }, { status: 201 });
   } catch (err) {
     console.error("POST /api/onboarding/projects unexpected error:", err);

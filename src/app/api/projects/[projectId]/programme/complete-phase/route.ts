@@ -156,7 +156,7 @@ export async function POST(
         type: "programme_phase_complete",
         title: "Programme phase complete",
         body: `${actorName} completed Phase ${phaseNumber} (${currentPhase.name}) — handed over to ${nextPhase.name}${project.name ? ` · ${project.name}` : ""}.`,
-        url: project.project_id ? `/portfolio-tracker/${project.project_id}` : undefined,
+        url: project.project_id ? `/projects/v2/${project.project_id}` : undefined,
         actorId: user.id,
       });
     } else {
@@ -166,7 +166,7 @@ export async function POST(
         type: "programme_complete",
         title: "120-Day Programme complete",
         body: `${actorName} completed the final phase — all ${allPhaseRows.length} phases delivered${project.name ? ` · ${project.name}` : ""}.`,
-        url: project.project_id ? `/portfolio-tracker/${project.project_id}` : undefined,
+        url: project.project_id ? `/projects/v2/${project.project_id}` : undefined,
         actorId: user.id,
       });
     }

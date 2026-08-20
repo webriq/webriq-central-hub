@@ -5,31 +5,29 @@ import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { Building2, FolderKanban, ChevronRight, ChartGantt } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { usePMSettings } from "@/hooks/use-pm-settings";
 import { useGreeting } from "@/hooks/use-greeting";
 import { V2_ROUTES } from "@/config/constants";
 import { KpiCard, SectionCard, SkeletonRow, OnboardingStatusPill } from "./dashboard-shared";
-import type { OnboardingProjectListItem } from "../../portfolio-tracker/_onboarding-list";
+import type { OnboardingProjectListItem } from "../../projects/_v2-listing/_onboarding-list";
 
-function WorkspaceCard({ customersCount, projectsCount, loading, isDark }: {
+function WorkspaceCard({ customersCount, projectsCount, loading }: {
   customersCount: number;
   projectsCount: number;
   loading: boolean;
-  isDark: boolean;
 }) {
   return (
     <SectionCard title="Your workspace" noPad>
       <div className="divide-y divide-(--c-border)">
         <Link href={V2_ROUTES.CUSTOMERS} className="group flex items-center gap-3 px-5 py-3 hover:bg-(--c-track) transition-colors">
-          <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${isDark ? "bg-white/[0.06]" : "bg-slate-50"}`}>
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 bg-slate-50">
             <Building2 size={14} className="text-(--c-sky)" />
           </div>
           <span className="text-[12px] text-(--c-sub) flex-1">Customers</span>
           <span className="text-[13px] font-semibold text-(--c-text)">{loading ? "—" : customersCount}</span>
           <ChevronRight size={13} className="text-(--c-muted) shrink-0 transition-transform group-hover:translate-x-0.5" />
         </Link>
-        <Link href={V2_ROUTES.PROJECTS} className="group flex items-center gap-3 px-5 py-3 hover:bg-(--c-track) transition-colors">
-          <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${isDark ? "bg-white/[0.06]" : "bg-slate-50"}`}>
+        <Link href={V2_ROUTES.PROJECTS_LEGACY} className="group flex items-center gap-3 px-5 py-3 hover:bg-(--c-track) transition-colors">
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 bg-slate-50">
             <FolderKanban size={14} className="text-(--c-blue)" />
           </div>
           <span className="text-[12px] text-(--c-sub) flex-1">Projects</span>
@@ -47,8 +45,6 @@ interface Props {
 }
 
 export default function MarketingDashboard({ displayName }: Props) {
-  const { settings } = usePMSettings();
-  const isDark = settings.theme === "dark";
   const { visible, text, dateLabel, dismiss } = useGreeting(displayName);
 
   const [trackerProjects, setTrackerProjects] = useState<OnboardingProjectListItem[]>([]);
@@ -79,7 +75,7 @@ export default function MarketingDashboard({ displayName }: Props) {
     .slice(0, 6);
 
   return (
-    <div className={`py-6.5 px-8 flex flex-col gap-6 ${isDark ? "pm-dark" : "pm-light"}`}>
+    <div className="py-6.5 px-8 flex flex-col gap-6 pm-light">
       {/* Greeting */}
       <AnimatePresence>
         {visible && text && (
@@ -121,7 +117,7 @@ export default function MarketingDashboard({ displayName }: Props) {
               </div>
             ) : needsAttention.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-10 gap-3">
-                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${isDark ? "bg-white/[0.06]" : "bg-slate-50"}`}>
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-slate-50">
                   <ChartGantt size={22} className="text-(--c-violet)" />
                 </div>
                 <div className="text-center">
@@ -134,13 +130,13 @@ export default function MarketingDashboard({ displayName }: Props) {
                 {needsAttention.map(item => (
                   <Link
                     key={item.id}
-                    href={item.project_id ? `${V2_ROUTES.PORTFOLIO_TRACKER}/${item.project_id}` : V2_ROUTES.PORTFOLIO_TRACKER}
+                    href={item.project_id ? `${V2_ROUTES.PROJECTS_V2}/${item.project_id}` : V2_ROUTES.PROJECTS_V2}
                     className="group flex items-center gap-3 px-5 py-3.5 hover:bg-(--c-track) transition-colors"
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
                         <span className="text-[13px] text-(--c-text) truncate">{item.project_name}</span>
-                        <OnboardingStatusPill status={item.status} isDark={isDark} />
+                        <OnboardingStatusPill status={item.status} />
                       </div>
                       <span className="text-[11px] text-(--c-muted) truncate block">{item.company_name}</span>
                     </div>
@@ -154,7 +150,7 @@ export default function MarketingDashboard({ displayName }: Props) {
 
         {/* Right rail */}
         <div className="w-72 shrink-0 flex flex-col gap-4">
-          <WorkspaceCard customersCount={customersCount} projectsCount={projectsCount} loading={loading} isDark={isDark} />
+          <WorkspaceCard customersCount={customersCount} projectsCount={projectsCount} loading={loading} />
         </div>
       </div>
     </div>

@@ -352,7 +352,7 @@ export default function CustomersIndex({
                 <ProgressCell products={getProductsFor(c)} />
                 <div className="flex justify-end">
                   <button
-                    onClick={() => router.push(`${V2_ROUTES.PROJECTS}?customer=${encodeURIComponent(c.customer_id)}`)}
+                    onClick={() => router.push(`${V2_ROUTES.PROJECTS_LEGACY}?customer=${encodeURIComponent(c.customer_id)}`)}
                     className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-[#E2E7F2] text-[12px] text-[#3A4565] hover:bg-[#F0F7FF] hover:border-[#A8C6F5] cursor-pointer transition-colors"
                   >
                     <FolderKanban size={13} /> {c.project_count}

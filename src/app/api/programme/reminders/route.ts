@@ -39,7 +39,7 @@ async function notifyOnce(
     type: `programme_reminder_${key}`,
     title: "Programme update",
     body: projectName ? `${message} · ${projectName}` : message,
-    url: publicProjectId ? `/portfolio-tracker/${publicProjectId}` : undefined,
+    url: publicProjectId ? `/projects/v2/${publicProjectId}` : undefined,
   });
   return true;
 }

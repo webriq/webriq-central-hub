@@ -1,30 +1,24 @@
-import type { Metadata } from "next";
-import { loadOnboardingDetailData, getCompanyNameForMetadata } from "../_load-detail-data";
-import OnboardingWizardV2 from "./_onboarding-wizard-v2";
-import { parseWorkspaceSearchParams, type WorkspaceSearchParams } from "./_workspace-url-params";
+import { redirect } from "next/navigation";
+import { V2_ROUTES } from "@/config/constants";
 
-export const dynamic = "force-dynamic";
-
+// Portfolio Tracker is retired (task 280) — this content now lives at
+// /projects/v2/[projectId]/onboarding-workspace (byte-identical port from task 276). Forwards every
+// string-valued search param (tab, parent_folder, sub_folder_l1, sub_folder_l2, ...) rather than
+// hand-enumerating keys, since _workspace-url-params.ts treats them as an open-ended set.
 interface PageProps {
   params: Promise<{ projectId: string }>;
-  searchParams: Promise<WorkspaceSearchParams>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { projectId } = await params;
-  const companyName = await getCompanyNameForMetadata(projectId);
-  return { title: `${companyName} — Onboarding v2 (sandbox)` };
-}
-
-// Task 202 sandbox entry point — reuses ../_load-detail-data.ts (unmodified, shared
-// infrastructure) for the same auth/role guard and project fetch the shipping route uses.
-// Task 222 — `?tab=&parent_folder=&sub_folder_l1=...` deep-links a specific tab/folder (see
-// _workspace-url-params.ts); the swimlane's deliverable cards generate these links now.
-export default async function OnboardingProjectV2Page({ params, searchParams }: PageProps) {
+export default async function PortfolioTrackerWorkspaceRedirect({ params, searchParams }: PageProps) {
   const { projectId } = await params;
   const rawSearchParams = await searchParams;
-  const { tab: initialTab, folderPath: initialFolderPath } = parseWorkspaceSearchParams(rawSearchParams);
-  const { project, role } = await loadOnboardingDetailData(projectId);
 
-  return <OnboardingWizardV2 project={project} role={role} initialTab={initialTab} initialFolderPath={initialFolderPath} />;
+  const qs = new URLSearchParams();
+  for (const [key, value] of Object.entries(rawSearchParams)) {
+    if (typeof value === "string") qs.set(key, value);
+  }
+  const query = qs.toString();
+
+  redirect(`${V2_ROUTES.PROJECTS_V2}/${projectId}/onboarding-workspace${query ? `?${query}` : ""}`);
 }

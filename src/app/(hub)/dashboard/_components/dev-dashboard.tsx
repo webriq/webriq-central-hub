@@ -140,7 +140,7 @@ function WorkspaceCard({ projectsCount }: { projectsCount: number }) {
   return (
     <SectionPanel title="Your workspace" noPad>
       <Link
-        href={V2_ROUTES.PROJECTS}
+        href={V2_ROUTES.PROJECTS_LEGACY}
         className="group flex items-center gap-3 px-[18px] py-3 hover:bg-[#F0F7FF] transition-colors focus-visible:outline-2 focus-visible:outline-[#007BFF] focus-visible:outline-offset-2"
       >
         <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 bg-[#E5F1FF] text-[#0063D6]">

@@ -95,7 +95,7 @@ export async function PATCH(
                 type: "onboarding_complete",
                 title: "Onboarding complete",
                 body: `${customer?.company_name ?? customerId} has completed all onboarding forms${linkedProject.name ? ` · ${linkedProject.name}` : ""}.`,
-                url: linkedProject.project_id ? `/portfolio-tracker/${linkedProject.project_id}` : undefined,
+                url: linkedProject.project_id ? `/projects/v2/${linkedProject.project_id}` : undefined,
               });
             }
           }

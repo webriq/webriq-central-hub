@@ -75,7 +75,7 @@ export async function PATCH(
         type: "deliverable_complete",
         title: "Deliverable complete",
         body: `${actorName} marked "${deliverableConfig.name}" done — Phase ${phaseNumber}${project?.name ? ` · ${project.name}` : ""}.`,
-        url: project?.project_id ? `/portfolio-tracker/${project.project_id}` : undefined,
+        url: project?.project_id ? `/projects/v2/${project.project_id}` : undefined,
         actorId: user.id,
       });
     }

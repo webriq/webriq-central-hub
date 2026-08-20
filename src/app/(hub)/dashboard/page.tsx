@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getDeveloperAccessibleProjectIds } from "../projects/_project-access";
+import { getDeveloperAccessibleProjectIds } from "../projects-old/_project-access";
 import DashboardView from "./_components/dashboard-view";
 
 export default async function DashboardPage() {

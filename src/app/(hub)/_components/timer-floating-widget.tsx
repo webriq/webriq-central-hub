@@ -7,7 +7,7 @@ import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip
 import { useTimer } from "./timer-context";
 import { formatMMSS, formatHHMMSS } from "@/lib/timer/format";
 import { BREAK_LABELS, BREAK_ICONS, type BreakType } from "@/lib/timer/constants";
-import { decodeHtmlEntities } from "@/app/(hub)/projects/_pm-shared";
+import { decodeHtmlEntities } from "@/app/(hub)/projects-old/_pm-shared";
 
 const BREAK_META: Record<BreakType, { icon: LucideIcon; label: string; tooltip: string }> = {
   meal: { icon: BREAK_ICONS.meal, label: "60 mins", tooltip: "Meal Break for 60 mins" },

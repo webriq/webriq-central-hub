@@ -97,7 +97,7 @@ export async function PATCH(
             type: "deliverable_complete",
             title: "Deliverable complete",
             body: `${actorName} marked "${deliverableConfig?.name ?? internalConfig.subPhaseKey}" done — Phase 1${project?.name ? ` · ${project.name}` : ""}.`,
-            url: project?.project_id ? `/portfolio-tracker/${project.project_id}` : undefined,
+            url: project?.project_id ? `/projects/v2/${project.project_id}` : undefined,
             actorId: user.id,
           });
         }
