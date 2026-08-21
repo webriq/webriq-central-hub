@@ -9,8 +9,10 @@ export type MembershipRole = "admin" | "hr" | "pm" | "developer" | "client" | "s
 const ALWAYS_ALLOWED_ROLES: MembershipRole[] = ["admin", "super_admin"];
 
 // Roles the two gates actually apply to — everyone else (developer/hr/client) is untouched by
-// this task, per the user's confirmed scope.
-const GATED_ROLES: MembershipRole[] = ["marketing", "pm"];
+// this task, per the user's confirmed scope. pm was removed from this list (task 291): PMs get
+// full unrestricted view/manage access to every project regardless of ownership or explicit
+// membership, the same standing as admin/super_admin — only marketing stays membership-gated.
+const GATED_ROLES: MembershipRole[] = ["marketing"];
 
 export function isRoleExemptFromMembership(role: string | null): boolean {
   return !!role && (ALWAYS_ALLOWED_ROLES as string[]).includes(role);

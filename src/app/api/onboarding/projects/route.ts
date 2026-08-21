@@ -74,11 +74,12 @@ export async function GET() {
       return NextResponse.json({ error: "Failed to fetch onboarding projects" }, { status: 500 });
     }
 
-    // Task 153: marketing/pm only see projects they're a member of. A project with zero
+    // Task 153: marketing only sees projects they're a member of. A project with zero
     // project_members rows is unrestricted (backward compatibility for already in-progress
     // projects that predate this feature) — see task 153 doc. admin/super_admin/developer/hr
     // are untouched, matching the confirmed scope (developer/hr's list access isn't part of
-    // this task; they already reach this point via STAFF_ROLES above, unfiltered).
+    // this task; they already reach this point via STAFF_ROLES above, unfiltered). pm was
+    // exempted from this gate in task 291 — full unrestricted access, matching admin/super_admin.
     let projects = rawProjects ?? [];
     if (isRoleGatedByMembership(profile.role)) {
       const allProjectIds = projects.map((p) => p.id);

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useMemo, useEffect } from "react";
+import Link from "next/link";
 import { Users, SearchX, Check, X, Trash2, Bug, Plus } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -166,7 +167,7 @@ function IssueAssigneePicker({
 
 export default function IssueListView({
   issues,
-  onOpen,
+  getHref,
   onUpdate,
   onBulkDelete,
   currentUserId,
@@ -180,7 +181,9 @@ export default function IssueListView({
   onCreateNew,
 }: {
   issues: Issue[];
-  onOpen: (issue: Issue) => void;
+  // Task 290 — a real `<Link>` (not a button + router.push) so users can middle-click /
+  // Cmd-click a row to open the issue in a new tab.
+  getHref: (issue: Issue) => string;
   onUpdate: (id: string, patch: Partial<Issue>) => Promise<boolean>;
   onBulkDelete: (ids: string[]) => Promise<void>;
   currentUserId: string;
@@ -413,11 +416,11 @@ export default function IssueListView({
                   </Tooltip>
                 )}
 
-                <button onClick={() => onOpen(issue)} className="text-left min-w-0 cursor-pointer group">
+                <Link href={getHref(issue)} className="text-left min-w-0 cursor-pointer group">
                   <span className="text-[13px] text-[#3A4565] truncate block group-hover:text-[#007BFF] transition-colors font-medium">
                     {decodeHtmlEntities(issue.title)}
                   </span>
-                </button>
+                </Link>
 
                 <select
                   value={norm}

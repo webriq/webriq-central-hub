@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useState, useMemo, useEffect, useRef } from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { ChevronDown, ChevronRight, Users, X, Clock, SearchX, Trash2, ClipboardList, Plus } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
@@ -205,7 +206,7 @@ function AssigneePicker({
 export default function ListView({
   tasks,
   tasklists,
-  onOpen,
+  getHref,
   onUpdate,
   onBulkDelete,
   currentUserId,
@@ -226,7 +227,9 @@ export default function ListView({
 }: {
   tasks: Task[];
   tasklists: Tasklist[];
-  onOpen: (task: Task) => void;
+  // Task 290 — a real `<Link>` (not a button + router.push) so users can middle-click /
+  // Cmd-click a row to open the task in a new tab.
+  getHref: (task: Task) => string;
   onUpdate: (id: string, patch: Partial<Task>) => Promise<boolean>;
   onBulkDelete: (ids: string[]) => Promise<void>;
   currentUserId: string;
@@ -453,7 +456,7 @@ export default function ListView({
             onToggleExpand={() => toggleExpand(t.id)}
             selected={selected.has(t.id)}
             onToggle={() => toggleRow(t.id)}
-            onOpen={() => onOpen(t)}
+            href={getHref(t)}
             onUpdate={onUpdate}
             currentUserId={currentUserId}
             currentUserRole={currentUserRole}
@@ -612,14 +615,14 @@ function SortHeader({
 // ─── Row ──────────────────────────────────────────────────────────────────────
 
 function Row({
-  task, selected, onToggle, onOpen, onUpdate,
+  task, selected, onToggle, href, onUpdate,
   currentUserId, currentUserRole, profilesById, allMembers, hoursById, onHoursLogged, gridClass,
   depth, childrenCount, isExpanded, onToggleExpand,
 }: {
   task: Task;
   selected: boolean;
   onToggle: () => void;
-  onOpen: () => void;
+  href: string;
   onUpdate: (id: string, patch: Partial<Task>) => Promise<boolean>;
   currentUserId: string;
   currentUserRole: string | null;
@@ -690,11 +693,11 @@ function Row({
         ) : (
           <span className="w-5 h-5 shrink-0" />
         )}
-        <button onClick={onOpen} className="text-left min-w-0 cursor-pointer group flex-1">
+        <Link href={href} className="text-left min-w-0 cursor-pointer group flex-1">
           <span className="text-[13px] text-[#3A4565] truncate block group-hover:text-[#007BFF] transition-colors font-medium">
             {decodeHtmlEntities(task.title)}
           </span>
-        </button>
+        </Link>
         {childrenCount > 0 && !isExpanded && (
           <span className="text-[10px] font-semibold text-[#5F6A88] bg-[#EDF0F7] rounded-full px-1.5 py-0.5 leading-none shrink-0 tabular-nums">
             {childrenCount}

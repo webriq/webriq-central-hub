@@ -67,9 +67,11 @@ export async function loadOnboardingProjectsList(
   const { data: nullClassificationProducts } = await supabase.from("customer_products").select("id").is("classification", null);
   const nullClassificationProductIds = (nullClassificationProducts ?? []).map((r) => r.id);
 
-  // Task 153: marketing/pm only see projects they're a member of; a project with zero
+  // Task 153: marketing only sees projects they're a member of; a project with zero
   // project_members rows is unrestricted (backward compatibility for already in-progress
   // projects that predate this feature) — mirrors GET /api/onboarding/projects exactly.
+  // pm was exempted from this gate entirely in task 291 (isRoleGatedByMembership no longer
+  // includes "pm") — full unrestricted access, matching admin/super_admin.
   // project_members is small (bounded by onboarding project count x ~1-3 members each), unlike
   // the tasks/issues tables this task's fixes target, so an unscoped read here isn't the kind of
   // full-table fetch this task eliminates elsewhere — the untouched GET route has this same

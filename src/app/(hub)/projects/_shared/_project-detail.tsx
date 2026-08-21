@@ -531,7 +531,7 @@ export default function ProjectDetail({
                 <ListView
                   tasks={filteredTasks}
                   tasklists={tasklists}
-                  onOpen={(task) => router.push(`${basePath}/tasks/${task.display_id}`)}
+                  getHref={(task) => `${basePath}/tasks/${task.display_id}`}
                   onUpdate={updateTask}
                   onBulkDelete={bulkDeleteTasks}
                   currentUserId={currentUserId}
@@ -632,7 +632,7 @@ export default function ProjectDetail({
               {issueView === "list" && (
                 <IssueListView
                   issues={filteredIssues}
-                  onOpen={(issue) => router.push(`${basePath}/issues/${issue.display_id}`)}
+                  getHref={(issue) => `${basePath}/issues/${issue.display_id}`}
                   onUpdate={updateIssue}
                   onBulkDelete={bulkDeleteIssues}
                   currentUserId={currentUserId}

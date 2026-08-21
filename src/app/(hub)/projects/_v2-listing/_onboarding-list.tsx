@@ -140,11 +140,12 @@ export default function V2ProjectsListing({
     || statusSelected.length !== STATUS_OPTIONS.length
     || classificationSelected.length !== CLASSIFICATION_OPTIONS.length;
 
-  const roleEditable = role === "marketing" || role === "admin" || role === "super_admin";
-  // A gated role (pm/marketing) that's a project/Phase-1 member (item.members, task 154's
-  // deduped union) can open that specific project even without a role-wide editable grant —
-  // mirrors the detail route's own DETAIL_ROLES + membership gate (_load-detail-data.ts), which
-  // this list previously didn't account for at all (editable was role-only).
+  const roleEditable = role === "marketing" || role === "admin" || role === "super_admin" || role === "pm";
+  // A gated role (marketing, as of task 291 — pm moved into roleEditable above) that's a
+  // project/Phase-1 member (item.members, task 154's deduped union) can open that specific
+  // project even without a role-wide editable grant — mirrors the detail route's own
+  // DETAIL_ROLES + membership gate (_load-detail-data.ts), which this list previously didn't
+  // account for at all (editable was role-only).
   const canOpenProject = (item: OnboardingProjectListItem) =>
     roleEditable
     // Task 284 — developer: the listing query already restricts rows to projects the developer
@@ -153,9 +154,10 @@ export default function V2ProjectsListing({
     // can't express the "assigned task" half of that rule client-side.
     || role === "developer"
     || (isRoleGatedByMembership(role) && !!currentUserId && item.members.some((m) => m.id === currentUserId));
-  // Task 233 — a separate capability from roleEditable above (different role set: pm can delete
-  // but isn't roleEditable; marketing is roleEditable but must not see Delete) and independent of
-  // project membership — deletion is a role capability, not a membership one.
+  // Task 233 — a separate capability from roleEditable above (different role set: marketing is
+  // roleEditable but must not see Delete) and independent of project membership — deletion is a
+  // role capability, not a membership one. pm is in both sets as of task 291 (pm is no longer
+  // membership-gated, so it was added to roleEditable too), which is incidental, not a rule.
   const canDeleteProjects = role === "admin" || role === "pm" || role === "super_admin";
 
   return (
