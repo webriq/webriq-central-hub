@@ -5,21 +5,35 @@ import { Loader2, X, Info } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { SearchableSelect } from "./_searchable-select";
 import { DateFieldPicker } from "./_date-field-picker";
-import { TimeFieldPicker } from "./_time-field-picker";
+import { NativeTimeInput, DurationInput } from "./_native-time-input";
 import { TaskIssuePicker, type TaskIssueValue } from "./_task-issue-picker";
 import { TimeLogNotesEditor } from "./_time-log-notes-editor";
-import { getRecentProjectIds, pushRecentProjectId, toISODate, nowHHmm, combineDateTime, isoToHHmm } from "./_time-logs-shared";
+import { formatHoursAsHHMM } from "@/lib/timer/format";
+import {
+  getRecentProjectIds, pushRecentProjectId, toISODate, nowHHmm, combineDateTime, isoToHHmm, parseHHMMToHours,
+} from "./_time-logs-shared";
 import type { ProjectOption, TimeLogEntry } from "./_time-logs-shared";
 
-// Add/Edit modal for the dedicated Time Logs page (task 226). Task 230 reworks this into a
+// Add/Edit modal for the dedicated Time Logs page (task 226). Task 230 reworked this into a
 // guided flow: Add mode hides everything but Project until one is picked (Requirement 3); the
 // Task field is now the tabbed Tasks/Issues/General-Log picker (Requirements 5/6); Notes is a
 // rich text field (Requirement 7); every required field is validated inline (Requirements 8/9);
 // Date/Time labels carry a helper tooltip (Requirement 10); future times are disabled alongside
 // the existing future-date guard (Requirement 11); and Edit mode now supports reassigning the
-// entry's task/issue/general-log, backed by the new unified, non-nested
-// `POST /api/v2/time-logs` / `PATCH /api/v2/time-logs/[id]` routes (Requirement 12) — Project
-// itself stays read-only in Edit mode (task doc Assumption 7's read of the user's request).
+// entry's task/issue/general-log, backed by the unified, non-nested
+// `POST /api/v2/time-logs` / `PATCH /api/v2/time-logs/[id]` routes (Requirement 12).
+//
+// Task 292 — Start Time/End Time switched from the custom Tile-grid `TimeFieldPicker` to native
+// `<input type="time">` (`_native-time-input.tsx`); added a Period ⇄ Duration toggle mirroring
+// `TaskIssuePicker`'s own General Log toggle, letting a manual entry be logged as elapsed `hh:mm`
+// instead of a start/end pair; validation errors now show live per-field (on blur), not only after
+// a failed submit; and Add/Save is gated on full validity (`isValid`) rather than "every required
+// field has some value" (`requiredFilled`, this file's previous task-230 design — see the removed
+// comment this replaces).
+
+type TimeMode = "period" | "duration";
+type TouchedField = "project" | "picker" | "date" | "startTime" | "endTime" | "duration";
+
 function initialPickerValue(initial: TimeLogEntry | undefined): TaskIssueValue | null {
   if (!initial) return null;
   if (initial.entry_kind === "task" && initial.task_id) {
@@ -29,6 +43,12 @@ function initialPickerValue(initial: TimeLogEntry | undefined): TaskIssueValue |
     return { kind: "issue", id: initial.issue_id, label: initial.log_title, displayId: initial.issue_display_id };
   }
   return { kind: "general", text: initial.note ?? "" };
+}
+
+// An entry with no start_time/end_time was created in Duration mode (task 292) — reopen it the
+// same way rather than defaulting back to Period with two empty time fields.
+function initialTimeMode(initial: TimeLogEntry | undefined): TimeMode {
+  return initial && !initial.start_time && !initial.end_time ? "duration" : "period";
 }
 
 function FieldLabel({ children, required, hint }: { children: React.ReactNode; required?: boolean; hint?: string }) {
@@ -69,18 +89,33 @@ export function TimeLogEntryModal({
   const [projectPublicId, setProjectPublicId] = useState(initial?.project_public_id ?? "");
   const [pickerValue, setPickerValue] = useState<TaskIssueValue | null>(() => initialPickerValue(initial));
 
+  const [timeMode, setTimeMode] = useState<TimeMode>(() => initialTimeMode(initial));
   const [date, setDate] = useState(initial?.date_logged ?? toISODate(new Date()));
   const [startTime, setStartTime] = useState(isoToHHmm(initial?.start_time ?? null));
   const [endTime, setEndTime] = useState(isoToHHmm(initial?.end_time ?? null));
+  const [duration, setDuration] = useState(() =>
+    initial && initialTimeMode(initial) === "duration" ? formatHoursAsHHMM(initial.hours) : ""
+  );
   const [notesHtml, setNotesHtml] = useState(initial && initial.entry_kind !== "general" ? initial.note ?? "" : "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // Requirement 9 disables Add/Save until every required field has *some* value (`requiredFilled`
-  // below) — deliberately not full validity: a semantic problem like "end time before start time"
-  // only gets flagged once the user actually tries to save (`submitAttempted`), not the instant
-  // they've picked a Start/End combination that happens to be invalid mid-edit. Showing that error
-  // live, before any save attempt, read as the form complaining prematurely.
+
+  // Task 292 — per-field "has this been interacted with" tracking, so a field's own error shows
+  // as soon as the user leaves it (blur), not only after a failed submit attempt. Monotonic (once
+  // touched, stays touched) and set via each field's wrapping `<div onBlur>` — `onBlur` bubbles
+  // from any focusable descendant, so this needs no changes to the field components themselves,
+  // including the portaled popovers (SearchableSelect/TaskIssuePicker/DateFieldPicker), where a
+  // click on a portaled option still fires focusout on the way there.
+  const [touched, setTouched] = useState<Partial<Record<TouchedField, boolean>>>({});
   const [submitAttempted, setSubmitAttempted] = useState(false);
+
+  function markTouched(field: TouchedField) {
+    setTouched((prev) => (prev[field] ? prev : { ...prev, [field]: true }));
+  }
+
+  function shows(field: TouchedField): boolean {
+    return !!touched[field] || submitAttempted;
+  }
 
   useEffect(() => {
     if (initial) return; // Edit mode's project is fixed — no project-list fetch needed
@@ -97,15 +132,9 @@ export function TimeLogEntryModal({
   }
 
   const isToday = date === toISODate(new Date());
-  const maxTime = isToday ? nowHHmm() : undefined;
+  const nowTime = nowHHmm();
 
-  const requiredFilled =
-    (!!initial || !!projectPublicId) &&
-    !!pickerValue &&
-    (pickerValue.kind !== "general" || !!pickerValue.text.trim()) &&
-    !!date && !!startTime && !!endTime;
-
-  const errors: { project?: string; picker?: string; date?: string; startTime?: string; endTime?: string } = {};
+  const errors: { project?: string; picker?: string; date?: string; startTime?: string; endTime?: string; duration?: string } = {};
   if (!initial && !projectPublicId) errors.project = "Project is required.";
   if (!pickerValue) {
     errors.picker = "Select a task or issue, or enter a general log.";
@@ -113,17 +142,26 @@ export function TimeLogEntryModal({
     errors.picker = "A description is required for a General Log entry.";
   }
   if (!date) errors.date = "Date is required.";
-  if (!startTime) errors.startTime = "Start time is required.";
-  if (!endTime) errors.endTime = "End time is required.";
-  if (date && startTime && endTime) {
-    const startIso = combineDateTime(date, startTime);
-    const endIso = combineDateTime(date, endTime);
-    if (new Date(endIso).getTime() <= new Date(startIso).getTime()) {
-      errors.endTime = "End time must be after start time.";
+
+  if (timeMode === "period") {
+    if (!startTime) errors.startTime = "Start time is required.";
+    else if (isToday && startTime > nowTime) errors.startTime = "Time logging is not allowed for future times.";
+    if (!endTime) errors.endTime = "End time is required.";
+    else if (isToday && endTime > nowTime) errors.endTime = "Time logging is not allowed for future times.";
+    if (!errors.startTime && !errors.endTime && date && startTime && endTime) {
+      const startIso = combineDateTime(date, startTime);
+      const endIso = combineDateTime(date, endTime);
+      if (new Date(endIso).getTime() <= new Date(startIso).getTime()) {
+        errors.endTime = "End time must be after start time.";
+      }
     }
+  } else {
+    const durationHours = parseHHMMToHours(duration);
+    if (!duration) errors.duration = "Duration is required.";
+    else if (durationHours === null || durationHours <= 0) errors.duration = "Enter a valid duration greater than 00:00.";
+    else if (durationHours > 24) errors.duration = "Duration cannot exceed 24 hours.";
   }
   const isValid = Object.keys(errors).length === 0;
-  const showErrors = submitAttempted;
 
   async function handleSave() {
     setSubmitAttempted(true);
@@ -132,8 +170,9 @@ export function TimeLogEntryModal({
     setSaving(true);
     setError(null);
 
-    const startIso = combineDateTime(date, startTime);
-    const endIso = combineDateTime(date, endTime);
+    const startIso = timeMode === "period" ? combineDateTime(date, startTime) : null;
+    const endIso = timeMode === "period" ? combineDateTime(date, endTime) : null;
+    const durationHours = timeMode === "duration" ? parseHHMMToHours(duration) : null;
     const noteToSend = pickerValue.kind === "general" ? pickerValue.text.trim() : notesHtml || null;
     const selectedProject = projects.find((p) => p.project_id === projectPublicId);
 
@@ -142,8 +181,7 @@ export function TimeLogEntryModal({
       task_id: pickerValue.kind === "task" ? pickerValue.id : null,
       issue_id: pickerValue.kind === "issue" ? pickerValue.id : null,
       date_logged: date,
-      start_time: startIso,
-      end_time: endIso,
+      ...(timeMode === "period" ? { start_time: startIso, end_time: endIso } : { duration_hours: durationHours }),
       note: noteToSend,
     };
 
@@ -211,7 +249,7 @@ export function TimeLogEntryModal({
             </div>
           </div>
         ) : (
-          <div>
+          <div onBlur={() => markTouched("project")}>
             <FieldLabel required>Project</FieldLabel>
             <SearchableSelect
               value={projectPublicId}
@@ -222,13 +260,13 @@ export function TimeLogEntryModal({
               recentValues={getRecentProjectIds(currentUserId)}
               fullWidth
             />
-            <FieldError message={showErrors ? errors.project : undefined} />
+            <FieldError message={shows("project") ? errors.project : undefined} />
           </div>
         )}
 
         {showRestOfForm && (
           <>
-            <div>
+            <div onBlur={() => markTouched("picker")}>
               <FieldLabel required>Task/Issue</FieldLabel>
               <TaskIssuePicker
                 projectId={projectPublicId}
@@ -236,25 +274,49 @@ export function TimeLogEntryModal({
                 value={pickerValue}
                 onChange={setPickerValue}
               />
-              <FieldError message={showErrors ? errors.picker : undefined} />
+              <FieldError message={shows("picker") ? errors.picker : undefined} />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold uppercase tracking-wide text-[#5F6A88]">
+                {timeMode === "period" ? "Start & End Time" : "Duration"}
+              </span>
+              <button
+                type="button"
+                onClick={() => setTimeMode((m) => (m === "period" ? "duration" : "period"))}
+                className="text-[11px] font-semibold text-[#0063D6] hover:underline cursor-pointer"
+              >
+                {timeMode === "period" ? "Enter duration manually" : "Set start and end time"}
+              </button>
             </div>
 
             <div className="flex gap-2.5">
-              <div className="flex-1">
+              <div className="flex-1" onBlur={() => markTouched("date")}>
                 <FieldLabel required hint="Time logging is not allowed for future dates">Date</FieldLabel>
                 <DateFieldPicker value={date} onChange={setDate} />
-                <FieldError message={showErrors ? errors.date : undefined} />
+                <FieldError message={shows("date") ? errors.date : undefined} />
               </div>
-              <div className="flex-1">
-                <FieldLabel required hint="Time logging is not allowed for future times">Start Time</FieldLabel>
-                <TimeFieldPicker value={startTime} onChange={setStartTime} maxTime={maxTime} />
-                <FieldError message={showErrors ? errors.startTime : undefined} />
-              </div>
-              <div className="flex-1">
-                <FieldLabel required hint="Time logging is not allowed for future times">End Time</FieldLabel>
-                <TimeFieldPicker value={endTime} onChange={setEndTime} maxTime={maxTime} />
-                <FieldError message={showErrors ? errors.endTime : undefined} />
-              </div>
+
+              {timeMode === "period" ? (
+                <>
+                  <div className="flex-1" onBlur={() => markTouched("startTime")}>
+                    <FieldLabel required hint="Time logging is not allowed for future times">Start Time</FieldLabel>
+                    <NativeTimeInput value={startTime} onChange={setStartTime} />
+                    <FieldError message={shows("startTime") ? errors.startTime : undefined} />
+                  </div>
+                  <div className="flex-1" onBlur={() => markTouched("endTime")}>
+                    <FieldLabel required hint="Time logging is not allowed for future times">End Time</FieldLabel>
+                    <NativeTimeInput value={endTime} onChange={setEndTime} />
+                    <FieldError message={shows("endTime") ? errors.endTime : undefined} />
+                  </div>
+                </>
+              ) : (
+                <div className="flex-1" onBlur={() => markTouched("duration")}>
+                  <FieldLabel required hint="Enter the total time worked, e.g. 01:30 for 1 hour 30 minutes">Duration</FieldLabel>
+                  <DurationInput value={duration} onChange={setDuration} placeholder="00:00" />
+                  <FieldError message={shows("duration") ? errors.duration : undefined} />
+                </div>
+              )}
             </div>
 
             {pickerValue?.kind !== "general" && (
@@ -279,7 +341,7 @@ export function TimeLogEntryModal({
           <button
             type="button"
             onClick={() => void handleSave()}
-            disabled={saving || !requiredFilled}
+            disabled={saving || !isValid}
             className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#FB914E] text-[#471F02] text-[12px] font-semibold hover:bg-[#E2762F] hover:text-white disabled:opacity-45 disabled:cursor-not-allowed cursor-pointer transition-colors"
           >
             {saving ? <Loader2 size={13} className="animate-spin" /> : null}

@@ -98,8 +98,8 @@ export async function loadLegacyProjectsList(params: LegacyListParams): Promise<
       ? `customer_id.in.(${searchCustomerIds.join(",")})`
       : "";
     const orFilter = customerIdFilter
-      ? `name.ilike.%${params.search}%,${customerIdFilter}`
-      : `name.ilike.%${params.search}%`;
+      ? `name.ilike.%${params.search}%,project_id.ilike.%${params.search}%,${customerIdFilter}`
+      : `name.ilike.%${params.search}%,project_id.ilike.%${params.search}%`;
     projectsQuery = projectsQuery.or(orFilter);
   }
 

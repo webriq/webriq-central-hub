@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { Search } from "lucide-react";
+import { decodeHtmlEntities } from "@/app/(hub)/projects-old/_pm-shared";
 import { cn } from "@/lib/utils";
 import { usePopoverPosition, POPOVER_ROOT_ATTR } from "./_use-popover-position";
 
@@ -191,7 +192,7 @@ export function TaskIssuePicker({
 
   const selKind = selectedKind(value);
   const selId = selectedId(value);
-  const selectedLabel = value && value.kind !== "general" ? value.label : "";
+  const selectedLabel = value && value.kind !== "general" ? decodeHtmlEntities(value.label) : "";
 
   return (
     <div className="flex flex-col gap-1">
@@ -267,7 +268,7 @@ export function TaskIssuePicker({
                       isSelected ? "bg-[#F0F7FF] font-medium text-[#0B1533]" : "text-[#3A4565]"
                     )}
                   >
-                    {item.title}
+                    {decodeHtmlEntities(item.title)}
                   </button>
                 );
               })

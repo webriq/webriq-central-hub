@@ -91,10 +91,10 @@ export default function TaskDetailClient({
     ? STATUS_OPTS
     : Array.from(new Set([task.status as TaskStatus, ...perm.allowedStatusValues]));
 
-  // Task 218 — mirrors the list view's `TaskTimerButton` gate (`_list-view.tsx:569,662`):
-  // only the task's assignee sees the timer control. `TimerProvider` only mounts for the
-  // developer role (`v2-hub-shell.tsx`), and only developers are ever assignees, so this
-  // assignment check is what keeps `useTimer()` from being called without a provider.
+  // Task 218 — mirrors the list view's `TaskTimerButton` gate (`_list-view.tsx:645,755`):
+  // only the task's assignee sees the timer control. `TimerProvider` mounts hub-wide for every
+  // role (task 293), so this is purely an assignment-based authorization gate, not a provider
+  // safety check.
   const isAssignedToMe = task.assignees?.includes(currentUserId) ?? false;
 
   // Editable text fields

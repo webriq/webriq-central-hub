@@ -138,7 +138,7 @@ export async function loadOnboardingProjectsList(
       .ilike("company_name", `%${params.search}%`);
     const customerIds = (matchedCustomers ?? []).map((c) => c.customer_id);
     const customerIdFilter = customerIds.length > 0 ? `,customer_id.in.(${customerIds.join(",")})` : "";
-    query = query.or(`name.ilike.%${params.search}%${customerIdFilter}`);
+    query = query.or(`name.ilike.%${params.search}%,project_id.ilike.%${params.search}%${customerIdFilter}`);
   }
   if (excludedProjectIds.length > 0) {
     query = query.not("id", "in", `(${excludedProjectIds.join(",")})`);

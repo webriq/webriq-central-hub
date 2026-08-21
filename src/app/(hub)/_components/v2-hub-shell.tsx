@@ -64,10 +64,8 @@ export default function V2HubShell({ userRole, displayName, avatarUrl, children 
     </div>
   );
 
-  // Task 209 — timer + break widget is developer-only; TimerProvider only mounts (and only
-  // starts polling active_timers) for that role.
-  if (userRole !== "developer") return shell;
-
+  // Task 209 introduced timer + break tracking as developer-only. Task 293 opened it to every
+  // role — TimerProvider now always mounts (and always polls active_timers) hub-wide.
   return (
     <TimerProvider>
       {shell}

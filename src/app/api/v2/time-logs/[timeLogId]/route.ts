@@ -50,6 +50,9 @@ export async function PATCH(
   const startTime = typeof body.start_time === "string" ? body.start_time : "";
   const endTime = typeof body.end_time === "string" ? body.end_time : "";
   const note = typeof body.note === "string" && body.note.trim() ? body.note.trim() : null;
+  // Task 292 — mirrors POST /api/v2/time-logs's duration_hours branch (Add/Edit modal's Duration
+  // toggle); see that route for the full rationale.
+  const durationHours = typeof body.duration_hours === "number" && Number.isFinite(body.duration_hours) ? body.duration_hours : null;
 
   if (taskId && issueId) {
     return NextResponse.json({ error: "An entry can be linked to a task or an issue, not both" }, { status: 400 });
@@ -57,8 +60,11 @@ export async function PATCH(
   if (!taskId && !issueId && !note) {
     return NextResponse.json({ error: "A General Log entry requires a description" }, { status: 400 });
   }
-  if (!dateLogged || !startTime || !endTime) {
-    return NextResponse.json({ error: "date_logged, start_time, and end_time are required" }, { status: 400 });
+  if (!dateLogged) {
+    return NextResponse.json({ error: "date_logged is required" }, { status: 400 });
+  }
+  if (durationHours === null && (!startTime || !endTime)) {
+    return NextResponse.json({ error: "start_time and end_time (or duration_hours) are required" }, { status: 400 });
   }
 
   if (taskId) {
@@ -72,17 +78,20 @@ export async function PATCH(
     if (!issue) return NextResponse.json({ error: "Issue not found" }, { status: 404 });
   }
 
-  const hours = (new Date(endTime).getTime() - new Date(startTime).getTime()) / 3_600_000;
+  const hours = durationHours !== null ? durationHours : (new Date(endTime).getTime() - new Date(startTime).getTime()) / 3_600_000;
   if (!(hours > 0) || hours > 24) {
-    return NextResponse.json({ error: "End time must be after start time, and no more than 24 hours later" }, { status: 400 });
+    return NextResponse.json(
+      { error: durationHours !== null ? "Duration must be more than 0 and no more than 24 hours" : "End time must be after start time, and no more than 24 hours later" },
+      { status: 400 }
+    );
   }
 
   const patch = {
     task_id: taskId,
     issue_id: issueId,
     date_logged: dateLogged,
-    start_time: startTime,
-    end_time: endTime,
+    start_time: durationHours !== null ? null : startTime,
+    end_time: durationHours !== null ? null : endTime,
     hours,
     note,
   };

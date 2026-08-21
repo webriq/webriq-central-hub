@@ -87,7 +87,14 @@ export function DateFieldPicker({
           ref={panelRef}
           {...{ [POPOVER_ROOT_ATTR]: true }}
           style={{ position: "fixed", top: pos.top, bottom: pos.bottom, left: pos.left }}
-          className="z-50 rounded-[14px] border border-[#E2E7F2] bg-white shadow-[0_8px_24px_rgba(7,17,51,0.10)] p-4"
+          // Explicit width — without it this was the only floating panel in this directory
+          // relying on shrink-to-fit for a `position: fixed`, portaled box, which left a large
+          // empty gutter to the right of the day grid (task 292). Every sibling popover already
+          // sets an explicit width (`_time-field-picker.tsx`'s `w-[220px]`,
+          // `_time-period-inline-editor.tsx`'s `w-[300px]`) or passes `pos.width`
+          // (`_task-issue-picker.tsx`) — this matches that pattern instead. 296px = 7 × 36px
+          // (`w-9`) day cells + 32px (`p-4`) horizontal padding + border.
+          className="z-50 w-[296px] rounded-[14px] border border-[#E2E7F2] bg-white shadow-[0_8px_24px_rgba(7,17,51,0.10)] p-4"
         >
           <DayPanel
             draft={selectedDate}

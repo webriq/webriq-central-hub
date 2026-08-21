@@ -76,6 +76,18 @@ export function isoToHHmm(iso: string | null): string {
   return `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`;
 }
 
+// Task 292 — counterpart to `formatHoursAsHHMM` (`@/lib/timer/format`), parses the manual
+// Duration field's "hh:mm" string back into decimal hours for the API payload. Returns null for
+// an empty/malformed value so callers can treat that as "not yet a valid duration."
+export function parseHHMMToHours(value: string): number | null {
+  const match = /^(\d{1,2}):(\d{2})$/.exec(value);
+  if (!match) return null;
+  const hh = Number(match[1]);
+  const mm = Number(match[2]);
+  if (mm > 59) return null;
+  return hh + mm / 60;
+}
+
 export function startOfWeekMonday(d: Date): Date {
   const day = d.getDay(); // 0 = Sun .. 6 = Sat
   const diff = day === 0 ? -6 : 1 - day;

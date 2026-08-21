@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ChevronDown, Clock, ExternalLink, MessageSquare, Pencil, Plus, Trash2 } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Avatar } from "../_components/dashboard-shared";
+import { decodeHtmlEntities } from "@/app/(hub)/projects-old/_pm-shared";
 import { cn, formatDate } from "@/lib/utils";
 import { formatHoursAsHHMM, formatClockTime } from "@/lib/timer/format";
 import { groupByEmployee, sumHours, toISODate, nowHHmm, combineDateTime, isoToHHmm, type TimeLogEntry } from "./_time-logs-shared";
@@ -270,7 +271,7 @@ function EntryRow({
                 entry.can_edit ? "cursor-pointer hover:text-[#007BFF]" : "cursor-default"
               )}
             >
-              <span className="truncate max-w-[220px] block">{entry.log_title}</span>
+              <span className="truncate max-w-[220px] block">{decodeHtmlEntities(entry.log_title)}</span>
             </button>
             {href && (
               // Sibling to the edit trigger, not nested inside it — a `<button>` cannot contain
