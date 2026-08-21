@@ -28,6 +28,7 @@ export type ProjectListItem = {
   end_date: string | null;
   tags: string[];
   owner_name: string | null;
+  owner_avatar_url: string | null;
   task_total: number;
   task_done: number;
   issue_total: number;
@@ -39,7 +40,7 @@ export type ProjectListItem = {
   // existing type filter) — do not conflate the two.
   productClassification: string | null;
   hasProduct: boolean;
-  members: { id: string; full_name: string | null }[];
+  members: { id: string; full_name: string | null; avatar_url: string | null }[];
   canManageCollaborators: boolean;
   canSetOwner: boolean;
 };

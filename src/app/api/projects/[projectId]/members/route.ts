@@ -44,7 +44,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     // (see comment above), this only bypasses the embedded profiles table's stricter RLS.
     const { data, error } = await adminClient
       .from("project_members")
-      .select("id, user_id, is_owner, added_by, created_at, profiles!project_members_user_id_fkey(full_name, role)")
+      .select("id, user_id, is_owner, added_by, created_at, profiles!project_members_user_id_fkey(full_name, role, avatar_url)")
       .eq("project_id", projectId)
       .order("is_owner", { ascending: false })
       .order("created_at", { ascending: true });

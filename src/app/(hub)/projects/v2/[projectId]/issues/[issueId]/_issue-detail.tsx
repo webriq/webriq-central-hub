@@ -14,6 +14,8 @@ import { IssueAttachmentsCommentsPanel } from "./_issue-attachments-comments-pan
 import { IssueQuickAccessPanel, type QuickAccessTask, type QuickAccessIssue } from "./_issue-quick-access-panel";
 import { getIssueEditPermission } from "@/lib/issues/permissions";
 import { TaskTimerButton } from "@/app/(hub)/projects/_shared/_task-timer-button";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 const STATUS_OPTS = [
   "open", "in_progress", "ready_for_qa", "testing_completed",
@@ -66,9 +68,12 @@ export default function IssueDetailClient({
   // timer access. Neither: fully read-only. Mirrors getTaskEditPermission's shape but is its own
   // function — see src/lib/issues/permissions.ts for why.
   const perm = getIssueEditPermission(currentUserRole, currentUserId, issue);
-  // Delete stays PM/Admin/super_admin-only regardless of the creator edit tier (Decision 4) —
-  // issues_pm_write RLS grants no developer delete policy, even for a creator.
-  const canDelete = currentUserRole === "admin" || currentUserRole === "pm" || currentUserRole === "super_admin";
+  // Task 285 — delete now follows the same tier as every other field (`canEditDetails`): the
+  // creator-developer or admin/pm/super_admin. Previously hardcoded to admin/pm/super_admin-only
+  // (Decision 4, task 234) because issues_pm_write RLS granted no developer delete policy at
+  // all, even for a creator — migration 111 (task 285) added `issues_developer_delete`, scoped
+  // to `created_by = auth.uid()`, closing that gap.
+  const canDelete = perm.canEditDetails;
 
   const [title, setTitle] = useState(() => decodeHtmlEntities(issue.title));
   const [description, setDescription] = useState(issue.description ?? "");
@@ -77,6 +82,8 @@ export default function IssueDetailClient({
   const [assigneeId, setAssigneeId] = useState<string>(issue.assignee_id ?? "");
   const [dueDate, setDueDate] = useState(issue.due_date ?? "");
   const [deleting, setDeleting] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // Task 237 — bumped whenever the header timer button logs an entry, so the Time Logs tab
   // (which fetches its own data on mount and has no other refresh hook) picks it up live.
@@ -126,9 +133,14 @@ export default function IssueDetailClient({
   }
 
   async function handleDelete() {
-    if (!confirm("Delete this issue? This cannot be undone.")) return;
+    setConfirmOpen(false);
     setDeleting(true);
-    await fetch(`/api/v2/issues/${issue.id}`, { method: "DELETE" });
+    const res = await fetch(`/api/v2/issues/${issue.id}`, { method: "DELETE" });
+    if (!res.ok) {
+      setDeleting(false);
+      setDeleteError("Failed to delete issue.");
+      return;
+    }
     goToIssues();
   }
 
@@ -170,18 +182,33 @@ export default function IssueDetailClient({
             />
           </div>
           {canDelete && (
-            <button
-              onClick={() => void handleDelete()}
-              disabled={deleting}
-              className="p-2 rounded-full text-[#5F6A88] hover:text-[#C0392B] hover:bg-[#FDE8E6] cursor-pointer shrink-0 mt-1 transition-colors disabled:opacity-45"
-              aria-label="Delete issue"
-              title="Delete issue"
-            >
-              {deleting ? <Loader2 size={18} className="animate-spin" /> : <Trash2 size={18} />}
-            </button>
+            <Tooltip>
+              <TooltipTrigger render={
+                <button
+                  onClick={() => setConfirmOpen(true)}
+                  disabled={deleting}
+                  className="p-2 rounded-full text-[#5F6A88] hover:text-[#C0392B] hover:bg-[#FDE8E6] cursor-pointer shrink-0 mt-1 transition-colors disabled:opacity-45"
+                  aria-label="Delete issue"
+                >
+                  {deleting ? <Loader2 size={18} className="animate-spin" /> : <Trash2 size={18} />}
+                </button>
+              } />
+              <TooltipContent side="top">Delete issue</TooltipContent>
+            </Tooltip>
           )}
         </div>
+        {deleteError && <p className="text-[11px] text-[#C0392B] mt-1">{deleteError}</p>}
       </div>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Delete this issue?"
+        body="This action is irreversible."
+        confirmLabel={deleting ? "Deleting…" : "Delete"}
+        confirmDisabled={deleting}
+        onConfirm={() => void handleDelete()}
+        onCancel={() => setConfirmOpen(false)}
+      />
 
       {/* Content */}
       <div className="bg-[#F4F6FB] flex-1 overflow-y-auto p-8">

@@ -97,7 +97,7 @@ export async function loadOnboardingDetailData(projectId: string) {
   // (PGRST201), so the FK must be named explicitly. We always want the member's own profile.
   const { data: phase1MembersRaw } = await adminClient
     .from("phase_members")
-    .select("id, user_id, is_owner, created_at, profiles!phase_members_user_id_fkey(full_name, role)")
+    .select("id, user_id, is_owner, created_at, profiles!phase_members_user_id_fkey(full_name, role, avatar_url)")
     .eq("project_id", project.id)
     .eq("phase_number", 1)
     .order("is_owner", { ascending: false })
@@ -107,8 +107,9 @@ export async function loadOnboardingDetailData(projectId: string) {
     id: m.id,
     user_id: m.user_id,
     is_owner: m.is_owner,
-    full_name: (m.profiles as unknown as { full_name: string | null; role: string } | null)?.full_name ?? null,
-    role: (m.profiles as unknown as { full_name: string | null; role: string } | null)?.role ?? null,
+    full_name: (m.profiles as unknown as { full_name: string | null; role: string; avatar_url: string | null } | null)?.full_name ?? null,
+    role: (m.profiles as unknown as { full_name: string | null; role: string; avatar_url: string | null } | null)?.role ?? null,
+    avatar_url: (m.profiles as unknown as { full_name: string | null; role: string; avatar_url: string | null } | null)?.avatar_url ?? null,
   }));
 
   // Task 155: project-level membership fetched server-side too, alongside Phase 1's — needed
@@ -119,7 +120,7 @@ export async function loadOnboardingDetailData(projectId: string) {
   // phase1Members above.
   const { data: projectMembersRaw } = await adminClient
     .from("project_members")
-    .select("id, user_id, is_owner, created_at, profiles!project_members_user_id_fkey(full_name, role)")
+    .select("id, user_id, is_owner, created_at, profiles!project_members_user_id_fkey(full_name, role, avatar_url)")
     .eq("project_id", project.id)
     .order("is_owner", { ascending: false })
     .order("created_at", { ascending: true });
@@ -128,8 +129,9 @@ export async function loadOnboardingDetailData(projectId: string) {
     id: m.id,
     user_id: m.user_id,
     is_owner: m.is_owner,
-    full_name: (m.profiles as unknown as { full_name: string | null; role: string } | null)?.full_name ?? null,
-    role: (m.profiles as unknown as { full_name: string | null; role: string } | null)?.role ?? null,
+    full_name: (m.profiles as unknown as { full_name: string | null; role: string; avatar_url: string | null } | null)?.full_name ?? null,
+    role: (m.profiles as unknown as { full_name: string | null; role: string; avatar_url: string | null } | null)?.role ?? null,
+    avatar_url: (m.profiles as unknown as { full_name: string | null; role: string; avatar_url: string | null } | null)?.avatar_url ?? null,
   }));
 
   // Task 157: "default to the creator" fallback for the owner display — covers legacy

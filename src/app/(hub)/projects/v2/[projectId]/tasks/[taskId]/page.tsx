@@ -47,7 +47,7 @@ export default async function TaskDetailPage({
   const assignees = Array.isArray(task.assignees) ? task.assignees : [];
   const { data: assigneeProfiles } =
     assignees.length > 0
-      ? await adminClient.from("profiles").select("id, full_name").in("id", assignees)
+      ? await adminClient.from("profiles").select("id, full_name, avatar_url").in("id", assignees)
       : { data: [] };
 
   return (

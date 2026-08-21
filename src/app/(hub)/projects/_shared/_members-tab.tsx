@@ -140,12 +140,17 @@ export function MembersTab({
                 <tr key={m.id} className="border-b border-[#EDF0F7] last:border-b-0 hover:bg-[#F0F7FF] transition-colors">
                   <td className="pl-[18px] px-3 py-3">
                     <div className="flex items-center gap-2.5">
-                      <div
-                        className="w-[30px] h-[30px] rounded-full flex items-center justify-center text-[11px] font-semibold text-white shrink-0"
-                        style={{ background: colorFor(m.full_name) }}
-                      >
-                        {initialsFor(m.full_name)}
-                      </div>
+                      {m.avatar_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element -- external Supabase-auth-provider avatar URL, not a static/optimizable asset
+                        <img src={m.avatar_url} alt={m.full_name ?? "Unnamed"} className="w-[30px] h-[30px] rounded-full object-cover shrink-0" />
+                      ) : (
+                        <div
+                          className="w-[30px] h-[30px] rounded-full flex items-center justify-center text-[11px] font-semibold text-white shrink-0"
+                          style={{ background: colorFor(m.full_name) }}
+                        >
+                          {initialsFor(m.full_name)}
+                        </div>
+                      )}
                       <span className="text-[13px] font-medium text-[#0B1533]">{m.full_name ?? "Unnamed"}</span>
                     </div>
                   </td>

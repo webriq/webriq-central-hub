@@ -24,6 +24,7 @@ export type TimeLogEntry = {
   end_time: string | null;
   created_at: string;
   display_name: string;
+  avatar_url: string | null;
   employee_id: string | null;
   can_edit: boolean;
 };
@@ -160,13 +161,13 @@ export function stepPeriod(p: PeriodValue, dir: 1 | -1): PeriodValue {
   }
 }
 
-export function groupByEmployee(entries: TimeLogEntry[]): { key: string; name: string; entries: TimeLogEntry[] }[] {
+export function groupByEmployee(entries: TimeLogEntry[]): { key: string; name: string; avatarUrl: string | null; entries: TimeLogEntry[] }[] {
   const order: string[] = [];
-  const map = new Map<string, { key: string; name: string; entries: TimeLogEntry[] }>();
+  const map = new Map<string, { key: string; name: string; avatarUrl: string | null; entries: TimeLogEntry[] }>();
   for (const entry of entries) {
     const key = entry.employee_id ?? entry.display_name;
     if (!map.has(key)) {
-      map.set(key, { key, name: entry.display_name, entries: [] });
+      map.set(key, { key, name: entry.display_name, avatarUrl: entry.avatar_url, entries: [] });
       order.push(key);
     }
     map.get(key)!.entries.push(entry);

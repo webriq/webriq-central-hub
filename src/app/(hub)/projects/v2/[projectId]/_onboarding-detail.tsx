@@ -29,7 +29,7 @@ import GenericPhaseView from "./_generic-phase-view";
 // Shared shape for both project_members and phase_members rows (task 155 gave both an
 // is_owner column, mirroring each other exactly). Exported: task 247's _generic-phase-view.tsx
 // (same [projectId] route, not a cross-module import) reuses this shape for its own header.
-export type MemberRow = { id: string; user_id: string; is_owner: boolean; full_name: string | null; role: string | null };
+export type MemberRow = { id: string; user_id: string; is_owner: boolean; full_name: string | null; role: string | null; avatar_url: string | null };
 
 interface OnboardingDetailProps {
   project: {
@@ -881,19 +881,24 @@ function AvatarTip({ label, children }: { label: string; children: React.ReactEl
 // forwardRef so this can be used directly as an AvatarTip/TooltipTrigger render target (Base UI
 // clones the child and attaches a ref + event handlers — a plain function component can't
 // receive either) for the single-avatar call sites (Owner row, OwnerPanel's current owner).
-export const AvatarCircle = forwardRef<HTMLDivElement, { name: string | null; size?: number; ring?: boolean } & HTMLAttributes<HTMLDivElement>>(
-  ({ name, size = 22, ring, className, style, ...props }, ref) => {
+export const AvatarCircle = forwardRef<HTMLDivElement, { name: string | null; avatarUrl?: string | null; size?: number; ring?: boolean } & HTMLAttributes<HTMLDivElement>>(
+  ({ name, avatarUrl, size = 22, ring, className, style, ...props }, ref) => {
     const initials = (name ?? "?").split(" ").filter(Boolean).map((w) => w[0]).join("").slice(0, 2).toUpperCase() || "?";
     const colors = ["#0063D6", "#6A48E0", "#0B8A93", "#B85512", "#177E48", "#44508A"];
     const bg = colors[(name ?? "?").charCodeAt(0) % colors.length];
     return (
       <div
         ref={ref}
-        className={cn("flex shrink-0 items-center justify-center rounded-full font-bold text-white", ring && "ring-2 ring-white", className)}
-        style={{ width: size, height: size, fontSize: Math.max(8, size * 0.4), background: bg, ...style }}
+        className={cn("flex shrink-0 items-center justify-center rounded-full font-bold text-white overflow-hidden", ring && "ring-2 ring-white", className)}
+        style={{ width: size, height: size, fontSize: Math.max(8, size * 0.4), background: avatarUrl ? undefined : bg, ...style }}
         {...props}
       >
-        {initials}
+        {avatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element -- external Supabase-auth-provider avatar URL, not a static/optimizable asset
+          <img src={avatarUrl} alt={name ?? "Unnamed"} className="w-full h-full object-cover" />
+        ) : (
+          initials
+        )}
       </div>
     );
   }
@@ -908,7 +913,7 @@ export function CollaboratorAvatars({ members, max = 5 }: { members: MemberRow[]
     const m = members[0];
     return (
       <AvatarTip label={m.full_name ?? "Unnamed"}>
-        <AvatarCircle name={m.full_name} size={22} ring />
+        <AvatarCircle name={m.full_name} avatarUrl={m.avatar_url} size={22} ring />
       </AvatarTip>
     );
   }
@@ -924,7 +929,7 @@ export function CollaboratorAvatars({ members, max = 5 }: { members: MemberRow[]
             whileHover={{ y: -4, zIndex: 10 }}
             transition={{ type: "spring", stiffness: 500, damping: 20 }}
           >
-            <AvatarCircle name={m.full_name} size={22} ring />
+            <AvatarCircle name={m.full_name} avatarUrl={m.avatar_url} size={22} ring />
           </motion.div>
         </AvatarTip>
       ))}
@@ -1029,9 +1034,9 @@ export default function OnboardingDetail({
     try {
       const res = await fetch(`/api/projects/${project.id}/programme/phases/1/members`);
       if (!res.ok) return;
-      const data: { id: string; user_id: string; is_owner: boolean; profiles: { full_name: string | null; role: string } | null }[] = await res.json();
+      const data: { id: string; user_id: string; is_owner: boolean; profiles: { full_name: string | null; role: string; avatar_url: string | null } | null }[] = await res.json();
       setPhase1Members(
-        data.map((m) => ({ id: m.id, user_id: m.user_id, is_owner: m.is_owner, full_name: m.profiles?.full_name ?? null, role: m.profiles?.role ?? null }))
+        data.map((m) => ({ id: m.id, user_id: m.user_id, is_owner: m.is_owner, full_name: m.profiles?.full_name ?? null, role: m.profiles?.role ?? null, avatar_url: m.profiles?.avatar_url ?? null }))
       );
     } catch { /* leave current state */ }
   };
@@ -1040,9 +1045,9 @@ export default function OnboardingDetail({
     try {
       const res = await fetch(`/api/projects/${project.id}/members`);
       if (!res.ok) return;
-      const data: { id: string; user_id: string; is_owner: boolean; profiles: { full_name: string | null; role: string } | null }[] = await res.json();
+      const data: { id: string; user_id: string; is_owner: boolean; profiles: { full_name: string | null; role: string; avatar_url: string | null } | null }[] = await res.json();
       setProjectMembers(
-        data.map((m) => ({ id: m.id, user_id: m.user_id, is_owner: m.is_owner, full_name: m.profiles?.full_name ?? null, role: m.profiles?.role ?? null }))
+        data.map((m) => ({ id: m.id, user_id: m.user_id, is_owner: m.is_owner, full_name: m.profiles?.full_name ?? null, role: m.profiles?.role ?? null, avatar_url: m.profiles?.avatar_url ?? null }))
       );
     } catch { /* leave current state */ }
   };

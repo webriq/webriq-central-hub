@@ -17,6 +17,7 @@ interface HubUser {
   role: string | null;              // hub_users.role — display string, null = unassigned
   profile_role: ProfileRole | null; // profiles.role — auth enum
   full_name: string | null;
+  avatar_url: string | null;
   status: string;
   is_invited: boolean;
   joined_at: string | null;
@@ -128,12 +129,17 @@ function UserRow({ user, idx, savingId, onRoleChange, onStatusToggle, onInvite, 
       {/* User */}
       <td className="py-3 px-4">
         <div className="flex items-center gap-3 min-w-0">
-          <div
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold text-white"
-            style={{ background: avatarColor(user.id) }}
-          >
-            {initials}
-          </div>
+          {user.avatar_url ? (
+            // eslint-disable-next-line @next/next/no-img-element -- external Supabase-auth-provider avatar URL, not a static/optimizable asset
+            <img src={user.avatar_url} alt={displayName} className="flex h-8 w-8 shrink-0 rounded-full object-cover" />
+          ) : (
+            <div
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold text-white"
+              style={{ background: avatarColor(user.id) }}
+            >
+              {initials}
+            </div>
+          )}
           <div className="min-w-0">
             <p className="text-[13px] font-semibold text-slate-900 truncate">{displayName}</p>
             <p className="text-[11px] text-slate-400 truncate">{user.email}</p>

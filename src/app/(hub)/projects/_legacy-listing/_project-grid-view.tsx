@@ -158,7 +158,7 @@ function ProjectGridCard({
         {/* Footer: avatar stack + tasks/issues progress (each its own click target — task 268) */}
         <div className="mt-auto pt-3 border-t border-[#EDF0F7] flex items-center justify-between gap-2">
           <div className="pointer-events-auto">
-            <AvatarStack members={p.members} fallbackName={p.owner_name} />
+            <AvatarStack members={p.members} fallbackName={p.owner_name} fallbackAvatarUrl={p.owner_avatar_url} />
           </div>
           <div className="pointer-events-auto flex items-center gap-3 shrink-0">
             <ProgressStat

@@ -116,7 +116,7 @@ export function ListView({
 
                   {/* Members */}
                   <td className="px-3 py-3">
-                    <AvatarStack members={p.members} fallbackName={p.owner_name} />
+                    <AvatarStack members={p.members} fallbackName={p.owner_name} fallbackAvatarUrl={p.owner_avatar_url} />
                   </td>
                 </tr>
               );

@@ -4,6 +4,7 @@ import { Fragment, useState, useMemo, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { ChevronDown, ChevronRight, Users, X, Clock, SearchX, Trash2, ClipboardList, Plus } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   type Task, type Tasklist, type TaskStatus,
   STATUS_LABEL, STATUS_STYLE, PRIORITY_STYLE,
@@ -51,18 +52,23 @@ function nameInitials(name: string | null | undefined, fallbackId: string): stri
 // ─── ResolvedAssigneeChip ─────────────────────────────────────────────────────
 // Local-only — uses real name initials. Does NOT replace AssigneeChip in _pm-shared.tsx.
 
-function ResolvedAssigneeChip({ id, idx, name }: { id: string; idx: number; name?: string }) {
+function ResolvedAssigneeChip({ id, idx, name, avatarUrl }: { id: string; idx: number; name?: string; avatarUrl?: string | null }) {
   return (
     <Tooltip>
       <TooltipTrigger
         render={
           <motion.div
-            className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-semibold text-white border-2 border-white shrink-0 cursor-default"
-            style={{ background: AVATAR_COLORS[idx % AVATAR_COLORS.length] }}
+            className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-semibold text-white border-2 border-white shrink-0 cursor-default overflow-hidden"
+            style={avatarUrl ? undefined : { background: AVATAR_COLORS[idx % AVATAR_COLORS.length] }}
             whileHover={{ y: -4, zIndex: 10 }}
             transition={{ type: "spring", stiffness: 500, damping: 20 }}
           >
-            {nameInitials(name, id)}
+            {avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element -- external Supabase-auth-provider avatar URL, not a static/optimizable asset
+              <img src={avatarUrl} alt={name ?? "Unnamed"} className="w-full h-full object-cover" />
+            ) : (
+              nameInitials(name, id)
+            )}
           </motion.div>
         }
       />
@@ -113,7 +119,7 @@ function AssigneePicker({
       <div className="flex items-center">
         {currentAssignees.slice(0, 3).map((a, i) => (
           <div key={a} style={{ marginLeft: i > 0 ? -6 : 0 }} className="shrink-0">
-            <ResolvedAssigneeChip id={a} idx={i} name={profilesById[a]?.full_name} />
+            <ResolvedAssigneeChip id={a} idx={i} name={profilesById[a]?.full_name} avatarUrl={profilesById[a]?.avatar_url} />
           </div>
         ))}
         {currentAssignees.length > 3 && (
@@ -129,7 +135,7 @@ function AssigneePicker({
       <button ref={btnRef} onClick={handleOpen} className="flex items-center gap-0.5 cursor-pointer group min-w-0">
         {currentAssignees.slice(0, 3).map((a, i) => (
           <div key={a} style={{ marginLeft: i > 0 ? -6 : 0 }} className="shrink-0">
-            <ResolvedAssigneeChip id={a} idx={i} name={profilesById[a]?.full_name} />
+            <ResolvedAssigneeChip id={a} idx={i} name={profilesById[a]?.full_name} avatarUrl={profilesById[a]?.avatar_url} />
           </div>
         ))}
         {currentAssignees.length > 3 && (
@@ -164,10 +170,15 @@ function AssigneePicker({
                     }`}
                   >
                     <div
-                      className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-semibold text-white shrink-0"
-                      style={{ background: AVATAR_COLORS[mi % AVATAR_COLORS.length] }}
+                      className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-semibold text-white shrink-0 overflow-hidden"
+                      style={m.avatar_url ? undefined : { background: AVATAR_COLORS[mi % AVATAR_COLORS.length] }}
                     >
-                      {nameInitials(m.full_name, m.id)}
+                      {m.avatar_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element -- external Supabase-auth-provider avatar URL, not a static/optimizable asset
+                        <img src={m.avatar_url} alt={m.full_name ?? "Unknown"} className="w-full h-full object-cover" />
+                      ) : (
+                        nameInitials(m.full_name, m.id)
+                      )}
                     </div>
                     <span className={`flex-1 truncate ${isAssigned ? "font-medium text-[#0B1533]" : "text-[#3A4565]"}`}>
                       {m.full_name ?? "Unknown"}
@@ -196,6 +207,7 @@ export default function ListView({
   tasklists,
   onOpen,
   onUpdate,
+  onBulkDelete,
   currentUserId,
   currentUserRole,
   profilesById,
@@ -216,6 +228,7 @@ export default function ListView({
   tasklists: Tasklist[];
   onOpen: (task: Task) => void;
   onUpdate: (id: string, patch: Partial<Task>) => Promise<boolean>;
+  onBulkDelete: (ids: string[]) => Promise<void>;
   currentUserId: string;
   currentUserRole: string | null;
   profilesById: Record<string, { full_name: string; avatar_url: string | null }>;
@@ -235,6 +248,19 @@ export default function ListView({
   scrollToTasklistId?: string;
 }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  // Task 285 — a developer may only bulk-delete tasks they created (mirrors the single-task
+  // delete gate on the Task Detail page, `perm.canEditDetails`); admin/pm/super_admin are never
+  // restricted. Drives both the row checkbox disable state and the per-group "select all".
+  const selectableIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const t of tasks) {
+      if (getTaskEditPermission(currentUserRole, currentUserId, t).canEditDetails) ids.add(t.id);
+    }
+    return ids;
+  }, [tasks, currentUserRole, currentUserId]);
 
   // ─── Sticky-header "stuck" detection ───────────────────────────────────────
   // A zero-height sentinel sits at the card's top edge, just above the sticky
@@ -279,13 +305,24 @@ export default function ListView({
   }
 
   function toggleGroup(groupId: string, ids: string[]) {
+    // Task 285 — only selectable (deletable-by-me) tasks participate in "select all"; a
+    // restricted task never enters `selected` even via the group header checkbox.
+    const selectableGroupIds = ids.filter((id) => selectableIds.has(id));
     setSelected((prev) => {
-      const allSelected = ids.every((id) => prev.has(id));
+      const allSelected = selectableGroupIds.length > 0 && selectableGroupIds.every((id) => prev.has(id));
       const next = new Set(prev);
-      if (allSelected) ids.forEach((id) => next.delete(id));
-      else ids.forEach((id) => next.add(id));
+      if (allSelected) selectableGroupIds.forEach((id) => next.delete(id));
+      else selectableGroupIds.forEach((id) => next.add(id));
       return next;
     });
+  }
+
+  async function handleBulkTrash() {
+    setConfirmOpen(false);
+    setDeleting(true);
+    await onBulkDelete(Array.from(selected));
+    setDeleting(false);
+    setSelected(new Set());
   }
 
   function sortTasks(list: Task[]): Task[] {
@@ -447,8 +484,10 @@ export default function ListView({
           <Tooltip>
             <TooltipTrigger render={
               <button
+                onClick={() => setConfirmOpen(true)}
+                disabled={deleting}
                 aria-label="Trash"
-                className="flex items-center justify-center w-6 h-6 rounded-full border border-[#C0392B]/40 bg-white text-[#C0392B] hover:bg-[#FDE8E6] cursor-pointer transition-colors"
+                className="flex items-center justify-center w-6 h-6 rounded-full border border-[#C0392B]/40 bg-white text-[#C0392B] hover:bg-[#FDE8E6] cursor-pointer transition-colors disabled:opacity-45"
               >
                 <Trash2 size={13} />
               </button>
@@ -457,6 +496,16 @@ export default function ListView({
           </Tooltip>
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title={`Delete ${selected.size} task${selected.size === 1 ? "" : "s"}?`}
+        body="This action is irreversible."
+        confirmLabel={deleting ? "Deleting…" : "Delete"}
+        confirmDisabled={deleting}
+        onConfirm={() => void handleBulkTrash()}
+        onCancel={() => setConfirmOpen(false)}
+      />
 
       <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto px-8 pb-5">
         {/* No overflow-hidden here — it would create its own clipping/scroll-container
@@ -491,7 +540,10 @@ export default function ListView({
           {groups.map((g) => {
             const isCollapsed = collapsed.has(g.id);
             const groupTaskIds = g.tasks.map((t) => t.id);
-            const allGroupSelected = groupTaskIds.length > 0 && groupTaskIds.every((id) => selected.has(id));
+            // Task 285 — only selectable tasks count toward "all selected"/toggling; a group made
+            // up entirely of tasks the current user can't delete gets a disabled header checkbox.
+            const selectableGroupIds = groupTaskIds.filter((id) => selectableIds.has(id));
+            const allGroupSelected = selectableGroupIds.length > 0 && selectableGroupIds.every((id) => selected.has(id));
 
             return (
               <div key={g.id} id={`tasklist-group-${g.id}`}>
@@ -500,8 +552,9 @@ export default function ListView({
                     <input
                       type="checkbox"
                       checked={allGroupSelected}
+                      disabled={selectableGroupIds.length === 0}
                       onChange={() => toggleGroup(g.id, groupTaskIds)}
-                      className="w-3.5 h-3.5 rounded border-[#A8B0C8] cursor-pointer accent-[#007BFF]"
+                      className="w-3.5 h-3.5 rounded border-[#A8B0C8] cursor-pointer accent-[#007BFF] disabled:cursor-not-allowed disabled:opacity-40"
                     />
                   </div>
                   <div className="w-0.5 h-5 bg-[#A8B0C8] rounded-full mr-2 shrink-0" />
@@ -599,13 +652,30 @@ function Row({
     <div className={`grid ${gridClass} items-center gap-3 pl-4 pr-3 py-2.5 border-b border-[#EDF0F7] last:border-0 transition-colors ${
       selected ? "bg-[#F0F7FF]" : "hover:bg-[#F0F7FF]/60"
     }`}>
-      {/* Checkbox */}
-      <input
-        type="checkbox"
-        checked={selected}
-        onChange={onToggle}
-        className="w-3.5 h-3.5 rounded border-[#E2E7F2] cursor-pointer accent-[#007BFF]"
-      />
+      {/* Checkbox — Task 285: only the creator (or admin/pm/super_admin) may select a task for
+          bulk delete. Disabled inputs don't reliably fire hover/mouse events in Chromium, so the
+          tooltip/restricted-cursor lives on a non-disabled <span> wrapper around the input. */}
+      {perm.canEditDetails ? (
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={onToggle}
+          className="w-3.5 h-3.5 rounded border-[#E2E7F2] cursor-pointer accent-[#007BFF]"
+        />
+      ) : (
+        <Tooltip>
+          <TooltipTrigger render={
+            <span className="inline-flex cursor-not-allowed">
+              <input
+                type="checkbox"
+                disabled
+                className="w-3.5 h-3.5 rounded border-[#E2E7F2] opacity-40 pointer-events-none"
+              />
+            </span>
+          } />
+          <TooltipContent side="top">You&apos;re restricted from taking action on this task</TooltipContent>
+        </Tooltip>
+      )}
 
       {/* Task name */}
       <div className={`flex items-center min-w-0 gap-1 ${DEPTH_INDENT[Math.min(depth, 6)] ?? "pl-0"}`}>

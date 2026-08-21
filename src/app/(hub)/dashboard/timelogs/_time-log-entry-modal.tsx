@@ -180,6 +180,7 @@ export function TimeLogEntryModal({
         end_time: saved.end_time ?? endIso,
         created_at: saved.created_at ?? initial?.created_at ?? new Date().toISOString(),
         display_name: saved.display_name ?? initial?.display_name ?? "You",
+        avatar_url: saved.avatar_url ?? initial?.avatar_url ?? null,
         employee_id: initial?.employee_id ?? currentUserId,
         can_edit: true,
       });

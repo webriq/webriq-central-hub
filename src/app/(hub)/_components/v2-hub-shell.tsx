@@ -11,10 +11,11 @@ import TimerFloatingWidget from "./timer-floating-widget";
 interface V2HubShellProps {
   userRole: string | null;
   displayName: string | null;
+  avatarUrl: string | null;
   children: React.ReactNode;
 }
 
-export default function V2HubShell({ userRole, displayName, children }: V2HubShellProps) {
+export default function V2HubShell({ userRole, displayName, avatarUrl, children }: V2HubShellProps) {
   const [opsChatOpen, setOpsChatOpen] = useState(false);
   const [chatTrigger, setChatTrigger] = useState<{ message: string; ts: number } | null>(null);
 
@@ -42,7 +43,7 @@ export default function V2HubShell({ userRole, displayName, children }: V2HubShe
     <div className="flex h-screen overflow-hidden bg-slate-50">
       <PushPermissionPrompt />
       {/* Sidebar */}
-      <V2HubSidebar userRole={userRole} displayName={displayName} />
+      <V2HubSidebar userRole={userRole} displayName={displayName} avatarUrl={avatarUrl} />
 
       {/* Main content column */}
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">

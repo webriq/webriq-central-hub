@@ -27,8 +27,8 @@ export async function GET() {
   const ids = (hubUsers ?? []).map((u) => u.id);
 
   const { data: profiles } = ids.length > 0
-    ? await adminClient.from("profiles").select("id, role, full_name, otp_locked_until").in("id", ids)
-    : { data: [] as { id: string; role: string; full_name: string | null; otp_locked_until: string | null }[] };
+    ? await adminClient.from("profiles").select("id, role, full_name, avatar_url, otp_locked_until").in("id", ids)
+    : { data: [] as { id: string; role: string; full_name: string | null; avatar_url: string | null; otp_locked_until: string | null }[] };
 
   const profileMap = new Map((profiles ?? []).map((p) => [p.id, p]));
 
@@ -36,6 +36,7 @@ export async function GET() {
     ...u,
     profile_role: profileMap.get(u.id)?.role ?? null,
     full_name: profileMap.get(u.id)?.full_name ?? null,
+    avatar_url: profileMap.get(u.id)?.avatar_url ?? null,
     otp_locked_until: profileMap.get(u.id)?.otp_locked_until ?? null,
   }));
 

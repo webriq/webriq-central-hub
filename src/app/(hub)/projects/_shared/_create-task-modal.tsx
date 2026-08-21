@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { type Milestone, type Tasklist, type Task, type TaskStatus, type TaskPriority } from "@/app/(hub)/projects-old/_pm-shared";
@@ -54,12 +55,18 @@ function dueDefaultValue(dueDate?: string | null): string {
 }
 
 const inputClass = "w-full px-3 py-2 rounded-[10px] border text-[13px] outline-none transition-colors border-[#E2E7F2] bg-[#F4F6FB] text-[#3A4565] focus:border-[#007BFF] focus:bg-white focus:ring-[3px] focus:ring-[#007BFF]/[0.14]";
+const errorInputClass = "w-full px-3 py-2 rounded-[10px] border text-[13px] outline-none transition-colors border-[#C0392B] bg-white text-[#3A4565] shadow-[0_0_0_3px_rgba(192,57,43,0.08)]";
 const labelClass = "text-[11px] font-semibold text-[#0B1533]";
+
+// Task 286 — field-level errors shown as red border + red text below the field, matching the
+// New Project form's `Field` component pattern (`projects/v2/new/_content.tsx`).
+type TaskFieldErrors = { title?: string; newTasklistName?: string };
 
 export function CreateTaskModal({
   projectId,
   milestones,
   tasklists,
+  tasks,
   allMembers,
   defaults,
   onClose,
@@ -69,6 +76,7 @@ export function CreateTaskModal({
   projectId: string;
   milestones: Milestone[];
   tasklists: Tasklist[];
+  tasks: Task[];
   allMembers: MemberOptionWithRole[];
   defaults: TaskDefaults;
   onClose: () => void;
@@ -91,6 +99,7 @@ export function CreateTaskModal({
   const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<TaskFieldErrors>({});
   // Post-creation upload phase (task 273 follow-up) — the task must exist before its attachments
   // endpoint accepts uploads, so real per-file progress can only start once `createdTask` is set.
   // `taskIdRef` (not the `createdTask` state) is what the upload closure reads: `useUploadQueue`'s
@@ -123,14 +132,46 @@ export function CreateTaskModal({
     if (!checked) setMilestoneId("");
   }
 
+  function validate(): TaskFieldErrors {
+    const errs: TaskFieldErrors = {};
+    const trimmedTitle = title.trim();
+    if (!trimmedTitle) {
+      errs.title = "Title is required";
+    } else {
+      const dupe = tasks.some(
+        (t) => (t.tasklist_id ?? "") === (tasklistId || "") && t.title.trim().toLowerCase() === trimmedTitle.toLowerCase()
+      );
+      if (dupe) errs.title = "A task with this title already exists in this task list.";
+    }
+    if (creatingTasklist) {
+      const trimmedName = newTasklistName.trim();
+      if (!trimmedName) {
+        errs.newTasklistName = "Task list name is required.";
+      } else if (tasklists.some((tl) => tl.name.trim().toLowerCase() === trimmedName.toLowerCase())) {
+        errs.newTasklistName = "A task list with this name already exists.";
+      }
+    }
+    return errs;
+  }
+
   async function submit() {
-    if (!title.trim()) { setError("Title is required"); return; }
+    const errs = validate();
     const [startDate, startTime] = startValue.split("T");
     const [dueDate, dueTime] = dueValue.split("T");
+    if (Object.keys(errs).length > 0) {
+      setFieldErrors(errs);
+      toast.error("Please fix the errors below before submitting.");
+      return;
+    }
+    setFieldErrors({});
+    // Defensive fallback — both pickers always default to a populated value and expose no way to
+    // clear back to empty, so this can't currently trigger through normal UI use; kept as the
+    // pre-existing generic bottom-of-form error rather than a field-level one (see task 286 doc).
     if (!startDate) { setError("Start date is required"); return; }
     if (!dueDate) { setError("Due date is required"); return; }
     setSaving(true);
     setError(null);
+    const toastId = toast.loading("Creating task…");
 
     let finalTasklistId = tasklistId;
     if (creatingTasklist && newTasklistName.trim()) {
@@ -141,7 +182,9 @@ export function CreateTaskModal({
       });
       if (!tlRes.ok) {
         const body = await tlRes.json().catch(() => ({}));
-        setError(body.error || "Failed to create task list");
+        const message = body.error || "Failed to create task list";
+        setError(message);
+        toast.error(message, { id: toastId });
         setSaving(false);
         return;
       }
@@ -170,12 +213,15 @@ export function CreateTaskModal({
     });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
-      setError(body.error || "Failed to create task");
+      const message = body.error || "Failed to create task";
+      setError(message);
+      toast.error(message, { id: toastId });
       setSaving(false);
       return;
     }
     const task: Task = await res.json();
     setSaving(false);
+    toast.success("Task created", { id: toastId });
 
     if (attachmentFiles.length > 0) {
       taskIdRef.current = task.id;
@@ -229,11 +275,19 @@ export function CreateTaskModal({
                 <span className={labelClass}>Title</span>
                 <input
                   value={title}
-                  onChange={(e) => setTitle(e.target.value)}
+                  onChange={(e) => {
+                    setTitle(e.target.value);
+                    setFieldErrors((prev) => {
+                      const next = { ...prev };
+                      delete next.title;
+                      return next;
+                    });
+                  }}
                   autoFocus
-                  className={inputClass}
+                  className={fieldErrors.title ? errorInputClass : inputClass}
                   placeholder="What needs to be done?"
                 />
+                {fieldErrors.title && <span className="text-xs text-[#C0392B]">{fieldErrors.title}</span>}
               </label>
 
               <CollapsibleSection title="Description" defaultOpen>
@@ -268,22 +322,32 @@ export function CreateTaskModal({
               <div className="flex flex-col gap-1.5">
                 <span className={labelClass}>Task list</span>
                 {creatingTasklist ? (
-                  <div className="flex items-center gap-1.5">
-                    <input
-                      value={newTasklistName}
-                      onChange={(e) => setNewTasklistName(e.target.value)}
-                      autoFocus
-                      placeholder="New task list name"
-                      className={inputClass}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => { setCreatingTasklist(false); setNewTasklistName(""); }}
-                      aria-label="Cancel new task list"
-                      className="p-2 rounded-[10px] text-[#5F6A88] hover:text-[#0B1533] hover:bg-[#F4F6FB] cursor-pointer transition-colors shrink-0"
-                    >
-                      <X size={14} />
-                    </button>
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        value={newTasklistName}
+                        onChange={(e) => {
+                          setNewTasklistName(e.target.value);
+                          setFieldErrors((prev) => {
+                            const next = { ...prev };
+                            delete next.newTasklistName;
+                            return next;
+                          });
+                        }}
+                        autoFocus
+                        placeholder="New task list name"
+                        className={fieldErrors.newTasklistName ? errorInputClass : inputClass}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => { setCreatingTasklist(false); setNewTasklistName(""); setFieldErrors((prev) => { const next = { ...prev }; delete next.newTasklistName; return next; }); }}
+                        aria-label="Cancel new task list"
+                        className="p-2 rounded-[10px] text-[#5F6A88] hover:text-[#0B1533] hover:bg-[#F4F6FB] cursor-pointer transition-colors shrink-0"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                    {fieldErrors.newTasklistName && <span className="text-xs text-[#C0392B]">{fieldErrors.newTasklistName}</span>}
                   </div>
                 ) : (
                   <SearchableSelect

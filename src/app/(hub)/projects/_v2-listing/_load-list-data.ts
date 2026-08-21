@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { isRoleGatedByMembership, canManageProjectMembers, canSetProjectOwner } from "@/lib/programme/membership-rules";
+import { getDeveloperAccessibleProjectIds } from "../../projects-old/_project-access";
 import { getCurrentProgrammeDay, resolveEffectivePhase, DEFAULT_PROGRAMME_DAYS } from "@/config/customer-phases";
 import type { OnboardingProjectListItem } from "./_onboarding-list";
 
@@ -81,6 +82,15 @@ export async function loadOnboardingProjectsList(
     excludedProjectIds = [...projectsWithMembers].filter((id) => !myMemberProjectIds.has(id));
   }
 
+  // Task 284 — developer: strict allow-list (member OR assigned task), not an exclusion list.
+  // No "zero members = unrestricted" carve-out like the gated-role branch above, since the
+  // member∪assigned-task union already covers both routes into a project for a developer —
+  // mirrors isProjectVisibleToCurrentUser()'s per-project gate at the detail route.
+  let allowedProjectIds: string[] | null = null;
+  if (role === "developer") {
+    allowedProjectIds = await getDeveloperAccessibleProjectIds(userId);
+  }
+
   let query = supabase
     .from("projects")
     .select(
@@ -131,6 +141,11 @@ export async function loadOnboardingProjectsList(
   if (excludedProjectIds.length > 0) {
     query = query.not("id", "in", `(${excludedProjectIds.join(",")})`);
   }
+  if (allowedProjectIds !== null) {
+    query = allowedProjectIds.length > 0
+      ? query.in("id", allowedProjectIds)
+      : query.eq("id", ZERO_ROWS_ID);
+  }
 
   const { data: rows, count } = await query.range(from, to);
   const projectRows = rows ?? [];
@@ -167,12 +182,16 @@ export async function loadOnboardingProjectsList(
   }
   const allMemberIds = [...new Set([...memberIdsByProject.values()].flatMap((s) => [...s]))];
   const memberFullNameById = new Map<string, string | null>();
+  const memberAvatarUrlById = new Map<string, string | null>();
   if (allMemberIds.length > 0) {
     // adminClient: profiles_read_own RLS only lets a caller read their own row (or every row for
     // admin/super_admin) — teammate names would otherwise render "Unnamed" for pm/marketing/
     // developer callers, same exception GET /api/onboarding/projects and /projects/page.tsx use.
-    const { data: memberProfiles } = await adminClient.from("profiles").select("id, full_name").in("id", allMemberIds);
-    for (const row of memberProfiles ?? []) memberFullNameById.set(row.id, row.full_name);
+    const { data: memberProfiles } = await adminClient.from("profiles").select("id, full_name, avatar_url").in("id", allMemberIds);
+    for (const row of memberProfiles ?? []) {
+      memberFullNameById.set(row.id, row.full_name);
+      memberAvatarUrlById.set(row.id, row.avatar_url);
+    }
   }
 
   const projects: OnboardingProjectListItem[] = projectRows.map((p) => {
@@ -200,7 +219,7 @@ export async function loadOnboardingProjectsList(
       target_handover_date: p.target_handover_at,
       created_at: p.created_at,
       status: (p.onboarding_status ?? "draft") as OnboardingProjectListItem["status"],
-      members: [...(memberIdsByProject.get(p.id) ?? [])].map((id) => ({ id, full_name: memberFullNameById.get(id) ?? null })),
+      members: [...(memberIdsByProject.get(p.id) ?? [])].map((id) => ({ id, full_name: memberFullNameById.get(id) ?? null, avatar_url: memberAvatarUrlById.get(id) ?? null })),
       canManageCollaborators: canManageProjectMembers(role, p.created_by === userId),
       canSetOwner: canSetProjectOwner(role, p.created_by === userId),
     };

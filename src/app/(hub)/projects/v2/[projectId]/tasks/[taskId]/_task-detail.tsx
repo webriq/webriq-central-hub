@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Trash2, GitPullRequest, ExternalLink } from "lucide-react";
+import { ArrowLeft, Trash2, GitPullRequest, ExternalLink, Loader2 } from "lucide-react";
 import {
   type Task, type Milestone, type TaskStatus, type TaskPriority,
   STATUS_LABEL, PRIORITY_STYLE, StatusBadge, PriorityBadge, AssigneeChip,
@@ -13,6 +13,8 @@ import { AttachmentUploadZone } from "@/app/(hub)/projects/_shared/_attachment-u
 import { TaskAttachmentsCommentsPanel } from "./_task-attachments-comments-panel";
 import { getTaskEditPermission } from "@/lib/tasks/permissions";
 import { TaskTimerButton } from "@/app/(hub)/projects/_shared/_task-timer-button";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 const STATUS_OPTS: TaskStatus[] = [
   "open", "in_progress", "ready_for_qa", "testing_completed",
@@ -75,11 +77,12 @@ export default function TaskDetailClient({
   milestones: Milestone[];
   currentUserId: string;
   currentUserRole: string | null;
-  assigneeProfiles: { id: string; full_name: string | null }[];
+  assigneeProfiles: { id: string; full_name: string | null; avatar_url: string | null }[];
 }) {
   const router = useRouter();
   const projectId = project.project_id ?? project.id;
   const assigneeNamesById = new Map(assigneeProfiles.map((p) => [p.id, p.full_name]));
+  const assigneeAvatarUrlById = new Map(assigneeProfiles.map((p) => [p.id, p.avatar_url]));
 
   // Task 209 — creator: full edit. Assignee-only: status limited to in_progress/ready_for_qa.
   // Neither: fully read-only.
@@ -137,9 +140,19 @@ export default function TaskDetailClient({
 
   // ─── Delete task ──────────────────────────────────────────────────────────
 
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
   async function handleDelete() {
-    if (!confirm("Delete this task? This cannot be undone.")) return;
-    await fetch(`/api/v2/tasks/${task.id}`, { method: "DELETE" });
+    setConfirmOpen(false);
+    setDeleting(true);
+    const res = await fetch(`/api/v2/tasks/${task.id}`, { method: "DELETE" });
+    if (!res.ok) {
+      setDeleting(false);
+      setDeleteError("Failed to delete task.");
+      return;
+    }
     if (project.project_id) router.push(`/projects/v2/${project.project_id}/tasks`);
   }
 
@@ -181,17 +194,33 @@ export default function TaskDetailClient({
             />
           </div>
           {perm.canEditDetails && (
-            <button
-              onClick={() => void handleDelete()}
-              className="p-2 rounded-full text-[#5F6A88] hover:text-[#C0392B] hover:bg-[#FDE8E6] cursor-pointer shrink-0 mt-1 transition-colors"
-              aria-label="Delete task"
-              title="Delete task"
-            >
-              <Trash2 size={18} />
-            </button>
+            <Tooltip>
+              <TooltipTrigger render={
+                <button
+                  onClick={() => setConfirmOpen(true)}
+                  disabled={deleting}
+                  className="p-2 rounded-full text-[#5F6A88] hover:text-[#C0392B] hover:bg-[#FDE8E6] cursor-pointer shrink-0 mt-1 transition-colors disabled:opacity-45"
+                  aria-label="Delete task"
+                >
+                  {deleting ? <Loader2 size={18} className="animate-spin" /> : <Trash2 size={18} />}
+                </button>
+              } />
+              <TooltipContent side="top">Delete task</TooltipContent>
+            </Tooltip>
           )}
         </div>
+        {deleteError && <p className="text-[11px] text-[#C0392B] mt-1">{deleteError}</p>}
       </div>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Delete this task?"
+        body="This action is irreversible."
+        confirmLabel={deleting ? "Deleting…" : "Delete"}
+        confirmDisabled={deleting}
+        onConfirm={() => void handleDelete()}
+        onCancel={() => setConfirmOpen(false)}
+      />
 
       {/* Content */}
       <div className="bg-[#F4F6FB] flex-1 overflow-y-auto p-8">
@@ -308,7 +337,7 @@ export default function TaskDetailClient({
                   <Meta label="Assignees">
                     <div className="flex gap-1 flex-wrap">
                       {task.assignees.map((id: string, i: number) => (
-                        <AssigneeChip key={id} id={id} idx={i} name={assigneeNamesById.get(id) ?? undefined} />
+                        <AssigneeChip key={id} id={id} idx={i} name={assigneeNamesById.get(id) ?? undefined} avatarUrl={assigneeAvatarUrlById.get(id)} />
                       ))}
                     </div>
                   </Meta>

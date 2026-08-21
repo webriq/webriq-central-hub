@@ -45,7 +45,7 @@ export async function GET(
     // caller from reading teammates' rows and rendered them as "Unnamed"/"Unassigned".
     const { data, error } = await adminClient
       .from("phase_members")
-      .select("id, user_id, is_owner, added_by, created_at, profiles!phase_members_user_id_fkey(full_name, role)")
+      .select("id, user_id, is_owner, added_by, created_at, profiles!phase_members_user_id_fkey(full_name, role, avatar_url)")
       .eq("project_id", projectId)
       .eq("phase_number", phaseNumber)
       .order("is_owner", { ascending: false })

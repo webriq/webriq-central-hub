@@ -3,11 +3,13 @@
 import { useState, useRef, useMemo, useEffect } from "react";
 import { Users, SearchX, Check, X, Trash2, Bug, Plus } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   type Issue, type TaskStatus, type IssueSeverity,
   STATUS_LABEL, STATUS_STYLE, SEVERITY_STYLE,
   formatDueDate, normalizeStatus, normalizeSeverity, decodeHtmlEntities,
 } from "@/app/(hub)/projects-old/_pm-shared";
+import { getIssueEditPermission } from "@/lib/issues/permissions";
 
 export type IssueSortKey = "title" | "status" | "severity" | "due_date";
 export type IssueSortDir = "asc" | "desc";
@@ -75,16 +77,26 @@ function IssueAssigneePicker({
     void onUpdate(issue.id, { assignee_name: null, assignee_email: null });
   }
 
+  // Issue assignment is name-string-based (`assignee_name`), not a resolved `assignee_id`
+  // FK — matching against `allMembers` by name is the only avatar_url lookup available here
+  // without a broader data-layer change.
+  const assignedMember = issue.assignee_name ? allMembers.find((m) => m.full_name === issue.assignee_name) : undefined;
+
   return (
     <div className="flex items-center">
       <button ref={btnRef} onClick={handleOpen} className="flex items-center gap-1.5 cursor-pointer group min-w-0">
         {issue.assignee_name ? (
           <>
             <div
-              className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-semibold text-white shrink-0"
-              style={{ background: AVATAR_COLORS[issue.assignee_name.charCodeAt(0) % AVATAR_COLORS.length] }}
+              className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-semibold text-white shrink-0 overflow-hidden"
+              style={assignedMember?.avatar_url ? undefined : { background: AVATAR_COLORS[issue.assignee_name.charCodeAt(0) % AVATAR_COLORS.length] }}
             >
-              {nameInitials(issue.assignee_name)}
+              {assignedMember?.avatar_url ? (
+                // eslint-disable-next-line @next/next/no-img-element -- external Supabase-auth-provider avatar URL, not a static/optimizable asset
+                <img src={assignedMember.avatar_url} alt={issue.assignee_name} className="w-full h-full object-cover" />
+              ) : (
+                nameInitials(issue.assignee_name)
+              )}
             </div>
             <span className="text-[12px] text-[#3A4565] truncate">{issue.assignee_name}</span>
           </>
@@ -122,10 +134,15 @@ function IssueAssigneePicker({
                     }`}
                   >
                     <div
-                      className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-semibold text-white shrink-0"
-                      style={{ background: AVATAR_COLORS[mi % AVATAR_COLORS.length] }}
+                      className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-semibold text-white shrink-0 overflow-hidden"
+                      style={m.avatar_url ? undefined : { background: AVATAR_COLORS[mi % AVATAR_COLORS.length] }}
                     >
-                      {nameInitials(m.full_name)}
+                      {m.avatar_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element -- external Supabase-auth-provider avatar URL, not a static/optimizable asset
+                        <img src={m.avatar_url} alt={m.full_name ?? "Unknown"} className="w-full h-full object-cover" />
+                      ) : (
+                        nameInitials(m.full_name)
+                      )}
                     </div>
                     <span className={`flex-1 truncate ${isAssigned ? "font-medium text-[#0B1533]" : "text-[#3A4565]"}`}>
                       {m.full_name ?? "Unknown"}
@@ -152,6 +169,8 @@ export default function IssueListView({
   onOpen,
   onUpdate,
   onBulkDelete,
+  currentUserId,
+  currentUserRole,
   allMembers,
   sortKey,
   sortDir,
@@ -164,6 +183,8 @@ export default function IssueListView({
   onOpen: (issue: Issue) => void;
   onUpdate: (id: string, patch: Partial<Issue>) => Promise<boolean>;
   onBulkDelete: (ids: string[]) => Promise<void>;
+  currentUserId: string;
+  currentUserRole: string | null;
   allMembers: MemberProfile[];
   sortKey: IssueSortKey;
   sortDir: IssueSortDir;
@@ -174,6 +195,7 @@ export default function IssueListView({
 }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [deleting, setDeleting] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   // ─── Sticky-header "stuck" detection ───────────────────────────────────────
   // A zero-height sentinel sits at the card's top edge, just above the sticky
@@ -206,7 +228,20 @@ export default function IssueListView({
     return cmp * dir;
   });
 
-  const allIds = useMemo(() => sorted.map((i) => i.id), [sorted]);
+  // Task 285 — only issues the current user can delete (creator, or admin/pm/super_admin)
+  // participate in selection; mirrors the Issue Detail page's `perm.canEditDetails` delete gate.
+  const selectableIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const i of issues) {
+      if (getIssueEditPermission(currentUserRole, currentUserId, i).canEditDetails) ids.add(i.id);
+    }
+    return ids;
+  }, [issues, currentUserRole, currentUserId]);
+
+  const allIds = useMemo(
+    () => sorted.map((i) => i.id).filter((id) => selectableIds.has(id)),
+    [sorted, selectableIds]
+  );
   const allSelected = allIds.length > 0 && allIds.every((id) => selected.has(id));
 
   function toggleRow(id: string) {
@@ -222,7 +257,7 @@ export default function IssueListView({
   }
 
   async function handleBulkTrash() {
-    if (!confirm(`Delete ${selected.size} issue${selected.size === 1 ? "" : "s"}?`)) return;
+    setConfirmOpen(false);
     setDeleting(true);
     await onBulkDelete(Array.from(selected));
     setDeleting(false);
@@ -282,7 +317,7 @@ export default function IssueListView({
           <Tooltip>
             <TooltipTrigger render={
               <button
-                onClick={() => void handleBulkTrash()}
+                onClick={() => setConfirmOpen(true)}
                 disabled={deleting}
                 aria-label="Trash"
                 className="flex items-center justify-center w-6 h-6 rounded-full border border-[#C0392B]/40 bg-white text-[#C0392B] hover:bg-[#FDE8E6] cursor-pointer transition-colors disabled:opacity-45"
@@ -294,6 +329,16 @@ export default function IssueListView({
           </Tooltip>
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title={`Delete ${selected.size} issue${selected.size === 1 ? "" : "s"}?`}
+        body="This action is irreversible."
+        confirmLabel={deleting ? "Deleting…" : "Delete"}
+        confirmDisabled={deleting}
+        onConfirm={() => void handleBulkTrash()}
+        onCancel={() => setConfirmOpen(false)}
+      />
 
       <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto px-8 pb-5">
         {/* No overflow-hidden here — it would create its own clipping/scroll-container
@@ -313,8 +358,9 @@ export default function IssueListView({
             <input
               type="checkbox"
               checked={allSelected}
+              disabled={allIds.length === 0}
               onChange={toggleAll}
-              className="w-3.5 h-3.5 rounded border-[#A8B0C8] cursor-pointer accent-[#007BFF]"
+              className="w-3.5 h-3.5 rounded border-[#A8B0C8] cursor-pointer accent-[#007BFF] disabled:cursor-not-allowed disabled:opacity-40"
             />
             <SortHeader label="Issue Name" active={sortKey === "title"} dir={sortDir} onClick={() => onToggleSort("title")} />
             <SortHeader label="Status" active={sortKey === "status"} dir={sortDir} onClick={() => onToggleSort("status")} />
@@ -342,12 +388,30 @@ export default function IssueListView({
                   isSelected ? "bg-[#F0F7FF]" : "hover:bg-[#F0F7FF]/60"
                 }`}
               >
-                <input
-                  type="checkbox"
-                  checked={isSelected}
-                  onChange={() => toggleRow(issue.id)}
-                  className="w-3.5 h-3.5 rounded border-[#E2E7F2] cursor-pointer accent-[#007BFF]"
-                />
+                {/* Checkbox — Task 285: only the creator (or admin/pm/super_admin) may select an
+                    issue for bulk delete. Tooltip lives on a non-disabled <span> wrapper since a
+                    disabled input doesn't reliably fire hover events in Chromium. */}
+                {selectableIds.has(issue.id) ? (
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={() => toggleRow(issue.id)}
+                    className="w-3.5 h-3.5 rounded border-[#E2E7F2] cursor-pointer accent-[#007BFF]"
+                  />
+                ) : (
+                  <Tooltip>
+                    <TooltipTrigger render={
+                      <span className="inline-flex cursor-not-allowed">
+                        <input
+                          type="checkbox"
+                          disabled
+                          className="w-3.5 h-3.5 rounded border-[#E2E7F2] opacity-40 pointer-events-none"
+                        />
+                      </span>
+                    } />
+                    <TooltipContent side="top">You&apos;re restricted from taking action on this issue</TooltipContent>
+                  </Tooltip>
+                )}
 
                 <button onClick={() => onOpen(issue)} className="text-left min-w-0 cursor-pointer group">
                   <span className="text-[13px] text-[#3A4565] truncate block group-hover:text-[#007BFF] transition-colors font-medium">

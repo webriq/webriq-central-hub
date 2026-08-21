@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
 import { getTaskEditPermission } from "@/lib/tasks/permissions";
+import { addProjectMember } from "@/lib/programme/phase-membership";
 
 const VALID_STATUS = ["open", "in_progress", "ready_for_qa", "testing_completed", "for_client_approval", "ready_to_merge", "post_live_qa", "closed"] as const;
 const VALID_PRIORITY = ["low", "normal", "high", "critical"] as const;
@@ -27,7 +28,7 @@ export async function PATCH(
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const [{ data: existingTask }, { data: profile }] = await Promise.all([
-    supabase.from("tasks").select("created_by, assignees").eq("id", taskId).maybeSingle(),
+    supabase.from("tasks").select("created_by, assignees, project_id").eq("id", taskId).maybeSingle(),
     supabase.from("profiles").select("role").eq("id", user.id).maybeSingle(),
   ]);
   if (!existingTask) return NextResponse.json({ error: "Task not found" }, { status: 404 });
@@ -54,7 +55,16 @@ export async function PATCH(
     if ("description" in body) patch.description = body.description?.trim?.() || null;
     if ("milestone_id" in body) patch.milestone_id = body.milestone_id || null;
     if ("due_date" in body) patch.due_date = body.due_date || null;
-    if ("assignees" in body) patch.assignees = Array.isArray(body.assignees) ? body.assignees : null;
+    if ("assignees" in body) {
+      patch.assignees = Array.isArray(body.assignees) ? body.assignees : null;
+      // Task 287 — reassigning a task grants each new assignee persistent project access
+      // (project_members), so it survives the task being unassigned/deleted later.
+      if (patch.assignees && patch.assignees.length > 0) {
+        void Promise.all(
+          patch.assignees.map((assigneeId) => addProjectMember(existingTask.project_id, assigneeId, user.id))
+        ).catch((err) => console.error("[api/v2/tasks/[id]] project_members sync failed:", err));
+      }
+    }
     if ("labels" in body) patch.labels = Array.isArray(body.labels) ? body.labels : null;
     if (typeof body.priority === "string") {
       if (!(VALID_PRIORITY as readonly string[]).includes(body.priority)) {
@@ -91,7 +101,7 @@ export async function PATCH(
   return NextResponse.json(data);
 }
 
-// DELETE /api/v2/tasks/[taskId]  — delete (PM/Admin via RLS; cascades subtasks)
+// DELETE /api/v2/tasks/[taskId]  — delete (PM/Admin or the task's creator via RLS; migration 111; cascades subtasks)
 export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ taskId: string }> }

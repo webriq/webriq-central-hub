@@ -134,6 +134,7 @@ export async function loadLegacyProjectsList(params: LegacyListParams): Promise<
 
   const memberIdsByProject = new Map<string, string[]>();
   const fullNameMap = new Map<string, string | null>();
+  const avatarUrlMap = new Map<string, string | null>();
   if (projectIds.length > 0) {
     const { data: memberRows } = await supabase
       .from("project_members")
@@ -146,8 +147,25 @@ export async function loadLegacyProjectsList(params: LegacyListParams): Promise<
     }
     const allMemberIds = [...new Set((memberRows ?? []).map((r) => r.user_id))];
     if (allMemberIds.length > 0) {
-      const { data: memberProfiles } = await adminClient.from("profiles").select("id,full_name").in("id", allMemberIds);
-      for (const row of memberProfiles ?? []) fullNameMap.set(row.id, row.full_name);
+      const { data: memberProfiles } = await adminClient.from("profiles").select("id,full_name,avatar_url").in("id", allMemberIds);
+      for (const row of memberProfiles ?? []) {
+        fullNameMap.set(row.id, row.full_name);
+        avatarUrlMap.set(row.id, row.avatar_url);
+      }
+    }
+  }
+
+  // `owner_name` is Zoho-imported free text (migration 036) with no FK — AvatarStack's
+  // fallback bubble (shown when a legacy project has zero project_members rows) has no id to
+  // look up avatar_url with directly. Best-effort name match against real Hub profiles, same
+  // approach `_issue-list-view.tsx`'s assignee-name matching uses — a project whose Zoho owner
+  // name happens to match a real profile's full_name gets that profile's avatar_url.
+  const ownerAvatarUrlByName = new Map<string, string | null>();
+  const ownerNames = [...new Set((projectsRes.data ?? []).map((p) => p.owner_name).filter((n): n is string => !!n))];
+  if (ownerNames.length > 0) {
+    const { data: ownerProfiles } = await adminClient.from("profiles").select("full_name,avatar_url").in("full_name", ownerNames);
+    for (const row of ownerProfiles ?? []) {
+      if (row.full_name) ownerAvatarUrlByName.set(row.full_name, row.avatar_url);
     }
   }
 
@@ -162,6 +180,7 @@ export async function loadLegacyProjectsList(params: LegacyListParams): Promise<
     end_date: p.end_date ?? null,
     tags: p.tags ?? [],
     owner_name: p.owner_name ?? null,
+    owner_avatar_url: p.owner_name ? ownerAvatarUrlByName.get(p.owner_name) ?? null : null,
     task_total: counts.get(p.id)?.total ?? 0,
     task_done: counts.get(p.id)?.done ?? 0,
     issue_total: issueCounts.get(p.id)?.total ?? 0,
@@ -169,7 +188,7 @@ export async function loadLegacyProjectsList(params: LegacyListParams): Promise<
     classification: p.external_project_id ? "legacy" : "version2",
     productClassification: (p.customer_products as unknown as { classification: string | null } | null)?.classification ?? null,
     hasProduct: !!p.customer_product_id,
-    members: (memberIdsByProject.get(p.id) ?? []).map((id) => ({ id, full_name: fullNameMap.get(id) ?? null })),
+    members: (memberIdsByProject.get(p.id) ?? []).map((id) => ({ id, full_name: fullNameMap.get(id) ?? null, avatar_url: avatarUrlMap.get(id) ?? null })),
     canManageCollaborators: canManageProjectMembers(role ?? null, !!user && p.created_by === user.id),
     canSetOwner: canSetProjectOwner(role ?? null, !!user && p.created_by === user.id),
   }));

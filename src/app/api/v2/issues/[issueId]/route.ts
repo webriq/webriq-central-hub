@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
 import { getIssueEditPermission } from "@/lib/issues/permissions";
+import { addProjectMember } from "@/lib/programme/phase-membership";
 
 const VALID_STATUS = ["open", "in_progress", "ready_for_qa", "testing_completed", "for_client_approval", "ready_to_merge", "post_live_qa", "closed"] as const;
 const VALID_SEVERITY = ["Show stopper", "Critical", "Major", "Minor", "None"] as const;
@@ -28,7 +29,7 @@ export async function PATCH(
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const [{ data: existingIssue }, { data: profile }] = await Promise.all([
-    supabase.from("issues").select("created_by, assignee_id").eq("id", issueId).maybeSingle(),
+    supabase.from("issues").select("created_by, assignee_id, project_id").eq("id", issueId).maybeSingle(),
     supabase.from("profiles").select("role").eq("id", user.id).maybeSingle(),
   ]);
   if (!existingIssue) return NextResponse.json({ error: "Issue not found" }, { status: 404 });
@@ -57,7 +58,15 @@ export async function PATCH(
     if ("flag" in body) patch.flag = body.flag?.trim?.() || null;
     if ("assignee_name" in body) patch.assignee_name = body.assignee_name?.trim?.() || null;
     if ("assignee_email" in body) patch.assignee_email = body.assignee_email?.trim?.() || null;
-    if ("assignee_id" in body) patch.assignee_id = body.assignee_id || null;
+    if ("assignee_id" in body) {
+      patch.assignee_id = body.assignee_id || null;
+      // Task 287 — assigning an issue grants the assignee persistent project access
+      // (project_members), so it survives the issue being unassigned/deleted later.
+      if (patch.assignee_id) {
+        void addProjectMember(existingIssue.project_id, patch.assignee_id, user.id)
+          .catch((err) => console.error("[api/v2/issues/[id]] project_members sync failed:", err));
+      }
+    }
     if ("severity" in body) {
       if (body.severity !== null && !(VALID_SEVERITY as readonly string[]).includes(body.severity)) {
         return NextResponse.json({ error: "invalid severity" }, { status: 400 });
@@ -92,7 +101,7 @@ export async function PATCH(
   return NextResponse.json(data);
 }
 
-// DELETE /api/v2/issues/[issueId]  — delete (PM/Admin via RLS)
+// DELETE /api/v2/issues/[issueId]  — delete (PM/Admin or the issue's creator via RLS; migration 111)
 export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ issueId: string }> }

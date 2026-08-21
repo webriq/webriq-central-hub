@@ -37,7 +37,7 @@ export type OnboardingProjectListItem = {
   // "completed" (task 168 follow-up) = Phase 5 (Optimize) status is `completed` in `customer_phases`.
   status: "draft" | "scheduled" | "in_progress" | "completed";
   // Task 154: deduped union of project_members + Phase 1 phase_members (task 153).
-  members: { id: string; full_name: string | null }[];
+  members: { id: string; full_name: string | null; avatar_url: string | null }[];
   canManageCollaborators: boolean;
   canSetOwner: boolean;
 };
@@ -146,7 +146,13 @@ export default function V2ProjectsListing({
   // mirrors the detail route's own DETAIL_ROLES + membership gate (_load-detail-data.ts), which
   // this list previously didn't account for at all (editable was role-only).
   const canOpenProject = (item: OnboardingProjectListItem) =>
-    roleEditable || (isRoleGatedByMembership(role) && !!currentUserId && item.members.some((m) => m.id === currentUserId));
+    roleEditable
+    // Task 284 — developer: the listing query already restricts rows to projects the developer
+    // is a member of or has an assigned task in (_load-list-data.ts), so any card that reaches
+    // this list is safe to open; item.members alone (project_members + Phase 1 members only)
+    // can't express the "assigned task" half of that rule client-side.
+    || role === "developer"
+    || (isRoleGatedByMembership(role) && !!currentUserId && item.members.some((m) => m.id === currentUserId));
   // Task 233 — a separate capability from roleEditable above (different role set: pm can delete
   // but isn't roleEditable; marketing is roleEditable but must not see Delete) and independent of
   // project membership — deletion is a role capability, not a membership one.

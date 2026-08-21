@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import {
   LayoutGrid, List as ListIcon, Calendar as CalendarIcon,
-  Plus, X, Loader2, Search, Check, ChevronDown, ArrowUpDown, ChevronsUpDown,
+  Plus, X, Search, Check, ChevronDown, ArrowUpDown, ChevronsUpDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
@@ -23,9 +23,8 @@ import IssueBoardView from "./_issue-board-view";
 import IssueCalendarView from "./_issue-calendar-view";
 import MilestonePanel from "./_milestone-panel";
 import MilestoneSwimlane from "./_milestone-swimlane";
-import { TaskAttachmentPicker } from "./_task-attachment-picker";
-import { useUploadQueue, UploadQueuePanel, uploadFileWithProgress } from "./_attachment-dropzone";
 import { CreateTaskModal } from "./_create-task-modal";
+import { CreateIssueModal } from "./_create-issue-modal";
 import { MembersTab } from "./_members-tab";
 import { StatusReportTab } from "./_status-report-tab";
 import { TimeLogsTab } from "./_time-logs-tab";
@@ -85,7 +84,9 @@ const SORT_OPTIONS: { value: SortValue; label: string; key: SortKey; dir: SortDi
 
 // ─── Issues tab — status pipeline is shared with tasks (see task 192 doc); severity
 // is a separate 5-value Zoho vocabulary, not the task priority enum. ────────────────
-const SEVERITY_OPTS: IssueSeverity[] = ["Show stopper", "Critical", "Major", "Minor", "None"];
+// Exported (task 286) — `_create-issue-modal.tsx` (extracted out of this file) reuses this
+// same Severity option list rather than duplicating it, same as STATUS_OPTS/PRIORITY_OPTS.
+export const SEVERITY_OPTS: IssueSeverity[] = ["Show stopper", "Critical", "Major", "Minor", "None"];
 const SEVERITY_FILTER_OPTIONS = SEVERITY_OPTS.map((s) => ({ value: s, label: SEVERITY_STYLE[s].label }));
 
 type IssueSortValue = "istatus_asc" | "istatus_desc" | "iname_asc" | "iname_desc" | "idue_soonest" | "idue_latest" | "severity_high" | "severity_low";
@@ -240,6 +241,17 @@ export default function ProjectDetail({
 
   const addTask = useCallback((task: Task) => {
     setTasks((prev) => [...prev, task]);
+  }, []);
+
+  const bulkDeleteTasks = useCallback(async (ids: string[]) => {
+    const results = await Promise.all(
+      ids.map(async (id) => {
+        const res = await fetch(`/api/v2/tasks/${id}`, { method: "DELETE" });
+        return { id, ok: res.ok };
+      })
+    );
+    const deletedIds = new Set(results.filter((r) => r.ok).map((r) => r.id));
+    setTasks((prev) => prev.filter((t) => !deletedIds.has(t.id)));
   }, []);
 
   const addTasklist = useCallback((tasklist: Tasklist) => {
@@ -521,6 +533,7 @@ export default function ProjectDetail({
                   tasklists={tasklists}
                   onOpen={(task) => router.push(`${basePath}/tasks/${task.display_id}`)}
                   onUpdate={updateTask}
+                  onBulkDelete={bulkDeleteTasks}
                   currentUserId={currentUserId}
                   currentUserRole={currentUserRole}
                   profilesById={profilesById}
@@ -622,6 +635,8 @@ export default function ProjectDetail({
                   onOpen={(issue) => router.push(`${basePath}/issues/${issue.display_id}`)}
                   onUpdate={updateIssue}
                   onBulkDelete={bulkDeleteIssues}
+                  currentUserId={currentUserId}
+                  currentUserRole={currentUserRole}
                   allMembers={allMembers}
                   sortKey={issueSortKey}
                   sortDir={issueSortDir}
@@ -718,6 +733,7 @@ export default function ProjectDetail({
           projectId={project.project_id ?? project.id}
           milestones={milestones}
           tasklists={tasklists}
+          tasks={tasks}
           allMembers={allMembers}
           defaults={createDefaults}
           onClose={() => setCreateDefaults(null)}
@@ -731,6 +747,7 @@ export default function ProjectDetail({
         <CreateIssueModal
           projectId={project.project_id ?? project.id}
           allMembers={allMembers}
+          issues={issues}
           onClose={() => setCreateIssueOpen(false)}
           onCreated={(i) => { addIssue(i); setCreateIssueOpen(false); }}
         />
@@ -866,213 +883,7 @@ function SortSelect({
   );
 }
 
-// `CreateTaskModal` extracted to `_create-task-modal.tsx` (task 274) — exported here since
-// the extracted file imports this type back for its own props.
+// `CreateTaskModal` extracted to `_create-task-modal.tsx` (task 274), `CreateIssueModal`
+// extracted to `_create-issue-modal.tsx` (task 286) — exported here since both extracted files
+// import this type back for their own props.
 export type MemberOptionWithRole = { id: string; full_name: string | null; avatar_url: string | null; role: string };
-
-// ─── Create Issue modal ───────────────────────────────────────────────────────
-
-type MemberOption = { id: string; full_name: string | null; avatar_url: string | null };
-
-function CreateIssueModal({
-  projectId,
-  allMembers,
-  onClose,
-  onCreated,
-}: {
-  projectId: string;
-  allMembers: MemberOption[];
-  onClose: () => void;
-  onCreated: (i: Issue) => void;
-}) {
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [status, setStatus] = useState<string>("open");
-  const [severity, setSeverity] = useState<IssueSeverity>("None");
-  const [assigneeId, setAssigneeId] = useState<string>("");
-  const [dueDate, setDueDate] = useState<string>("");
-  const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  // Post-creation upload phase (task 273 follow-up) — see CreateTaskModal's identical pattern for
-  // why `issueIdRef` (not the `createdIssue` state) is what the upload closure reads.
-  const [createdIssue, setCreatedIssue] = useState<Issue | null>(null);
-  const issueIdRef = useRef<string | null>(null);
-  const uploadQueue = useUploadQueue((file, onProgress) => {
-    const fd = new FormData();
-    fd.append("file", file);
-    return uploadFileWithProgress(`/api/v2/projects/${projectId}/issues/${issueIdRef.current}/attachments`, fd, onProgress).then(() => undefined);
-  });
-  const uploading = createdIssue !== null;
-  const allSettled = uploadQueue.items.length > 0 && uploadQueue.items.every((it) => it.status !== "uploading");
-  const hasFailures = uploadQueue.items.some((it) => it.status === "error");
-
-  useEffect(() => {
-    if (uploading && allSettled && !hasFailures) onCreated(createdIssue!);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- onCreated is a stable callback from the parent; only fire once when the queue actually settles
-  }, [uploading, allSettled, hasFailures]);
-
-  async function submit() {
-    if (!title.trim()) { setError("Title is required"); return; }
-    setSaving(true);
-    setError(null);
-    const assignee = allMembers.find((m) => m.id === assigneeId);
-    const res = await fetch(`/api/v2/projects/${projectId}/issues`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: title.trim(),
-        description: description.trim() || undefined,
-        status,
-        severity,
-        assignee_name: assignee?.full_name || undefined,
-        due_date: dueDate || undefined,
-      }),
-    });
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      setError(body.error || "Failed to create issue");
-      setSaving(false);
-      return;
-    }
-    const issue: Issue = await res.json();
-    setSaving(false);
-
-    if (attachmentFiles.length > 0) {
-      issueIdRef.current = issue.id;
-      setCreatedIssue(issue);
-      uploadQueue.enqueue(attachmentFiles);
-    } else {
-      onCreated(issue);
-    }
-  }
-
-  const inputClass = "w-full px-3 py-2 rounded-[10px] border text-[13px] outline-none transition-colors border-[#E2E7F2] bg-[#F4F6FB] text-[#3A4565] focus:border-[#007BFF] focus:bg-white focus:ring-[3px] focus:ring-[#007BFF]/[0.14]";
-  const labelClass = "text-[11px] font-semibold text-[#0B1533]";
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0B1533]/40 p-4" onClick={uploading ? undefined : onClose}>
-      <div
-        className="w-full max-w-lg rounded-[14px] bg-white shadow-xl border border-[#E2E7F2] overflow-hidden max-h-[90vh] flex flex-col"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[#EDF0F7] shrink-0">
-          <h2 className="text-[15px] font-semibold text-[#0B1533]">New Issue</h2>
-          {!uploading && (
-            <button onClick={onClose} className="p-1 rounded-md text-[#5F6A88] hover:text-[#0B1533] hover:bg-[#F4F6FB] cursor-pointer transition-colors">
-              <X size={16} />
-            </button>
-          )}
-        </div>
-        {uploading ? (
-          <>
-            <div className="p-5 flex flex-col gap-3 overflow-y-auto">
-              <p className="text-[13px] text-[#3A4565]">
-                {!allSettled
-                  ? "Issue created — uploading attachments…"
-                  : hasFailures
-                    ? "Issue created. Some attachments failed to upload — retry or continue without them."
-                    : "Issue created — all attachments uploaded."}
-              </p>
-              <UploadQueuePanel items={uploadQueue.items} onRetry={uploadQueue.retry} onDismiss={uploadQueue.dismiss} />
-            </div>
-            <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-[#EDF0F7] bg-[#F4F6FB] shrink-0">
-              <button
-                onClick={() => onCreated(createdIssue!)}
-                disabled={!allSettled}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#007BFF] text-white text-[13px] font-medium hover:bg-[#0063D6] disabled:opacity-45 cursor-pointer transition-colors"
-              >
-                {!allSettled && <Loader2 size={14} className="animate-spin" />} {allSettled ? "Done" : "Uploading…"}
-              </button>
-            </div>
-          </>
-        ) : (
-          <>
-        <div className="p-5 flex flex-col gap-4 overflow-y-auto">
-          <label className="flex flex-col gap-1.5">
-            <span className={labelClass}>Title</span>
-            <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              autoFocus
-              className={inputClass}
-              placeholder="What's the issue?"
-            />
-          </label>
-          <label className="flex flex-col gap-1.5">
-            <span className={labelClass}>Description (optional)</span>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={2}
-              className={cn(inputClass, "resize-none")}
-            />
-          </label>
-          <div className="flex flex-col gap-1.5">
-            <span className={labelClass}>Attachments (optional)</span>
-            <TaskAttachmentPicker files={attachmentFiles} onFilesChange={setAttachmentFiles} />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <label className="flex flex-col gap-1.5">
-              <span className={labelClass}>Status</span>
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-                className={cn(inputClass, "bg-white capitalize cursor-pointer")}
-              >
-                {STATUS_OPTS.map((s) => <option key={s} value={s}>{s.replace(/_/g, " ")}</option>)}
-              </select>
-            </label>
-            <label className="flex flex-col gap-1.5">
-              <span className={labelClass}>Severity</span>
-              <select
-                value={severity}
-                onChange={(e) => setSeverity(e.target.value as IssueSeverity)}
-                className={cn(inputClass, "bg-white cursor-pointer")}
-              >
-                {SEVERITY_OPTS.map((s) => <option key={s} value={s}>{SEVERITY_STYLE[s].label}</option>)}
-              </select>
-            </label>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <label className="flex flex-col gap-1.5">
-              <span className={labelClass}>Assignee</span>
-              <select
-                value={assigneeId}
-                onChange={(e) => setAssigneeId(e.target.value)}
-                className={cn(inputClass, "bg-white cursor-pointer")}
-              >
-                <option value="">Unassigned</option>
-                {allMembers.map((m) => <option key={m.id} value={m.id}>{m.full_name ?? "Unknown"}</option>)}
-              </select>
-            </label>
-            <label className="flex flex-col gap-1.5">
-              <span className={labelClass}>Due date</span>
-              <input
-                type="date"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-                className={inputClass}
-              />
-            </label>
-          </div>
-          {error && <p className="text-[12px] text-[#C0392B]">{error}</p>}
-        </div>
-        <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-[#EDF0F7] bg-[#F4F6FB] shrink-0">
-          <button onClick={onClose} className="px-4 py-2 rounded-full text-[13px] text-[#3A4565] bg-white border border-[#E2E7F2] hover:border-[#A8C6F5] cursor-pointer transition-colors">
-            Cancel
-          </button>
-          <button
-            onClick={submit}
-            disabled={saving}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#007BFF] text-white text-[13px] font-medium hover:bg-[#0063D6] disabled:opacity-45 cursor-pointer transition-colors"
-          >
-            {saving && <Loader2 size={14} className="animate-spin" />} Create
-          </button>
-        </div>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}

@@ -38,16 +38,21 @@ function AvatarTip({ label, children }: { label: string; children: React.ReactEl
 
 // Falls back to a single owner_name-derived bubble when a project has no project_members
 // rows (expected for Legacy/Zoho-imported projects, which predate native membership).
-export function AvatarStack({ members, fallbackName }: { members: { id: string; full_name: string | null }[]; fallbackName: string | null }) {
+export function AvatarStack({ members, fallbackName, fallbackAvatarUrl }: { members: { id: string; full_name: string | null; avatar_url: string | null }[]; fallbackName: string | null; fallbackAvatarUrl?: string | null }) {
   if (members.length === 0) {
     if (!fallbackName) return <span className="text-[11px] text-[#5F6A88]">Unassigned</span>;
     return (
       <AvatarTip label={fallbackName}>
         <div
-          className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-semibold text-white ring-2 ring-white shrink-0"
-          style={{ background: colorFor(fallbackName) }}
+          className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-semibold text-white ring-2 ring-white shrink-0 overflow-hidden"
+          style={fallbackAvatarUrl ? undefined : { background: colorFor(fallbackName) }}
         >
-          {initialsFor(fallbackName)}
+          {fallbackAvatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element -- external Supabase-auth-provider avatar URL, not a static/optimizable asset
+            <img src={fallbackAvatarUrl} alt={fallbackName} className="w-full h-full object-cover" />
+          ) : (
+            initialsFor(fallbackName)
+          )}
         </div>
       </AvatarTip>
     );
@@ -58,10 +63,15 @@ export function AvatarStack({ members, fallbackName }: { members: { id: string; 
     return (
       <AvatarTip label={m.full_name ?? "Unnamed"}>
         <div
-          className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-semibold text-white ring-2 ring-white shrink-0"
-          style={{ background: colorFor(m.full_name) }}
+          className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-semibold text-white ring-2 ring-white shrink-0 overflow-hidden"
+          style={m.avatar_url ? undefined : { background: colorFor(m.full_name) }}
         >
-          {initialsFor(m.full_name)}
+          {m.avatar_url ? (
+            // eslint-disable-next-line @next/next/no-img-element -- external Supabase-auth-provider avatar URL, not a static/optimizable asset
+            <img src={m.avatar_url} alt={m.full_name ?? "Unnamed"} className="w-full h-full object-cover" />
+          ) : (
+            initialsFor(m.full_name)
+          )}
         </div>
       </AvatarTip>
     );
@@ -74,12 +84,17 @@ export function AvatarStack({ members, fallbackName }: { members: { id: string; 
       {visible.map((m, i) => (
         <AvatarTip key={m.id} label={m.full_name ?? "Unnamed"}>
           <motion.div
-            className={cn("w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-semibold text-white ring-2 ring-white shrink-0 cursor-default", i > 0 && "-ml-2")}
-            style={{ background: colorFor(m.full_name) }}
+            className={cn("w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-semibold text-white ring-2 ring-white shrink-0 cursor-default overflow-hidden", i > 0 && "-ml-2")}
+            style={m.avatar_url ? undefined : { background: colorFor(m.full_name) }}
             whileHover={{ y: -4, zIndex: 10 }}
             transition={{ type: "spring", stiffness: 500, damping: 20 }}
           >
-            {initialsFor(m.full_name)}
+            {m.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element -- external Supabase-auth-provider avatar URL, not a static/optimizable asset
+              <img src={m.avatar_url} alt={m.full_name ?? "Unnamed"} className="w-full h-full object-cover" />
+            ) : (
+              initialsFor(m.full_name)
+            )}
           </motion.div>
         </AvatarTip>
       ))}

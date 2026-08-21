@@ -158,14 +158,19 @@ export function ConfidenceBar({ pct }: { pct: number }) {
 
 const AVATAR_COLORS = ["#2563EB", "#7C3AED", "#0D9488", "#DC2626", "#D97706"];
 
-export function Avatar({ initials, size = 7, idx = 0 }: { initials: string; size?: number; idx?: number }) {
+export function Avatar({ initials, avatarUrl, size = 7, idx = 0 }: { initials: string; avatarUrl?: string | null; size?: number; idx?: number }) {
   const sizeClass = size === 7 ? "w-7 h-7 text-[10px]" : size === 6 ? "w-6 h-6 text-[9px]" : "w-8 h-8 text-[11px]";
   return (
     <div
-      className={`${sizeClass} rounded-full flex items-center justify-center font-semibold text-white shrink-0 border-2 border-white`}
-      style={{ background: AVATAR_COLORS[idx % AVATAR_COLORS.length] }}
+      className={`${sizeClass} rounded-full flex items-center justify-center font-semibold text-white shrink-0 border-2 border-white overflow-hidden`}
+      style={avatarUrl ? undefined : { background: AVATAR_COLORS[idx % AVATAR_COLORS.length] }}
     >
-      {initials}
+      {avatarUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element -- external Supabase-auth-provider avatar URL, not a static/optimizable asset
+        <img src={avatarUrl} alt={initials} className="w-full h-full object-cover" />
+      ) : (
+        initials
+      )}
     </div>
   );
 }

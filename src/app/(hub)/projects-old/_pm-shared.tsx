@@ -379,18 +379,23 @@ function nameInitials(name: string | null | undefined, fallbackId: string): stri
   return fallbackId.replace(/-/g, "").slice(0, 2).toUpperCase();
 }
 
-export function AssigneeChip({ id, idx, name }: { id: string; idx: number; name?: string }) {
+export function AssigneeChip({ id, idx, name, avatarUrl }: { id: string; idx: number; name?: string; avatarUrl?: string | null }) {
   return (
     <Tooltip>
       <TooltipTrigger
         render={
           <motion.div
-            className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-semibold text-white border-2 border-white shrink-0 cursor-default"
-            style={{ background: AVATAR_COLORS[idx % AVATAR_COLORS.length] }}
+            className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-semibold text-white border-2 border-white shrink-0 cursor-default overflow-hidden"
+            style={avatarUrl ? undefined : { background: AVATAR_COLORS[idx % AVATAR_COLORS.length] }}
             whileHover={{ y: -4, zIndex: 10 }}
             transition={{ type: "spring", stiffness: 500, damping: 20 }}
           >
-            {nameInitials(name, id)}
+            {avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element -- external Supabase-auth-provider avatar URL, not a static/optimizable asset
+              <img src={avatarUrl} alt={name ?? "Unnamed"} className="w-full h-full object-cover" />
+            ) : (
+              nameInitials(name, id)
+            )}
           </motion.div>
         }
       />

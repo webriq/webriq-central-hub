@@ -58,7 +58,7 @@ export type CustomerPhaseRow = {
   sort_order: number;
 };
 
-export type PhaseAssigneeMember = { id: string; fullName: string; roleLabel: string };
+export type PhaseAssigneeMember = { id: string; fullName: string; roleLabel: string; avatarUrl: string | null };
 
 export type PhaseDerived = {
   phaseNumber: number;

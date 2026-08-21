@@ -45,6 +45,11 @@ function resolveOwnerName(row: TimeLogRow, profileNames: Map<string, string>): s
   return row.owner_name || row.owner_email || "Unknown";
 }
 
+function resolveOwnerAvatarUrl(row: TimeLogRow, profileAvatarUrls: Map<string, string | null>): string | null {
+  if (!row.employee_id) return null;
+  return profileAvatarUrls.get(row.employee_id) ?? null;
+}
+
 function truncateNote(note: string | null): string {
   if (!note) return "General log";
   const trimmed = note.trim();
@@ -99,10 +104,12 @@ export async function GET(req: NextRequest) {
 
   const employeeIds = [...new Set(rows.map((r) => r.employee_id).filter((id): id is string => !!id))];
   const profileNames = new Map<string, string>();
+  const profileAvatarUrls = new Map<string, string | null>();
   if (employeeIds.length > 0) {
-    const { data: profiles } = await supabase.from("profiles").select("id, full_name").in("id", employeeIds);
+    const { data: profiles } = await supabase.from("profiles").select("id, full_name, avatar_url").in("id", employeeIds);
     for (const p of profiles ?? []) {
       if (p.full_name) profileNames.set(p.id, p.full_name);
+      profileAvatarUrls.set(p.id, p.avatar_url);
     }
   }
 
@@ -168,6 +175,7 @@ export async function GET(req: NextRequest) {
       end_time: r.end_time,
       created_at: r.created_at,
       display_name: resolveOwnerName(r, profileNames),
+      avatar_url: resolveOwnerAvatarUrl(r, profileAvatarUrls),
       employee_id: r.employee_id,
       // Every entry this route resolves (task-linked, issue-linked, or general) is now editable
       // through the unified `/api/v2/time-logs/[timeLogId]` route (task 230) — the earlier
@@ -256,10 +264,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
-  const { data: callerProfile } = await supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
+  const { data: callerProfile } = await supabase.from("profiles").select("full_name, avatar_url").eq("id", user.id).maybeSingle();
 
   return NextResponse.json(
-    { ...created, display_name: callerProfile?.full_name || user.email || "Unknown", can_edit: true },
+    { ...created, display_name: callerProfile?.full_name || user.email || "Unknown", avatar_url: callerProfile?.avatar_url ?? null, can_edit: true },
     { status: 201 }
   );
 }

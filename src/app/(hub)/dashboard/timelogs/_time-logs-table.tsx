@@ -482,7 +482,7 @@ export function TimeLogsTable({
                 <td colSpan={8} className="py-2 pl-[18px] pr-[18px]">
                   <div className="flex items-center gap-2.5">
                     <ChevronDown size={13} className={cn("text-[#5F6A88] transition-transform", isCollapsed && "-rotate-90")} />
-                    <Avatar initials={initialsOf(group.name)} size={6} idx={avatarIdx(group.name)} />
+                    <Avatar initials={initialsOf(group.name)} avatarUrl={group.avatarUrl} size={6} idx={avatarIdx(group.name)} />
                     <span className="text-[12px] font-semibold text-[#0B1533]">{group.name}</span>
                     <span className="ml-auto font-mono text-[12px] font-semibold text-[#3A4565]">
                       {formatHoursAsHHMM(sumHours(group.entries))}

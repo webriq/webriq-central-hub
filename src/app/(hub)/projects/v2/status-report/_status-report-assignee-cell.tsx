@@ -46,14 +46,19 @@ export function AssigneeCell({ members, placeholder }: { members: PhaseAssigneeM
         <AvatarTip key={m.id} label={`${m.fullName} (${m.roleLabel})`}>
           <motion.div
             className={cn(
-              "w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-semibold text-white ring-2 ring-white shrink-0 cursor-default",
+              "w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-semibold text-white ring-2 ring-white shrink-0 cursor-default overflow-hidden",
               i > 0 && "-ml-2"
             )}
-            style={{ background: colorFor(m.fullName) }}
+            style={m.avatarUrl ? undefined : { background: colorFor(m.fullName) }}
             whileHover={{ y: -4, zIndex: 10 }}
             transition={{ type: "spring", stiffness: 500, damping: 20 }}
           >
-            {initialsFor(m.fullName)}
+            {m.avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element -- external Supabase-auth-provider avatar URL, not a static/optimizable asset
+              <img src={m.avatarUrl} alt={m.fullName} className="w-full h-full object-cover" />
+            ) : (
+              initialsFor(m.fullName)
+            )}
           </motion.div>
         </AvatarTip>
       ))}

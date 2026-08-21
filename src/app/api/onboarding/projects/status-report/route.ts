@@ -104,10 +104,10 @@ export async function GET(request: Request) {
     // (or all rows if admin/super_admin) — same workaround as /api/onboarding/projects for
     // resolving other users' names/roles for a pm/marketing/developer caller.
     const memberUserIds = [...new Set((membersRes.data ?? []).map((r) => r.user_id))];
-    const memberProfileById = new Map<string, { full_name: string | null; role: string | null }>();
+    const memberProfileById = new Map<string, { full_name: string | null; role: string | null; avatar_url: string | null }>();
     if (memberUserIds.length > 0) {
-      const { data: memberProfiles } = await adminClient.from("profiles").select("id, full_name, role").in("id", memberUserIds);
-      for (const row of memberProfiles ?? []) memberProfileById.set(row.id, { full_name: row.full_name, role: row.role });
+      const { data: memberProfiles } = await adminClient.from("profiles").select("id, full_name, role, avatar_url").in("id", memberUserIds);
+      for (const row of memberProfiles ?? []) memberProfileById.set(row.id, { full_name: row.full_name, role: row.role, avatar_url: row.avatar_url });
     }
 
     const phasesByProject = new Map<string, CustomerPhaseRow[]>();
@@ -136,6 +136,7 @@ export async function GET(request: Request) {
         id: row.user_id,
         fullName: memberProfile.full_name,
         roleLabel: ROLE_LABEL[memberProfile.role ?? ""] ?? (memberProfile.role ?? "Team"),
+        avatarUrl: memberProfile.avatar_url,
       });
     }
 

@@ -102,9 +102,10 @@ const ROLE_LABEL: Record<string, string> = {
 interface V2HubSidebarProps {
   userRole: string | null;
   displayName: string | null;
+  avatarUrl: string | null;
 }
 
-export default function V2HubSidebar({ userRole, displayName }: V2HubSidebarProps) {
+export default function V2HubSidebar({ userRole, displayName, avatarUrl }: V2HubSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
@@ -335,12 +336,17 @@ export default function V2HubSidebar({ userRole, displayName }: V2HubSidebarProp
         }}
       >
         <div className="relative shrink-0">
-          <div
-            className="w-9 h-9 rounded-full flex items-center justify-center text-[13px] font-semibold text-white"
-            style={{ background: "linear-gradient(135deg, #2563EB, #1D4ED8)" }}
-          >
-            {initials}
-          </div>
+          {avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element -- external Supabase-auth-provider avatar URL, not a static/optimizable asset
+            <img src={avatarUrl} alt={displayName ?? "User"} className="w-9 h-9 rounded-full object-cover" />
+          ) : (
+            <div
+              className="w-9 h-9 rounded-full flex items-center justify-center text-[13px] font-semibold text-white"
+              style={{ background: "linear-gradient(135deg, #2563EB, #1D4ED8)" }}
+            >
+              {initials}
+            </div>
+          )}
           <span
             className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2"
             style={{ background: "#22C55E", borderColor: "#0F172A" }}

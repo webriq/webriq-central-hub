@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { addProjectMember } from "@/lib/programme/phase-membership";
 
 const VALID_STATUS = ["open", "in_progress", "ready_for_qa", "testing_completed", "for_client_approval", "ready_to_merge", "post_live_qa", "closed"] as const;
 const VALID_PRIORITY = ["low", "normal", "high", "critical"] as const;
@@ -87,5 +88,14 @@ export async function POST(
     console.error("[api/v2/projects/[id]/tasks] create failed:", error.message);
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
+
+  // Task 287 — assigning a task grants the assignee persistent project access (project_members),
+  // so it survives the task being deleted later. Best-effort: never fail task creation over this.
+  if (Array.isArray(body.assignees) && body.assignees.length > 0) {
+    await Promise.all(
+      body.assignees.map((assigneeId: string) => addProjectMember(project.id, assigneeId, user.id))
+    ).catch((err) => console.error("[api/v2/projects/[id]/tasks] project_members sync failed:", err));
+  }
+
   return NextResponse.json(data, { status: 201 });
 }
