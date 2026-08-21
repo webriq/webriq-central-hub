@@ -17,7 +17,7 @@ import { usePopoverPosition, POPOVER_ROOT_ATTR } from "./_use-popover-position";
 // modal card in a way the wide-open toolbar never has to worry about.
 
 const inputTriggerClass =
-  "w-full px-2.5 py-1.5 rounded-[10px] border text-[12px] outline-none transition-colors border-[#E2E7F2] bg-[#F4F6FB] text-[#3A4565] flex items-center gap-1.5 cursor-pointer hover:border-[#A8C6F5]";
+  "w-full px-3 py-2 rounded-[10px] border text-[13px] outline-none transition-colors border-[#E2E7F2] bg-[#F4F6FB] text-[#3A4565] flex items-center gap-1.5 cursor-pointer hover:border-[#A8C6F5]";
 
 function formatLabel(d: Date): string {
   return `${MONTH_NAMES[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;

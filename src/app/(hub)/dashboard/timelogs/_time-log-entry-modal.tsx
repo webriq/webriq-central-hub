@@ -13,6 +13,7 @@ import {
   getRecentProjectIds, pushRecentProjectId, toISODate, nowHHmm, combineDateTime, isoToHHmm, parseHHMMToHours,
 } from "./_time-logs-shared";
 import type { ProjectOption, TimeLogEntry } from "./_time-logs-shared";
+import { POPOVER_ROOT_ATTR } from "./_use-popover-position";
 
 // Add/Edit modal for the dedicated Time Logs page (task 226). Task 230 reworked this into a
 // guided flow: Add mode hides everything but Project until one is picked (Requirement 3); the
@@ -115,6 +116,22 @@ export function TimeLogEntryModal({
 
   function shows(field: TouchedField): boolean {
     return !!touched[field] || submitAttempted;
+  }
+
+  // Task 294 — the Project/Task-Issue/Date fields each open a `createPortal`-ed popover (tagged
+  // `[data-popover-root]`) that lives outside this field's own wrapping `<div>` in the DOM tree.
+  // `SearchableSelect`'s dropdown in particular auto-focuses its own search input the instant it
+  // opens, which blurs this field's trigger before the user has made a choice or left the field —
+  // an unguarded `onBlur` here would mark the field touched (and show its error) on open, not on
+  // leave. Skip marking touched when focus is moving into that same field's own popover; the
+  // popover components each call an `onClose` prop (wired below) when they actually close, which
+  // is the correct "genuinely done with this field" signal instead.
+  function guardedBlur(field: TouchedField) {
+    return (e: React.FocusEvent<HTMLDivElement>) => {
+      const next = e.relatedTarget as Node | null;
+      if (next && (e.currentTarget.contains(next) || (next as Element).closest?.(`[${POPOVER_ROOT_ATTR}]`))) return;
+      markTouched(field);
+    };
   }
 
   useEffect(() => {
@@ -233,108 +250,120 @@ export function TimeLogEntryModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0B1533]/40 p-4">
-      <div className="w-full max-w-[420px] rounded-[14px] border border-[#E2E7F2] bg-white shadow-[0_8px_24px_rgba(7,17,51,0.10)] p-5 flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-[15px] font-semibold text-[#0B1533]">{initial ? "Edit Time Log" : "Add Time Log"}</h2>
+      <div className="w-full max-w-md rounded-[14px] border border-[#E2E7F2] bg-white shadow-[0_8px_24px_rgba(7,17,51,0.10)] overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#EDF0F7]">
+          <h2 className="font-heading text-[15px] font-semibold text-[#0B1533]">{initial ? "Edit Time Log" : "Add Time Log"}</h2>
           <button type="button" onClick={onClose} aria-label="Close" className="p-1 rounded-full text-[#5F6A88] hover:bg-[#F4F6FB] cursor-pointer transition-colors">
             <X size={16} />
           </button>
         </div>
 
-        {initial ? (
-          <div>
-            <FieldLabel>Project</FieldLabel>
-            <div className="rounded-[10px] bg-[#F9FAFD] border border-[#E2E7F2] px-2.5 py-1.5 text-[12px] font-medium text-[#0B1533]">
-              {initial.project_name}
+        <div className="px-5 py-4 flex flex-col gap-3">
+          {initial ? (
+            <div>
+              <FieldLabel>Project</FieldLabel>
+              <div className="rounded-[10px] bg-[#F9FAFD] border border-[#E2E7F2] px-3 py-2 text-[13px] font-medium text-[#0B1533]">
+                {initial.project_name}
+              </div>
             </div>
-          </div>
-        ) : (
-          <div onBlur={() => markTouched("project")}>
-            <FieldLabel required>Project</FieldLabel>
-            <SearchableSelect
-              value={projectPublicId}
-              onChange={handleProjectChange}
-              options={projects.map((p) => ({ value: p.project_id, label: p.name }))}
-              placeholder="Select project…"
-              searchPlaceholder="Search projects…"
-              recentValues={getRecentProjectIds(currentUserId)}
-              fullWidth
-            />
-            <FieldError message={shows("project") ? errors.project : undefined} />
-          </div>
-        )}
-
-        {showRestOfForm && (
-          <>
-            <div onBlur={() => markTouched("picker")}>
-              <FieldLabel required>Task/Issue</FieldLabel>
-              <TaskIssuePicker
-                projectId={projectPublicId}
-                currentUserId={currentUserId}
-                value={pickerValue}
-                onChange={setPickerValue}
+          ) : (
+            <div onBlur={guardedBlur("project")}>
+              <FieldLabel required>Project</FieldLabel>
+              <SearchableSelect
+                value={projectPublicId}
+                onChange={handleProjectChange}
+                options={projects.map((p) => ({ value: p.project_id, label: p.name }))}
+                placeholder="Select project…"
+                searchPlaceholder="Search projects…"
+                recentValues={getRecentProjectIds(currentUserId)}
+                fullWidth
+                size="md"
+                onClose={() => markTouched("project")}
               />
-              <FieldError message={shows("picker") ? errors.picker : undefined} />
+              <FieldError message={shows("project") ? errors.project : undefined} />
             </div>
+          )}
 
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-wide text-[#5F6A88]">
-                {timeMode === "period" ? "Start & End Time" : "Duration"}
-              </span>
-              <button
-                type="button"
-                onClick={() => setTimeMode((m) => (m === "period" ? "duration" : "period"))}
-                className="text-[11px] font-semibold text-[#0063D6] hover:underline cursor-pointer"
-              >
-                {timeMode === "period" ? "Enter duration manually" : "Set start and end time"}
-              </button>
-            </div>
-
-            <div className="flex gap-2.5">
-              <div className="flex-1" onBlur={() => markTouched("date")}>
-                <FieldLabel required hint="Time logging is not allowed for future dates">Date</FieldLabel>
-                <DateFieldPicker value={date} onChange={setDate} />
-                <FieldError message={shows("date") ? errors.date : undefined} />
+          {showRestOfForm && (
+            <>
+              <div onBlur={guardedBlur("picker")}>
+                <FieldLabel required>Task/Issue</FieldLabel>
+                <TaskIssuePicker
+                  projectId={projectPublicId}
+                  currentUserId={currentUserId}
+                  value={pickerValue}
+                  onChange={setPickerValue}
+                  onClose={() => markTouched("picker")}
+                />
+                <FieldError message={shows("picker") ? errors.picker : undefined} />
               </div>
 
-              {timeMode === "period" ? (
-                <>
-                  <div className="flex-1" onBlur={() => markTouched("startTime")}>
-                    <FieldLabel required hint="Time logging is not allowed for future times">Start Time</FieldLabel>
-                    <NativeTimeInput value={startTime} onChange={setStartTime} />
-                    <FieldError message={shows("startTime") ? errors.startTime : undefined} />
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-wide text-[#5F6A88]">
+                  {timeMode === "period" ? "Start & End Time" : "Duration"}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTimeMode((m) => (m === "period" ? "duration" : "period"));
+                    // Task 294 — switching modes swaps which time field(s) are on screen; clear any
+                    // stale touched/submit state so the newly-revealed field doesn't immediately show
+                    // an error left over from the mode the user just switched away from.
+                    setTouched((prev) => ({ ...prev, startTime: false, endTime: false, duration: false }));
+                    setSubmitAttempted(false);
+                  }}
+                  className="text-[11px] font-semibold text-[#0063D6] hover:underline cursor-pointer"
+                >
+                  {timeMode === "period" ? "Enter duration manually" : "Set start and end time"}
+                </button>
+              </div>
+
+              <div className="flex gap-2.5">
+                <div className="flex-1" onBlur={guardedBlur("date")}>
+                  <FieldLabel required hint="Time logging is not allowed for future dates">Date</FieldLabel>
+                  <DateFieldPicker value={date} onChange={setDate} onClose={() => markTouched("date")} />
+                  <FieldError message={shows("date") ? errors.date : undefined} />
+                </div>
+
+                {timeMode === "period" ? (
+                  <>
+                    <div className="flex-1" onBlur={() => markTouched("startTime")}>
+                      <FieldLabel required hint="Time logging is not allowed for future times">Start Time</FieldLabel>
+                      <NativeTimeInput value={startTime} onChange={setStartTime} />
+                      <FieldError message={shows("startTime") ? errors.startTime : undefined} />
+                    </div>
+                    <div className="flex-1" onBlur={() => markTouched("endTime")}>
+                      <FieldLabel required hint="Time logging is not allowed for future times">End Time</FieldLabel>
+                      <NativeTimeInput value={endTime} onChange={setEndTime} />
+                      <FieldError message={shows("endTime") ? errors.endTime : undefined} />
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex-1" onBlur={() => markTouched("duration")}>
+                    <FieldLabel required hint="Enter the total time worked, e.g. 01:30 for 1 hour 30 minutes">Duration</FieldLabel>
+                    <DurationInput value={duration} onChange={setDuration} placeholder="00:00" />
+                    <FieldError message={shows("duration") ? errors.duration : undefined} />
                   </div>
-                  <div className="flex-1" onBlur={() => markTouched("endTime")}>
-                    <FieldLabel required hint="Time logging is not allowed for future times">End Time</FieldLabel>
-                    <NativeTimeInput value={endTime} onChange={setEndTime} />
-                    <FieldError message={shows("endTime") ? errors.endTime : undefined} />
-                  </div>
-                </>
-              ) : (
-                <div className="flex-1" onBlur={() => markTouched("duration")}>
-                  <FieldLabel required hint="Enter the total time worked, e.g. 01:30 for 1 hour 30 minutes">Duration</FieldLabel>
-                  <DurationInput value={duration} onChange={setDuration} placeholder="00:00" />
-                  <FieldError message={shows("duration") ? errors.duration : undefined} />
+                )}
+              </div>
+
+              {pickerValue?.kind !== "general" && (
+                <div>
+                  <FieldLabel>Notes (optional)</FieldLabel>
+                  <TimeLogNotesEditor content={notesHtml} onChange={setNotesHtml} />
                 </div>
               )}
-            </div>
+            </>
+          )}
 
-            {pickerValue?.kind !== "general" && (
-              <div>
-                <FieldLabel>Notes (optional)</FieldLabel>
-                <TimeLogNotesEditor content={notesHtml} onChange={setNotesHtml} />
-              </div>
-            )}
-          </>
-        )}
+          {error && <p className="text-[11px] text-[#C0392B]">{error}</p>}
+        </div>
 
-        {error && <p className="text-[11px] text-[#C0392B]">{error}</p>}
-
-        <div className="flex items-center justify-end gap-2 pt-1">
+        <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-[#EDF0F7] bg-[#F4F6FB]">
           <button
             type="button"
             onClick={onClose}
-            className="px-3 py-1.5 rounded-full text-[12px] font-medium text-[#5F6A88] hover:text-[#0B1533] cursor-pointer transition-colors"
+            className="px-4 py-2 rounded-full text-[13px] font-semibold text-[#3A4565] border border-[#E2E7F2] bg-white hover:border-[#A8C6F5] hover:text-[#0B1533] cursor-pointer transition-colors"
           >
             Cancel
           </button>
@@ -342,7 +371,7 @@ export function TimeLogEntryModal({
             type="button"
             onClick={() => void handleSave()}
             disabled={saving || !isValid}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#FB914E] text-[#471F02] text-[12px] font-semibold hover:bg-[#E2762F] hover:text-white disabled:opacity-45 disabled:cursor-not-allowed cursor-pointer transition-colors"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#FB914E] text-[#471F02] text-[13px] font-semibold hover:bg-[#E2762F] hover:text-white disabled:opacity-45 disabled:cursor-not-allowed cursor-pointer transition-colors"
           >
             {saving ? <Loader2 size={13} className="animate-spin" /> : null}
             {initial ? "Save changes" : "Add Time Log"}

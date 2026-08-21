@@ -4,9 +4,18 @@ import { Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const fieldClass = cn(
-  "w-full pl-8 pr-2.5 py-1.5 rounded-[10px] border text-[12px] outline-none transition-colors",
+  "w-full pl-9 pr-3 py-2 rounded-[10px] border text-[13px] outline-none transition-colors",
   "border-[#E2E7F2] bg-[#F4F6FB] text-[#3A4565]",
   "focus:border-[#007BFF] focus:bg-white focus:ring-[3px] focus:ring-[#007BFF]/[0.14]"
+);
+
+// The browser's own trailing calendar-picker indicator is itself a clock glyph — left visible
+// alongside this component's custom leading `Clock` icon, it reads as two clock icons on the same
+// field. Hiding it doesn't disable the native time picker; clicking anywhere in the field still
+// opens it.
+const nativeTimeClass = cn(
+  fieldClass,
+  "appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
 );
 
 // Native `<input type="time">` field for Start Time/End Time in the Add/Edit Time Log modal (task
@@ -24,14 +33,14 @@ export function NativeTimeInput({
 }) {
   return (
     <div className="relative">
-      <Clock size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[#5F6A88]" />
+      <Clock size={13} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#5F6A88]" />
       <input
         type="time"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onBlur={onBlur}
         placeholder={placeholder}
-        className={fieldClass}
+        className={nativeTimeClass}
       />
     </div>
   );
@@ -66,7 +75,7 @@ export function DurationInput({
 }) {
   return (
     <div className="relative">
-      <Clock size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[#5F6A88]" />
+      <Clock size={13} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#5F6A88]" />
       <input
         type="text"
         inputMode="numeric"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { Search } from "lucide-react";
 import { decodeHtmlEntities } from "@/app/(hub)/projects-old/_pm-shared";
@@ -42,7 +42,7 @@ function selectedId(value: TaskIssueValue | null): string | null {
 }
 
 export function TaskIssuePicker({
-  projectId, currentUserId, value, onChange, tasksAssignedOnly = true, disabled,
+  projectId, currentUserId, value, onChange, tasksAssignedOnly = true, disabled, onClose,
 }: {
   projectId: string; // public project_id — empty string means no project chosen yet
   currentUserId: string;
@@ -50,6 +50,12 @@ export function TaskIssuePicker({
   onChange: (v: TaskIssueValue | null) => void;
   tasksAssignedOnly?: boolean;
   disabled?: boolean;
+  // Task 294 — fires when the search/dropdown panel closes (pick, outside click, or Escape). The
+  // trigger doubles as the search input here (no separate portaled input to steal focus the way
+  // `SearchableSelect`'s does), but clicking a portaled option/tab still blurs the trigger before
+  // any value is committed — `onClose` gives callers a "genuinely done with this field" signal
+  // that doesn't depend on that blur bubbling correctly.
+  onClose?: () => void;
 }) {
   const [tasks, setTasks] = useState<PickerItem[]>([]);
   const [issues, setIssues] = useState<PickerItem[]>([]);
@@ -102,6 +108,12 @@ export function TaskIssuePicker({
     return () => ctrl.abort();
   }, [projectId, currentUserId, tasksAssignedOnly]);
 
+  const close = useCallback(() => {
+    setOpen(false);
+    setQuery("");
+    onClose?.();
+  }, [onClose]);
+
   useEffect(() => {
     if (!open) return;
     function handleOutside(e: MouseEvent) {
@@ -118,12 +130,7 @@ export function TaskIssuePicker({
       document.removeEventListener("mousedown", handleOutside);
       document.removeEventListener("keydown", handleKey);
     };
-  }, [open]);
-
-  function close() {
-    setOpen(false);
-    setQuery("");
-  }
+  }, [open, close]);
 
   function openPanel() {
     if (disabled) return;
@@ -177,7 +184,7 @@ export function TaskIssuePicker({
           rows={3}
           placeholder="Describe the work you did…"
           disabled={disabled}
-          className="w-full px-2.5 py-1.5 rounded-[10px] border text-[12px] outline-none transition-colors border-[#E2E7F2] bg-white text-[#3A4565] resize-none focus:border-[#007BFF] focus:ring-[3px] focus:ring-[#007BFF]/[0.14] disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full px-3 py-2 rounded-[10px] border text-[13px] outline-none transition-colors border-[#E2E7F2] bg-white text-[#3A4565] resize-none focus:border-[#007BFF] focus:ring-[3px] focus:ring-[#007BFF]/[0.14] disabled:opacity-50 disabled:cursor-not-allowed"
         />
         <button
           type="button"
@@ -197,7 +204,7 @@ export function TaskIssuePicker({
   return (
     <div className="flex flex-col gap-1">
       <div className="relative">
-        <Search size={12} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[#5F6A88]" />
+        <Search size={12} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#5F6A88]" />
         <input
           ref={triggerRef}
           type="text"
@@ -209,7 +216,7 @@ export function TaskIssuePicker({
           onFocus={openPanel}
           placeholder="Search tasks or issues…"
           disabled={disabled}
-          className="w-full pl-7 pr-2.5 py-1.5 rounded-[10px] border text-[12px] outline-none transition-colors border-[#E2E7F2] bg-[#F4F6FB] text-[#3A4565] focus:border-[#007BFF] focus:bg-white focus:ring-[3px] focus:ring-[#007BFF]/[0.14] disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full pl-8 pr-3 py-2 rounded-[10px] border text-[13px] outline-none transition-colors border-[#E2E7F2] bg-[#F4F6FB] text-[#3A4565] focus:border-[#007BFF] focus:bg-white focus:ring-[3px] focus:ring-[#007BFF]/[0.14] disabled:opacity-50 disabled:cursor-not-allowed"
         />
       </div>
       <button
@@ -264,7 +271,7 @@ export function TaskIssuePicker({
                     type="button"
                     onClick={() => pick(kind, item)}
                     className={cn(
-                      "flex w-full cursor-pointer items-center rounded-md px-2 py-1.5 text-left text-[12px] transition-colors hover:bg-[#F4F6FB]",
+                      "flex w-full cursor-pointer items-center rounded-md px-2.5 py-2 text-left text-[13px] transition-colors hover:bg-[#F4F6FB]",
                       isSelected ? "bg-[#F0F7FF] font-medium text-[#0B1533]" : "text-[#3A4565]"
                     )}
                   >

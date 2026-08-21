@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Check, ChevronDown, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -26,7 +26,7 @@ function OptionRow({ label, selected, onClick }: { label: string; selected: bool
       type="button"
       onClick={onClick}
       className={cn(
-        "flex w-full cursor-pointer items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left text-[12px] transition-colors hover:bg-[#F4F6FB]",
+        "flex w-full cursor-pointer items-center justify-between gap-2 rounded-md px-2.5 py-2 text-left text-[13px] transition-colors hover:bg-[#F4F6FB]",
         selected && "bg-[#F0F7FF]"
       )}
     >
@@ -37,7 +37,7 @@ function OptionRow({ label, selected, onClick }: { label: string; selected: bool
 }
 
 export function SearchableSelect({
-  value, onChange, options, placeholder, searchPlaceholder, disabled, fullWidth, label, recentValues,
+  value, onChange, options, placeholder, searchPlaceholder, disabled, fullWidth, label, recentValues, size = "sm", onClose,
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -57,6 +57,20 @@ export function SearchableSelect({
   // into "Recently Accessed" (values present here, in this order) and "Others" instead of one
   // flat list. Additive/optional — every other call site (Project/User filters) is unaffected.
   recentValues?: string[];
+  // Task 294 — "sm" (default) keeps the compact `rounded-full` filter-pill trigger every toolbar
+  // caller (`_time-logs-content.tsx`'s Project/User filters) already uses. "md" renders the
+  // trigger with this modal's plain form-field tokens instead (`rounded-[10px]`, `px-3 py-2`,
+  // `text-[13px]`, `bg-[#F4F6FB]`) — used by the Add Time Log modal's Project field so it matches
+  // `_create-project-modal.tsx` ("New Project")'s field sizing rather than reading as a filter
+  // pill inside a form.
+  size?: "sm" | "md";
+  // Task 294 — fires whenever the popover closes, whether or not a value was picked (outside
+  // click, Escape, or a selection). The dropdown's search input is `autoFocus`ed and lives in a
+  // portal outside this trigger's own DOM subtree, so opening the dropdown immediately blurs the
+  // trigger — a caller relying only on the trigger's own `onBlur` for "touched" tracking would see
+  // that fire the instant the dropdown opens, before the user has made a choice or left the field.
+  // `onClose` gives a callback tied to the popover actually closing instead.
+  onClose?: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -64,10 +78,11 @@ export function SearchableSelect({
   const panelRef = useRef<HTMLDivElement>(null);
   const pos = usePopoverPosition(open, triggerRef, panelRef, 200);
 
-  function close() {
+  const close = useCallback(() => {
     setOpen(false);
     setQuery("");
-  }
+    onClose?.();
+  }, [onClose]);
 
   useEffect(() => {
     if (!open) return;
@@ -85,7 +100,7 @@ export function SearchableSelect({
       document.removeEventListener("mousedown", handleOutside);
       document.removeEventListener("keydown", handleKey);
     };
-  }, [open]);
+  }, [open, close]);
 
   const filtered = options.filter((o) => o.label.toLowerCase().includes(query.trim().toLowerCase()));
   const selectedLabel = options.find((o) => o.value === value)?.label;
@@ -111,16 +126,25 @@ export function SearchableSelect({
         aria-haspopup="listbox"
         aria-expanded={open}
         className={cn(
-          "items-center gap-1.5 px-3 py-[6.5px] rounded-full border text-[11px] font-semibold outline-none transition-colors",
+          "items-center gap-1.5 border outline-none transition-colors",
           fullWidth ? "flex w-full justify-between" : "inline-flex",
+          size === "md"
+            ? "px-3 py-2 rounded-[10px] text-[13px] font-normal"
+            : "px-3 py-[6.5px] rounded-full text-[11px] font-semibold",
           disabled
             ? "opacity-50 cursor-not-allowed border-[#E2E7F2] bg-white text-[#5F6A88]"
-            : cn(
-                "cursor-pointer",
-                label && value
-                  ? "border-[#007BFF] bg-[#F0F7FF] text-[#0063D6]"
-                  : "border-[#E2E7F2] bg-white text-[#5F6A88] hover:border-[#A8C6F5] hover:text-[#0B1533]"
-              )
+            : size === "md"
+              ? cn(
+                  "cursor-pointer border-[#E2E7F2] bg-[#F4F6FB]",
+                  value ? "text-[#3A4565]" : "text-[#5F6A88]",
+                  "focus:border-[#007BFF] focus:bg-white focus:ring-[3px] focus:ring-[#007BFF]/[0.14]"
+                )
+              : cn(
+                  "cursor-pointer",
+                  label && value
+                    ? "border-[#007BFF] bg-[#F0F7FF] text-[#0063D6]"
+                    : "border-[#E2E7F2] bg-white text-[#5F6A88] hover:border-[#A8C6F5] hover:text-[#0B1533]"
+                )
         )}
       >
         {label ? (
@@ -148,7 +172,7 @@ export function SearchableSelect({
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder={searchPlaceholder}
-                className="w-full rounded-md border border-[#E2E7F2] py-1 pl-6 pr-2 text-[12px] text-[#0B1533] outline-none placeholder:text-[#5F6A88] focus:border-[#007BFF]"
+                className="w-full rounded-md border border-[#E2E7F2] py-1.5 pl-6 pr-2 text-[13px] text-[#0B1533] outline-none placeholder:text-[#5F6A88] focus:border-[#007BFF]"
               />
             </div>
           </div>

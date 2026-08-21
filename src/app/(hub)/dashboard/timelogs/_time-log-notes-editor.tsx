@@ -23,7 +23,7 @@ export function TimeLogNotesEditor({
     editorProps: {
       attributes: {
         class: cn(
-          "outline-none px-2.5 py-1.5 text-[12px] min-h-[56px] leading-relaxed",
+          "outline-none px-3 py-2 text-[13px] min-h-[56px] leading-relaxed",
           "[&_p]:my-0.5 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pl-5 [&_ol]:pl-5 [&_li]:my-0.5",
           "text-[#3A4565]"
         ),
