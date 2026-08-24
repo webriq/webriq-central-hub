@@ -23,11 +23,14 @@ export async function fetchDeskPage(
 
 // Paginates a Zoho Desk list endpoint (`{ data: [...] }` shape, `from`/`limit` params,
 // 100 max per page — Desk's documented hard cap) until a short page is returned.
+// Returns the refreshed access token alongside the items — needed by callers that make
+// several fetchAllDeskPages() calls in a loop (e.g. per-ticket comments export in task 296),
+// so a mid-loop token refresh carries forward into the next call instead of being dropped.
 export async function fetchAllDeskPages(
   path: string,
   token: string,
   label: string
-): Promise<Record<string, unknown>[]> {
+): Promise<{ items: Record<string, unknown>[]; token: string }> {
   const perPage = 100;
   let from = 1; // Desk's `from` is 1-indexed by default
   let currentToken = token;
@@ -53,5 +56,5 @@ export async function fetchAllDeskPages(
     from += perPage;
   }
 
-  return all;
+  return { items: all, token: currentToken };
 }

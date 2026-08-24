@@ -35,6 +35,24 @@ export function mapTaskStatus(
   return "open";
 }
 
+// Maps a Zoho Desk ticket's status/statusType onto the Hub's native tickets.status enum
+// (task 296). Desk portals can configure custom status labels, so this keys primarily off
+// the smaller, more consistent `statusType` field, falling back to a `status` heuristic.
+// Confirm against real desk-tickets.json status/statusType values once exported — same
+// "confirm against real data" step task 107/108 used for mapTaskStatus.
+export function mapTicketStatus(
+  status: string,
+  statusType: string
+): "new" | "open" | "waiting_on_client" | "waiting_on_us" | "resolved" | "closed" {
+  const st = (statusType ?? "").toLowerCase();
+  const s = (status ?? "").toLowerCase();
+  if (st.includes("closed") || s.includes("closed")) return "closed";
+  if (st.includes("hold") || s.includes("hold")) return "waiting_on_us";
+  if (st.includes("escalat") || s.includes("escalat")) return "waiting_on_us";
+  if (st.includes("open") || s.includes("open")) return "open";
+  return "new";
+}
+
 export function parseHours(s: string): number {
   if (!s) return 0;
   const [h = 0, m = 0] = s.split(":").map(Number);

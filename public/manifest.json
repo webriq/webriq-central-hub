@@ -1,7 +1,7 @@
 {
   "name": "WebriQ Central Hub",
   "short_name": "Hub",
-  "description": "Internal operations platform for PMs and Developers",
+  "description": "Internal operations platform for PMs and developers — synthesizes Zoho, Sanity, GitHub, and Supabase into a single AI-powered operational layer for customer onboarding, project and task tracking, requirements assessment, and developer time tracking.",
   "theme_color": "#0F172A",
   "background_color": "#0F172A",
   "display": "standalone",

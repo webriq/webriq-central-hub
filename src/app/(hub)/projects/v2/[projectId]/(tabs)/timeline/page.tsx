@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import OnboardingDetail from "../../_onboarding-detail";
-import { loadOnboardingDetailData, getCompanyNameForMetadata } from "../../_load-detail-data";
+import { loadOnboardingDetailData } from "../../_load-detail-data";
+import { getProjectNameForMetadata } from "../../../../_shared/_get-metadata-titles";
 import { wizardParamsToStepKey } from "../../_wizard-step-params";
 
 export const dynamic = "force-dynamic";
@@ -17,8 +18,7 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { projectId } = await params;
-  const companyName = await getCompanyNameForMetadata(projectId);
-  return { title: `${companyName} — Timeline — Projects V2` };
+  return { title: `${await getProjectNameForMetadata(projectId)} - Timeline` };
 }
 
 export default async function ProjectTimelinePage({ params, searchParams }: PageProps) {

@@ -1,10 +1,22 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { isProjectVisibleToCurrentUser } from "@/app/(hub)/projects-old/_project-access";
+import { getTaskMetadataInfo } from "../../../../_shared/_get-metadata-titles";
 import TaskDetailClient from "./_task-detail";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ projectId: string; taskId: string }>;
+}): Promise<Metadata> {
+  const { projectId, taskId } = await params;
+  const info = await getTaskMetadataInfo(projectId, taskId);
+  return { title: info ? `${info.taskTitle} - ${info.projectName}` : "Task Not Found" };
+}
 
 export default async function TaskDetailPage({
   params,

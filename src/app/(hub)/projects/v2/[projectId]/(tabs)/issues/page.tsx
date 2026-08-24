@@ -1,8 +1,19 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getProjectDetailData } from "../../../../_shared/_get-project-detail-data";
+import { getProjectNameForMetadata } from "../../../../_shared/_get-metadata-titles";
 import ProjectDetail from "../../../../_shared/_project-detail";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ projectId: string }>;
+}): Promise<Metadata> {
+  const { projectId } = await params;
+  return { title: `${await getProjectNameForMetadata(projectId)} - Issues` };
+}
 
 // Task 276 (Phase 3) — adapted from `/projects/legacy/[projectId]/issues/page.tsx`.
 export default async function ProjectIssuesPage({

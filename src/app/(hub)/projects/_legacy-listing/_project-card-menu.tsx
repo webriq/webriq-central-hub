@@ -9,6 +9,7 @@ import { SetProjectOwnerModal } from "@/components/projects/set-project-owner-mo
 import { UpdateClassificationModal } from "@/components/projects/update-classification-modal";
 import { useDeleteProject } from "@/hooks/use-delete-project";
 import { V2_ROUTES } from "@/config/constants";
+import { CopyLinkMenuItem } from "@/app/(hub)/projects/_shared/_copy-link-menu-item";
 
 const MENU_WIDTH = 192;
 const MENU_HEIGHT = 280;
@@ -144,6 +145,12 @@ export function ProjectCardMenu({
               >
                 <Eye size={13} className="text-[#5F6A88]" /> View Project
               </button>
+            )}
+            {projectId && (
+              <CopyLinkMenuItem
+                url={`${V2_ROUTES.PROJECTS_LEGACY}/${projectId}`}
+                onDone={() => setMenuPos(null)}
+              />
             )}
             {canManageCollaborators && (
               <button

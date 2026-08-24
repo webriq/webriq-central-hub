@@ -1467,7 +1467,7 @@ export interface Database {
         Row: {
           id: string;
           ticket_number: number;
-          customer_id: string;
+          customer_id: string | null;
           customer_product_id: string | null;
           subject: string;
           channel: "portal" | "email" | "manual";
@@ -1479,12 +1479,17 @@ export interface Database {
           first_response_at: string | null;
           resolved_at: string | null;
           classification_id: string | null;
+          external_id: string | null;
+          external_contact_id: string | null;
+          external_account_id: string | null;
+          match_method: "contact" | "account_name" | null;
+          source_meta: Record<string, unknown>;
           created_at: string;
           updated_at: string;
         };
         Insert: {
           id?: string;
-          customer_id: string;
+          customer_id?: string | null;
           customer_product_id?: string | null;
           subject: string;
           channel: "portal" | "email" | "manual";
@@ -1496,12 +1501,17 @@ export interface Database {
           first_response_at?: string | null;
           resolved_at?: string | null;
           classification_id?: string | null;
+          external_id?: string | null;
+          external_contact_id?: string | null;
+          external_account_id?: string | null;
+          match_method?: "contact" | "account_name" | null;
+          source_meta?: Record<string, unknown>;
           created_at?: string;
           updated_at?: string;
         };
         Update: {
           id?: string;
-          customer_id?: string;
+          customer_id?: string | null;
           customer_product_id?: string | null;
           subject?: string;
           channel?: "portal" | "email" | "manual";
@@ -1513,6 +1523,11 @@ export interface Database {
           first_response_at?: string | null;
           resolved_at?: string | null;
           classification_id?: string | null;
+          external_id?: string | null;
+          external_contact_id?: string | null;
+          external_account_id?: string | null;
+          match_method?: "contact" | "account_name" | null;
+          source_meta?: Record<string, unknown>;
           updated_at?: string;
         };
         Relationships: [
@@ -1534,6 +1549,8 @@ export interface Database {
           body: string;
           email_message_id: string | null;
           visibility: "public" | "internal";
+          external_id: string | null;
+          source_meta: Record<string, unknown>;
           created_at: string;
         };
         Insert: {
@@ -1544,6 +1561,8 @@ export interface Database {
           body: string;
           email_message_id?: string | null;
           visibility?: "public" | "internal";
+          external_id?: string | null;
+          source_meta?: Record<string, unknown>;
           created_at?: string;
         };
         Update: {
@@ -1554,6 +1573,8 @@ export interface Database {
           body?: string;
           email_message_id?: string | null;
           visibility?: "public" | "internal";
+          external_id?: string | null;
+          source_meta?: Record<string, unknown>;
         };
         Relationships: [
           {

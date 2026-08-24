@@ -1,3 +1,7 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "PM Pipeline" };
+
 export default function PMPipelinePage() {
   return (
     <div className="py-6.5 px-8">

@@ -23,7 +23,7 @@ export async function GET() {
 
   let accounts: Record<string, unknown>[];
   try {
-    accounts = await fetchAllDeskPages("/accounts", token, "zoho-export/desk-accounts");
+    ({ items: accounts } = await fetchAllDeskPages("/accounts", token, "zoho-export/desk-accounts"));
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
     const scopeHint = message.includes("403")

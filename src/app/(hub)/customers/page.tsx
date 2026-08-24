@@ -1,7 +1,9 @@
+import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import CustomersIndex, { type CustomerListItem, type PaginationMeta } from "./_customers-index";
 
 export const dynamic = "force-dynamic";
+export const metadata: Metadata = { title: "Customers" };
 
 const PAGE = 1000; // Supabase/PostgREST default response cap — see CLAUDE.md's pagination convention.
 

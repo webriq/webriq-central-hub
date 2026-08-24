@@ -1,3 +1,7 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Tasks" };
+
 export default function TasksPage() {
   return (
     <div className="py-6.5 px-8">

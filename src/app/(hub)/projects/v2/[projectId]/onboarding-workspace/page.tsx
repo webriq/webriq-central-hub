@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { loadOnboardingDetailData, getCompanyNameForMetadata } from "../_load-detail-data";
+import { loadOnboardingDetailData } from "../_load-detail-data";
+import { getProjectNameForMetadata } from "../../../_shared/_get-metadata-titles";
 import OnboardingWizardV2 from "./_onboarding-wizard-v2";
 import { parseWorkspaceSearchParams, type WorkspaceSearchParams } from "./_workspace-url-params";
 
@@ -12,8 +13,7 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { projectId } = await params;
-  const companyName = await getCompanyNameForMetadata(projectId);
-  return { title: `${companyName} — Onboarding v2 (sandbox)` };
+  return { title: `${await getProjectNameForMetadata(projectId)} - Onboarding` };
 }
 
 // Task 202 sandbox entry point — reuses ../_load-detail-data.ts (unmodified, shared

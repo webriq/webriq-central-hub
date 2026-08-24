@@ -20,7 +20,7 @@ export async function generateMetadata({ params }: CustomerProfilePageProps): Pr
       .single();
 
     return {
-      title: customer ? `${customer.company_name} — Customer Profile` : "Customer Not Found",
+      title: customer ? `${customer.company_name} - Customer Profile` : "Customer Not Found",
     };
   } catch {
     return { title: "Customer Profile" };

@@ -11,6 +11,7 @@ import {
   formatDueDate, normalizeStatus, normalizeSeverity, decodeHtmlEntities,
 } from "@/app/(hub)/projects-old/_pm-shared";
 import { getIssueEditPermission } from "@/lib/issues/permissions";
+import { CopyLinkButton } from "./_copy-link-button";
 
 export type IssueSortKey = "title" | "status" | "severity" | "due_date";
 export type IssueSortDir = "asc" | "desc";
@@ -387,7 +388,7 @@ export default function IssueListView({
             return (
               <div
                 key={issue.id}
-                className={`grid ${GRID} items-center gap-3 pl-4 pr-3 py-2.5 border-b border-[#EDF0F7] last:border-0 transition-colors ${
+                className={`grid ${GRID} items-center gap-3 pl-4 pr-3 py-2.5 border-b border-[#EDF0F7] last:border-0 transition-colors group/row ${
                   isSelected ? "bg-[#F0F7FF]" : "hover:bg-[#F0F7FF]/60"
                 }`}
               >
@@ -416,11 +417,18 @@ export default function IssueListView({
                   </Tooltip>
                 )}
 
-                <Link href={getHref(issue)} className="text-left min-w-0 cursor-pointer group">
-                  <span className="text-[13px] text-[#3A4565] truncate block group-hover:text-[#007BFF] transition-colors font-medium">
-                    {decodeHtmlEntities(issue.title)}
-                  </span>
-                </Link>
+                <div className="flex items-center gap-1 min-w-0">
+                  <Link href={getHref(issue)} className="text-left min-w-0 cursor-pointer group flex-1">
+                    <span className="text-[13px] text-[#3A4565] truncate block group-hover:text-[#007BFF] transition-colors font-medium">
+                      {decodeHtmlEntities(issue.title)}
+                    </span>
+                  </Link>
+                  <CopyLinkButton
+                    url={getHref(issue)}
+                    size={13}
+                    className="opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100 p-1 rounded text-[#94A0BE] hover:text-[#007BFF] hover:bg-[#EDF0F7] transition-colors shrink-0 cursor-pointer"
+                  />
+                </div>
 
                 <select
                   value={norm}

@@ -14,6 +14,7 @@ import { IssueAttachmentsCommentsPanel } from "./_issue-attachments-comments-pan
 import { IssueQuickAccessPanel, type QuickAccessTask, type QuickAccessIssue } from "./_issue-quick-access-panel";
 import { getIssueEditPermission } from "@/lib/issues/permissions";
 import { TaskTimerButton } from "@/app/(hub)/projects/_shared/_task-timer-button";
+import { CopyLinkButton } from "@/app/(hub)/projects/_shared/_copy-link-button";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
@@ -181,21 +182,24 @@ export default function IssueDetailClient({
               className="font-heading text-[22px] font-bold text-[#0B1533] tracking-[-0.02em] outline-none resize-none leading-snug w-full border-0 focus:bg-[#F4F6FB] rounded-lg px-2 -mx-2 transition-colors read-only:focus:bg-transparent"
             />
           </div>
-          {canDelete && (
-            <Tooltip>
-              <TooltipTrigger render={
-                <button
-                  onClick={() => setConfirmOpen(true)}
-                  disabled={deleting}
-                  className="p-2 rounded-full text-[#5F6A88] hover:text-[#C0392B] hover:bg-[#FDE8E6] cursor-pointer shrink-0 mt-1 transition-colors disabled:opacity-45"
-                  aria-label="Delete issue"
-                >
-                  {deleting ? <Loader2 size={18} className="animate-spin" /> : <Trash2 size={18} />}
-                </button>
-              } />
-              <TooltipContent side="top">Delete issue</TooltipContent>
-            </Tooltip>
-          )}
+          <div className="flex items-center gap-1 shrink-0 mt-1">
+            <CopyLinkButton className="p-2 rounded-full text-[#5F6A88] hover:text-[#007BFF] hover:bg-[#E5F1FF] cursor-pointer transition-colors" />
+            {canDelete && (
+              <Tooltip>
+                <TooltipTrigger render={
+                  <button
+                    onClick={() => setConfirmOpen(true)}
+                    disabled={deleting}
+                    className="p-2 rounded-full text-[#5F6A88] hover:text-[#C0392B] hover:bg-[#FDE8E6] cursor-pointer transition-colors disabled:opacity-45"
+                    aria-label="Delete issue"
+                  >
+                    {deleting ? <Loader2 size={18} className="animate-spin" /> : <Trash2 size={18} />}
+                  </button>
+                } />
+                <TooltipContent side="top">Delete issue</TooltipContent>
+              </Tooltip>
+            )}
+          </div>
         </div>
         {deleteError && <p className="text-[11px] text-[#C0392B] mt-1">{deleteError}</p>}
       </div>

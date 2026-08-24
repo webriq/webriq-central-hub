@@ -1,9 +1,21 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isProjectVisibleToCurrentUser } from "@/app/(hub)/projects-old/_project-access";
+import { getIssueMetadataInfo } from "../../../../_shared/_get-metadata-titles";
 import IssueDetailClient from "./_issue-detail";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ projectId: string; issueId: string }>;
+}): Promise<Metadata> {
+  const { projectId, issueId } = await params;
+  const info = await getIssueMetadataInfo(projectId, issueId);
+  return { title: info ? `${info.issueTitle} - ${info.projectName}` : "Issue Not Found" };
+}
 
 export default async function IssueDetailPage({
   params,

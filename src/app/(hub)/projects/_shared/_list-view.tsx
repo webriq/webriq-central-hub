@@ -13,6 +13,7 @@ import {
 } from "@/app/(hub)/projects-old/_pm-shared";
 import { getTaskEditPermission } from "@/lib/tasks/permissions";
 import { TaskTimerButton } from "./_task-timer-button";
+import { CopyLinkButton } from "./_copy-link-button";
 import { formatHoursAsHHMM, formatHoursInWords } from "@/lib/timer/format";
 
 export type SortKey = "title" | "status" | "priority" | "due_date";
@@ -652,7 +653,7 @@ function Row({
     : Array.from(new Set([norm as TaskStatus, ...perm.allowedStatusValues]));
 
   return (
-    <div className={`grid ${gridClass} items-center gap-3 pl-4 pr-3 py-2.5 border-b border-[#EDF0F7] last:border-0 transition-colors ${
+    <div className={`grid ${gridClass} items-center gap-3 pl-4 pr-3 py-2.5 border-b border-[#EDF0F7] last:border-0 transition-colors group/row ${
       selected ? "bg-[#F0F7FF]" : "hover:bg-[#F0F7FF]/60"
     }`}>
       {/* Checkbox — Task 285: only the creator (or admin/pm/super_admin) may select a task for
@@ -698,6 +699,11 @@ function Row({
             {decodeHtmlEntities(task.title)}
           </span>
         </Link>
+        <CopyLinkButton
+          url={href}
+          size={13}
+          className="opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100 p-1 rounded text-[#94A0BE] hover:text-[#007BFF] hover:bg-[#EDF0F7] transition-colors shrink-0 cursor-pointer"
+        />
         {childrenCount > 0 && !isExpanded && (
           <span className="text-[10px] font-semibold text-[#5F6A88] bg-[#EDF0F7] rounded-full px-1.5 py-0.5 leading-none shrink-0 tabular-nums">
             {childrenCount}

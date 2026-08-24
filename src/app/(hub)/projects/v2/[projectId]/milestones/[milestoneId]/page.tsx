@@ -1,9 +1,21 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isProjectVisibleToCurrentUser } from "@/app/(hub)/projects-old/_project-access";
+import { getMilestoneMetadataInfo } from "../../../../_shared/_get-metadata-titles";
 import MilestoneDetailClient from "./_milestone-detail";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ projectId: string; milestoneId: string }>;
+}): Promise<Metadata> {
+  const { projectId, milestoneId } = await params;
+  const info = await getMilestoneMetadataInfo(projectId, milestoneId);
+  return { title: info ? `${info.milestoneTitle} - ${info.projectName}` : "Milestone Not Found" };
+}
 
 export default async function MilestoneDetailPage({
   params,

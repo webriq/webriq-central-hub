@@ -10,6 +10,7 @@ import type { Project } from "@/app/(hub)/projects-old/_pm-shared";
 import { Chip } from "@/app/(hub)/dashboard/_components/dashboard-shared";
 import { canManageProjectMembers, canSetProjectOwner } from "@/lib/programme/membership-rules";
 import { OwnerCollaboratorsRow } from "./_owner-collaborators-row";
+import { CopyLinkButton } from "./_copy-link-button";
 import { ProjectDetailTabStrip, type DetailTabId } from "./_project-detail-tab-strip";
 import { DeleteProjectMenuItem, DELETE_PROJECT_ROLES } from "../v2/[projectId]/_delete-project-menu-item";
 import { useActivePhase } from "./_use-active-phase";
@@ -176,7 +177,10 @@ export function ProjectDetailHeader({
             <OwnerCollaboratorsRow projectDbId={project.id} />
           </div>
         </div>
-        {settingsMenu && <div className="flex items-center gap-2 shrink-0">{settingsMenu}</div>}
+        <div className="flex items-center gap-2 shrink-0">
+          <CopyLinkButton className="inline-flex cursor-pointer items-center justify-center rounded-full border border-[#E2E7F2] bg-white p-2.5 text-[#3A4565] transition-colors hover:border-[#A8C6F5] hover:text-[#0B1533]" />
+          {settingsMenu}
+        </div>
       </div>
 
       <ProjectDetailTabStrip basePath={basePath} activeTab={activeTab} variant={variant} role={currentUserRole} />

@@ -183,13 +183,3 @@ export async function loadOnboardingDetailData(projectId: string) {
     genericTasks,
   };
 }
-
-export async function getCompanyNameForMetadata(projectId: string): Promise<string> {
-  const supabase = await createClient();
-  const { data: project } = await supabase
-    .from("projects")
-    .select("customers(company_name)")
-    .eq("project_id", projectId)
-    .maybeSingle();
-  return (project?.customers as unknown as { company_name: string } | null)?.company_name ?? "Customer";
-}

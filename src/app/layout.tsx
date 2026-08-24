@@ -14,8 +14,12 @@ const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-displ
 const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono" });
 
 export const metadata: Metadata = {
-  title: "WebriQ Central Hub",
-  description: "Internal operations platform for PMs and Developers",
+  title: {
+    default: "WebriQ Central Hub",
+    template: "%s | WebriQ Central Hub",
+  },
+  description:
+    "Internal operations platform for PMs and developers — synthesizes Zoho, Sanity, GitHub, and Supabase into a single AI-powered operational layer for customer onboarding, project and task tracking, requirements assessment, and developer time tracking.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,

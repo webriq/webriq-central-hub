@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getProjectDetailData } from "../../../../_shared/_get-project-detail-data";
+import { getProjectNameForMetadata } from "../../../../_shared/_get-metadata-titles";
 import { ComingSoonPanel } from "../../../../_shared/_coming-soon-panel";
 
 export const dynamic = "force-dynamic";
@@ -16,8 +17,7 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { projectId } = await params;
-  const data = await getProjectDetailData(projectId);
-  return { title: data ? `${data.companyName} — Projects` : "Projects" };
+  return { title: await getProjectNameForMetadata(projectId) };
 }
 
 export default async function LegacyProjectOverviewPage({ params }: PageProps) {
