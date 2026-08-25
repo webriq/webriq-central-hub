@@ -243,3 +243,32 @@ PASS
 
 ### Required Fixes
 None — no Major deviations. The Medium item (migration application + live verification) is a pre-existing, already-documented handoff item, not a code fix.
+
+## Post-Testing Fix — Real Data Verification (2026-08-25, via task 304)
+
+Migration 114 was applied and the Desk Ticket Comments export was run against the live Zoho Desk API (1,088 real comments, `_from_zoho/desk-ticket-comments.json`). Checking the import route against this real data resolved the open "commenter field name" deviation above (`commenter` is always present, 1,088/1,088; `commentedBy` never appears) and surfaced one real bug:
+
+**`author_type` was hardcoded to `'staff'`, but Comments are not always agent-authored.** `commenter.type` has three real values: `AGENT` (623), `NON_DESK_USER` (463 — internal automations/cross-posts with no email on file), and **`END_USER` (2)** — genuine customers replying directly on the ticket (`isPublic: true`, real email on file). Hardcoding `'staff'` would have mislabeled those 2 rows as internal staff notes.
+
+**Fix applied** to `src/app/api/admin/zoho-import/desk-ticket-comments/route.ts`: `author_type` is now derived per row from `commenter.type` (`'client'` when `type === "END_USER"`, `'staff'` otherwise — same heuristic the sibling Desk Threads import already uses), and `author_id` email resolution now only runs for the staff branch. Also added `source_meta.zohoSource: "comment"` (and, on the Threads import, `"thread"`) so a future consumer can reliably tell which Zoho endpoint a `ticket_messages` row came from without inferring it from shape.
+
+### Files Changed (this fix)
+- `src/app/api/admin/zoho-import/desk-ticket-comments/route.ts` — `author_type` derived from `commenter.type` instead of hardcoded; `TicketMessageRow.author_type` widened to `"staff" | "client"`; added `source_meta.zohoSource: "comment"`; header comment updated with the real-data finding.
+
+### Verification Run (this fix)
+- `npx tsc --noEmit` - PASS (zero errors)
+- `pnpm lint` - PASS (0 errors; same 2 pre-existing, unrelated warnings)
+
+### Still Outstanding
+- The `POST /api/admin/zoho-import/desk-ticket-comments` call against the live Supabase database has not been run yet with this fix in place.
+
+## Post-Testing Fix #2 — Attachment Metadata Capture (2026-08-25)
+
+The existing `source_meta.attachments` mapping only captured `name`/`size`/`id`, dropping `href` and `previewurl` (confirmed present on the one real comment with attachments, `desk-ticket-comments.json`). Enriched the mapping to include both, matching the fuller metadata now captured on the sibling Desk Threads import (task 304). No new export needed — this data was already in the existing `desk-ticket-comments.json`; re-running the import (`upsert` on `external_id`) backfills it.
+
+### Files Changed (this fix)
+- `src/app/api/admin/zoho-import/desk-ticket-comments/route.ts` — `source_meta.attachments` mapping now also includes `href`/`previewurl`.
+
+### Verification Run (this fix)
+- `npx tsc --noEmit` - PASS (zero errors)
+- `pnpm lint` - PASS (0 errors; same 2 pre-existing, unrelated warnings)

@@ -8,9 +8,12 @@ import type { ProjectListItem, CustomerOption, PaginationMeta } from "./_project
 // task 279), extracted from the old src/app/(hub)/projects-old/page.tsx's inline data-loading
 // logic (that file is read-only — this is a parallel copy, not a shared import) so page.tsx
 // doesn't balloon past the file-length guidance. Behavior is unchanged from the source: same
-// multi-select status/classification
-// filters, same sort map, same developer-project-id scoping, same task/issue counts via RPC,
-// same member avatar lookups.
+// multi-select status filter, same sort map, same developer-project-id scoping, same task/issue
+// counts via RPC, same member avatar lookups.
+//
+// Task 308 — the query always restricts to `external_project_id IS NOT NULL` (legacy/Zoho-imported
+// projects only); the old optional "legacy vs version2" classification filter was removed since
+// the tab split (`/projects/v2` vs `/projects/legacy`) now IS that distinction.
 
 export type LegacyListParams = {
   customer: string;
@@ -18,7 +21,6 @@ export type LegacyListParams = {
   pageSize: number;
   search: string;
   statusValues: string[] | null; // null = all (unfiltered), [] = explicitly none
-  classificationValues: string[] | null;
   sort: string;
 };
 
@@ -70,6 +72,7 @@ export async function loadLegacyProjectsList(params: LegacyListParams): Promise<
     .from("projects")
     .select("id,project_id,name,project_type,status,customer_id,end_date,tags,owner_name,updated_at,external_project_id,customer_product_id,created_by,customer_products(classification)", { count: "exact" })
     .neq("status", "deleted")
+    .not("external_project_id", "is", null)
     .order(sortSpec.column, { ascending: sortSpec.ascending, nullsFirst: sortSpec.nullsFirst });
 
   if (params.customer) {
@@ -81,17 +84,6 @@ export async function loadLegacyProjectsList(params: LegacyListParams): Promise<
   if (params.statusValues !== null) {
     const statusFilter = (params.statusValues.length > 0 ? params.statusValues : ["__none__"]) as ("active" | "on_hold" | "completed" | "archived")[];
     projectsQuery = projectsQuery.in("status", statusFilter);
-  }
-  if (params.classificationValues !== null) {
-    const hasLegacy = params.classificationValues.includes("legacy");
-    const hasVersion2 = params.classificationValues.includes("version2");
-    if (hasLegacy && !hasVersion2) {
-      projectsQuery = projectsQuery.not("external_project_id", "is", null);
-    } else if (!hasLegacy && hasVersion2) {
-      projectsQuery = projectsQuery.is("external_project_id", null);
-    } else if (!hasLegacy && !hasVersion2) {
-      projectsQuery = projectsQuery.eq("id", "00000000-0000-0000-0000-000000000000");
-    }
   }
   if (params.search) {
     const customerIdFilter = searchCustomerIds && searchCustomerIds.length > 0
@@ -185,7 +177,6 @@ export async function loadLegacyProjectsList(params: LegacyListParams): Promise<
     task_done: counts.get(p.id)?.done ?? 0,
     issue_total: issueCounts.get(p.id)?.total ?? 0,
     issue_done: issueCounts.get(p.id)?.done ?? 0,
-    classification: p.external_project_id ? "legacy" : "version2",
     productClassification: (p.customer_products as unknown as { classification: string | null } | null)?.classification ?? null,
     hasProduct: !!p.customer_product_id,
     members: (memberIdsByProject.get(p.id) ?? []).map((id) => ({ id, full_name: fullNameMap.get(id) ?? null, avatar_url: avatarUrlMap.get(id) ?? null })),

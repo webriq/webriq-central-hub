@@ -18,7 +18,6 @@ export const metadata: Metadata = { title: "Projects" };
 type SearchParams = {
   search?: string;
   status?: string;
-  classification?: string;
   sort?: string;
   page?: string;
   pageSize?: string;
@@ -45,7 +44,6 @@ export default async function ProjectsLegacyListingPage({
 
   // Same absent="All"/""=explicitly-none/csv convention as the source page.
   const statusValues = params.status === undefined ? null : params.status === "" ? [] : params.status.split(",");
-  const classificationValues = params.classification === undefined ? null : params.classification === "" ? [] : params.classification.split(",");
   const page = Math.max(1, parseInt(params.page ?? "1", 10));
   const pageSize = Math.max(1, parseInt(params.pageSize ?? "15", 10));
 
@@ -55,7 +53,6 @@ export default async function ProjectsLegacyListingPage({
     pageSize,
     search: params.search?.trim() ?? "",
     statusValues,
-    classificationValues,
     sort: params.sort ?? "newest",
   });
 

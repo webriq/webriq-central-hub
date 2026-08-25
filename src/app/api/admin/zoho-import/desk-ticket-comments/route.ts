@@ -1,12 +1,14 @@
 // dev-only import endpoint — reads _from_zoho/desk-ticket-comments.json, upserts to
-// ticket_messages. Desk ticket Comments are always agent-authored (public or private via
-// isPublic) — author_type is always 'staff' here, distinct from Threads (the actual
-// customer↔agent conversation, out of scope for this task, see task 296 doc).
+// ticket_messages. Comments are almost always agent-authored (public or private via isPublic),
+// distinct from Threads (the actual customer↔agent conversation, see task 304 doc) — but a real
+// 1,088-comment export (task 304 follow-up) showed 2 records with commenter.type: "END_USER"
+// (a customer replying directly, isPublic: true) — so author_type is derived per row from
+// commenter.type, same as the Threads import, rather than hardcoded to 'staff'.
 //
 // NOTE: the exact "who wrote this" field name on a Desk comment was not confirmed from
 // documentation during planning — this checks a few plausible field names defensively
-// (commenter, commentedBy) and falls back to no author if none match. Confirm against a
-// real desk-ticket-comments.json sample and adjust if needed.
+// (commenter, commentedBy) and falls back to no author if none match. Confirmed against real
+// data: `commenter` is always present, `commentedBy` never appears.
 import { NextResponse } from "next/server";
 import path from "path";
 import fs from "fs";
@@ -32,7 +34,7 @@ type DeskTicketCommentRaw = {
 
 type TicketMessageRow = {
   ticket_id: string;
-  author_type: "staff";
+  author_type: "staff" | "client";
   author_id: string | null;
   body: string;
   visibility: "public" | "internal";
@@ -135,12 +137,14 @@ export async function POST() {
     }
 
     const commenter = c.commenter ?? c.commentedBy ?? null;
-    const email = commenter?.email?.toLowerCase();
+    const isAgent = commenter?.type !== "END_USER";
+    const authorType: "staff" | "client" = isAgent ? "staff" : "client";
+    const email = isAgent ? commenter?.email?.toLowerCase() : undefined;
     const authorId = email ? (userCache.get(email) ?? null) : null;
 
     rows.push({
       ticket_id: ticketId,
-      author_type: "staff",
+      author_type: authorType,
       author_id: authorId,
       body,
       visibility: c.isPublic ? "public" : "internal",
@@ -150,7 +154,10 @@ export async function POST() {
         commenter: commenter ?? null,
         contentType: c.contentType ?? null,
         modifiedTime: c.modifiedTime ?? null,
-        attachments: (c.attachments ?? []).map((a) => ({ name: a.name, size: a.size, id: a.id })),
+        attachments: (c.attachments ?? []).map((a) => ({
+          id: a.id, name: a.name, size: a.size, href: a.href, previewurl: a.previewurl,
+        })),
+        zohoSource: "comment",
       },
     });
   }

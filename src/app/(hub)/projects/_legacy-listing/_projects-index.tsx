@@ -33,11 +33,8 @@ export type ProjectListItem = {
   task_done: number;
   issue_total: number;
   issue_done: number;
-  classification: "legacy" | "version2";
   // Task 268 — the real StackShift/PipelineForge/etc. classification (customer_products.
-  // classification, joined via customer_product_id). Deliberately a different field name from
-  // `classification` above, which means something unrelated ("legacy" vs "version2" for the
-  // existing type filter) — do not conflate the two.
+  // classification, joined via customer_product_id).
   productClassification: string | null;
   hasProduct: boolean;
   members: { id: string; full_name: string | null; avatar_url: string | null }[];
@@ -55,10 +52,6 @@ const STATUS_OPTIONS = [
   { value: "on_hold", label: "On Hold" },
   { value: "completed", label: "Completed" },
   { value: "archived", label: "Archived" },
-] as const;
-const CLASSIFICATION_OPTIONS = [
-  { value: "legacy", label: "Legacy" },
-  { value: "version2", label: "Version 2" },
 ] as const;
 const GRID_PAGE_SIZES = [15, 45, 90] as const;
 const LIST_PAGE_SIZES = [20, 50, 100] as const;
@@ -90,7 +83,6 @@ export default function ProjectsIndex({
   // URL-driven filter values — server is the source of truth.
   const [searchInput, setSearchInput] = useState(searchParams.get("search") ?? "");
   const statusSelected = parseMultiParam(searchParams.get("status"), STATUS_OPTIONS);
-  const classificationSelected = parseMultiParam(searchParams.get("classification"), CLASSIFICATION_OPTIONS);
   const sortValue = searchParams.get("sort") ?? "newest";
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -157,7 +149,7 @@ export default function ProjectsIndex({
   // Encodes a checkbox-group selection back into the URL: a full selection clears the
   // param entirely (equivalent "All"/unfiltered state, keeps URLs clean), an empty
   // selection writes an explicit empty string, otherwise a comma-separated list.
-  function handleMultiChange(key: "status" | "classification", next: string[], optionsCount: number) {
+  function handleMultiChange(key: "status", next: string[], optionsCount: number) {
     const value = next.length === optionsCount ? null : next.length === 0 ? "" : next.join(",");
     navigate(buildUrl({ [key]: value, page: 1 }));
   }
@@ -168,7 +160,6 @@ export default function ProjectsIndex({
   const showPagination = total > 0;
   const isFiltered = !!searchInput
     || statusSelected.length !== STATUS_OPTIONS.length
-    || classificationSelected.length !== CLASSIFICATION_OPTIONS.length
     || !!customerFilter;
 
   return (
@@ -235,14 +226,6 @@ export default function ProjectsIndex({
               options={STATUS_OPTIONS}
               selected={statusSelected}
               onChange={(next) => handleMultiChange("status", next, STATUS_OPTIONS.length)}
-            />
-
-            {/* Type filter — Legacy / Version 2 classification, same multi-select pattern */}
-            <FilterMultiSelect
-              label="Type"
-              options={CLASSIFICATION_OPTIONS}
-              selected={classificationSelected}
-              onChange={(next) => handleMultiChange("classification", next, CLASSIFICATION_OPTIONS.length)}
             />
 
             {/* Sort */}

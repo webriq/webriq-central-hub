@@ -12,6 +12,7 @@ import {
 } from "@/app/(hub)/projects-old/_pm-shared";
 import { getIssueEditPermission } from "@/lib/issues/permissions";
 import { CopyLinkButton } from "./_copy-link-button";
+import { TaskTimerButton } from "./_task-timer-button";
 
 export type IssueSortKey = "title" | "status" | "severity" | "due_date";
 export type IssueSortDir = "asc" | "desc";
@@ -304,7 +305,7 @@ export default function IssueListView({
     );
   }
 
-  const GRID = "grid-cols-[32px_1fr_160px_160px_108px_120px]";
+  const GRID = "grid-cols-[32px_1fr_160px_160px_108px_120px_48px]";
 
   return (
     <div className="h-full flex flex-col min-h-0">
@@ -373,6 +374,7 @@ export default function IssueListView({
             </span>
             <SortHeader label="Due Date" active={sortKey === "due_date"} dir={sortDir} onClick={() => onToggleSort("due_date")} />
             <SortHeader label="Severity" active={sortKey === "severity"} dir={sortDir} onClick={() => onToggleSort("severity")} />
+            <div /> {/* timer spacer */}
           </div>
 
           <div className="overflow-hidden rounded-b-[14px]">
@@ -384,6 +386,7 @@ export default function IssueListView({
             const due = formatDueDate(issue.due_date);
             const dueColor = getDueColor(issue.due_date);
             const isSelected = selected.has(issue.id);
+            const perm = getIssueEditPermission(currentUserRole, currentUserId, issue);
 
             return (
               <div
@@ -455,6 +458,16 @@ export default function IssueListView({
                     <option key={s} value={s} className="bg-white text-[#3A4565]">{SEVERITY_STYLE[s].label}</option>
                   ))}
                 </select>
+
+                <div className="flex items-center justify-center">
+                  {perm.canStartTimer && (
+                    <TaskTimerButton
+                      issueId={issue.id}
+                      projectId={issue.project_id}
+                      prominent
+                    />
+                  )}
+                </div>
               </div>
             );
           })}

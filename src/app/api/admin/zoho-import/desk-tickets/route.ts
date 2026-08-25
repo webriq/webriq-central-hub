@@ -1,14 +1,26 @@
 // dev-only import endpoint — reads _from_zoho/desk-tickets.json, upserts to the native
 // tickets table (merged, not a separate archival table — task 296). Matches a customer via
 // the ticket's Desk contact (contacts.customer_id, already vetted by task 117's import) with
-// a fallback via the ticket's inline contact.account.accountName. Tickets that can't be
-// matched import anyway with customer_id: null (review queue, same precedent as task 117's
-// unmatched contacts). Never writes Zoho's ticketNumber into tickets.ticket_number — that
-// column is a `serial` sequence, not an external-id field.
+// a fallback via ticket.accountId resolved through desk-accounts.json (task 302 — the Desk API
+// documentation's nested contact.account.accountName never actually appears on real ticket
+// payloads; fetchAllDeskPages() calls /tickets with no `include` param, so Zoho only returns
+// flat IDs). Tickets that can't be matched import anyway with customer_id: null (review queue,
+// same precedent as task 117's unmatched contacts). Never writes Zoho's ticketNumber into
+// tickets.ticket_number — that column is a `serial` sequence, not an external-id field.
 import { NextResponse } from "next/server";
 import { adminClient, ImportResult, readFromZoho, normalizeCompanyName, mapPriority, mapTicketStatus } from "@/lib/migrate/zoho-import";
 import { createClient } from "@/lib/supabase/server";
 
+type DeskAccountRaw = {
+  id?: string | number;
+  accountName?: string;
+  [key: string]: unknown;
+};
+
+// Real ticket payloads only ever carry flat IDs (accountId/departmentId/teamId/contactId/
+// assigneeId) — the nested contact/department/team/assignee objects shown in Zoho's Desk API
+// docs never appear because fetchAllDeskPages() requests /tickets with no `include` param.
+// Confirmed against all 530 records in a real portal export (task 302).
 type DeskTicketRaw = {
   id?: string | number;
   ticketNumber?: string;
@@ -29,24 +41,19 @@ type DeskTicketRaw = {
   commentCount?: string | number;
   isSpam?: boolean;
   isRead?: boolean;
+  isArchived?: boolean;
+  sentiment?: string | null;
   language?: string | null;
   webUrl?: string | null;
   productId?: string | null;
   departmentId?: string | number | null;
-  department?: Record<string, unknown> | null;
-  team?: Record<string, unknown> | null;
+  teamId?: string | number | null;
   contactId?: string | number | null;
   accountId?: string | number | null;
   email?: string | null;
-  contact?: {
-    firstName?: string | null;
-    lastName?: string | null;
-    email?: string | null;
-    account?: { id?: string | number; accountName?: string } | null;
-    [key: string]: unknown;
-  } | null;
+  phone?: string | null;
   assigneeId?: string | number | null;
-  assignee?: Record<string, unknown> | null;
+  lastThread?: Record<string, unknown> | null;
   source?: Record<string, unknown> | null;
   [key: string]: unknown;
 };
@@ -60,6 +67,8 @@ type TicketRow = {
   requester_email: string | null;
   sla_due_at: string | null;
   resolved_at: string | null;
+  created_at: string | undefined;
+  first_response_at: string | null;
   external_id: string;
   external_contact_id: string | null;
   external_account_id: string | null;
@@ -89,6 +98,22 @@ export async function POST() {
 
   if (tickets.length === 0) {
     return NextResponse.json({ error: "No tickets found in desk-tickets.json" }, { status: 400 });
+  }
+
+  let deskAccounts: DeskAccountRaw[] = [];
+  try {
+    deskAccounts = readFromZoho<DeskAccountRaw>("desk-accounts.json");
+  } catch {
+    console.warn(
+      "[import/desk-tickets] _from_zoho/desk-accounts.json not found — account-name fallback " +
+      "matching disabled (run the Desk Accounts export for account-name matching; requires the " +
+      "Desk.accounts.READ scope)"
+    );
+  }
+
+  const accountNameById = new Map<string, string>();
+  for (const a of deskAccounts) {
+    if (a.id != null && a.accountName) accountNameById.set(String(a.id), a.accountName);
   }
 
   // Paginated contacts lookup (1627 rows in the real portal — exceeds Supabase's 1000-row
@@ -134,7 +159,7 @@ export async function POST() {
   );
 
   console.log(
-    `[import/desk-tickets] ${tickets.length} tickets, ${contactRows.length} contacts, ${customerRows.length} customers`
+    `[import/desk-tickets] ${tickets.length} tickets, ${contactRows.length} contacts, ${customerRows.length} customers, ${deskAccounts.length} accounts`
   );
 
   const result: ImportResult & { matched: number; unmatched: number } = {
@@ -155,8 +180,8 @@ export async function POST() {
     }
 
     const contactId = ticket.contactId != null ? String(ticket.contactId) : null;
-    const accountId = ticket.accountId != null ? String(ticket.accountId) : (ticket.contact?.account?.id != null ? String(ticket.contact.account.id) : null);
-    const accountName = ticket.contact?.account?.accountName ?? null;
+    const accountId = ticket.accountId != null ? String(ticket.accountId) : null;
+    const accountName = accountId ? accountNameById.get(accountId) ?? null : null;
 
     let customerId: string | null = null;
     let matchMethod: "contact" | "account_name" | null = null;
@@ -182,9 +207,11 @@ export async function POST() {
       channel,
       priority: mapPriority(ticket.priority ?? ""),
       status: mapTicketStatus(ticket.status ?? "", ticket.statusType ?? ""),
-      requester_email: ticket.email ?? ticket.contact?.email ?? null,
+      requester_email: ticket.email ?? null,
       sla_due_at: ticket.dueDate ?? null,
       resolved_at: ticket.closedTime ?? null,
+      created_at: ticket.createdTime ?? undefined,
+      first_response_at: ticket.customerResponseTime ?? null,
       external_id: externalId,
       external_contact_id: contactId,
       external_account_id: accountId,
@@ -194,8 +221,12 @@ export async function POST() {
         statusType: ticket.statusType ?? null,
         channel: ticket.channel ?? null,
         channelCode: ticket.channelCode ?? null,
-        department: ticket.department ?? null,
-        team: ticket.team ?? null,
+        departmentId: ticket.departmentId ?? null,
+        teamId: ticket.teamId ?? null,
+        sentiment: ticket.sentiment ?? null,
+        phone: ticket.phone ?? null,
+        isArchived: ticket.isArchived ?? null,
+        lastThread: ticket.lastThread ?? null,
         source: ticket.source ?? null,
         isSpam: ticket.isSpam ?? null,
         isRead: ticket.isRead ?? null,
@@ -209,9 +240,7 @@ export async function POST() {
         sharedCount: ticket.sharedCount ?? null,
         customerResponseTime: ticket.customerResponseTime ?? null,
         createdTime: ticket.createdTime ?? null,
-        contact: ticket.contact ?? null,
         assigneeId: ticket.assigneeId ?? null,
-        assignee: ticket.assignee ?? null,
       },
     });
   }

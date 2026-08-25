@@ -4,6 +4,7 @@ import { useState } from "react";
 import { SectionCard } from "@/app/(hub)/dashboard/_components/dashboard-shared";
 import { AlertTriangle, Download, Upload } from "lucide-react";
 import { ImportResult, CardState, CardStatus, ResultChip, StateIcon } from "./_shared";
+import { cn } from "@/lib/utils";
 
 interface TicketCommentsExportState {
   progress: { current: number; total: number; ticketId: string } | null;
@@ -11,17 +12,38 @@ interface TicketCommentsExportState {
   error: string | null;
 }
 
+interface ThreadsExportState {
+  progress: { current: number; total: number; ticketId: string } | null;
+  done: { count: number; failed: string[] } | null;
+  error: string | null;
+}
+
+type VerifyAttachmentResult =
+  | { state: "idle" }
+  | { state: "running" }
+  | { state: "done"; ok: boolean; status: number; contentType: string | null; contentLength: string | null }
+  | { state: "error"; message: string };
+
+interface TicketAttachmentsImportState {
+  progress: { current: number; total: number } | null;
+  done: { imported: number; skipped: number; errors: string[] } | null;
+  error: string | null;
+}
+
 const EXPORT_LEVELS = [
   { key: "desk-accounts", label: "Desk Accounts", desc: "All Zoho Desk accounts (companies) — requires the Desk.accounts.READ OAuth scope; export before Desk Contacts for account-name matching" },
   { key: "desk-contacts", label: "Desk Contacts", desc: "All Zoho Desk contacts — can run independently, but export Desk Accounts first for customer matching" },
   { key: "desk-tickets", label: "Desk Tickets", desc: "All Zoho Desk tickets — no new OAuth scope needed (Desk.tickets.READ already granted)" },
-  { key: "desk-ticket-comments", label: "Desk Ticket Comments", desc: "Agent notes/replies per ticket (not the full customer conversation — that lives in Zoho's Threads, a separate future export) — requires desk-tickets.json exported first" },
+  { key: "desk-ticket-comments", label: "Desk Ticket Comments", desc: "Agent notes/replies per ticket — not the full customer conversation, see Desk Threads below — requires desk-tickets.json exported first" },
+  { key: "desk-threads", label: "Desk Threads", desc: "The actual customer↔agent conversation per ticket (emails, forum replies, etc.) — requires desk-tickets.json exported first" },
 ] as const;
 
 const IMPORT_LEVELS = [
   { key: "desk-contacts", label: "Desk Contacts", desc: "Imports desk-contacts.json into the contacts table, matched to customers via desk-accounts.json (if present) by normalized account name" },
   { key: "desk-tickets", label: "Desk Tickets", desc: "Imports desk-tickets.json into the tickets table — matched via the ticket's contact (contacts.customer_id) with an account-name fallback; unmatched tickets import anyway with customer_id: null" },
   { key: "desk-ticket-comments", label: "Desk Ticket Comments", desc: "Imports desk-ticket-comments.json into ticket_messages (author_type: staff, visibility from isPublic) — requires Desk Tickets imported first" },
+  { key: "desk-threads", label: "Desk Threads", desc: "Imports desk-threads.json into ticket_messages (author_type: client or staff based on who wrote it, visibility from Zoho's visibility field) — requires Desk Tickets imported first" },
+  { key: "ticket-attachments", label: "Ticket Attachments", desc: "Downloads the real files referenced in ticket_messages.source_meta.attachments (Threads + Comments) into Supabase Storage — no export needed, reads directly from the database; requires Desk Threads/Ticket Comments imported first" },
 ] as const;
 
 export default function ZohoDeskTab() {
@@ -33,6 +55,44 @@ export default function ZohoDeskTab() {
     done: null,
     error: null,
   });
+  const [threadsExport, setThreadsExport] = useState<ThreadsExportState>({
+    progress: null,
+    done: null,
+    error: null,
+  });
+  const [verifyUrl, setVerifyUrl] = useState("");
+  const [verifyResult, setVerifyResult] = useState<VerifyAttachmentResult>({ state: "idle" });
+  const [ticketAttachmentsImport, setTicketAttachmentsImport] = useState<TicketAttachmentsImportState>({
+    progress: null,
+    done: null,
+    error: null,
+  });
+
+  async function handleVerifyAttachment() {
+    if (!verifyUrl.trim()) return;
+    setVerifyResult({ state: "running" });
+    try {
+      const res = await fetch("/api/admin/zoho-export/verify-attachment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: verifyUrl.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok || "error" in data) {
+        setVerifyResult({ state: "error", message: data.error ?? `HTTP ${res.status}` });
+      } else {
+        setVerifyResult({
+          state: "done",
+          ok: data.ok,
+          status: data.status,
+          contentType: data.contentType,
+          contentLength: data.contentLength,
+        });
+      }
+    } catch (e) {
+      setVerifyResult({ state: "error", message: String(e) });
+    }
+  }
 
   async function handleExport(level: string) {
     if (anyRunning) return;
@@ -126,6 +186,135 @@ export default function ZohoDeskTab() {
     }
   }
 
+  async function handleThreadsExport() {
+    if (anyRunning) return;
+    setAnyRunning(true);
+    setExportStates((s) => ({ ...s, "desk-threads": "running" }));
+    setThreadsExport({ progress: null, done: null, error: null });
+
+    try {
+      const res = await fetch("/api/admin/zoho-export/desk-threads");
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      const accumulated: unknown[] = [];
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const frames = buffer.split("\n\n");
+        buffer = frames.pop() ?? "";
+
+        for (const frame of frames) {
+          if (!frame.startsWith("data: ")) continue;
+          const evt = JSON.parse(frame.slice(6)) as {
+            type: string;
+            current?: number;
+            total?: number;
+            ticketId?: string;
+            threads?: unknown[];
+            total_threads?: number;
+            failed_ticket_ids?: string[];
+          };
+
+          if (evt.type === "progress") {
+            setThreadsExport((s) => ({
+              ...s,
+              progress: { current: evt.current!, total: evt.total!, ticketId: evt.ticketId! },
+            }));
+          }
+          if (evt.type === "threads" && evt.threads) {
+            accumulated.push(...evt.threads);
+          }
+          if (evt.type === "done") {
+            const blob = new Blob([JSON.stringify(accumulated, null, 2)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "desk-threads.json";
+            a.click();
+            URL.revokeObjectURL(url);
+            setThreadsExport((s) => ({
+              ...s,
+              done: { count: evt.total_threads!, failed: evt.failed_ticket_ids ?? [] },
+              progress: null,
+            }));
+            setExportStates((s) => ({ ...s, "desk-threads": "done" }));
+          }
+        }
+      }
+    } catch (e) {
+      setThreadsExport((s) => ({ ...s, error: String(e), progress: null }));
+      setExportStates((s) => ({ ...s, "desk-threads": "error" }));
+      console.error("[export/desk-threads]", e);
+    } finally {
+      setAnyRunning(false);
+    }
+  }
+
+  async function handleTicketAttachmentsImport() {
+    if (anyRunning) return;
+    setAnyRunning(true);
+    setImportStates((s) => ({ ...s, "ticket-attachments": { state: "running" } }));
+    setTicketAttachmentsImport({ progress: null, done: null, error: null });
+
+    try {
+      const res = await fetch("/api/admin/zoho-import/ticket-attachments", { method: "POST" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? `HTTP ${res.status}`);
+      }
+
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const frames = buffer.split("\n\n");
+        buffer = frames.pop() ?? "";
+
+        for (const frame of frames) {
+          if (!frame.startsWith("data: ")) continue;
+          const evt = JSON.parse(frame.slice(6)) as {
+            type: string;
+            current?: number;
+            total?: number;
+            imported?: number;
+            skipped?: number;
+            errors?: string[];
+          };
+
+          if (evt.type === "progress") {
+            setTicketAttachmentsImport((s) => ({
+              ...s,
+              progress: { current: evt.current!, total: evt.total! },
+            }));
+          }
+          if (evt.type === "done") {
+            setTicketAttachmentsImport((s) => ({
+              ...s,
+              done: { imported: evt.imported!, skipped: evt.skipped!, errors: evt.errors ?? [] },
+              progress: null,
+            }));
+            setImportStates((s) => ({ ...s, "ticket-attachments": { state: "done" } }));
+          }
+        }
+      }
+    } catch (e) {
+      setTicketAttachmentsImport((s) => ({ ...s, error: String(e), progress: null }));
+      setImportStates((s) => ({ ...s, "ticket-attachments": { state: "error", errorMsg: String(e) } }));
+      console.error("[import/ticket-attachments]", e);
+    } finally {
+      setAnyRunning(false);
+    }
+  }
+
   async function handleImport(level: string) {
     if (anyRunning) return;
     setAnyRunning(true);
@@ -154,12 +343,49 @@ export default function ZohoDeskTab() {
         <AlertTriangle size={16} className="shrink-0 mt-0.5" />
         <div>
           <strong>Run steps in order:</strong> Desk Accounts → Desk Contacts → Desk Tickets → Desk Ticket
-          Comments. Save each downloaded file to{" "}
+          Comments → Desk Threads. Save each downloaded file to{" "}
           <code className="bg-amber-100 px-1 rounded text-[11px]">_from_zoho/</code> before running the
-          corresponding import. Desk Ticket Comments are agent notes/replies, not the full customer
-          conversation — Zoho&apos;s Threads (the full conversation) are a separate, future export.
+          corresponding import. Desk Ticket Comments are agent notes/replies only; Desk Threads are the
+          actual customer↔agent conversation.
         </div>
       </div>
+
+      <SectionCard title="Verify Attachment URL (server-side fetch check)">
+        <div className="space-y-2">
+          <div className="text-[11px] text-slate-500">
+            Paste a Desk attachment <code className="bg-slate-100 px-1 rounded">href</code> (e.g. from a
+            `ticket_messages.source_meta.attachments[].href` value) to check whether the Hub&apos;s server
+            can fetch it directly with the existing Zoho token — no file is downloaded or stored, only
+            the response status is checked.
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={verifyUrl}
+              onChange={(e) => setVerifyUrl(e.target.value)}
+              placeholder="https://desk.zoho.com/supportapi/api/v1/tickets/.../attachments/.../content"
+              className="flex-1 rounded-lg border border-slate-200 px-3 py-1.5 text-[12px] text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <button
+              onClick={handleVerifyAttachment}
+              disabled={verifyResult.state === "running" || !verifyUrl.trim()}
+              className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium bg-slate-900 text-white hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              {verifyResult.state === "running" ? "Checking…" : "Verify"}
+            </button>
+          </div>
+          {verifyResult.state === "done" ? (
+            <div className={cn("text-[12px]", verifyResult.ok ? "text-green-600" : "text-red-600")}>
+              {verifyResult.ok ? "Reachable" : "Not reachable"} — HTTP {verifyResult.status}
+              {verifyResult.contentType ? ` · ${verifyResult.contentType}` : ""}
+              {verifyResult.contentLength ? ` · ${verifyResult.contentLength} bytes` : ""}
+            </div>
+          ) : null}
+          {verifyResult.state === "error" ? (
+            <div className="text-[12px] text-red-600">{verifyResult.message}</div>
+          ) : null}
+        </div>
+      </SectionCard>
 
       {/* Export Phase */}
       <SectionCard
@@ -229,6 +455,63 @@ export default function ZohoDeskTab() {
               );
             }
 
+            if (key === "desk-threads") {
+              const isRunning = exportStates["desk-threads"] === "running";
+              const pct = threadsExport.progress
+                ? Math.round((threadsExport.progress.current / threadsExport.progress.total) * 100)
+                : 0;
+
+              return (
+                <div key="desk-threads" className="py-2 border-b border-slate-100 last:border-0">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[13px] font-medium text-slate-800 flex items-center gap-2">
+                        {label}
+                        <StateIcon state={exportStates["desk-threads"] ?? "idle"} />
+                      </div>
+                      <div className="text-[11px] text-slate-500 mt-0.5 truncate">{desc}</div>
+                    </div>
+                    {!isRunning && (
+                      <button
+                        onClick={handleThreadsExport}
+                        disabled={anyRunning}
+                        className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium bg-slate-900 text-white hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <Download size={11} />
+                        Export
+                      </button>
+                    )}
+                  </div>
+                  {isRunning && threadsExport.progress !== null ? (
+                    <div className="mt-2">
+                      <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-blue-500 rounded-full transition-all"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      <div className="text-[11px] text-slate-500 mt-1 truncate">
+                        Ticket {threadsExport.progress.current} of {threadsExport.progress.total}
+                      </div>
+                    </div>
+                  ) : null}
+                  {exportStates["desk-threads"] === "done" && threadsExport.done !== null ? (
+                    <div className="mt-1 text-[11px] space-y-0.5">
+                      <div className="text-green-600">{threadsExport.done.count} threads downloaded</div>
+                      {threadsExport.done.failed.length > 0 ? (
+                        <div className="text-amber-600 truncate" title={threadsExport.done.failed.join(", ")}>
+                          {threadsExport.done.failed.length} ticket(s) failed after retries — re-run to retry
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
+                  {threadsExport.error !== null ? (
+                    <div className="mt-1 text-[11px] text-red-600">{threadsExport.error}</div>
+                  ) : null}
+                </div>
+              );
+            }
+
             return (
               <div key={key} className="flex items-center justify-between gap-4 py-2 border-b border-slate-100 last:border-0">
                 <div className="min-w-0">
@@ -264,6 +547,64 @@ export default function ZohoDeskTab() {
         <div className="space-y-3">
           {IMPORT_LEVELS.map(({ key, label, desc }) => {
             const st = importStates[key];
+
+            if (key === "ticket-attachments") {
+              const isRunning = st?.state === "running";
+              const pct = ticketAttachmentsImport.progress
+                ? Math.round(
+                    (ticketAttachmentsImport.progress.current / Math.max(ticketAttachmentsImport.progress.total, 1)) * 100
+                  )
+                : 0;
+
+              return (
+                <div key="ticket-attachments" className="py-2 border-b border-slate-100 last:border-0">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="min-w-0">
+                      <div className="text-[13px] font-medium text-slate-800 flex items-center gap-2">
+                        {label}
+                        <StateIcon state={st?.state ?? "idle"} />
+                      </div>
+                      <div className="text-[11px] text-slate-500 mt-0.5 truncate">{desc}</div>
+                    </div>
+                    <button
+                      onClick={handleTicketAttachmentsImport}
+                      disabled={anyRunning || isRunning}
+                      className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                      <Upload size={11} />
+                      Import
+                    </button>
+                  </div>
+                  {isRunning && ticketAttachmentsImport.progress !== null ? (
+                    <div className="mt-2">
+                      <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                        <div className="h-full bg-blue-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                      </div>
+                      <div className="text-[11px] text-slate-500 mt-1 truncate">
+                        File {ticketAttachmentsImport.progress.current} of {ticketAttachmentsImport.progress.total}
+                      </div>
+                    </div>
+                  ) : null}
+                  {st?.state === "done" && ticketAttachmentsImport.done !== null ? (
+                    <div className="mt-1 text-[11px] space-y-0.5">
+                      <div className="text-slate-600">
+                        <span className="font-semibold text-green-700">{ticketAttachmentsImport.done.imported}</span> imported ·{" "}
+                        <span className="font-semibold text-slate-500">{ticketAttachmentsImport.done.skipped}</span> skipped (already stored)
+                      </div>
+                      {ticketAttachmentsImport.done.errors.length > 0 ? (
+                        <div className="text-red-600 truncate" title={ticketAttachmentsImport.done.errors.join(", ")}>
+                          {ticketAttachmentsImport.done.errors.length} error(s)
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
+                  {ticketAttachmentsImport.error !== null ? (
+                    <div className="mt-1 text-[11px] text-red-600">{ticketAttachmentsImport.error}</div>
+                  ) : null}
+                </div>
+              );
+            }
+
             return (
               <div key={key} className="py-2 border-b border-slate-100 last:border-0">
                 <div className="flex items-center justify-between gap-4">

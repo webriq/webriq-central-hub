@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Folder, FileText, Trash2, ExternalLink, MoreVertical, Pencil, FolderInput, Lock, AlertTriangle, History } from "lucide-react";
+import { Folder, FileText, Trash2, ExternalLink, MoreVertical, Pencil, FolderInput, Lock, AlertTriangle, History, Download } from "lucide-react";
 import { cn, formatRelativeTime } from "@/lib/utils";
 import { AssetRow, AssetFolder, StaffPerson } from "./_wizard-v2-types";
 import { textPrimary, textMuted, formatFileSize, IconTip } from "./_shared-ui";
@@ -282,8 +282,31 @@ export function FileTile({
       .finally(() => setPreviewLoading(false));
   };
 
+  // Same pattern as NoteFileCard.handleDownload in _business-info-tab.tsx — the `?download=1`
+  // param makes the signed URL carry Content-Disposition: attachment so the browser saves the
+  // file under its real name instead of navigating to it. No local loading state needed: the
+  // menu closes (onDone) before this fires (see ActionsMenuItems), so there's nothing left in
+  // the menu to show a loading state on.
+  const handleDownload = async () => {
+    try {
+      const res = await fetch(`/api/customers/${customerId}/assets/${asset.id}/file-url?download=1`);
+      if (!res.ok) return;
+      const data: { url: string } = await res.json();
+      const a = document.createElement("a");
+      a.href = data.url;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch {
+      // Non-fatal — no dedicated error UI for a menu-triggered download action.
+    }
+  };
+
   const actions: ItemAction[] = [
     { label: "View", icon: ExternalLink, onClick: handleView },
+    { label: "Download", icon: Download, onClick: handleDownload },
     { label: "Permissions", icon: Lock, onClick: () => setPermissionsOpen((v) => !v), disabled: !canEdit },
     ...(canEdit ? [
       { label: "Rename", icon: Pencil, onClick: onRename },
