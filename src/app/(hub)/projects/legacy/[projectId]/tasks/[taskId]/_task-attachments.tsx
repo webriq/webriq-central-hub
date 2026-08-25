@@ -134,13 +134,18 @@ export function TaskAttachments({
       .then((r) => (r.ok ? r.json() : []))
       .then((data: AttachmentRow[]) => {
         setAttachments(data);
-        onCountChange?.(data.length);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
     return () => ctrl.abort();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- onCountChange is a stable useCallback from the panel; including it would refire this fetch on every parent render
   }, [projectId, taskId]);
+
+  // Reports the live count to the panel outside of any setState updater — calling onCountChange
+  // (which calls the panel's setCounts) from inside a setAttachments updater triggers React's
+  // "Cannot update a component while rendering a different component" warning (task 299/301).
+  useEffect(() => {
+    onCountChange?.(attachments.length);
+  }, [attachments.length, onCountChange]);
 
   // Realtime sync (task 213) — patches local state directly from the event payload
   // instead of refetching, mirroring ../../_project-detail.tsx's tasks/issues subscriptions.
@@ -158,25 +163,16 @@ export function TaskAttachments({
           if (payload.eventType === "INSERT") {
             const row = payload.new as AttachmentRow & { entity_type: string };
             if (row.entity_type !== "task") return;
-            setAttachments((prev) => {
-              const next = prev.some((a) => a.id === row.id) ? prev : [...prev, row];
-              onCountChange?.(next.length);
-              return next;
-            });
+            setAttachments((prev) => (prev.some((a) => a.id === row.id) ? prev : [...prev, row]));
           } else if (payload.eventType === "DELETE") {
             const old = payload.old as { id: string; entity_type?: string };
             if (old.entity_type && old.entity_type !== "task") return;
-            setAttachments((prev) => {
-              const next = prev.filter((a) => a.id !== old.id);
-              onCountChange?.(next.length);
-              return next;
-            });
+            setAttachments((prev) => prev.filter((a) => a.id !== old.id));
           }
         }
       )
       .subscribe();
     return () => { void supabase.removeChannel(channel); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- onCountChange is a stable useCallback from the panel
   }, [taskId]);
 
   if (loading) {

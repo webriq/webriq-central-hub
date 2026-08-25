@@ -51,6 +51,8 @@ export default function IssueDetailClient({
   allMembers,
   currentUserId,
   currentUserRole,
+  currentUserName,
+  currentUserAvatarUrl,
   quickAccessTasks,
   quickAccessIssues,
 }: {
@@ -59,6 +61,8 @@ export default function IssueDetailClient({
   allMembers: MemberOption[];
   currentUserId: string;
   currentUserRole: string | null;
+  currentUserName: string | null;
+  currentUserAvatarUrl: string | null;
   quickAccessTasks: QuickAccessTask[];
   quickAccessIssues: QuickAccessIssue[];
 }) {
@@ -318,6 +322,8 @@ export default function IssueDetailClient({
               canEdit={perm.canEditDetails}
               currentUserId={currentUserId}
               currentUserRole={currentUserRole}
+              currentUserName={currentUserName}
+              currentUserAvatarUrl={currentUserAvatarUrl}
               timeLogsRefreshKey={timeLogsRefreshKey}
             />
           </div>

@@ -231,7 +231,7 @@ export function AttachmentDropzone({
             onClick={() => inputRef.current?.click()}
             disabled={disabled || uploading}
             className={cn(
-              "group w-full min-h-[168px] flex flex-col items-center justify-center gap-2.5 rounded-2xl border border-dashed py-8 text-center cursor-pointer transition-colors duration-150 disabled:opacity-60",
+              "group w-full min-h-[168px] flex flex-col items-center justify-center gap-2.5 rounded-2xl border border-dashed py-8 text-center cursor-pointer transition-colors duration-150 disabled:opacity-60 disabled:cursor-not-allowed",
               isDragOver ? "border-[#007BFF] bg-[#F0F7FF]" : "border-[#C7D2E8] bg-[#F9FAFD] hover:border-[#007BFF] hover:bg-[#F0F7FF]"
             )}
           >

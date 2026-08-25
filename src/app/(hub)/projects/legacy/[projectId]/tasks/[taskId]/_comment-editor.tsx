@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
@@ -14,12 +14,22 @@ export function CommentEditor({
   taskId,
   onChange,
   onEmptyChange,
+  disabled = false,
 }: {
   taskId: string;
   onChange: (html: string) => void;
   onEmptyChange: (isEmpty: boolean) => void;
+  // Task 301 — locked while the comment is posting; the editor itself stays mounted (only a
+  // successful post/Clear remounts it via the parent's resetKey), so `disabled` has to be able
+  // to change after creation without recreating the Tiptap instance — handled via
+  // editor.setEditable() below rather than the `editable` create-time option alone.
+  disabled?: boolean;
 }) {
   const [uploading, setUploading] = useState(false);
+  // handlePaste/handleDrop are bound once at editor creation, so they'd otherwise capture a
+  // stale `disabled` from that first render — this ref keeps them reading the current value.
+  const disabledRef = useRef(disabled);
+  useEffect(() => { disabledRef.current = disabled; }, [disabled]);
 
   async function uploadAndInsertImage(file: File) {
     setUploading(true);
@@ -42,6 +52,7 @@ export function CommentEditor({
     ],
     content: "",
     immediatelyRender: false,
+    editable: !disabled,
     editorProps: {
       attributes: {
         class: cn(
@@ -52,6 +63,7 @@ export function CommentEditor({
         ),
       },
       handlePaste(_view, event) {
+        if (disabledRef.current) return false;
         const items = Array.from(event.clipboardData?.items ?? []);
         const imageItem = items.find((i) => i.type.startsWith("image/"));
         if (!imageItem) return false;
@@ -61,6 +73,7 @@ export function CommentEditor({
         return true;
       },
       handleDrop(_view, event) {
+        if (disabledRef.current) return false;
         const file = Array.from(event.dataTransfer?.files ?? []).find((f) => f.type.startsWith("image/"));
         if (!file) return false;
         event.preventDefault();
@@ -74,6 +87,10 @@ export function CommentEditor({
     },
   });
 
+  useEffect(() => {
+    if (editor && editor.isEditable === disabled) editor.setEditable(!disabled);
+  }, [disabled, editor]);
+
   const marks: { label: string; title: string; action: () => void; active: () => boolean }[] = [
     { label: "B", title: "Bold", action: () => editor?.chain().focus().toggleBold().run(), active: () => editor?.isActive("bold") ?? false },
     { label: "I", title: "Italic", action: () => editor?.chain().focus().toggleItalic().run(), active: () => editor?.isActive("italic") ?? false },
@@ -81,7 +98,12 @@ export function CommentEditor({
   ];
 
   return (
-    <div className="rounded-[10px] border overflow-hidden transition-colors border-[#E2E7F2] bg-[#F4F6FB] focus-within:border-[#007BFF] focus-within:bg-white focus-within:ring-[3px] focus-within:ring-[#007BFF]/[0.14]">
+    <div
+      className={cn(
+        "rounded-[10px] border overflow-hidden transition-colors border-[#E2E7F2] bg-[#F4F6FB]",
+        disabled ? "cursor-not-allowed opacity-70" : "focus-within:border-[#007BFF] focus-within:bg-white focus-within:ring-[3px] focus-within:ring-[#007BFF]/[0.14]"
+      )}
+    >
       <div className="flex items-center gap-0.5 px-2 py-1.5 border-b border-[#E2E7F2]/70">
         {marks.map((m) => (
           <button
@@ -89,10 +111,11 @@ export function CommentEditor({
             type="button"
             title={m.title}
             onClick={m.action}
+            disabled={disabled}
             className={cn(
-              "text-[12px] font-bold w-7 h-7 rounded-md flex items-center justify-center cursor-pointer transition-colors border-none",
+              "text-[12px] font-bold w-7 h-7 rounded-md flex items-center justify-center transition-colors border-none",
               m.title === "Italic" && "italic",
-              m.active() ? "bg-[#E5F1FF] text-[#007BFF]" : "text-[#5F6A88] hover:bg-white"
+              disabled ? "cursor-not-allowed text-[#C7CEDD]" : cn("cursor-pointer", m.active() ? "bg-[#E5F1FF] text-[#007BFF]" : "text-[#5F6A88] hover:bg-white")
             )}
           >
             {m.label}
@@ -102,7 +125,7 @@ export function CommentEditor({
           {uploading ? "Uploading image…" : "Paste or drag an image to embed it"}
         </span>
       </div>
-      <EditorContent editor={editor} />
+      <EditorContent editor={editor} className={disabled ? "cursor-not-allowed pointer-events-none" : undefined} />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { FileText, Image as ImageIcon, Video, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { AttachmentDropzone } from "./_attachment-dropzone";
 import type { ClientCheckResult } from "@/lib/uploads/client-signature-check";
 
@@ -29,10 +30,14 @@ export function TaskAttachmentPicker({
   files,
   onFilesChange,
   allowedMimeTypes,
+  disabled = false,
 }: {
   files: File[];
   onFilesChange: (files: File[]) => void;
   allowedMimeTypes?: string[];
+  // Task 301 — while a comment is posting, staged files must stay put: no new drops/browsing,
+  // no removing what's already staged.
+  disabled?: boolean;
 }) {
   const overrideCheck = allowedMimeTypes
     ? async (file: File): Promise<ClientCheckResult> => {
@@ -50,6 +55,7 @@ export function TaskAttachmentPicker({
         checkFile={overrideCheck}
         allowedTypesLabel={allowedMimeTypes ? "Images, PDF, Word, Excel, HTML, Markdown, plain text, MP4 video" : undefined}
         maxSizeLabel={allowedMimeTypes ? "25 MB" : undefined}
+        disabled={disabled}
       />
 
       {files.length > 0 && (
@@ -70,8 +76,12 @@ export function TaskAttachmentPicker({
               <button
                 type="button"
                 onClick={() => onFilesChange(files.filter((_, i) => i !== idx))}
+                disabled={disabled}
                 aria-label={`Remove ${file.name}`}
-                className="shrink-0 text-[#5F6A88] bg-transparent border-none cursor-pointer hover:text-[#C0392B] transition-colors"
+                className={cn(
+                  "shrink-0 bg-transparent border-none transition-colors",
+                  disabled ? "text-[#C7CEDD] cursor-not-allowed" : "text-[#5F6A88] cursor-pointer hover:text-[#C0392B]"
+                )}
               >
                 <X size={13} />
               </button>

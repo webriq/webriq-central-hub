@@ -38,9 +38,11 @@ export default async function TaskDetailPage({
   const { data: claimsData } = await supabase.auth.getClaims();
   const currentUserId = (claimsData?.claims?.sub as string | undefined) ?? "";
   const { data: profile } = currentUserId
-    ? await supabase.from("profiles").select("role").eq("id", currentUserId).maybeSingle()
+    ? await supabase.from("profiles").select("role, full_name, avatar_url").eq("id", currentUserId).maybeSingle()
     : { data: null };
   const currentUserRole = profile?.role ?? null;
+  const currentUserName = profile?.full_name ?? null;
+  const currentUserAvatarUrl = profile?.avatar_url ?? null;
 
   const [{ data: task }, { data: milestones }] = await Promise.all([
     supabase.from("tasks").select("*").eq("display_id", taskId).eq("project_id", project.id).single(),
@@ -69,6 +71,8 @@ export default async function TaskDetailPage({
       milestones={milestones ?? []}
       currentUserId={currentUserId}
       currentUserRole={currentUserRole}
+      currentUserName={currentUserName}
+      currentUserAvatarUrl={currentUserAvatarUrl}
       assigneeProfiles={assigneeProfiles ?? []}
     />
   );

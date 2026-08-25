@@ -7,7 +7,7 @@ import { formatRelativeTime, formatDate, cn } from "@/lib/utils";
 import { formatClockTime } from "@/lib/timer/format";
 import { OwnerChip, normalizeZohoDescriptionHtml } from "@/app/(hub)/projects-old/_pm-shared";
 import { IssueCommentEditor } from "./_issue-comment-editor";
-import { TaskAttachmentPicker } from "@/app/(hub)/projects/_shared/_task-attachment-picker";
+import { CommentComposer } from "@/app/(hub)/projects/_shared/_comment-composer";
 import { TaskAttachmentViewerModal } from "../../tasks/[taskId]/_task-attachment-viewer-modal";
 import { ImageLightboxModal } from "@/app/(hub)/projects/_shared/_image-lightbox-modal";
 
@@ -66,12 +66,16 @@ export function IssueComments({
   issueId,
   currentUserId,
   currentUserRole,
+  currentUserName,
+  currentUserAvatarUrl,
   onCountChange,
 }: {
   projectId: string;
   issueId: string;
   currentUserId: string;
   currentUserRole: string | null;
+  currentUserName: string | null;
+  currentUserAvatarUrl: string | null;
   onCountChange?: (n: number) => void;
 }) {
   const [comments, setComments] = useState<CommentRow[]>([]);
@@ -99,10 +103,8 @@ export function IssueComments({
       .then((r) => (r.ok ? r.json() : []))
       .then((data: CommentRow[]) => {
         setComments(data);
-        onCountChange?.(data.length);
       })
       .catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- onCountChange is a stable useCallback from the panel; including it would redefine fetchComments (and refire effects depending on it) on every parent render
   }, [projectId, issueId]);
 
   useEffect(() => {
@@ -110,6 +112,13 @@ export function IssueComments({
     fetchComments(ctrl.signal).finally(() => setLoading(false));
     return () => ctrl.abort();
   }, [fetchComments]);
+
+  // Reports the live count to the panel outside of any setState updater — calling onCountChange
+  // (which calls the panel's setCounts) from inside a setComments updater triggers React's
+  // "Cannot update a component while rendering a different component" warning (task 299/301).
+  useEffect(() => {
+    onCountChange?.(comments.length);
+  }, [comments.length, onCountChange]);
 
   // Realtime sync — mirrors _task-comments.tsx's identical pattern.
   useEffect(() => {
@@ -147,8 +156,12 @@ export function IssueComments({
     };
   }, [issueId, fetchComments]);
 
+  // Task 301 — a comment needs draft text OR at least one staged attachment, not both;
+  // attachment-only comments (no text) are a valid, explicitly supported case.
+  const isEmpty = draftEmpty && attachmentFiles.length === 0;
+
   async function postComment() {
-    if (draftEmpty) return;
+    if (isEmpty) return;
     setPosting(true);
     setAttachmentWarning(null);
     const res = await fetch(`/api/v2/projects/${projectId}/issues/${issueId}/comments`, {
@@ -160,7 +173,14 @@ export function IssueComments({
       // POST returns only id/body/created_at/author_id/author_name — never legacyAttachments
       // (that only ever comes from a Zoho import, never a Hub-native comment).
       const created: Omit<CommentRow, "attachments" | "legacyAttachments"> = await res.json();
-      let attachments: CommentAttachment[] = [];
+
+      // Append immediately, before any attachment upload, so the realtime INSERT handler's
+      // dedupe guard (commentsRef) already recognizes this id well before its own event can
+      // arrive over the network. Uploading attachments first and appending after (the old
+      // order) left a race window where the realtime handler's own fetchComments() could land
+      // the comment first, and this append would then add a second, duplicate-keyed copy
+      // (task 301).
+      setComments((prev) => [...prev, { ...created, attachments: [], legacyAttachments: [] }]);
 
       if (attachmentFiles.length > 0) {
         const results = await Promise.allSettled(attachmentFiles.map((file) => {
@@ -169,24 +189,31 @@ export function IssueComments({
           return fetch(`/api/v2/projects/${projectId}/issues/${issueId}/comments/${created.id}/attachments`, { method: "POST", body: fd })
             .then((r) => (r.ok ? r.json() : Promise.reject()));
         }));
-        attachments = results
+        const attachments = results
           .filter((r): r is PromiseFulfilledResult<CommentAttachment> => r.status === "fulfilled")
           .map((r) => r.value);
         const failed = results.length - attachments.length;
         if (failed > 0) {
           setAttachmentWarning(`Comment posted — ${failed} of ${attachmentFiles.length} attachment(s) failed to upload.`);
         }
+        if (attachments.length > 0) {
+          // Merge into the already-added comment — never a second append.
+          setComments((prev) => prev.map((c) => (c.id === created.id ? { ...c, attachments } : c)));
+        }
       }
 
-      setComments((prev) => {
-        const next = [...prev, { ...created, attachments, legacyAttachments: [] }];
-        onCountChange?.(next.length);
-        return next;
-      });
       setAttachmentFiles([]);
       setResetKey((k) => k + 1);
     }
     setPosting(false);
+  }
+
+  function clearDraft() {
+    setDraftHtml("");
+    setDraftEmpty(true);
+    setAttachmentFiles([]);
+    setAttachmentWarning(null);
+    setResetKey((k) => k + 1);
   }
 
   async function deleteComment(commentId: string) {
@@ -195,11 +222,7 @@ export function IssueComments({
     const res = await fetch(`/api/v2/projects/${projectId}/issues/${issueId}/comments/${commentId}`, { method: "DELETE" });
     setDeletingId(null);
     if (res.ok) {
-      setComments((prev) => {
-        const next = prev.filter((c) => c.id !== commentId);
-        onCountChange?.(next.length);
-        return next;
-      });
+      setComments((prev) => prev.filter((c) => c.id !== commentId));
     }
   }
 
@@ -331,30 +354,29 @@ export function IssueComments({
         </ul>
       )}
 
-      <div className="flex flex-col gap-2 pt-1 border-t border-[#EDF0F7]">
-        <IssueCommentEditor
-          key={resetKey}
-          projectId={projectId}
-          issueId={issueId}
-          onChange={setDraftHtml}
-          onEmptyChange={setDraftEmpty}
-        />
-        <TaskAttachmentPicker
-          files={attachmentFiles}
-          onFilesChange={setAttachmentFiles}
-          allowedMimeTypes={COMMENT_ATTACHMENT_MIME_TYPES}
-        />
-        {attachmentWarning && <p className="text-[11px] text-[#8A5A00]">{attachmentWarning}</p>}
-        <button
-          type="button"
-          onClick={() => void postComment()}
-          disabled={draftEmpty || posting}
-          className="self-end inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#007BFF] text-white text-[12px] font-semibold hover:bg-[#0063D6] disabled:opacity-45 cursor-pointer transition-colors"
-        >
-          {posting ? <Loader2 size={13} className="animate-spin" /> : null}
-          Post comment
-        </button>
-      </div>
+      <CommentComposer
+        key={resetKey}
+        editor={
+          <IssueCommentEditor
+            key={resetKey}
+            projectId={projectId}
+            issueId={issueId}
+            onChange={setDraftHtml}
+            onEmptyChange={setDraftEmpty}
+            disabled={posting}
+          />
+        }
+        currentUserName={currentUserName}
+        currentUserAvatarUrl={currentUserAvatarUrl}
+        files={attachmentFiles}
+        onFilesChange={setAttachmentFiles}
+        allowedMimeTypes={COMMENT_ATTACHMENT_MIME_TYPES}
+        warning={attachmentWarning}
+        posting={posting}
+        isEmpty={isEmpty}
+        onPost={() => void postComment()}
+        onClear={clearDraft}
+      />
 
       {viewing && (
         <TaskAttachmentViewerModal

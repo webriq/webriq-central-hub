@@ -71,6 +71,8 @@ export default function TaskDetailClient({
   milestones,
   currentUserId,
   currentUserRole,
+  currentUserName,
+  currentUserAvatarUrl,
   assigneeProfiles,
 }: {
   task: Task;
@@ -78,6 +80,8 @@ export default function TaskDetailClient({
   milestones: Milestone[];
   currentUserId: string;
   currentUserRole: string | null;
+  currentUserName: string | null;
+  currentUserAvatarUrl: string | null;
   assigneeProfiles: { id: string; full_name: string | null; avatar_url: string | null }[];
 }) {
   const router = useRouter();
@@ -403,7 +407,13 @@ export default function TaskDetailClient({
             />
 
             {/* Attachments / Comments */}
-            <TaskAttachmentsCommentsPanel projectId={projectId} taskId={task.id} timeLogsRefreshKey={timeLogsRefreshKey} />
+            <TaskAttachmentsCommentsPanel
+              projectId={projectId}
+              taskId={task.id}
+              currentUserName={currentUserName}
+              currentUserAvatarUrl={currentUserAvatarUrl}
+              timeLogsRefreshKey={timeLogsRefreshKey}
+            />
           </div>
 
         </div>

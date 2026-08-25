@@ -6,7 +6,6 @@ import V2HubHeader from "./v2-hub-header";
 import OpsChat from "./ops-chat";
 import PushPermissionPrompt from "@/components/hub/push-permission-prompt";
 import { TimerProvider } from "./timer-context";
-import TimerFloatingWidget from "./timer-floating-widget";
 
 interface V2HubShellProps {
   userRole: string | null;
@@ -65,11 +64,8 @@ export default function V2HubShell({ userRole, displayName, avatarUrl, children 
   );
 
   // Task 209 introduced timer + break tracking as developer-only. Task 293 opened it to every
-  // role — TimerProvider now always mounts (and always polls active_timers) hub-wide.
-  return (
-    <TimerProvider>
-      {shell}
-      <TimerFloatingWidget />
-    </TimerProvider>
-  );
+  // role — TimerProvider now always mounts (and always polls active_timers) hub-wide. TimerProvider
+  // keeps wrapping the whole shell since V2HubHeader (rendered inside `shell`, several levels
+  // deep) needs useTimer() for the header-docked timer widget (task 300).
+  return <TimerProvider>{shell}</TimerProvider>;
 }

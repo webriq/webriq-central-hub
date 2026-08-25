@@ -124,9 +124,13 @@ export async function POST(
   const { data: issue } = await supabase.from("issues").select("id").eq("id", issueId).eq("project_id", project.id).maybeSingle();
   if (!issue) return NextResponse.json({ error: "Issue not found" }, { status: 404 });
 
+  // Task 301 — body may be empty when the comment is attachment-only (client enforces
+  // "text OR at least one attachment", not "text always required"); the attachment itself is
+  // uploaded in a follow-up request against the comment id this returns, so there's nothing
+  // else to validate here. `body` stays `not null` at the DB level — an empty string satisfies
+  // that, no migration needed.
   const body = await req.json().catch(() => ({}));
   const text = typeof body.body === "string" ? body.body.trim() : "";
-  if (!text) return NextResponse.json({ error: "body is required" }, { status: 400 });
 
   const { data: comment, error } = await supabase
     .from("issue_comments")

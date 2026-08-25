@@ -27,10 +27,14 @@ const TAB_LABEL: Record<PanelTab, string> = {
 export function TaskAttachmentsCommentsPanel({
   projectId,
   taskId,
+  currentUserName,
+  currentUserAvatarUrl,
   timeLogsRefreshKey,
 }: {
   projectId: string;
   taskId: string;
+  currentUserName: string | null;
+  currentUserAvatarUrl: string | null;
   // Task 218 — bumped by the header's TaskTimerButton on stop, so the Time Logs tab refetches.
   timeLogsRefreshKey?: number;
 }) {
@@ -72,7 +76,12 @@ export function TaskAttachmentsCommentsPanel({
             keeps each tab's fetched data/subscriptions alive across switches (task 213),
             instead of unmounting the inactive one and forcing a refetch every time. */}
         <div className={cn(tab !== "comments" && "hidden")}>
-          <TaskComments taskId={taskId} onCountChange={onCommentsCount} />
+          <TaskComments
+            taskId={taskId}
+            currentUserName={currentUserName}
+            currentUserAvatarUrl={currentUserAvatarUrl}
+            onCountChange={onCommentsCount}
+          />
         </div>
         <div className={cn(tab !== "attachments" && "hidden")}>
           <TaskAttachments projectId={projectId} taskId={taskId} onCountChange={onAttachmentsCount} />

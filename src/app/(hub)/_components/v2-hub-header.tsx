@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { HelpCircle, Sparkles } from "lucide-react";
 import { V2_ROUTES } from "@/config/constants";
 import NotificationBell from "./notification-bell";
+import TimerHeaderWidget from "./timer-header-widget";
 
 // Breadcrumb map — path prefix → label hierarchy
 const BREADCRUMB_MAP: Record<string, { section: string; page: string }> = {
@@ -107,6 +108,9 @@ export default function V2HubHeader({ chatOpen, onOpenChat, onOpenWithMessage }:
 
       {/* Right controls */}
       <div className="flex items-center gap-3 flex-1 justify-end">
+        {/* Timer widget */}
+        <TimerHeaderWidget />
+
         {/* Notification bell */}
         <NotificationBell />
 

@@ -31,6 +31,8 @@ export function IssueAttachmentsCommentsPanel({
   canEdit,
   currentUserId,
   currentUserRole,
+  currentUserName,
+  currentUserAvatarUrl,
   timeLogsRefreshKey,
 }: {
   projectId: string;
@@ -38,6 +40,8 @@ export function IssueAttachmentsCommentsPanel({
   canEdit: boolean;
   currentUserId: string;
   currentUserRole: string | null;
+  currentUserName: string | null;
+  currentUserAvatarUrl: string | null;
   timeLogsRefreshKey?: number;
 }) {
   const [tab, setTab] = useState<PanelTab>("comments");
@@ -80,6 +84,8 @@ export function IssueAttachmentsCommentsPanel({
             issueId={issueId}
             currentUserId={currentUserId}
             currentUserRole={currentUserRole}
+            currentUserName={currentUserName}
+            currentUserAvatarUrl={currentUserAvatarUrl}
             onCountChange={onCommentsCount}
           />
         </div>

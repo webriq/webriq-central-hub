@@ -141,13 +141,18 @@ export function IssueAttachments({
       .then((r) => (r.ok ? r.json() : []))
       .then((data: AttachmentRow[]) => {
         setAttachments(data);
-        onCountChange?.(data.length);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
     return () => ctrl.abort();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- onCountChange is a stable useCallback from the panel; including it would refire this fetch on every parent render
   }, [projectId, issueId]);
+
+  // Reports the live count to the panel outside of any setState updater — calling onCountChange
+  // (which calls the panel's setCounts) from inside a setAttachments updater triggers React's
+  // "Cannot update a component while rendering a different component" warning (task 299).
+  useEffect(() => {
+    onCountChange?.(attachments.length);
+  }, [attachments.length, onCountChange]);
 
   // Realtime sync (mirrors _task-attachments.tsx's identical pattern) — patches local state
   // directly from the event payload instead of refetching. Scoped to `entity_id=eq.${issueId}`,
@@ -170,35 +175,22 @@ export function IssueAttachments({
               source: "issue", commentId: null,
               fetchUrl: `/api/v2/projects/${projectId}/issues/${issueId}/attachments/${row.id}/file-url`,
             };
-            setAttachments((prev) => {
-              const next = prev.some((a) => a.id === shaped.id) ? prev : [...prev, shaped];
-              onCountChange?.(next.length);
-              return next;
-            });
+            setAttachments((prev) => (prev.some((a) => a.id === shaped.id) ? prev : [...prev, shaped]));
           } else if (payload.eventType === "DELETE") {
             const old = payload.old as { id: string; entity_type?: string };
             if (old.entity_type && old.entity_type !== "issue") return;
-            setAttachments((prev) => {
-              const next = prev.filter((a) => a.id !== old.id);
-              onCountChange?.(next.length);
-              return next;
-            });
+            setAttachments((prev) => prev.filter((a) => a.id !== old.id));
           }
         }
       )
       .subscribe();
     return () => { void supabase.removeChannel(channel); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- onCountChange is a stable useCallback from the panel
   }, [issueId, projectId]);
 
   async function handleDelete(id: string) {
     const res = await fetch(`/api/v2/projects/${projectId}/issues/${issueId}/attachments/${id}`, { method: "DELETE" });
     if (res.ok) {
-      setAttachments((prev) => {
-        const next = prev.filter((a) => a.id !== id);
-        onCountChange?.(next.length);
-        return next;
-      });
+      setAttachments((prev) => prev.filter((a) => a.id !== id));
     }
   }
 

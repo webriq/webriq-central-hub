@@ -37,9 +37,11 @@ export default async function IssueDetailPage({
   const { data: claimsData } = await supabase.auth.getClaims();
   const currentUserId = (claimsData?.claims?.sub as string | undefined) ?? "";
   const { data: profile } = currentUserId
-    ? await supabase.from("profiles").select("role").eq("id", currentUserId).maybeSingle()
+    ? await supabase.from("profiles").select("role, full_name, avatar_url").eq("id", currentUserId).maybeSingle()
     : { data: null };
   const currentUserRole = profile?.role ?? null;
+  const currentUserName = profile?.full_name ?? null;
+  const currentUserAvatarUrl = profile?.avatar_url ?? null;
 
   const [{ data: issue }, { data: allMembers }] = await Promise.all([
     supabase.from("issues").select("*").eq("display_id", issueId).eq("project_id", project.id).single(),
@@ -104,6 +106,8 @@ export default async function IssueDetailPage({
       allMembers={allMembers ?? []}
       currentUserId={currentUserId}
       currentUserRole={currentUserRole}
+      currentUserName={currentUserName}
+      currentUserAvatarUrl={currentUserAvatarUrl}
       quickAccessTasks={quickAccessTasks}
       quickAccessIssues={quickAccessIssues}
     />
