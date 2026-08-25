@@ -33,6 +33,7 @@ interface TicketAttachmentsImportState {
 const EXPORT_LEVELS = [
   { key: "desk-accounts", label: "Desk Accounts", desc: "All Zoho Desk accounts (companies) — requires the Desk.accounts.READ OAuth scope; export before Desk Contacts for account-name matching" },
   { key: "desk-contacts", label: "Desk Contacts", desc: "All Zoho Desk contacts — can run independently, but export Desk Accounts first for customer matching" },
+  { key: "desk-agents", label: "Desk Agents", desc: "All Zoho Desk agents — no new OAuth scope needed (Desk.agents.READ already granted); used to resolve ticket Owner names" },
   { key: "desk-tickets", label: "Desk Tickets", desc: "All Zoho Desk tickets — no new OAuth scope needed (Desk.tickets.READ already granted)" },
   { key: "desk-ticket-comments", label: "Desk Ticket Comments", desc: "Agent notes/replies per ticket — not the full customer conversation, see Desk Threads below — requires desk-tickets.json exported first" },
   { key: "desk-threads", label: "Desk Threads", desc: "The actual customer↔agent conversation per ticket (emails, forum replies, etc.) — requires desk-tickets.json exported first" },
@@ -40,6 +41,7 @@ const EXPORT_LEVELS = [
 
 const IMPORT_LEVELS = [
   { key: "desk-contacts", label: "Desk Contacts", desc: "Imports desk-contacts.json into the contacts table, matched to customers via desk-accounts.json (if present) by normalized account name" },
+  { key: "desk-agents", label: "Desk Agents", desc: "Imports desk-agents.json into the desk_agents table — no customer matching, used only to resolve ticket Owner names" },
   { key: "desk-tickets", label: "Desk Tickets", desc: "Imports desk-tickets.json into the tickets table — matched via the ticket's contact (contacts.customer_id) with an account-name fallback; unmatched tickets import anyway with customer_id: null" },
   { key: "desk-ticket-comments", label: "Desk Ticket Comments", desc: "Imports desk-ticket-comments.json into ticket_messages (author_type: staff, visibility from isPublic) — requires Desk Tickets imported first" },
   { key: "desk-threads", label: "Desk Threads", desc: "Imports desk-threads.json into ticket_messages (author_type: client or staff based on who wrote it, visibility from Zoho's visibility field) — requires Desk Tickets imported first" },

@@ -50,7 +50,7 @@ function getNavGroups(role: string | null): NavGroup[] {
       ],
     },
     ...(!isDev ? [
-      { label: "Desk",          icon: <Inbox size={18} />,           href: V2_ROUTES.DASHBOARD_TASKS },
+      { label: "Desk",          icon: <Inbox size={18} />,           href: V2_ROUTES.DESK_TICKETS },
       { label: "Orchestration", icon: <Cpu size={18} />,             href: V2_ROUTES.ORCHESTRATION },
     ] : []),
     // Task 226 — time_logs RLS grants no role but client/marketing any access

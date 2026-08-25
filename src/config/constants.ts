@@ -31,6 +31,7 @@ export const V2_ROUTES = {
   PROJECTS_V2_IMPORT: "/projects/v2/import",
   PROJECTS_LEGACY: "/projects/legacy",
   DASHBOARD_TASKS: "/dashboard/tasks",
+  DESK_TICKETS: "/desk/tickets",
   DASHBOARD_PIPELINE: "/dashboard/pipeline",
   DASHBOARD_CHAT: "/dashboard/chat",
   DASHBOARD_TIMELOGS: "/dashboard/timelogs",

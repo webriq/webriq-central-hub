@@ -1061,6 +1061,35 @@ export interface Database {
           }
         ];
       };
+      desk_agents: {
+        Row: {
+          id: string;
+          external_id: string;
+          email: string | null;
+          full_name: string | null;
+          source_meta: Record<string, unknown>;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          external_id: string;
+          email?: string | null;
+          full_name?: string | null;
+          source_meta?: Record<string, unknown>;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          external_id?: string;
+          email?: string | null;
+          full_name?: string | null;
+          source_meta?: Record<string, unknown>;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       issue_comments: {
         Row: {
           id: string;
