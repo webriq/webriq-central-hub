@@ -29,6 +29,7 @@ import { MembersTab } from "./_members-tab";
 import { StatusReportTab } from "./_status-report-tab";
 import { TimeLogsTab } from "./_time-logs-tab";
 import { FilesTab } from "./_files-tab";
+import { NotesTab } from "./_notes-tab";
 import { AccessTab } from "./_access-tab";
 
 // Task 276 — ported ONCE from the old `/projects/[projectId]/_project-detail.tsx` (now
@@ -42,7 +43,7 @@ import { AccessTab } from "./_access-tab";
 // accepted and doesn't break the `"legacy"` case, which has no Overview tab.
 
 type ViewId = "board" | "list" | "calendar";
-type PrimaryTab = "tasks" | "issues" | "milestones" | "files" | "access" | "members" | "status_report" | "time_logs";
+type PrimaryTab = "tasks" | "issues" | "milestones" | "files" | "notes" | "access" | "members" | "status_report" | "time_logs";
 
 const VIEW_LABELS: Record<ViewId, string> = { list: "List", board: "Board", calendar: "Calendar" };
 const VIEW_ICONS: Record<ViewId, React.ReactNode> = {
@@ -699,6 +700,16 @@ export default function ProjectDetail({
         {/* ── Files tab (task 276 — shared with V2 detail) ── */}
         {primaryTab === "files" && (
           <FilesTab projectId={project.id} customerId={project.customer_id} currentUserRole={currentUserRole} />
+        )}
+
+        {/* ── Notes tab (task 311 — shared with V2 detail) ── */}
+        {primaryTab === "notes" && (
+          <NotesTab
+            projectId={project.id}
+            currentUserId={currentUserId}
+            currentUserRole={currentUserRole}
+            allMembers={allMembers}
+          />
         )}
 
         {/* ── Access tab (task 276 — shared with V2 detail) ── */}

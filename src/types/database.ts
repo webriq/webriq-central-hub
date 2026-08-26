@@ -1061,6 +1061,136 @@ export interface Database {
           }
         ];
       };
+      note_folders: {
+        Row: {
+          id: string;
+          project_id: string;
+          name: string;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          project_id: string;
+          name: string;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          project_id?: string;
+          name?: string;
+          created_by?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "note_folders_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      notes: {
+        Row: {
+          id: string;
+          project_id: string;
+          folder_id: string | null;
+          title: string | null;
+          content: string | null;
+          color: string;
+          is_pinned: boolean;
+          is_archived: boolean;
+          created_by: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          project_id: string;
+          folder_id?: string | null;
+          title?: string | null;
+          content?: string | null;
+          color?: string;
+          is_pinned?: boolean;
+          is_archived?: boolean;
+          created_by: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          project_id?: string;
+          folder_id?: string | null;
+          title?: string | null;
+          content?: string | null;
+          color?: string;
+          is_pinned?: boolean;
+          is_archived?: boolean;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "notes_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "notes_folder_id_fkey";
+            columns: ["folder_id"];
+            isOneToOne: false;
+            referencedRelation: "note_folders";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      note_collaborators: {
+        Row: {
+          id: string;
+          note_id: string;
+          user_id: string;
+          permission: "view" | "edit";
+          added_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          note_id: string;
+          user_id: string;
+          permission: "view" | "edit";
+          added_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          note_id?: string;
+          user_id?: string;
+          permission?: "view" | "edit";
+          added_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "note_collaborators_note_id_fkey";
+            columns: ["note_id"];
+            isOneToOne: false;
+            referencedRelation: "notes";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "note_collaborators_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
       desk_agents: {
         Row: {
           id: string;

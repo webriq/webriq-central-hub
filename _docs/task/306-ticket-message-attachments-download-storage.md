@@ -4,7 +4,8 @@
 **Priority:** MEDIUM
 **Type:** feature
 **Recommended Tier:** deep
-**Status:** Testing
+**Status:** Completed
+**Completed:** 2026-08-25
 
 ---
 
@@ -247,3 +248,7 @@ PASS
 
 ### Required Fixes
 None — no Major deviations.
+
+## Completion Note (2026-08-25)
+
+Marked Completed at the user's explicit request. The code is finished and verified by inspection/`tsc`/`lint` (including the guard-clause fix applied during the quality gate), but — same precedent as tasks 296/301/302/304 in this project — the live steps outside this session's control were **not exercised here**: migrations 116/117 have not been applied to the remote database, and the Ticket Attachments import has not been run against the real Zoho Desk API. Whoever applies the migrations and runs the import should spot-check a few downloaded files in the `ticket-attachments` bucket and confirm `attachments` rows via `select * from attachments where entity_type = 'ticket_message' limit 20`, per this doc's Acceptance Criteria/Verification section.

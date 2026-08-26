@@ -16,6 +16,7 @@ export type DetailTabId =
   | "issues"
   | "milestones"
   | "files"
+  | "notes"
   | "access"
   | "members"
   | "status_report"
@@ -26,6 +27,7 @@ const BASE_TABS: { id: DetailTabId; label: string }[] = [
   { id: "issues", label: "Issues" },
   { id: "milestones", label: "Milestones" },
   { id: "files", label: "Files" },
+  { id: "notes", label: "Notes" },
   { id: "access", label: "Access" },
   { id: "members", label: "Members" },
   { id: "status_report", label: "Status Report" },
@@ -54,7 +56,14 @@ export function ProjectDetailTabStrip({
 }) {
   const router = useRouter();
   const tabs = [OVERVIEW_TAB, ...(variant === "v2" ? [TIMELINE_TAB] : []), ...BASE_TABS]
-    .filter((tab) => tab.id !== "status_report" || role !== "developer");
+    .filter((tab) => tab.id !== "status_report" || role !== "developer")
+    // Task 311 — Notes is a staff-only tool (admin/super_admin/pm/developer, per migration
+    // 120's RLS). Allowlist, not a denylist: `_get-project-detail-data.ts`'s `currentUserRole`
+    // only resolves to a non-null value for those four roles in the first place (its own
+    // `profilesRes` query is scoped to them) — a client/marketing/hr viewer's `role` here is
+    // `null`, not the literal string "client"/"marketing", so a `role !== "client"` check would
+    // never actually hide this pill from them.
+    .filter((tab) => tab.id !== "notes" || ["admin", "super_admin", "pm", "developer"].includes(role ?? ""));
 
   return (
     <div className="flex items-center mt-4 overflow-x-auto">
