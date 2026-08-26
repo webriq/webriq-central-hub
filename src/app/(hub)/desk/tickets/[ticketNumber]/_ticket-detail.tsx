@@ -81,9 +81,15 @@ export default function TicketDetail({ ticket, messages }: { ticket: TicketDetai
   const [statusSaving, setStatusSaving] = useState(false);
   const [statusError, setStatusError] = useState<string | null>(null);
 
+  const [composeMode, setComposeMode] = useState<"note" | "reply">("note");
+
   const [noteBody, setNoteBody] = useState("");
   const [noteSaving, setNoteSaving] = useState(false);
   const [noteError, setNoteError] = useState<string | null>(null);
+
+  const [replyBody, setReplyBody] = useState("");
+  const [replySaving, setReplySaving] = useState(false);
+  const [replyError, setReplyError] = useState<string | null>(null);
 
   async function handleStatusChange(next: TicketDetailData["status"]) {
     const prev = status;
@@ -129,6 +135,29 @@ export default function TicketDetail({ ticket, messages }: { ticket: TicketDetai
       setNoteError(e instanceof Error ? e.message : "Failed to add note");
     } finally {
       setNoteSaving(false);
+    }
+  }
+
+  async function handleSendReply() {
+    if (!replyBody.trim()) return;
+    setReplySaving(true);
+    setReplyError(null);
+    try {
+      const res = await fetch(`/api/desk/tickets/${ticket.ticketNumber}/reply`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body: replyBody.trim() }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? `HTTP ${res.status}`);
+      }
+      setReplyBody("");
+      router.refresh();
+    } catch (e) {
+      setReplyError(e instanceof Error ? e.message : "Failed to send reply");
+    } finally {
+      setReplySaving(false);
     }
   }
 
@@ -239,26 +268,75 @@ export default function TicketDetail({ ticket, messages }: { ticket: TicketDetai
             </div>
             <ConversationThread ticketNumber={ticket.ticketNumber} messages={messages} />
             <div className="px-5 py-4 border-t border-[#EDF0F7] bg-[#FAFBFE]">
-              <div className="text-[11px] font-semibold text-[#8A5A00] mb-1.5">
-                Add internal note (staff only — not sent to the customer)
-              </div>
-              <textarea
-                value={noteBody}
-                onChange={(e) => setNoteBody(e.target.value)}
-                placeholder="Write a note visible only to staff…"
-                rows={3}
-                className="w-full px-3 py-2 rounded-[10px] border border-[#E2E7F2] bg-white text-[13px] text-[#3A4565] outline-none focus:border-[#007BFF] focus:ring-[3px] focus:ring-[#007BFF]/[0.14] resize-none"
-              />
-              <div className="flex items-center justify-between mt-2">
-                {noteError ? <span className="text-[11px] text-[#C0392B]">{noteError}</span> : <span />}
+              <div className="flex items-center gap-1 mb-2.5">
                 <button
-                  onClick={handleAddNote}
-                  disabled={noteSaving || !noteBody.trim()}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#0B1533] text-white text-[12px] font-medium hover:bg-[#1a2547] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  onClick={() => setComposeMode("note")}
+                  className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-colors ${
+                    composeMode === "note" ? "bg-[#8A5A00] text-white" : "text-[#5F6A88] hover:bg-[#EDF0F7]"
+                  }`}
                 >
-                  {noteSaving ? "Adding…" : "Add Note"}
+                  Internal Note
+                </button>
+                <button
+                  onClick={() => setComposeMode("reply")}
+                  className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-colors ${
+                    composeMode === "reply" ? "bg-[#007BFF] text-white" : "text-[#5F6A88] hover:bg-[#EDF0F7]"
+                  }`}
+                >
+                  Reply to Customer
                 </button>
               </div>
+
+              {composeMode === "note" ? (
+                <>
+                  <div className="text-[11px] font-semibold text-[#8A5A00] mb-1.5">
+                    Add internal note (staff only — not sent to the customer)
+                  </div>
+                  <textarea
+                    value={noteBody}
+                    onChange={(e) => setNoteBody(e.target.value)}
+                    placeholder="Write a note visible only to staff…"
+                    rows={3}
+                    className="w-full px-3 py-2 rounded-[10px] border border-[#E2E7F2] bg-white text-[13px] text-[#3A4565] outline-none focus:border-[#007BFF] focus:ring-[3px] focus:ring-[#007BFF]/[0.14] resize-none"
+                  />
+                  <div className="flex items-center justify-between mt-2">
+                    {noteError ? <span className="text-[11px] text-[#C0392B]">{noteError}</span> : <span />}
+                    <button
+                      onClick={handleAddNote}
+                      disabled={noteSaving || !noteBody.trim()}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#0B1533] text-white text-[12px] font-medium hover:bg-[#1a2547] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {noteSaving ? "Adding…" : "Add Note"}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="text-[11px] font-semibold text-[#0B5FBF] mb-1.5">
+                    {ticket.contactEmail
+                      ? `This will be emailed to ${ticket.contactEmail}`
+                      : "No recipient email on file for this ticket"}
+                  </div>
+                  <textarea
+                    value={replyBody}
+                    onChange={(e) => setReplyBody(e.target.value)}
+                    placeholder="Write a reply to send to the customer…"
+                    rows={3}
+                    disabled={!ticket.contactEmail}
+                    className="w-full px-3 py-2 rounded-[10px] border border-[#E2E7F2] bg-white text-[13px] text-[#3A4565] outline-none focus:border-[#007BFF] focus:ring-[3px] focus:ring-[#007BFF]/[0.14] resize-none disabled:opacity-60"
+                  />
+                  <div className="flex items-center justify-between mt-2">
+                    {replyError ? <span className="text-[11px] text-[#C0392B]">{replyError}</span> : <span />}
+                    <button
+                      onClick={handleSendReply}
+                      disabled={replySaving || !replyBody.trim() || !ticket.contactEmail}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#007BFF] text-white text-[12px] font-medium hover:bg-[#0066D6] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {replySaving ? "Sending…" : "Send Reply"}
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>

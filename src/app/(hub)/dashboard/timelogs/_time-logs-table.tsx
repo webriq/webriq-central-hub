@@ -348,7 +348,21 @@ function EntryRow({
                 <MessageSquare size={13} />
               </button>
             } />
-            <TooltipContent side="top" className="whitespace-pre-wrap">{entry.note}</TooltipContent>
+            <TooltipContent side="top">
+              {/* Task 317 — `note` is Tiptap-authored HTML (`_time-log-notes-editor.tsx`), same
+                  staff-authored trust boundary already rendered via dangerouslySetInnerHTML for
+                  task/issue comments (`_task-comments.tsx`). Rendering it as plain text prints the
+                  literal tags instead of formatted content. Zoho-imported notes are already
+                  HTML-stripped at import (`zoho-import/timelogs/route.ts`), so this is a no-op for
+                  those (no tags to interpret). The HTML lives on this inner span, not directly on
+                  `TooltipContent`'s own props — that component always renders its own `{children}`
+                  alongside its arrow element, so a `dangerouslySetInnerHTML` prop spread onto it
+                  would collide with that non-empty `children` and throw at runtime. */}
+              <span
+                className="[&_p]:my-0.5 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pl-4 [&_ol]:pl-4 [&_li]:my-0.5"
+                dangerouslySetInnerHTML={{ __html: entry.note }}
+              />
+            </TooltipContent>
           </Tooltip>
         ) : (
           <span className="text-[#C7CEDD]">—</span>
@@ -452,6 +466,20 @@ export function TimeLogsTable({
               <EntryRow key={entry.id} entry={entry} {...rowProps(entry)} />
             ))}
           </tbody>
+          {/* Task 317 — the flat (ungrouped) table is reached exclusively by the `developer` role
+              (client/marketing are redirected off this page in page.tsx; every other role gets
+              `groupByUser: true` and its own per-employee subtotal in the grouped branch below), so
+              this total is scoped to that self-view per the task doc's confirmed scope. */}
+          <tfoot>
+            <tr className="border-t border-[#EDF0F7] bg-[#F9FAFD]">
+              <td className="py-2.5 pl-[18px] pr-3 text-[13px] font-semibold text-[#0B1533]">Total</td>
+              <td className="py-2.5 px-3" />
+              <td className="py-2.5 px-3 font-mono text-[13px] font-semibold text-[#3A4565] whitespace-nowrap">
+                {formatHoursAsHHMM(sumHours(entries))}
+              </td>
+              <td colSpan={5} />
+            </tr>
+          </tfoot>
         </table>
       </div>
     );
