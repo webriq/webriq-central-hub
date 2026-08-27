@@ -172,7 +172,14 @@ export async function listNewMessages(params: {
 
   const messages: ZohoMailMessageSummary[] = rows.map((r) => ({
     messageId: r.messageId,
-    threadId: r.threadId,
+    // Zoho only assigns a threadId once a reply actually exists on a message — a brand-new,
+    // never-replied-to message has no threadId field at all. But once a thread does form,
+    // Zoho sets it to the root message's own messageId (observed: a reply's threadId equals
+    // the original message's messageId, and the original's own threadId becomes identical to
+    // its messageId once it has a reply). Defaulting to our own messageId here means every
+    // ticket's stored zoho_mail_thread_id already equals whatever a future reply's real
+    // threadId will be — no need to wait for Zoho to backfill it.
+    threadId: r.threadId || r.messageId,
     folderId: r.folderId ?? params.folderId,
     subject: r.subject || "(no subject)",
     fromAddress: extractEmailAddress(decodeHtmlEntities(r.fromAddress ?? "")),

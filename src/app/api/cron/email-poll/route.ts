@@ -91,6 +91,23 @@ async function processMessage(summary: ZohoMailMessageSummary): Promise<void> {
 
   let ticketId = existingTicket?.id ?? null;
 
+  // Fallback match: a ticket created before this thread had any replies (or one imported from
+  // an older code path) may still have zoho_mail_thread_id: null. Zoho's threadId convention is
+  // "the root message's own messageId" (see src/lib/zoho/mail.ts), so a reply's threadId will
+  // match the ORIGINAL message's stored email_message_id even if the ticket row itself was
+  // never backfilled. Catch that case and backfill the ticket for future direct-hit lookups.
+  if (!ticketId) {
+    const { data: rootMessage } = await adminClient
+      .from("ticket_messages")
+      .select("ticket_id")
+      .eq("email_message_id", email.threadId)
+      .maybeSingle();
+    if (rootMessage) {
+      ticketId = rootMessage.ticket_id;
+      await adminClient.from("tickets").update({ zoho_mail_thread_id: email.threadId }).eq("id", ticketId);
+    }
+  }
+
   if (!ticketId) {
     // Requester -> customer_id resolution mirrors the desk-tickets import's contact-based
     // match (task 302). No match -> null (migration 114's nullable precedent) — the ticket
