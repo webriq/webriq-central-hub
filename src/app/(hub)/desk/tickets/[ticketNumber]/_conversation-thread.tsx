@@ -68,7 +68,7 @@ function AttachmentChip({
 }
 
 // dangerouslySetInnerHTML below only ever receives DOMPurify.sanitize() output — message
-// bodies come from arbitrary external senders (anyone can email helpdesk@webriq.services), so
+// bodies come from arbitrary external senders (anyone can email helpdesk@webriq.us), so
 // this is a real untrusted-content boundary, unlike the Zoho-authored descriptions elsewhere
 // in this codebase that reuse normalizeZohoDescriptionHtml (no sanitization, semi-trusted
 // staff-authored source — not appropriate to reuse here).

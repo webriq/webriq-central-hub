@@ -10,51 +10,55 @@
 
 ## Overview
 
-Task 303 built live inbound-email ticket intake (`helpdesk@webriq.services` → Resend webhook → `tickets`/`ticket_messages`) and a ticket detail page at `/desk/tickets/{ticket_number}` with a conversation thread and a compose box — but that compose box only writes **internal notes** (`visibility: 'internal'`, staff-only, never sent to the customer). Task 303 explicitly deferred customer-facing reply-by-email as "a separate follow-up task once outbound-per-ticket infrastructure exists." This is that task.
+Task 303 built live inbound-email ticket intake (`helpdesk@webriq.us` → Resend webhook → `tickets`/`ticket_messages`) and a ticket detail page at `/desk/tickets/{ticket_number}` with a conversation thread and a compose box — but that compose box only writes **internal notes** (`visibility: 'internal'`, staff-only, never sent to the customer). Task 303 explicitly deferred customer-facing reply-by-email as "a separate follow-up task once outbound-per-ticket infrastructure exists." This is that task.
 
 Today, until this ships, staff replying to a customer must do so outside the Hub (via Zoho Desk/Zoho Mail directly), and that reply never syncs into the Hub's `ticket_messages` thread — the Hub's view of the conversation is incomplete for any ticket a staff member has actually replied to. This task closes that gap: a real "Reply" action on the ticket detail page that sends an actual email to the customer via Resend, records it in `ticket_messages`, and threads correctly in the customer's mail client.
 
 ## Requirements
 
-### A. Reply compose + send
+### A. Reply compose + send — **provider superseded by task 318 (Zoho Mail API), see that task doc**
 
-- [ ] Ticket detail page (`_ticket-detail.tsx`) gains a second compose mode alongside the existing internal-note box — e.g. a toggle/tab between "Internal Note" and "Reply to Customer" — reusing the existing compose UI shell rather than duplicating it.
+> **2026-08-27 update:** This section originally specced sending via Resend from a verified `webriq.us` sending domain. That domain verification (Open Decision 1 below) was never completed, so the Resend implementation (see Implementation Notes) was never actually able to send. Task 318 replaces Resend with Zoho Mail's own native reply endpoint — no sending-domain verification needed at all, since Zoho Mail already owns and verifies `helpdesk@webriq.us` for sending today. See `_docs/task/318-ticketing-email-provider-migrate-resend-to-zoho-mail-api.md` for the current design.
+
+- [ ] Ticket detail page (`_ticket-detail.tsx`) gains a second compose mode alongside the existing internal-note box — e.g. a toggle/tab between "Internal Note" and "Reply to Customer" — reusing the existing compose UI shell rather than duplicating it. *(Unaffected by the provider swap — still true.)*
 - [ ] "Reply to Customer" send action:
-  - Resolves the recipient: `requester_email`, falling back to the resolved contact's email (same resolution chain as `resolveContactName` in `_resolve.ts` — reuse it, don't reimplement).
-  - Sends via `resend.emails.send()`, `from` = the verified `helpdesk@webriq.services` sending address (see Open Decision 1 below — do not hard-code an unverified address).
-  - Subject: `Re: {ticket.subject}` (or the original subject if already prefixed) — do not double-prefix `Re: Re:`.
-  - Sets `In-Reply-To` and `References` headers against the **latest** `ticket_messages.email_message_id` in the thread (fall back to the ticket's first inbound message if the latest staff message has no `email_message_id`, i.e. reply-to-a-reply chains must keep extending `References`, not just point at the original).
-  - On successful send, inserts a `ticket_messages` row: `author_type: 'staff'`, `author_id` = current user, `visibility: 'public'`, `body` = the sent content, `email_message_id` = the new message's own `Message-ID` (returned by Resend's send response) so a customer's reply-to-the-reply threads correctly via task 303's existing inbound thread-match logic.
-  - On send failure, the ticket_messages row is **not** inserted (no record of a reply that was never actually delivered) — surface the error inline, do not silently swallow.
-- [ ] Staff-only (same role gate as the notes route: `admin`/`super_admin`/`pm`).
-- [ ] New route `src/app/api/desk/tickets/[ticketNumber]/reply/route.ts` (`POST`), modeled directly on the existing `notes/route.ts` (session auth check → `adminClient` role lookup → `adminClient` for the ticket_messages insert, per task 303's established precedent for staff-mutation routes) but additionally calling Resend's send API before the insert.
+  - Resolves the recipient: `requester_email`, falling back to the resolved contact's email (same resolution chain as `resolveContactName` in `_resolve.ts` — reuse it, don't reimplement). *(Unaffected — still true.)*
+  - ~~Sends via `resend.emails.send()`, `from` = the verified `helpdesk@webriq.us` sending address~~ — sends via Zoho Mail's `POST /api/accounts/{accountId}/messages/{messageId}` (Reply to an email) endpoint, `fromAddress` = `ZOHO_MAIL_FROM_ADDRESS` (task 318).
+  - Subject: `Re: {ticket.subject}` (or the original subject if already prefixed) — do not double-prefix `Re: Re:`. *(Unaffected — still true.)*
+  - ~~Sets `In-Reply-To` and `References` headers against the **latest** `ticket_messages.email_message_id`~~ — replies target the **latest** `ticket_messages.email_message_id` (a Zoho Mail message ID) as the path-param message being replied to; Zoho Mail threads natively off that, no manual header construction needed (task 318).
+  - On successful send, inserts a `ticket_messages` row: `author_type: 'staff'`, `author_id` = current user, `visibility: 'public'`, `body` = the sent content, `email_message_id` = the new message's own ID (returned by Zoho Mail's reply response, best-effort parsed — see task 318 Implementation Notes) so a customer's reply-to-the-reply threads correctly via task 303's `threadId`-based inbound thread-match. *(Same rule, different provider's ID.)*
+  - On send failure, the ticket_messages row is **not** inserted (no record of a reply that was never actually delivered) — surface the error inline, do not silently swallow. *(Unaffected — still true.)*
+- [ ] Staff-only (same role gate as the notes route: `admin`/`super_admin`/`pm`). *(Unaffected — still true.)*
+- [ ] New route `src/app/api/desk/tickets/[ticketNumber]/reply/route.ts` (`POST`), modeled directly on the existing `notes/route.ts` (session auth check → `adminClient` role lookup → `adminClient` for the ticket_messages insert, per task 303's established precedent for staff-mutation routes) but calling Zoho Mail's reply API (not Resend) before the insert.
 - [ ] Conversation thread (`_conversation-thread.tsx`) already renders `ticket_messages` by `visibility`/`author_type` — a sent reply should render distinctly from an internal note (it already shows a Public/Internal badge; verify a `public` + `staff` message reads clearly as "the customer was emailed this," not confusable with the client's own inbound messages).
 
-### B. Sending-domain verification (From address)
+### B. Sending-domain verification (From address) — **moot as of task 318**
 
-- [ ] `helpdesk@webriq.services` must be usable as the `from` address in Resend. This requires `webriq.services` to be verified as a **sending** domain in Resend (SPF/DKIM), which is separate from and larger in blast radius than task 303's receiving-only subdomain verification (e.g. `in.webriq.services`). See Open Decision 1 — this is an infrastructure step outside this repo, requiring explicit user go-ahead before any DNS change, same posture as task 303's Open Decision 2 for the Zoho Mail forwarding rule.
-- [ ] Document the resolved "reply from" address as an env var (do not silently reuse `RESEND_FROM_EMAIL`, which is already used today for invite/OTP mail and may be configured to a different domain/address than `helpdesk@webriq.services`) — e.g. `RESEND_TICKET_REPLY_FROM_EMAIL`, documented in `env.example` following the existing `RESEND_*` comment style.
+> **2026-08-27 update:** No longer needed. Zoho Mail already owns and verifies `helpdesk@webriq.us` for sending — see Open Decision 1's resolution above.
+
+- [ ] ~~`helpdesk@webriq.us` must be usable as the `from` address in Resend...~~ — n/a, see task 318.
+- [ ] Document the resolved "reply from" address as an env var — done as `ZOHO_MAIL_FROM_ADDRESS` (task 318), not `RESEND_TICKET_REPLY_FROM_EMAIL`.
 
 ## Out of Scope / Must-Not-Change
 
 - **AI-drafted replies.** This task is a manual staff compose-and-send capability only — no LLM involvement. `src/lib/ai/reply.ts`'s `generateReplyDraft()` is a separate, already-existing flow for classification/execution records (Sprint 5 / M8 orchestration), not tickets — do not conflate the two or route ticket replies through it.
-- **Switching outbound email vendor away from Resend.** Already discussed and deferred (AgentMail, Postmark, Mailgun, SendGrid were considered as alternatives during task 303 planning) — out of scope here; this task builds on Resend, the vendor task 303 already integrated.
+- ~~**Switching outbound email vendor away from Resend.**~~ Deferred here as out of scope at the time this task doc was written (AgentMail, Postmark, Mailgun, SendGrid were considered as alternatives during task 303 planning) — but this is exactly what task 318 later did (Zoho Mail API), once it became clear Resend's sending-domain verification for `webriq.us` was never going to be completed. Recorded here for history, not as a still-current boundary.
 - **Zoho Desk changes.** Nothing here touches Zoho Desk's own reply flow, macros, or SLA tracking — staff can continue using Zoho Desk for tickets not yet migrated to live Hub intake.
 - **Reply attachments.** Sending file attachments with a reply is not required for this task's acceptance criteria — plain text/HTML body only. Note as a possible fast-follow if requested, but do not build it speculatively; the existing `ticket-attachments` bucket pattern from task 303 could be reused later if scoped.
 - **Reassigning ticket owner, editing ticket priority/status from the reply flow** — status changes already exist as a separate control (task 303); do not fold that into the reply action.
-- **Actually performing the DNS/domain verification** — this task's code changes are additive and inert until the `webriq.services` sending-domain verification (Requirement B / Open Decision 1) is separately completed and the env var is set; do not attempt DNS changes as part of implementing this task without explicit user go-ahead.
+- **Actually performing the DNS/domain verification** — this task's code changes are additive and inert until the `webriq.us` sending-domain verification (Requirement B / Open Decision 1) is separately completed and the env var is set; do not attempt DNS changes as part of implementing this task without explicit user go-ahead.
 
 ## Open Decisions
 
-1. **Sending-domain verification for `helpdesk@webriq.services`.** Resend requires SPF/DKIM records on `webriq.services` (the real domain, not just the `in.webriq.services`-style receiving subdomain from task 303) to send *as* that address. This coexists technically with Zoho Mail's existing sending records (SPF supports multiple `include:` mechanisms; DKIM uses distinct selectors, so no collision) but is real DNS work on production infrastructure and needs explicit user go-ahead — the user has Zoho Mail admin access on `webriq.services` per task 303's context, but the Resend-side domain verification (adding Resend's own SPF/DKIM TXT records) is a separate action from anything task 303 already set up. **Until this is done, the reply feature cannot actually send as `helpdesk@webriq.services`** — implementation should fail loudly (clear error, not a silent fallback to an unverified address) if the env var is unset, mirroring task 303's "missing secret → reject, don't fall open" pattern for the webhook.
-2. **Threading fallback for `References` header depth.** Resend's send API needs to be verified live (per task 303's own precedent — "verify against live docs, do not build against assumptions") for exactly how `In-Reply-To`/`References` are passed (custom `headers` param vs. a dedicated field) and whether there's any length/count cap on `References` for very long threads. Confirm at implementation time.
+1. ~~**Sending-domain verification for `helpdesk@webriq.us`.**~~ **Resolved by task 318: moot.** Zoho Mail already owns and verifies `helpdesk@webriq.us` for sending today — no SPF/DKIM work needed at all. This was the blocker that kept the Resend implementation below from ever actually sending in production.
+2. ~~**Threading fallback for `References` header depth.**~~ **Resolved by task 318: no longer applicable.** Zoho Mail's reply endpoint threads natively off a message ID (path param), not manually-constructed `In-Reply-To`/`References` headers — there is no header-depth concern to manage.
 
 ## Proposed File Changes
 
 | File | Action | Purpose |
 |------|--------|---------|
 | `src/app/api/desk/tickets/[ticketNumber]/reply/route.ts` | Create | `POST` — staff-only: resolve recipient, send via Resend with threading headers, insert `ticket_messages` row on success. |
-| `src/lib/email/resend.ts` | Modify | Add a `sendTicketReply()` function (recipient, subject, body, `inReplyTo`/`references` headers, `from`) alongside the existing `sendInvitationEmail`/`sendOtpEmail`. |
+| ~~`src/lib/email/resend.ts`~~ `src/lib/zoho/mail.ts` | Modify, then superseded by task 318 | Originally added `sendTicketReply()` here; task 318 removed it and added the equivalent `sendReply()` to the new Zoho Mail client instead. `resend.ts` keeps only `sendInvitationEmail`/`sendOtpEmail`. |
 | `src/app/(hub)/desk/tickets/[ticketNumber]/_ticket-detail.tsx` | Modify | Add reply-mode toggle to the existing compose box; wire to the new route; handle send-failure inline error state. |
 | `src/app/(hub)/desk/tickets/[ticketNumber]/_conversation-thread.tsx` | Modify | Ensure a public staff reply is visually distinct from a client message and from an internal note. |
 | `env.example` | Modify | Document `RESEND_TICKET_REPLY_FROM_EMAIL` (and note the Resend sending-domain verification prerequisite in the comment). |
@@ -156,4 +160,4 @@ pnpm lint
 ### Verification Run
 - `npx tsc --noEmit` - PASS (clean, no errors)
 - `pnpm lint` - PASS (0 errors; 2 pre-existing warnings in `_checklist-tab.tsx`, unrelated and not touched by this task)
-- Manual: live send/threading test, forged-header/unverified-domain rejection, real mail-client threading confirmation - SKIPPED. Requires `RESEND_TICKET_REPLY_FROM_EMAIL` plus the `webriq.services` Resend sending-domain verification (Open Decision 1), neither of which exist yet in this environment — this is explicitly the user's separate infrastructure action per the task's Out-of-Scope boundary, same posture as task 303's skipped live-account verification.
+- Manual: live send/threading test, forged-header/unverified-domain rejection, real mail-client threading confirmation - SKIPPED. Requires `RESEND_TICKET_REPLY_FROM_EMAIL` plus the `webriq.us` Resend sending-domain verification (Open Decision 1), neither of which exist yet in this environment — this is explicitly the user's separate infrastructure action per the task's Out-of-Scope boundary, same posture as task 303's skipped live-account verification.

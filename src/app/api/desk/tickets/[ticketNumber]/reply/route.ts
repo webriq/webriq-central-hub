@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
-import { sendTicketReply } from "@/lib/email/resend";
+import { sendReply } from "@/lib/zoho/mail";
 
-// Customer-facing reply (task 316) — sends a real email via Resend and, only on send success,
-// records it as a public ticket_messages row. Staff-only, same role gate and adminClient-write
+// Customer-facing reply (task 316, migrated from Resend to the Zoho Mail API by task 318) —
+// sends a real email via Zoho Mail's native reply endpoint and, only on send success, records
+// it as a public ticket_messages row. Staff-only, same role gate and adminClient-write
 // precedent as notes/route.ts. Not AI-drafted (see src/lib/ai/reply.ts for that, unrelated flow).
 export async function POST(request: NextRequest, { params }: { params: Promise<{ ticketNumber: string }> }) {
   const supabase = await createClient();
@@ -51,24 +52,41 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json({ error: "No recipient email on file for this ticket" }, { status: 400 });
   }
 
-  // Thread chain: every prior message's email_message_id, oldest first. In-Reply-To is the
-  // most recent one; References carries the full chain, matching RFC 5322 convention and the
-  // exact format the inbound webhook's thread-match logic already expects
-  // (src/app/api/webhooks/email/route.ts — In-Reply-To/References vs. ticket_messages.email_message_id).
-  const { data: priorMessages } = await adminClient
+  // Reply target: Zoho Mail's reply endpoint threads natively off a specific message ID (path
+  // param), unlike Resend's manual In-Reply-To/References headers. Replying to the most recent
+  // message in the thread keeps the conversation's tip growing correctly for multi-hop chains.
+  const { data: latestMessage } = await adminClient
     .from("ticket_messages")
     .select("email_message_id")
     .eq("ticket_id", ticket.id)
     .not("email_message_id", "is", null)
-    .order("created_at", { ascending: true });
-  const references = (priorMessages ?? []).map((m) => m.email_message_id).filter((v): v is string => !!v);
-  const inReplyTo = references.length > 0 ? references[references.length - 1] : null;
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!latestMessage?.email_message_id) {
+    return NextResponse.json({ error: "No prior email message to reply to on this ticket" }, { status: 400 });
+  }
+
+  const from = process.env.ZOHO_MAIL_FROM_ADDRESS;
+  if (!from) {
+    // Fail loudly — never silently fall back to an unconfigured From address for a
+    // customer-facing send (same "missing secret -> reject, don't fall open" posture used
+    // throughout this codebase's other provider integrations).
+    return NextResponse.json({ error: "ZOHO_MAIL_FROM_ADDRESS is not configured — cannot send ticket reply" }, { status: 500 });
+  }
 
   const subject = /^re:/i.test(ticket.subject) ? ticket.subject : `Re: ${ticket.subject}`;
 
-  let messageId: string;
+  let messageId: string | null;
   try {
-    const result = await sendTicketReply({ to: recipient, subject, text: replyBody, inReplyTo, references });
+    const result = await sendReply({
+      replyToMessageId: latestMessage.email_message_id,
+      from,
+      to: recipient,
+      subject,
+      content: replyBody,
+    });
     messageId = result.messageId;
   } catch (e) {
     console.error("[api/desk/tickets/[ticketNumber]/reply] send failed:", e instanceof Error ? e.message : e);

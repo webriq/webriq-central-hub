@@ -63,3 +63,6 @@ supabase/.temp/
 
 .clinerules
 .vexp/coverage.json
+
+
+mailbox_accountId.json

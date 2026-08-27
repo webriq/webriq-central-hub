@@ -1,4 +1,4 @@
-# 303: Inbound Email Ticketing — Receive helpdesk@webriq.services as Desk Tickets + Ticket Detail View
+# 303: Inbound Email Ticketing — Receive helpdesk@webriq.us as Desk Tickets + Ticket Detail View
 
 **Created:** 2026-08-25
 **Priority:** HIGH
@@ -10,9 +10,9 @@
 
 ## Overview
 
-Today the Hub can only *send* email (`src/lib/email/resend.ts`, Resend, invite/OTP only) and only *receives* Zoho's outbound webhooks (`src/app/api/webhooks/route.ts` — Zoho Desk/Projects event pushes, HMAC-verified). There is no path for a live inbound email to become a Hub ticket. `helpdesk@webriq.services` is a Zoho Mail mailbox that Zoho Desk currently watches to create/append tickets.
+Today the Hub can only *send* email (`src/lib/email/resend.ts`, Resend, invite/OTP only) and only *receives* Zoho's outbound webhooks (`src/app/api/webhooks/route.ts` — Zoho Desk/Projects event pushes, HMAC-verified). There is no path for a live inbound email to become a Hub ticket. `helpdesk@webriq.us` is a Zoho Mail mailbox that Zoho Desk currently watches to create/append tickets.
 
-Task 302 preserves the *historical* Zoho Desk ticket record ahead of decommission (batch import into the native `tickets`/`ticket_messages` schema from migration 025, extended by migration 114). This task specs the *live* replacement: a webhook endpoint fed by an inbound-email provider that turns new mail to `helpdesk@webriq.services` — and replies to threads already open — into native `tickets`/`ticket_messages` rows, using the exact schema task 302 populates historically. `tickets.channel` already accepts `'email'` (migration 025); this task is what actually produces rows with that value live.
+Task 302 preserves the *historical* Zoho Desk ticket record ahead of decommission (batch import into the native `tickets`/`ticket_messages` schema from migration 025, extended by migration 114). This task specs the *live* replacement: a webhook endpoint fed by an inbound-email provider that turns new mail to `helpdesk@webriq.us` — and replies to threads already open — into native `tickets`/`ticket_messages` rows, using the exact schema task 302 populates historically. `tickets.channel` already accepts `'email'` (migration 025); this task is what actually produces rows with that value live.
 
 **Scope was expanded during planning**: no ticket detail/conversation view exists anywhere in the Hub today — `desk/tickets/_tickets-table.tsx` rows aren't even clickable. That means live-imported tickets would show up as opaque list rows with no way to read what the customer actually wrote. Per explicit decision, this task now also builds a ticket detail page modeled on the reference Zoho Desk ticket-view layout (ticket properties sidebar + conversation thread + status), adapted to the Hub's existing visual system rather than cloned pixel-for-pixel — see **Ticket Detail Page** below. This benefits the 530 already-imported historical tickets too, not just new live ones.
 
@@ -20,11 +20,13 @@ This does not touch the Desk Tickets *import* route or its data — intake is a 
 
 ## Requirements
 
-### A. Live email intake
+### A. Live email intake — **superseded by task 318 (Zoho Mail API), see that task doc**
 
-- [ ] New webhook endpoint receives inbound-email events from the chosen provider and cryptographically verifies the request before processing (never trust an unauthenticated POST — same non-negotiable principle as `ZOHO_WEBHOOK_SECRET` in `src/app/api/webhooks/route.ts`; a missing/misconfigured secret must reject, not fall open).
-- [ ] A new inbound email with no thread match creates: one `tickets` row (`channel: 'email'`, `subject` from the email subject, `requester_email` from the From address, `status: 'new'`, `priority: 'normal'`) and one `ticket_messages` row (`author_type: 'client'`, `visibility: 'public'`, `body` from the email text/HTML, `email_message_id` from the email's `Message-ID` header).
-- [ ] A reply whose `In-Reply-To` or `References` header matches an existing `ticket_messages.email_message_id` appends a new `ticket_messages` row to that ticket instead of creating a duplicate ticket.
+> **2026-08-27 update:** This section originally specced a Resend inbound webhook fed by a Zoho Mail forwarding rule (Open Decision 2 below). That was implemented (see Implementation Notes) but never went live — the Resend receiving-domain verification and Zoho Mail forwarding rule were never configured. Task 318 replaces this transport entirely with a cron poller against Zoho Mail's own API (`helpdesk@webriq.us` already lives there), removing the need for a forwarding rule or any Resend domain verification. The `tickets`/`ticket_messages` schema and everything in Requirement B below are unaffected — see `_docs/task/318-ticketing-email-provider-migrate-resend-to-zoho-mail-api.md` for the current design.
+
+- [ ] ~~New webhook endpoint receives inbound-email events from the chosen provider and cryptographically verifies the request before processing~~ — replaced by a cron-secret-gated poller (task 318 Requirement A) against Zoho Mail's Email Messages API; no provider webhook exists anymore.
+- [ ] A new inbound email with no thread match creates: one `tickets` row (`channel: 'email'`, `subject` from the email subject, `requester_email` from the From address, `status: 'new'`, `priority: 'normal'`) and one `ticket_messages` row (`author_type: 'client'`, `visibility: 'public'`, `body` from the email text/HTML, `email_message_id` from the email's Zoho Mail message ID). *(Still true under task 318 — only the transport changed.)*
+- [ ] ~~A reply whose `In-Reply-To` or `References` header matches an existing `ticket_messages.email_message_id` appends a new `ticket_messages` row~~ — replaced by matching on Zoho Mail's own `threadId` (stored as `tickets.zoho_mail_thread_id`), which groups a conversation server-side with no header parsing needed (task 318).
 - [ ] Requester → `customer_id` resolution: match the From address against `contacts.email`, resolve `contacts.customer_id` — mirrors the desk-tickets import's contact-based primary match. No match → `customer_id: null` (migration 114's established nullable precedent); the ticket still lands in the staff-visible queue (`tickets_staff_all` RLS has no customer_id condition) instead of being dropped.
 - [ ] Duplicate delivery from the provider (webhook retries are normal/expected) must not create duplicate `ticket_messages` rows — dedupe on `email_message_id` before insert.
 - [ ] Inbound attachments are downloaded and stored via the **existing** `ticket-attachments` bucket + `attachments` table (`entity_type: 'ticket_message'`, `entity_id` = the new `ticket_messages.id`) — same storage shape the `ticket-attachments` import route already writes, no new bucket.
@@ -69,15 +71,15 @@ This does not touch the Desk Tickets *import* route or its data — intake is a 
 - Ticket **reassignment** ("Owner" is display-only in this task) — a follow-up if wanted.
 - Tags — no schema column; not introduced here.
 - `tickets.ticket_number` (a `serial`) — never write an external value into it, same precedent as the import route.
-- Actually cutting over DNS/MX (or removing Zoho Desk's mail access) for `helpdesk@webriq.services` is an infrastructure/ops action outside this repo, and is explicitly **not** part of this task — see Open Decisions. The recommended setup below is additive (a forwarding rule) and does not touch Zoho Desk's existing intake.
+- Actually cutting over DNS/MX (or removing Zoho Desk's mail access) for `helpdesk@webriq.us` is an infrastructure/ops action outside this repo, and is explicitly **not** part of this task — see Open Decisions. The recommended setup below is additive (a forwarding rule) and does not touch Zoho Desk's existing intake.
 
 ## Open Decisions
 
-1. **Inbound-email provider.** Resend (already integrated for outbound, `src/lib/email/resend.ts`) has been adding inbound-receiving capability; alternatives with mature inbound parsing are Postmark, Mailgun (Routes), and SendGrid (Inbound Parse). Recommend defaulting to Resend to avoid a second email vendor, but **verify current Resend inbound support, payload shape, and webhook signing scheme against their live docs at implementation time** — do not build against assumptions here.
+1. ~~**Inbound-email provider.**~~ **Resolved by task 318: Zoho Mail API**, not Resend. `helpdesk@webriq.us` already lives in Zoho Mail, already sends/receives with no domain-verification work, and the team is keeping Zoho Mail long-term (only Zoho Desk is being decommissioned) — see task 318's Overview for the full comparison against Resend/ZeptoMail/the Zoho Desk API. The Resend implementation below (Implementation Notes) was real work but is now superseded, not deleted history.
 
-2. **External mailbox setup — recommended path.** `helpdesk@webriq.services` stays exactly where it is (Zoho Mail); nothing about its live delivery to Zoho Desk changes as part of this task:
-   - Add a **Zoho Mail forwarding rule** on `helpdesk@webriq.services` (Zoho Mail admin console → Mail Forwarding) that sends a copy of every inbound message to the chosen provider's inbound address. Zoho Desk keeps receiving the original mail unaffected — the Hub simply starts receiving its own copy via the provider's webhook. This is additive, reversible in seconds (delete the rule), and safe to test without any risk to live customer support. Requires Zoho Mail admin access on the `webriq.services` domain.
-   - Separately, the chosen provider will require its own one-time domain verification (SPF/DKIM TXT records, or an MX record on a dedicated receiving subdomain such as `in.webriq.services`) to accept inbound mail at all — this is provider-side DNS setup and does **not** touch `helpdesk@webriq.services`'s own MX or mailbox.
+2. **External mailbox setup — recommended path.** `helpdesk@webriq.us` stays exactly where it is (Zoho Mail); nothing about its live delivery to Zoho Desk changes as part of this task:
+   - Add a **Zoho Mail forwarding rule** on `helpdesk@webriq.us` (Zoho Mail admin console → Mail Forwarding) that sends a copy of every inbound message to the chosen provider's inbound address. Zoho Desk keeps receiving the original mail unaffected — the Hub simply starts receiving its own copy via the provider's webhook. This is additive, reversible in seconds (delete the rule), and safe to test without any risk to live customer support. Requires Zoho Mail admin access on the `webriq.us` domain.
+   - Separately, the chosen provider will require its own one-time domain verification (SPF/DKIM TXT records, or an MX record on a dedicated receiving subdomain such as `in.webriq.us`) to accept inbound mail at all — this is provider-side DNS setup and does **not** touch `helpdesk@webriq.us`'s own MX or mailbox.
    - A full DNS/MX cutover that stops Zoho Desk from receiving new mail is a later, separate, higher-risk step — only worth doing once the Hub path is proven in production and Zoho Desk is actually being retired, and needs explicit user go-ahead when it happens (out of scope here, per above).
 
 3. ~~Attachment storage bucket~~ — **resolved**: reuse the existing `ticket-attachments` bucket (migration 117, private, staff-role RLS) and the generic `attachments` table (`entity_type`/`entity_id`), exactly as the `ticket-attachments` import route already does. No new bucket or storage migration needed.
@@ -88,8 +90,8 @@ This does not touch the Desk Tickets *import* route or its data — intake is a 
 
 | File | Action | Purpose |
 |------|--------|---------|
-| `src/app/api/webhooks/email/route.ts` | Create | Inbound-email webhook: verify provider signature, parse email, thread-match or create ticket, insert `ticket_messages`, store attachments. |
-| `src/lib/email/inbound.ts` | Create | Provider-specific payload parsing + signature verification, kept separate from `resend.ts` (outbound). |
+| ~~`src/app/api/webhooks/email/route.ts`~~ `src/app/api/cron/email-poll/route.ts` | Create, then replaced by task 318 | Originally a Resend webhook; task 318 replaced it with a cron-secret-gated poller against the Zoho Mail API — file removed, functionality moved to the new path. |
+| `src/lib/email/inbound.ts` | Create, then rewritten by task 318 | Originally Resend-specific payload parsing; task 318 rewrote it as a thin normalizer over `src/lib/zoho/mail.ts`. |
 | `supabase/migrations/{next}_ticket_messages_email_message_id_unique.sql` | Create | Unique index on `ticket_messages.email_message_id` (currently unconstrained) — needed for provider-retry dedup and fast `In-Reply-To`/`References` thread-match lookups. |
 | `env.example` | Modify | Document the new provider webhook secret env var(s). |
 | `src/app/(hub)/desk/tickets/[ticketNumber]/page.tsx` | Create | Server component: resolve `ticket_number` → row, fetch messages + attachments + contact/agent/profile lookups, role-gate. |
@@ -208,7 +210,7 @@ Staff can already read/write both tables under existing RLS; the status/notes ro
 6. Build the `status` PATCH route and internal-note POST route.
 7. Build the attachment `file-url` signed-URL route.
 8. Document the new env var(s) in `env.example`.
-9. Test end-to-end against a staging inbox before setting up the real Zoho Mail forwarding rule on `helpdesk@webriq.services` (Open Decision 2) — do not touch the real mailbox's forwarding as part of this task without separate explicit user go-ahead, and sequence it after a final run of task 302's import (Open Decision 4).
+9. Test end-to-end against a staging inbox before setting up the real Zoho Mail forwarding rule on `helpdesk@webriq.us` (Open Decision 2) — do not touch the real mailbox's forwarding as part of this task without separate explicit user go-ahead, and sequence it after a final run of task 302's import (Open Decision 4).
 
 ## Acceptance Criteria
 
@@ -240,7 +242,7 @@ pnpm lint
 
 - `env.example` gains new documented var(s) — no behavior change for existing deployments until the var is set.
 - The `email_message_id` unique-index migration is additive — no risk to the task 302 import path (which never writes that column).
-- Real mail routing/forwarding for `helpdesk@webriq.services` is unaffected until the Zoho Mail forwarding rule (Open Decision 2) is separately approved and configured; no DNS/MX change is part of this task at all.
+- Real mail routing/forwarding for `helpdesk@webriq.us` is unaffected until the Zoho Mail forwarding rule (Open Decision 2) is separately approved and configured; no DNS/MX change is part of this task at all.
 
 ## Implementation Notes
 
@@ -268,7 +270,7 @@ pnpm lint
 - `package.json` / `pnpm-lock.yaml` - added `dompurify` dependency (not in original Proposed File Changes — see Deviations).
 
 ### Deviations From Plan
-- **Added `dompurify` as a new dependency.** Not listed in Proposed File Changes. The task doc's own note that inbound bodies are "often raw HTML" made rendering unsanitized HTML from arbitrary external senders (anyone can email `helpdesk@webriq.services`) a real stored-XSS risk in a staff-privileged view. The codebase's only existing HTML-render helper, `normalizeZohoDescriptionHtml` (`projects-old/_pm-shared.tsx`), does not sanitize at all and is only appropriate for semi-trusted Zoho-authored content — reusing it here would have shipped an XSS hole, so a real sanitizer was added instead (CLAUDE.md: "Prioritize writing safe, secure, and correct code"). `ConversationThread` is loaded via `next/dynamic({ssr:false})` since DOMPurify needs a DOM, mirroring this codebase's existing recharts convention for the same reason.
+- **Added `dompurify` as a new dependency.** Not listed in Proposed File Changes. The task doc's own note that inbound bodies are "often raw HTML" made rendering unsanitized HTML from arbitrary external senders (anyone can email `helpdesk@webriq.us`) a real stored-XSS risk in a staff-privileged view. The codebase's only existing HTML-render helper, `normalizeZohoDescriptionHtml` (`projects-old/_pm-shared.tsx`), does not sanitize at all and is only appropriate for semi-trusted Zoho-authored content — reusing it here would have shipped an XSS hole, so a real sanitizer was added instead (CLAUDE.md: "Prioritize writing safe, secure, and correct code"). `ConversationThread` is loaded via `next/dynamic({ssr:false})` since DOMPurify needs a DOM, mirroring this codebase's existing recharts convention for the same reason.
 - **Resend inbound API shape differs from the Code Context's generic HMAC sketch.** Verified live against the installed `resend@6.18.0` package and current Resend docs rather than building on assumption (per the task doc's own Open Decision 1 instruction): `email.received` webhooks carry metadata only, requiring `emails.receiving.get()` for body/headers and `emails.receiving.attachments.get()` per attachment for a `download_url`. Verification uses the SDK's own `webhooks.verify()` (Svix), not hand-rolled HMAC.
 - **Status/notes mutation routes use `adminClient` for the write**, with session auth + an explicit `adminClient` role-check as the primary authorization gate — not "session client so RLS applies" as the task doc's Code Context suggested. This matches the actual dominant precedent found in this codebase for staff-mutation routes (e.g. `PATCH /api/customers/[customerId]`), which is sanctioned by CLAUDE.md itself ("[adminClient] only for writes that need service-level access"). The file-url route *does* use the session client, matching its own closer precedent (`.../attachments/[attachmentId]/file-url/route.ts`), where storage RLS alone already scopes it correctly.
 - Everything else matches the task doc as written (routing by `ticket_number`, badge consistency, reused `ticket-attachments` bucket, internal-notes-only compose, no outbound reply, no ticket reassignment, no Tags/Zia/Resolution/Time-Entry).

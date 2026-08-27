@@ -1643,6 +1643,7 @@ export interface Database {
           external_account_id: string | null;
           match_method: "contact" | "account_name" | null;
           source_meta: Record<string, unknown>;
+          zoho_mail_thread_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -1665,6 +1666,7 @@ export interface Database {
           external_account_id?: string | null;
           match_method?: "contact" | "account_name" | null;
           source_meta?: Record<string, unknown>;
+          zoho_mail_thread_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -1687,6 +1689,7 @@ export interface Database {
           external_account_id?: string | null;
           match_method?: "contact" | "account_name" | null;
           source_meta?: Record<string, unknown>;
+          zoho_mail_thread_id?: string | null;
           updated_at?: string;
         };
         Relationships: [
@@ -1698,6 +1701,24 @@ export interface Database {
             referencedColumns: ["customer_id"];
           }
         ];
+      };
+      email_poll_cursor: {
+        Row: {
+          id: string;
+          last_received_time: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          last_received_time?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          last_received_time?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
       };
       ticket_messages: {
         Row: {
