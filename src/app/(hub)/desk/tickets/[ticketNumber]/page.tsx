@@ -36,6 +36,7 @@ type MessageRow = {
   visibility: MessageItem["visibility"];
   source_meta: Record<string, unknown> | null;
   created_at: string;
+  email_message_id: string | null;
 };
 
 type AttachmentRow = {
@@ -102,7 +103,7 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ t
 
   const { data: messagesData } = await supabase
     .from("ticket_messages")
-    .select("id, author_type, author_id, body, visibility, source_meta, created_at")
+    .select("id, author_type, author_id, body, visibility, source_meta, created_at, email_message_id")
     .eq("ticket_id", t.id)
     .order("created_at", { ascending: true });
   const messageRows = (messagesData ?? []) as MessageRow[];
@@ -117,11 +118,15 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ t
 
   const attachmentsByMessageId = new Map<string, AttachmentRow[]>();
   if (messageIds.length > 0) {
+    // .is("cid", null) excludes inline (cid-referenced) images resolved via IMAP (task 321) —
+    // those are embedded directly in the message HTML, not separate downloadable attachments,
+    // so they must not show up as attachment chips or in the Attachments tab (task 320).
     const { data: attachmentRows } = await supabase
       .from("attachments")
       .select("id, entity_id, filename, size")
       .eq("entity_type", "ticket_message")
-      .in("entity_id", messageIds);
+      .in("entity_id", messageIds)
+      .is("cid", null);
     for (const a of (attachmentRows ?? []) as AttachmentRow[]) {
       const list = attachmentsByMessageId.get(a.entity_id) ?? [];
       list.push(a);
@@ -171,8 +176,13 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ t
         filename: a.filename,
         size: a.size,
       })),
+      emailMessageId: m.email_message_id,
     };
   });
 
-  return <TicketDetail ticket={ticket} messages={messages} />;
+  // Not a secret — same value the reply route already sends the customer From — safe to expose
+  // to the client for the reply composer's read-only From row (task 320).
+  const fromAddress = process.env.ZOHO_MAIL_FROM_ADDRESS ?? null;
+
+  return <TicketDetail ticket={ticket} messages={messages} fromAddress={fromAddress} />;
 }

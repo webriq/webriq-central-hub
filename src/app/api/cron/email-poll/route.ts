@@ -4,11 +4,23 @@
 // Creates/appends native tickets/ticket_messages rows, the live counterpart to the batch Desk
 // Tickets import (task 296/302). Separate from src/app/api/webhooks/route.ts (Zoho
 // Desk/Projects event webhooks) — unrelated provider and payload shape.
+import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { listNewMessages, downloadAttachment, type ZohoMailMessageSummary } from "@/lib/zoho/mail";
 import { toParsedInboundEmail } from "@/lib/email/inbound";
+
+// Rewrites an inline image's <img src="..."> (either the dead Zoho ImageDisplay URL or a raw
+// "cid:" form) to point at the new inline-images serving route (task 321). Matches by substring
+// containment rather than building a regex from the cid value, since a Content-ID can contain
+// regex-special characters (e.g. "image001.png@01DD2890.901E00F0").
+function rewriteInlineImageSrc(html: string, cid: string, replacementUrl: string): string {
+  return html.replace(/src=(["'])([^"']*)\1/gi, (match, quote: string, url: string) => {
+    if (url === `cid:${cid}` || url.includes(cid)) return `src=${quote}${replacementUrl}${quote}`;
+    return match;
+  });
+}
 
 const BUCKET = "ticket-attachments";
 const MAX_SIZE = 52428800; // 50MB — matches the bucket's file_size_limit (migration 117)
@@ -85,11 +97,12 @@ async function processMessage(summary: ZohoMailMessageSummary): Promise<void> {
   // In-Reply-To/References header parsing needed, unlike the Resend-era design.
   const { data: existingTicket } = await adminClient
     .from("tickets")
-    .select("id")
+    .select("id, ticket_number")
     .eq("zoho_mail_thread_id", email.threadId)
     .maybeSingle();
 
   let ticketId = existingTicket?.id ?? null;
+  let ticketNumber: number | null = existingTicket?.ticket_number ?? null;
 
   // Fallback match: a ticket created before this thread had any replies (or one imported from
   // an older code path) may still have zoho_mail_thread_id: null. Zoho's threadId convention is
@@ -105,6 +118,8 @@ async function processMessage(summary: ZohoMailMessageSummary): Promise<void> {
     if (rootMessage) {
       ticketId = rootMessage.ticket_id;
       await adminClient.from("tickets").update({ zoho_mail_thread_id: email.threadId }).eq("id", ticketId);
+      const { data: ticketRow } = await adminClient.from("tickets").select("ticket_number").eq("id", ticketId).maybeSingle();
+      ticketNumber = ticketRow?.ticket_number ?? null;
     }
   }
 
@@ -130,19 +145,75 @@ async function processMessage(summary: ZohoMailMessageSummary): Promise<void> {
         requester_email: email.from,
         zoho_mail_thread_id: email.threadId,
       })
-      .select("id")
+      .select("id, ticket_number")
       .single();
 
     if (ticketError || !newTicket) throw new Error(`failed to create ticket: ${ticketError?.message}`);
     ticketId = newTicket.id;
+    ticketNumber = newTicket.ticket_number;
   }
 
+  if (ticketNumber == null) throw new Error(`could not resolve ticket_number for ticket ${ticketId}`);
+
   const bodyIsHtml = !!email.html;
-  const body = email.html ?? email.text ?? "";
+  let body = email.html ?? email.text ?? "";
+
+  // The message id is generated up front (attachments.entity_id carries no FK constraint, so
+  // referencing a not-yet-inserted row is safe) so inline images can be uploaded and their
+  // stored attachment ids substituted into `body` BEFORE the single ticket_messages insert —
+  // task 321. Regular (non-inline) attachments below still key off this same id.
+  const newMessageId = randomUUID();
+
+  for (const img of email.inlineImages) {
+    try {
+      const safeFilename = img.filename.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const storagePath = `${newMessageId}/inline_${safeFilename}`;
+
+      const { error: uploadError } = await adminClient.storage
+        .from(BUCKET)
+        .upload(storagePath, img.content, { upsert: true, contentType: img.contentType });
+      if (uploadError) {
+        console.warn(`[cron/email-poll] inline image ${img.cid} storage upload failed`, uploadError.message);
+        continue;
+      }
+
+      // external_id must stay globally unique (migration 035) — a Content-ID is only unique
+      // within one message, so it's namespaced by the message id, not used bare.
+      const { data: attachmentRow, error: attachmentError } = await adminClient
+        .from("attachments")
+        .upsert(
+          {
+            external_id: `${newMessageId}:${img.cid}`,
+            entity_type: "ticket_message",
+            entity_id: newMessageId,
+            storage_path: storagePath,
+            filename: img.filename,
+            size: img.size,
+            cid: img.cid,
+          },
+          { onConflict: "external_id" }
+        )
+        .select("id")
+        .single();
+      if (attachmentError || !attachmentRow) {
+        console.warn(`[cron/email-poll] inline image ${img.cid} attachment insert failed`, attachmentError?.message);
+        continue;
+      }
+
+      body = rewriteInlineImageSrc(
+        body,
+        img.cid,
+        `/api/desk/tickets/${ticketNumber}/messages/${newMessageId}/inline-images/${attachmentRow.id}`
+      );
+    } catch (e) {
+      console.error(`[cron/email-poll] inline image ${img.cid} processing failed`, e);
+    }
+  }
 
   const { data: newMessage, error: messageError } = await adminClient
     .from("ticket_messages")
     .insert({
+      id: newMessageId,
       ticket_id: ticketId,
       author_type: "client",
       visibility: "public",

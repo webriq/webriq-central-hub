@@ -16,6 +16,9 @@ export type MessageItem = {
   visibility: "public" | "internal";
   createdAt: string;
   attachments: MessageAttachment[];
+  // Which email this message threads off (task 320) — used to find the message that
+  // POST /reply actually replies to, so the reply composer's quoted preview matches it.
+  emailMessageId: string | null;
 };
 
 function formatDateTime(iso: string): string {
@@ -67,11 +70,28 @@ function AttachmentChip({
   );
 }
 
-// dangerouslySetInnerHTML below only ever receives DOMPurify.sanitize() output — message
+// Zoho Desk's imported thread inline images are host-relative
+// (`/supportapi/api/v1/threads/{id}/inlineImages/{id}?...`) with no origin, so they 404 rendered
+// as-is — same class of problem as Zoho Projects' portal-relative description images
+// (absolutizeZohoInlineImages in projects-old/_pm-shared.tsx), just a different Zoho product's
+// API path. Prepend the same crmplus.zoho.com host those imported threads were served from.
+function absolutizeZohoDeskInlineImages(html: string): string {
+  return html.replace(
+    /\bsrc=(["'])(\/supportapi\/api\/v1[^"']*)\1/gi,
+    (_match, quote: string, path: string) => `src=${quote}https://crmplus.zoho.com${path}${quote}`
+  );
+}
+
+// dangerouslySetInnerHTML below only ever receives sanitizeMessageHtml() output — message
 // bodies come from arbitrary external senders (anyone can email helpdesk@webriq.us), so
 // this is a real untrusted-content boundary, unlike the Zoho-authored descriptions elsewhere
 // in this codebase that reuse normalizeZohoDescriptionHtml (no sanitization, semi-trusted
-// staff-authored source — not appropriate to reuse here).
+// staff-authored source — not appropriate to reuse here). Exported so _reply-composer.tsx's
+// quoted-message preview (same body shape) renders identically.
+export function sanitizeMessageHtml(body: string): string {
+  return DOMPurify.sanitize(absolutizeZohoDeskInlineImages(body), { USE_PROFILES: { html: true } });
+}
+
 export default function ConversationThread({ ticketNumber, messages }: { ticketNumber: number; messages: MessageItem[] }) {
   if (messages.length === 0) {
     return <div className="px-5 py-10 text-center text-[13px] text-[#5F6A88]">No messages yet.</div>;
@@ -94,7 +114,7 @@ export default function ConversationThread({ ticketNumber, messages }: { ticketN
           {m.isHtml ? (
             <div
               className="text-[13px] text-[#3A4565] leading-relaxed [&_a]:text-[#007BFF] [&_a]:underline"
-              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(m.body, { USE_PROFILES: { html: true } }) }}
+              dangerouslySetInnerHTML={{ __html: sanitizeMessageHtml(m.body) }}
             />
           ) : (
             <div className="text-[13px] text-[#3A4565] leading-relaxed whitespace-pre-wrap">{m.body}</div>

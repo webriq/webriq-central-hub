@@ -1511,6 +1511,7 @@ export interface Database {
           uploaded_by: string | null;
           external_id: string | null;
           source_url: string | null;
+          cid: string | null;
           created_at: string;
         };
         Insert: {
@@ -1523,6 +1524,7 @@ export interface Database {
           uploaded_by?: string | null;
           external_id?: string | null;
           source_url?: string | null;
+          cid?: string | null;
           created_at?: string;
         };
         Update: {
@@ -1535,6 +1537,7 @@ export interface Database {
           uploaded_by?: string | null;
           external_id?: string | null;
           source_url?: string | null;
+          cid?: string | null;
         };
         Relationships: [];
       };

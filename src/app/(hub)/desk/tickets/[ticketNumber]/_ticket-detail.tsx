@@ -7,6 +7,8 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { Chip } from "../../../dashboard/_components/dashboard-shared";
 import { V2_ROUTES } from "@/config/constants";
+import { cn } from "@/lib/utils";
+import { RichTextEditor } from "./_rich-text-editor";
 import type { MessageItem } from "./_conversation-thread";
 
 // ConversationThread uses DOMPurify to render inbound HTML message bodies, which requires a
@@ -16,6 +18,15 @@ const ConversationThread = dynamic(() => import("./_conversation-thread"), {
   ssr: false,
   loading: () => <div className="px-5 py-10 text-center text-[13px] text-[#5F6A88]">Loading conversation…</div>,
 });
+
+// Same DOMPurify constraint as ConversationThread (renders the quoted message's HTML body) —
+// see _reply-composer.tsx header comment.
+const ReplyComposer = dynamic(() => import("./_reply-composer"), {
+  ssr: false,
+  loading: () => <div className="px-3 py-6 text-center text-[12px] text-[#5F6A88]">Loading composer…</div>,
+});
+
+const AttachmentsTab = dynamic(() => import("./_attachments-tab"), { ssr: false });
 
 export type TicketDetailData = {
   id: string;
@@ -75,21 +86,50 @@ function formatDateTime(iso: string | null): string {
   }).format(new Date(iso));
 }
 
-export default function TicketDetail({ ticket, messages }: { ticket: TicketDetailData; messages: MessageItem[] }) {
+type TabId = "conversations" | "threads" | "comments" | "attachments";
+
+export default function TicketDetail({
+  ticket,
+  messages,
+  fromAddress,
+}: {
+  ticket: TicketDetailData;
+  messages: MessageItem[];
+  fromAddress: string | null;
+}) {
   const router = useRouter();
   const [status, setStatus] = useState(ticket.status);
   const [statusSaving, setStatusSaving] = useState(false);
   const [statusError, setStatusError] = useState<string | null>(null);
 
+  const [activeTab, setActiveTab] = useState<TabId>("conversations");
   const [composeMode, setComposeMode] = useState<"note" | "reply">("note");
 
   const [noteBody, setNoteBody] = useState("");
+  const [noteEmpty, setNoteEmpty] = useState(true);
   const [noteSaving, setNoteSaving] = useState(false);
   const [noteError, setNoteError] = useState<string | null>(null);
+  const [noteEditorKey, setNoteEditorKey] = useState(0);
 
   const [replyBody, setReplyBody] = useState("");
+  const [replyEmpty, setReplyEmpty] = useState(true);
   const [replySaving, setReplySaving] = useState(false);
   const [replyError, setReplyError] = useState<string | null>(null);
+  const [replyEditorKey, setReplyEditorKey] = useState(0);
+
+  const publicMessages = messages.filter((m) => m.visibility === "public");
+  const internalMessages = messages.filter((m) => m.visibility === "internal");
+  const attachmentCount = messages.reduce((sum, m) => sum + m.attachments.length, 0);
+
+  const tabs: { id: TabId; label: string; count: number }[] = [
+    { id: "conversations", label: "Conversations", count: messages.length },
+    { id: "threads", label: "Threads", count: publicMessages.length },
+    { id: "comments", label: "Comments", count: internalMessages.length },
+    { id: "attachments", label: "Attachments", count: attachmentCount },
+  ];
+
+  const threadMessages =
+    activeTab === "threads" ? publicMessages : activeTab === "comments" ? internalMessages : messages;
 
   async function handleStatusChange(next: TicketDetailData["status"]) {
     const prev = status;
@@ -116,20 +156,22 @@ export default function TicketDetail({ ticket, messages }: { ticket: TicketDetai
   }
 
   async function handleAddNote() {
-    if (!noteBody.trim()) return;
+    if (noteEmpty) return;
     setNoteSaving(true);
     setNoteError(null);
     try {
       const res = await fetch(`/api/desk/tickets/${ticket.ticketNumber}/notes`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body: noteBody.trim() }),
+        body: JSON.stringify({ body: noteBody }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error ?? `HTTP ${res.status}`);
       }
       setNoteBody("");
+      setNoteEmpty(true);
+      setNoteEditorKey((k) => k + 1);
       router.refresh();
     } catch (e) {
       setNoteError(e instanceof Error ? e.message : "Failed to add note");
@@ -139,26 +181,35 @@ export default function TicketDetail({ ticket, messages }: { ticket: TicketDetai
   }
 
   async function handleSendReply() {
-    if (!replyBody.trim()) return;
+    if (replyEmpty) return;
     setReplySaving(true);
     setReplyError(null);
     try {
       const res = await fetch(`/api/desk/tickets/${ticket.ticketNumber}/reply`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body: replyBody.trim() }),
+        body: JSON.stringify({ body: replyBody }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error ?? `HTTP ${res.status}`);
       }
       setReplyBody("");
+      setReplyEmpty(true);
+      setReplyEditorKey((k) => k + 1);
       router.refresh();
     } catch (e) {
       setReplyError(e instanceof Error ? e.message : "Failed to send reply");
     } finally {
       setReplySaving(false);
     }
+  }
+
+  function handleCancelReply() {
+    setReplyBody("");
+    setReplyEmpty(true);
+    setReplyError(null);
+    setReplyEditorKey((k) => k + 1);
   }
 
   return (
@@ -261,83 +312,91 @@ export default function TicketDetail({ ticket, messages }: { ticket: TicketDetai
 
           {/* Right: Conversation */}
           <div className="rounded-[14px] border border-[#E2E7F2] bg-white overflow-hidden">
-            <div className="px-5 py-3 border-b border-[#EDF0F7]">
-              <h2 className="text-[13px] font-semibold text-[#0B1533]">
-                {messages.length} Conversation{messages.length === 1 ? "" : "s"}
-              </h2>
+            <div className="px-5 border-b border-[#EDF0F7] flex items-center gap-5 overflow-x-auto">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={cn(
+                    "py-3 text-[13px] font-medium border-b-2 -mb-px flex items-center gap-1.5 whitespace-nowrap transition-colors",
+                    activeTab === tab.id
+                      ? "border-[#007BFF] text-[#0B1533]"
+                      : "border-transparent text-[#5F6A88] hover:text-[#0B1533]"
+                  )}
+                >
+                  {tab.label}
+                  <span className="font-mono text-[11px] opacity-60">{tab.count}</span>
+                </button>
+              ))}
             </div>
-            <ConversationThread ticketNumber={ticket.ticketNumber} messages={messages} />
-            <div className="px-5 py-4 border-t border-[#EDF0F7] bg-[#FAFBFE]">
-              <div className="flex items-center gap-1 mb-2.5">
-                <button
-                  onClick={() => setComposeMode("note")}
-                  className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-colors ${
-                    composeMode === "note" ? "bg-[#8A5A00] text-white" : "text-[#5F6A88] hover:bg-[#EDF0F7]"
-                  }`}
-                >
-                  Internal Note
-                </button>
-                <button
-                  onClick={() => setComposeMode("reply")}
-                  className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-colors ${
-                    composeMode === "reply" ? "bg-[#007BFF] text-white" : "text-[#5F6A88] hover:bg-[#EDF0F7]"
-                  }`}
-                >
-                  Reply to Customer
-                </button>
-              </div>
 
-              {composeMode === "note" ? (
-                <>
-                  <div className="text-[11px] font-semibold text-[#8A5A00] mb-1.5">
-                    Add internal note (staff only — not sent to the customer)
-                  </div>
-                  <textarea
-                    value={noteBody}
-                    onChange={(e) => setNoteBody(e.target.value)}
-                    placeholder="Write a note visible only to staff…"
-                    rows={3}
-                    className="w-full px-3 py-2 rounded-[10px] border border-[#E2E7F2] bg-white text-[13px] text-[#3A4565] outline-none focus:border-[#007BFF] focus:ring-[3px] focus:ring-[#007BFF]/[0.14] resize-none"
+            {activeTab === "attachments" ? (
+              <AttachmentsTab ticketNumber={ticket.ticketNumber} messages={messages} />
+            ) : (
+              <ConversationThread ticketNumber={ticket.ticketNumber} messages={threadMessages} />
+            )}
+
+            {activeTab !== "attachments" && (
+              <div className="px-5 py-4 border-t border-[#EDF0F7] bg-[#FAFBFE]">
+                <div className="flex items-center gap-1 mb-2.5">
+                  <button
+                    onClick={() => setComposeMode("note")}
+                    className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-colors ${
+                      composeMode === "note" ? "bg-[#8A5A00] text-white" : "text-[#5F6A88] hover:bg-[#EDF0F7]"
+                    }`}
+                  >
+                    Internal Note
+                  </button>
+                  <button
+                    onClick={() => setComposeMode("reply")}
+                    className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-colors ${
+                      composeMode === "reply" ? "bg-[#007BFF] text-white" : "text-[#5F6A88] hover:bg-[#EDF0F7]"
+                    }`}
+                  >
+                    Reply to Customer
+                  </button>
+                </div>
+
+                {composeMode === "note" ? (
+                  <>
+                    <div className="text-[11px] font-semibold text-[#8A5A00] mb-1.5">
+                      Add internal note (staff only — not sent to the customer)
+                    </div>
+                    <RichTextEditor
+                      key={noteEditorKey}
+                      onChange={setNoteBody}
+                      onEmptyChange={setNoteEmpty}
+                      placeholder="Write a note visible only to staff…"
+                      disabled={noteSaving}
+                    />
+                    <div className="flex items-center justify-between mt-2">
+                      {noteError ? <span className="text-[11px] text-[#C0392B]">{noteError}</span> : <span />}
+                      <button
+                        onClick={handleAddNote}
+                        disabled={noteSaving || noteEmpty}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#0B1533] text-white text-[12px] font-medium hover:bg-[#1a2547] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      >
+                        {noteSaving ? "Adding…" : "Add Note"}
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <ReplyComposer
+                    fromAddress={fromAddress}
+                    toEmail={ticket.contactEmail}
+                    messages={messages}
+                    editorKey={replyEditorKey}
+                    onChange={setReplyBody}
+                    onEmptyChange={setReplyEmpty}
+                    saving={replySaving}
+                    error={replyError}
+                    sendDisabled={replySaving || replyEmpty || !ticket.contactEmail}
+                    onSend={handleSendReply}
+                    onCancel={handleCancelReply}
                   />
-                  <div className="flex items-center justify-between mt-2">
-                    {noteError ? <span className="text-[11px] text-[#C0392B]">{noteError}</span> : <span />}
-                    <button
-                      onClick={handleAddNote}
-                      disabled={noteSaving || !noteBody.trim()}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#0B1533] text-white text-[12px] font-medium hover:bg-[#1a2547] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                    >
-                      {noteSaving ? "Adding…" : "Add Note"}
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="text-[11px] font-semibold text-[#0B5FBF] mb-1.5">
-                    {ticket.contactEmail
-                      ? `This will be emailed to ${ticket.contactEmail}`
-                      : "No recipient email on file for this ticket"}
-                  </div>
-                  <textarea
-                    value={replyBody}
-                    onChange={(e) => setReplyBody(e.target.value)}
-                    placeholder="Write a reply to send to the customer…"
-                    rows={3}
-                    disabled={!ticket.contactEmail}
-                    className="w-full px-3 py-2 rounded-[10px] border border-[#E2E7F2] bg-white text-[13px] text-[#3A4565] outline-none focus:border-[#007BFF] focus:ring-[3px] focus:ring-[#007BFF]/[0.14] resize-none disabled:opacity-60"
-                  />
-                  <div className="flex items-center justify-between mt-2">
-                    {replyError ? <span className="text-[11px] text-[#C0392B]">{replyError}</span> : <span />}
-                    <button
-                      onClick={handleSendReply}
-                      disabled={replySaving || !replyBody.trim() || !ticket.contactEmail}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#007BFF] text-white text-[12px] font-medium hover:bg-[#0066D6] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                    >
-                      {replySaving ? "Sending…" : "Send Reply"}
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>

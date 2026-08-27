@@ -25,7 +25,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   const body = await request.json().catch(() => ({}));
   const noteBody = typeof body.body === "string" ? body.body.trim() : "";
-  if (!noteBody) {
+  // Task 320 — body is now Tiptap HTML; an "empty" editor still serializes to "<p></p>", which
+  // is a non-empty string, so a plain truthiness check no longer rejects an empty note.
+  if (!noteBody || noteBody.replace(/<[^>]*>/g, "").trim().length === 0) {
     return NextResponse.json({ error: "Note body is required" }, { status: 400 });
   }
 
@@ -44,6 +46,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       author_id: user.id,
       body: noteBody,
       visibility: "internal",
+      // Task 320 — body is now Tiptap HTML, not plain text; see reply/route.ts for why this
+      // flag is required for the detail page to render it as formatted HTML.
+      source_meta: { contentType: "text/html" },
     })
     .select("id")
     .single();

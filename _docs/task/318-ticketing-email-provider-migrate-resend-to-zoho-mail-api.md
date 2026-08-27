@@ -4,7 +4,7 @@
 **Priority:** HIGH
 **Type:** refactor
 **Recommended Tier:** deep
-**Status:** Testing
+**Status:** Completed
 
 ---
 
@@ -212,3 +212,13 @@ PASS
 - **Medium — documented, not fixed (judgment call, not a defect).** The poll cursor starts `null`, so the very first poll run backfills up to the 50 most-recent messages already sitting in the Inbox as brand-new tickets — including mail that predates this feature and may already be a Zoho Desk ticket or part of the task 302/304 historical import. Left as-is because "backfill on first activation" vs. "start fresh from now()" is a product decision the task doc didn't specify, not a bug to silently resolve either way. Migration 122 documents the one-line SQL to seed the cursor to "now" first, if backfill is unwanted — same one-time-cutover-care posture as task 303's own Open Decision 4.
 - **Minor.** `getMessageDetail()`'s attachment field extraction (`a.attachmentId ?? a.storeName ?? ""`) can produce an empty-string `attachmentId` if a live response uses neither guessed field name, which would make `attachments.external_id` empty across every affected attachment and risk an incorrect `onConflict: "external_id"` upsert match between unrelated messages' attachments. Not fixed — this is a direct, narrower consequence of the same "field names unverified" uncertainty already prominently flagged in the file header and Implementation Notes; a real fix requires the actual live response shape, not a guess layered on a guess.
 - No **Major** deviations. Nothing here violates a stated requirement, touches the ticket detail page/UI, changes the `tickets`/`ticket_messages` schema beyond the one additive column the task doc anticipated, or reintroduces a Resend dependency for ticketing.
+
+### Completion Note
+
+Marked **Completed** at the user's explicit request, after real live verification (not just tsc/lint) — a genuine end-to-end run against production infrastructure:
+
+- **Confirmed working live**: Zoho API Console setup (Self Client, scoped refresh token), all `ZOHO_MAIL_*` env vars resolved against the real `helpdesk@webriq.us` mailbox (`accountId 7546452000000008002`, Inbox `folderId 7546452000000008014`), the code deployed to production, migration 122 applied, the Supabase Vault `app_base_url` secret updated to track the app's domain (which changed twice mid-session — `centralhub.webriq.cloud` → `hub.webriqs.com`, see task 319), a manual poll trigger, a real backlog-processing run (the pre-existing inbox backlog, up to the documented 50-message cap, was ingested as new tickets on first activation — confirmed via tickets #568/#569 among them — exactly matching the documented first-run-backfill behavior), and a genuinely new test email creating ticket #570 end-to-end (`polled:1, processed:1`, ticket + `ticket_messages` row confirmed in Supabase and in the `/desk/tickets` UI).
+- **A real bug was found and fixed during this live verification, not left in place**: `tickets.zoho_mail_thread_id` was `null` on every created ticket, including #570. Root cause traced against actual Zoho API responses: Zoho only assigns a message's `threadId` once a reply exists on it, so a ticket's *first* message never has one at ingest time. Fixed in `src/lib/zoho/mail.ts` (default `threadId` to the message's own `messageId`, matching Zoho's confirmed convention that a thread's ID equals its root message's ID) and in the poll route (fallback match via `ticket_messages.email_message_id`, self-healing tickets #568–#570's `null` values on their next reply). See the dedicated Deviations entry above for the full trace.
+- **Not independently re-verified after that fix**: the reply-thread-match flow (reply to an existing ticket's email → confirm it appends to the same ticket, not a new one) and the outbound "Reply to Customer" UI flow end-to-end (send → arrives → threads correctly in a real mail client). Both were scoped as the next manual test to run but not completed before this doc was marked complete. If either fails, the most likely place to look first is the same `zoho_mail_thread_id`/`email_message_id` matching logic just fixed, followed by `sendReply()`'s handling of `ZOHO_MAIL_FROM_ADDRESS` and the reply-target message-ID lookup in the reply route.
+- **Optional, not yet run**: the one-time SQL backfill for tickets #568–#570's `zoho_mail_thread_id` (given in the fix's own note above) — not required for correctness (the fallback match self-heals on the next reply either way), just saves that one fallback lookup the first time.
+

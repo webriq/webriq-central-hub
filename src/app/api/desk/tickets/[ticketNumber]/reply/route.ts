@@ -27,7 +27,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   const body = await request.json().catch(() => ({}));
   const replyBody = typeof body.body === "string" ? body.body.trim() : "";
-  if (!replyBody) {
+  // Task 320 — body is now Tiptap HTML; an "empty" editor still serializes to "<p></p>", which
+  // is a non-empty string, so a plain truthiness check no longer rejects an empty reply.
+  if (!replyBody || replyBody.replace(/<[^>]*>/g, "").trim().length === 0) {
     return NextResponse.json({ error: "Reply body is required" }, { status: 400 });
   }
 
@@ -102,6 +104,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       body: replyBody,
       visibility: "public",
       email_message_id: messageId,
+      // Task 320 — body is now Tiptap HTML, not plain text. Without this the detail page's
+      // isHtml check (contentTypeMeta === "text/html") stays false for our own outgoing
+      // messages and they render as escaped raw tags instead of formatted HTML.
+      source_meta: { contentType: "text/html" },
     })
     .select("id")
     .single();
