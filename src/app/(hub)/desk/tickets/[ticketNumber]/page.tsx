@@ -163,13 +163,36 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ t
 
   const messages: MessageItem[] = messageRows.map((m) => {
     const contentTypeMeta = m.source_meta?.contentType;
+    // Task 323 — classify into the Threads vs Comments streams. Imported rows carry
+    // source_meta.zohoSource ("thread" | "comment"); Hub-native replies/notes don't, so
+    // fall back to visibility (internal note -> comment, public reply -> thread).
+    const zohoSource = m.source_meta?.zohoSource;
+    const kind: MessageItem["kind"] =
+      zohoSource === "comment"
+        ? "comment"
+        : zohoSource === "thread"
+          ? "thread"
+          : m.visibility === "internal"
+            ? "comment"
+            : "thread";
+    // Task 323 — prefer the name Zoho recorded on the imported thread/comment
+    // (source_meta.author.name, e.g. "WebriQ" for our outbound replies) over the Hub
+    // profile the import happened to resolve by email (which can carry a stale/wrong
+    // full_name). Falls back to the resolved staff profile, then the ticket contact.
+    const importedAuthor = m.source_meta?.author as { name?: string } | null | undefined;
+    const importedAuthorName =
+      typeof importedAuthor?.name === "string" && importedAuthor.name.trim() ? importedAuthor.name.trim() : null;
     return {
       id: m.id,
       authorType: m.author_type,
-      authorName: m.author_type === "staff" ? staffByAuthorId.get(m.author_id ?? "") ?? "Staff" : contactName,
+      authorName:
+        m.author_type === "staff"
+          ? importedAuthorName ?? staffByAuthorId.get(m.author_id ?? "") ?? "Staff"
+          : importedAuthorName ?? contactName,
       body: m.body,
       isHtml: contentTypeMeta === "text/html",
       visibility: m.visibility,
+      kind,
       createdAt: m.created_at,
       attachments: (attachmentsByMessageId.get(m.id) ?? []).map((a) => ({
         id: a.id,

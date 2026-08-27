@@ -1,34 +1,17 @@
 "use client";
 
 import { RichTextEditor } from "./_rich-text-editor";
-import { sanitizeMessageHtml, type MessageItem } from "./_conversation-thread";
 
-// Reply composer (task 320) — upgraded from a plain <textarea> to a rich-text composer with
-// From/To display rows and a quoted preview of the message the reply actually threads off of.
-// sanitizeMessageHtml() (shared with ConversationThread) needs `window`, so this module is
-// dynamically imported with ssr:false from _ticket-detail.tsx — same reason
-// _conversation-thread.tsx is (see its header comment). No signature block (no email-template
-// system in this codebase) and no editable To/CC/BCC — recipient stays the single resolved
-// ticket.contactEmail, matching POST /reply.
-function formatDateTime(iso: string): string {
-  return new Intl.DateTimeFormat("en-US", { day: "2-digit", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" }).format(
-    new Date(iso)
-  );
-}
-
-// Mirrors the "latest message with an email_message_id" selection in
-// src/app/api/desk/tickets/[ticketNumber]/reply/route.ts — POST /reply threads off exactly this
-// message via replyToMessageId, so the quoted preview must match, not guess independently.
-function findQuotedMessage(messages: MessageItem[]): MessageItem | null {
-  const withEmailId = messages.filter((m) => m.emailMessageId);
-  if (withEmailId.length === 0) return null;
-  return [...withEmailId].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
-}
-
+// Reply composer (task 320; simplified in task 324) — rich-text composer with read-only
+// From/To rows. The reply threads natively off the latest message in the conversation via
+// POST /reply's replyToMessageId, and only the typed body is sent — no quoted copy of the
+// prior thread (the customer's mail client already carries the history). Dynamically
+// imported with ssr:false from _ticket-detail.tsx because RichTextEditor (Tiptap) needs
+// `window`. No editable To/CC/BCC — recipient stays the single resolved ticket.contactEmail,
+// matching POST /reply.
 export default function ReplyComposer({
   fromAddress,
   toEmail,
-  messages,
   editorKey,
   onChange,
   onEmptyChange,
@@ -40,7 +23,6 @@ export default function ReplyComposer({
 }: {
   fromAddress: string | null;
   toEmail: string | null;
-  messages: MessageItem[];
   editorKey: number;
   onChange: (html: string) => void;
   onEmptyChange: (isEmpty: boolean) => void;
@@ -50,7 +32,6 @@ export default function ReplyComposer({
   onSend: () => void;
   onCancel: () => void;
 }) {
-  const quoted = findQuotedMessage(messages);
   // Only lock the editor while sending or when there's nowhere to send to — NOT while empty,
   // otherwise the editor starts disabled (replyEmpty defaults true) and can never become
   // non-empty, since a disabled Tiptap instance can't receive input to fire onUpdate at all.
@@ -78,25 +59,15 @@ export default function ReplyComposer({
         disabled={editorDisabled}
       />
 
-      {quoted && (
-        <div className="mt-3 pl-3 border-l-2 border-[#E2E7F2]">
-          <div className="text-[11px] text-[#5F6A88] mb-1">
-            On {formatDateTime(quoted.createdAt)}, {quoted.authorName} wrote:
-          </div>
-          {quoted.isHtml ? (
-            <div
-              className="text-[12px] text-[#5F6A88] leading-relaxed [&_a]:text-[#007BFF] [&_a]:underline"
-              dangerouslySetInnerHTML={{ __html: sanitizeMessageHtml(quoted.body) }}
-            />
-          ) : (
-            <div className="text-[12px] text-[#5F6A88] leading-relaxed whitespace-pre-wrap">{quoted.body}</div>
-          )}
-        </div>
-      )}
-
-      <div className="flex items-center justify-between mt-2">
-        {error ? <span className="text-[11px] text-[#C0392B]">{error}</span> : <span />}
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between mt-2 gap-3">
+        {error ? (
+          <span className="text-[11px] text-[#C0392B]">{error}</span>
+        ) : (
+          <span className="text-[11px] text-[#5F6A88]">
+            Threads onto the latest message — the customer receives it as a reply.
+          </span>
+        )}
+        <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={onCancel}
             disabled={saving}

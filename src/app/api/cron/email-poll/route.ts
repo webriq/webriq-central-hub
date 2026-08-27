@@ -10,19 +10,8 @@ import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { listNewMessages, downloadAttachment, type ZohoMailMessageSummary } from "@/lib/zoho/mail";
 import { toParsedInboundEmail } from "@/lib/email/inbound";
+import { applyInlineImages, INLINE_IMAGE_BUCKET as BUCKET } from "@/lib/email/inline-images";
 
-// Rewrites an inline image's <img src="..."> (either the dead Zoho ImageDisplay URL or a raw
-// "cid:" form) to point at the new inline-images serving route (task 321). Matches by substring
-// containment rather than building a regex from the cid value, since a Content-ID can contain
-// regex-special characters (e.g. "image001.png@01DD2890.901E00F0").
-function rewriteInlineImageSrc(html: string, cid: string, replacementUrl: string): string {
-  return html.replace(/src=(["'])([^"']*)\1/gi, (match, quote: string, url: string) => {
-    if (url === `cid:${cid}` || url.includes(cid)) return `src=${quote}${replacementUrl}${quote}`;
-    return match;
-  });
-}
-
-const BUCKET = "ticket-attachments";
 const MAX_SIZE = 52428800; // 50MB — matches the bucket's file_size_limit (migration 117)
 const CURSOR_ID = "helpdesk";
 
@@ -164,51 +153,12 @@ async function processMessage(summary: ZohoMailMessageSummary): Promise<void> {
   // task 321. Regular (non-inline) attachments below still key off this same id.
   const newMessageId = randomUUID();
 
-  for (const img of email.inlineImages) {
-    try {
-      const safeFilename = img.filename.replace(/[^a-zA-Z0-9._-]/g, "_");
-      const storagePath = `${newMessageId}/inline_${safeFilename}`;
-
-      const { error: uploadError } = await adminClient.storage
-        .from(BUCKET)
-        .upload(storagePath, img.content, { upsert: true, contentType: img.contentType });
-      if (uploadError) {
-        console.warn(`[cron/email-poll] inline image ${img.cid} storage upload failed`, uploadError.message);
-        continue;
-      }
-
-      // external_id must stay globally unique (migration 035) — a Content-ID is only unique
-      // within one message, so it's namespaced by the message id, not used bare.
-      const { data: attachmentRow, error: attachmentError } = await adminClient
-        .from("attachments")
-        .upsert(
-          {
-            external_id: `${newMessageId}:${img.cid}`,
-            entity_type: "ticket_message",
-            entity_id: newMessageId,
-            storage_path: storagePath,
-            filename: img.filename,
-            size: img.size,
-            cid: img.cid,
-          },
-          { onConflict: "external_id" }
-        )
-        .select("id")
-        .single();
-      if (attachmentError || !attachmentRow) {
-        console.warn(`[cron/email-poll] inline image ${img.cid} attachment insert failed`, attachmentError?.message);
-        continue;
-      }
-
-      body = rewriteInlineImageSrc(
-        body,
-        img.cid,
-        `/api/desk/tickets/${ticketNumber}/messages/${newMessageId}/inline-images/${attachmentRow.id}`
-      );
-    } catch (e) {
-      console.error(`[cron/email-poll] inline image ${img.cid} processing failed`, e);
-    }
-  }
+  body = await applyInlineImages({
+    messageRowId: newMessageId,
+    ticketNumber,
+    inlineImages: email.inlineImages,
+    body,
+  });
 
   const { data: newMessage, error: messageError } = await adminClient
     .from("ticket_messages")

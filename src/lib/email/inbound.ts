@@ -23,7 +23,9 @@ export type ParsedInboundEmail = {
 // Cheap pre-check so the (much slower) IMAP round-trip in fetchInlineImages() only runs for
 // messages that actually reference an inline image Zoho's REST API can't resolve (task 321) —
 // most inbound emails have neither, and shouldn't pay an IMAP connect+search+parse cost.
-const UNRESOLVED_INLINE_IMAGE_PATTERN = /src=["'](?:\/mail\/ImageDisplay|cid:)/i;
+// Exported for the backfill admin route (task 322), which selects already-stored
+// ticket_messages whose body still carries one of these unresolved forms.
+export const UNRESOLVED_INLINE_IMAGE_PATTERN = /src=["'](?:\/mail\/ImageDisplay|cid:)/i;
 
 export async function toParsedInboundEmail(summary: ZohoMailMessageSummary): Promise<ParsedInboundEmail> {
   const detail = await getMessageDetail(summary.messageId, summary.folderId);

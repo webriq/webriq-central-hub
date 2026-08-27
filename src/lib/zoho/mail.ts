@@ -229,6 +229,50 @@ export async function getMessageDetail(messageId: string, folderId: string): Pro
   };
 }
 
+export type ZohoMailMessageMetadata = {
+  receivedTime: string | null; // epoch ms as a string, matching ZohoMailMessageSummary
+  fromAddress: string | null; // bare address
+  rfc822MessageId: string | null; // the original RFC822 Message-ID header, angle brackets stripped
+};
+
+// Metadata for a single already-known message id (task 322 backfill correlation). The forward
+// poll path gets receivedTime/fromAddress straight off listNewMessages(); a stored
+// ticket_messages row only has the Zoho messageId, so this re-derives the correlation inputs.
+// Field names are UNVERIFIED against live docs (same caveat as getMessageDetail — see file
+// header): parsed defensively across the plausible variants, and against a `headers`/`header`
+// map if Zoho returns one. Callers treat a null field as "correlation input unavailable", not
+// an error.
+export async function getMessageMetadata(messageId: string, folderId: string): Promise<ZohoMailMessageMetadata> {
+  const accountId = requireAccountId();
+  const res = await zohoMailFetch(
+    `/api/accounts/${accountId}/folders/${folderId}/messages/${messageId}/details`,
+    { method: "GET" }
+  );
+  if (!res.ok) {
+    throw new Error(`Zoho Mail get message metadata failed: HTTP ${res.status} ${await res.text().catch(() => "")}`);
+  }
+
+  const json = await res.json();
+  const data = (json.data ?? {}) as Record<string, unknown>;
+
+  const receivedRaw = data.receivedTime ?? data.receivedDate ?? data.sentDateInGMT ?? data.time ?? null;
+  const receivedTime = receivedRaw != null ? String(receivedRaw) : null;
+
+  const fromRaw = (data.fromAddress ?? data.sender ?? data.from ?? "") as string;
+  const fromAddress = fromRaw ? extractEmailAddress(decodeHtmlEntities(fromRaw)) : null;
+
+  // The RFC822 Message-ID may surface as a top-level field or inside a header map, depending on
+  // the endpoint's shape. Accept either; strip angle brackets so it feeds IMAP HEADER search.
+  const headerMap = (data.headers ?? data.header ?? {}) as Record<string, unknown>;
+  const rawMessageId =
+    (data.messageIdHeader ?? data.rfc822MessageId ?? headerMap["Message-ID"] ?? headerMap["Message-Id"] ?? headerMap["message-id"] ?? null) as
+      | string
+      | null;
+  const rfc822MessageId = rawMessageId ? String(rawMessageId).trim().replace(/^<|>$/g, "") || null : null;
+
+  return { receivedTime, fromAddress, rfc822MessageId };
+}
+
 // Best-effort — no public doc page found for this endpoint during implementation. Modeled on
 // the nested-resource pattern every other confirmed Zoho Mail endpoint follows. Callers must
 // treat a failure here as non-fatal (skip the attachment, keep the message) per the poll
