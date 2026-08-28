@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { V2_ROUTES } from "@/config/constants";
 import { TicketsTable } from "./_tickets-table";
 import { FilterMultiSelect } from "./_filter-multi-select";
-import { parseStatusFilterParam, STATUS_FILTER_OPTIONS } from "./_status-filter";
+import { parseStatusFilterParam, STATUS_FILTER_OPTIONS, ARCHIVED_FILTER_VALUE, ALL_STATUS_VALUES } from "./_status-filter";
 
 export type TicketStatus = "open" | "on_hold" | "escalated" | "closed";
 
@@ -54,7 +54,9 @@ export default function TicketsIndex({
   }
 
   function handleStatusChange(next: string[]) {
-    const value = next.length === 0 ? "" : next.length === STATUS_FILTER_OPTIONS.length ? "all" : next.join(",");
+    const isAllStatuses =
+      next.length === ALL_STATUS_VALUES.length && ALL_STATUS_VALUES.every((v) => next.includes(v));
+    const value = next.length === 0 ? "" : isAllStatuses ? "all" : next.join(",");
     router.push(buildUrl({ status: value, page: 1 }));
   }
 
@@ -63,7 +65,11 @@ export default function TicketsIndex({
   const hasNext = from + pageSize < total;
   const hasPrev = page > 1;
   const showPagination = total > 0;
-  const isFiltered = (searchParams.get("search")?.trim().length ?? 0) > 0 || statusSelected.length !== STATUS_FILTER_OPTIONS.length;
+  // "Filtered" = a search term is active, or the status selection is anything other than
+  // exactly "All" (every status except Archived). The "no results" empty state keys off this.
+  const isAllStatusView =
+    statusSelected.length === ALL_STATUS_VALUES.length && ALL_STATUS_VALUES.every((v) => statusSelected.includes(v));
+  const isFiltered = (searchParams.get("search")?.trim().length ?? 0) > 0 || !isAllStatusView;
 
   return (
     <div onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)} className="h-full overflow-y-auto">
@@ -105,6 +111,9 @@ export default function TicketsIndex({
               options={STATUS_FILTER_OPTIONS}
               selected={statusSelected}
               onChange={handleStatusChange}
+              dividerBeforeValue={ARCHIVED_FILTER_VALUE}
+              allToggleValues={ALL_STATUS_VALUES}
+              exclusiveValue={ARCHIVED_FILTER_VALUE}
             />
 
             {/* Spacer */}

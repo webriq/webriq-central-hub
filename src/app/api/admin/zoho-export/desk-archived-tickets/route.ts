@@ -6,12 +6,21 @@
 // mirroring desk-threads' per-ticket try/catch — isolates per-department failure: one
 // department that exhausts retries lands in `failed_departments` and the loop continues.
 //
+// task 334: each department's tickets are then run through enrichTicketsWithCf() — a
+// per-ticket Get Ticket call that grafts the `cf` custom-field object (the archivedTickets
+// list endpoint, like List Tickets, never returns it). Roughly doubles the Zoho call count;
+// per-ticket Get Ticket failures land in the `done` event's `cf_failed_ticket_ids`.
+//
 // Needs the Desk.search.READ scope (in addition to Desk.tickets.READ / Desk.departments.READ)
 // on ZOHO_REFRESH_TOKEN — see env.example. If it is missing the first department call 401s.
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { getZohoAccessToken } from "@/lib/zoho";
-import { fetchDeskDepartments, fetchAllArchivedTicketsForDept } from "@/lib/zoho/desk";
+import {
+  fetchDeskDepartments,
+  fetchAllArchivedTicketsForDept,
+  enrichTicketsWithCf,
+} from "@/lib/zoho/desk";
 
 const DEFAULT_CREATED_AFTER = "2025-01-01T00:00:00.000Z";
 const LABEL = "zoho-export/desk-archived-tickets";
@@ -64,6 +73,7 @@ export async function GET(req: Request) {
       const perDepartment: Record<string, number> = {};
       const truncatedDepartments: string[] = [];
       const failedDepartments: string[] = [];
+      const cfFailedTicketIds: string[] = []; // task 334 — Get Ticket failures during cf enrichment
 
       for (let i = 0; i < departments.length; i++) {
         const dept = departments[i];
@@ -71,9 +81,22 @@ export async function GET(req: Request) {
           const r = await fetchAllArchivedTicketsForDept(dept.id, token, LABEL, { createdAfter });
           token = r.token; // carry the (possibly refreshed) token forward regardless
 
-          totalKept += r.items.length;
-          perDepartment[dept.name] = r.items.length;
-          if (r.items.length > 0) send({ type: "tickets", tickets: r.items });
+          // task 334: the archivedTickets list endpoint (like List Tickets) never returns the
+          // `cf` custom-field object — enrich each of this department's tickets via a
+          // per-ticket Get Ticket call so archived rows reach parity with live tickets
+          // (Business Name / StackShift Site). Per-ticket failures are isolated inside the
+          // helper (row still emitted with `cf: null`, id recorded).
+          let items = r.items;
+          if (items.length > 0) {
+            const er = await enrichTicketsWithCf(items, token, LABEL);
+            token = er.token;
+            items = er.enriched;
+            cfFailedTicketIds.push(...er.failedTicketIds);
+          }
+
+          totalKept += items.length;
+          perDepartment[dept.name] = items.length;
+          if (items.length > 0) send({ type: "tickets", tickets: items });
 
           if (r.truncated) {
             truncatedDepartments.push(dept.name);
@@ -112,6 +135,7 @@ export async function GET(req: Request) {
         per_department: perDepartment,
         truncated_departments: truncatedDepartments,
         failed_departments: failedDepartments,
+        cf_failed_ticket_ids: cfFailedTicketIds,
         created_after: createdAfter,
       });
       controller.close();

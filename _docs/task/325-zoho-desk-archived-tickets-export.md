@@ -531,6 +531,10 @@ pnpm dev   # then, as an admin user:
 - **`fetchAllArchivedTicketsForDept` order-check guard** — the sketch did `lastSeen = ts`
   unconditionally; implemented as `if (Number.isFinite(ts)) { …; lastSeen = ts; }` so a
   single unparseable `createdTime` can't poison the descending-order check.
+- **`importDeskTickets()` dedupes `rows` by `external_id` before the chunked upsert** (added
+  during live import-readiness testing — see Verification Run). Not in the original plan;
+  the archived paginator's `from`-boundary overlap made it necessary. Co-owned shared helper,
+  peer (task 326) notified; no-op for the live `desk-tickets` path.
 - **Not run (needs live Zoho + the added OAuth scope, per Risk 1):** the actual export
   against the real portal, the archived-endpoint sort-order verification, and the import
   round-trip. Fault-isolation and partial-download are exercised by the Verification
@@ -548,5 +552,29 @@ pnpm dev   # then, as an admin user:
   reports pre-existing task-326 enum-migration errors in unrelated files + stale `.next`
   route-validator entries; none introduced by this task.
 - `npx eslint <the 6 changed src files>` - PASS (exit 0)
-- Browser / live-Zoho acceptance - SKIPPED (needs `Desk.search.READ` on the refresh token +
-  real portal data — see Deviations / Risk 1)
+- **Live export - PARTIAL PASS.** After regenerating `ZOHO_REFRESH_TOKEN` with
+  `Desk.search.READ` + `Desk.departments.READ`, the export ran: 1567 archived tickets
+  downloaded (`_from_zoho/desk-archived-tickets.json`), every `createdTime >= 2025-01-01`
+  (oldest = #18775, 2025-01-01T15:17:03Z). **2 departments 403'd** ("FlyMyCommunity", "IT
+  Specialists Support") with `FORBIDDEN / not authorized` — the token's Desk agent is not a
+  member of those departments (a Zoho Desk config gap, not a scope/code issue). Per-department
+  fault isolation worked exactly as designed: those 2 landed in `failed_departments` + amber
+  warnings, the other departments still exported, and the full 1567-row file downloaded on
+  `done` (not a `.partial.json`).
+- **Import readiness verified against the live DB (REST probe):** migration 124 is applied
+  (`tickets.ticket_id` column, 4-value `status` check, `sync_ticket_number_sequence` RPC all
+  present); table holds 541 tickets (live `desk-tickets` import done, max `ticket_number`
+  21012), 0 archived rows yet. Against the 1567-row file: **0 `ticket_number` / `ticket_id`
+  collisions** with existing rows; 3 archived tickets already exist by `external_id` (upsert
+  will update them); `status` is `Closed` on all → maps to `closed`; 0 rows missing
+  `id`/`subject`. **Found: 1 exact-duplicate row** (Zoho id `300063000086489002`, #20320) from
+  the paginator returning a `from`-boundary row twice → would fail one upsert chunk with "ON
+  CONFLICT cannot affect row a second time". **Fixed:** `importDeskTickets()` now dedupes
+  `rows` by `external_id` (last wins) before chunking (`dedupedRows`), with a log line;
+  benefits the live import too. Shared helper - peer (task 326) notified. tsc + lint re-run
+  clean.
+- Contact match rate on the file: 299/1567 match a customer via contact; the rest import with
+  `customer_id: null` (expected, same as unmatched live tickets — account-name fallback may
+  catch a few more of the 538 rows that carry an `accountId`).
+- Import round-trip (actually running the archived import) + the archived-endpoint sort-order
+  check - still pending the operator's call.

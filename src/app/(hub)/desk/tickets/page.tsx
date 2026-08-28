@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { V2_ROUTES } from "@/config/constants";
 import TicketsIndex, { type PaginationMeta, type TicketListItem, type TicketStatus } from "./_tickets-index";
-import { parseStatusFilterParam, STATUS_FILTER_OPTIONS } from "./_status-filter";
+import { parseStatusFilterParam, STATUS_FILTER_OPTIONS, ARCHIVED_FILTER_VALUE } from "./_status-filter";
 import { resolveContactName, resolveOwnerName, resolveDisplayId, isOverdue, type ContactRow, type DeskAgentRow } from "./_resolve";
 
 // Desk > Tickets (task 309) — activates the sidebar's "Desk" nav item. Mirrors
@@ -30,10 +30,11 @@ type TicketRow = {
   customers: { company_name: string } | null;
 };
 
-// Translates the curated filter selection (`STATUS_FILTER_OPTIONS` keys: open/on_hold/
-// escalated/closed/overdue) into a PostgREST `.or()` clause. open/on_hold/escalated/closed are
-// real `tickets.status` values (task 326); "Overdue" is a computed condition (`sla_due_at` in
-// the past, not yet closed), expressed as a nested `and(...)` group.
+// Translates the curated status selection (`STATUS_FILTER_OPTIONS` keys: open/on_hold/
+// escalated/closed/overdue — NOT "archived", which is handled separately below) into a
+// PostgREST `.or()` clause fragment. open/on_hold/escalated/closed are real `tickets.status`
+// values (task 326); "Overdue" is a computed condition (`sla_due_at` in the past, not yet
+// closed), expressed as a nested `and(...)` group. Returns "" when nothing status-y is selected.
 function buildStatusOrClause(selected: string[]): string {
   const nowIso = new Date().toISOString();
   const parts: string[] = [];
@@ -44,6 +45,13 @@ function buildStatusOrClause(selected: string[]): string {
   if (selected.includes("overdue")) parts.push(`and(sla_due_at.lt.${nowIso},status.neq.closed)`);
   return parts.join(",");
 }
+
+// A row is "not archived" when source_meta.isArchived is absent (NULL — every Hub-native
+// email-poll ticket, which is inserted with no source_meta) or explicitly "false" (live Zoho
+// imports). Only "true" (task 325's archive import) is archived. Expressed NULL-safely so the
+// exclusion doesn't silently drop Hub-native tickets.
+const NOT_ARCHIVED_OR = "source_meta->>isArchived.is.null,source_meta->>isArchived.neq.true";
+const IS_ARCHIVED = "source_meta->>isArchived.eq.true";
 
 export default async function DeskTicketsPage({
   searchParams,
@@ -68,6 +76,8 @@ export default async function DeskTicketsPage({
 
   const searchQ = params.search?.trim() ?? "";
   const statusSelected = parseStatusFilterParam(params.status ?? null);
+  const archivedChecked = statusSelected.includes(ARCHIVED_FILTER_VALUE);
+  const realStatuses = statusSelected.filter((s) => s !== ARCHIVED_FILTER_VALUE);
 
   let ticketsQuery = supabase
     .from("tickets")
@@ -77,12 +87,23 @@ export default async function DeskTicketsPage({
     )
     .order("created_at", { ascending: false });
 
+  const statusClause = buildStatusOrClause(realStatuses);
+
   if (statusSelected.length === 0) {
     // Explicit zero-selection ("uncheck everything") — guaranteed to match no row rather than
     // silently falling back to "all", matching the checkbox's literal state.
     ticketsQuery = ticketsQuery.eq("id", "00000000-0000-0000-0000-000000000000");
-  } else if (statusSelected.length !== STATUS_FILTER_OPTIONS.length) {
-    ticketsQuery = ticketsQuery.or(buildStatusOrClause(statusSelected));
+  } else if (statusSelected.length === STATUS_FILTER_OPTIONS.length) {
+    // Every option checked (incl. "Archived") — no status/archive filter at all.
+  } else if (archivedChecked) {
+    // "Archived" is checked: OR the archived rows in alongside whatever real statuses are
+    // selected ("Closed" + "Archived" → all closed; "Archived" alone → every archived ticket).
+    ticketsQuery = ticketsQuery.or(statusClause ? `${statusClause},${IS_ARCHIVED}` : IS_ARCHIVED);
+  } else {
+    // "Archived" is unchecked (the default): apply the status union AND exclude archived rows,
+    // so e.g. checking "Closed" shows live closed tickets only, not the imported Zoho archive.
+    if (statusClause) ticketsQuery = ticketsQuery.or(statusClause);
+    ticketsQuery = ticketsQuery.or(NOT_ARCHIVED_OR);
   }
   if (searchQ) {
     // Strip characters that would break PostgREST's `.or()` filter-list syntax.

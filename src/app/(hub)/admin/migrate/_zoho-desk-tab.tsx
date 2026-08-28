@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type Dispatch, type SetStateAction } from "react";
 import { SectionCard } from "@/app/(hub)/dashboard/_components/dashboard-shared";
 import { AlertTriangle, Download, Upload } from "lucide-react";
 import { ImportResult, CardState, CardStatus, ResultChip, StateIcon } from "./_shared";
@@ -36,11 +36,30 @@ interface ArchivedTicketsExportState {
   error: string | null;
 }
 
+// Shared shape for the two archived-ticket conversation exports (threads + comments, task
+// 332) — both stream progress per ticket and fall back to a .partial.json download if the
+// SSE stream dies before `done`.
+interface ArchivedConvExportState {
+  progress: { current: number; total: number } | null;
+  done: { count: number; failed: string[]; partial: boolean } | null;
+  error: string | null;
+}
+
 type VerifyAttachmentResult =
   | { state: "idle" }
   | { state: "running" }
   | { state: "done"; ok: boolean; status: number; contentType: string | null; contentLength: string | null }
   | { state: "error"; message: string };
+
+// Archived-ticket custom-field (`cf`) backfill (task 334) — SSE-streamed one-shot that
+// grafts Business Name / StackShift Site onto archived tickets imported before the export
+// learned to enrich `cf`.
+interface ArchivedCfBackfillState {
+  running: boolean;
+  progress: { current: number; total: number; updated: number; failed: number } | null;
+  done: { scanned: number; updated: number; dryRun: boolean; failed: Array<{ ticketNumber: number | null; reason: string }> } | null;
+  error: string | null;
+}
 
 interface TicketAttachmentsImportState {
   progress: { current: number; total: number } | null;
@@ -55,17 +74,24 @@ const EXPORT_LEVELS = [
   { key: "desk-tickets", label: "Desk Tickets", desc: "All Zoho Desk tickets + per-ticket custom-field enrichment (White Label, StackShift Site — the \"Additional Information\" panel) via a Get Ticket call each, since List Tickets never returns cf. ~1 call/ticket, runs several minutes. No new OAuth scope (Desk.tickets.READ already granted)" },
   { key: "desk-ticket-comments", label: "Desk Ticket Comments", desc: "Agent notes/replies per ticket — not the full customer conversation, see Desk Threads below — requires desk-tickets.json exported first" },
   { key: "desk-threads", label: "Desk Threads", desc: "The actual customer↔agent conversation per ticket (emails, forum replies, etc.) — requires desk-tickets.json exported first" },
-  { key: "desk-archived-tickets", label: "Desk Archived Tickets", desc: "Archived tickets created 2025-01-01 onward — a separate endpoint the live Desk Tickets export skips entirely; loops every department, warns if a department's 2025+ set exceeds Zoho's 5,000/department API cap or a department fails (others still export). Needs the Desk.search.READ scope" },
+  { key: "desk-archived-tickets", label: "Desk Archived Tickets", desc: "Archived tickets created 2025-01-01 onward — a separate endpoint the live Desk Tickets export skips entirely; loops every department, then enriches each ticket's cf (Business Name / StackShift Site) via a Get Ticket call (task 334) — roughly doubles the call count, runs several minutes. Warns if a department's 2025+ set exceeds Zoho's 5,000/department API cap or a department fails (others still export). Needs the Desk.search.READ scope" },
+  { key: "desk-archived-threads", label: "Desk Archived Threads", desc: "The customer↔agent conversation for every archived ticket — the live Desk Threads export skips archived tickets entirely. Requires desk-archived-tickets.json exported first; run GET /api/admin/zoho-export/probe-archived-conversation once first to confirm Zoho serves threads for archived ticket ids" },
+  { key: "desk-archived-ticket-comments", label: "Desk Archived Ticket Comments", desc: "Agent notes/replies for every archived ticket — the live Desk Ticket Comments export skips archived tickets. Requires desk-archived-tickets.json exported first" },
+  { key: "desk-kb", label: "Desk Knowledge Base", desc: "All KB articles (Published + drafts/unpublished/expired via permission=all) with a per-article Get Article pass for the HTML body, plus root categories. Writes desk-kb.json ({ articles, categories }). Requires the Desk.articles.READ (+ Desk.settings.READ for categories) OAuth scope — regenerate ZOHO_REFRESH_TOKEN, see env.example" },
 ] as const;
 
 const IMPORT_LEVELS = [
+  { key: "desk-accounts", label: "Desk Accounts", desc: "Imports desk-accounts.json into the accounts table (upsert on external_id), soft-matched to customers by normalized account name; unmatched accounts import anyway with customer_id: null. Surfaced under Desk → Contacts → Accounts tab (task 335)" },
   { key: "desk-contacts", label: "Desk Contacts", desc: "Imports desk-contacts.json into the contacts table, matched to customers via desk-accounts.json (if present) by normalized account name" },
   { key: "desk-agents", label: "Desk Agents", desc: "Imports desk-agents.json into the desk_agents table — no customer matching, used only to resolve ticket Owner names" },
   { key: "desk-tickets", label: "Desk Tickets", desc: "Imports desk-tickets.json into the tickets table — matched via the ticket's contact (contacts.customer_id) with an account-name fallback; unmatched tickets import anyway with customer_id: null. Custom fields land in source_meta.cf (verbatim) with whiteLabel / stackShiftSite promoted to named source_meta keys" },
   { key: "desk-ticket-comments", label: "Desk Ticket Comments", desc: "Imports desk-ticket-comments.json into ticket_messages (author_type: staff, visibility from isPublic) — requires Desk Tickets imported first" },
   { key: "desk-threads", label: "Desk Threads", desc: "Imports desk-threads.json into ticket_messages (author_type: client or staff based on who wrote it, visibility from Zoho's visibility field) — requires Desk Tickets imported first" },
   { key: "desk-archived-tickets", label: "Desk Archived Tickets", desc: "Imports desk-archived-tickets.json into the tickets table (upsert on external_id) — same customer matching as Desk Tickets; source_meta.isArchived is set on every row; run after Desk Tickets import" },
-  { key: "ticket-attachments", label: "Ticket Attachments", desc: "Downloads the real files referenced in ticket_messages.source_meta.attachments (Threads + Comments) into Supabase Storage — no export needed, reads directly from the database; requires Desk Threads/Ticket Comments imported first" },
+  { key: "desk-archived-threads", label: "Desk Archived Threads", desc: "Imports desk-archived-threads.json into ticket_messages via the same helper as Desk Threads — archived tickets link by tickets.external_id; run after Desk Archived Tickets import" },
+  { key: "desk-archived-ticket-comments", label: "Desk Archived Ticket Comments", desc: "Imports desk-archived-ticket-comments.json into ticket_messages via the same helper as Desk Ticket Comments; run after Desk Archived Tickets import" },
+  { key: "ticket-attachments", label: "Ticket Attachments", desc: "Downloads the real files referenced in ticket_messages.source_meta.attachments (Threads + Comments, live + archived) into Supabase Storage — no export needed, reads directly from the database; re-run after any Threads/Comments import (incl. the archived ones) to pull newly-referenced files" },
+  { key: "desk-kb", label: "Desk Knowledge Base", desc: "Imports desk-kb.json into the kb_articles table (upsert on external_id) — full article HTML in kb_articles.answer, no customer matching" },
 ] as const;
 
 export default function ZohoDeskTab() {
@@ -93,8 +119,25 @@ export default function ZohoDeskTab() {
     done: null,
     error: null,
   });
+  const [archivedThreadsExport, setArchivedThreadsExport] = useState<ArchivedConvExportState>({
+    progress: null,
+    done: null,
+    error: null,
+  });
+  const [archivedCommentsExport, setArchivedCommentsExport] = useState<ArchivedConvExportState>({
+    progress: null,
+    done: null,
+    error: null,
+  });
   const [verifyUrl, setVerifyUrl] = useState("");
   const [verifyResult, setVerifyResult] = useState<VerifyAttachmentResult>({ state: "idle" });
+  const [cfBackfillDryRun, setCfBackfillDryRun] = useState(true);
+  const [cfBackfill, setCfBackfill] = useState<ArchivedCfBackfillState>({
+    running: false,
+    progress: null,
+    done: null,
+    error: null,
+  });
   const [ticketAttachmentsImport, setTicketAttachmentsImport] = useState<TicketAttachmentsImportState>({
     progress: null,
     done: null,
@@ -127,13 +170,88 @@ export default function ZohoDeskTab() {
     }
   }
 
+  async function handleArchivedCfBackfill() {
+    if (anyRunning || cfBackfill.running) return;
+    setAnyRunning(true);
+    setCfBackfill({ running: true, progress: null, done: null, error: null });
+
+    try {
+      const qs = cfBackfillDryRun ? "?dryRun=1" : "";
+      const res = await fetch(`/api/admin/desk/backfill-archived-ticket-cf${qs}`, { method: "POST" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? `HTTP ${res.status}`);
+      }
+
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const frames = buffer.split("\n\n");
+        buffer = frames.pop() ?? "";
+
+        for (const frame of frames) {
+          if (!frame.startsWith("data: ")) continue;
+          const evt = JSON.parse(frame.slice(6)) as {
+            type: string;
+            current?: number;
+            total?: number;
+            updated?: number;
+            failed?: number | Array<{ ticketNumber: number | null; reason: string }>;
+            scanned?: number;
+            dryRun?: boolean;
+          };
+
+          if (evt.type === "progress") {
+            setCfBackfill((s) => ({
+              ...s,
+              progress: {
+                current: evt.current!,
+                total: evt.total!,
+                updated: evt.updated ?? 0,
+                failed: typeof evt.failed === "number" ? evt.failed : 0,
+              },
+            }));
+          }
+          if (evt.type === "done") {
+            setCfBackfill((s) => ({
+              ...s,
+              running: false,
+              progress: null,
+              done: {
+                scanned: evt.scanned ?? 0,
+                updated: evt.updated ?? 0,
+                dryRun: evt.dryRun ?? false,
+                failed: Array.isArray(evt.failed) ? evt.failed : [],
+              },
+            }));
+          }
+        }
+      }
+      setCfBackfill((s) => (s.running ? { ...s, running: false } : s));
+    } catch (e) {
+      setCfBackfill((s) => ({ ...s, running: false, error: String(e), progress: null }));
+      console.error("[backfill-archived-ticket-cf]", e);
+    } finally {
+      setAnyRunning(false);
+    }
+  }
+
   async function handleExport(level: string) {
     if (anyRunning) return;
     setAnyRunning(true);
     setExportStates((s) => ({ ...s, [level]: "running" }));
     try {
       const res = await fetch(`/api/admin/zoho-export/${level}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok) {
+        // Error responses are JSON ({ error }); the success path is a file attachment.
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error || `HTTP ${res.status}`);
+      }
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -520,6 +638,134 @@ export default function ZohoDeskTab() {
     }
   }
 
+  // Generic SSE handler for the two archived-ticket conversation exports (task 332). Both
+  // stream identical `progress` / `<batchEvent>` / `done` frames; only the endpoint, the
+  // batch-event name, the `done` count field and the download filename differ. Accumulates
+  // batches locally and, if the stream ends without a `done` event (dev server killed,
+  // connection dropped), still downloads a .partial.json so a long run is never a total loss.
+  async function runArchivedConvExport(cfg: {
+    exportKey: "desk-archived-threads" | "desk-archived-ticket-comments";
+    batchEvent: "threads" | "comments";
+    totalField: "total_threads" | "total_comments";
+    filename: string;
+    setState: Dispatch<SetStateAction<ArchivedConvExportState>>;
+  }) {
+    if (anyRunning) return;
+    setAnyRunning(true);
+    setExportStates((s) => ({ ...s, [cfg.exportKey]: "running" }));
+    cfg.setState({ progress: null, done: null, error: null });
+
+    const accumulated: unknown[] = [];
+    let sawDone = false;
+    let lastProgress: { current: number; total: number } | null = null;
+    const partialName = cfg.filename.replace(/\.json$/, ".partial.json");
+
+    const download = (name: string) => {
+      const blob = new Blob([JSON.stringify(accumulated, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = name;
+      a.click();
+      URL.revokeObjectURL(url);
+    };
+
+    try {
+      const res = await fetch(`/api/admin/zoho-export/${cfg.exportKey}`);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? `HTTP ${res.status}`);
+      }
+
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const frames = buffer.split("\n\n");
+        buffer = frames.pop() ?? "";
+
+        for (const frame of frames) {
+          if (!frame.startsWith("data: ")) continue;
+          const evt = JSON.parse(frame.slice(6)) as {
+            type: string;
+            current?: number;
+            total?: number;
+            threads?: unknown[];
+            comments?: unknown[];
+            total_threads?: number;
+            total_comments?: number;
+            failed_ticket_ids?: string[];
+            message?: string;
+          };
+
+          if (evt.type === "progress") {
+            lastProgress = { current: evt.current!, total: evt.total! };
+            cfg.setState((s) => ({ ...s, progress: { current: evt.current!, total: evt.total! } }));
+          }
+          if (evt.type === cfg.batchEvent) {
+            const batch = cfg.batchEvent === "threads" ? evt.threads : evt.comments;
+            if (batch) accumulated.push(...batch);
+          }
+          if (evt.type === "error") {
+            throw new Error(evt.message ?? "export error");
+          }
+          if (evt.type === "done") {
+            sawDone = true;
+            download(cfg.filename);
+            const count =
+              (cfg.totalField === "total_threads" ? evt.total_threads : evt.total_comments) ??
+              accumulated.length;
+            cfg.setState((s) => ({
+              ...s,
+              done: { count, failed: evt.failed_ticket_ids ?? [], partial: false },
+              progress: null,
+            }));
+            setExportStates((s) => ({ ...s, [cfg.exportKey]: "done" }));
+          }
+        }
+      }
+
+      if (!sawDone) {
+        if (accumulated.length > 0) download(partialName);
+        cfg.setState((s) => ({
+          ...s,
+          done:
+            accumulated.length > 0
+              ? { count: accumulated.length, failed: [], partial: true }
+              : null,
+          error: lastProgress
+            ? `Stream ended early after ticket ${lastProgress.current}/${lastProgress.total} — saved ${partialName} (${accumulated.length} rows). Re-run to restart from ticket 1.`
+            : "Stream ended before any data arrived — nothing saved.",
+          progress: null,
+        }));
+        setExportStates((s) => ({ ...s, [cfg.exportKey]: "error" }));
+      }
+    } catch (e) {
+      if (accumulated.length > 0) download(partialName);
+      cfg.setState((s) => ({
+        ...s,
+        done:
+          accumulated.length > 0
+            ? { count: accumulated.length, failed: [], partial: true }
+            : null,
+        error: `${String(e)}${
+          accumulated.length > 0
+            ? ` — saved ${accumulated.length} row(s) to ${partialName}; re-run to restart from ticket 1.`
+            : ""
+        }`,
+        progress: null,
+      }));
+      setExportStates((s) => ({ ...s, [cfg.exportKey]: "error" }));
+      console.error(`[export/${cfg.exportKey}]`, e);
+    } finally {
+      setAnyRunning(false);
+    }
+  }
+
   async function handleTicketAttachmentsImport() {
     if (anyRunning) return;
     setAnyRunning(true);
@@ -613,6 +859,14 @@ export default function ZohoDeskTab() {
           corresponding import. Desk Ticket Comments are agent notes/replies only; Desk Threads are the
           actual customer↔agent conversation. <strong>Desk Archived Tickets</strong> (2025-01-01 onward)
           can run any time after Desk Accounts/Contacts; run its import after the Desk Tickets import.
+          <strong> Desk Archived Threads / Ticket Comments</strong> need desk-archived-tickets.json
+          exported first — run{" "}
+          <code className="bg-amber-100 px-1 rounded text-[11px]">GET /api/admin/zoho-export/probe-archived-conversation</code>{" "}
+          once first to confirm Zoho serves those endpoints for archived ids; import them after the Desk
+          Archived Tickets import, then <strong>re-run Ticket Attachments</strong> last to pull the
+          archived conversation&apos;s files. For archived tickets already imported without Business
+          Name / StackShift Site, use <strong>Backfill Archived Ticket Custom Fields</strong> above
+          (dry-run first).
         </div>
       </div>
 
@@ -649,6 +903,73 @@ export default function ZohoDeskTab() {
           ) : null}
           {verifyResult.state === "error" ? (
             <div className="text-[12px] text-red-600">{verifyResult.message}</div>
+          ) : null}
+        </div>
+      </SectionCard>
+
+      <SectionCard title="Backfill Archived Ticket Custom Fields (Business Name / StackShift Site)">
+        <div className="space-y-2">
+          <div className="text-[11px] text-slate-500">
+            Archived tickets imported before the export learned to enrich <code className="bg-slate-100 px-1 rounded">cf</code>{" "}
+            (task 325) have no Business Name / StackShift Site. This reads each archived ticket
+            already in the DB, calls Zoho <code className="bg-slate-100 px-1 rounded">GET /tickets/&#123;id&#125;</code>, and
+            patches <code className="bg-slate-100 px-1 rounded">source_meta</code> in place. ~1 call/ticket with rolling-throttle
+            pacing — runs several minutes. Idempotent (skips rows that already have{" "}
+            <code className="bg-slate-100 px-1 rounded">cf</code>). Leave <strong>Dry run</strong> checked first to confirm Zoho
+            returns <code className="bg-slate-100 px-1 rounded">cf</code> for archived ids.
+          </div>
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-1.5 text-[12px] text-slate-700 select-none">
+              <input
+                type="checkbox"
+                checked={cfBackfillDryRun}
+                onChange={(e) => setCfBackfillDryRun(e.target.checked)}
+                disabled={cfBackfill.running}
+                className="rounded border-slate-300"
+              />
+              Dry run (write nothing)
+            </label>
+            <button
+              onClick={handleArchivedCfBackfill}
+              disabled={anyRunning || cfBackfill.running}
+              className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium bg-slate-900 text-white hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              {cfBackfill.running ? "Running…" : cfBackfillDryRun ? "Dry run" : "Run backfill"}
+            </button>
+          </div>
+          {cfBackfill.running && cfBackfill.progress !== null ? (
+            <div>
+              <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-blue-500 rounded-full transition-all"
+                  style={{ width: `${Math.round((cfBackfill.progress.current / Math.max(cfBackfill.progress.total, 1)) * 100)}%` }}
+                />
+              </div>
+              <div className="text-[11px] text-slate-500 mt-1 truncate">
+                Ticket {cfBackfill.progress.current} of {cfBackfill.progress.total} · {cfBackfill.progress.updated} updated
+                {cfBackfill.progress.failed > 0 ? ` · ${cfBackfill.progress.failed} failed` : ""}
+              </div>
+            </div>
+          ) : null}
+          {cfBackfill.done !== null ? (
+            <div className="text-[12px] space-y-0.5">
+              <div className="text-green-600">
+                {cfBackfill.done.dryRun ? "Dry run — " : ""}
+                {cfBackfill.done.updated} of {cfBackfill.done.scanned} archived ticket(s){" "}
+                {cfBackfill.done.dryRun ? "would be updated" : "updated"}
+              </div>
+              {cfBackfill.done.failed.length > 0 ? (
+                <div
+                  className="text-amber-600 truncate"
+                  title={cfBackfill.done.failed.map((f) => `#${f.ticketNumber}: ${f.reason}`).join("\n")}
+                >
+                  {cfBackfill.done.failed.length} failed — re-run to retry
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+          {cfBackfill.error !== null ? (
+            <div className="text-[12px] text-red-600">{cfBackfill.error}</div>
           ) : null}
         </div>
       </SectionCard>
@@ -911,6 +1232,83 @@ export default function ZohoDeskTab() {
                   ) : null}
                   {archivedTicketsExport.error !== null ? (
                     <div className="mt-1 text-[11px] text-red-600">{archivedTicketsExport.error}</div>
+                  ) : null}
+                </div>
+              );
+            }
+
+            if (key === "desk-archived-threads" || key === "desk-archived-ticket-comments") {
+              const isThreads = key === "desk-archived-threads";
+              const state = isThreads ? archivedThreadsExport : archivedCommentsExport;
+              const noun = isThreads ? "threads" : "comments";
+              const isRunning = exportStates[key] === "running";
+              const pct = state.progress
+                ? Math.round((state.progress.current / Math.max(state.progress.total, 1)) * 100)
+                : 0;
+
+              return (
+                <div key={key} className="py-2 border-b border-slate-100 last:border-0">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[13px] font-medium text-slate-800 flex items-center gap-2">
+                        {label}
+                        <StateIcon state={exportStates[key] ?? "idle"} />
+                      </div>
+                      <div className="text-[11px] text-slate-500 mt-0.5 truncate">{desc}</div>
+                    </div>
+                    {!isRunning && (
+                      <button
+                        onClick={() =>
+                          runArchivedConvExport(
+                            isThreads
+                              ? {
+                                  exportKey: "desk-archived-threads",
+                                  batchEvent: "threads",
+                                  totalField: "total_threads",
+                                  filename: "desk-archived-threads.json",
+                                  setState: setArchivedThreadsExport,
+                                }
+                              : {
+                                  exportKey: "desk-archived-ticket-comments",
+                                  batchEvent: "comments",
+                                  totalField: "total_comments",
+                                  filename: "desk-archived-ticket-comments.json",
+                                  setState: setArchivedCommentsExport,
+                                }
+                          )
+                        }
+                        disabled={anyRunning}
+                        className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium bg-slate-900 text-white hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <Download size={11} />
+                        Export
+                      </button>
+                    )}
+                  </div>
+                  {isRunning && state.progress !== null ? (
+                    <div className="mt-2">
+                      <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                        <div className="h-full bg-blue-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                      </div>
+                      <div className="text-[11px] text-slate-500 mt-1 truncate">
+                        Ticket {state.progress.current} of {state.progress.total}
+                      </div>
+                    </div>
+                  ) : null}
+                  {state.done !== null ? (
+                    <div className="mt-1 text-[11px] space-y-0.5">
+                      <div className={state.done.partial ? "text-amber-600" : "text-green-600"}>
+                        {state.done.count} {noun} {state.done.partial ? "saved (partial file)" : "downloaded"}
+                      </div>
+                      {state.done.failed.length > 0 ? (
+                        <div className="text-amber-600 truncate" title={state.done.failed.join(", ")}>
+                          {state.done.failed.length} ticket(s) failed after retries — re-run to retry
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
+                  {state.error !== null ? (
+                    <div className="mt-1 text-[11px] text-red-600">{state.error}</div>
                   ) : null}
                 </div>
               );

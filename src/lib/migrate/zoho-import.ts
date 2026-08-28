@@ -12,6 +12,14 @@ export function readFromZoho<T>(filename: string): T[] {
     : (parsed?.projects ?? parsed?.tasks ?? parsed?.tasklists ?? []);
 }
 
+// For _from_zoho/ files that are a JSON *object* (not an array) — e.g. desk-kb.json's
+// `{ articles, categories }` shape (task 336). readFromZoho() above only ever returns an
+// array and would silently yield [] for these.
+export function readFromZohoObject<T>(filename: string): T {
+  const filePath = path.join(process.cwd(), "_from_zoho", filename);
+  return JSON.parse(fs.readFileSync(filePath, "utf-8")) as T;
+}
+
 export function mapPriority(zoho: string): "critical" | "high" | "normal" | "low" {
   const p = (zoho ?? "").toLowerCase();
   if (p === "critical") return "critical";

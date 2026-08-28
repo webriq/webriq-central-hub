@@ -252,3 +252,49 @@ None — no Major deviations.
 ## Completion Note (2026-08-25)
 
 Marked Completed at the user's explicit request. The code is finished and verified by inspection/`tsc`/`lint` (including the guard-clause fix applied during the quality gate), but — same precedent as tasks 296/301/302/304 in this project — the live steps outside this session's control were **not exercised here**: migrations 116/117 have not been applied to the remote database, and the Ticket Attachments import has not been run against the real Zoho Desk API. Whoever applies the migrations and runs the import should spot-check a few downloaded files in the `ticket-attachments` bucket and confirm `attachments` rows via `select * from attachments where entity_type = 'ticket_message' limit 20`, per this doc's Acceptance Criteria/Verification section.
+
+## Live-Run Verification (2026-08-28)
+
+The deferred live round-trip has now been run. Migrations 116/117 are applied and the Ticket Attachments import has executed against production. Verified against the source export files (`_from_zoho/desk-threads.json`, `_from_zoho/desk-ticket-comments.json` — `desk-tickets.json` carries no attachment payload).
+
+### Source-of-truth counts (from the export JSON)
+
+| Source | Records | Attachment-bearing | Attachments |
+|--------|---------|--------------------|-------------|
+| `desk-threads.json` | 1,167 | 106 | **164** |
+| `desk-ticket-comments.json` | 1,118 | 2 | **2** |
+| **Total** | | 108 | **166** (166 unique attachment IDs, zero duplicates) |
+
+### Metadata in `ticket_messages.source_meta.attachments` — 166/166 ✅
+
+```sql
+select tm.source_meta->>'zohoSource' as kind,
+       count(*) filter (where jsonb_array_length(tm.source_meta->'attachments') > 0) as messages_with_attachments,
+       coalesce(sum(jsonb_array_length(tm.source_meta->'attachments')), 0) as attachment_count
+from ticket_messages tm
+join tickets t on t.id = tm.ticket_id
+where tm.source_meta->>'zohoSource' in ('thread','comment')
+  and coalesce((t.source_meta->>'isArchived')::boolean, false) = false
+group by 1;
+```
+
+Result: `thread` → 106 messages / 164 attachments; `comment` → 2 / 2. Per-message counts matched the JSON exactly, row-for-row (0 mismatches).
+
+### Files downloaded to the `ticket-attachments` bucket + `attachments` table
+
+- First run stored **164/166**. The 2 missing were both the same physical file — `app-release.aab` (24,228,255 bytes ≈ 23.1 MB) on Zoho ticket `300063000090733001`, referenced once from a comment and once from a thread. Under the 50 MB bucket/route cap; most likely cause was rolling-throttle exhaustion or a transient Zoho error near the tail of the original run (these are the highest-numbered = most recent thread IDs).
+- **Re-running the import (`POST /api/admin/zoho-import/ticket-attachments`) fixed it** — reported `2 imported · 164 skipped (already stored)`, confirming both the retry-just-the-gaps behaviour and idempotency (Acceptance Criteria items 4 and 5).
+
+### Final reconciliation of `attachments where entity_type = 'ticket_message'` — 171 rows
+
+| Bucket | Count |
+|--------|-------|
+| Desk thread/comment files (match a `source_meta.attachments[].id`) | **166** ✅ |
+| Inbound-email attachments — native ticketing (migration 122), MIME content-id `external_id`s (`<uuid>:ii_…` / `…@01DD…`), `source_url` null, not linked to any thread/comment message | 5 |
+| **Total** | **171** |
+
+The 5 email-path rows are unrelated to this import and are correct to leave as-is.
+
+### Outcome
+
+Acceptance Criteria met: every attachment referenced in `ticket_messages.source_meta.attachments` (166) is now downloaded and stored with a matching `attachments` row (`entity_type: 'ticket_message'`, `entity_id` → `ticket_messages.id`, `source_url` = original `href`), per-file failures were reported without aborting, and the re-run was idempotent. `.aab` binary content confirmed fetchable server-side (in addition to the `image/jpeg` case proven at build time).

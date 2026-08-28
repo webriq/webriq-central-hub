@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import DOMPurify from "dompurify";
 import { ChevronDown, Paperclip } from "lucide-react";
 import { Chip } from "../../../dashboard/_components/dashboard-shared";
 import { cn } from "@/lib/utils";
 import { initialsFrom, colorForName } from "../_resolve";
+import { sanitizeMessageHtml } from "./_message-html";
+import { ThreadMessageActions } from "./_thread-message-actions";
 
 export type MessageAttachment = { id: string; filename: string; size: number | null };
 
@@ -80,28 +81,6 @@ function AttachmentChip({
   );
 }
 
-// Zoho Desk's imported thread inline images are host-relative
-// (`/supportapi/api/v1/threads/{id}/inlineImages/{id}?...`) with no origin, so they 404 rendered
-// as-is — same class of problem as Zoho Projects' portal-relative description images
-// (absolutizeZohoInlineImages in projects-old/_pm-shared.tsx), just a different Zoho product's
-// API path. Prepend the same crmplus.zoho.com host those imported threads were served from.
-function absolutizeZohoDeskInlineImages(html: string): string {
-  return html.replace(
-    /\bsrc=(["'])(\/supportapi\/api\/v1[^"']*)\1/gi,
-    (_match, quote: string, path: string) => `src=${quote}https://crmplus.zoho.com${path}${quote}`
-  );
-}
-
-// dangerouslySetInnerHTML below only ever receives sanitizeMessageHtml() output — message
-// bodies come from arbitrary external senders (anyone can email helpdesk@webriq.us), so
-// this is a real untrusted-content boundary, unlike the Zoho-authored descriptions elsewhere
-// in this codebase that reuse normalizeZohoDescriptionHtml (no sanitization, semi-trusted
-// staff-authored source — not appropriate to reuse here). Exported so _reply-composer.tsx's
-// quoted-message preview (same body shape) renders identically.
-export function sanitizeMessageHtml(body: string): string {
-  return DOMPurify.sanitize(absolutizeZohoDeskInlineImages(body), { USE_PROFILES: { html: true } });
-}
-
 // One-line snippet for a collapsed message (task 323). Strips tags/entities/quoted-reply
 // noise so the collapsed row reads like Zoho Desk's preview line.
 function previewText(body: string, isHtml: boolean): string {
@@ -138,11 +117,13 @@ function Avatar({ name, url }: { name: string; url: string | null }) {
 
 function MessageCard({
   ticketId,
+  subject,
   message,
   open,
   onToggle,
 }: {
   ticketId: string;
+  subject: string;
   message: MessageItem;
   open: boolean;
   onToggle: () => void;
@@ -156,33 +137,37 @@ function MessageCard({
 
   return (
     <div className={cn("px-5 py-3", tint)}>
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-expanded={open}
-        className="flex w-full items-center gap-2 text-left"
-      >
-        <Avatar name={m.authorName} url={m.avatarUrl} />
-        <span className="text-[13px] font-semibold text-[#0B1533] shrink-0">{m.authorName}</span>
-        {isOutboundReply(m) && (
-          <span className="text-[10px] font-semibold uppercase tracking-[0.06em] text-[#007BFF] shrink-0">
-            Reply from us
-          </span>
-        )}
-        <Chip tone={m.visibility === "internal" ? "warn" : "neutral"}>
-          {m.visibility === "internal" ? "Private" : "Public"}
-        </Chip>
-        {!open && (
-          <span className="text-[13px] text-[#5F6A88] truncate min-w-0 flex-1">
-            {previewText(m.body, m.isHtml)}
-          </span>
-        )}
-        <span className="text-[11px] text-[#5F6A88] ml-auto shrink-0">{formatDateTime(m.createdAt)}</span>
-        <ChevronDown
-          size={14}
-          className={cn("text-[#5F6A88] shrink-0 transition-transform", open && "rotate-180")}
-        />
-      </button>
+      {/* Toggle is its own <button>; the kebab (task 333) is a sibling — never nest buttons. */}
+      <div className="flex w-full items-center gap-2">
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-expanded={open}
+          className="flex min-w-0 flex-1 items-center gap-2 text-left"
+        >
+          <Avatar name={m.authorName} url={m.avatarUrl} />
+          <span className="text-[13px] font-semibold text-[#0B1533] shrink-0">{m.authorName}</span>
+          {isOutboundReply(m) && (
+            <span className="text-[10px] font-semibold uppercase tracking-[0.06em] text-[#007BFF] shrink-0">
+              Reply from us
+            </span>
+          )}
+          <Chip tone={m.visibility === "internal" ? "warn" : "neutral"}>
+            {m.visibility === "internal" ? "Private" : "Public"}
+          </Chip>
+          {!open && (
+            <span className="text-[13px] text-[#5F6A88] truncate min-w-0 flex-1">
+              {previewText(m.body, m.isHtml)}
+            </span>
+          )}
+          <span className="text-[11px] text-[#5F6A88] ml-auto shrink-0">{formatDateTime(m.createdAt)}</span>
+          <ChevronDown
+            size={14}
+            className={cn("text-[#5F6A88] shrink-0 transition-transform", open && "rotate-180")}
+          />
+        </button>
+        {m.authorType === "client" && <ThreadMessageActions subject={subject} message={m} />}
+      </div>
 
       {open && (
         <div className="mt-2 pl-9">
@@ -207,7 +192,15 @@ function MessageCard({
   );
 }
 
-export default function ConversationThread({ ticketId, messages }: { ticketId: string; messages: MessageItem[] }) {
+export default function ConversationThread({
+  ticketId,
+  subject,
+  messages,
+}: {
+  ticketId: string;
+  subject: string;
+  messages: MessageItem[];
+}) {
   // Collapsed by default like Zoho Desk (task 323) — only the newest message (index 0,
   // since the parent passes newest-first) starts expanded. The parent keys this component
   // on the active view, so switching Conversations/Threads/Comments remounts it and
@@ -248,6 +241,7 @@ export default function ConversationThread({ ticketId, messages }: { ticketId: s
           <MessageCard
             key={m.id}
             ticketId={ticketId}
+            subject={subject}
             message={m}
             open={expandedIds.has(m.id)}
             onToggle={() => toggle(m.id)}

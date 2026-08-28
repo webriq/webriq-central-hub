@@ -1,6 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
+// GET /api/v2/projects/[projectId]/tasklists — list a project's task lists (task 333's
+// "Create Task from a ticket thread" flow needs them for the New Task modal's Task List
+// picker; the project-detail page loads them server-side, so this route was POST-only before).
+export async function GET(
+  _req: NextRequest,
+  { params }: { params: Promise<{ projectId: string }> }
+) {
+  const { projectId } = await params;
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { data: project } = await supabase.from("projects").select("id").eq("project_id", projectId).single();
+  if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 });
+
+  const { data, error } = await supabase
+    .from("tasklists")
+    .select("*")
+    .eq("project_id", project.id)
+    .order("position", { ascending: true, nullsFirst: false });
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  return NextResponse.json(data ?? []);
+}
+
 // POST /api/v2/projects/[projectId]/tasklists — create a tasklist (task 205's New Task modal
 // "select or create a task list" flow creates one inline, before the task itself is submitted).
 export async function POST(

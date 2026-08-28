@@ -994,6 +994,67 @@ export interface Database {
           }
         ];
       };
+      accounts: {
+        Row: {
+          id: string;
+          external_id: string;
+          account_name: string;
+          email: string | null;
+          website: string | null;
+          phone: string | null;
+          web_url: string | null;
+          customer_happiness: Record<string, unknown> | null;
+          zoho_crm_account_id: string | null;
+          customer_id: string | null;
+          match_method: string | null;
+          created_time: string | null;
+          source_meta: Record<string, unknown>;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          external_id: string;
+          account_name: string;
+          email?: string | null;
+          website?: string | null;
+          phone?: string | null;
+          web_url?: string | null;
+          customer_happiness?: Record<string, unknown> | null;
+          zoho_crm_account_id?: string | null;
+          customer_id?: string | null;
+          match_method?: string | null;
+          created_time?: string | null;
+          source_meta?: Record<string, unknown>;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          external_id?: string;
+          account_name?: string;
+          email?: string | null;
+          website?: string | null;
+          phone?: string | null;
+          web_url?: string | null;
+          customer_happiness?: Record<string, unknown> | null;
+          zoho_crm_account_id?: string | null;
+          customer_id?: string | null;
+          match_method?: string | null;
+          created_time?: string | null;
+          source_meta?: Record<string, unknown>;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "accounts_customer_id_fkey";
+            columns: ["customer_id"];
+            isOneToOne: false;
+            referencedRelation: "customers";
+            referencedColumns: ["customer_id"];
+          }
+        ];
+      };
       contacts: {
         Row: {
           id: string;
@@ -2944,6 +3005,86 @@ export interface Database {
           joined_at?: string | null;
           cost_rate_per_hour?: number;
           source_meta?: Json;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      kb_articles: {
+        Row: {
+          id: string;
+          external_id: string;
+          title: string;
+          permalink: string | null;
+          answer: string | null;
+          summary: string | null;
+          status: string | null;
+          latest_version_status: string | null;
+          category_name: string | null;
+          category_id: string | null;
+          root_category_id: string | null;
+          tags: string[] | null;
+          author_id: string | null;
+          author_name: string | null;
+          permission: string | null;
+          view_count: number | null;
+          like_count: number | null;
+          dislike_count: number | null;
+          web_url: string | null;
+          created_time: string | null;
+          modified_time: string | null;
+          source_meta: Record<string, unknown>;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          external_id: string;
+          title: string;
+          permalink?: string | null;
+          answer?: string | null;
+          summary?: string | null;
+          status?: string | null;
+          latest_version_status?: string | null;
+          category_name?: string | null;
+          category_id?: string | null;
+          root_category_id?: string | null;
+          tags?: string[] | null;
+          author_id?: string | null;
+          author_name?: string | null;
+          permission?: string | null;
+          view_count?: number | null;
+          like_count?: number | null;
+          dislike_count?: number | null;
+          web_url?: string | null;
+          created_time?: string | null;
+          modified_time?: string | null;
+          source_meta?: Record<string, unknown>;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          external_id?: string;
+          title?: string;
+          permalink?: string | null;
+          answer?: string | null;
+          summary?: string | null;
+          status?: string | null;
+          latest_version_status?: string | null;
+          category_name?: string | null;
+          category_id?: string | null;
+          root_category_id?: string | null;
+          tags?: string[] | null;
+          author_id?: string | null;
+          author_name?: string | null;
+          permission?: string | null;
+          view_count?: number | null;
+          like_count?: number | null;
+          dislike_count?: number | null;
+          web_url?: string | null;
+          created_time?: string | null;
+          modified_time?: string | null;
+          source_meta?: Record<string, unknown>;
           updated_at?: string;
         };
         Relationships: [];

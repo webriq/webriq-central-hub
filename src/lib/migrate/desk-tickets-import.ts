@@ -25,6 +25,7 @@ import {
   mapPriority,
   mapTicketStatus,
 } from "@/lib/migrate/zoho-import";
+import { CF_TARGETS, resolveCfField } from "@/lib/migrate/desk-cf";
 
 type DeskAccountRaw = {
   id?: string | number;
@@ -81,33 +82,8 @@ export type DeskTicketRaw = {
   [key: string]: unknown;
 };
 
-// Promote the two populated ticket custom fields to stable `source_meta` keys. Matched by
-// normalized field name (not a hardcoded slug) so a Zoho label edit that shifts the slug
-// — e.g. `cf_stack_shift_site` → `cf_stackshift_site` — still resolves. Confirmed against
-// the live portal: `cf_white_label` (289 populated — holds the client/business name, shown
-// in the ticket UI as "Business Name"), `cf_stack_shift_site` (224). The full `cf` object
-// is always kept verbatim at `source_meta.cf`, so any field added later is still captured
-// even without a promotion entry here.
-const CF_TARGETS = {
-  whiteLabel: ["whitelabel"],
-  stackShiftSite: ["stackshiftsite"],
-} as const;
-
-function normalizeCfKey(key: string): string {
-  return key.replace(/^cf_/i, "").replace(/[^a-z0-9]/gi, "").toLowerCase();
-}
-
-function resolveCfField(
-  cf: Record<string, unknown> | null | undefined,
-  targets: readonly string[]
-): unknown {
-  if (!cf) return null;
-  for (const [key, value] of Object.entries(cf)) {
-    if (value == null || value === "") continue;
-    if (targets.includes(normalizeCfKey(key))) return value;
-  }
-  return null;
-}
+// `CF_TARGETS` + `resolveCfField()` (custom-field promotion) live in `@/lib/migrate/desk-cf`
+// — shared with the archived-ticket cf backfill route (task 334).
 
 type TicketRow = {
   customer_id: string | null;
@@ -294,13 +270,28 @@ export async function importDeskTickets(
     });
   }
 
-  console.log(`[import/desk-tickets] upserting ${rows.length} rows in chunks of ${CHUNK_SIZE} (${result.skipped} skipped)`);
+  // Dedupe by external_id (upsert conflict key): Postgres rejects an INSERT ... ON CONFLICT
+  // whose payload names the same conflict target twice ("cannot affect row a second time").
+  // The archived-tickets paginator can hand back a boundary row on two consecutive `from`
+  // pages, so identical rows do occur; last one wins.
+  const dedupedRows = Array.from(
+    new Map(rows.map((r) => [r.external_id, r])).values()
+  );
+  const droppedDupes = rows.length - dedupedRows.length;
+  if (droppedDupes > 0) {
+    console.log(`[import/desk-tickets] dropped ${droppedDupes} duplicate external_id row(s) before upsert`);
+    // matched/unmatched were tallied per source row above — recount from the deduped set
+    result.matched = dedupedRows.filter((r) => r.match_method !== null).length;
+    result.unmatched = dedupedRows.length - result.matched;
+  }
 
-  for (let i = 0; i < rows.length; i += CHUNK_SIZE) {
-    const chunk = rows.slice(i, i + CHUNK_SIZE);
+  console.log(`[import/desk-tickets] upserting ${dedupedRows.length} rows in chunks of ${CHUNK_SIZE} (${result.skipped} skipped, ${droppedDupes} dupes)`);
+
+  for (let i = 0; i < dedupedRows.length; i += CHUNK_SIZE) {
+    const chunk = dedupedRows.slice(i, i + CHUNK_SIZE);
     const { error } = await adminClient.from("tickets").upsert(chunk, { onConflict: "external_id" });
     const chunkNum = Math.floor(i / CHUNK_SIZE) + 1;
-    const totalChunks = Math.ceil(rows.length / CHUNK_SIZE);
+    const totalChunks = Math.ceil(dedupedRows.length / CHUNK_SIZE);
     if (error) {
       console.error(`[import/desk-tickets] chunk ${chunkNum}/${totalChunks} failed:`, error.message);
       result.errors.push(`chunk ${chunkNum}: ${error.message}`);

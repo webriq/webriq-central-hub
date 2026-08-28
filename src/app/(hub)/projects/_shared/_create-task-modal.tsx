@@ -69,6 +69,8 @@ export function CreateTaskModal({
   tasks,
   allMembers,
   defaults,
+  defaultTitle,
+  defaultDescription,
   onClose,
   onCreated,
   onTasklistCreated,
@@ -79,12 +81,16 @@ export function CreateTaskModal({
   tasks: Task[];
   allMembers: MemberOptionWithRole[];
   defaults: TaskDefaults;
+  // Task 333 — seed Title/Description when the modal is opened from outside a project page
+  // (e.g. "Create Task" on a ticket thread message). Optional; blank for the normal flow.
+  defaultTitle?: string;
+  defaultDescription?: string;
   onClose: () => void;
   onCreated: (t: Task) => void;
   onTasklistCreated: (tl: Tasklist) => void;
 }) {
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
+  const [title, setTitle] = useState(defaultTitle ?? "");
+  const [description, setDescription] = useState(defaultDescription ?? "");
   const [status, setStatus] = useState<TaskStatus>(defaults.status ?? "open");
   const [priority, setPriority] = useState<TaskPriority>("normal");
   const [assignMilestone, setAssignMilestone] = useState<boolean>(!!defaults.milestone_id);

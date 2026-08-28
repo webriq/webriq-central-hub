@@ -32,12 +32,23 @@ function FilterCheckRow({ label, checked, onClick }: { label: string; checked: b
 }
 
 export function FilterMultiSelect({
-  label, options, selected, onChange,
+  label, options, selected, onChange, dividerBeforeValue, allToggleValues, exclusiveValue,
 }: {
   label: string;
   options: readonly { value: string; label: string }[];
   selected: string[];
   onChange: (next: string[]) => void;
+  // Draws the same hairline divider used under "All" immediately above the option with this
+  // value — used to set "Archived" apart from the real statuses (task 331).
+  dividerBeforeValue?: string;
+  // The exact set the "All" row toggles and reflects. Defaults to every option; pass a subset
+  // to keep an option (e.g. "Archived") out of "All" — checking that option then un-checks
+  // "All", and clicking "All" clears it (task 331).
+  allToggleValues?: readonly string[];
+  // A "mode" option that is mutually exclusive with every other option: checking it clears the
+  // rest (selection becomes just `[exclusiveValue]`); checking any other option clears it.
+  // Used for "Archived", which is a distinct view, not a status you combine (task 331).
+  exclusiveValue?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState<{ top: number; left: number; width: number } | null>(null);
@@ -71,7 +82,10 @@ export function FilterMultiSelect({
     return () => document.removeEventListener("mousedown", handleOutside);
   }, [open]);
 
-  const allChecked = selected.length === options.length;
+  const allValues = allToggleValues ?? options.map((o) => o.value);
+  // "All" is checked only when the selection is exactly `allValues` — no more, no less. Adding
+  // an option outside that set (e.g. "Archived") makes the lengths differ and un-checks "All".
+  const allChecked = selected.length === allValues.length && allValues.every((v) => selected.includes(v));
   const summary = allChecked
     ? "All"
     : selected.length === 0
@@ -81,10 +95,18 @@ export function FilterMultiSelect({
         : `${selected.length} selected`;
 
   function toggleOption(value: string) {
-    onChange(selected.includes(value) ? selected.filter((v) => v !== value) : [...selected, value]);
+    if (value === exclusiveValue) {
+      // The exclusive "mode" option: turning it on replaces the whole selection with just it;
+      // turning it off clears the selection (same as unchecking the last normal option).
+      onChange(selected.includes(value) ? [] : [value]);
+      return;
+    }
+    // A normal option — drop the exclusive value if it was set, then toggle this one.
+    const base = selected.filter((v) => v !== exclusiveValue);
+    onChange(base.includes(value) ? base.filter((v) => v !== value) : [...base, value]);
   }
   function toggleAll() {
-    onChange(allChecked ? [] : options.map((o) => o.value));
+    onChange(allChecked ? [] : [...allValues]);
   }
 
   return (
@@ -113,7 +135,10 @@ export function FilterMultiSelect({
           <FilterCheckRow label="All" checked={allChecked} onClick={toggleAll} />
           <div className="my-1 h-px bg-[#EDF0F7]" />
           {options.map((o) => (
-            <FilterCheckRow key={o.value} label={o.label} checked={selected.includes(o.value)} onClick={() => toggleOption(o.value)} />
+            <div key={o.value}>
+              {dividerBeforeValue === o.value && <div className="my-1 h-px bg-[#EDF0F7]" />}
+              <FilterCheckRow label={o.label} checked={selected.includes(o.value)} onClick={() => toggleOption(o.value)} />
+            </div>
           ))}
         </div>,
         document.body

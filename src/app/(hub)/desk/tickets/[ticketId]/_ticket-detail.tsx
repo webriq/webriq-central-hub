@@ -580,6 +580,7 @@ export default function TicketDetail({
                   <ConversationThread
                     key={convView}
                     ticketId={ticket.ticketId}
+                    subject={ticket.subject}
                     messages={shownMessages}
                   />
                 </>

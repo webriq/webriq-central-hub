@@ -50,7 +50,15 @@ function getNavGroups(role: string | null): NavGroup[] {
       ],
     },
     ...(!isDev ? [
-      { label: "Desk",          icon: <Inbox size={18} />,           href: V2_ROUTES.DESK_TICKETS },
+      {
+        label: "Desk",
+        icon: <Inbox size={18} />,
+        href: V2_ROUTES.DESK_TICKETS,
+        children: [
+          { label: "Tickets",  href: V2_ROUTES.DESK_TICKETS },
+          { label: "Contacts", href: V2_ROUTES.DESK_CONTACTS },
+        ],
+      },
       { label: "Orchestration", icon: <Cpu size={18} />,             href: V2_ROUTES.ORCHESTRATION },
     ] : []),
     // Task 226 — time_logs RLS grants no role but client/marketing any access
@@ -109,9 +117,9 @@ export default function V2HubSidebar({ userRole, displayName, avatarUrl }: V2Hub
   const pathname = usePathname();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
-  // Task 279 — "Projects" is the only collapsible nav item today; a single toggle is enough
-  // (null = not yet manually toggled this session, so expand state follows the current route).
-  const [projectsExpanded, setProjectsExpanded] = useState<boolean | null>(null);
+  // Collapsible nav items ("Projects" — task 279; "Desk" — task 335), keyed by label.
+  // Absent = not yet manually toggled this session, so expand state follows the current route.
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const shouldReduceMotion = useReducedMotion();
   const navGroups = getNavGroups(userRole);
   const initials = getInitials(displayName);
@@ -187,13 +195,15 @@ export default function V2HubSidebar({ userRole, displayName, avatarUrl }: V2Hub
                 : pathname === item.href || pathname.startsWith(item.href + "/") || childActive;
 
               if (hasChildren) {
-                const isExpanded = collapsed ? false : (projectsExpanded ?? pathname.startsWith(item.href));
+                const isExpanded = collapsed
+                  ? false
+                  : (expanded[item.label] ?? pathname.startsWith(item.href));
                 return (
                   <div key={item.label}>
                     <button
                       onClick={() => {
                         if (collapsed) { router.push(item.href); return; }
-                        setProjectsExpanded(!isExpanded);
+                        setExpanded((e) => ({ ...e, [item.label]: !isExpanded }));
                       }}
                       title={collapsed ? item.label : undefined}
                       aria-expanded={collapsed ? undefined : isExpanded}

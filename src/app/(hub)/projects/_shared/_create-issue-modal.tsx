@@ -29,17 +29,23 @@ export function CreateIssueModal({
   projectId,
   allMembers,
   issues,
+  defaultTitle,
+  defaultDescription,
   onClose,
   onCreated,
 }: {
   projectId: string;
   allMembers: MemberOptionWithRole[];
   issues: Issue[];
+  // Task 333 — seed Title/Description when opened from outside a project page (e.g. "File an
+  // Issue" on a ticket thread message). Optional; blank for the normal flow.
+  defaultTitle?: string;
+  defaultDescription?: string;
   onClose: () => void;
   onCreated: (i: Issue) => void;
 }) {
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
+  const [title, setTitle] = useState(defaultTitle ?? "");
+  const [description, setDescription] = useState(defaultDescription ?? "");
   const [status, setStatus] = useState<string>("open");
   const [severity, setSeverity] = useState<IssueSeverity>("None");
   const [assigneeId, setAssigneeId] = useState<string>("");

@@ -4,7 +4,7 @@
 **Priority:** MEDIUM
 **Type:** enhancement
 **Recommended Tier:** fast
-**Status:** Planned
+**Status:** Completed (2026-08-28)
 
 ---
 
@@ -222,3 +222,12 @@ PASS
 
 ### Required Fixes
 - None.
+
+## Completion Note
+
+Marked complete at the user's explicit request (2026-08-28), after the quality gate PASS.
+`npx tsc --noEmit` + `pnpm lint` pass. Not yet browser-verified — the outstanding operator
+check is `/desk/tickets/TKT-20899` (Business Name `JVPC`, StackShift Site `jvpc-ikce`),
+`TKT-20564` (StackShift Site renders `-`), and one archived-import ticket (both rows `-`).
+No re-import needed — `source_meta.whiteLabel` / `.stackShiftSite` were populated by task
+329's import run.

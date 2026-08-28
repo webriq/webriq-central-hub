@@ -10,7 +10,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { getZohoAccessToken } from "@/lib/zoho";
-import { fetchAllDeskPages, fetchDeskPage } from "@/lib/zoho/desk";
+import { fetchAllDeskPages, enrichTicketsWithCf } from "@/lib/zoho/desk";
 
 export async function GET() {
   const supabase = await createClient();
@@ -47,58 +47,19 @@ export async function GET() {
         return;
       }
 
-      // 2. Per-ticket enrichment — attach `cf` (and `customFields` if returned) from Get Ticket.
-      const failedTicketIds: string[] = [];
-
-      for (let i = 0; i < stubs.length; i++) {
-        const stub = stubs[i];
-        const ticketId = String(stub.id ?? "");
-        if (!ticketId) {
-          send({ type: "progress", current: i + 1, total: stubs.length, ticketId: "" });
-          send({ type: "tickets", tickets: [stub] });
-          continue;
+      // 2. Per-ticket enrichment — attach `cf` (and `customFields` if returned) from Get
+      // Ticket. Shared with the archived-tickets export (task 334); streamed one ticket at a
+      // time here, exactly as before.
+      const { failedTicketIds } = await enrichTicketsWithCf(
+        stubs,
+        token,
+        "zoho-export/desk-tickets",
+        {
+          onEnriched: (ticket) => send({ type: "tickets", tickets: [ticket] }),
+          onProgress: (current, total, ticketId) =>
+            send({ type: "progress", current, total, ticketId }),
         }
-
-        try {
-          const { res, token: detailToken, throttleExhausted } = await fetchDeskPage(
-            `/tickets/${ticketId}`,
-            token,
-            {},
-            "zoho-export/desk-tickets-detail"
-          );
-          token = detailToken;
-
-          if (throttleExhausted) throw new Error("Zoho rolling throttle exhausted");
-
-          if (!res.ok) {
-            failedTicketIds.push(ticketId);
-            send({ type: "progress", current: i + 1, total: stubs.length, ticketId });
-            send({ type: "tickets", tickets: [{ ...stub, cf: null }] });
-            continue;
-          }
-
-          const detail = (await res.json()) as {
-            cf?: Record<string, unknown> | null;
-            customFields?: unknown;
-          };
-          // Only graft the custom-field data onto the stub — keep the record shape identical
-          // to today's export for every existing consumer (importDeskTickets, desk-threads,
-          // desk-archived-tickets all read only known flat keys / `id`).
-          const enriched: Record<string, unknown> = { ...stub, cf: detail.cf ?? null };
-          if (detail.customFields != null) enriched.customFields = detail.customFields;
-
-          send({ type: "progress", current: i + 1, total: stubs.length, ticketId });
-          send({ type: "tickets", tickets: [enriched] });
-        } catch (e) {
-          failedTicketIds.push(ticketId);
-          console.log(
-            `[desk-tickets] Giving up on ticket=${ticketId}:`,
-            e instanceof Error ? e.message : e
-          );
-          send({ type: "progress", current: i + 1, total: stubs.length, ticketId });
-          send({ type: "tickets", tickets: [{ ...stub, cf: null }] });
-        }
-      }
+      );
 
       send({ type: "done", total: stubs.length, failed_ticket_ids: failedTicketIds });
       controller.close();

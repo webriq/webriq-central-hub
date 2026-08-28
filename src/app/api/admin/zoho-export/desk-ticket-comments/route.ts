@@ -1,11 +1,14 @@
 // dev-only export endpoint — SSE stream of comments per ticket, read from desk-tickets.json.
 // Requires Desk Tickets to be exported first. Desk's per-ticket /comments endpoint is
 // agent-authored notes/replies (isPublic true/false), NOT the full customer conversation —
-// that lives in Zoho's separate Threads endpoint, out of scope for this task (task 296).
+// that lives in Zoho's separate Threads endpoint.
+//
+// The per-ticket walk + per-ticket fault isolation lives in exportCommentsForTickets() in
+// src/lib/zoho/desk.ts, shared with the archived-ticket comments export (task 332).
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { getZohoAccessToken } from "@/lib/zoho";
-import { fetchAllDeskPages } from "@/lib/zoho/desk";
+import { exportCommentsForTickets } from "@/lib/zoho/desk";
 import { readFromZoho } from "@/lib/migrate/zoho-import";
 
 type RawTicket = { id?: string | number; [key: string]: unknown };
@@ -20,7 +23,7 @@ export async function GET() {
     return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403 });
   }
 
-  let token = await getZohoAccessToken();
+  const token = await getZohoAccessToken();
   if (!token) return new Response(JSON.stringify({ error: "No Zoho token" }), { status: 502 });
 
   if (!process.env.ZOHO_DESK_ORG_ID) {
@@ -37,39 +40,26 @@ export async function GET() {
     );
   }
 
+  const ticketIds = tickets.map((t) => String(t.id ?? ""));
+
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
       const send = (obj: object) =>
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(obj)}\n\n`));
 
-      let totalComments = 0;
-      const failedTicketIds: string[] = [];
-
-      for (let i = 0; i < tickets.length; i++) {
-        const ticketId = String(tickets[i].id ?? "");
-        if (!ticketId) continue;
-
-        try {
-          const { items, token: nextToken } = await fetchAllDeskPages(
-            `/tickets/${ticketId}/comments`,
-            token,
-            "zoho-export/desk-ticket-comments"
-          );
-          token = nextToken;
-
-          const commentsWithTicket = items.map((c) => ({ ...c, _zoho_ticket_id: ticketId }));
-          totalComments += commentsWithTicket.length;
-          send({ type: "progress", current: i + 1, total: tickets.length, ticketId });
-          send({ type: "comments", comments: commentsWithTicket });
-        } catch (e) {
-          failedTicketIds.push(ticketId);
-          console.log(`[desk-ticket-comments] Giving up on ticket=${ticketId}:`, e instanceof Error ? e.message : e);
-          send({ type: "progress", current: i + 1, total: tickets.length, ticketId });
+      const { total, failedTicketIds } = await exportCommentsForTickets(
+        ticketIds,
+        token,
+        "zoho-export/desk-ticket-comments",
+        {
+          onBatch: (comments) => send({ type: "comments", comments }),
+          onProgress: (current, totalCount, ticketId) =>
+            send({ type: "progress", current, total: totalCount, ticketId }),
         }
-      }
+      );
 
-      send({ type: "done", total_comments: totalComments, failed_ticket_ids: failedTicketIds });
+      send({ type: "done", total_comments: total, failed_ticket_ids: failedTicketIds });
       controller.close();
     },
   });
