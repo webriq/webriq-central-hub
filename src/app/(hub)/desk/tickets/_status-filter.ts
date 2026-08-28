@@ -4,16 +4,14 @@
 // be called/read from server code at runtime (only types, which erase at compile time, cross
 // that boundary safely). This file has no client-only APIs, so it's safe on both sides.
 
-// Curated status filter — not a 1:1 mirror of `tickets.status`'s 6-value enum. "On Hold" maps
-// to the `waiting_on_us` status (Zoho's own "hold"/"escalated" tickets land there per
-// `mapTicketStatus`); "Overdue" is a computed condition (`sla_due_at` in the past, not yet
-// resolved/closed), not a status value at all. `new`/`waiting_on_client`/`resolved` are real
-// enum values with no dedicated chip here — they only ever surface under "All" (the real
-// imported dataset never produces them; they exist for future live-created tickets, task 303).
+// Curated status filter. `open`/`on_hold`/`escalated`/`closed` are the real `tickets.status`
+// enum values (task 326); "Overdue" is a computed condition (`sla_due_at` in the past, not yet
+// closed), not a status value at all — the query layer expresses it as a nested `and(...)`.
 export const STATUS_FILTER_OPTIONS = [
   { value: "open", label: "Open" },
-  { value: "closed", label: "Closed" },
   { value: "on_hold", label: "On Hold" },
+  { value: "escalated", label: "Escalated" },
+  { value: "closed", label: "Closed" },
   { value: "overdue", label: "Overdue" },
 ] as const;
 

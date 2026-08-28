@@ -28,10 +28,10 @@ type CandidateRow = {
   ticket_id: string;
   body: string;
   email_message_id: string | null;
-  tickets: { ticket_number: number } | null;
+  tickets: { ticket_id: string } | null;
 };
 
-type Unresolved = { ticketNumber: number | null; messageId: string; reason: string };
+type Unresolved = { ticketId: string | null; messageId: string; reason: string };
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
   for (let from = 0; from < SCAN_CAP && candidates.length < limit; from += PAGE) {
     let q = adminClient
       .from("ticket_messages")
-      .select("id, ticket_id, body, email_message_id, tickets(ticket_number)")
+      .select("id, ticket_id, body, email_message_id, tickets(ticket_id)")
       .eq("author_type", "client")
       .not("email_message_id", "is", null)
       .or("body.ilike.%ImageDisplay%,body.ilike.%cid:%")
@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
   const strategies: Record<string, number> = {};
 
   for (const row of candidates) {
-    const ticketNumber = row.tickets?.ticket_number ?? null;
+    const ticketDisplayId = row.tickets?.ticket_id ?? null;
     const zohoMessageId = row.email_message_id as string;
 
     let metadata: Awaited<ReturnType<typeof getMessageMetadata>>;
@@ -108,7 +108,7 @@ export async function POST(req: NextRequest) {
       metadata = await getMessageMetadata(zohoMessageId, folderId);
     } catch (e) {
       unresolved.push({
-        ticketNumber,
+        ticketId: ticketDisplayId,
         messageId: row.id,
         reason: `Zoho metadata fetch failed: ${e instanceof Error ? e.message : String(e)}`,
       });
@@ -122,19 +122,19 @@ export async function POST(req: NextRequest) {
     });
 
     if (!correlation.matched) {
-      unresolved.push({ ticketNumber, messageId: row.id, reason: correlation.reason });
+      unresolved.push({ ticketId: ticketDisplayId, messageId: row.id, reason: correlation.reason });
       continue;
     }
     matched++;
     strategies[correlation.strategy] = (strategies[correlation.strategy] ?? 0) + 1;
 
     if (correlation.images.length === 0) {
-      unresolved.push({ ticketNumber, messageId: row.id, reason: "matched, but source message has no inline image parts" });
+      unresolved.push({ ticketId: ticketDisplayId, messageId: row.id, reason: "matched, but source message has no inline image parts" });
       continue;
     }
 
-    if (ticketNumber == null) {
-      unresolved.push({ ticketNumber, messageId: row.id, reason: "ticket_number unresolved — cannot build serving URL" });
+    if (ticketDisplayId == null) {
+      unresolved.push({ ticketId: ticketDisplayId, messageId: row.id, reason: "ticket_id unresolved — cannot build serving URL" });
       continue;
     }
 
@@ -145,7 +145,7 @@ export async function POST(req: NextRequest) {
 
     const newBody = await applyInlineImages({
       messageRowId: row.id,
-      ticketNumber,
+      ticketId: ticketDisplayId,
       inlineImages: correlation.images,
       body: row.body,
     });
@@ -157,7 +157,7 @@ export async function POST(req: NextRequest) {
         .update({ body: newBody })
         .eq("id", row.id);
       if (updateError) {
-        unresolved.push({ ticketNumber, messageId: row.id, reason: `body update failed: ${updateError.message}` });
+        unresolved.push({ ticketId: ticketDisplayId, messageId: row.id, reason: `body update failed: ${updateError.message}` });
         continue;
       }
       messagesRewritten++;

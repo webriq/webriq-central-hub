@@ -34,11 +34,11 @@ function formatDateTime(iso: string): string {
 }
 
 function AttachmentChip({
-  ticketNumber,
+  ticketId,
   messageId,
   attachment,
 }: {
-  ticketNumber: number;
+  ticketId: string;
   messageId: string;
   attachment: MessageAttachment;
 }) {
@@ -50,7 +50,7 @@ function AttachmentChip({
     setFailed(false);
     try {
       const res = await fetch(
-        `/api/desk/tickets/${ticketNumber}/messages/${messageId}/attachments/${attachment.id}/file-url`
+        `/api/desk/tickets/${ticketId}/messages/${messageId}/attachments/${attachment.id}/file-url`
       );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const { url } = await res.json();
@@ -112,12 +112,12 @@ function isOutboundReply(m: MessageItem): boolean {
 }
 
 function MessageCard({
-  ticketNumber,
+  ticketId,
   message,
   open,
   onToggle,
 }: {
-  ticketNumber: number;
+  ticketId: string;
   message: MessageItem;
   open: boolean;
   onToggle: () => void;
@@ -174,7 +174,7 @@ function MessageCard({
           {m.attachments.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mt-2.5">
               {m.attachments.map((a) => (
-                <AttachmentChip key={a.id} ticketNumber={ticketNumber} messageId={m.id} attachment={a} />
+                <AttachmentChip key={a.id} ticketId={ticketId} messageId={m.id} attachment={a} />
               ))}
             </div>
           )}
@@ -184,7 +184,7 @@ function MessageCard({
   );
 }
 
-export default function ConversationThread({ ticketNumber, messages }: { ticketNumber: number; messages: MessageItem[] }) {
+export default function ConversationThread({ ticketId, messages }: { ticketId: string; messages: MessageItem[] }) {
   // Collapsed by default like Zoho Desk (task 323) — only the newest message (index 0,
   // since the parent passes newest-first) starts expanded. The parent keys this component
   // on the active view, so switching Conversations/Threads/Comments remounts it and
@@ -224,7 +224,7 @@ export default function ConversationThread({ ticketNumber, messages }: { ticketN
         {messages.map((m) => (
           <MessageCard
             key={m.id}
-            ticketNumber={ticketNumber}
+            ticketId={ticketId}
             message={m}
             open={expandedIds.has(m.id)}
             onToggle={() => toggle(m.id)}

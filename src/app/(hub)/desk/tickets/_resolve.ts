@@ -1,5 +1,5 @@
 // Shared ticket display-resolution helpers (task 303) — extracted from page.tsx so the new
-// detail page (`[ticketNumber]/page.tsx`) reuses this logic instead of reimplementing it.
+// detail page (`[ticketId]/page.tsx`) reuses this logic instead of reimplementing it.
 
 export type ContactRow = {
   external_id: string | null;
@@ -31,14 +31,14 @@ export function resolveOwnerName(agent: DeskAgentRow | undefined): string {
   return agent?.full_name ?? agent?.email ?? "Unassigned";
 }
 
-// Always the native ticket_number (task 303) — matches the /desk/tickets/{ticket_number}
-// route, so the badge and the URL never disagree. Zoho's original historical number (where
-// imported) surfaces separately on the detail page, not here.
+// The displayed ticket number. Since task 326 `ticket_number` holds Zoho's real ticketNumber
+// for imported rows (and a serial above the imported max for Hub-native ones). Routing is by
+// `ticket_id` (`TKT-<ticket_number>`), so the `#<n>` badge and the `TKT-<n>` URL agree.
 export function resolveDisplayId(ticket: { ticket_number: number }): string {
   return `#${ticket.ticket_number}`;
 }
 
 export function isOverdue(status: string, dueAt: string | null): boolean {
-  if (!dueAt || status === "resolved" || status === "closed") return false;
+  if (!dueAt || status === "closed") return false;
   return new Date(dueAt).getTime() < Date.now();
 }

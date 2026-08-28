@@ -313,7 +313,7 @@ export function buildOpsChatTools(ctx: {
         "Developers will receive a permission error.",
       inputSchema: z.object({
         status: z
-          .enum(["new", "open", "waiting_on_client", "waiting_on_us", "resolved", "closed"])
+          .enum(["open", "on_hold", "escalated", "closed"])
           .optional()
           .describe("Filter by ticket status"),
         priority: z

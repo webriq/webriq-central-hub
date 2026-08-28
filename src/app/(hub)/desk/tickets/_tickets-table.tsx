@@ -3,20 +3,16 @@ import { Chip } from "../../dashboard/_components/dashboard-shared";
 import type { TicketListItem, TicketStatus } from "./_tickets-index";
 
 const STATUS_LABELS: Record<TicketStatus, string> = {
-  new: "New",
   open: "Open",
-  waiting_on_client: "Waiting on Client",
-  waiting_on_us: "Waiting on Us",
-  resolved: "Resolved",
+  on_hold: "On Hold",
+  escalated: "Escalated",
   closed: "Closed",
 };
 
 const STATUS_TONE: Record<TicketStatus, "ok" | "warn" | "neutral"> = {
-  new: "neutral",
   open: "neutral",
-  waiting_on_client: "warn",
-  waiting_on_us: "warn",
-  resolved: "ok",
+  on_hold: "warn",
+  escalated: "warn",
   closed: "ok",
 };
 
@@ -54,7 +50,7 @@ export function TicketsTable({ tickets }: { tickets: TicketListItem[] }) {
       {tickets.map((t) => (
         <Link
           key={t.id}
-          href={`/desk/tickets/${t.ticketNumber}`}
+          href={`/desk/tickets/${t.ticketId}`}
           className={`grid ${GRID_COLS} items-center gap-3 px-5 py-3 border-b border-[#EDF0F7] last:border-0 hover:bg-[#F0F7FF] transition-colors`}
         >
           <span className="text-[11px] font-mono text-[#5F6A88] truncate">{t.displayId}</span>

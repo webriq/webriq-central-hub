@@ -129,6 +129,8 @@ export type ZohoMailMessageSummary = {
   folderId: string;
   subject: string;
   fromAddress: string;
+  fromName: string; // sender display name ("" when the From is a bare address) — task 327 intake filter
+  fromRaw: string; // decoded "Name <addr>" form, kept for logging/debugging
   receivedTime: string; // epoch ms, as a string per Zoho's List Emails response
   hasAttachment: boolean;
 };
@@ -143,6 +145,14 @@ export function decodeHtmlEntities(raw: string): string {
 export function extractEmailAddress(raw: string): string {
   const match = raw.match(/<([^>]+)>/);
   return (match ? match[1] : raw).trim();
+}
+
+// The display-name half of a "Name <addr>" form — "" when the From is a bare address
+// (task 327). Quotes around the name are stripped.
+export function extractDisplayName(raw: string): string {
+  const m = raw.match(/^\s*(.*?)\s*<[^>]+>\s*$/);
+  if (!m) return "";
+  return m[1].replace(/^["']|["']$/g, "").trim();
 }
 
 // Lists messages in a folder, optionally filtered to those received after `sinceReceivedTime`
@@ -183,6 +193,8 @@ export async function listNewMessages(params: {
     folderId: r.folderId ?? params.folderId,
     subject: r.subject || "(no subject)",
     fromAddress: extractEmailAddress(decodeHtmlEntities(r.fromAddress ?? "")),
+    fromName: extractDisplayName(decodeHtmlEntities(r.fromAddress ?? "")),
+    fromRaw: decodeHtmlEntities(r.fromAddress ?? ""),
     receivedTime: r.receivedTime,
     hasAttachment: r.hasAttachment === "1" || r.hasAttachment === "true",
   }));

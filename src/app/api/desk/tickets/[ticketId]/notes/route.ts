@@ -5,7 +5,7 @@ import { adminClient } from "@/lib/supabase/admin";
 // Staff-only internal note (task 303 detail page) — inserts a ticket_messages row with
 // visibility: 'internal'. NOT a customer-facing reply; no email is sent (see task doc
 // Out of Scope — outbound reply-by-email is a separate follow-up).
-export async function POST(request: NextRequest, { params }: { params: Promise<{ ticketNumber: string }> }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ ticketId: string }> }) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -17,10 +17,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { ticketNumber: ticketNumberParam } = await params;
-  const ticketNumber = Number(ticketNumberParam);
-  if (!Number.isInteger(ticketNumber)) {
-    return NextResponse.json({ error: "Invalid ticket number" }, { status: 400 });
+  const { ticketId } = await params;
+  if (!/^TKT-\d+$/.test(ticketId)) {
+    return NextResponse.json({ error: "Invalid ticket id" }, { status: 400 });
   }
 
   const body = await request.json().catch(() => ({}));
@@ -34,7 +33,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const { data: ticket } = await adminClient
     .from("tickets")
     .select("id")
-    .eq("ticket_number", ticketNumber)
+    .eq("ticket_id", ticketId)
     .maybeSingle();
   if (!ticket) return NextResponse.json({ error: "Ticket not found" }, { status: 404 });
 
@@ -54,7 +53,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     .single();
 
   if (error || !data) {
-    console.error("[api/desk/tickets/[ticketNumber]/notes] insert failed:", error?.message);
+    console.error("[api/desk/tickets/[ticketId]/notes] insert failed:", error?.message);
     return NextResponse.json({ error: "Failed to add note" }, { status: 500 });
   }
 

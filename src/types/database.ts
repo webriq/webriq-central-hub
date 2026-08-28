@@ -1629,12 +1629,13 @@ export interface Database {
         Row: {
           id: string;
           ticket_number: number;
+          ticket_id: string;
           customer_id: string | null;
           customer_product_id: string | null;
           subject: string;
           channel: "portal" | "email" | "manual";
           priority: "low" | "normal" | "high" | "critical";
-          status: "new" | "open" | "waiting_on_client" | "waiting_on_us" | "resolved" | "closed";
+          status: "open" | "on_hold" | "escalated" | "closed";
           requester_email: string | null;
           requester_profile_id: string | null;
           sla_due_at: string | null;
@@ -1652,12 +1653,14 @@ export interface Database {
         };
         Insert: {
           id?: string;
+          ticket_number?: number;
+          ticket_id?: string;
           customer_id?: string | null;
           customer_product_id?: string | null;
           subject: string;
           channel: "portal" | "email" | "manual";
           priority?: "low" | "normal" | "high" | "critical";
-          status?: "new" | "open" | "waiting_on_client" | "waiting_on_us" | "resolved" | "closed";
+          status?: "open" | "on_hold" | "escalated" | "closed";
           requester_email?: string | null;
           requester_profile_id?: string | null;
           sla_due_at?: string | null;
@@ -1675,12 +1678,14 @@ export interface Database {
         };
         Update: {
           id?: string;
+          ticket_number?: number;
+          ticket_id?: string;
           customer_id?: string | null;
           customer_product_id?: string | null;
           subject?: string;
           channel?: "portal" | "email" | "manual";
           priority?: "low" | "normal" | "high" | "critical";
-          status?: "new" | "open" | "waiting_on_client" | "waiting_on_us" | "resolved" | "closed";
+          status?: "open" | "on_hold" | "escalated" | "closed";
           requester_email?: string | null;
           requester_profile_id?: string | null;
           sla_due_at?: string | null;
@@ -3286,6 +3291,10 @@ export interface Database {
           total: number;
           done: number;
         }[];
+      };
+      sync_ticket_number_sequence: {
+        Args: Record<string, never>;
+        Returns: undefined;
       };
     };
     Enums: Record<string, never>;

@@ -36,21 +36,20 @@ export function mapTaskStatus(
 }
 
 // Maps a Zoho Desk ticket's status/statusType onto the Hub's native tickets.status enum
-// (task 296). Desk portals can configure custom status labels, so this keys primarily off
-// the smaller, more consistent `statusType` field, falling back to a `status` heuristic.
-// Confirm against real desk-tickets.json status/statusType values once exported — same
-// "confirm against real data" step task 107/108 used for mapTaskStatus.
+// (task 296; realigned to Zoho Desk's own 4-value vocabulary in task 326). Desk portals can
+// configure custom status labels, so this keys off both the smaller, more consistent
+// `statusType` field and a `status` heuristic. Order matters: `closed` wins, then `hold`,
+// then `escalat`, else `open`.
 export function mapTicketStatus(
   status: string,
   statusType: string
-): "new" | "open" | "waiting_on_client" | "waiting_on_us" | "resolved" | "closed" {
+): "open" | "on_hold" | "escalated" | "closed" {
   const st = (statusType ?? "").toLowerCase();
   const s = (status ?? "").toLowerCase();
   if (st.includes("closed") || s.includes("closed")) return "closed";
-  if (st.includes("hold") || s.includes("hold")) return "waiting_on_us";
-  if (st.includes("escalat") || s.includes("escalat")) return "waiting_on_us";
-  if (st.includes("open") || s.includes("open")) return "open";
-  return "new";
+  if (st.includes("hold") || s.includes("hold")) return "on_hold";
+  if (st.includes("escalat") || s.includes("escalat")) return "escalated";
+  return "open";
 }
 
 export function parseHours(s: string): number {

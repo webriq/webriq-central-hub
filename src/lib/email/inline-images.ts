@@ -13,8 +13,8 @@ export const INLINE_IMAGE_BUCKET = "ticket-attachments";
 // containment rather than building a regex from the cid value, since a Content-ID can contain
 // regex-special characters (e.g. "image001.png@01DD2890.901E00F0").
 //
-// Re-run safe: after a rewrite the src is "/api/desk/tickets/{n}/messages/{id}/inline-images/
-// {attachmentId}" — it contains neither "cid:" nor the cid token, so a second pass is a no-op.
+// Re-run safe: after a rewrite the src is "/api/desk/tickets/{ticketId}/messages/{id}/inline-
+// images/{attachmentId}" — it contains neither "cid:" nor the cid token, so a second pass is a no-op.
 export function rewriteInlineImageSrc(html: string, cid: string, replacementUrl: string): string {
   return html.replace(/src=(["'])([^"']*)\1/gi, (match, quote: string, url: string) => {
     if (url === `cid:${cid}` || url.includes(cid)) return `src=${quote}${replacementUrl}${quote}`;
@@ -30,7 +30,7 @@ export function rewriteInlineImageSrc(html: string, cid: string, replacementUrl:
 // Returns the rewritten body — the caller is responsible for persisting it.
 export async function applyInlineImages(params: {
   messageRowId: string;
-  ticketNumber: number;
+  ticketId: string;
   inlineImages: InlineImage[];
   body: string;
 }): Promise<string> {
@@ -73,7 +73,7 @@ export async function applyInlineImages(params: {
       body = rewriteInlineImageSrc(
         body,
         img.cid,
-        `/api/desk/tickets/${params.ticketNumber}/messages/${params.messageRowId}/inline-images/${attachmentRow.id}`
+        `/api/desk/tickets/${params.ticketId}/messages/${params.messageRowId}/inline-images/${attachmentRow.id}`
       );
     } catch (e) {
       console.error(`[inline-images] ${img.cid} processing failed`, e);

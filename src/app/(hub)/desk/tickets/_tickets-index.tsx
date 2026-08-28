@@ -9,11 +9,12 @@ import { TicketsTable } from "./_tickets-table";
 import { FilterMultiSelect } from "./_filter-multi-select";
 import { parseStatusFilterParam, STATUS_FILTER_OPTIONS } from "./_status-filter";
 
-export type TicketStatus = "new" | "open" | "waiting_on_client" | "waiting_on_us" | "resolved" | "closed";
+export type TicketStatus = "open" | "on_hold" | "escalated" | "closed";
 
 export type TicketListItem = {
   id: string;
   ticketNumber: number;
+  ticketId: string;
   displayId: string;
   subject: string;
   status: TicketStatus;

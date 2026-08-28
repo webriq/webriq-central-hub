@@ -6,13 +6,15 @@ import TicketDetail, { type TicketDetailData } from "./_ticket-detail";
 import type { MessageItem } from "./_conversation-thread";
 import { resolveContactName, resolveOwnerName, resolveDisplayId, type ContactRow, type DeskAgentRow } from "../_resolve";
 
-// Ticket Detail (task 303) — routed by tickets.ticket_number, not the id UUID (per explicit
-// request; see task doc Requirements B). Same role gate as the list page.
+// Ticket Detail (task 303) — routed by tickets.ticket_id (`TKT-<n>`), not the id UUID
+// (task 326 — was the bare ticket_number; a deliberate "display value in the route param"
+// exception, same as /v2/projects/[projectId]). Same role gate as the list page.
 export const dynamic = "force-dynamic";
 
 type TicketDetailRow = {
   id: string;
   ticket_number: number;
+  ticket_id: string;
   subject: string;
   status: TicketDetailData["status"];
   priority: TicketDetailData["priority"];
@@ -49,16 +51,15 @@ type AttachmentRow = {
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ ticketNumber: string }>;
+  params: Promise<{ ticketId: string }>;
 }): Promise<Metadata> {
-  const { ticketNumber } = await params;
-  return { title: `Ticket #${ticketNumber} · Desk` };
+  const { ticketId } = await params;
+  return { title: `Ticket #${ticketId.replace(/^TKT-/, "")} · Desk` };
 }
 
-export default async function TicketDetailPage({ params }: { params: Promise<{ ticketNumber: string }> }) {
-  const { ticketNumber: ticketNumberParam } = await params;
-  const ticketNumber = Number(ticketNumberParam);
-  if (!Number.isInteger(ticketNumber)) notFound();
+export default async function TicketDetailPage({ params }: { params: Promise<{ ticketId: string }> }) {
+  const { ticketId } = await params;
+  if (!/^TKT-\d+$/.test(ticketId)) notFound();
 
   const supabase = await createClient();
   const { data: claims } = await supabase.auth.getClaims();
@@ -72,9 +73,9 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ t
   const { data: ticketData, error } = await supabase
     .from("tickets")
     .select(
-      "id, ticket_number, subject, status, priority, channel, requester_email, external_contact_id, source_meta, created_at, resolved_at, first_response_at, sla_due_at, customer_id, customers(company_name)"
+      "id, ticket_number, ticket_id, subject, status, priority, channel, requester_email, external_contact_id, source_meta, created_at, resolved_at, first_response_at, sla_due_at, customer_id, customers(company_name)"
     )
-    .eq("ticket_number", ticketNumber)
+    .eq("ticket_id", ticketId)
     .maybeSingle();
 
   if (error || !ticketData) notFound();
@@ -143,7 +144,7 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ t
 
   const ticket: TicketDetailData = {
     id: t.id,
-    ticketNumber: t.ticket_number,
+    ticketId: t.ticket_id,
     displayId: resolveDisplayId(t),
     subject: t.subject,
     status: t.status,

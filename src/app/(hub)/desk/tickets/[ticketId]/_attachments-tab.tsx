@@ -30,7 +30,7 @@ type FlatAttachment = {
   createdAt: string;
 };
 
-function AttachmentRow({ ticketNumber, attachment }: { ticketNumber: number; attachment: FlatAttachment }) {
+function AttachmentRow({ ticketId, attachment }: { ticketId: string; attachment: FlatAttachment }) {
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
 
@@ -39,7 +39,7 @@ function AttachmentRow({ ticketNumber, attachment }: { ticketNumber: number; att
     setFailed(false);
     try {
       const res = await fetch(
-        `/api/desk/tickets/${ticketNumber}/messages/${attachment.messageId}/attachments/${attachment.id}/file-url`
+        `/api/desk/tickets/${ticketId}/messages/${attachment.messageId}/attachments/${attachment.id}/file-url`
       );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const { url } = await res.json();
@@ -76,7 +76,7 @@ function AttachmentRow({ ticketNumber, attachment }: { ticketNumber: number; att
   );
 }
 
-export default function AttachmentsTab({ ticketNumber, messages }: { ticketNumber: number; messages: MessageItem[] }) {
+export default function AttachmentsTab({ ticketId, messages }: { ticketId: string; messages: MessageItem[] }) {
   const attachments: FlatAttachment[] = messages.flatMap((m) =>
     m.attachments.map((a) => ({
       id: a.id,
@@ -103,7 +103,7 @@ export default function AttachmentsTab({ ticketNumber, messages }: { ticketNumbe
   return (
     <div>
       {attachments.map((a) => (
-        <AttachmentRow key={a.id} ticketNumber={ticketNumber} attachment={a} />
+        <AttachmentRow key={a.id} ticketId={ticketId} attachment={a} />
       ))}
     </div>
   );

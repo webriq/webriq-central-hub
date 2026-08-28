@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import { runScopedTool } from "@/lib/mcp/run-tool";
 
-const TICKET_STATUS = ["new", "open", "waiting_on_client", "waiting_on_us", "resolved", "closed"] as const;
+const TICKET_STATUS = ["open", "on_hold", "escalated", "closed"] as const;
 const TICKET_PRIORITY = ["low", "normal", "high", "critical"] as const;
 
 export const listTicketsInputSchema = {

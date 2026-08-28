@@ -26,20 +26,22 @@ type TicketRow = {
   external_contact_id: string | null;
   source_meta: Record<string, unknown> | null;
   ticket_number: number;
+  ticket_id: string;
   customers: { company_name: string } | null;
 };
 
-// Translates the curated filter selection (`STATUS_FILTER_OPTIONS` keys: open/closed/on_hold/
-// overdue) into a PostgREST `.or()` clause. "On Hold" maps onto the real `waiting_on_us` status;
-// "Overdue" is a computed condition (`sla_due_at` in the past, not yet resolved/closed) rather
-// than a status value, expressed as a nested `and(...)` group.
+// Translates the curated filter selection (`STATUS_FILTER_OPTIONS` keys: open/on_hold/
+// escalated/closed/overdue) into a PostgREST `.or()` clause. open/on_hold/escalated/closed are
+// real `tickets.status` values (task 326); "Overdue" is a computed condition (`sla_due_at` in
+// the past, not yet closed), expressed as a nested `and(...)` group.
 function buildStatusOrClause(selected: string[]): string {
   const nowIso = new Date().toISOString();
   const parts: string[] = [];
   if (selected.includes("open")) parts.push("status.eq.open");
+  if (selected.includes("on_hold")) parts.push("status.eq.on_hold");
+  if (selected.includes("escalated")) parts.push("status.eq.escalated");
   if (selected.includes("closed")) parts.push("status.eq.closed");
-  if (selected.includes("on_hold")) parts.push("status.eq.waiting_on_us");
-  if (selected.includes("overdue")) parts.push(`and(sla_due_at.lt.${nowIso},status.neq.closed,status.neq.resolved)`);
+  if (selected.includes("overdue")) parts.push(`and(sla_due_at.lt.${nowIso},status.neq.closed)`);
   return parts.join(",");
 }
 
@@ -70,7 +72,7 @@ export default async function DeskTicketsPage({
   let ticketsQuery = supabase
     .from("tickets")
     .select(
-      "id, subject, status, first_response_at, sla_due_at, requester_email, external_contact_id, source_meta, ticket_number, customers(company_name)",
+      "id, subject, status, first_response_at, sla_due_at, requester_email, external_contact_id, source_meta, ticket_number, ticket_id, customers(company_name)",
       { count: "exact" }
     )
     .order("created_at", { ascending: false });
@@ -135,6 +137,7 @@ export default async function DeskTicketsPage({
     return {
       id: t.id,
       ticketNumber: t.ticket_number,
+      ticketId: t.ticket_id,
       displayId: resolveDisplayId(t),
       subject: t.subject,
       status: t.status as TicketStatus,

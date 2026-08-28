@@ -11,9 +11,16 @@ import { adminClient } from "@/lib/supabase/admin";
 import { listNewMessages, downloadAttachment, type ZohoMailMessageSummary } from "@/lib/zoho/mail";
 import { toParsedInboundEmail } from "@/lib/email/inbound";
 import { applyInlineImages, INLINE_IMAGE_BUCKET as BUCKET } from "@/lib/email/inline-images";
+import { shouldIngestEmail } from "@/lib/email/intake-filter";
+import { subjectsMatch } from "@/lib/email/subject";
 
 const MAX_SIZE = 52428800; // 50MB — matches the bucket's file_size_limit (migration 117)
 const CURSOR_ID = "helpdesk";
+// Fallback thread match (task 327): how far back to look for a same-sender/same-subject ticket
+// when no id-match exists (imported tickets can't be id-matched — see processMessage).
+const THREAD_MATCH_LOOKBACK_DAYS = 180;
+
+type ProcessOutcome = "ingested" | "skipped" | "duplicate";
 
 export async function POST(req: NextRequest) {
   const cronSecret = process.env.CRONJOB_SECRET_KEY;
@@ -34,6 +41,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "ZOHO_MAIL_INBOX_FOLDER_ID is not configured" }, { status: 500 });
   }
 
+  // Keep the ticket_number serial ahead of every imported Zoho number (task 327 / migration
+  // 124) so a ticket created below advances from ~21008+, not a stale low serial. Idempotent;
+  // non-fatal — a poll that skips this just risks the pre-task-326 numbering.
+  const { error: seqError } = await adminClient.rpc("sync_ticket_number_sequence");
+  if (seqError) console.error("[cron/email-poll] sync_ticket_number_sequence failed:", seqError.message);
+
   const { data: cursorRow } = await adminClient
     .from("email_poll_cursor")
     .select("last_received_time")
@@ -49,25 +62,29 @@ export async function POST(req: NextRequest) {
   }
 
   let processed = 0;
+  let skipped = 0;
   for (const summary of messages) {
     try {
-      await processMessage(summary);
+      const outcome = await processMessage(summary);
       // Advance the cursor only after a successful process — a failure leaves it in place so
       // the next poll retries this message. email_message_id dedupe (below) makes that safe.
+      // A filtered-out ("skipped") message still advances the cursor: it is intentionally
+      // dropped and must not be reconsidered every poll.
       await adminClient
         .from("email_poll_cursor")
         .update({ last_received_time: summary.receivedTime, updated_at: new Date().toISOString() })
         .eq("id", CURSOR_ID);
-      processed++;
+      if (outcome === "ingested") processed++;
+      else if (outcome === "skipped") skipped++;
     } catch (e) {
       console.error(`[cron/email-poll] failed to process message ${summary.messageId}`, e);
     }
   }
 
-  return NextResponse.json({ polled: messages.length, processed });
+  return NextResponse.json({ polled: messages.length, processed, skipped });
 }
 
-async function processMessage(summary: ZohoMailMessageSummary): Promise<void> {
+async function processMessage(summary: ZohoMailMessageSummary): Promise<ProcessOutcome> {
   // adminClient used throughout — this is a cron-triggered route with no user session, same
   // exception as (public) onboarding routes / the Zoho Desk webhook listener per CLAUDE.md.
 
@@ -78,26 +95,48 @@ async function processMessage(summary: ZohoMailMessageSummary): Promise<void> {
     .select("id")
     .eq("email_message_id", summary.messageId)
     .maybeSingle();
-  if (existingMessage) return;
+  if (existingMessage) return "duplicate";
+
+  // Intake filter (task 327) — drop the Hub's own system mail and other automation before it
+  // becomes a ticket. Runs on the cheap summary fields, before the (slower) content parse.
+  const gate = shouldIngestEmail({
+    fromAddress: summary.fromAddress,
+    fromName: summary.fromName,
+    subject: summary.subject,
+  });
+  if (!gate.ingest) {
+    console.log(`[cron/email-poll] skipped ${summary.messageId} from "${summary.fromRaw}": ${gate.reason}`);
+    return "skipped";
+  }
 
   const email = await toParsedInboundEmail(summary);
 
-  // Thread match: Zoho Mail's threadId groups a full conversation server-side — no
-  // In-Reply-To/References header parsing needed, unlike the Resend-era design.
+  let ticketId: string | null = null;
+  let ticketNumber: number | null = null;
+  // The readable TKT-<n> id (task 326) — used to build inline-image serving URLs.
+  let ticketDisplayId: string | null = null;
+  // Status of a pre-existing ticket this message was matched onto (null when we create a new
+  // ticket) — drives the closed -> open reopen below.
+  let matchedTicketStatus: string | null = null;
+
+  // Match 1 — Zoho Mail's threadId groups a full conversation server-side; a ticket we created
+  // stores it as zoho_mail_thread_id.
   const { data: existingTicket } = await adminClient
     .from("tickets")
-    .select("id, ticket_number")
+    .select("id, ticket_number, ticket_id, status")
     .eq("zoho_mail_thread_id", email.threadId)
     .maybeSingle();
+  if (existingTicket) {
+    ticketId = existingTicket.id;
+    ticketNumber = existingTicket.ticket_number;
+    ticketDisplayId = existingTicket.ticket_id;
+    matchedTicketStatus = existingTicket.status;
+  }
 
-  let ticketId = existingTicket?.id ?? null;
-  let ticketNumber: number | null = existingTicket?.ticket_number ?? null;
-
-  // Fallback match: a ticket created before this thread had any replies (or one imported from
-  // an older code path) may still have zoho_mail_thread_id: null. Zoho's threadId convention is
-  // "the root message's own messageId" (see src/lib/zoho/mail.ts), so a reply's threadId will
-  // match the ORIGINAL message's stored email_message_id even if the ticket row itself was
-  // never backfilled. Catch that case and backfill the ticket for future direct-hit lookups.
+  // Match 2 — a ticket created before this thread had any replies may still have
+  // zoho_mail_thread_id: null. Zoho's threadId convention is "the root message's own
+  // messageId", so a reply's threadId matches the ORIGINAL message's stored email_message_id.
+  // Backfill the ticket for future direct-hit lookups.
   if (!ticketId) {
     const { data: rootMessage } = await adminClient
       .from("ticket_messages")
@@ -107,8 +146,43 @@ async function processMessage(summary: ZohoMailMessageSummary): Promise<void> {
     if (rootMessage) {
       ticketId = rootMessage.ticket_id;
       await adminClient.from("tickets").update({ zoho_mail_thread_id: email.threadId }).eq("id", ticketId);
-      const { data: ticketRow } = await adminClient.from("tickets").select("ticket_number").eq("id", ticketId).maybeSingle();
+      const { data: ticketRow } = await adminClient
+        .from("tickets")
+        .select("ticket_number, ticket_id, status")
+        .eq("id", ticketId)
+        .maybeSingle();
       ticketNumber = ticketRow?.ticket_number ?? null;
+      ticketDisplayId = ticketRow?.ticket_id ?? null;
+      matchedTicketStatus = ticketRow?.status ?? null;
+    }
+  }
+
+  // Match 3 (task 327) — imported Desk tickets have no zoho_mail_thread_id and their messages
+  // have no email_message_id (the Desk threads export carries no RFC822 Message-ID), so
+  // matches 1 & 2 can never find them. Fall back to same-sender + same-normalized-subject
+  // within a recent window, and backfill zoho_mail_thread_id so the next reply hits match 1.
+  if (!ticketId) {
+    const since = new Date(Date.now() - THREAD_MATCH_LOOKBACK_DAYS * 86_400_000).toISOString();
+    const { data: candidates } = await adminClient
+      .from("tickets")
+      .select("id, ticket_number, ticket_id, status, subject, requester_email, zoho_mail_thread_id")
+      .ilike("requester_email", email.from)
+      .gt("created_at", since)
+      .order("created_at", { ascending: false })
+      .limit(25);
+    const match = (candidates ?? []).find(
+      (t) =>
+        (t.requester_email ?? "").toLowerCase() === email.from.toLowerCase() &&
+        subjectsMatch(t.subject, email.subject)
+    );
+    if (match) {
+      ticketId = match.id;
+      ticketNumber = match.ticket_number;
+      ticketDisplayId = match.ticket_id;
+      matchedTicketStatus = match.status;
+      if (!match.zoho_mail_thread_id) {
+        await adminClient.from("tickets").update({ zoho_mail_thread_id: email.threadId }).eq("id", match.id);
+      }
     }
   }
 
@@ -129,20 +203,28 @@ async function processMessage(summary: ZohoMailMessageSummary): Promise<void> {
         customer_id: contactMatches?.[0]?.customer_id ?? null,
         subject: email.subject,
         channel: "email",
-        status: "new",
+        status: "open",
         priority: "normal",
         requester_email: email.from,
         zoho_mail_thread_id: email.threadId,
       })
-      .select("id, ticket_number")
+      .select("id, ticket_number, ticket_id")
       .single();
 
     if (ticketError || !newTicket) throw new Error(`failed to create ticket: ${ticketError?.message}`);
     ticketId = newTicket.id;
     ticketNumber = newTicket.ticket_number;
+    ticketDisplayId = newTicket.ticket_id;
   }
 
   if (ticketNumber == null) throw new Error(`could not resolve ticket_number for ticket ${ticketId}`);
+  // Belt-and-braces: the DB trigger always sets ticket_id, but derive it if a stale read missed it.
+  ticketDisplayId = ticketDisplayId ?? `TKT-${ticketNumber}`;
+
+  // Reopen a closed ticket when the customer replies (task 327).
+  if (matchedTicketStatus === "closed") {
+    await adminClient.from("tickets").update({ status: "open" }).eq("id", ticketId);
+  }
 
   const bodyIsHtml = !!email.html;
   let body = email.html ?? email.text ?? "";
@@ -155,7 +237,7 @@ async function processMessage(summary: ZohoMailMessageSummary): Promise<void> {
 
   body = await applyInlineImages({
     messageRowId: newMessageId,
-    ticketNumber,
+    ticketId: ticketDisplayId,
     inlineImages: email.inlineImages,
     body,
   });
@@ -210,4 +292,6 @@ async function processMessage(summary: ZohoMailMessageSummary): Promise<void> {
       console.error(`[cron/email-poll] attachment ${att.attachmentId} processing failed`, e);
     }
   }
+
+  return "ingested";
 }

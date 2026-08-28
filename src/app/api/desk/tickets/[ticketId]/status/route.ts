@@ -6,10 +6,10 @@ import { adminClient } from "@/lib/supabase/admin";
 // (see PATCH /api/customers/[customerId]) — session auth + explicit adminClient role check as
 // the primary gate, adminClient for the write. RLS (tickets_staff_all) is a backstop, not
 // bypassed in spirit: the explicit role check enforces the same admin/pm allowlist.
-const VALID_STATUSES = ["new", "open", "waiting_on_client", "waiting_on_us", "resolved", "closed"] as const;
+const VALID_STATUSES = ["open", "on_hold", "escalated", "closed"] as const;
 type TicketStatus = (typeof VALID_STATUSES)[number];
 
-export async function PATCH(request: NextRequest, { params }: { params: Promise<{ ticketNumber: string }> }) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ ticketId: string }> }) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -21,10 +21,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { ticketNumber: ticketNumberParam } = await params;
-  const ticketNumber = Number(ticketNumberParam);
-  if (!Number.isInteger(ticketNumber)) {
-    return NextResponse.json({ error: "Invalid ticket number" }, { status: 400 });
+  const { ticketId } = await params;
+  if (!/^TKT-\d+$/.test(ticketId)) {
+    return NextResponse.json({ error: "Invalid ticket id" }, { status: 400 });
   }
 
   const body = await request.json().catch(() => ({}));
@@ -33,16 +32,16 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     return NextResponse.json({ error: "Invalid status" }, { status: 400 });
   }
 
-  const isResolvedOrClosed = status === "resolved" || status === "closed";
+  const isClosed = status === "closed";
   const { data, error } = await adminClient
     .from("tickets")
-    .update({ status, resolved_at: isResolvedOrClosed ? new Date().toISOString() : null })
-    .eq("ticket_number", ticketNumber)
+    .update({ status, resolved_at: isClosed ? new Date().toISOString() : null })
+    .eq("ticket_id", ticketId)
     .select("id")
     .maybeSingle();
 
   if (error) {
-    console.error("[api/desk/tickets/[ticketNumber]/status] update failed:", error.message);
+    console.error("[api/desk/tickets/[ticketId]/status] update failed:", error.message);
     return NextResponse.json({ error: "Failed to update status" }, { status: 500 });
   }
   if (!data) {

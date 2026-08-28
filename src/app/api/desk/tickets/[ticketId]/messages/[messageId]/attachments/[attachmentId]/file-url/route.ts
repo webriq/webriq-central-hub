@@ -9,12 +9,11 @@ import { createClient } from "@/lib/supabase/server";
 // client's own createSignedUrl is correctly scoped without a bypass.
 export async function GET(
   _req: NextRequest,
-  { params }: { params: Promise<{ ticketNumber: string; messageId: string; attachmentId: string }> }
+  { params }: { params: Promise<{ ticketId: string; messageId: string; attachmentId: string }> }
 ) {
-  const { ticketNumber: ticketNumberParam, messageId, attachmentId } = await params;
-  const ticketNumber = Number(ticketNumberParam);
-  if (!Number.isInteger(ticketNumber)) {
-    return NextResponse.json({ error: "Invalid ticket number" }, { status: 400 });
+  const { ticketId, messageId, attachmentId } = await params;
+  if (!/^TKT-\d+$/.test(ticketId)) {
+    return NextResponse.json({ error: "Invalid ticket id" }, { status: 400 });
   }
 
   const supabase = await createClient();
@@ -23,7 +22,7 @@ export async function GET(
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { data: ticket } = await supabase.from("tickets").select("id").eq("ticket_number", ticketNumber).maybeSingle();
+  const { data: ticket } = await supabase.from("tickets").select("id").eq("ticket_id", ticketId).maybeSingle();
   if (!ticket) return NextResponse.json({ error: "Ticket not found" }, { status: 404 });
 
   const { data: message } = await supabase
@@ -48,7 +47,7 @@ export async function GET(
     .createSignedUrl(attachment.storage_path, 60, { download: attachment.filename });
 
   if (signError || !signed) {
-    console.error("[api/desk/tickets/[ticketNumber]/messages/.../file-url] sign failed:", signError?.message);
+    console.error("[api/desk/tickets/[ticketId]/messages/.../file-url] sign failed:", signError?.message);
     return NextResponse.json({ error: "Failed to generate file URL" }, { status: 500 });
   }
 

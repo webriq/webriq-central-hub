@@ -18,6 +18,18 @@ interface ThreadsExportState {
   error: string | null;
 }
 
+interface ArchivedTicketsExportState {
+  progress: { current: number; total: number; ticketCount: number } | null;
+  warnings: string[];
+  done: {
+    count: number;
+    failedDepartments: string[];
+    truncatedDepartments: string[];
+    partial: boolean;
+  } | null;
+  error: string | null;
+}
+
 type VerifyAttachmentResult =
   | { state: "idle" }
   | { state: "running" }
@@ -37,6 +49,7 @@ const EXPORT_LEVELS = [
   { key: "desk-tickets", label: "Desk Tickets", desc: "All Zoho Desk tickets — no new OAuth scope needed (Desk.tickets.READ already granted)" },
   { key: "desk-ticket-comments", label: "Desk Ticket Comments", desc: "Agent notes/replies per ticket — not the full customer conversation, see Desk Threads below — requires desk-tickets.json exported first" },
   { key: "desk-threads", label: "Desk Threads", desc: "The actual customer↔agent conversation per ticket (emails, forum replies, etc.) — requires desk-tickets.json exported first" },
+  { key: "desk-archived-tickets", label: "Desk Archived Tickets", desc: "Archived tickets created 2025-01-01 onward — a separate endpoint the live Desk Tickets export skips entirely; loops every department, warns if a department's 2025+ set exceeds Zoho's 5,000/department API cap or a department fails (others still export). Needs the Desk.search.READ scope" },
 ] as const;
 
 const IMPORT_LEVELS = [
@@ -45,6 +58,7 @@ const IMPORT_LEVELS = [
   { key: "desk-tickets", label: "Desk Tickets", desc: "Imports desk-tickets.json into the tickets table — matched via the ticket's contact (contacts.customer_id) with an account-name fallback; unmatched tickets import anyway with customer_id: null" },
   { key: "desk-ticket-comments", label: "Desk Ticket Comments", desc: "Imports desk-ticket-comments.json into ticket_messages (author_type: staff, visibility from isPublic) — requires Desk Tickets imported first" },
   { key: "desk-threads", label: "Desk Threads", desc: "Imports desk-threads.json into ticket_messages (author_type: client or staff based on who wrote it, visibility from Zoho's visibility field) — requires Desk Tickets imported first" },
+  { key: "desk-archived-tickets", label: "Desk Archived Tickets", desc: "Imports desk-archived-tickets.json into the tickets table (upsert on external_id) — same customer matching as Desk Tickets; source_meta.isArchived is set on every row; run after Desk Tickets import" },
   { key: "ticket-attachments", label: "Ticket Attachments", desc: "Downloads the real files referenced in ticket_messages.source_meta.attachments (Threads + Comments) into Supabase Storage — no export needed, reads directly from the database; requires Desk Threads/Ticket Comments imported first" },
 ] as const;
 
@@ -59,6 +73,12 @@ export default function ZohoDeskTab() {
   });
   const [threadsExport, setThreadsExport] = useState<ThreadsExportState>({
     progress: null,
+    done: null,
+    error: null,
+  });
+  const [archivedTicketsExport, setArchivedTicketsExport] = useState<ArchivedTicketsExportState>({
+    progress: null,
+    warnings: [],
     done: null,
     error: null,
   });
@@ -257,6 +277,133 @@ export default function ZohoDeskTab() {
     }
   }
 
+  async function handleArchivedTicketsExport() {
+    if (anyRunning) return;
+    setAnyRunning(true);
+    setExportStates((s) => ({ ...s, "desk-archived-tickets": "running" }));
+    setArchivedTicketsExport({ progress: null, warnings: [], done: null, error: null });
+
+    const accumulated: unknown[] = [];
+    let sawDone = false;
+    let lastProgress: { current: number; total: number } | null = null;
+
+    const download = (name: string) => {
+      const blob = new Blob([JSON.stringify(accumulated, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = name;
+      a.click();
+      URL.revokeObjectURL(url);
+    };
+
+    try {
+      const res = await fetch("/api/admin/zoho-export/desk-archived-tickets");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? `HTTP ${res.status}`);
+      }
+
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const frames = buffer.split("\n\n");
+        buffer = frames.pop() ?? "";
+
+        for (const frame of frames) {
+          if (!frame.startsWith("data: ")) continue;
+          const evt = JSON.parse(frame.slice(6)) as {
+            type: string;
+            current?: number;
+            total?: number;
+            ticketCount?: number;
+            tickets?: unknown[];
+            total_tickets?: number;
+            truncated_departments?: string[];
+            failed_departments?: string[];
+            department?: string;
+            reason?: string;
+            message?: string;
+          };
+
+          if (evt.type === "progress") {
+            lastProgress = { current: evt.current!, total: evt.total! };
+            setArchivedTicketsExport((s) => ({
+              ...s,
+              progress: { current: evt.current!, total: evt.total!, ticketCount: evt.ticketCount ?? 0 },
+            }));
+          }
+          if (evt.type === "tickets" && evt.tickets) {
+            accumulated.push(...evt.tickets);
+          }
+          if (evt.type === "warning") {
+            const line = evt.message ?? `${evt.department ?? "?"}: ${evt.reason ?? "warning"}`;
+            setArchivedTicketsExport((s) => ({ ...s, warnings: [...s.warnings, line] }));
+          }
+          if (evt.type === "error") {
+            throw new Error(evt.message ?? "export error");
+          }
+          if (evt.type === "done") {
+            sawDone = true;
+            download("desk-archived-tickets.json");
+            setArchivedTicketsExport((s) => ({
+              ...s,
+              done: {
+                count: evt.total_tickets ?? accumulated.length,
+                failedDepartments: evt.failed_departments ?? [],
+                truncatedDepartments: evt.truncated_departments ?? [],
+                partial: false,
+              },
+              progress: null,
+            }));
+            setExportStates((s) => ({ ...s, "desk-archived-tickets": "done" }));
+          }
+        }
+      }
+
+      if (!sawDone) {
+        // stream ended without a `done` event — save what completed so the run isn't a total loss
+        if (accumulated.length > 0) download("desk-archived-tickets.partial.json");
+        setArchivedTicketsExport((s) => ({
+          ...s,
+          done:
+            accumulated.length > 0
+              ? { count: accumulated.length, failedDepartments: [], truncatedDepartments: [], partial: true }
+              : null,
+          error: lastProgress
+            ? `Stream ended early after department ${lastProgress.current}/${lastProgress.total} — saved desk-archived-tickets.partial.json (${accumulated.length} tickets). Re-run to resume (restarts from department 1).`
+            : "Stream ended before any data arrived — nothing saved.",
+          progress: null,
+        }));
+        setExportStates((s) => ({ ...s, "desk-archived-tickets": "error" }));
+      }
+    } catch (e) {
+      if (accumulated.length > 0) download("desk-archived-tickets.partial.json");
+      setArchivedTicketsExport((s) => ({
+        ...s,
+        done:
+          accumulated.length > 0
+            ? { count: accumulated.length, failedDepartments: [], truncatedDepartments: [], partial: true }
+            : null,
+        error: `${String(e)}${
+          accumulated.length > 0
+            ? ` — saved ${accumulated.length} ticket(s) to desk-archived-tickets.partial.json; re-run to resume (restarts from department 1).`
+            : ""
+        }`,
+        progress: null,
+      }));
+      setExportStates((s) => ({ ...s, "desk-archived-tickets": "error" }));
+      console.error("[export/desk-archived-tickets]", e);
+    } finally {
+      setAnyRunning(false);
+    }
+  }
+
   async function handleTicketAttachmentsImport() {
     if (anyRunning) return;
     setAnyRunning(true);
@@ -348,7 +495,8 @@ export default function ZohoDeskTab() {
           Comments → Desk Threads. Save each downloaded file to{" "}
           <code className="bg-amber-100 px-1 rounded text-[11px]">_from_zoho/</code> before running the
           corresponding import. Desk Ticket Comments are agent notes/replies only; Desk Threads are the
-          actual customer↔agent conversation.
+          actual customer↔agent conversation. <strong>Desk Archived Tickets</strong> (2025-01-01 onward)
+          can run any time after Desk Accounts/Contacts; run its import after the Desk Tickets import.
         </div>
       </div>
 
@@ -509,6 +657,87 @@ export default function ZohoDeskTab() {
                   ) : null}
                   {threadsExport.error !== null ? (
                     <div className="mt-1 text-[11px] text-red-600">{threadsExport.error}</div>
+                  ) : null}
+                </div>
+              );
+            }
+
+            if (key === "desk-archived-tickets") {
+              const isRunning = exportStates["desk-archived-tickets"] === "running";
+              const pct = archivedTicketsExport.progress
+                ? Math.round(
+                    (archivedTicketsExport.progress.current /
+                      Math.max(archivedTicketsExport.progress.total, 1)) *
+                      100
+                  )
+                : 0;
+
+              return (
+                <div key="desk-archived-tickets" className="py-2 border-b border-slate-100 last:border-0">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[13px] font-medium text-slate-800 flex items-center gap-2">
+                        {label}
+                        <StateIcon state={exportStates["desk-archived-tickets"] ?? "idle"} />
+                      </div>
+                      <div className="text-[11px] text-slate-500 mt-0.5 truncate">{desc}</div>
+                    </div>
+                    {!isRunning && (
+                      <button
+                        onClick={handleArchivedTicketsExport}
+                        disabled={anyRunning}
+                        className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium bg-slate-900 text-white hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <Download size={11} />
+                        Export
+                      </button>
+                    )}
+                  </div>
+                  {isRunning && archivedTicketsExport.progress !== null ? (
+                    <div className="mt-2">
+                      <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-blue-500 rounded-full transition-all"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      <div className="text-[11px] text-slate-500 mt-1 truncate">
+                        Department {archivedTicketsExport.progress.current} of{" "}
+                        {archivedTicketsExport.progress.total} · {archivedTicketsExport.progress.ticketCount}{" "}
+                        tickets kept
+                      </div>
+                    </div>
+                  ) : null}
+                  {archivedTicketsExport.warnings.length > 0 ? (
+                    <ul className="mt-1 text-[11px] text-amber-600 space-y-0.5">
+                      {archivedTicketsExport.warnings.map((w, i) => (
+                        <li key={i} className="flex items-start gap-1">
+                          <AlertTriangle size={11} className="shrink-0 mt-0.5" />
+                          <span>{w}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                  {archivedTicketsExport.done !== null ? (
+                    <div className="mt-1 text-[11px] space-y-0.5">
+                      <div className={archivedTicketsExport.done.partial ? "text-amber-600" : "text-green-600"}>
+                        {archivedTicketsExport.done.count} archived ticket(s){" "}
+                        {archivedTicketsExport.done.partial ? "saved (partial file)" : "downloaded"}
+                      </div>
+                      {archivedTicketsExport.done.truncatedDepartments.length > 0 ? (
+                        <div className="text-amber-600 truncate" title={archivedTicketsExport.done.truncatedDepartments.join(", ")}>
+                          {archivedTicketsExport.done.truncatedDepartments.length} department(s) hit the 5,000 cap
+                        </div>
+                      ) : null}
+                      {archivedTicketsExport.done.failedDepartments.length > 0 ? (
+                        <div className="text-amber-600 truncate" title={archivedTicketsExport.done.failedDepartments.join(", ")}>
+                          {archivedTicketsExport.done.failedDepartments.length} department(s) failed — re-run to retry
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
+                  {archivedTicketsExport.error !== null ? (
+                    <div className="mt-1 text-[11px] text-red-600">{archivedTicketsExport.error}</div>
                   ) : null}
                 </div>
               );

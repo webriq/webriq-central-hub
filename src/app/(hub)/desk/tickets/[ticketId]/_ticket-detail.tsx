@@ -30,10 +30,10 @@ const AttachmentsTab = dynamic(() => import("./_attachments-tab"), { ssr: false 
 
 export type TicketDetailData = {
   id: string;
-  ticketNumber: number;
+  ticketId: string;
   displayId: string;
   subject: string;
-  status: "new" | "open" | "waiting_on_client" | "waiting_on_us" | "resolved" | "closed";
+  status: "open" | "on_hold" | "escalated" | "closed";
   priority: "low" | "normal" | "high" | "critical";
   channel: string;
   contactName: string;
@@ -48,30 +48,19 @@ export type TicketDetailData = {
   zohoTicketNumber: string | null;
 };
 
-const STATUS_OPTIONS: TicketDetailData["status"][] = [
-  "new",
-  "open",
-  "waiting_on_client",
-  "waiting_on_us",
-  "resolved",
-  "closed",
-];
+const STATUS_OPTIONS: TicketDetailData["status"][] = ["open", "on_hold", "escalated", "closed"];
 
 const STATUS_LABELS: Record<TicketDetailData["status"], string> = {
-  new: "New",
   open: "Open",
-  waiting_on_client: "Waiting on Client",
-  waiting_on_us: "Waiting on Us",
-  resolved: "Resolved",
+  on_hold: "On Hold",
+  escalated: "Escalated",
   closed: "Closed",
 };
 
 const STATUS_TONE: Record<TicketDetailData["status"], "ok" | "warn" | "neutral"> = {
-  new: "neutral",
   open: "neutral",
-  waiting_on_client: "warn",
-  waiting_on_us: "warn",
-  resolved: "ok",
+  on_hold: "warn",
+  escalated: "warn",
   closed: "ok",
 };
 
@@ -261,7 +250,7 @@ export default function TicketDetail({
     setStatusSaving(true);
     setStatusError(null);
     try {
-      const res = await fetch(`/api/desk/tickets/${ticket.ticketNumber}/status`, {
+      const res = await fetch(`/api/desk/tickets/${ticket.ticketId}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: next }),
@@ -284,7 +273,7 @@ export default function TicketDetail({
     setNoteSaving(true);
     setNoteError(null);
     try {
-      const res = await fetch(`/api/desk/tickets/${ticket.ticketNumber}/notes`, {
+      const res = await fetch(`/api/desk/tickets/${ticket.ticketId}/notes`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ body: noteBody }),
@@ -311,7 +300,7 @@ export default function TicketDetail({
     setReplySaving(true);
     setReplyError(null);
     try {
-      const res = await fetch(`/api/desk/tickets/${ticket.ticketNumber}/reply`, {
+      const res = await fetch(`/api/desk/tickets/${ticket.ticketId}/reply`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ body: replyBody }),
@@ -517,7 +506,7 @@ export default function TicketDetail({
               </div>
 
               {attachmentsOpen ? (
-                <AttachmentsTab ticketNumber={ticket.ticketNumber} messages={messages} />
+                <AttachmentsTab ticketId={ticket.ticketId} messages={messages} />
               ) : composerMode === "reply" ? (
                 <div className="px-5 py-4">
                   <div className="mb-3 text-[13px] font-semibold text-[#0B1533]">
@@ -580,7 +569,7 @@ export default function TicketDetail({
                   )}
                   <ConversationThread
                     key={convView}
-                    ticketNumber={ticket.ticketNumber}
+                    ticketId={ticket.ticketId}
                     messages={shownMessages}
                   />
                 </>

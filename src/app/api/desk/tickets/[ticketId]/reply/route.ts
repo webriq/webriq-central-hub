@@ -7,7 +7,7 @@ import { sendReply } from "@/lib/zoho/mail";
 // sends a real email via Zoho Mail's native reply endpoint and, only on send success, records
 // it as a public ticket_messages row. Staff-only, same role gate and adminClient-write
 // precedent as notes/route.ts. Not AI-drafted (see src/lib/ai/reply.ts for that, unrelated flow).
-export async function POST(request: NextRequest, { params }: { params: Promise<{ ticketNumber: string }> }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ ticketId: string }> }) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -19,10 +19,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { ticketNumber: ticketNumberParam } = await params;
-  const ticketNumber = Number(ticketNumberParam);
-  if (!Number.isInteger(ticketNumber)) {
-    return NextResponse.json({ error: "Invalid ticket number" }, { status: 400 });
+  const { ticketId } = await params;
+  if (!/^TKT-\d+$/.test(ticketId)) {
+    return NextResponse.json({ error: "Invalid ticket id" }, { status: 400 });
   }
 
   const body = await request.json().catch(() => ({}));
@@ -36,7 +35,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const { data: ticket } = await adminClient
     .from("tickets")
     .select("id, subject, requester_email, external_contact_id")
-    .eq("ticket_number", ticketNumber)
+    .eq("ticket_id", ticketId)
     .maybeSingle();
   if (!ticket) return NextResponse.json({ error: "Ticket not found" }, { status: 404 });
 
@@ -91,7 +90,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     });
     messageId = result.messageId;
   } catch (e) {
-    console.error("[api/desk/tickets/[ticketNumber]/reply] send failed:", e instanceof Error ? e.message : e);
+    console.error("[api/desk/tickets/[ticketId]/reply] send failed:", e instanceof Error ? e.message : e);
     return NextResponse.json({ error: e instanceof Error ? e.message : "Failed to send reply" }, { status: 502 });
   }
 
@@ -116,7 +115,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     // Email was already sent successfully at this point — a failure here means the reply
     // reached the customer but isn't recorded in the Hub thread. Surface distinctly so staff
     // know not to resend (that would email the customer twice), not just "reply failed".
-    console.error("[api/desk/tickets/[ticketNumber]/reply] sent but insert failed:", error?.message);
+    console.error("[api/desk/tickets/[ticketId]/reply] sent but insert failed:", error?.message);
     return NextResponse.json(
       { error: "Reply was sent to the customer but failed to save in the ticket thread — do not resend." },
       { status: 500 }

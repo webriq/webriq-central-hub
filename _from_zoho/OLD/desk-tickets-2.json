@@ -1,639 +1,25 @@
 [
   {
-    "id": "300063000090675161",
-    "ticketNumber": "21012",
-    "layoutId": "300063000000074011",
-    "email": "bbinder@quandarycg.com",
-    "phone": null,
-    "subject": "QUANDARY: Grey Line/Box on Logo Cloud/Construction page",
-    "status": "Open",
-    "statusType": "Open",
-    "createdTime": "2026-08-27T19:20:48.000Z",
-    "category": null,
-    "language": null,
-    "subCategory": null,
-    "priority": null,
-    "channel": "Email",
-    "dueDate": null,
-    "responseDueDate": null,
-    "commentCount": "0",
-    "sentiment": "NEGATIVE",
-    "threadCount": "1",
-    "closedTime": null,
-    "onholdTime": null,
-    "accountId": null,
-    "departmentId": "300063000000006907",
-    "contactId": "300063000085409001",
-    "productId": null,
-    "assigneeId": "300063000000089033",
-    "teamId": null,
-    "relationshipType": "None",
-    "channelCode": null,
-    "lastThread": {
-      "channel": "EMAIL",
-      "isDraft": false,
-      "isForward": false,
-      "direction": "in"
-    },
-    "customerResponseTime": "2026-08-27T19:20:48.000Z",
-    "isArchived": false,
-    "source": {
-      "extId": null,
-      "appName": null,
-      "appPhotoURL": null,
-      "permalink": null,
-      "type": "SYSTEM"
-    },
-    "isSpam": false,
-    "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000090675161"
-  },
-  {
-    "id": "300063000090669156",
-    "ticketNumber": "21011",
-    "layoutId": "300063000000074011",
-    "email": "alex.belding@webriq.com",
-    "phone": "1 719 425 8944",
-    "subject": "Re: Maxton Manufacturing - maxtonvalve.com DNS Request",
-    "status": "Open",
-    "statusType": "Open",
-    "createdTime": "2026-08-27T17:59:34.000Z",
-    "category": null,
-    "language": null,
-    "subCategory": null,
-    "priority": "Low",
-    "channel": "Email",
-    "dueDate": "2026-09-06T04:02:29.000Z",
-    "responseDueDate": null,
-    "commentCount": "0",
-    "sentiment": "POSITIVE",
-    "threadCount": "1",
-    "closedTime": null,
-    "onholdTime": null,
-    "accountId": "300063000000354169",
-    "departmentId": "300063000000006907",
-    "contactId": "300063000000354181",
-    "productId": null,
-    "assigneeId": "300063000000089033",
-    "teamId": null,
-    "relationshipType": "None",
-    "channelCode": null,
-    "lastThread": {
-      "channel": "EMAIL",
-      "isDraft": false,
-      "isForward": false,
-      "direction": "in"
-    },
-    "customerResponseTime": "2026-08-27T17:59:34.000Z",
-    "isArchived": false,
-    "source": {
-      "extId": null,
-      "appName": null,
-      "appPhotoURL": null,
-      "permalink": null,
-      "type": "SYSTEM"
-    },
-    "isSpam": false,
-    "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000090669156"
-  },
-  {
-    "id": "300063000090693061",
-    "ticketNumber": "21010",
-    "layoutId": "300063000000074011",
-    "email": "info@maxtonvalve.com",
-    "phone": null,
-    "subject": "Customer can't see pricing when logged in",
-    "status": "Open",
-    "statusType": "Open",
-    "createdTime": "2026-08-27T16:49:42.000Z",
-    "category": null,
-    "language": null,
-    "subCategory": null,
-    "priority": null,
-    "channel": "Email",
-    "dueDate": "2026-08-27T16:49:41.000Z",
-    "responseDueDate": null,
-    "commentCount": "0",
-    "sentiment": "POSITIVE",
-    "threadCount": "1",
-    "closedTime": null,
-    "onholdTime": null,
-    "accountId": null,
-    "departmentId": "300063000000006907",
-    "contactId": "300063000083959001",
-    "productId": null,
-    "assigneeId": "300063000000089033",
-    "teamId": null,
-    "relationshipType": "None",
-    "channelCode": null,
-    "lastThread": null,
-    "customerResponseTime": "2026-08-27T16:49:41.000Z",
-    "isArchived": false,
-    "source": {
-      "extId": null,
-      "appName": null,
-      "appPhotoURL": null,
-      "permalink": null,
-      "type": "SYSTEM"
-    },
-    "isSpam": false,
-    "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000090693061"
-  },
-  {
-    "id": "300063000090660197",
-    "ticketNumber": "21009",
-    "layoutId": "300063000000074011",
-    "email": "marketing@mills-nutrients.com",
-    "phone": null,
-    "subject": "Grower’s Journal: Mile High Dave on Mills Solids",
-    "status": "Closed",
-    "statusType": "Closed",
-    "createdTime": "2026-08-27T14:49:24.000Z",
-    "category": null,
-    "language": null,
-    "subCategory": null,
-    "priority": null,
-    "channel": "Email",
-    "dueDate": null,
-    "responseDueDate": null,
-    "commentCount": "0",
-    "sentiment": "POSITIVE",
-    "threadCount": "1",
-    "closedTime": "2026-08-28T01:04:58.000Z",
-    "onholdTime": null,
-    "accountId": null,
-    "departmentId": "300063000000006907",
-    "contactId": "300063000087777468",
-    "productId": null,
-    "assigneeId": "300063000000089033",
-    "teamId": null,
-    "relationshipType": "None",
-    "channelCode": null,
-    "lastThread": {
-      "channel": "EMAIL",
-      "isDraft": false,
-      "isForward": false,
-      "direction": "in"
-    },
-    "customerResponseTime": "2026-08-27T14:49:23.000Z",
-    "isArchived": false,
-    "source": {
-      "extId": null,
-      "appName": null,
-      "appPhotoURL": null,
-      "permalink": null,
-      "type": "SYSTEM"
-    },
-    "isSpam": false,
-    "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000090660197"
-  },
-  {
-    "id": "300063000090675116",
-    "ticketNumber": "21008",
-    "layoutId": "300063000000074011",
-    "email": "info@dxpstudio.webriq.com",
-    "phone": null,
-    "subject": "558134 — Your WebriQ Hub verification code",
-    "status": "Open",
-    "statusType": "Open",
-    "createdTime": "2026-08-27T09:55:06.000Z",
-    "category": null,
-    "language": null,
-    "subCategory": null,
-    "priority": null,
-    "channel": "Email",
-    "dueDate": null,
-    "responseDueDate": null,
-    "commentCount": "0",
-    "sentiment": "NEGATIVE",
-    "threadCount": "1",
-    "closedTime": null,
-    "onholdTime": null,
-    "accountId": null,
-    "departmentId": "300063000000006907",
-    "contactId": "300063000089246001",
-    "productId": null,
-    "assigneeId": "300063000000089033",
-    "teamId": null,
-    "relationshipType": "None",
-    "channelCode": null,
-    "lastThread": {
-      "channel": "EMAIL",
-      "isDraft": false,
-      "isForward": false,
-      "direction": "in"
-    },
-    "customerResponseTime": "2026-08-27T09:55:06.000Z",
-    "isArchived": false,
-    "source": {
-      "extId": null,
-      "appName": null,
-      "appPhotoURL": null,
-      "permalink": null,
-      "type": "SYSTEM"
-    },
-    "isSpam": false,
-    "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000090675116"
-  },
-  {
-    "id": "300063000090683251",
-    "ticketNumber": "21003",
-    "layoutId": "300063000000074011",
-    "email": "david@oklahomaseoexperts.com",
-    "phone": null,
-    "subject": "Hundreds Of Local Consumers Will See Your Business Every Month!",
-    "status": "Open",
-    "statusType": "Open",
-    "createdTime": "2026-08-27T05:19:35.000Z",
-    "category": null,
-    "language": null,
-    "subCategory": null,
-    "priority": null,
-    "channel": "Email",
-    "dueDate": null,
-    "responseDueDate": null,
-    "commentCount": "0",
-    "sentiment": "POSITIVE",
-    "threadCount": "1",
-    "closedTime": null,
-    "onholdTime": null,
-    "accountId": null,
-    "departmentId": "300063000000006907",
-    "contactId": "300063000089313408",
-    "productId": null,
-    "assigneeId": "300063000000089033",
-    "teamId": null,
-    "relationshipType": "None",
-    "channelCode": null,
-    "lastThread": {
-      "channel": "EMAIL",
-      "isDraft": false,
-      "isForward": false,
-      "direction": "in"
-    },
-    "customerResponseTime": "2026-08-27T05:19:35.000Z",
-    "isArchived": false,
-    "source": {
-      "extId": null,
-      "appName": null,
-      "appPhotoURL": null,
-      "permalink": null,
-      "type": "SYSTEM"
-    },
-    "isSpam": false,
-    "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000090683251"
-  },
-  {
-    "id": "300063000090675065",
-    "ticketNumber": "21002",
-    "layoutId": "300063000000074011",
-    "email": "info@arkenopticsusa.com",
-    "phone": null,
-    "subject": "Meet OUTRIDER. Built for Every Hunt.",
-    "status": "Closed",
-    "statusType": "Closed",
-    "createdTime": "2026-08-26T18:31:03.000Z",
-    "category": null,
-    "language": null,
-    "subCategory": null,
-    "priority": null,
-    "channel": "Email",
-    "dueDate": null,
-    "responseDueDate": null,
-    "commentCount": "0",
-    "sentiment": "NEGATIVE",
-    "threadCount": "1",
-    "closedTime": "2026-08-27T02:13:39.000Z",
-    "onholdTime": null,
-    "accountId": "300063000065016049",
-    "departmentId": "300063000000006907",
-    "contactId": "300063000034770001",
-    "productId": null,
-    "assigneeId": "300063000000089033",
-    "teamId": null,
-    "relationshipType": "None",
-    "channelCode": null,
-    "lastThread": {
-      "channel": "EMAIL",
-      "isDraft": false,
-      "isForward": false,
-      "direction": "in"
-    },
-    "customerResponseTime": "2026-08-26T18:31:02.000Z",
-    "isArchived": false,
-    "source": {
-      "extId": null,
-      "appName": null,
-      "appPhotoURL": null,
-      "permalink": null,
-      "type": "SYSTEM"
-    },
-    "isSpam": false,
-    "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000090675065"
-  },
-  {
-    "id": "300063000090660148",
-    "ticketNumber": "21001",
-    "layoutId": "300063000000074011",
-    "email": "notifications@zohoflow.com",
-    "phone": null,
-    "subject": "Error notification: Your flow, Email - Admin failed 3 times in a row",
-    "status": "Closed",
-    "statusType": "Closed",
-    "createdTime": "2026-08-26T15:33:55.000Z",
-    "category": null,
-    "language": null,
-    "subCategory": null,
-    "priority": null,
-    "channel": "Email",
-    "dueDate": null,
-    "responseDueDate": null,
-    "commentCount": "0",
-    "sentiment": "NEGATIVE",
-    "threadCount": "1",
-    "closedTime": "2026-08-27T02:13:08.000Z",
-    "onholdTime": null,
-    "accountId": null,
-    "departmentId": "300063000000006907",
-    "contactId": "300063000023261002",
-    "productId": null,
-    "assigneeId": "300063000000089033",
-    "teamId": null,
-    "relationshipType": "None",
-    "channelCode": null,
-    "lastThread": {
-      "channel": "EMAIL",
-      "isDraft": false,
-      "isForward": false,
-      "direction": "in"
-    },
-    "customerResponseTime": "2026-08-26T15:33:54.000Z",
-    "isArchived": false,
-    "source": {
-      "extId": null,
-      "appName": null,
-      "appPhotoURL": null,
-      "permalink": null,
-      "type": "SYSTEM"
-    },
-    "isSpam": false,
-    "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000090660148"
-  },
-  {
-    "id": "300063000090726015",
-    "ticketNumber": "21000",
-    "layoutId": "300063000000074011",
-    "email": "info@maxtonvalve.com",
-    "phone": null,
-    "subject": "Can't access product pages to make edits to a draft",
-    "status": "Open",
-    "statusType": "Open",
-    "createdTime": "2026-08-26T15:20:26.000Z",
-    "category": null,
-    "language": null,
-    "subCategory": null,
-    "priority": null,
-    "channel": "Email",
-    "dueDate": "2026-08-26T15:20:25.000Z",
-    "responseDueDate": null,
-    "commentCount": "0",
-    "sentiment": "NEGATIVE",
-    "threadCount": "1",
-    "closedTime": null,
-    "onholdTime": null,
-    "accountId": null,
-    "departmentId": "300063000000006907",
-    "contactId": "300063000083959001",
-    "productId": null,
-    "assigneeId": "300063000000089033",
-    "teamId": null,
-    "relationshipType": "None",
-    "channelCode": null,
-    "lastThread": null,
-    "customerResponseTime": "2026-08-26T15:20:26.000Z",
-    "isArchived": false,
-    "source": {
-      "extId": null,
-      "appName": null,
-      "appPhotoURL": null,
-      "permalink": null,
-      "type": "SYSTEM"
-    },
-    "isSpam": false,
-    "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000090726015"
-  },
-  {
-    "id": "300063000090683137",
-    "ticketNumber": "20991",
-    "layoutId": "300063000000074011",
-    "email": "info@spineoflifechiro.com",
-    "phone": null,
-    "subject": "Change online scheduler back to Jane",
-    "status": "Closed",
-    "statusType": "Closed",
-    "createdTime": "2026-08-24T14:55:39.000Z",
-    "category": null,
-    "language": null,
-    "subCategory": null,
-    "priority": "Low",
-    "channel": "Email",
-    "dueDate": "2026-09-02T15:29:33.000Z",
-    "responseDueDate": null,
-    "commentCount": "4",
-    "sentiment": "POSITIVE",
-    "threadCount": "3",
-    "closedTime": "2026-08-27T02:21:24.000Z",
-    "onholdTime": null,
-    "accountId": null,
-    "departmentId": "300063000000006907",
-    "contactId": "300063000088065003",
-    "productId": null,
-    "assigneeId": "300063000000089033",
-    "teamId": null,
-    "relationshipType": "None",
-    "channelCode": null,
-    "lastThread": {
-      "channel": "EMAIL",
-      "isDraft": false,
-      "isForward": false,
-      "direction": "in"
-    },
-    "customerResponseTime": "2026-08-26T12:46:55.000Z",
-    "isArchived": false,
-    "source": {
-      "extId": null,
-      "appName": null,
-      "appPhotoURL": null,
-      "permalink": null,
-      "type": "SYSTEM"
-    },
-    "isSpam": false,
-    "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000090683137"
-  },
-  {
-    "id": "300063000090660099",
-    "ticketNumber": "20999",
-    "layoutId": "300063000000074011",
-    "email": "noreply@zohoaccounts.com",
-    "phone": null,
-    "subject": "New sign-in to your Zoho account",
-    "status": "Closed",
-    "statusType": "Closed",
-    "createdTime": "2026-08-26T11:12:07.000Z",
-    "category": null,
-    "language": null,
-    "subCategory": null,
-    "priority": null,
-    "channel": "Email",
-    "dueDate": null,
-    "responseDueDate": null,
-    "commentCount": "0",
-    "sentiment": "NEGATIVE",
-    "threadCount": "1",
-    "closedTime": "2026-08-27T02:21:44.000Z",
-    "onholdTime": null,
-    "accountId": null,
-    "departmentId": "300063000000006907",
-    "contactId": "300063000019455001",
-    "productId": null,
-    "assigneeId": "300063000000089033",
-    "teamId": null,
-    "relationshipType": "None",
-    "channelCode": null,
-    "lastThread": {
-      "channel": "EMAIL",
-      "isDraft": false,
-      "isForward": false,
-      "direction": "in"
-    },
-    "customerResponseTime": "2026-08-26T11:12:06.000Z",
-    "isArchived": false,
-    "source": {
-      "extId": null,
-      "appName": null,
-      "appPhotoURL": null,
-      "permalink": null,
-      "type": "SYSTEM"
-    },
-    "isSpam": false,
-    "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000090660099"
-  },
-  {
-    "id": "300063000090683186",
-    "ticketNumber": "20993",
-    "layoutId": "300063000000074011",
-    "email": "alex.belding@webriq.com",
-    "phone": "1 719 425 8944",
-    "subject": "Re: Website updates August 2026",
-    "status": "Closed",
-    "statusType": "Closed",
-    "createdTime": "2026-08-24T17:14:06.000Z",
-    "category": null,
-    "language": null,
-    "subCategory": null,
-    "priority": "Low",
-    "channel": "Email",
-    "dueDate": "2026-09-04T01:32:54.000Z",
-    "responseDueDate": null,
-    "commentCount": "0",
-    "sentiment": "NEGATIVE",
-    "threadCount": "7",
-    "closedTime": "2026-08-27T03:06:50.000Z",
-    "onholdTime": null,
-    "accountId": "300063000000354169",
-    "departmentId": "300063000000006907",
-    "contactId": "300063000000354181",
-    "productId": null,
-    "assigneeId": "300063000000089033",
-    "teamId": null,
-    "relationshipType": "None",
-    "channelCode": null,
-    "lastThread": {
-      "channel": "EMAIL",
-      "isDraft": false,
-      "isForward": false,
-      "direction": "out"
-    },
-    "customerResponseTime": "2026-08-25T15:31:52.000Z",
-    "isArchived": false,
-    "source": {
-      "extId": null,
-      "appName": null,
-      "appPhotoURL": null,
-      "permalink": null,
-      "type": "SYSTEM"
-    },
-    "isSpam": false,
-    "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000090683186"
-  },
-  {
-    "id": "300063000090707279",
-    "ticketNumber": "20997",
-    "layoutId": "300063000000074011",
-    "email": "notifications@zohoflow.com",
-    "phone": null,
-    "subject": "Error notification: Your flow, Email - Admin failed 3 times in a row",
-    "status": "Closed",
-    "statusType": "Closed",
-    "createdTime": "2026-08-25T09:46:45.000Z",
-    "category": null,
-    "language": null,
-    "subCategory": null,
-    "priority": null,
-    "channel": "Email",
-    "dueDate": null,
-    "responseDueDate": null,
-    "commentCount": "0",
-    "sentiment": "NEGATIVE",
-    "threadCount": "1",
-    "closedTime": "2026-08-25T11:07:06.000Z",
-    "onholdTime": null,
-    "accountId": null,
-    "departmentId": "300063000000006907",
-    "contactId": "300063000023261002",
-    "productId": null,
-    "assigneeId": "300063000000089033",
-    "teamId": null,
-    "relationshipType": "None",
-    "channelCode": null,
-    "lastThread": {
-      "channel": "EMAIL",
-      "isDraft": false,
-      "isForward": false,
-      "direction": "in"
-    },
-    "customerResponseTime": "2026-08-25T09:46:44.000Z",
-    "isArchived": false,
-    "source": {
-      "extId": null,
-      "appName": null,
-      "appPhotoURL": null,
-      "permalink": null,
-      "type": "SYSTEM"
-    },
-    "isSpam": false,
-    "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000090707279"
-  },
-  {
     "id": "300063000090673197",
     "ticketNumber": "20996",
     "layoutId": "300063000000074011",
     "email": "bbinder@quandarycg.com",
     "phone": null,
     "subject": "QUANDARY: HTML lang attribute is missing - please add lang attribute to <html> tag for accessibility and SEO",
-    "status": "Closed",
-    "statusType": "Closed",
+    "status": "Open",
+    "statusType": "Open",
     "createdTime": "2026-08-24T20:57:16.000Z",
     "category": null,
     "language": null,
     "subCategory": null,
-    "priority": "Low",
+    "priority": null,
     "channel": "Email",
-    "dueDate": "2026-09-04T01:33:22.000Z",
+    "dueDate": null,
     "responseDueDate": null,
-    "commentCount": "4",
+    "commentCount": "0",
     "sentiment": "NEGATIVE",
-    "threadCount": "2",
-    "closedTime": "2026-08-27T02:56:06.000Z",
+    "threadCount": "1",
+    "closedTime": null,
     "onholdTime": null,
     "accountId": null,
     "departmentId": "300063000000006907",
@@ -647,7 +33,7 @@
       "channel": "EMAIL",
       "isDraft": false,
       "isForward": false,
-      "direction": "out"
+      "direction": "in"
     },
     "customerResponseTime": "2026-08-24T20:57:15.000Z",
     "isArchived": false,
@@ -722,13 +108,13 @@
     "category": null,
     "language": null,
     "subCategory": null,
-    "priority": "High",
+    "priority": null,
     "channel": "Email",
-    "dueDate": "2026-08-29T01:31:19.000Z",
+    "dueDate": null,
     "responseDueDate": null,
-    "commentCount": "4",
+    "commentCount": "0",
     "sentiment": "NEGATIVE",
-    "threadCount": "2",
+    "threadCount": "1",
     "closedTime": null,
     "onholdTime": null,
     "accountId": null,
@@ -743,7 +129,7 @@
       "channel": "EMAIL",
       "isDraft": false,
       "isForward": false,
-      "direction": "out"
+      "direction": "in"
     },
     "customerResponseTime": "2026-08-24T20:25:17.000Z",
     "isArchived": false,
@@ -756,6 +142,102 @@
     },
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000090709189"
+  },
+  {
+    "id": "300063000090683186",
+    "ticketNumber": "20993",
+    "layoutId": "300063000000074011",
+    "email": "alex.belding@webriq.com",
+    "phone": "1 719 425 8944",
+    "subject": "Re: Website updates August 2026",
+    "status": "Open",
+    "statusType": "Open",
+    "createdTime": "2026-08-24T17:14:06.000Z",
+    "category": null,
+    "language": null,
+    "subCategory": null,
+    "priority": null,
+    "channel": "Email",
+    "dueDate": null,
+    "responseDueDate": null,
+    "commentCount": "0",
+    "sentiment": "NEUTRAL",
+    "threadCount": "4",
+    "closedTime": null,
+    "onholdTime": null,
+    "accountId": "300063000000354169",
+    "departmentId": "300063000000006907",
+    "contactId": "300063000000354181",
+    "productId": null,
+    "assigneeId": "300063000000089033",
+    "teamId": null,
+    "relationshipType": "None",
+    "channelCode": null,
+    "lastThread": {
+      "channel": "EMAIL",
+      "isDraft": false,
+      "isForward": false,
+      "direction": "in"
+    },
+    "customerResponseTime": "2026-08-24T18:24:06.000Z",
+    "isArchived": false,
+    "source": {
+      "extId": null,
+      "appName": null,
+      "appPhotoURL": null,
+      "permalink": null,
+      "type": "SYSTEM"
+    },
+    "isSpam": false,
+    "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000090683186"
+  },
+  {
+    "id": "300063000090683137",
+    "ticketNumber": "20991",
+    "layoutId": "300063000000074011",
+    "email": "info@spineoflifechiro.com",
+    "phone": null,
+    "subject": "Change online scheduler back to Jane",
+    "status": "Open",
+    "statusType": "Open",
+    "createdTime": "2026-08-24T14:55:39.000Z",
+    "category": null,
+    "language": null,
+    "subCategory": null,
+    "priority": "Low",
+    "channel": "Email",
+    "dueDate": "2026-09-02T15:29:33.000Z",
+    "responseDueDate": null,
+    "commentCount": "1",
+    "sentiment": "NEUTRAL",
+    "threadCount": "1",
+    "closedTime": null,
+    "onholdTime": null,
+    "accountId": null,
+    "departmentId": "300063000000006907",
+    "contactId": "300063000088065003",
+    "productId": null,
+    "assigneeId": "300063000000089033",
+    "teamId": null,
+    "relationshipType": "None",
+    "channelCode": null,
+    "lastThread": {
+      "channel": "EMAIL",
+      "isDraft": false,
+      "isForward": false,
+      "direction": "in"
+    },
+    "customerResponseTime": "2026-08-24T14:55:39.000Z",
+    "isArchived": false,
+    "source": {
+      "extId": null,
+      "appName": null,
+      "appPhotoURL": null,
+      "permalink": null,
+      "type": "SYSTEM"
+    },
+    "isSpam": false,
+    "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000090683137"
   },
   {
     "id": "300063000090707185",
@@ -956,8 +438,8 @@
     "email": "info@maxtonvalve.com",
     "phone": null,
     "subject": "MMM APP missing new images and updates to files",
-    "status": "Closed",
-    "statusType": "Closed",
+    "status": "Open",
+    "statusType": "Open",
     "createdTime": "2026-08-21T18:04:10.000Z",
     "category": null,
     "language": null,
@@ -966,10 +448,10 @@
     "channel": "Email",
     "dueDate": "2026-08-21T18:04:09.000Z",
     "responseDueDate": null,
-    "commentCount": "6",
+    "commentCount": "0",
     "sentiment": "NEGATIVE",
-    "threadCount": "2",
-    "closedTime": "2026-08-27T03:10:52.000Z",
+    "threadCount": "1",
+    "closedTime": null,
     "onholdTime": null,
     "accountId": null,
     "departmentId": "300063000000006907",
@@ -979,12 +461,7 @@
     "teamId": null,
     "relationshipType": "None",
     "channelCode": null,
-    "lastThread": {
-      "channel": "EMAIL",
-      "isDraft": false,
-      "isForward": false,
-      "direction": "out"
-    },
+    "lastThread": null,
     "customerResponseTime": "2026-08-21T18:04:09.000Z",
     "isArchived": false,
     "source": {
@@ -5336,7 +4813,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -5352,6 +4828,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089983023"
   },
@@ -5384,7 +4861,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -5400,6 +4876,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089906001"
   },
@@ -5432,7 +4909,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -5448,6 +4924,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089981016"
   },
@@ -5480,7 +4957,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -5496,6 +4972,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089980001"
   },
@@ -5528,7 +5005,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -5544,6 +5020,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089961001"
   },
@@ -5576,7 +5053,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -5592,6 +5068,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089962001"
   },
@@ -5624,7 +5101,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -5640,6 +5116,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089885038"
   },
@@ -5672,7 +5149,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": null,
     "customerResponseTime": "2026-07-27T03:20:34.000Z",
     "isArchived": false,
@@ -5683,6 +5159,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089938038"
   },
@@ -5715,7 +5192,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -5731,6 +5207,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089616001"
   },
@@ -5763,7 +5240,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -5779,6 +5255,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089925001"
   },
@@ -5811,7 +5288,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -5827,6 +5303,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089924050"
   },
@@ -5859,7 +5336,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -5875,6 +5351,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089924001"
   },
@@ -5907,7 +5384,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -5923,6 +5399,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089905087"
   },
@@ -5955,7 +5432,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -5971,6 +5447,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089905001"
   },
@@ -6003,7 +5480,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -6019,6 +5495,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089885087"
   },
@@ -6051,7 +5528,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -6067,6 +5543,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089900001"
   },
@@ -6099,7 +5576,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -6115,6 +5591,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089876001"
   },
@@ -6147,7 +5624,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -6163,6 +5639,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089846255"
   },
@@ -6195,7 +5672,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -6211,6 +5687,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089846202"
   },
@@ -6243,7 +5720,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -6259,6 +5735,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089793171"
   },
@@ -6291,7 +5768,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -6307,6 +5783,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089846153"
   },
@@ -6339,7 +5816,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -6355,6 +5831,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089793122"
   },
@@ -6387,7 +5864,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -6403,6 +5879,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089846100"
   },
@@ -6435,7 +5912,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -6451,6 +5927,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089802123"
   },
@@ -6483,7 +5960,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -6499,6 +5975,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089846050"
   },
@@ -6531,7 +6008,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -6547,6 +6023,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089793077"
   },
@@ -6579,7 +6056,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -6595,6 +6071,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089794050"
   },
@@ -6627,7 +6104,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -6643,6 +6119,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089793021"
   },
@@ -6675,7 +6152,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -6691,6 +6167,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089806087"
   },
@@ -6723,7 +6200,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -6739,6 +6215,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089846001"
   },
@@ -6771,7 +6248,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -6787,6 +6263,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089759057"
   },
@@ -6819,7 +6296,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -6835,6 +6311,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089674001"
   },
@@ -6867,7 +6344,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -6883,6 +6359,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089789136"
   },
@@ -6915,7 +6392,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -6931,6 +6407,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089802074"
   },
@@ -6963,7 +6440,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -6979,6 +6455,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089763001"
   },
@@ -7011,7 +6488,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -7027,6 +6503,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089802017"
   },
@@ -7059,7 +6536,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -7075,6 +6551,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089806001"
   },
@@ -7107,7 +6584,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -7123,6 +6599,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088661050"
   },
@@ -7155,7 +6632,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -7171,6 +6647,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089789087"
   },
@@ -7203,7 +6680,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -7219,6 +6695,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089730152"
   },
@@ -7251,7 +6728,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -7267,6 +6743,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089794001"
   },
@@ -7299,7 +6776,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -7315,6 +6791,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089789038"
   },
@@ -7347,7 +6824,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -7363,6 +6839,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089730201"
   },
@@ -7395,7 +6872,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -7411,6 +6887,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089737051"
   },
@@ -7443,7 +6920,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -7459,6 +6935,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089759106"
   },
@@ -7491,7 +6968,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -7507,6 +6983,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089729008"
   },
@@ -7539,7 +7016,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -7555,6 +7031,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089759008"
   },
@@ -7587,7 +7064,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -7603,6 +7079,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089730103"
   },
@@ -7635,7 +7112,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -7651,6 +7127,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089736001"
   },
@@ -7683,7 +7160,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": null,
     "customerResponseTime": "2026-07-20T15:31:10.000Z",
     "isArchived": false,
@@ -7694,6 +7170,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089749001"
   },
@@ -7726,7 +7203,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -7742,6 +7218,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089741001"
   },
@@ -7774,7 +7251,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -7790,6 +7266,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089737001"
   },
@@ -7822,7 +7299,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -7838,6 +7314,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089730050"
   },
@@ -7870,7 +7347,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -7886,6 +7362,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089730001"
   },
@@ -7918,7 +7395,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -7934,6 +7410,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089616057"
   },
@@ -7966,7 +7443,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -7982,6 +7458,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089637021"
   },
@@ -8014,7 +7491,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -8030,6 +7506,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000083270327"
   },
@@ -8062,7 +7539,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -8078,6 +7554,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089640001"
   },
@@ -8110,7 +7587,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -8126,6 +7602,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089644001"
   },
@@ -8158,7 +7635,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -8174,6 +7650,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089574001"
   },
@@ -8206,7 +7683,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -8222,6 +7698,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088536179"
   },
@@ -8254,7 +7731,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -8270,6 +7746,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089466005"
   },
@@ -8302,7 +7779,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": null,
     "customerResponseTime": "2026-07-15T17:39:25.000Z",
     "isArchived": false,
@@ -8313,6 +7789,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089578001"
   },
@@ -8345,7 +7822,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -8361,6 +7837,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089417038"
   },
@@ -8393,7 +7870,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -8409,6 +7885,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089485054"
   },
@@ -8441,7 +7918,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -8457,6 +7933,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089485001"
   },
@@ -8489,7 +7966,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -8505,6 +7981,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089486001"
   },
@@ -8537,7 +8014,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -8553,6 +8029,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089466247"
   },
@@ -8585,7 +8062,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -8601,6 +8077,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089466188"
   },
@@ -8633,7 +8110,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -8649,6 +8125,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089466128"
   },
@@ -8681,7 +8158,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -8697,6 +8173,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089466068"
   },
@@ -8729,7 +8206,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -8745,6 +8221,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089457136"
   },
@@ -8777,7 +8254,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -8793,6 +8269,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089301290"
   },
@@ -8825,7 +8302,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -8841,6 +8317,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089399143"
   },
@@ -8873,7 +8350,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -8889,6 +8365,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089398045"
   },
@@ -8921,7 +8398,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -8937,6 +8413,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089457001"
   },
@@ -8969,7 +8446,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -8985,6 +8461,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089418008"
   },
@@ -9017,7 +8494,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -9033,6 +8509,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089398001"
   },
@@ -9065,7 +8542,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -9081,6 +8557,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089399051"
   },
@@ -9113,7 +8590,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -9129,6 +8605,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089430001"
   },
@@ -9161,7 +8638,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -9177,6 +8653,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089287198"
   },
@@ -9209,7 +8686,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -9225,6 +8701,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089399001"
   },
@@ -9257,7 +8734,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -9273,6 +8749,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089390001"
   },
@@ -9305,7 +8782,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -9321,6 +8797,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089313445"
   },
@@ -9353,7 +8830,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -9369,6 +8845,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089312001"
   },
@@ -9401,7 +8878,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -9417,6 +8893,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089312104"
   },
@@ -9449,7 +8926,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -9465,6 +8941,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089313349"
   },
@@ -9497,7 +8974,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -9513,6 +8989,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089302173"
   },
@@ -9545,7 +9022,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -9561,6 +9037,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089286001"
   },
@@ -9593,7 +9070,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -9609,6 +9085,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089304215"
   },
@@ -9641,7 +9118,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -9657,6 +9133,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089313305"
   },
@@ -9689,7 +9166,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -9705,6 +9181,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089313250"
   },
@@ -9737,7 +9214,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -9753,6 +9229,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089302001"
   },
@@ -9785,7 +9262,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -9801,6 +9277,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089304001"
   },
@@ -9833,7 +9310,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -9849,6 +9325,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089304056"
   },
@@ -9881,7 +9358,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -9897,6 +9373,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089313191"
   },
@@ -9917,7 +9394,7 @@
     "channel": "Email",
     "dueDate": "2026-07-15T07:42:29.000Z",
     "responseDueDate": null,
-    "commentCount": "7",
+    "commentCount": "6",
     "sentiment": "NEUTRAL",
     "threadCount": "1",
     "closedTime": "2026-08-03T03:55:01.000Z",
@@ -9929,7 +9406,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -9945,6 +9421,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089313104"
   },
@@ -9977,7 +9454,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -9993,6 +9469,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089301200"
   },
@@ -10025,7 +9502,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -10041,6 +9517,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089304157"
   },
@@ -10073,7 +9550,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -10089,6 +9565,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000089301152"
   },
@@ -13800,7 +13277,7 @@
     "channel": "Email",
     "dueDate": "2026-05-09T16:21:44.000Z",
     "responseDueDate": null,
-    "commentCount": "4",
+    "commentCount": "1",
     "sentiment": "NEUTRAL",
     "threadCount": "8",
     "closedTime": "2026-06-25T08:00:57.000Z",
@@ -14472,7 +13949,7 @@
     "channel": "Email",
     "dueDate": null,
     "responseDueDate": null,
-    "commentCount": "4",
+    "commentCount": "2",
     "sentiment": "NEGATIVE",
     "threadCount": "2",
     "closedTime": "2026-06-02T01:09:12.000Z",
@@ -14916,7 +14393,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -14932,6 +14408,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088555122"
   },
@@ -14964,7 +14441,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -14980,6 +14456,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088555037"
   },
@@ -15012,7 +14489,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -15028,6 +14504,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088524001"
   },
@@ -15060,7 +14537,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -15076,6 +14552,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088440050"
   },
@@ -15108,7 +14585,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -15124,6 +14600,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088482145"
   },
@@ -15144,7 +14621,7 @@
     "channel": "Email",
     "dueDate": "2026-05-24T03:58:52.000Z",
     "responseDueDate": null,
-    "commentCount": "16",
+    "commentCount": "14",
     "sentiment": "POSITIVE",
     "threadCount": "9",
     "closedTime": "2026-05-22T13:40:18.000Z",
@@ -15156,7 +14633,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -15172,6 +14648,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088371086"
   },
@@ -15204,7 +14681,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -15220,6 +14696,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088508063"
   },
@@ -15252,7 +14729,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -15268,6 +14744,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088508002"
   },
@@ -15300,7 +14777,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -15316,6 +14792,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088451051"
   },
@@ -15348,7 +14825,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -15364,6 +14840,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088033315"
   },
@@ -15396,7 +14873,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -15412,6 +14888,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088481045"
   },
@@ -15444,7 +14921,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -15460,6 +14936,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088475001"
   },
@@ -15492,7 +14969,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -15508,6 +14984,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088450057"
   },
@@ -15540,7 +15017,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -15556,6 +15032,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088475099"
   },
@@ -15588,7 +15065,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -15604,6 +15080,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088450008"
   },
@@ -15636,7 +15113,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -15652,6 +15128,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088475050"
   },
@@ -15684,7 +15161,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -15700,6 +15176,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088482037"
   },
@@ -15732,7 +15209,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -15748,6 +15224,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088451001"
   },
@@ -15780,7 +15257,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -15796,6 +15272,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088440001"
   },
@@ -15828,7 +15305,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -15844,6 +15320,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088385230"
   },
@@ -15876,7 +15353,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -15892,6 +15368,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088385145"
   },
@@ -15924,7 +15401,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -15940,6 +15416,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088367080"
   },
@@ -15972,7 +15449,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -15988,6 +15464,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088363067"
   },
@@ -16020,7 +15497,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -16036,6 +15512,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088436001"
   },
@@ -16068,7 +15545,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -16084,6 +15560,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088385045"
   },
@@ -16116,7 +15593,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -16132,6 +15608,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088371186"
   },
@@ -16164,7 +15641,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -16180,6 +15656,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088364081"
   },
@@ -16212,7 +15689,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -16228,6 +15704,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088363007"
   },
@@ -16260,7 +15737,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -16276,6 +15752,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088422103"
   },
@@ -16308,7 +15785,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -16324,6 +15800,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088421044"
   },
@@ -16356,7 +15833,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -16372,6 +15848,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088364032"
   },
@@ -16404,7 +15881,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -16420,6 +15896,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088422050"
   },
@@ -16452,7 +15929,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -16468,6 +15944,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088265099"
   },
@@ -16500,7 +15977,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -16516,6 +15992,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088390068"
   },
@@ -16548,7 +16025,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -16564,6 +16040,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088390006"
   },
@@ -16596,7 +16073,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -16612,6 +16088,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088422001"
   },
@@ -16644,7 +16121,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -16660,6 +16136,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088286004"
   },
@@ -16692,7 +16169,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": null,
     "customerResponseTime": "2026-05-14T07:21:56.000Z",
     "isArchived": false,
@@ -16703,6 +16179,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088403037"
   },
@@ -16735,7 +16212,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": null,
     "customerResponseTime": "2026-05-13T16:24:20.000Z",
     "isArchived": false,
@@ -16746,6 +16222,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088369007"
   },
@@ -16778,7 +16255,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": null,
     "customerResponseTime": "2026-05-13T16:19:24.000Z",
     "isArchived": false,
@@ -16789,6 +16265,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088367004"
   },
@@ -16821,7 +16298,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -16837,6 +16313,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088371001"
   },
@@ -16869,7 +16346,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -16885,6 +16361,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088337002"
   },
@@ -16917,7 +16394,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -16933,6 +16409,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088278001"
   },
@@ -16965,7 +16442,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -16981,6 +16457,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088326001"
   },
@@ -17013,7 +16490,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -17029,6 +16505,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088265050"
   },
@@ -17049,7 +16526,7 @@
     "channel": "Email",
     "dueDate": null,
     "responseDueDate": null,
-    "commentCount": "10",
+    "commentCount": "9",
     "sentiment": "NEUTRAL",
     "threadCount": "2",
     "closedTime": "2026-05-18T01:46:34.000Z",
@@ -17061,7 +16538,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -17077,6 +16553,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088270107"
   },
@@ -17109,7 +16586,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -17125,6 +16601,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088270057"
   },
@@ -17157,7 +16634,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": null,
     "customerResponseTime": "2026-05-11T07:13:16.000Z",
     "isArchived": false,
@@ -17168,6 +16644,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088319001"
   },
@@ -17200,7 +16677,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -17216,6 +16692,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088270008"
   },
@@ -17248,7 +16725,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -17264,6 +16740,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088284001"
   },
@@ -17296,7 +16773,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -17312,6 +16788,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088265001"
   },
@@ -17344,7 +16821,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -17360,6 +16836,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088178038"
   },
@@ -17392,7 +16869,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -17408,6 +16884,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088271001"
   },
@@ -17440,7 +16917,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -17456,6 +16932,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088266001"
   },
@@ -17488,7 +16965,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -17504,6 +16980,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088212107"
   },
@@ -17536,7 +17013,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -17552,6 +17028,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088186400"
   },
@@ -17584,7 +17061,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -17600,6 +17076,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088186296"
   },
@@ -17632,7 +17109,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -17648,6 +17124,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088186192"
   },
@@ -17680,7 +17157,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": null,
     "customerResponseTime": "2026-05-06T18:43:23.000Z",
     "isArchived": false,
@@ -17691,6 +17167,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088221009"
   },
@@ -17723,7 +17200,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -17739,6 +17215,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000087989177"
   },
@@ -17771,7 +17248,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -17787,6 +17263,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088166241"
   },
@@ -17819,7 +17296,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -17835,6 +17311,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088193263"
   },
@@ -17867,7 +17344,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -17883,6 +17359,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088186087"
   },
@@ -17915,7 +17392,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -17931,6 +17407,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000069853003"
   },
@@ -17963,7 +17440,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -17979,6 +17455,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088212001"
   },
@@ -18011,7 +17488,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -18027,6 +17503,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088166123"
   },
@@ -18059,7 +17536,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -18075,6 +17551,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088198001"
   },
@@ -18107,7 +17584,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -18123,6 +17599,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088190001"
   },
@@ -18155,7 +17632,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -18171,6 +17647,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088166018"
   },
@@ -18203,7 +17680,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -18219,6 +17695,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088146003"
   },
@@ -18251,7 +17728,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -18267,6 +17743,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000087992322"
   },
@@ -18299,7 +17776,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -18315,6 +17791,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088138015"
   },
@@ -18347,7 +17824,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -18363,6 +17839,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088115320"
   },
@@ -18395,7 +17872,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -18411,6 +17887,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088115144"
   },
@@ -18443,7 +17920,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": null,
     "customerResponseTime": "2026-05-01T20:14:06.000Z",
     "isArchived": false,
@@ -18454,6 +17930,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088140001"
   },
@@ -18486,7 +17963,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -18502,6 +17978,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000087974179"
   },
@@ -18534,7 +18011,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -18550,6 +18026,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088126016"
   },
@@ -18582,7 +18059,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -18598,6 +18074,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088115027"
   },
@@ -18630,7 +18107,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -18646,6 +18122,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088114002"
   },
@@ -18678,7 +18155,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -18694,6 +18170,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088068002"
   },
@@ -18726,7 +18203,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -18742,6 +18218,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088066210"
   },
@@ -18774,7 +18251,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -18790,8 +18266,153 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088065075"
+  },
+  {
+    "id": "300063000088062023",
+    "ticketNumber": "20576",
+    "layoutId": "300063000000074011",
+    "email": "info@rovebrand.com",
+    "phone": null,
+    "subject": "Hybrid Strains Built for Spring Days",
+    "status": "Closed",
+    "statusType": "Closed",
+    "createdTime": "2026-04-29T14:02:23.000Z",
+    "category": null,
+    "language": null,
+    "subCategory": null,
+    "priority": null,
+    "channel": "Email",
+    "dueDate": null,
+    "responseDueDate": null,
+    "commentCount": "0",
+    "sentiment": "POSITIVE",
+    "threadCount": "1",
+    "closedTime": "2026-04-29T14:11:21.000Z",
+    "onholdTime": null,
+    "accountId": null,
+    "departmentId": "300063000000006907",
+    "contactId": "300063000079464002",
+    "productId": null,
+    "assigneeId": "300063000000089033",
+    "teamId": null,
+    "relationshipType": "None",
+    "lastThread": {
+      "channel": "EMAIL",
+      "isDraft": false,
+      "isForward": false,
+      "direction": "in"
+    },
+    "customerResponseTime": "2026-04-29T14:02:22.000Z",
+    "isArchived": false,
+    "source": {
+      "extId": null,
+      "appName": null,
+      "appPhotoURL": null,
+      "permalink": null,
+      "type": "SYSTEM"
+    },
+    "channelCode": null,
+    "isSpam": false,
+    "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088062023"
+  },
+  {
+    "id": "300063000088066106",
+    "ticketNumber": "20575",
+    "layoutId": "300063000000074011",
+    "email": "notifications@zohoflow.com",
+    "phone": null,
+    "subject": "Error notification: Your flow, Email - Admin failed 3 times in a row",
+    "status": "Closed",
+    "statusType": "Closed",
+    "createdTime": "2026-04-28T20:56:48.000Z",
+    "category": null,
+    "language": null,
+    "subCategory": null,
+    "priority": null,
+    "channel": "Email",
+    "dueDate": null,
+    "responseDueDate": null,
+    "commentCount": "0",
+    "sentiment": "NEGATIVE",
+    "threadCount": "1",
+    "closedTime": "2026-04-29T06:50:54.000Z",
+    "onholdTime": null,
+    "accountId": null,
+    "departmentId": "300063000000006907",
+    "contactId": "300063000023261002",
+    "productId": null,
+    "assigneeId": "300063000000089033",
+    "teamId": null,
+    "relationshipType": "None",
+    "lastThread": {
+      "channel": "EMAIL",
+      "isDraft": false,
+      "isForward": false,
+      "direction": "in"
+    },
+    "customerResponseTime": "2026-04-28T20:56:48.000Z",
+    "isArchived": false,
+    "source": {
+      "extId": null,
+      "appName": null,
+      "appPhotoURL": null,
+      "permalink": null,
+      "type": "SYSTEM"
+    },
+    "channelCode": null,
+    "isSpam": false,
+    "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088066106"
+  },
+  {
+    "id": "300063000088066001",
+    "ticketNumber": "20574",
+    "layoutId": "300063000000074011",
+    "email": "notifications@zohocrm.com",
+    "phone": null,
+    "subject": "Dannea Moneva has assigned a Meeting to you.",
+    "status": "Closed",
+    "statusType": "Closed",
+    "createdTime": "2026-04-28T16:18:16.000Z",
+    "category": null,
+    "language": null,
+    "subCategory": null,
+    "priority": null,
+    "channel": "Email",
+    "dueDate": null,
+    "responseDueDate": null,
+    "commentCount": "0",
+    "sentiment": "NEUTRAL",
+    "threadCount": "1",
+    "closedTime": "2026-04-29T07:25:10.000Z",
+    "onholdTime": null,
+    "accountId": null,
+    "departmentId": "300063000000006907",
+    "contactId": "300063000019266123",
+    "productId": null,
+    "assigneeId": "300063000000089033",
+    "teamId": null,
+    "relationshipType": "None",
+    "lastThread": {
+      "channel": "EMAIL",
+      "isDraft": false,
+      "isForward": false,
+      "direction": "in"
+    },
+    "customerResponseTime": "2026-04-28T16:18:15.000Z",
+    "isArchived": false,
+    "source": {
+      "extId": null,
+      "appName": null,
+      "appPhotoURL": null,
+      "permalink": null,
+      "type": "SYSTEM"
+    },
+    "channelCode": null,
+    "isSpam": false,
+    "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088066001"
   },
   {
     "id": "300063000087926803",
@@ -18822,7 +18443,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -18838,6 +18458,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000087926803"
   },
@@ -18870,7 +18491,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -18886,6 +18506,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000087989372"
   },
@@ -18918,7 +18539,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -18934,6 +18554,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088014024"
   },
@@ -18966,7 +18587,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -18982,6 +18602,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000087974380"
   },
@@ -19014,7 +18635,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -19030,6 +18650,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088007916"
   },
@@ -19062,7 +18683,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -19078,6 +18698,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000088014152"
   },
@@ -19110,7 +18731,6 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
-    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -19126,6 +18746,7 @@
       "permalink": null,
       "type": "SYSTEM"
     },
+    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000087974283"
   },
@@ -22827,7 +22448,7 @@
     "channel": "Email",
     "dueDate": "2026-04-30T10:42:53.000Z",
     "responseDueDate": null,
-    "commentCount": "4",
+    "commentCount": "2",
     "sentiment": "NEUTRAL",
     "threadCount": "3",
     "closedTime": "2026-05-05T07:14:59.000Z",
@@ -23830,7 +23451,7 @@
     "channel": "Email",
     "dueDate": "2026-03-18T00:09:46.000Z",
     "responseDueDate": null,
-    "commentCount": "19",
+    "commentCount": "18",
     "sentiment": "POSITIVE",
     "threadCount": "10",
     "closedTime": "2026-03-31T13:12:56.000Z",
@@ -24322,6 +23943,7 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
+    "channelCode": null,
     "lastThread": null,
     "customerResponseTime": "2026-03-16T20:17:54.000Z",
     "isArchived": false,
@@ -24332,7 +23954,6 @@
       "permalink": null,
       "type": "SYSTEM"
     },
-    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000087306001"
   },
@@ -24365,6 +23986,7 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
+    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -24380,7 +24002,6 @@
       "permalink": null,
       "type": "SYSTEM"
     },
-    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000087246209"
   },
@@ -24413,6 +24034,7 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
+    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -24428,7 +24050,6 @@
       "permalink": null,
       "type": "SYSTEM"
     },
-    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000087246105"
   },
@@ -24461,6 +24082,7 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
+    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -24476,7 +24098,6 @@
       "permalink": null,
       "type": "SYSTEM"
     },
-    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000087144267"
   },
@@ -24509,6 +24130,7 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
+    "channelCode": null,
     "lastThread": null,
     "customerResponseTime": "2026-03-12T17:30:14.000Z",
     "isArchived": false,
@@ -24519,7 +24141,6 @@
       "permalink": null,
       "type": "SYSTEM"
     },
-    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000087137003"
   },
@@ -24552,6 +24173,7 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
+    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -24567,7 +24189,6 @@
       "permalink": null,
       "type": "SYSTEM"
     },
-    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000087146211"
   },
@@ -24600,6 +24221,7 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
+    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -24615,7 +24237,6 @@
       "permalink": null,
       "type": "SYSTEM"
     },
-    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000087077313"
   },
@@ -24648,6 +24269,7 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
+    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -24663,7 +24285,6 @@
       "permalink": null,
       "type": "SYSTEM"
     },
-    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000087153002"
   },
@@ -24696,6 +24317,7 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
+    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -24711,7 +24333,6 @@
       "permalink": null,
       "type": "SYSTEM"
     },
-    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000087077418"
   },
@@ -24744,6 +24365,7 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
+    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -24759,7 +24381,6 @@
       "permalink": null,
       "type": "SYSTEM"
     },
-    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000087057108"
   },
@@ -24792,6 +24413,7 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
+    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -24807,7 +24429,6 @@
       "permalink": null,
       "type": "SYSTEM"
     },
-    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000086912002"
   },
@@ -24840,6 +24461,7 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
+    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -24855,7 +24477,6 @@
       "permalink": null,
       "type": "SYSTEM"
     },
-    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000087038025"
   },
@@ -24888,6 +24509,7 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
+    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -24903,7 +24525,6 @@
       "permalink": null,
       "type": "SYSTEM"
     },
-    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000087077209"
   },
@@ -24936,6 +24557,7 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
+    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -24951,7 +24573,6 @@
       "permalink": null,
       "type": "SYSTEM"
     },
-    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000087077105"
   },
@@ -24984,6 +24605,7 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
+    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -24999,7 +24621,6 @@
       "permalink": null,
       "type": "SYSTEM"
     },
-    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000087079001"
   },
@@ -25032,6 +24653,7 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
+    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -25047,7 +24669,6 @@
       "permalink": null,
       "type": "SYSTEM"
     },
-    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000087037046"
   },
@@ -25080,6 +24701,7 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
+    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -25095,7 +24717,6 @@
       "permalink": null,
       "type": "SYSTEM"
     },
-    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000087077001"
   },
@@ -25128,6 +24749,7 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
+    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -25143,7 +24765,6 @@
       "permalink": null,
       "type": "SYSTEM"
     },
-    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000087057002"
   },
@@ -25176,6 +24797,7 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
+    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -25191,7 +24813,6 @@
       "permalink": null,
       "type": "SYSTEM"
     },
-    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000086048115"
   },
@@ -25224,6 +24845,7 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
+    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -25239,7 +24861,6 @@
       "permalink": null,
       "type": "SYSTEM"
     },
-    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000086912110"
   },
@@ -25272,6 +24893,7 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
+    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -25287,7 +24909,6 @@
       "permalink": null,
       "type": "SYSTEM"
     },
-    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000086751005"
   },
@@ -25320,6 +24941,7 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
+    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -25335,7 +24957,6 @@
       "permalink": null,
       "type": "SYSTEM"
     },
-    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000086787002"
   },
@@ -25368,6 +24989,7 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
+    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -25383,7 +25005,6 @@
       "permalink": null,
       "type": "SYSTEM"
     },
-    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000086767105"
   },
@@ -25416,6 +25037,7 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
+    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -25431,7 +25053,6 @@
       "permalink": null,
       "type": "SYSTEM"
     },
-    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000086464095"
   },
@@ -25464,6 +25085,7 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
+    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -25479,7 +25101,6 @@
       "permalink": null,
       "type": "SYSTEM"
     },
-    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000085930008"
   },
@@ -25512,6 +25133,7 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
+    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -25527,7 +25149,6 @@
       "permalink": null,
       "type": "SYSTEM"
     },
-    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000085561001"
   },
@@ -25560,6 +25181,7 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
+    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -25575,7 +25197,6 @@
       "permalink": null,
       "type": "SYSTEM"
     },
-    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000084262001"
   },
@@ -25596,7 +25217,7 @@
     "channel": "Email",
     "dueDate": "2025-12-31T01:15:21.000Z",
     "responseDueDate": null,
-    "commentCount": "24",
+    "commentCount": "23",
     "sentiment": "NEGATIVE",
     "threadCount": "2",
     "closedTime": "2025-12-22T09:11:18.000Z",
@@ -25608,6 +25229,7 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
+    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -25623,7 +25245,6 @@
       "permalink": null,
       "type": "SYSTEM"
     },
-    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000084710001"
   },
@@ -25656,6 +25277,7 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
+    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -25671,7 +25293,6 @@
       "permalink": null,
       "type": "SYSTEM"
     },
-    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000084478001"
   },
@@ -25704,6 +25325,7 @@
     "assigneeId": "300063000000089033",
     "teamId": null,
     "relationshipType": "None",
+    "channelCode": null,
     "lastThread": {
       "channel": "EMAIL",
       "isDraft": false,
@@ -25719,7 +25341,6 @@
       "permalink": null,
       "type": "SYSTEM"
     },
-    "channelCode": null,
     "isSpam": false,
     "webUrl": "https://helpdesk.webriq.services/support/webriqgoesmad/ShowHomePage.do#Cases/dv/300063000083820605"
   }
