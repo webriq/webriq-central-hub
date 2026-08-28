@@ -46,6 +46,8 @@ export type TicketDetailData = {
   firstResponseAt: string | null;
   slaDueAt: string | null;
   zohoTicketNumber: string | null;
+  whiteLabel: string | null; // Zoho cf_white_label — shown in the UI as "Business Name"
+  stackShiftSite: string | null;
 };
 
 const STATUS_OPTIONS: TicketDetailData["status"][] = ["open", "on_hold", "escalated", "closed"];
@@ -397,6 +399,14 @@ export default function TicketDetail({
                 <div>
                   <div className="text-[11px] text-[#5F6A88] mb-0.5">Channel</div>
                   <div className="text-[#0B1533] capitalize">{ticket.channel}</div>
+                </div>
+                <div>
+                  <div className="text-[11px] text-[#5F6A88] mb-0.5">Business Name</div>
+                  <div className="text-[#0B1533]">{ticket.whiteLabel ?? "-"}</div>
+                </div>
+                <div>
+                  <div className="text-[11px] text-[#5F6A88] mb-0.5">StackShift Site</div>
+                  <div className="text-[#0B1533]">{ticket.stackShiftSite ?? "-"}</div>
                 </div>
                 <div>
                   <div className="text-[11px] text-[#5F6A88] mb-0.5">SLA Due</div>

@@ -5,6 +5,7 @@ import DOMPurify from "dompurify";
 import { ChevronDown, Paperclip } from "lucide-react";
 import { Chip } from "../../../dashboard/_components/dashboard-shared";
 import { cn } from "@/lib/utils";
+import { initialsFrom, colorForName } from "../_resolve";
 
 export type MessageAttachment = { id: string; filename: string; size: number | null };
 
@@ -12,6 +13,9 @@ export type MessageItem = {
   id: string;
   authorType: "client" | "staff" | "system" | "llm_draft";
   authorName: string;
+  // Task 328 — a matched Hub profile's re-hosted avatar (public user-avatars bucket), or null
+  // to fall back to a two-initial monogram. Never a raw Zoho photoURL (auth-gated).
+  avatarUrl: string | null;
   body: string;
   isHtml: boolean;
   visibility: "public" | "internal";
@@ -111,6 +115,27 @@ function isOutboundReply(m: MessageItem): boolean {
   return m.authorType === "staff" && m.visibility === "public";
 }
 
+// Task 328 — round avatar for a conversation row: the matched Hub profile photo when we have
+// one, otherwise a deterministic two-initial monogram (colour keyed off the name).
+function Avatar({ name, url }: { name: string; url: string | null }) {
+  if (url) {
+    return (
+      <span className="w-7 h-7 rounded-full overflow-hidden bg-[#EDF0F7] shrink-0 inline-flex">
+        {/* eslint-disable-next-line @next/next/no-img-element -- Supabase user-avatars bucket URL, not a static/optimizable asset */}
+        <img src={url} alt={name} className="w-full h-full object-cover" />
+      </span>
+    );
+  }
+  return (
+    <span
+      className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-semibold text-white shrink-0"
+      style={{ background: colorForName(name) }}
+    >
+      {initialsFrom(name)}
+    </span>
+  );
+}
+
 function MessageCard({
   ticketId,
   message,
@@ -137,9 +162,7 @@ function MessageCard({
         aria-expanded={open}
         className="flex w-full items-center gap-2 text-left"
       >
-        <div className="w-7 h-7 rounded-full bg-[#EDF0F7] flex items-center justify-center text-[11px] font-semibold text-[#5F6A88] shrink-0">
-          {m.authorName.slice(0, 1).toUpperCase()}
-        </div>
+        <Avatar name={m.authorName} url={m.avatarUrl} />
         <span className="text-[13px] font-semibold text-[#0B1533] shrink-0">{m.authorName}</span>
         {isOutboundReply(m) && (
           <span className="text-[10px] font-semibold uppercase tracking-[0.06em] text-[#007BFF] shrink-0">

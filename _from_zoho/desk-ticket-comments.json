@@ -17,10 +17,263 @@
       "roleName": null
     },
     "impersonatedUser": null,
-    "isPublic": false,
     "encodedContent": "Renato Dulog has updated the status of the issue linked to this ticket from [Open] to [In progress].",
+    "isPublic": false,
     "attachments": [],
     "_zoho_ticket_id": "300063000090683137"
+  },
+  {
+    "id": "300063000090745005",
+    "content": "Renato Dulog has updated the status of the issue linked to this ticket from [In progress] to [Ready for QA/QC].",
+    "commenterId": "300063000045574011",
+    "commentedTime": "2026-08-26T01:11:22.000Z",
+    "modifiedTime": "2026-08-26T01:11:22.000Z",
+    "contentType": "plainText",
+    "commenter": {
+      "id": "300063000045574011",
+      "name": "Renato Dulog",
+      "email": null,
+      "photoURL": "https://profile.zoho.com/file/download?t=user&API=true&ID=845829841&fs=thumb",
+      "type": "NON_DESK_USER",
+      "firstName": "",
+      "lastName": "Renato Dulog",
+      "roleName": null
+    },
+    "impersonatedUser": null,
+    "encodedContent": "Renato Dulog has updated the status of the issue linked to this ticket from [In progress] to [Ready for QA/QC].",
+    "isPublic": false,
+    "attachments": [],
+    "_zoho_ticket_id": "300063000090683137"
+  },
+  {
+    "id": "300063000090712007",
+    "content": "WebriQ has updated the status of the issue linked to this ticket from [Ready for QA/QC] to [Completed].",
+    "commenterId": "300063000000089033",
+    "commentedTime": "2026-08-26T01:24:10.000Z",
+    "modifiedTime": "2026-08-26T01:24:10.000Z",
+    "contentType": "plainText",
+    "commenter": {
+      "id": "300063000000089033",
+      "name": "WebriQ",
+      "email": "helpdesk@webriq.us",
+      "photoURL": "https://desk.zoho.com/supportapi/api/v1/agents/300063000000089033/photo?orgId=671095217",
+      "type": "AGENT",
+      "firstName": "",
+      "lastName": "WebriQ",
+      "roleName": "CEO"
+    },
+    "impersonatedUser": null,
+    "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Ready for QA/QC] to [Completed].",
+    "isPublic": false,
+    "attachments": [],
+    "_zoho_ticket_id": "300063000090683137"
+  },
+  {
+    "id": "300063000090699007",
+    "content": "WebriQ has updated the status of the issue linked to this ticket from [Completed] to [Closed].",
+    "commenterId": "300063000000089033",
+    "commentedTime": "2026-08-26T01:25:29.000Z",
+    "modifiedTime": "2026-08-26T01:25:29.000Z",
+    "contentType": "plainText",
+    "commenter": {
+      "id": "300063000000089033",
+      "name": "WebriQ",
+      "email": "helpdesk@webriq.us",
+      "photoURL": "https://desk.zoho.com/supportapi/api/v1/agents/300063000000089033/photo?orgId=671095217",
+      "type": "AGENT",
+      "firstName": "",
+      "lastName": "WebriQ",
+      "roleName": "CEO"
+    },
+    "impersonatedUser": null,
+    "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Completed] to [Closed].",
+    "isPublic": false,
+    "attachments": [],
+    "_zoho_ticket_id": "300063000090683137"
+  },
+  {
+    "id": "300063000090743015",
+    "content": "Miguel Franco Trinidad has updated the status of the issue linked to this ticket from [Open] to [In progress].",
+    "commenterId": "300063000045574011",
+    "commentedTime": "2026-08-26T03:46:56.000Z",
+    "modifiedTime": "2026-08-26T03:46:56.000Z",
+    "contentType": "plainText",
+    "commenter": {
+      "id": "300063000045574011",
+      "name": "Miguel Franco Trinidad",
+      "email": null,
+      "photoURL": "https://profile.zoho.com/file/download?t=user&API=true&ID=900288881&fs=thumb",
+      "type": "NON_DESK_USER",
+      "firstName": "",
+      "lastName": "Miguel Franco Trinidad",
+      "roleName": null
+    },
+    "impersonatedUser": null,
+    "isPublic": false,
+    "encodedContent": "Miguel Franco Trinidad has updated the status of the issue linked to this ticket from [Open] to [In progress].",
+    "attachments": [],
+    "_zoho_ticket_id": "300063000090673197"
+  },
+  {
+    "id": "300063000090743019",
+    "content": "Miguel Franco Trinidad has updated the status of the issue linked to this ticket from [In progress] to [Ready for QA/QC].",
+    "commenterId": "300063000045574011",
+    "commentedTime": "2026-08-26T03:52:13.000Z",
+    "modifiedTime": "2026-08-26T03:52:13.000Z",
+    "contentType": "plainText",
+    "commenter": {
+      "id": "300063000045574011",
+      "name": "Miguel Franco Trinidad",
+      "email": null,
+      "photoURL": "https://profile.zoho.com/file/download?t=user&API=true&ID=900288881&fs=thumb",
+      "type": "NON_DESK_USER",
+      "firstName": "",
+      "lastName": "Miguel Franco Trinidad",
+      "roleName": null
+    },
+    "impersonatedUser": null,
+    "isPublic": false,
+    "encodedContent": "Miguel Franco Trinidad has updated the status of the issue linked to this ticket from [In progress] to [Ready for QA/QC].",
+    "attachments": [],
+    "_zoho_ticket_id": "300063000090673197"
+  },
+  {
+    "id": "300063000090770001",
+    "content": "WebriQ has updated the status of the issue linked to this ticket from [Ready for QA/QC] to [Completed].",
+    "commenterId": "300063000000089033",
+    "commentedTime": "2026-08-27T02:53:15.000Z",
+    "modifiedTime": "2026-08-27T02:53:15.000Z",
+    "contentType": "plainText",
+    "commenter": {
+      "id": "300063000000089033",
+      "name": "WebriQ",
+      "email": "helpdesk@webriq.us",
+      "photoURL": "https://desk.zoho.com/supportapi/api/v1/agents/300063000000089033/photo?orgId=671095217",
+      "type": "AGENT",
+      "firstName": "",
+      "lastName": "WebriQ",
+      "roleName": "CEO"
+    },
+    "impersonatedUser": null,
+    "isPublic": false,
+    "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Ready for QA/QC] to [Completed].",
+    "attachments": [],
+    "_zoho_ticket_id": "300063000090673197"
+  },
+  {
+    "id": "300063000090771001",
+    "content": "WebriQ has updated the status of the issue linked to this ticket from [Completed] to [Closed].",
+    "commenterId": "300063000000089033",
+    "commentedTime": "2026-08-27T02:53:24.000Z",
+    "modifiedTime": "2026-08-27T02:53:24.000Z",
+    "contentType": "plainText",
+    "commenter": {
+      "id": "300063000000089033",
+      "name": "WebriQ",
+      "email": "helpdesk@webriq.us",
+      "photoURL": "https://desk.zoho.com/supportapi/api/v1/agents/300063000000089033/photo?orgId=671095217",
+      "type": "AGENT",
+      "firstName": "",
+      "lastName": "WebriQ",
+      "roleName": "CEO"
+    },
+    "impersonatedUser": null,
+    "isPublic": false,
+    "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Completed] to [Closed].",
+    "attachments": [],
+    "_zoho_ticket_id": "300063000090673197"
+  },
+  {
+    "id": "300063000090746009",
+    "content": "Roseller Enriquez has updated the status of the issue linked to this ticket from [Open] to [In progress].",
+    "commenterId": "300063000045574011",
+    "commentedTime": "2026-08-26T02:13:59.000Z",
+    "modifiedTime": "2026-08-26T02:13:59.000Z",
+    "contentType": "plainText",
+    "commenter": {
+      "id": "300063000045574011",
+      "name": "Roseller Enriquez",
+      "email": null,
+      "photoURL": "https://profile.zoho.com/file/download?t=user&API=true&ID=839460623&fs=thumb",
+      "type": "NON_DESK_USER",
+      "firstName": "",
+      "lastName": "Roseller Enriquez",
+      "roleName": null
+    },
+    "impersonatedUser": null,
+    "isPublic": false,
+    "encodedContent": "Roseller Enriquez has updated the status of the issue linked to this ticket from [Open] to [In progress].",
+    "attachments": [],
+    "_zoho_ticket_id": "300063000090709189"
+  },
+  {
+    "id": "300063000090754010",
+    "content": "Niña has updated the status of the issue linked to this ticket from [In progress] to [Ready for QA/QC].",
+    "commenterId": "300063000078989003",
+    "commentedTime": "2026-08-26T04:23:11.000Z",
+    "modifiedTime": "2026-08-26T04:23:11.000Z",
+    "contentType": "plainText",
+    "commenter": {
+      "id": "300063000078989003",
+      "name": "Niña Anjerrie Baraquil",
+      "email": "nina.baraquil@webriq.services",
+      "photoURL": "https://desk.zoho.com/supportapi/api/v1/agents/300063000078989003/photo?orgId=671095217",
+      "type": "AGENT",
+      "firstName": "Niña Anjerrie",
+      "lastName": "Baraquil",
+      "roleName": "LightAgent"
+    },
+    "impersonatedUser": null,
+    "isPublic": false,
+    "encodedContent": "Niña has updated the status of the issue linked to this ticket from [In progress] to [Ready for QA/QC].",
+    "attachments": [],
+    "_zoho_ticket_id": "300063000090709189"
+  },
+  {
+    "id": "300063000090728006",
+    "content": "Niña has updated the status of the issue linked to this ticket from [Ready for QA/QC] to [Completed].",
+    "commenterId": "300063000078989003",
+    "commentedTime": "2026-08-26T04:23:13.000Z",
+    "modifiedTime": "2026-08-26T04:23:13.000Z",
+    "contentType": "plainText",
+    "commenter": {
+      "id": "300063000078989003",
+      "name": "Niña Anjerrie Baraquil",
+      "email": "nina.baraquil@webriq.services",
+      "photoURL": "https://desk.zoho.com/supportapi/api/v1/agents/300063000078989003/photo?orgId=671095217",
+      "type": "AGENT",
+      "firstName": "Niña Anjerrie",
+      "lastName": "Baraquil",
+      "roleName": "LightAgent"
+    },
+    "impersonatedUser": null,
+    "isPublic": false,
+    "encodedContent": "Niña has updated the status of the issue linked to this ticket from [Ready for QA/QC] to [Completed].",
+    "attachments": [],
+    "_zoho_ticket_id": "300063000090709189"
+  },
+  {
+    "id": "300063000090746013",
+    "content": "Niña has updated the status of the issue linked to this ticket from [Completed] to [Closed].",
+    "commenterId": "300063000078989003",
+    "commentedTime": "2026-08-26T04:23:19.000Z",
+    "modifiedTime": "2026-08-26T04:23:19.000Z",
+    "contentType": "plainText",
+    "commenter": {
+      "id": "300063000078989003",
+      "name": "Niña Anjerrie Baraquil",
+      "email": "nina.baraquil@webriq.services",
+      "photoURL": "https://desk.zoho.com/supportapi/api/v1/agents/300063000078989003/photo?orgId=671095217",
+      "type": "AGENT",
+      "firstName": "Niña Anjerrie",
+      "lastName": "Baraquil",
+      "roleName": "LightAgent"
+    },
+    "impersonatedUser": null,
+    "isPublic": false,
+    "encodedContent": "Niña has updated the status of the issue linked to this ticket from [Completed] to [Closed].",
+    "attachments": [],
+    "_zoho_ticket_id": "300063000090709189"
   },
   {
     "id": "300063000090357002",
@@ -182,6 +435,152 @@
     "encodedContent": "Niña has updated the status of the issue linked to this ticket from [Completed] to [Closed].",
     "attachments": [],
     "_zoho_ticket_id": "300063000090359001"
+  },
+  {
+    "id": "300063000090755016",
+    "content": "<div style=\"direction: ltr; font-size: 13px; font-family: Arial, Helvetica, sans-serif\"><div>Hi Maxton Team,<br/></div><div><br/></div><div>We have updated the links, images, and version upgrade.&nbsp;<br/></div><div><br/></div><div>You may see the file attached for your review.<br/></div><div><br/></div><div>Please let us know if there are any questions or further concerns.<br/></div><div><br/></div><div>Thank you,<br/></div><div>Nina Anjerrie R. Baraquil</div></div>",
+    "commenterId": "300063000000089033",
+    "commentedTime": "2026-08-25T11:56:07.000Z",
+    "modifiedTime": "2026-08-25T11:56:07.000Z",
+    "contentType": "html",
+    "commenter": {
+      "id": "300063000000089033",
+      "name": "WebriQ",
+      "email": "helpdesk@webriq.us",
+      "photoURL": "https://desk.zoho.com/supportapi/api/v1/agents/300063000000089033/photo?orgId=671095217",
+      "type": "AGENT",
+      "firstName": "",
+      "lastName": "WebriQ",
+      "roleName": "CEO"
+    },
+    "impersonatedUser": null,
+    "isPublic": true,
+    "encodedContent": "&lt;div style=&#34;direction: ltr; font-size: 13px; font-family: Arial, Helvetica, sans-serif&#34;&gt;&lt;div&gt;Hi Maxton Team,&lt;br/&gt;&lt;/div&gt;&lt;div&gt;&lt;br/&gt;&lt;/div&gt;&lt;div&gt;We have updated the links, images, and version upgrade.&amp;nbsp;&lt;br/&gt;&lt;/div&gt;&lt;div&gt;&lt;br/&gt;&lt;/div&gt;&lt;div&gt;You may see the file attached for your review.&lt;br/&gt;&lt;/div&gt;&lt;div&gt;&lt;br/&gt;&lt;/div&gt;&lt;div&gt;Please let us know if there are any questions or further concerns.&lt;br/&gt;&lt;/div&gt;&lt;div&gt;&lt;br/&gt;&lt;/div&gt;&lt;div&gt;Thank you,&lt;br/&gt;&lt;/div&gt;&lt;div&gt;Nina Anjerrie R. Baraquil&lt;/div&gt;&lt;/div&gt;",
+    "attachments": [
+      {
+        "id": "300063000090726013",
+        "name": "app-release.aab",
+        "size": "24228255",
+        "previewurl": null,
+        "href": "https://desk.zoho.com/supportapi/api/v1/tickets/300063000090733001/comments/300063000090755016/attachments/300063000090726013/content"
+      }
+    ],
+    "_zoho_ticket_id": "300063000090733001"
+  },
+  {
+    "id": "300063000090698018",
+    "content": "<p>Hello Nina,</p><p><br/></p><p>We are seeing that the web page updates have been completed; however, the following items have not yet been updated in the MMM App:</p><p><br/></p><ol><li><strong>MMM App Thumbnail Valve Image</strong> – This is still displaying the old image.</li><li><strong>MMM App Home Page Valve Image</strong> – This image has not been updated.</li><li><strong>Valve Calculator</strong> – The valve image has not been updated to the appropriate image.</li></ol><p><br/></p><p>Please let me know if you need anything from me to complete these updates as soon as possible.</p><p><br/></p><p>Thank you,</p><p>Audrina</p><p><br/></p><p>Thanks,</p><p>Audrina </p>",
+    "commenterId": "300063000000089033",
+    "commentedTime": "2026-08-25T14:20:48.000Z",
+    "modifiedTime": "2026-08-25T14:20:48.000Z",
+    "contentType": "html",
+    "commenter": {
+      "id": "300063000000089033",
+      "name": "WebriQ",
+      "email": "helpdesk@webriq.us",
+      "photoURL": "https://desk.zoho.com/supportapi/api/v1/agents/300063000000089033/photo?orgId=671095217",
+      "type": "AGENT",
+      "firstName": "",
+      "lastName": "WebriQ",
+      "roleName": "CEO"
+    },
+    "impersonatedUser": null,
+    "isPublic": false,
+    "encodedContent": "&lt;p&gt;Hello Nina,&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;We are seeing that the web page updates have been completed; however, the following items have not yet been updated in the MMM App:&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;ol&gt;&lt;li&gt;&lt;strong&gt;MMM App Thumbnail Valve Image&lt;/strong&gt; – This is still displaying the old image.&lt;/li&gt;&lt;li&gt;&lt;strong&gt;MMM App Home Page Valve Image&lt;/strong&gt; – This image has not been updated.&lt;/li&gt;&lt;li&gt;&lt;strong&gt;Valve Calculator&lt;/strong&gt; – The valve image has not been updated to the appropriate image.&lt;/li&gt;&lt;/ol&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;Please let me know if you need anything from me to complete these updates as soon as possible.&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;Thank you,&lt;/p&gt;&lt;p&gt;Audrina&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;Thanks,&lt;/p&gt;&lt;p&gt;Audrina &lt;/p&gt;",
+    "attachments": [],
+    "_zoho_ticket_id": "300063000090733001"
+  },
+  {
+    "id": "300063000090755038",
+    "content": "<div style=\"direction: ltr; font-size: 13px; font-family: Arial, Helvetica, sans-serif\"><div>Hi Audrina,<br/></div><div><br/></div><div>I have provided the updated .aab file in my previous comment. This will have to be uploaded to the App Store or Play Store before it's reflected in the app.<br/></div><div><br/></div><div>Could you please check and confirm?<br/></div><div><br/></div><div>Thank you,<br/></div><div>Nina</div></div>",
+    "commenterId": "300063000000089033",
+    "commentedTime": "2026-08-25T15:32:18.000Z",
+    "modifiedTime": "2026-08-25T15:32:18.000Z",
+    "contentType": "html",
+    "commenter": {
+      "id": "300063000000089033",
+      "name": "WebriQ",
+      "email": "helpdesk@webriq.us",
+      "photoURL": "https://desk.zoho.com/supportapi/api/v1/agents/300063000000089033/photo?orgId=671095217",
+      "type": "AGENT",
+      "firstName": "",
+      "lastName": "WebriQ",
+      "roleName": "CEO"
+    },
+    "impersonatedUser": null,
+    "isPublic": true,
+    "encodedContent": "&lt;div style=&#34;direction: ltr; font-size: 13px; font-family: Arial, Helvetica, sans-serif&#34;&gt;&lt;div&gt;Hi Audrina,&lt;br/&gt;&lt;/div&gt;&lt;div&gt;&lt;br/&gt;&lt;/div&gt;&lt;div&gt;I have provided the updated .aab file in my previous comment. This will have to be uploaded to the App Store or Play Store before it&#39;s reflected in the app.&lt;br/&gt;&lt;/div&gt;&lt;div&gt;&lt;br/&gt;&lt;/div&gt;&lt;div&gt;Could you please check and confirm?&lt;br/&gt;&lt;/div&gt;&lt;div&gt;&lt;br/&gt;&lt;/div&gt;&lt;div&gt;Thank you,&lt;br/&gt;&lt;/div&gt;&lt;div&gt;Nina&lt;/div&gt;&lt;/div&gt;",
+    "attachments": [],
+    "_zoho_ticket_id": "300063000090733001"
+  },
+  {
+    "id": "300063000090692037",
+    "content": "<p>Hello Nina,</p><p><br/></p><p>I am not able to see an attachment from you. Can you please direct me on where this may be or send this by email to myself and Karl?</p><p><br/></p><p>Please let me know if you need anything from me to complete these updates as soon as possible.</p><p><br/></p><p>Thank you,</p><p>Audrina</p>",
+    "commenterId": "300063000000089033",
+    "commentedTime": "2026-08-25T15:37:24.000Z",
+    "modifiedTime": "2026-08-25T18:18:14.000Z",
+    "contentType": "html",
+    "commenter": {
+      "id": "300063000000089033",
+      "name": "WebriQ",
+      "email": "helpdesk@webriq.us",
+      "photoURL": "https://desk.zoho.com/supportapi/api/v1/agents/300063000000089033/photo?orgId=671095217",
+      "type": "AGENT",
+      "firstName": "",
+      "lastName": "WebriQ",
+      "roleName": "CEO"
+    },
+    "impersonatedUser": null,
+    "isPublic": false,
+    "encodedContent": "&lt;p&gt;Hello Nina,&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;I am not able to see an attachment from you. Can you please direct me on where this may be or send this by email to myself and Karl?&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;Please let me know if you need anything from me to complete these updates as soon as possible.&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;Thank you,&lt;/p&gt;&lt;p&gt;Audrina&lt;/p&gt;",
+    "attachments": [],
+    "_zoho_ticket_id": "300063000090733001"
+  },
+  {
+    "id": "300063000090758001",
+    "content": "<p><br/></p>",
+    "commenterId": "300063000000089033",
+    "commentedTime": "2026-08-25T18:18:33.000Z",
+    "modifiedTime": "2026-08-25T18:18:33.000Z",
+    "contentType": "html",
+    "commenter": {
+      "id": "300063000000089033",
+      "name": "WebriQ",
+      "email": "helpdesk@webriq.us",
+      "photoURL": "https://desk.zoho.com/supportapi/api/v1/agents/300063000000089033/photo?orgId=671095217",
+      "type": "AGENT",
+      "firstName": "",
+      "lastName": "WebriQ",
+      "roleName": "CEO"
+    },
+    "impersonatedUser": null,
+    "isPublic": false,
+    "encodedContent": "&lt;p&gt;&lt;br/&gt;&lt;/p&gt;",
+    "attachments": [],
+    "_zoho_ticket_id": "300063000090733001"
+  },
+  {
+    "id": "300063000090727035",
+    "content": "<p>We also see that the calculator images are correct however the loading screen needs to also be updated. </p>",
+    "commenterId": "300063000000089033",
+    "commentedTime": "2026-08-25T18:19:16.000Z",
+    "modifiedTime": "2026-08-25T18:19:16.000Z",
+    "contentType": "html",
+    "commenter": {
+      "id": "300063000000089033",
+      "name": "WebriQ",
+      "email": "helpdesk@webriq.us",
+      "photoURL": "https://desk.zoho.com/supportapi/api/v1/agents/300063000000089033/photo?orgId=671095217",
+      "type": "AGENT",
+      "firstName": "",
+      "lastName": "WebriQ",
+      "roleName": "CEO"
+    },
+    "impersonatedUser": null,
+    "isPublic": false,
+    "encodedContent": "&lt;p&gt;We also see that the calculator images are correct however the loading screen needs to also be updated. &lt;/p&gt;",
+    "attachments": [],
+    "_zoho_ticket_id": "300063000090733001"
   },
   {
     "id": "300063000090674008",
@@ -1397,8 +1796,8 @@
       "roleName": null
     },
     "impersonatedUser": null,
-    "encodedContent": "Kenet has updated the status of the issue linked to this ticket from [Open] to [In progress].",
     "isPublic": false,
+    "encodedContent": "Kenet has updated the status of the issue linked to this ticket from [Open] to [In progress].",
     "attachments": [],
     "_zoho_ticket_id": "300063000090228001"
   },
@@ -1420,8 +1819,8 @@
       "roleName": null
     },
     "impersonatedUser": null,
-    "encodedContent": "Kenet has updated the status of the issue linked to this ticket from [In progress] to [Ready for QA/QC].",
     "isPublic": false,
+    "encodedContent": "Kenet has updated the status of the issue linked to this ticket from [In progress] to [Ready for QA/QC].",
     "attachments": [],
     "_zoho_ticket_id": "300063000090228001"
   },
@@ -1443,8 +1842,8 @@
       "roleName": "CEO"
     },
     "impersonatedUser": null,
-    "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Ready for QA/QC] to [Completed].",
     "isPublic": false,
+    "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Ready for QA/QC] to [Completed].",
     "attachments": [],
     "_zoho_ticket_id": "300063000090228001"
   },
@@ -1466,8 +1865,8 @@
       "roleName": "CEO"
     },
     "impersonatedUser": null,
-    "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Completed] to [Closed].",
     "isPublic": false,
+    "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Completed] to [Closed].",
     "attachments": [],
     "_zoho_ticket_id": "300063000090228001"
   },
@@ -2915,8 +3314,8 @@
       "roleName": null
     },
     "impersonatedUser": null,
-    "encodedContent": "Kenet has updated the status of the issue linked to this ticket from [Open] to [In progress].",
     "isPublic": false,
+    "encodedContent": "Kenet has updated the status of the issue linked to this ticket from [Open] to [In progress].",
     "attachments": [],
     "_zoho_ticket_id": "300063000089983023"
   },
@@ -2938,8 +3337,8 @@
       "roleName": null
     },
     "impersonatedUser": null,
-    "encodedContent": "Kenet has updated the status of the issue linked to this ticket from [In progress] to [Ready for QA/QC].",
     "isPublic": false,
+    "encodedContent": "Kenet has updated the status of the issue linked to this ticket from [In progress] to [Ready for QA/QC].",
     "attachments": [],
     "_zoho_ticket_id": "300063000089983023"
   },
@@ -2961,8 +3360,8 @@
       "roleName": "CEO"
     },
     "impersonatedUser": null,
-    "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Ready for QA/QC] to [Completed].",
     "isPublic": false,
+    "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Ready for QA/QC] to [Completed].",
     "attachments": [],
     "_zoho_ticket_id": "300063000089983023"
   },
@@ -2984,8 +3383,8 @@
       "roleName": "CEO"
     },
     "impersonatedUser": null,
-    "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Completed] to [Closed].",
     "isPublic": false,
+    "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Completed] to [Closed].",
     "attachments": [],
     "_zoho_ticket_id": "300063000089983023"
   },
@@ -3444,8 +3843,8 @@
       "roleName": null
     },
     "impersonatedUser": null,
-    "isPublic": false,
     "encodedContent": "Kenet has updated the status of the issue linked to this ticket from [Open] to [In progress].",
+    "isPublic": false,
     "attachments": [],
     "_zoho_ticket_id": "300063000089846153"
   },
@@ -3467,8 +3866,8 @@
       "roleName": null
     },
     "impersonatedUser": null,
-    "isPublic": false,
     "encodedContent": "Kenet has updated the status of the issue linked to this ticket from [In progress] to [Ready for QA/QC].",
+    "isPublic": false,
     "attachments": [],
     "_zoho_ticket_id": "300063000089846153"
   },
@@ -3490,8 +3889,8 @@
       "roleName": "CEO"
     },
     "impersonatedUser": null,
-    "isPublic": false,
     "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Ready for QA/QC] to [Completed].",
+    "isPublic": false,
     "attachments": [],
     "_zoho_ticket_id": "300063000089846153"
   },
@@ -3513,8 +3912,8 @@
       "roleName": "CEO"
     },
     "impersonatedUser": null,
-    "isPublic": false,
     "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Completed] to [Closed].",
+    "isPublic": false,
     "attachments": [],
     "_zoho_ticket_id": "300063000089846153"
   },
@@ -3720,8 +4119,8 @@
       "roleName": null
     },
     "impersonatedUser": null,
-    "encodedContent": "Kenet has updated the status of the issue linked to this ticket from [Open] to [In progress].",
     "isPublic": false,
+    "encodedContent": "Kenet has updated the status of the issue linked to this ticket from [Open] to [In progress].",
     "attachments": [],
     "_zoho_ticket_id": "300063000089674001"
   },
@@ -3743,8 +4142,8 @@
       "roleName": null
     },
     "impersonatedUser": null,
-    "encodedContent": "Kenet has updated the status of the issue linked to this ticket from [In progress] to [Ready for QA/QC].",
     "isPublic": false,
+    "encodedContent": "Kenet has updated the status of the issue linked to this ticket from [In progress] to [Ready for QA/QC].",
     "attachments": [],
     "_zoho_ticket_id": "300063000089674001"
   },
@@ -3766,8 +4165,8 @@
       "roleName": "CEO"
     },
     "impersonatedUser": null,
-    "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Ready for QA/QC] to [Completed].",
     "isPublic": false,
+    "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Ready for QA/QC] to [Completed].",
     "attachments": [],
     "_zoho_ticket_id": "300063000089674001"
   },
@@ -3789,8 +4188,8 @@
       "roleName": "CEO"
     },
     "impersonatedUser": null,
-    "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Completed] to [Closed].",
     "isPublic": false,
+    "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Completed] to [Closed].",
     "attachments": [],
     "_zoho_ticket_id": "300063000089674001"
   },
@@ -5911,6 +6310,29 @@
     "_zoho_ticket_id": "300063000089313104"
   },
   {
+    "id": "300063000090687002",
+    "content": "Niña has updated the status of the issue linked to this ticket from [For Client Approval] to [Closed].",
+    "commenterId": "300063000078989003",
+    "commentedTime": "2026-08-25T15:52:05.000Z",
+    "modifiedTime": "2026-08-25T15:52:05.000Z",
+    "contentType": "plainText",
+    "commenter": {
+      "id": "300063000078989003",
+      "name": "Niña Anjerrie Baraquil",
+      "email": "nina.baraquil@webriq.services",
+      "photoURL": "https://desk.zoho.com/supportapi/api/v1/agents/300063000078989003/photo?orgId=671095217",
+      "type": "AGENT",
+      "firstName": "Niña Anjerrie",
+      "lastName": "Baraquil",
+      "roleName": "LightAgent"
+    },
+    "impersonatedUser": null,
+    "isPublic": false,
+    "encodedContent": "Niña has updated the status of the issue linked to this ticket from [For Client Approval] to [Closed].",
+    "attachments": [],
+    "_zoho_ticket_id": "300063000089313104"
+  },
+  {
     "id": "300063000089345003",
     "content": "Ericka Dichon has updated the status of the issue linked to this ticket from [Open] to [In progress].",
     "commenterId": "300063000045574011",
@@ -7262,8 +7684,8 @@
       "roleName": "CEO"
     },
     "impersonatedUser": null,
-    "isPublic": true,
     "encodedContent": "&lt;div style=&#34;direction: ltr; font-size: 13px; font-family: Arial, Helvetica, sans-serif&#34;&gt;&lt;div&gt;Hi Maxton Team,&lt;br/&gt;&lt;/div&gt;&lt;div&gt;&lt;br/&gt;&lt;/div&gt;&lt;div&gt;This has been fixed. Please verify on your end.&lt;br/&gt;&lt;/div&gt;&lt;div&gt;&lt;br/&gt;&lt;/div&gt;&lt;div&gt;Let us know if there are any concerns.&lt;br/&gt;&lt;/div&gt;&lt;div&gt;&lt;br/&gt;&lt;/div&gt;&lt;div&gt;Thank you!&lt;br/&gt;&lt;/div&gt;&lt;div&gt;&lt;br/&gt;&lt;/div&gt;&lt;div&gt;&lt;div style=&#34;box-sizing: border-box; outline: 0px; font-family: Arial, Helvetica, Verdana, sans-serif; letter-spacing: 0.2px; background-color: rgb(255, 255, 255)&#34;&gt;Best regards,&lt;/div&gt;&lt;div style=&#34;box-sizing: border-box; outline: 0px; font-family: Arial, Helvetica, Verdana, sans-serif; letter-spacing: 0.2px; background-color: rgb(255, 255, 255)&#34;&gt;&lt;div style=&#34;box-sizing: border-box; outline: 0px&#34;&gt;&lt;div style=&#34;box-sizing: border-box; outline: 0px&#34;&gt;&lt;table cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; style=&#34;outline: 0px; word-break: normal; width: 600px; max-width: 600px; font-family: &amp;quot;Open Sans&amp;quot;, sans-serif&#34;&gt;&lt;tbody style=&#34;box-sizing: border-box; outline: 0px&#34;&gt;&lt;tr style=&#34;box-sizing: border-box; outline: 0px&#34;&gt;&lt;td style=&#34;box-sizing: border-box; outline: 0px; text-align: center; padding: 10px 20px; vertical-align: middle; width: 240px&#34;&gt;&lt;a href=&#34;<a href=\"https://www.webriq.com/\" class='url_link' target=\"_blank\" rel=\"noreferrer\" >https://www.webriq.com/</a>&#34; target=&#34;_blank&#34; rel=&#34;noreferrer noopener&#34; style=&#34;box-sizing: border-box; outline: 0px; color: rgb(10, 115, 235)&#34;&gt;&lt;br style=&#34;box-sizing: border-box; outline: 0px&#34;/&gt;&lt;/a&gt;&lt;div style=&#34;box-sizing: border-box; outline: 0px&#34;&gt;&lt;a href=&#34;<a href=\"https://www.webriq.com/\" class='url_link' target=\"_blank\" rel=\"noreferrer\" >https://www.webriq.com/</a>&#34; target=&#34;_blank&#34; rel=&#34;noreferrer noopener&#34; style=&#34;box-sizing: border-box; outline: 0px; color: rgb(10, 115, 235)&#34;&gt;&lt;img src=&#34;<a href=\"https://res.cloudinary.com/dnla85pdq/image/upload/v1586936761/webriq/webriq-logo.png\" class='url_link' target=\"_blank\" rel=\"noreferrer\" >https://res.cloudinary.com/dnla85pdq/image/upload/v1586936761/webriq/webriq-logo.png</a>&#34; width=&#34;110&#34; style=&#34;box-sizing: border-box; outline: 0px; max-width: 110px; display: block; margin: 0px auto&#34;/&gt;&lt;/a&gt;&lt;div style=&#34;box-sizing: border-box; outline: 0px; font-size: 14px; font-weight: bold; color: rgb(35, 35, 35)&#34;&gt;&lt;span class=&#34;x_1343295080size&#34; style=&#34;box-sizing: border-box; outline: 0px; font-size: 18px; line-height: normal&#34;&gt;StackShift&lt;/span&gt;&lt;/div&gt;&lt;div style=&#34;box-sizing: border-box; outline: 0px; font-size: 12px; color: rgb(85, 85, 85); margin-top: 5px&#34;&gt;Powered by Talent, Driven by AI, Transformed by Technology&lt;/div&gt;&lt;div style=&#34;box-sizing: border-box; outline: 0px; margin-top: 10px&#34;&gt;&lt;a href=&#34;<a href=\"https://www.linkedin.com/in/philippebodart/\" class='url_link' target=\"_blank\" rel=\"noreferrer\" >https://www.linkedin.com/in/philippebodart/</a>&#34; target=&#34;_blank&#34; rel=&#34;noreferrer noopener&#34; style=&#34;box-sizing: border-box; outline: 0px; color: rgb(10, 115, 235)&#34;&gt;&lt;img src=&#34;<a href=\"https://res.cloudinary.com/dnla85pdq/image/upload/v1641901418/webriq/linkedin.png\" class='url_link' target=\"_blank\" rel=\"noreferrer\" >https://res.cloudinary.com/dnla85pdq/image/upload/v1641901418/webriq/linkedin.png</a>&#34; width=&#34;24px&#34; style=&#34;box-sizing: border-box; outline: 0px; max-width: 100%&#34;/&gt;&lt;/a&gt;&lt;/div&gt;&lt;br style=&#34;box-sizing: border-box; outline: 0px&#34;/&gt;&lt;/div&gt;&lt;/td&gt;&lt;td style=&#34;box-sizing: border-box; outline: 0px; padding: 30px 20px 10px; vertical-align: middle; width: 360px&#34;&gt;&lt;div style=&#34;box-sizing: border-box; outline: 0px; font-weight: bold; color: rgb(35, 35, 35)&#34;&gt;&lt;font face=&#34;times new roman, times, serif, sans-serif&#34; style=&#34;box-sizing: border-box; outline: 0px&#34;&gt;&lt;span style=&#34;box-sizing: border-box; outline: 0px; font-size: 18px&#34;&gt;Nina Anjerrie R. Baraquil&lt;/span&gt;&lt;/font&gt;&lt;/div&gt;&lt;p style=&#34;box-sizing: border-box; outline: 0px; margin: 0px; color: rgb(35, 35, 35); line-height: 22px&#34;&gt;Customer Support at WebriQ&amp;nbsp;&lt;/p&gt;&lt;div style=&#34;box-sizing: border-box; outline: 0px; width: 320px; border-bottom: 1px solid rgb(41, 110, 255); margin-top: 10px&#34;&gt;&lt;/div&gt;&lt;table cellpadding=&#34;0&#34; cellspacing=&#34;0&#34; style=&#34;outline: 0px; word-break: normal; margin-top: 10px; max-width: 100%&#34;&gt;&lt;tbody style=&#34;box-sizing: border-box; outline: 0px&#34;&gt;&lt;tr style=&#34;box-sizing: border-box; outline: 0px; vertical-align: middle&#34;&gt;&lt;td width=&#34;30&#34; style=&#34;box-sizing: border-box; outline: 0px&#34;&gt;&lt;img src=&#34;<a href=\"https://ucarecdn.com/37ebf541-01ec-4172-b74d-9a1bbe8918ec/email.png\" class='url_link' target=\"_blank\" rel=\"noreferrer\" >https://ucarecdn.com/37ebf541-01ec-4172-b74d-9a1bbe8918ec/email.png</a>&#34; width=&#34;13&#34; style=&#34;box-sizing: border-box; outline: 0px; max-width: 100%&#34;/&gt;&lt;/td&gt;&lt;td style=&#34;box-sizing: border-box; outline: 0px; padding: 2px 0px&#34;&gt;&lt;a href=&#34;mailto:helpdesk@webriq.us&#34; target=&#34;_blank&#34; rel=&#34;noreferrer noopener&#34; style=&#34;box-sizing: border-box; outline: 0px; color: rgb(35, 35, 35)&#34;&gt;helpdesk@webriq.us&lt;/a&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr style=&#34;box-sizing: border-box; outline: 0px; vertical-align: middle&#34;&gt;&lt;td width=&#34;30&#34; style=&#34;box-sizing: border-box; outline: 0px&#34;&gt;&lt;img src=&#34;<a href=\"https://ucarecdn.com/fbf2f3cb-b613-472e-acbf-f0051b902feb/phonecall.png\" class='url_link' target=\"_blank\" rel=\"noreferrer\" >https://ucarecdn.com/fbf2f3cb-b613-472e-acbf-f0051b902feb/phonecall.png</a>&#34; width=&#34;13&#34; style=&#34;box-sizing: border-box; outline: 0px; max-width: 100%&#34;/&gt;&lt;/td&gt;&lt;td style=&#34;box-sizing: border-box; outline: 0px; padding: 2px 0px&#34;&gt;&lt;a target=&#34;_blank&#34; href=&#34;<a href=\"http://tel:+1%20307%20466%206409/\" class='url_link' target=\"_blank\" rel=\"noreferrer\" >http://tel:+1%20307%20466%206409/</a>&#34; rel=&#34;noreferrer noopener&#34; style=&#34;box-sizing: border-box; outline: 0px; color: rgb(35, 35, 35)&#34;&gt;+1 307 466 6409&lt;/a&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr style=&#34;box-sizing: border-box; outline: 0px; vertical-align: middle&#34;&gt;&lt;td width=&#34;30&#34; style=&#34;box-sizing: border-box; outline: 0px&#34;&gt;&lt;img src=&#34;<a href=\"https://ucarecdn.com/3bcbce2c-f971-4b9d-83a3-6ce1d5d276c1/worldwideweb.png\" class='url_link' target=\"_blank\" rel=\"noreferrer\" >https://ucarecdn.com/3bcbce2c-f971-4b9d-83a3-6ce1d5d276c1/worldwideweb.png</a>&#34; width=&#34;13&#34; style=&#34;box-sizing: border-box; outline: 0px; max-width: 100%&#34;/&gt;&lt;/td&gt;&lt;td style=&#34;box-sizing: border-box; outline: 0px; padding: 2px 0px&#34;&gt;&lt;a href=&#34;<a href=\"https://www.webriq.com/\" class='url_link' target=\"_blank\" rel=\"noreferrer\" >https://www.webriq.com/</a>&#34; target=&#34;_blank&#34; rel=&#34;noreferrer noopener&#34; style=&#34;box-sizing: border-box; outline: 0px; color: rgb(41, 110, 255)&#34;&gt;www.WebriQ.com&lt;/a&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;",
+    "isPublic": true,
     "attachments": [],
     "_zoho_ticket_id": "300063000089241013"
   },
@@ -7285,8 +7707,8 @@
       "roleName": "LightAgent"
     },
     "impersonatedUser": null,
-    "isPublic": false,
     "encodedContent": "Niña has updated the status of the issue linked to this ticket from [Open] to [In progress].",
+    "isPublic": false,
     "attachments": [],
     "_zoho_ticket_id": "300063000089241013"
   },
@@ -7308,8 +7730,8 @@
       "roleName": "LightAgent"
     },
     "impersonatedUser": null,
-    "isPublic": false,
     "encodedContent": "Niña has updated the status of the issue linked to this ticket from [In progress] to [Ready for QA/QC].",
+    "isPublic": false,
     "attachments": [],
     "_zoho_ticket_id": "300063000089241013"
   },
@@ -7331,8 +7753,8 @@
       "roleName": "LightAgent"
     },
     "impersonatedUser": null,
-    "isPublic": false,
     "encodedContent": "Niña has updated the status of the issue linked to this ticket from [Ready for QA/QC] to [Completed].",
+    "isPublic": false,
     "attachments": [],
     "_zoho_ticket_id": "300063000089241013"
   },
@@ -7354,8 +7776,8 @@
       "roleName": "LightAgent"
     },
     "impersonatedUser": null,
-    "isPublic": false,
     "encodedContent": "Niña has updated the status of the issue linked to this ticket from [Completed] to [Closed].",
+    "isPublic": false,
     "attachments": [],
     "_zoho_ticket_id": "300063000089241013"
   },
@@ -9217,8 +9639,8 @@
       "roleName": null
     },
     "impersonatedUser": null,
-    "isPublic": false,
     "encodedContent": "Renato Dulog has updated the status of the issue linked to this ticket from [Open] to [In progress].",
+    "isPublic": false,
     "attachments": [],
     "_zoho_ticket_id": "300063000088385094"
   },
@@ -9240,8 +9662,8 @@
       "roleName": null
     },
     "impersonatedUser": null,
-    "isPublic": false,
     "encodedContent": "Renato Dulog has updated the status of the issue linked to this ticket from [In progress] to [Ready for QA/QC].",
+    "isPublic": false,
     "attachments": [],
     "_zoho_ticket_id": "300063000088385094"
   },
@@ -9263,8 +9685,8 @@
       "roleName": "CEO"
     },
     "impersonatedUser": null,
-    "isPublic": false,
     "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Ready for QA/QC] to [Completed].",
+    "isPublic": false,
     "attachments": [],
     "_zoho_ticket_id": "300063000088385094"
   },
@@ -9286,8 +9708,8 @@
       "roleName": "CEO"
     },
     "impersonatedUser": null,
-    "isPublic": false,
     "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Completed] to [Closed].",
+    "isPublic": false,
     "attachments": [],
     "_zoho_ticket_id": "300063000088385094"
   },
@@ -9309,8 +9731,8 @@
       "roleName": "CEO"
     },
     "impersonatedUser": null,
-    "isPublic": false,
     "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Closed] to [Reopen].",
+    "isPublic": false,
     "attachments": [],
     "_zoho_ticket_id": "300063000088385094"
   },
@@ -9332,8 +9754,8 @@
       "roleName": "CEO"
     },
     "impersonatedUser": null,
-    "isPublic": false,
     "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Reopen] to [Open].",
+    "isPublic": false,
     "attachments": [],
     "_zoho_ticket_id": "300063000088385094"
   },
@@ -9355,8 +9777,8 @@
       "roleName": null
     },
     "impersonatedUser": null,
-    "isPublic": false,
     "encodedContent": "Jacob Balane has updated the status of the issue linked to this ticket from [Open] to [In progress].",
+    "isPublic": false,
     "attachments": [],
     "_zoho_ticket_id": "300063000088385094"
   },
@@ -9378,8 +9800,8 @@
       "roleName": null
     },
     "impersonatedUser": null,
-    "isPublic": false,
     "encodedContent": "Jacob Balane has updated the status of the issue linked to this ticket from [In progress] to [Ready for QA/QC].",
+    "isPublic": false,
     "attachments": [],
     "_zoho_ticket_id": "300063000088385094"
   },
@@ -9401,8 +9823,8 @@
       "roleName": "CEO"
     },
     "impersonatedUser": null,
-    "isPublic": false,
     "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Ready for QA/QC] to [Completed].",
+    "isPublic": false,
     "attachments": [],
     "_zoho_ticket_id": "300063000088385094"
   },
@@ -9424,8 +9846,8 @@
       "roleName": "CEO"
     },
     "impersonatedUser": null,
-    "isPublic": false,
     "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Completed] to [Closed].",
+    "isPublic": false,
     "attachments": [],
     "_zoho_ticket_id": "300063000088385094"
   },
@@ -9449,6 +9871,75 @@
     "impersonatedUser": null,
     "isPublic": false,
     "encodedContent": "Jacob Balane has updated the status of the issue linked to this ticket from [Open] to [In progress].",
+    "attachments": [],
+    "_zoho_ticket_id": "300063000087983333"
+  },
+  {
+    "id": "300063000090742002",
+    "content": "Niña has updated the status of the issue linked to this ticket from [In progress] to [Ready for QA/QC].",
+    "commenterId": "300063000078989003",
+    "commentedTime": "2026-08-25T15:49:31.000Z",
+    "modifiedTime": "2026-08-25T15:49:31.000Z",
+    "contentType": "plainText",
+    "commenter": {
+      "id": "300063000078989003",
+      "name": "Niña Anjerrie Baraquil",
+      "email": "nina.baraquil@webriq.services",
+      "photoURL": "https://desk.zoho.com/supportapi/api/v1/agents/300063000078989003/photo?orgId=671095217",
+      "type": "AGENT",
+      "firstName": "Niña Anjerrie",
+      "lastName": "Baraquil",
+      "roleName": "LightAgent"
+    },
+    "impersonatedUser": null,
+    "isPublic": false,
+    "encodedContent": "Niña has updated the status of the issue linked to this ticket from [In progress] to [Ready for QA/QC].",
+    "attachments": [],
+    "_zoho_ticket_id": "300063000087983333"
+  },
+  {
+    "id": "300063000090720004",
+    "content": "Niña has updated the status of the issue linked to this ticket from [Ready for QA/QC] to [Completed].",
+    "commenterId": "300063000078989003",
+    "commentedTime": "2026-08-25T15:49:32.000Z",
+    "modifiedTime": "2026-08-25T15:49:32.000Z",
+    "contentType": "plainText",
+    "commenter": {
+      "id": "300063000078989003",
+      "name": "Niña Anjerrie Baraquil",
+      "email": "nina.baraquil@webriq.services",
+      "photoURL": "https://desk.zoho.com/supportapi/api/v1/agents/300063000078989003/photo?orgId=671095217",
+      "type": "AGENT",
+      "firstName": "Niña Anjerrie",
+      "lastName": "Baraquil",
+      "roleName": "LightAgent"
+    },
+    "impersonatedUser": null,
+    "isPublic": false,
+    "encodedContent": "Niña has updated the status of the issue linked to this ticket from [Ready for QA/QC] to [Completed].",
+    "attachments": [],
+    "_zoho_ticket_id": "300063000087983333"
+  },
+  {
+    "id": "300063000090754006",
+    "content": "Niña has updated the status of the issue linked to this ticket from [Completed] to [Closed].",
+    "commenterId": "300063000078989003",
+    "commentedTime": "2026-08-25T15:49:38.000Z",
+    "modifiedTime": "2026-08-25T15:49:38.000Z",
+    "contentType": "plainText",
+    "commenter": {
+      "id": "300063000078989003",
+      "name": "Niña Anjerrie Baraquil",
+      "email": "nina.baraquil@webriq.services",
+      "photoURL": "https://desk.zoho.com/supportapi/api/v1/agents/300063000078989003/photo?orgId=671095217",
+      "type": "AGENT",
+      "firstName": "Niña Anjerrie",
+      "lastName": "Baraquil",
+      "roleName": "LightAgent"
+    },
+    "impersonatedUser": null,
+    "isPublic": false,
+    "encodedContent": "Niña has updated the status of the issue linked to this ticket from [Completed] to [Closed].",
     "attachments": [],
     "_zoho_ticket_id": "300063000087983333"
   },
@@ -9817,6 +10308,52 @@
     "impersonatedUser": null,
     "isPublic": false,
     "encodedContent": "Mark John Mejias has updated the status of the issue linked to this ticket from [In progress] to [Ready for QA/QC].",
+    "attachments": [],
+    "_zoho_ticket_id": "300063000088535045"
+  },
+  {
+    "id": "300063000090720012",
+    "content": "Niña has updated the status of the issue linked to this ticket from [Ready for QA/QC] to [Completed].",
+    "commenterId": "300063000078989003",
+    "commentedTime": "2026-08-25T15:51:04.000Z",
+    "modifiedTime": "2026-08-25T15:51:04.000Z",
+    "contentType": "plainText",
+    "commenter": {
+      "id": "300063000078989003",
+      "name": "Niña Anjerrie Baraquil",
+      "email": "nina.baraquil@webriq.services",
+      "photoURL": "https://desk.zoho.com/supportapi/api/v1/agents/300063000078989003/photo?orgId=671095217",
+      "type": "AGENT",
+      "firstName": "Niña Anjerrie",
+      "lastName": "Baraquil",
+      "roleName": "LightAgent"
+    },
+    "impersonatedUser": null,
+    "isPublic": false,
+    "encodedContent": "Niña has updated the status of the issue linked to this ticket from [Ready for QA/QC] to [Completed].",
+    "attachments": [],
+    "_zoho_ticket_id": "300063000088535045"
+  },
+  {
+    "id": "300063000090746005",
+    "content": "Niña has updated the status of the issue linked to this ticket from [Completed] to [Closed].",
+    "commenterId": "300063000078989003",
+    "commentedTime": "2026-08-25T15:51:06.000Z",
+    "modifiedTime": "2026-08-25T15:51:06.000Z",
+    "contentType": "plainText",
+    "commenter": {
+      "id": "300063000078989003",
+      "name": "Niña Anjerrie Baraquil",
+      "email": "nina.baraquil@webriq.services",
+      "photoURL": "https://desk.zoho.com/supportapi/api/v1/agents/300063000078989003/photo?orgId=671095217",
+      "type": "AGENT",
+      "firstName": "Niña Anjerrie",
+      "lastName": "Baraquil",
+      "roleName": "LightAgent"
+    },
+    "impersonatedUser": null,
+    "isPublic": false,
+    "encodedContent": "Niña has updated the status of the issue linked to this ticket from [Completed] to [Closed].",
     "attachments": [],
     "_zoho_ticket_id": "300063000088535045"
   },
@@ -10438,6 +10975,52 @@
     "impersonatedUser": null,
     "isPublic": false,
     "encodedContent": "Mark John Mejias has updated the status of the issue linked to this ticket from [In progress] to [Ready for QA/QC].",
+    "attachments": [],
+    "_zoho_ticket_id": "300063000088371086"
+  },
+  {
+    "id": "300063000090720008",
+    "content": "Niña has updated the status of the issue linked to this ticket from [Ready for QA/QC] to [Completed].",
+    "commenterId": "300063000078989003",
+    "commentedTime": "2026-08-25T15:50:31.000Z",
+    "modifiedTime": "2026-08-25T15:50:31.000Z",
+    "contentType": "plainText",
+    "commenter": {
+      "id": "300063000078989003",
+      "name": "Niña Anjerrie Baraquil",
+      "email": "nina.baraquil@webriq.services",
+      "photoURL": "https://desk.zoho.com/supportapi/api/v1/agents/300063000078989003/photo?orgId=671095217",
+      "type": "AGENT",
+      "firstName": "Niña Anjerrie",
+      "lastName": "Baraquil",
+      "roleName": "LightAgent"
+    },
+    "impersonatedUser": null,
+    "isPublic": false,
+    "encodedContent": "Niña has updated the status of the issue linked to this ticket from [Ready for QA/QC] to [Completed].",
+    "attachments": [],
+    "_zoho_ticket_id": "300063000088371086"
+  },
+  {
+    "id": "300063000090732006",
+    "content": "Niña has updated the status of the issue linked to this ticket from [Completed] to [Closed].",
+    "commenterId": "300063000078989003",
+    "commentedTime": "2026-08-25T15:50:34.000Z",
+    "modifiedTime": "2026-08-25T15:50:34.000Z",
+    "contentType": "plainText",
+    "commenter": {
+      "id": "300063000078989003",
+      "name": "Niña Anjerrie Baraquil",
+      "email": "nina.baraquil@webriq.services",
+      "photoURL": "https://desk.zoho.com/supportapi/api/v1/agents/300063000078989003/photo?orgId=671095217",
+      "type": "AGENT",
+      "firstName": "Niña Anjerrie",
+      "lastName": "Baraquil",
+      "roleName": "LightAgent"
+    },
+    "impersonatedUser": null,
+    "isPublic": false,
+    "encodedContent": "Niña has updated the status of the issue linked to this ticket from [Completed] to [Closed].",
     "attachments": [],
     "_zoho_ticket_id": "300063000088371086"
   },
@@ -11753,6 +12336,29 @@
     "_zoho_ticket_id": "300063000088270107"
   },
   {
+    "id": "300063000090749010",
+    "content": "Niña has updated the status of the issue linked to this ticket from [Completed] to [Closed].",
+    "commenterId": "300063000078989003",
+    "commentedTime": "2026-08-25T15:50:12.000Z",
+    "modifiedTime": "2026-08-25T15:50:12.000Z",
+    "contentType": "plainText",
+    "commenter": {
+      "id": "300063000078989003",
+      "name": "Niña Anjerrie Baraquil",
+      "email": "nina.baraquil@webriq.services",
+      "photoURL": "https://desk.zoho.com/supportapi/api/v1/agents/300063000078989003/photo?orgId=671095217",
+      "type": "AGENT",
+      "firstName": "Niña Anjerrie",
+      "lastName": "Baraquil",
+      "roleName": "LightAgent"
+    },
+    "impersonatedUser": null,
+    "isPublic": false,
+    "encodedContent": "Niña has updated the status of the issue linked to this ticket from [Completed] to [Closed].",
+    "attachments": [],
+    "_zoho_ticket_id": "300063000088270107"
+  },
+  {
     "id": "300063000088411007",
     "content": "Mark John Mejias has updated the status of the issue linked to this ticket from [Open] to [In progress].",
     "commenterId": "300063000045574011",
@@ -12713,8 +13319,8 @@
       "roleName": null
     },
     "impersonatedUser": null,
-    "encodedContent": "Ericka Dichon has updated the status of the issue linked to this ticket from [Open] to [In progress].",
     "isPublic": false,
+    "encodedContent": "Ericka Dichon has updated the status of the issue linked to this ticket from [Open] to [In progress].",
     "attachments": [],
     "_zoho_ticket_id": "300063000088221009"
   },
@@ -12736,8 +13342,8 @@
       "roleName": null
     },
     "impersonatedUser": null,
-    "encodedContent": "Ericka Dichon has updated the status of the issue linked to this ticket from [In progress] to [Ready for QA/QC].",
     "isPublic": false,
+    "encodedContent": "Ericka Dichon has updated the status of the issue linked to this ticket from [In progress] to [Ready for QA/QC].",
     "attachments": [],
     "_zoho_ticket_id": "300063000088221009"
   },
@@ -12759,8 +13365,8 @@
       "roleName": "CEO"
     },
     "impersonatedUser": null,
-    "encodedContent": "&lt;div style=&#34;direction: ltr; font-size: 13px; font-family: Arial, Helvetica, sans-serif&#34;&gt;&lt;div&gt;Hi Maxton Team,&lt;br/&gt;&lt;/div&gt;&lt;div&gt;&lt;br/&gt;&lt;/div&gt;&lt;div&gt;&lt;div&gt;&lt;span style=&#34;font-size: 13.33px&#34;&gt;We investigated the “Missing City” issue in the sign-up menu. As mentioned, this is related to a previously resolved ticket where the city field on the sign-up page was changed from a dropdown selection to a manual text entry field in order to address missing remote cities in the dropdown list.&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&#34;font-size: 13.33px&#34;&gt;&lt;br/&gt;&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&#34;font-size: 13.33px&#34;&gt;However, upon checking the current sign-up page, the city field is already set as a manual entry field and not a dropdown. Please see the attached screenshot for reference.&lt;br/&gt;&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&#34;font-size: 13.33px&#34;&gt;&lt;img src=&#34;<a href=\"https://helpdesk.webriq.services/supportapi/api/v1/inlineattachments/300063000088255001/content?storeId=edbsn0783867ebb15459e47f54d6d585e4829df77712fa5f1c81c4c1900d6e7d6ffcd&amp;fileName=image.png&amp;mode=view&amp;orgId=671095217\" class='url_link' target=\"_blank\" rel=\"noreferrer\" >https://helpdesk.webriq.services/supportapi/api/v1/inlineattachments/300063000088255001/content?storeId=edbsn0783867ebb15459e47f54d6d585e4829df77712fa5f1c81c4c1900d6e7d6ffcd&amp;fileName=image.png&amp;mode=view&amp;orgId=671095217</a>&#34; style=&#34;max-width: 100%; height: auto; box-sizing: border-box; padding: 0&#34;/&gt;&lt;br/&gt;&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&#34;font-size: 13.33px&#34;&gt;&lt;br/&gt;&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&#34;font-size: 13.33px&#34;&gt;Could you please confirm if the reported issue is specifically related to this functionality or if there may be another issue connected to the city field that needs further investigation?&lt;br/&gt;&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&#34;font-size: 13.33px&#34;&gt;&lt;br/&gt;&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&#34;font-size: 13.33px&#34;&gt;Thank you!&lt;br/&gt;&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;",
     "isPublic": true,
+    "encodedContent": "&lt;div style=&#34;direction: ltr; font-size: 13px; font-family: Arial, Helvetica, sans-serif&#34;&gt;&lt;div&gt;Hi Maxton Team,&lt;br/&gt;&lt;/div&gt;&lt;div&gt;&lt;br/&gt;&lt;/div&gt;&lt;div&gt;&lt;div&gt;&lt;span style=&#34;font-size: 13.33px&#34;&gt;We investigated the “Missing City” issue in the sign-up menu. As mentioned, this is related to a previously resolved ticket where the city field on the sign-up page was changed from a dropdown selection to a manual text entry field in order to address missing remote cities in the dropdown list.&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&#34;font-size: 13.33px&#34;&gt;&lt;br/&gt;&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&#34;font-size: 13.33px&#34;&gt;However, upon checking the current sign-up page, the city field is already set as a manual entry field and not a dropdown. Please see the attached screenshot for reference.&lt;br/&gt;&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&#34;font-size: 13.33px&#34;&gt;&lt;img src=&#34;<a href=\"https://helpdesk.webriq.services/supportapi/api/v1/inlineattachments/300063000088255001/content?storeId=edbsn0783867ebb15459e47f54d6d585e4829df77712fa5f1c81c4c1900d6e7d6ffcd&amp;fileName=image.png&amp;mode=view&amp;orgId=671095217\" class='url_link' target=\"_blank\" rel=\"noreferrer\" >https://helpdesk.webriq.services/supportapi/api/v1/inlineattachments/300063000088255001/content?storeId=edbsn0783867ebb15459e47f54d6d585e4829df77712fa5f1c81c4c1900d6e7d6ffcd&amp;fileName=image.png&amp;mode=view&amp;orgId=671095217</a>&#34; style=&#34;max-width: 100%; height: auto; box-sizing: border-box; padding: 0&#34;/&gt;&lt;br/&gt;&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&#34;font-size: 13.33px&#34;&gt;&lt;br/&gt;&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&#34;font-size: 13.33px&#34;&gt;Could you please confirm if the reported issue is specifically related to this functionality or if there may be another issue connected to the city field that needs further investigation?&lt;br/&gt;&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&#34;font-size: 13.33px&#34;&gt;&lt;br/&gt;&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&#34;font-size: 13.33px&#34;&gt;Thank you!&lt;br/&gt;&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;",
     "attachments": [],
     "_zoho_ticket_id": "300063000088221009"
   },
@@ -12782,8 +13388,8 @@
       "roleName": "CEO"
     },
     "impersonatedUser": null,
-    "encodedContent": "&lt;p&gt;So far this is a customer specific issue with Mack Brothers Elevator Acc#186500.  This is in a different area, new order placement, than you are showing above. &lt;/p&gt;",
     "isPublic": false,
+    "encodedContent": "&lt;p&gt;So far this is a customer specific issue with Mack Brothers Elevator Acc#186500.  This is in a different area, new order placement, than you are showing above. &lt;/p&gt;",
     "attachments": [],
     "_zoho_ticket_id": "300063000088221009"
   },
@@ -12805,8 +13411,8 @@
       "roleName": "CEO"
     },
     "impersonatedUser": null,
-    "encodedContent": "&lt;p&gt;See added attachments.&lt;/p&gt;",
     "isPublic": false,
+    "encodedContent": "&lt;p&gt;See added attachments.&lt;/p&gt;",
     "attachments": [],
     "_zoho_ticket_id": "300063000088221009"
   },
@@ -12828,8 +13434,8 @@
       "roleName": "CEO"
     },
     "impersonatedUser": null,
-    "encodedContent": "&lt;div style=&#34;direction: ltr; font-size: 13px; font-family: Arial, Helvetica, sans-serif&#34;&gt;&lt;div&gt;Hi Karl,&lt;br/&gt;&lt;/div&gt;&lt;div&gt;&lt;br/&gt;&lt;/div&gt;&lt;div&gt;The initial report was for the sign-up page. Upon checking, the screenshot is from the add Shipping Address tab.&lt;br/&gt;&lt;/div&gt;&lt;div&gt;&lt;br/&gt;&lt;/div&gt;&lt;div&gt;The team will now work on this.&lt;br/&gt;&lt;/div&gt;&lt;div&gt;&lt;br/&gt;&lt;/div&gt;&lt;div&gt;Thank you!&lt;/div&gt;&lt;/div&gt;",
     "isPublic": true,
+    "encodedContent": "&lt;div style=&#34;direction: ltr; font-size: 13px; font-family: Arial, Helvetica, sans-serif&#34;&gt;&lt;div&gt;Hi Karl,&lt;br/&gt;&lt;/div&gt;&lt;div&gt;&lt;br/&gt;&lt;/div&gt;&lt;div&gt;The initial report was for the sign-up page. Upon checking, the screenshot is from the add Shipping Address tab.&lt;br/&gt;&lt;/div&gt;&lt;div&gt;&lt;br/&gt;&lt;/div&gt;&lt;div&gt;The team will now work on this.&lt;br/&gt;&lt;/div&gt;&lt;div&gt;&lt;br/&gt;&lt;/div&gt;&lt;div&gt;Thank you!&lt;/div&gt;&lt;/div&gt;",
     "attachments": [],
     "_zoho_ticket_id": "300063000088221009"
   },
@@ -12851,8 +13457,8 @@
       "roleName": "LightAgent"
     },
     "impersonatedUser": null,
-    "encodedContent": "Niña has updated the status of the issue linked to this ticket from [Ready for QA/QC] to [Completed].",
     "isPublic": false,
+    "encodedContent": "Niña has updated the status of the issue linked to this ticket from [Ready for QA/QC] to [Completed].",
     "attachments": [],
     "_zoho_ticket_id": "300063000088221009"
   },
@@ -12874,8 +13480,8 @@
       "roleName": "LightAgent"
     },
     "impersonatedUser": null,
-    "encodedContent": "Niña has updated the status of the issue linked to this ticket from [Completed] to [Reopen].",
     "isPublic": false,
+    "encodedContent": "Niña has updated the status of the issue linked to this ticket from [Completed] to [Reopen].",
     "attachments": [],
     "_zoho_ticket_id": "300063000088221009"
   },
@@ -12897,8 +13503,8 @@
       "roleName": "LightAgent"
     },
     "impersonatedUser": null,
-    "encodedContent": "Niña has updated the status of the issue linked to this ticket from [Reopen] to [Open].",
     "isPublic": false,
+    "encodedContent": "Niña has updated the status of the issue linked to this ticket from [Reopen] to [Open].",
     "attachments": [],
     "_zoho_ticket_id": "300063000088221009"
   },
@@ -12920,8 +13526,8 @@
       "roleName": null
     },
     "impersonatedUser": null,
-    "encodedContent": "Ericka Dichon has updated the status of the issue linked to this ticket from [Open] to [In progress].",
     "isPublic": false,
+    "encodedContent": "Ericka Dichon has updated the status of the issue linked to this ticket from [Open] to [In progress].",
     "attachments": [],
     "_zoho_ticket_id": "300063000088221009"
   },
@@ -12943,8 +13549,8 @@
       "roleName": null
     },
     "impersonatedUser": null,
-    "encodedContent": "Ericka Dichon has updated the status of the issue linked to this ticket from [In progress] to [Ready for QA/QC].",
     "isPublic": false,
+    "encodedContent": "Ericka Dichon has updated the status of the issue linked to this ticket from [In progress] to [Ready for QA/QC].",
     "attachments": [],
     "_zoho_ticket_id": "300063000088221009"
   },
@@ -12966,8 +13572,8 @@
       "roleName": "CEO"
     },
     "impersonatedUser": null,
-    "encodedContent": "&lt;div style=&#34;direction: ltr; font-size: 13px; font-family: Arial, Helvetica, sans-serif&#34;&gt;&lt;div&gt;Hi Karl,&lt;br/&gt;&lt;/div&gt;&lt;div&gt;&lt;br/&gt;&lt;/div&gt;&lt;div&gt;The City field for Add Shipping Address is now manual.&lt;img src=&#34;<a href=\"https://helpdesk.webriq.services/supportapi/api/v1/inlineattachments/300063000088357001/content?storeId=edbsncc0d9e3f481051df9c548df0ea30d192554074e317f5e0e87da8036654beb164&amp;fileName=image.png&amp;mode=view&amp;orgId=671095217\" class='url_link' target=\"_blank\" rel=\"noreferrer\" >https://helpdesk.webriq.services/supportapi/api/v1/inlineattachments/300063000088357001/content?storeId=edbsncc0d9e3f481051df9c548df0ea30d192554074e317f5e0e87da8036654beb164&amp;fileName=image.png&amp;mode=view&amp;orgId=671095217</a>&#34; style=&#34;max-width: 100%; height: auto; box-sizing: border-box; padding: 0&#34;/&gt;&lt;/div&gt;&lt;div&gt;&lt;br/&gt;&lt;/div&gt;&lt;div&gt;Let us know if there are any further concerns.&amp;nbsp;&lt;br/&gt;&lt;/div&gt;&lt;div&gt;&lt;br/&gt;&lt;/div&gt;&lt;div&gt;Thank you!&lt;/div&gt;&lt;div&gt;&lt;br/&gt;&lt;/div&gt;&lt;/div&gt;",
     "isPublic": true,
+    "encodedContent": "&lt;div style=&#34;direction: ltr; font-size: 13px; font-family: Arial, Helvetica, sans-serif&#34;&gt;&lt;div&gt;Hi Karl,&lt;br/&gt;&lt;/div&gt;&lt;div&gt;&lt;br/&gt;&lt;/div&gt;&lt;div&gt;The City field for Add Shipping Address is now manual.&lt;img src=&#34;<a href=\"https://helpdesk.webriq.services/supportapi/api/v1/inlineattachments/300063000088357001/content?storeId=edbsncc0d9e3f481051df9c548df0ea30d192554074e317f5e0e87da8036654beb164&amp;fileName=image.png&amp;mode=view&amp;orgId=671095217\" class='url_link' target=\"_blank\" rel=\"noreferrer\" >https://helpdesk.webriq.services/supportapi/api/v1/inlineattachments/300063000088357001/content?storeId=edbsncc0d9e3f481051df9c548df0ea30d192554074e317f5e0e87da8036654beb164&amp;fileName=image.png&amp;mode=view&amp;orgId=671095217</a>&#34; style=&#34;max-width: 100%; height: auto; box-sizing: border-box; padding: 0&#34;/&gt;&lt;/div&gt;&lt;div&gt;&lt;br/&gt;&lt;/div&gt;&lt;div&gt;Let us know if there are any further concerns.&amp;nbsp;&lt;br/&gt;&lt;/div&gt;&lt;div&gt;&lt;br/&gt;&lt;/div&gt;&lt;div&gt;Thank you!&lt;/div&gt;&lt;div&gt;&lt;br/&gt;&lt;/div&gt;&lt;/div&gt;",
     "attachments": [],
     "_zoho_ticket_id": "300063000088221009"
   },
@@ -12989,8 +13595,8 @@
       "roleName": "CEO"
     },
     "impersonatedUser": null,
-    "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Ready for QA/QC] to [Completed].",
     "isPublic": false,
+    "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Ready for QA/QC] to [Completed].",
     "attachments": [],
     "_zoho_ticket_id": "300063000088221009"
   },
@@ -13012,8 +13618,8 @@
       "roleName": "CEO"
     },
     "impersonatedUser": null,
-    "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Completed] to [Closed].",
     "isPublic": false,
+    "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Completed] to [Closed].",
     "attachments": [],
     "_zoho_ticket_id": "300063000088221009"
   },
@@ -13035,8 +13641,8 @@
       "roleName": "CEO"
     },
     "impersonatedUser": null,
-    "encodedContent": "&lt;p&gt;We need to make sure &lt;strong&gt;&lt;em&gt;every entry for the &amp;quot;City&amp;quot; is a manual entry&lt;/em&gt;&lt;/strong&gt; &lt;strong&gt;&lt;em&gt;within the entire website&lt;/em&gt;&lt;/strong&gt; not a drop down as certain cities are not listed in your selections.&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;Please see the 3 added screenshots to this ticket.  When I login as the customer and try to select a saved shipping address, I see Missing Address Type flagged in each of the shipping address selections. Then I select the edit feature and find both the state and city are blank, the city is a drop down not a manual entry, and the address type is Residential.  Why is this flagging?  I don&#39;t know if this is what&#39;s stopping the customer from ordering or how to help them get past it.  Please try and determine what is wrong with this system and explain what was done to fix it.&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;",
     "isPublic": false,
+    "encodedContent": "&lt;p&gt;We need to make sure &lt;strong&gt;&lt;em&gt;every entry for the &amp;quot;City&amp;quot; is a manual entry&lt;/em&gt;&lt;/strong&gt; &lt;strong&gt;&lt;em&gt;within the entire website&lt;/em&gt;&lt;/strong&gt; not a drop down as certain cities are not listed in your selections.&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;Please see the 3 added screenshots to this ticket.  When I login as the customer and try to select a saved shipping address, I see Missing Address Type flagged in each of the shipping address selections. Then I select the edit feature and find both the state and city are blank, the city is a drop down not a manual entry, and the address type is Residential.  Why is this flagging?  I don&#39;t know if this is what&#39;s stopping the customer from ordering or how to help them get past it.  Please try and determine what is wrong with this system and explain what was done to fix it.&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;",
     "attachments": [],
     "_zoho_ticket_id": "300063000088221009"
   },
@@ -14576,8 +15182,8 @@
       "roleName": "CEO"
     },
     "impersonatedUser": null,
-    "isPublic": false,
     "encodedContent": "&lt;p&gt;added attachement&lt;/p&gt;",
+    "isPublic": false,
     "attachments": [],
     "_zoho_ticket_id": "300063000088198001"
   },
@@ -14599,8 +15205,8 @@
       "roleName": "CEO"
     },
     "impersonatedUser": null,
-    "isPublic": false,
     "encodedContent": "&lt;p&gt;On second thought just remove the links altogether from the Helpful Hints sections of the control valves and overspeed valves highlighted in the attachments. &lt;/p&gt;",
+    "isPublic": false,
     "attachments": [],
     "_zoho_ticket_id": "300063000088198001"
   },
@@ -14622,8 +15228,8 @@
       "roleName": null
     },
     "impersonatedUser": null,
-    "isPublic": false,
     "encodedContent": "Mark John Mejias has updated the status of the issue linked to this ticket from [Open] to [In progress].",
+    "isPublic": false,
     "attachments": [],
     "_zoho_ticket_id": "300063000088198001"
   },
@@ -14645,8 +15251,8 @@
       "roleName": "CEO"
     },
     "impersonatedUser": null,
-    "isPublic": false,
     "encodedContent": "&lt;p&gt;Please refer to my last post May 4, 2026, at 3:08 PM.  &lt;/p&gt;",
+    "isPublic": false,
     "attachments": [],
     "_zoho_ticket_id": "300063000088198001"
   },
@@ -14668,8 +15274,8 @@
       "roleName": null
     },
     "impersonatedUser": null,
-    "isPublic": false,
     "encodedContent": "Mark John Mejias has updated the status of the issue linked to this ticket from [In progress] to [Ready for QA/QC].",
+    "isPublic": false,
     "attachments": [],
     "_zoho_ticket_id": "300063000088198001"
   },
@@ -14691,8 +15297,8 @@
       "roleName": "CEO"
     },
     "impersonatedUser": null,
-    "isPublic": false,
     "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Ready for QA/QC] to [For Client Approval].",
+    "isPublic": false,
     "attachments": [],
     "_zoho_ticket_id": "300063000088198001"
   },
@@ -14714,8 +15320,8 @@
       "roleName": "CEO"
     },
     "impersonatedUser": null,
-    "isPublic": false,
     "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [For Client Approval] to [Open].",
+    "isPublic": false,
     "attachments": [],
     "_zoho_ticket_id": "300063000088198001"
   },
@@ -14737,8 +15343,8 @@
       "roleName": null
     },
     "impersonatedUser": null,
-    "isPublic": false,
     "encodedContent": "Mark John Mejias has updated the status of the issue linked to this ticket from [Open] to [In progress].",
+    "isPublic": false,
     "attachments": [],
     "_zoho_ticket_id": "300063000088198001"
   },
@@ -14760,8 +15366,8 @@
       "roleName": null
     },
     "impersonatedUser": null,
-    "isPublic": false,
     "encodedContent": "Mark John Mejias has updated the status of the issue linked to this ticket from [In progress] to [Ready for QA/QC].",
+    "isPublic": false,
     "attachments": [],
     "_zoho_ticket_id": "300063000088198001"
   },
@@ -14783,8 +15389,8 @@
       "roleName": "LightAgent"
     },
     "impersonatedUser": null,
-    "isPublic": false,
     "encodedContent": "Niña has updated the status of the issue linked to this ticket from [Ready for QA/QC] to [Completed].",
+    "isPublic": false,
     "attachments": [],
     "_zoho_ticket_id": "300063000088198001"
   },
@@ -14806,8 +15412,8 @@
       "roleName": "LightAgent"
     },
     "impersonatedUser": null,
-    "isPublic": false,
     "encodedContent": "Niña has updated the status of the issue linked to this ticket from [Completed] to [Closed].",
+    "isPublic": false,
     "attachments": [],
     "_zoho_ticket_id": "300063000088198001"
   },
@@ -15427,8 +16033,8 @@
       "roleName": null
     },
     "impersonatedUser": null,
-    "encodedContent": "Garry Caber has updated the status of the issue linked to this ticket from [Open] to [In progress].",
     "isPublic": false,
+    "encodedContent": "Garry Caber has updated the status of the issue linked to this ticket from [Open] to [In progress].",
     "attachments": [],
     "_zoho_ticket_id": "300063000088068002"
   },
@@ -15450,8 +16056,8 @@
       "roleName": null
     },
     "impersonatedUser": null,
-    "encodedContent": "Garry Caber has updated the status of the issue linked to this ticket from [In progress] to [Ready for QA/QC].",
     "isPublic": false,
+    "encodedContent": "Garry Caber has updated the status of the issue linked to this ticket from [In progress] to [Ready for QA/QC].",
     "attachments": [],
     "_zoho_ticket_id": "300063000088068002"
   },
@@ -15473,8 +16079,8 @@
       "roleName": "CEO"
     },
     "impersonatedUser": null,
-    "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Ready for QA/QC] to [Completed].",
     "isPublic": false,
+    "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Ready for QA/QC] to [Completed].",
     "attachments": [],
     "_zoho_ticket_id": "300063000088068002"
   },
@@ -15496,8 +16102,8 @@
       "roleName": "CEO"
     },
     "impersonatedUser": null,
-    "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Completed] to [Closed].",
     "isPublic": false,
+    "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Completed] to [Closed].",
     "attachments": [],
     "_zoho_ticket_id": "300063000088068002"
   },
@@ -18854,8 +19460,8 @@
       "roleName": null
     },
     "impersonatedUser": null,
-    "isPublic": false,
     "encodedContent": "Garry Caber has updated the status of the issue linked to this ticket from [Open] to [In progress].",
+    "isPublic": false,
     "attachments": [],
     "_zoho_ticket_id": "300063000087912185"
   },
@@ -18877,8 +19483,8 @@
       "roleName": null
     },
     "impersonatedUser": null,
-    "isPublic": false,
     "encodedContent": "Garry Caber has updated the status of the issue linked to this ticket from [In progress] to [Ready for QA/QC].",
+    "isPublic": false,
     "attachments": [],
     "_zoho_ticket_id": "300063000087912185"
   },
@@ -18900,8 +19506,8 @@
       "roleName": "CEO"
     },
     "impersonatedUser": null,
-    "isPublic": false,
     "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Ready for QA/QC] to [Completed].",
+    "isPublic": false,
     "attachments": [],
     "_zoho_ticket_id": "300063000087912185"
   },
@@ -18923,8 +19529,8 @@
       "roleName": "CEO"
     },
     "impersonatedUser": null,
-    "isPublic": false,
     "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Completed] to [Closed].",
+    "isPublic": false,
     "attachments": [],
     "_zoho_ticket_id": "300063000087912185"
   },
@@ -21168,6 +21774,52 @@
     "_zoho_ticket_id": "300063000087696001"
   },
   {
+    "id": "300063000090743010",
+    "content": "Niña has updated the status of the issue linked to this ticket from [Ready for QA/QC] to [Completed].",
+    "commenterId": "300063000078989003",
+    "commentedTime": "2026-08-25T15:49:10.000Z",
+    "modifiedTime": "2026-08-25T15:49:10.000Z",
+    "contentType": "plainText",
+    "commenter": {
+      "id": "300063000078989003",
+      "name": "Niña Anjerrie Baraquil",
+      "email": "nina.baraquil@webriq.services",
+      "photoURL": "https://desk.zoho.com/supportapi/api/v1/agents/300063000078989003/photo?orgId=671095217",
+      "type": "AGENT",
+      "firstName": "Niña Anjerrie",
+      "lastName": "Baraquil",
+      "roleName": "LightAgent"
+    },
+    "impersonatedUser": null,
+    "isPublic": false,
+    "encodedContent": "Niña has updated the status of the issue linked to this ticket from [Ready for QA/QC] to [Completed].",
+    "attachments": [],
+    "_zoho_ticket_id": "300063000087696001"
+  },
+  {
+    "id": "300063000090699003",
+    "content": "Niña has updated the status of the issue linked to this ticket from [Completed] to [Closed].",
+    "commenterId": "300063000078989003",
+    "commentedTime": "2026-08-25T15:49:17.000Z",
+    "modifiedTime": "2026-08-25T15:49:17.000Z",
+    "contentType": "plainText",
+    "commenter": {
+      "id": "300063000078989003",
+      "name": "Niña Anjerrie Baraquil",
+      "email": "nina.baraquil@webriq.services",
+      "photoURL": "https://desk.zoho.com/supportapi/api/v1/agents/300063000078989003/photo?orgId=671095217",
+      "type": "AGENT",
+      "firstName": "Niña Anjerrie",
+      "lastName": "Baraquil",
+      "roleName": "LightAgent"
+    },
+    "impersonatedUser": null,
+    "isPublic": false,
+    "encodedContent": "Niña has updated the status of the issue linked to this ticket from [Completed] to [Closed].",
+    "attachments": [],
+    "_zoho_ticket_id": "300063000087696001"
+  },
+  {
     "id": "300063000087707001",
     "content": "Garry Caber has updated the status of the issue linked to this ticket from [Open] to [In progress].",
     "commenterId": "300063000045574011",
@@ -22571,6 +23223,29 @@
     "_zoho_ticket_id": "300063000086970073"
   },
   {
+    "id": "300063000090743006",
+    "content": "Niña has updated the status of the issue linked to this ticket from [For Client Approval] to [Closed].",
+    "commenterId": "300063000078989003",
+    "commentedTime": "2026-08-25T15:48:38.000Z",
+    "modifiedTime": "2026-08-25T15:48:38.000Z",
+    "contentType": "plainText",
+    "commenter": {
+      "id": "300063000078989003",
+      "name": "Niña Anjerrie Baraquil",
+      "email": "nina.baraquil@webriq.services",
+      "photoURL": "https://desk.zoho.com/supportapi/api/v1/agents/300063000078989003/photo?orgId=671095217",
+      "type": "AGENT",
+      "firstName": "Niña Anjerrie",
+      "lastName": "Baraquil",
+      "roleName": "LightAgent"
+    },
+    "impersonatedUser": null,
+    "isPublic": false,
+    "encodedContent": "Niña has updated the status of the issue linked to this ticket from [For Client Approval] to [Closed].",
+    "attachments": [],
+    "_zoho_ticket_id": "300063000086970073"
+  },
+  {
     "id": "300063000087208009",
     "content": "Renato Dulog has updated the status of the issue linked to this ticket from [Open] to [In progress].",
     "commenterId": "300063000045574011",
@@ -23140,8 +23815,8 @@
       "roleName": null
     },
     "impersonatedUser": null,
-    "isPublic": false,
     "encodedContent": "Mariel Genodiala has updated the status of the issue linked to this ticket from [Open] to [In progress].",
+    "isPublic": false,
     "attachments": [],
     "_zoho_ticket_id": "300063000087077418"
   },
@@ -23163,8 +23838,8 @@
       "roleName": null
     },
     "impersonatedUser": null,
-    "isPublic": false,
     "encodedContent": "Mariel Genodiala has updated the status of the issue linked to this ticket from [In progress] to [Ready for QA/QC].",
+    "isPublic": false,
     "attachments": [],
     "_zoho_ticket_id": "300063000087077418"
   },
@@ -23186,8 +23861,8 @@
       "roleName": "CEO"
     },
     "impersonatedUser": null,
-    "isPublic": false,
     "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Ready for QA/QC] to [Completed].",
+    "isPublic": false,
     "attachments": [],
     "_zoho_ticket_id": "300063000087077418"
   },
@@ -23209,8 +23884,8 @@
       "roleName": "CEO"
     },
     "impersonatedUser": null,
-    "isPublic": false,
     "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Completed] to [Closed].",
+    "isPublic": false,
     "attachments": [],
     "_zoho_ticket_id": "300063000087077418"
   },
@@ -23416,8 +24091,8 @@
       "roleName": null
     },
     "impersonatedUser": null,
-    "encodedContent": "Miguel Franco Trinidad has updated the status of the issue linked to this ticket from [Open] to [In progress].",
     "isPublic": false,
+    "encodedContent": "Miguel Franco Trinidad has updated the status of the issue linked to this ticket from [Open] to [In progress].",
     "attachments": [],
     "_zoho_ticket_id": "300063000087077105"
   },
@@ -23439,8 +24114,8 @@
       "roleName": null
     },
     "impersonatedUser": null,
-    "encodedContent": "Miguel Franco Trinidad has updated the status of the issue linked to this ticket from [In progress] to [Ready for QA/QC].",
     "isPublic": false,
+    "encodedContent": "Miguel Franco Trinidad has updated the status of the issue linked to this ticket from [In progress] to [Ready for QA/QC].",
     "attachments": [],
     "_zoho_ticket_id": "300063000087077105"
   },
@@ -23462,8 +24137,8 @@
       "roleName": "CEO"
     },
     "impersonatedUser": null,
-    "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Ready for QA/QC] to [Completed].",
     "isPublic": false,
+    "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Ready for QA/QC] to [Completed].",
     "attachments": [],
     "_zoho_ticket_id": "300063000087077105"
   },
@@ -23485,8 +24160,8 @@
       "roleName": "CEO"
     },
     "impersonatedUser": null,
-    "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Completed] to [Closed].",
     "isPublic": false,
+    "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Completed] to [Closed].",
     "attachments": [],
     "_zoho_ticket_id": "300063000087077105"
   },
@@ -24244,8 +24919,8 @@
       "roleName": null
     },
     "impersonatedUser": null,
-    "encodedContent": "Jaymar has updated the status of the issue linked to this ticket from [Open] to [In progress].",
     "isPublic": false,
+    "encodedContent": "Jaymar has updated the status of the issue linked to this ticket from [Open] to [In progress].",
     "attachments": [],
     "_zoho_ticket_id": "300063000084710001"
   },
@@ -24267,8 +24942,8 @@
       "roleName": null
     },
     "impersonatedUser": null,
-    "encodedContent": "Jaymar has updated the status of the issue linked to this ticket from [In progress] to [Ready for QA/QC].",
     "isPublic": false,
+    "encodedContent": "Jaymar has updated the status of the issue linked to this ticket from [In progress] to [Ready for QA/QC].",
     "attachments": [],
     "_zoho_ticket_id": "300063000084710001"
   },
@@ -24290,8 +24965,8 @@
       "roleName": "LightAgent"
     },
     "impersonatedUser": null,
-    "encodedContent": "Niña has updated the status of the issue linked to this ticket from [Ready for QA/QC] to [Completed].",
     "isPublic": false,
+    "encodedContent": "Niña has updated the status of the issue linked to this ticket from [Ready for QA/QC] to [Completed].",
     "attachments": [],
     "_zoho_ticket_id": "300063000084710001"
   },
@@ -24313,8 +24988,8 @@
       "roleName": "LightAgent"
     },
     "impersonatedUser": null,
-    "encodedContent": "Niña has updated the status of the issue linked to this ticket from [Completed] to [Closed].",
     "isPublic": false,
+    "encodedContent": "Niña has updated the status of the issue linked to this ticket from [Completed] to [Closed].",
     "attachments": [],
     "_zoho_ticket_id": "300063000084710001"
   },
@@ -24336,8 +25011,8 @@
       "roleName": "CEO"
     },
     "impersonatedUser": null,
-    "encodedContent": "&lt;p&gt;Hello, these items are still findable on our website. Can you please review?&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;in search bar &amp;quot;10G&amp;quot; or &amp;quot;R07&amp;quot; you will find them.&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;<a href=\"https://www.hickoryhardware.com/collections/all-products?hickory_products_index_v2%5BsortBy%5D=hickory_products_index_v2_popularity_desc&amp;amp;hickory_products_index_v2%5Bquery%5D=10g\" class='url_link' target=\"_blank\" rel=\"noreferrer\" >https://www.hickoryhardware.com/collections/all-products?hickory_products_index_v2%5BsortBy%5D=hickory_products_index_v2_popularity_desc&amp;amp;hickory_products_index_v2%5Bquery%5D=10g</a>&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;<a href=\"https://www.hickoryhardware.com/collections/all-products?hickory_products_index_v2%5BsortBy%5D=hickory_products_index_v2_popularity_desc&amp;amp;hickory_products_index_v2%5Bquery%5D=r07\" class='url_link' target=\"_blank\" rel=\"noreferrer\" >https://www.hickoryhardware.com/collections/all-products?hickory_products_index_v2%5BsortBy%5D=hickory_products_index_v2_popularity_desc&amp;amp;hickory_products_index_v2%5Bquery%5D=r07</a>&lt;/p&gt;",
     "isPublic": false,
+    "encodedContent": "&lt;p&gt;Hello, these items are still findable on our website. Can you please review?&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;in search bar &amp;quot;10G&amp;quot; or &amp;quot;R07&amp;quot; you will find them.&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;<a href=\"https://www.hickoryhardware.com/collections/all-products?hickory_products_index_v2%5BsortBy%5D=hickory_products_index_v2_popularity_desc&amp;amp;hickory_products_index_v2%5Bquery%5D=10g\" class='url_link' target=\"_blank\" rel=\"noreferrer\" >https://www.hickoryhardware.com/collections/all-products?hickory_products_index_v2%5BsortBy%5D=hickory_products_index_v2_popularity_desc&amp;amp;hickory_products_index_v2%5Bquery%5D=10g</a>&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;<a href=\"https://www.hickoryhardware.com/collections/all-products?hickory_products_index_v2%5BsortBy%5D=hickory_products_index_v2_popularity_desc&amp;amp;hickory_products_index_v2%5Bquery%5D=r07\" class='url_link' target=\"_blank\" rel=\"noreferrer\" >https://www.hickoryhardware.com/collections/all-products?hickory_products_index_v2%5BsortBy%5D=hickory_products_index_v2_popularity_desc&amp;amp;hickory_products_index_v2%5Bquery%5D=r07</a>&lt;/p&gt;",
     "attachments": [],
     "_zoho_ticket_id": "300063000084710001"
   },
@@ -24359,8 +25034,8 @@
       "roleName": "CEO"
     },
     "impersonatedUser": null,
-    "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Closed] to [Reopen].",
     "isPublic": false,
+    "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Closed] to [Reopen].",
     "attachments": [],
     "_zoho_ticket_id": "300063000084710001"
   },
@@ -24382,8 +25057,8 @@
       "roleName": "CEO"
     },
     "impersonatedUser": null,
-    "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Reopen] to [Open].",
     "isPublic": false,
+    "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Reopen] to [Open].",
     "attachments": [],
     "_zoho_ticket_id": "300063000084710001"
   },
@@ -24405,8 +25080,8 @@
       "roleName": null
     },
     "impersonatedUser": null,
-    "encodedContent": "Miguel Franco Trinidad has updated the status of the issue linked to this ticket from [Open] to [In progress].",
     "isPublic": false,
+    "encodedContent": "Miguel Franco Trinidad has updated the status of the issue linked to this ticket from [Open] to [In progress].",
     "attachments": [],
     "_zoho_ticket_id": "300063000084710001"
   },
@@ -24428,8 +25103,8 @@
       "roleName": null
     },
     "impersonatedUser": null,
-    "encodedContent": "Miguel Franco Trinidad has updated the status of the issue linked to this ticket from [In progress] to [Ready for QA/QC].",
     "isPublic": false,
+    "encodedContent": "Miguel Franco Trinidad has updated the status of the issue linked to this ticket from [In progress] to [Ready for QA/QC].",
     "attachments": [],
     "_zoho_ticket_id": "300063000084710001"
   },
@@ -24451,8 +25126,8 @@
       "roleName": "CEO"
     },
     "impersonatedUser": null,
-    "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Ready for QA/QC] to [Open].",
     "isPublic": false,
+    "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Ready for QA/QC] to [Open].",
     "attachments": [],
     "_zoho_ticket_id": "300063000084710001"
   },
@@ -24474,8 +25149,8 @@
       "roleName": null
     },
     "impersonatedUser": null,
-    "encodedContent": "Miguel Franco Trinidad has updated the status of the issue linked to this ticket from [Open] to [In progress].",
     "isPublic": false,
+    "encodedContent": "Miguel Franco Trinidad has updated the status of the issue linked to this ticket from [Open] to [In progress].",
     "attachments": [],
     "_zoho_ticket_id": "300063000084710001"
   },
@@ -24497,8 +25172,8 @@
       "roleName": null
     },
     "impersonatedUser": null,
-    "encodedContent": "Miguel Franco Trinidad has updated the status of the issue linked to this ticket from [In progress] to [Ready for QA/QC].",
     "isPublic": false,
+    "encodedContent": "Miguel Franco Trinidad has updated the status of the issue linked to this ticket from [In progress] to [Ready for QA/QC].",
     "attachments": [],
     "_zoho_ticket_id": "300063000084710001"
   },
@@ -24520,8 +25195,8 @@
       "roleName": "CEO"
     },
     "impersonatedUser": null,
-    "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Ready for QA/QC] to [Completed].",
     "isPublic": false,
+    "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Ready for QA/QC] to [Completed].",
     "attachments": [],
     "_zoho_ticket_id": "300063000084710001"
   },
@@ -24543,8 +25218,8 @@
       "roleName": "CEO"
     },
     "impersonatedUser": null,
-    "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Completed] to [Closed].",
     "isPublic": false,
+    "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Completed] to [Closed].",
     "attachments": [],
     "_zoho_ticket_id": "300063000084710001"
   },
@@ -24566,8 +25241,8 @@
       "roleName": "CEO"
     },
     "impersonatedUser": null,
-    "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Closed] to [Reopen].",
     "isPublic": false,
+    "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Closed] to [Reopen].",
     "attachments": [],
     "_zoho_ticket_id": "300063000084710001"
   },
@@ -24589,8 +25264,8 @@
       "roleName": "CEO"
     },
     "impersonatedUser": null,
-    "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Reopen] to [Open].",
     "isPublic": false,
+    "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Reopen] to [Open].",
     "attachments": [],
     "_zoho_ticket_id": "300063000084710001"
   },
@@ -24612,8 +25287,8 @@
       "roleName": null
     },
     "impersonatedUser": null,
-    "encodedContent": "Miguel Franco Trinidad has updated the status of the issue linked to this ticket from [Open] to [In progress].",
     "isPublic": false,
+    "encodedContent": "Miguel Franco Trinidad has updated the status of the issue linked to this ticket from [Open] to [In progress].",
     "attachments": [],
     "_zoho_ticket_id": "300063000084710001"
   },
@@ -24635,8 +25310,8 @@
       "roleName": null
     },
     "impersonatedUser": null,
-    "encodedContent": "Miguel Franco Trinidad has updated the status of the issue linked to this ticket from [In progress] to [Ready for QA/QC].",
     "isPublic": false,
+    "encodedContent": "Miguel Franco Trinidad has updated the status of the issue linked to this ticket from [In progress] to [Ready for QA/QC].",
     "attachments": [],
     "_zoho_ticket_id": "300063000084710001"
   },
@@ -24658,8 +25333,8 @@
       "roleName": "CEO"
     },
     "impersonatedUser": null,
-    "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Ready for QA/QC] to [For Client Approval].",
     "isPublic": false,
+    "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Ready for QA/QC] to [For Client Approval].",
     "attachments": [],
     "_zoho_ticket_id": "300063000084710001"
   },
@@ -24681,8 +25356,8 @@
       "roleName": "CEO"
     },
     "impersonatedUser": null,
-    "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [For Client Approval] to [Open].",
     "isPublic": false,
+    "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [For Client Approval] to [Open].",
     "attachments": [],
     "_zoho_ticket_id": "300063000084710001"
   },
@@ -24704,8 +25379,8 @@
       "roleName": null
     },
     "impersonatedUser": null,
-    "encodedContent": "Mark John Mejias has updated the status of the issue linked to this ticket from [Open] to [In progress].",
     "isPublic": false,
+    "encodedContent": "Mark John Mejias has updated the status of the issue linked to this ticket from [Open] to [In progress].",
     "attachments": [],
     "_zoho_ticket_id": "300063000084710001"
   },
@@ -24727,8 +25402,8 @@
       "roleName": null
     },
     "impersonatedUser": null,
-    "encodedContent": "Mark John Mejias has updated the status of the issue linked to this ticket from [In progress] to [Ready for QA/QC].",
     "isPublic": false,
+    "encodedContent": "Mark John Mejias has updated the status of the issue linked to this ticket from [In progress] to [Ready for QA/QC].",
     "attachments": [],
     "_zoho_ticket_id": "300063000084710001"
   },
@@ -24750,8 +25425,31 @@
       "roleName": "CEO"
     },
     "impersonatedUser": null,
-    "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Ready for QA/QC] to [For Client Approval].",
     "isPublic": false,
+    "encodedContent": "WebriQ has updated the status of the issue linked to this ticket from [Ready for QA/QC] to [For Client Approval].",
+    "attachments": [],
+    "_zoho_ticket_id": "300063000084710001"
+  },
+  {
+    "id": "300063000090743002",
+    "content": "Niña has updated the status of the issue linked to this ticket from [For Client Approval] to [Closed].",
+    "commenterId": "300063000078989003",
+    "commentedTime": "2026-08-25T15:48:38.000Z",
+    "modifiedTime": "2026-08-25T15:48:38.000Z",
+    "contentType": "plainText",
+    "commenter": {
+      "id": "300063000078989003",
+      "name": "Niña Anjerrie Baraquil",
+      "email": "nina.baraquil@webriq.services",
+      "photoURL": "https://desk.zoho.com/supportapi/api/v1/agents/300063000078989003/photo?orgId=671095217",
+      "type": "AGENT",
+      "firstName": "Niña Anjerrie",
+      "lastName": "Baraquil",
+      "roleName": "LightAgent"
+    },
+    "impersonatedUser": null,
+    "isPublic": false,
+    "encodedContent": "Niña has updated the status of the issue linked to this ticket from [For Client Approval] to [Closed].",
     "attachments": [],
     "_zoho_ticket_id": "300063000084710001"
   },

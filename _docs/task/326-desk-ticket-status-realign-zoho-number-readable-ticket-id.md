@@ -4,7 +4,7 @@
 **Priority:** HIGH
 **Type:** enhancement
 **Recommended Tier:** deep
-**Status:** Testing
+**Status:** Completed
 
 ---
 
@@ -526,3 +526,20 @@ PASS
 
 ### Required Fixes
 - None.
+
+## Completion Note
+
+**Marked complete at the user's explicit request on 2026-08-28**, from the Testing state — the
+`test` / browser-acceptance stage was skipped.
+
+Done: implementation + quality gate (PASS); `npx tsc --noEmit`, `pnpm lint`, `pnpm build` all
+pass. **Live rollout performed by the user**: migration 124 applied to the production DB, Desk
+tickets re-imported — `ticket_number` renumbered to the real Zoho numbers, `ticket_id`
+(`TKT-<n>`) backfilled, statuses remapped, sequence synced.
+
+A duplication issue surfaced during the live re-import (imported tickets vs. pre-existing
+`external_id IS NULL` email-poll rows) — root-caused to email-poll's inability to id-match
+imported tickets and split out as **task 327**, which also carries the one-time 45-orphan
+cleanup runbook and the `email_poll_cursor` reset. Browser acceptance on `/desk/tickets`
+(filter tabs, `TKT-…` routing, status round-trip) and the threads/comments re-import are
+operator steps folded into that follow-up.

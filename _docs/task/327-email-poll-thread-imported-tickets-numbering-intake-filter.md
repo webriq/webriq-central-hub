@@ -4,7 +4,7 @@
 **Priority:** HIGH
 **Type:** bugfix
 **Recommended Tier:** balanced
-**Status:** Testing
+**Status:** Completed
 
 ---
 
@@ -440,3 +440,26 @@ PASS
 
 ### Required Fixes
 - None.
+
+## Completion Note
+
+**Marked complete at the user's explicit request on 2026-08-28**, from the Testing state — the
+`test` / browser-acceptance stage was skipped.
+
+Done: implementation + quality gate (PASS). `npx tsc --noEmit`, `pnpm lint`, `pnpm build` pass;
+pure-helper behaviour verified via a throwaway node script (`normalizeEmailSubject` prefix
+stripping; `shouldIngestEmail` drops all four observed noise categories and keeps real customer
+replies + named internal forwards).
+
+Outstanding operator steps (not blockers to marking done, but required before the fix is live
+and trustworthy):
+1. **Deploy** this code — until then every reply to an imported ticket still creates an orphan.
+2. **Run the section-F one-time runbook** to clean the 45 existing `external_id IS NULL` orphan
+   tickets + their 56 messages.
+3. **Reset `email_poll_cursor.last_received_time`** to the epoch-ms of the fresh Zoho export
+   snapshot (discussed with the user: their value was `1787896170907`), so email-poll doesn't
+   re-walk mail that the threads/comments re-import also covers.
+4. **Watch the `[cron/email-poll] skipped …` logs** after the first live poll to confirm the
+   intake filter isn't dropping genuine customer mail (the Medium observation above).
+5. Header-based filter rules (`Auto-Submitted` / `Precedence` / bounce `Return-Path`) remain a
+   possible follow-up if sender+subject rules prove insufficient in production.

@@ -3,7 +3,14 @@
 // original `zoho-import/desk-tickets/route.ts` body: contacts + accounts lookup-map
 // building (Supabase 1000-row cap → `.range()` loop), contact-first / account-name
 // fallback matching, the full `source_meta` object, and the CHUNK_SIZE=50 upsert on
-// `external_id`. Task 326: `TicketRow.status` is the live 4-value enum
+// `external_id`. Task 329: the live `desk-tickets` export now enriches each ticket with
+// its custom fields (`cf`) via a per-ticket Get Ticket call — captured verbatim at
+// `source_meta.cf` (+ `source_meta.customFields`). The real portal only has three ticket
+// custom fields (`cf_white_label`, `cf_stack_shift_site`, `cf_service_type` — the latter
+// unused across all 538 tickets), so White Label and StackShift Site are promoted to
+// `source_meta.whiteLabel` / `.stackShiftSite` (the ticket UI shows `whiteLabel` under the
+// label "Business Name" — task 330). Archived rows have no `cf` → these are `null`.
+// Task 326: `TicketRow.status` is the live 4-value enum
 // (`open | on_hold | escalated | closed`); Zoho's `ticketNumber` IS written to
 // `tickets.ticket_number` (the number shown as #<n>) and `ticket_id` is set to
 // `TKT-<ticketNumber>` (the readable routing key). After the upsert loop we call
@@ -30,7 +37,10 @@ type DeskAccountRaw = {
 // docs never appear because fetchAllDeskPages() requests /tickets with no `include` param.
 // Confirmed against all 530 records in a real portal export (task 302). The archived-tickets
 // endpoint (viewType=2) is shape-compatible; task 325's export also tags each row with
-// `_zoho_department_id` as a departmentId fallback.
+// `_zoho_department_id` as a departmentId fallback. Task 329: the live `desk-tickets` export
+// additionally grafts a `cf` object (only that key) onto each row from a per-ticket Get
+// Ticket call — the portal's ticket custom fields are `cf_white_label` / `cf_stack_shift_site`
+// / `cf_service_type`; archived rows still have no `cf`.
 export type DeskTicketRaw = {
   id?: string | number;
   ticketNumber?: string;
@@ -65,9 +75,39 @@ export type DeskTicketRaw = {
   assigneeId?: string | number | null;
   lastThread?: Record<string, unknown> | null;
   source?: Record<string, unknown> | null;
+  cf?: Record<string, unknown> | null;
+  customFields?: unknown;
   _zoho_department_id?: string | number | null;
   [key: string]: unknown;
 };
+
+// Promote the two populated ticket custom fields to stable `source_meta` keys. Matched by
+// normalized field name (not a hardcoded slug) so a Zoho label edit that shifts the slug
+// — e.g. `cf_stack_shift_site` → `cf_stackshift_site` — still resolves. Confirmed against
+// the live portal: `cf_white_label` (289 populated — holds the client/business name, shown
+// in the ticket UI as "Business Name"), `cf_stack_shift_site` (224). The full `cf` object
+// is always kept verbatim at `source_meta.cf`, so any field added later is still captured
+// even without a promotion entry here.
+const CF_TARGETS = {
+  whiteLabel: ["whitelabel"],
+  stackShiftSite: ["stackshiftsite"],
+} as const;
+
+function normalizeCfKey(key: string): string {
+  return key.replace(/^cf_/i, "").replace(/[^a-z0-9]/gi, "").toLowerCase();
+}
+
+function resolveCfField(
+  cf: Record<string, unknown> | null | undefined,
+  targets: readonly string[]
+): unknown {
+  if (!cf) return null;
+  for (const [key, value] of Object.entries(cf)) {
+    if (value == null || value === "") continue;
+    if (targets.includes(normalizeCfKey(key))) return value;
+  }
+  return null;
+}
 
 type TicketRow = {
   customer_id: string | null;
@@ -246,6 +286,10 @@ export async function importDeskTickets(
         customerResponseTime: ticket.customerResponseTime ?? null,
         createdTime: ticket.createdTime ?? null,
         assigneeId: ticket.assigneeId ?? null,
+        cf: ticket.cf ?? null,
+        customFields: ticket.customFields ?? null,
+        whiteLabel: resolveCfField(ticket.cf, CF_TARGETS.whiteLabel),
+        stackShiftSite: resolveCfField(ticket.cf, CF_TARGETS.stackShiftSite),
       },
     });
   }

@@ -18,6 +18,12 @@ interface ThreadsExportState {
   error: string | null;
 }
 
+interface DeskTicketsExportState {
+  progress: { current: number; total: number; ticketId: string } | null;
+  done: { count: number; failed: string[] } | null;
+  error: string | null;
+}
+
 interface ArchivedTicketsExportState {
   progress: { current: number; total: number; ticketCount: number } | null;
   warnings: string[];
@@ -46,7 +52,7 @@ const EXPORT_LEVELS = [
   { key: "desk-accounts", label: "Desk Accounts", desc: "All Zoho Desk accounts (companies) — requires the Desk.accounts.READ OAuth scope; export before Desk Contacts for account-name matching" },
   { key: "desk-contacts", label: "Desk Contacts", desc: "All Zoho Desk contacts — can run independently, but export Desk Accounts first for customer matching" },
   { key: "desk-agents", label: "Desk Agents", desc: "All Zoho Desk agents — no new OAuth scope needed (Desk.agents.READ already granted); used to resolve ticket Owner names" },
-  { key: "desk-tickets", label: "Desk Tickets", desc: "All Zoho Desk tickets — no new OAuth scope needed (Desk.tickets.READ already granted)" },
+  { key: "desk-tickets", label: "Desk Tickets", desc: "All Zoho Desk tickets + per-ticket custom-field enrichment (White Label, StackShift Site — the \"Additional Information\" panel) via a Get Ticket call each, since List Tickets never returns cf. ~1 call/ticket, runs several minutes. No new OAuth scope (Desk.tickets.READ already granted)" },
   { key: "desk-ticket-comments", label: "Desk Ticket Comments", desc: "Agent notes/replies per ticket — not the full customer conversation, see Desk Threads below — requires desk-tickets.json exported first" },
   { key: "desk-threads", label: "Desk Threads", desc: "The actual customer↔agent conversation per ticket (emails, forum replies, etc.) — requires desk-tickets.json exported first" },
   { key: "desk-archived-tickets", label: "Desk Archived Tickets", desc: "Archived tickets created 2025-01-01 onward — a separate endpoint the live Desk Tickets export skips entirely; loops every department, warns if a department's 2025+ set exceeds Zoho's 5,000/department API cap or a department fails (others still export). Needs the Desk.search.READ scope" },
@@ -55,7 +61,7 @@ const EXPORT_LEVELS = [
 const IMPORT_LEVELS = [
   { key: "desk-contacts", label: "Desk Contacts", desc: "Imports desk-contacts.json into the contacts table, matched to customers via desk-accounts.json (if present) by normalized account name" },
   { key: "desk-agents", label: "Desk Agents", desc: "Imports desk-agents.json into the desk_agents table — no customer matching, used only to resolve ticket Owner names" },
-  { key: "desk-tickets", label: "Desk Tickets", desc: "Imports desk-tickets.json into the tickets table — matched via the ticket's contact (contacts.customer_id) with an account-name fallback; unmatched tickets import anyway with customer_id: null" },
+  { key: "desk-tickets", label: "Desk Tickets", desc: "Imports desk-tickets.json into the tickets table — matched via the ticket's contact (contacts.customer_id) with an account-name fallback; unmatched tickets import anyway with customer_id: null. Custom fields land in source_meta.cf (verbatim) with whiteLabel / stackShiftSite promoted to named source_meta keys" },
   { key: "desk-ticket-comments", label: "Desk Ticket Comments", desc: "Imports desk-ticket-comments.json into ticket_messages (author_type: staff, visibility from isPublic) — requires Desk Tickets imported first" },
   { key: "desk-threads", label: "Desk Threads", desc: "Imports desk-threads.json into ticket_messages (author_type: client or staff based on who wrote it, visibility from Zoho's visibility field) — requires Desk Tickets imported first" },
   { key: "desk-archived-tickets", label: "Desk Archived Tickets", desc: "Imports desk-archived-tickets.json into the tickets table (upsert on external_id) — same customer matching as Desk Tickets; source_meta.isArchived is set on every row; run after Desk Tickets import" },
@@ -72,6 +78,11 @@ export default function ZohoDeskTab() {
     error: null,
   });
   const [threadsExport, setThreadsExport] = useState<ThreadsExportState>({
+    progress: null,
+    done: null,
+    error: null,
+  });
+  const [deskTicketsExport, setDeskTicketsExport] = useState<DeskTicketsExportState>({
     progress: null,
     done: null,
     error: null,
@@ -272,6 +283,111 @@ export default function ZohoDeskTab() {
       setThreadsExport((s) => ({ ...s, error: String(e), progress: null }));
       setExportStates((s) => ({ ...s, "desk-threads": "error" }));
       console.error("[export/desk-threads]", e);
+    } finally {
+      setAnyRunning(false);
+    }
+  }
+
+  async function handleDeskTicketsExport() {
+    if (anyRunning) return;
+    setAnyRunning(true);
+    setExportStates((s) => ({ ...s, "desk-tickets": "running" }));
+    setDeskTicketsExport({ progress: null, done: null, error: null });
+
+    const accumulated: unknown[] = [];
+    let sawDone = false;
+
+    const download = (name: string) => {
+      const blob = new Blob([JSON.stringify(accumulated, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = name;
+      a.click();
+      URL.revokeObjectURL(url);
+    };
+
+    try {
+      const res = await fetch("/api/admin/zoho-export/desk-tickets");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? `HTTP ${res.status}`);
+      }
+
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const frames = buffer.split("\n\n");
+        buffer = frames.pop() ?? "";
+
+        for (const frame of frames) {
+          if (!frame.startsWith("data: ")) continue;
+          const evt = JSON.parse(frame.slice(6)) as {
+            type: string;
+            current?: number;
+            total?: number;
+            ticketId?: string;
+            tickets?: unknown[];
+            failed_ticket_ids?: string[];
+            message?: string;
+          };
+
+          if (evt.type === "progress") {
+            setDeskTicketsExport((s) => ({
+              ...s,
+              progress: { current: evt.current!, total: evt.total!, ticketId: evt.ticketId ?? "" },
+            }));
+          }
+          if (evt.type === "tickets" && evt.tickets) {
+            accumulated.push(...evt.tickets);
+          }
+          if (evt.type === "error") {
+            throw new Error(evt.message ?? "export error");
+          }
+          if (evt.type === "done") {
+            sawDone = true;
+            download("desk-tickets.json");
+            setDeskTicketsExport((s) => ({
+              ...s,
+              done: { count: evt.total ?? accumulated.length, failed: evt.failed_ticket_ids ?? [] },
+              progress: null,
+            }));
+            setExportStates((s) => ({ ...s, "desk-tickets": "done" }));
+          }
+        }
+      }
+
+      if (!sawDone) {
+        // stream ended without a `done` event — save what completed so the run isn't a total loss
+        if (accumulated.length > 0) download("desk-tickets.partial.json");
+        setDeskTicketsExport((s) => ({
+          ...s,
+          error:
+            accumulated.length > 0
+              ? `Stream ended early — saved desk-tickets.partial.json (${accumulated.length} of ? tickets). Re-run to restart.`
+              : "Stream ended before any data arrived — nothing saved.",
+          progress: null,
+        }));
+        setExportStates((s) => ({ ...s, "desk-tickets": "error" }));
+      }
+    } catch (e) {
+      if (accumulated.length > 0) download("desk-tickets.partial.json");
+      setDeskTicketsExport((s) => ({
+        ...s,
+        error: `${String(e)}${
+          accumulated.length > 0
+            ? ` — saved ${accumulated.length} ticket(s) to desk-tickets.partial.json; re-run to restart.`
+            : ""
+        }`,
+        progress: null,
+      }));
+      setExportStates((s) => ({ ...s, "desk-tickets": "error" }));
+      console.error("[export/desk-tickets]", e);
     } finally {
       setAnyRunning(false);
     }
@@ -600,6 +716,63 @@ export default function ZohoDeskTab() {
                   ) : null}
                   {ticketCommentsExport.error !== null ? (
                     <div className="mt-1 text-[11px] text-red-600">{ticketCommentsExport.error}</div>
+                  ) : null}
+                </div>
+              );
+            }
+
+            if (key === "desk-tickets") {
+              const isRunning = exportStates["desk-tickets"] === "running";
+              const pct = deskTicketsExport.progress
+                ? Math.round((deskTicketsExport.progress.current / deskTicketsExport.progress.total) * 100)
+                : 0;
+
+              return (
+                <div key="desk-tickets" className="py-2 border-b border-slate-100 last:border-0">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[13px] font-medium text-slate-800 flex items-center gap-2">
+                        {label}
+                        <StateIcon state={exportStates["desk-tickets"] ?? "idle"} />
+                      </div>
+                      <div className="text-[11px] text-slate-500 mt-0.5 truncate">{desc}</div>
+                    </div>
+                    {!isRunning && (
+                      <button
+                        onClick={handleDeskTicketsExport}
+                        disabled={anyRunning}
+                        className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium bg-slate-900 text-white hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <Download size={11} />
+                        Export
+                      </button>
+                    )}
+                  </div>
+                  {isRunning && deskTicketsExport.progress !== null ? (
+                    <div className="mt-2">
+                      <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-blue-500 rounded-full transition-all"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      <div className="text-[11px] text-slate-500 mt-1 truncate">
+                        Ticket {deskTicketsExport.progress.current} of {deskTicketsExport.progress.total}
+                      </div>
+                    </div>
+                  ) : null}
+                  {exportStates["desk-tickets"] === "done" && deskTicketsExport.done !== null ? (
+                    <div className="mt-1 text-[11px] space-y-0.5">
+                      <div className="text-green-600">{deskTicketsExport.done.count} tickets downloaded</div>
+                      {deskTicketsExport.done.failed.length > 0 ? (
+                        <div className="text-amber-600 truncate" title={deskTicketsExport.done.failed.join(", ")}>
+                          {deskTicketsExport.done.failed.length} ticket(s) had no custom fields fetched after retries — re-run to retry
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
+                  {deskTicketsExport.error !== null ? (
+                    <div className="mt-1 text-[11px] text-red-600">{deskTicketsExport.error}</div>
                   ) : null}
                 </div>
               );
