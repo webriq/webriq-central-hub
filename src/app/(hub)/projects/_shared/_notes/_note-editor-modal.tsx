@@ -1,9 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { Pin, Archive, ArchiveRestore, Trash2 } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
+import { Pin, Archive, ArchiveRestore, Trash2, Globe, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { NOTE_CARD_BG, getNotePermission, type NoteRow, type NoteFolder, type NoteColor } from "./_notes-types";
+import { NOTE_CARD_BG, getNotePermission, type NoteRow, type NoteFolder, type NoteColor, type NoteVisibility } from "./_notes-types";
 import { NoteColorPicker } from "./_note-color-picker";
 import { NoteCollaboratorPicker } from "./_note-collaborator-picker";
 import { NoteRichTextEditor } from "./_note-rich-text-editor";
@@ -16,6 +16,26 @@ export type NoteDraftPatch = {
   folder_id: string | null;
   is_pinned: boolean;
 };
+
+const FOLDER_ROLE_LABEL: Record<string, string> = {
+  pm: "PMs",
+  developer: "developers",
+  admin: "admins",
+  super_admin: "super admins",
+};
+
+// Task 337 — human phrase for the confirm-to-public dialog ("…let everyone <audience> see it").
+function describeFolderAudience(folder: NoteFolder | null): string {
+  if (!folder) return "with folder access";
+  if (folder.visibility === "public") return "on staff";
+  const shares = folder.shares ?? [];
+  const names = shares.filter((s) => s.user_id).map((s) => s.user?.full_name ?? "a teammate");
+  const roles = shares.filter((s) => s.role).map((s) => FOLDER_ROLE_LABEL[s.role as string] ?? s.role);
+  const parts = [...names, ...roles];
+  if (parts.length === 0) return "with folder access";
+  if (parts.length === 1) return parts[0]!;
+  return `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
+}
 
 // Task 311 — create/edit modal matching the reference screenshot: Title, body, pin toggle
 // top-right, a toolbar row (background color, add-collaborator, archive, delete) and a Close
@@ -30,6 +50,8 @@ export function NoteEditorModal({
   allMembers,
   currentUserId,
   currentUserRole,
+  folderPermission,
+  exposedFolderIds,
   onClose,
   onCreate,
   onSaveDraft,
@@ -38,6 +60,7 @@ export function NoteEditorModal({
   onToggleArchive,
   onChangeColor,
   onChangeFolder,
+  onChangeVisibility,
   onShare,
   onChangePermission,
   onUnshare,
@@ -52,6 +75,10 @@ export function NoteEditorModal({
   allMembers: { id: string; full_name: string | null; avatar_url: string | null; role: string }[];
   currentUserId: string;
   currentUserRole: string | null;
+  // Task 337 — folder-granted permission map + the set of folders that expose their public
+  // notes. The Public/Private toggle only appears when the note's folder is in `exposedFolderIds`.
+  folderPermission?: Map<string, "view" | "edit">;
+  exposedFolderIds: Set<string>;
   onClose: () => void;
   onCreate: (patch: NoteDraftPatch) => Promise<NoteRow | null>;
   onSaveDraft: (noteId: string, patch: { title: string | null; content: string | null }) => void;
@@ -60,6 +87,7 @@ export function NoteEditorModal({
   onToggleArchive: (noteId: string) => void;
   onChangeColor: (noteId: string, color: NoteColor) => void;
   onChangeFolder: (noteId: string, folderId: string | null) => void;
+  onChangeVisibility: (noteId: string, visibility: NoteVisibility) => void;
   onShare: (noteId: string, userId: string, permission: "view" | "edit") => void;
   onChangePermission: (noteId: string, userId: string, permission: "view" | "edit") => void;
   onUnshare: (noteId: string, userId: string) => void;
@@ -70,6 +98,10 @@ export function NoteEditorModal({
   const [color, setColor] = useState<NoteColor>(note?.color ?? "default");
   const [folderId, setFolderId] = useState<string | null>(note?.folder_id ?? defaultFolderId);
   const [isPinned, setIsPinned] = useState(note?.is_pinned ?? false);
+  // Task 337 — per-note opt-in to the folder's audience. `private` by default; only the author
+  // (or admin/super_admin) can flip it, and only when the note's folder is shared / public.
+  const [visibility, setVisibility] = useState<NoteVisibility>(note?.visibility ?? "private");
+  const [confirmPublicOpen, setConfirmPublicOpen] = useState(false);
 
   // Task 315 — `note` is only the *initial* value (null while composing a brand-new note).
   // `activeNote` tracks the note actually being edited in this modal session, and flips from
@@ -81,8 +113,32 @@ export function NoteEditorModal({
   // auto-create moment can't fire two concurrent POSTs and create two notes.
   const creatingRef = useRef<Promise<NoteRow | null> | null>(null);
 
-  const permission = activeNote ? getNotePermission(activeNote, currentUserId, currentUserRole) : "owner";
+  const permission = activeNote ? getNotePermission(activeNote, currentUserId, currentUserRole, folderPermission) : "owner";
   const readOnly = permission === "view";
+
+  // Task 337 — the visibility toggle is offered only to the note's author / an admin, and only
+  // when the note actually sits in a folder with an audience (shared or public).
+  const activeFolder = useMemo(() => folders.find((f) => f.id === folderId) ?? null, [folders, folderId]);
+  const folderIsSharedOrPublic = folderId != null && exposedFolderIds.has(folderId);
+  const canSetVisibility = permission === "owner" && folderIsSharedOrPublic;
+  const audienceLabel = describeFolderAudience(activeFolder);
+
+  function handleToggleVisibility() {
+    if (visibility === "public") {
+      setVisibility("private");
+      if (activeNote) onChangeVisibility(activeNote.id, "private");
+      return;
+    }
+    setConfirmPublicOpen(true);
+  }
+
+  async function confirmMakePublic() {
+    setConfirmPublicOpen(false);
+    const target = await ensureNoteCreated();
+    if (!target) return;
+    setVisibility("public");
+    onChangeVisibility(target.id, "public");
+  }
   // "owner" per `getNotePermission` covers both the literal author and admin/super_admin
   // (oversight parity, per the task doc's scope decisions) — the note_collaborators RLS insert
   // policy already allows either to share a note, so the UI control shouldn't be narrower.
@@ -205,6 +261,23 @@ export function NoteEditorModal({
                 onUnshare={(userId) => activeNote && onUnshare(activeNote.id, userId)}
               />
             )}
+            {canSetVisibility && (
+              <IconTip label={visibility === "public" ? "Make private" : "Make public to this folder"}>
+                <button
+                  type="button"
+                  onClick={handleToggleVisibility}
+                  aria-label={visibility === "public" ? "Make note private" : "Make note public to this folder"}
+                  className={cn(
+                    "p-1.5 rounded-full transition-colors cursor-pointer shrink-0",
+                    visibility === "public"
+                      ? "text-[#007BFF]"
+                      : "text-[#5F6A88] hover:bg-black/[0.04] hover:text-[#0B1533]"
+                  )}
+                >
+                  {visibility === "public" ? <Globe size={16} /> : <Lock size={16} />}
+                </button>
+              </IconTip>
+            )}
             {activeNote && permission !== "view" && (
               <IconTip label={activeNote.is_archived ? "Unarchive note" : "Archive note"}>
                 <button
@@ -240,6 +313,41 @@ export function NoteEditorModal({
           </button>
         </div>
       </div>
+
+      {/* Task 337 — confirm-to-public. In-app overlay, never a browser confirm(). */}
+      {confirmPublicOpen && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-[#0B1533]/40 p-4"
+          onClick={(e) => { e.stopPropagation(); setConfirmPublicOpen(false); }}
+        >
+          <div
+            className="w-full max-w-sm rounded-[14px] border border-[#E2E7F2] bg-white p-4 shadow-[0_8px_24px_rgba(7,17,51,.10)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-[13px] font-semibold text-[#0B1533] mb-1.5">Make this note public?</p>
+            <p className="text-[13px] text-[#3A4565] mb-4">
+              This note is in a {activeFolder?.visibility === "public" ? "public" : "shared"} folder.
+              Making it public will let everyone {audienceLabel} see it.
+            </p>
+            <div className="flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirmPublicOpen(false)}
+                className="px-3.5 py-1.5 rounded-full text-[12px] font-semibold text-[#3A4565] hover:bg-black/[0.04] transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmMakePublic}
+                className="px-3.5 py-1.5 rounded-full text-[12px] font-semibold text-white bg-[#007BFF] hover:bg-[#0063D6] transition-colors cursor-pointer"
+              >
+                Make public
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

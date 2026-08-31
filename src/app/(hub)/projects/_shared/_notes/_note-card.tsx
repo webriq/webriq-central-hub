@@ -1,6 +1,6 @@
 "use client";
 
-import { Pin, Archive, ArchiveRestore, Trash2, Users } from "lucide-react";
+import { Pin, Archive, ArchiveRestore, Trash2, Users, Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NOTE_CARD_BG, NOTE_CARD_BORDER, getNotePermission, type NoteRow } from "./_notes-types";
 import { IconTip } from "./_icon-tip";
@@ -12,6 +12,8 @@ export function NoteCard({
   note,
   currentUserId,
   currentUserRole,
+  folderPermission,
+  isFolderExposed,
   onOpen,
   onTogglePin,
   onToggleArchive,
@@ -20,15 +22,21 @@ export function NoteCard({
   note: NoteRow;
   currentUserId: string;
   currentUserRole: string | null;
+  // Task 337 — folder-granted permission map + whether this note's folder exposes public notes.
+  folderPermission?: Map<string, "view" | "edit">;
+  isFolderExposed?: boolean;
   onOpen: () => void;
   onTogglePin: () => void;
   onToggleArchive: () => void;
   onDelete: () => void;
 }) {
-  const permission = getNotePermission(note, currentUserId, currentUserRole);
+  const permission = getNotePermission(note, currentUserId, currentUserRole, folderPermission);
   const isAuthor = note.created_by === currentUserId;
   const canDelete = permission === "owner";
   const canPin = permission !== "view";
+  // Task 337 — the note is reachable by the folder's audience: its author opted it public AND
+  // the folder is shared / public.
+  const isPublicViaFolder = note.visibility === "public" && !!isFolderExposed;
 
   return (
     <div
@@ -78,12 +86,20 @@ export function NoteCard({
       )}
 
       <div className="flex items-center justify-between mt-1 pt-1 border-t border-transparent transition-colors group-hover:border-black/[0.08]">
-        {note.collaborators.length > 0 ? (
-          <div className="flex items-center gap-1 text-[#5F6A88]">
-            <Users size={12} />
-            <span className="text-[11px] font-medium">{note.collaborators.length}</span>
-          </div>
-        ) : <span />}
+        <div className="flex items-center gap-2">
+          {note.collaborators.length > 0 && (
+            <span className="flex items-center gap-1 text-[#5F6A88]">
+              <Users size={12} />
+              <span className="text-[11px] font-medium">{note.collaborators.length}</span>
+            </span>
+          )}
+          {isPublicViaFolder && (
+            <span className="flex items-center gap-1 text-[#007BFF]" title="Public — visible to this folder's audience">
+              <Globe size={12} />
+              <span className="text-[11px] font-medium">Public</span>
+            </span>
+          )}
+        </div>
 
         <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
           {permission !== "view" && (

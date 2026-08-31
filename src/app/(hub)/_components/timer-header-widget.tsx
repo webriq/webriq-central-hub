@@ -7,7 +7,7 @@ import type { LucideIcon } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { useTimer } from "./timer-context";
 import { formatMMSS, formatHHMMSS } from "@/lib/timer/format";
-import { BREAK_LABELS, BREAK_ICONS, type BreakType } from "@/lib/timer/constants";
+import { BREAK_LABELS, BREAK_ICONS, BREAK_DURATIONS_MIN, type BreakType } from "@/lib/timer/constants";
 import { decodeHtmlEntities } from "@/app/(hub)/projects-old/_pm-shared";
 import { V2_ROUTES } from "@/config/constants";
 
@@ -33,6 +33,29 @@ export default function TimerHeaderWidget() {
   const onBreak = !!timer?.break_type;
   const breakMeta = timer?.break_type ? BREAK_META[timer.break_type] : null;
   const breakLabel = timer?.break_type ? BREAK_LABELS[timer.break_type] : null;
+  const isRunning = timer?.status === "running";
+
+  // Task 340 follow-up — the header trigger now reflects timer state through the icon and an
+  // active background instead of a corner status dot: while on a break the Timer icon becomes the
+  // break-type icon (meal/coffee/clock); the button is blue while running and light amber while
+  // on a break, and its tooltip names the current state.
+  const TriggerIcon = onBreak && timer?.break_type ? BREAK_ICONS[timer.break_type] : Timer;
+  const triggerActiveClass = onBreak
+    ? "bg-[#FFF3D6] text-[#8A5A00] hover:bg-[#FFECBF]"
+    : isRunning
+    ? "bg-[#007BFF] text-white hover:bg-[#0063D6]"
+    : "text-[#5F6A88] hover:bg-[#F4F6FB] hover:text-[#3A4565]";
+  const triggerTooltip = open
+    ? "Minimize"
+    : onBreak
+    ? timer?.break_type === "few_minutes"
+      ? `On a ${BREAK_DURATIONS_MIN.few_minutes} minutes break`
+      : `On a ${breakLabel}`
+    : isRunning
+    ? "Timer is running"
+    : hasEntity
+    ? "Timer paused"
+    : "Timer & breaks";
 
   // Task 300 — task/issue title and project name link to their detail pages. Detail-page routes
   // key on the human-readable display_id/project_id columns, not the FK UUIDs on the timer row
@@ -70,22 +93,19 @@ export default function TimerHeaderWidget() {
           <button
             onClick={() => setOpen((o) => !o)}
             aria-label={open ? "Close timer widget" : "Open timer widget"}
-            className="relative p-1.5 rounded-lg text-[#5F6A88] hover:bg-[#F4F6FB] hover:text-[#3A4565] transition-colors cursor-pointer"
+            className={`inline-flex items-center gap-1.5 p-1.5 rounded-lg transition-colors cursor-pointer ${triggerActiveClass}`}
           >
-            <Timer size={18} />
+            <TriggerIcon size={18} className="shrink-0" />
             {hasEntity && (
-              // Task 300 — status dot replaces the old persistent colored-pill background:
-              // green = task in progress (running or manually paused), brand-orange = on break,
-              // no dot at all = no timer running (see the `hasEntity &&` guard above).
-              <span
-                className={`absolute top-0.5 right-0.5 w-1.75 h-1.75 rounded-full border border-white ${
-                  onBreak ? "bg-[#FB914E]" : "bg-emerald-500"
-                }`}
-              />
+              // Task 340 — inline elapsed time (HH:MM:SS while a task/issue timer runs or is
+              // manually paused) or break countdown (MM:SS while on a break) after the icon.
+              <span className="text-[13px] font-mono font-semibold tabular-nums leading-none">
+                {onBreak ? formatMMSS(breakRemainingSeconds ?? 0) : formatHHMMSS(elapsedSeconds)}
+              </span>
             )}
           </button>
         } />
-        <TooltipContent side="left">{open ? "Minimize" : "Timer & breaks"}</TooltipContent>
+        <TooltipContent side="left">{triggerTooltip}</TooltipContent>
       </Tooltip>
 
       {open && (

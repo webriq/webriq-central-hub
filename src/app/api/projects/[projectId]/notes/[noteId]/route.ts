@@ -21,14 +21,19 @@ export async function PATCH(
 
     const { projectId, noteId } = await params;
     const body = await request.json();
-    const { title, content, color, folder_id, is_pinned, is_archived } = body as {
+    const { title, content, color, folder_id, is_pinned, is_archived, visibility } = body as {
       title?: string | null;
       content?: string | null;
       color?: string;
       folder_id?: string | null;
       is_pinned?: boolean;
       is_archived?: boolean;
+      visibility?: string;
     };
+
+    if (visibility !== undefined && visibility !== "private" && visibility !== "public") {
+      return NextResponse.json({ error: "visibility must be 'private' or 'public'" }, { status: 400 });
+    }
 
     const { data: existing, error: fetchError } = await supabase
       .from("notes")
@@ -46,6 +51,7 @@ export async function PATCH(
     const updates: {
       title?: string | null; content?: string | null; color?: string;
       folder_id?: string | null; is_pinned?: boolean; is_archived?: boolean;
+      visibility?: "private" | "public";
     } = {};
     if (title !== undefined) updates.title = title?.trim() || null;
     if (content !== undefined) updates.content = content;
@@ -53,6 +59,7 @@ export async function PATCH(
     if (folder_id !== undefined) updates.folder_id = folder_id;
     if (is_pinned !== undefined) updates.is_pinned = is_pinned;
     if (is_archived !== undefined) updates.is_archived = is_archived;
+    if (visibility !== undefined) updates.visibility = visibility as "private" | "public";
 
     const { data: updated, error: updateError } = await supabase
       .from("notes")

@@ -4,7 +4,7 @@
 **Priority:** MEDIUM
 **Type:** enhancement
 **Recommended Tier:** balanced
-**Status:** Planned
+**Status:** Completed (2026-08-31 — marked complete at the user's explicit request; browser acceptance + `supabase db push` of migration 128 outstanding)
 
 ---
 
@@ -349,3 +349,13 @@ PASS
 **Fix:** render the panel as soon as `open` is true (`open && createPortal(...)`), positioned via `pos?.*` and held `visibility: hidden` for the single frame until `pos` resolves. The panel is now in the DOM when the hook measures it, so the first open flips correctly. No flash (a `visibility: hidden` element isn't painted). One file: `src/app/(hub)/projects/_shared/_datetime-field-picker.tsx`.
 
 **Verification:** `npx tsc --noEmit` + `pnpm lint` PASS. Browser re-check of the first-open flip still pending with the rest of the task's browser acceptance.
+
+### 2. "File an Issue" from a ticket thread message flattened the message to plain text (dropped inline images, collapsed paragraph spacing)
+
+**Reported:** "File an Issue" (task 333, ticket conversation kebab) seeds the New Issue Description without the message's inline images, and with different line spacing than "Create Task" for the same message.
+
+**Cause:** task 333 pre-dates task 338. Back then the New Issue modal's Description was a plain `<textarea>`, so `_thread-to-project-modal.tsx` ran the message body through a local `htmlToPlainText()` for the issue path while the task path (already a Tiptap RTE) passed `sanitizeMessageHtml()` HTML directly. Task 338 made the Issue Description the same `TaskDescriptionEditor` RTE, so the plain-text conversion is now both unnecessary and lossy.
+
+**Fix:** the issue path now uses the exact same seed expression as the task path — `message.isHtml ? sanitizeMessageHtml(message.body) : message.body` — so inline images and `<p>` paragraph spacing carry through identically. The now-dead `htmlToPlainText()` helper was removed. One file: `src/app/(hub)/desk/tickets/[ticketId]/_thread-to-project-modal.tsx`. (Field/line spacing inside the modal was already identical — both modals render the seed through the same `TaskDescriptionEditor` and lay fields out via the same `CollapsibleSection` `gap-4`.)
+
+**Verification:** `tsc` reports **no errors in any task-338/339 file**; a fully-green `npx tsc --noEmit` is currently blocked only by unrelated in-progress task-337 (Notes folder sharing) work in the tree (`_note-folder-share-dialog` not yet created, `shares/route.ts` role typing). `pnpm lint` — 0 errors (pre-existing task-337 + `_checklist-tab` warnings only). Browser re-check pending with the rest of the task's acceptance pass.

@@ -4,7 +4,7 @@
 **Priority:** MEDIUM
 **Type:** feature
 **Recommended Tier:** deep
-**Status:** Planned
+**Status:** Testing
 
 ---
 
@@ -348,6 +348,116 @@ Browser acceptance (after the requester applies migration 127), on both
 confirm zero note exposure — walk the Acceptance Criteria list. RLS is the real gate: verify a
 direct PATCH from a view-only folder-share user returns 403 (row visible, 0 rows updated), matching
 the note-collaborator route precedent.
+
+## Implementation Notes
+
+### What Changed
+- **Migration 127** (`127_note_folder_sharing.sql`, written **not applied**) — `visibility` text
+  columns on `note_folders` + `notes` (default `'private'`, checked); `note_folder_shares` table
+  (one target per row: `user_id` XOR `role`; partial unique indexes per target kind); security-
+  definer helpers `is_note_folder_manager()` / `can_access_note_folder(p_folder_id, p_require_edit)`
+  per migration 121's anti-recursion pattern; `notes_select` / `notes_update` rewritten to add the
+  folder path; four `note_folder_shares_*` policies gated to folder manager / admin.
+- **`database.ts`** — `visibility` on `note_folders` + `notes` Row/Insert/Update; new
+  `note_folder_shares` table type with `Relationships[]` (folder_id → note_folders, user_id +
+  added_by → profiles).
+- **`_notes-types.ts`** — `NoteVisibility`, `NoteFolderShareRole`, `NoteFolderShare`; `visibility`
+  on `NoteRow` + `NoteFolder`, optional `shares?` on `NoteFolder`; `getNotePermission` gained an
+  optional `folderPermission` map arg (widens, never narrows); new `folderPermissionForUser()`.
+- **API** — folders `GET` embeds `visibility` + `shares` with a **bare-select fallback** when the
+  embed errors (migration 127 not applied yet); folder `PATCH` accepts `visibility` alongside/
+  instead of `name`; new `folders/[folderId]/shares` (`GET`/`POST`, POST upserts on the partial
+  unique index by re-`PATCH`ing permission on `23505`) + `shares/[shareId]` (`PATCH`/`DELETE`);
+  note `PATCH` accepts `visibility`. All `createClient()` (RLS), 403-on-zero-rows shape.
+- **`_notes-tab.tsx`** — `setFolderVisibility` / `shareFolder` (batched users + roles) /
+  `changeFolderSharePermission` / `unshareFolder` / note `changeNoteVisibility` (via widened
+  `patchNote`); `folderPermission` + `exposedFolderIds` memos; `sharedNotes` widened to include
+  folder-granted public notes; renders `<NoteFolderShareDialog>` as an editor-modal-style sibling.
+- **`_note-folder-rail.tsx`** — `Share2` hover action (manager-gated) + persistent Globe (public)
+  / Users (has shares) indicator beside the count badge; `onShareFolder` prop.
+- **`_note-folder-share-dialog.tsx`** (new, ~250 lines) — Private/Public segmented toggle;
+  Private mode shows current-share list (per-row permission + remove), a 2×2 role checkbox grid,
+  and a searchable people multi-select with a batch view/edit permission + Share button. Public
+  mode hides share management and explains all-staff view-only access.
+- **`_note-editor-modal.tsx`** — Globe/Lock visibility toggle after the collaborator picker,
+  shown only to `permission === "owner"` when the note's folder is in `exposedFolderIds`; flip
+  **to** public opens an in-app confirm overlay (`describeFolderAudience()` names the audience;
+  reuses `ensureNoteCreated()` so an unsaved note is created first); flip back is immediate.
+- **`_note-card.tsx` / `_notes-board.tsx`** — `folderPermission` + `isFolderExposed` threaded to
+  every card; "Public" globe badge when `note.visibility === 'public'` and its folder is exposed.
+- **`CLAUDE.md`** — one Key-Conventions bullet on the two sharing axes + the per-note opt-in model.
+
+### Files Changed
+- `supabase/migrations/127_note_folder_sharing.sql` - new migration (written, not applied)
+- `src/types/database.ts` - column + table types
+- `src/app/(hub)/projects/_shared/_notes/_notes-types.ts` - types + permission helpers
+- `src/app/api/projects/[projectId]/notes/folders/route.ts` - GET embed + fallback
+- `src/app/api/projects/[projectId]/notes/folders/[folderId]/route.ts` - PATCH visibility
+- `src/app/api/projects/[projectId]/notes/folders/[folderId]/shares/route.ts` - new GET/POST
+- `src/app/api/projects/[projectId]/notes/folders/[folderId]/shares/[shareId]/route.ts` - new PATCH/DELETE
+- `src/app/api/projects/[projectId]/notes/[noteId]/route.ts` - PATCH visibility
+- `src/app/(hub)/projects/_shared/_notes-tab.tsx` - mutations + wiring
+- `src/app/(hub)/projects/_shared/_notes/_note-folder-rail.tsx` - share action + indicators
+- `src/app/(hub)/projects/_shared/_notes/_note-folder-share-dialog.tsx` - new dialog
+- `src/app/(hub)/projects/_shared/_notes/_note-editor-modal.tsx` - visibility toggle + confirm
+- `src/app/(hub)/projects/_shared/_notes/_note-card.tsx` - Public badge + folder permission
+- `src/app/(hub)/projects/_shared/_notes/_notes-board.tsx` - prop threading
+- `CLAUDE.md` - Key Conventions bullet
+
+### Deviations From Plan
+- No new page.tsx wrapper edits — `NotesTab` is rendered inside the already-shared
+  `_project-detail.tsx` (both `/projects/legacy` and `/projects/v2` go through
+  `getProjectDetailData()`), so the new props are computed inside `NotesTab` and the two thin
+  route wrappers needed no change.
+- The plan's `NoteFolderShareDialog` sketch put role checkboxes as "a parallel small checkbox
+  list"; implemented as a 2×2 grid to keep the dialog under the line cap without a sibling split.
+- Impeccable design-hook `design-system-font-size` warnings on `text-[10px]` / `text-[12px]` in
+  the new dialog/toggle are left as-is: the task's own Design-tokens section mandates reusing the
+  existing Notes type scale (`text-[10px]` role tags, `text-[12px]` modal buttons already ship in
+  `_note-collaborator-picker.tsx` / `_note-editor-modal.tsx`).
+
+### Verification Run
+- `npx tsc --noEmit` - PASS
+- `pnpm lint` - PASS (0 errors; 2 pre-existing warnings in an unrelated `_checklist-tab.tsx`)
+- Browser acceptance - SKIPPED (blocked on the requester applying migration 127 to the remote DB)
+
+## Quality Gate Notes
+
+### Result
+PASS
+
+### Standards Review
+- No blocking issues. `npx tsc --noEmit` (project tsconfig) and `pnpm lint` both clean — 0
+  errors; the only lint warnings are pre-existing in an unrelated file.
+- Types: no new `any` escape hatches. The shares route narrows `role`/`permission` to typed
+  unions after validation (`Role` alias, `perm`) rather than casting through `string`.
+- RLS: new cross-table checks go through `security definer` helpers per migration 121; no
+  recursion path back into `notes`. No policy references `client`/`marketing` — staff-only gate
+  preserved.
+- Error handling: every new route mirrors the sibling collaborator routes' 401 / 400 /
+  403-on-zero-rows / 500 shape. `createClient()` (RLS) throughout — no `adminClient`.
+- No debug logging beyond the existing `console.error` diagnostic convention. No secrets.
+- `_note-folder-share-dialog.tsx` ≈ 255 lines — within the ~250–300 soft cap; shell +
+  inline picker, no dynamic Tailwind class construction, `style={{}}`-free.
+
+### Deviations
+- **Minor** — folder-share manage helper `patchFolderState()` in `_notes-tab.tsx` is used once
+  (folder visibility). Kept for symmetry with the other folder mutations and readability.
+- **Minor** — an `edit`-granted folder-share user can still change a public note's `folder_id`
+  via the editor's folder `<select>` (shown to any non-`view` permission, unchanged from task
+  311). Moving it into a folder they lack edit on is silently rejected by RLS (0 rows updated);
+  the client's optimistic state corrects on the next fetch. Not a regression — edit
+  collaborators already had this latitude.
+- **Minor** — folders `GET` falls back to a bare `select("*")` on *any* embed error, not only
+  the migration-127-missing schema-cache error. Acceptable: the bare select carries the same
+  RLS, and after 127 lands the enriched path succeeds normally. Documented in Compatibility
+  Touchpoints and the route comment.
+- **Minor** — `describeFolderAudience()` returns `"with folder access"` as a fallback when a
+  private folder somehow has zero shares; the toggle is gated on `exposedFolderIds` so this
+  branch is effectively unreachable, but it degrades safely rather than throwing.
+
+### Required Fixes
+- None.
 
 ## Compatibility Touchpoints
 

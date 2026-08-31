@@ -25,6 +25,8 @@ export function NotesBoard({
   currentUserId,
   currentUserRole,
   canManageFolder,
+  folderPermission,
+  exposedFolderIds,
   onSelectAll,
   onSelectShared,
   onSelectFolder,
@@ -32,6 +34,7 @@ export function NotesBoard({
   onCreateFolder,
   onRenameFolder,
   onDeleteFolder,
+  onShareFolder,
   onOpenComposer,
   onOpenNote,
   onTogglePin,
@@ -50,6 +53,10 @@ export function NotesBoard({
   currentUserId: string;
   currentUserRole: string | null;
   canManageFolder: (folder: NoteFolder) => boolean;
+  // Task 337 — folder-granted permission map + the set of folders that expose their public
+  // notes, both threaded to every card so `getNotePermission` and the "Public" badge are right.
+  folderPermission: Map<string, "view" | "edit">;
+  exposedFolderIds: Set<string>;
   onSelectAll: () => void;
   onSelectShared: () => void;
   onSelectFolder: (folderId: string) => void;
@@ -57,13 +64,14 @@ export function NotesBoard({
   onCreateFolder: (name: string) => void;
   onRenameFolder: (folderId: string, name: string) => void;
   onDeleteFolder: (folderId: string) => void;
+  onShareFolder: (folderId: string) => void;
   onOpenComposer: () => void;
   onOpenNote: (note: NoteRow) => void;
   onTogglePin: (note: NoteRow) => void;
   onToggleArchive: (note: NoteRow) => void;
   onDelete: (note: NoteRow) => void;
 }) {
-  const gridProps = { currentUserId, currentUserRole, onOpen: onOpenNote, onTogglePin, onToggleArchive, onDelete };
+  const gridProps = { currentUserId, currentUserRole, folderPermission, exposedFolderIds, onOpen: onOpenNote, onTogglePin, onToggleArchive, onDelete };
 
   if (loading) return <NotesLoadingSkeleton />;
 
@@ -82,6 +90,7 @@ export function NotesBoard({
           onCreateFolder={onCreateFolder}
           onRenameFolder={onRenameFolder}
           onDeleteFolder={onDeleteFolder}
+          onShareFolder={onShareFolder}
           canManageFolder={canManageFolder}
         />
       </div>
@@ -143,11 +152,13 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 }
 
 function NoteGrid({
-  notes, currentUserId, currentUserRole, onOpen, onTogglePin, onToggleArchive, onDelete,
+  notes, currentUserId, currentUserRole, folderPermission, exposedFolderIds, onOpen, onTogglePin, onToggleArchive, onDelete,
 }: {
   notes: NoteRow[];
   currentUserId: string;
   currentUserRole: string | null;
+  folderPermission: Map<string, "view" | "edit">;
+  exposedFolderIds: Set<string>;
   onOpen: (note: NoteRow) => void;
   onTogglePin: (note: NoteRow) => void;
   onToggleArchive: (note: NoteRow) => void;
@@ -161,6 +172,8 @@ function NoteGrid({
           note={note}
           currentUserId={currentUserId}
           currentUserRole={currentUserRole}
+          folderPermission={folderPermission}
+          isFolderExposed={note.folder_id != null && exposedFolderIds.has(note.folder_id)}
           onOpen={() => onOpen(note)}
           onTogglePin={() => onTogglePin(note)}
           onToggleArchive={() => onToggleArchive(note)}

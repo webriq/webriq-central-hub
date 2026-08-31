@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { StickyNote, Archive, Folder, Plus, Pencil, Trash2, Check, X, Users } from "lucide-react";
+import { StickyNote, Archive, Folder, Plus, Pencil, Trash2, Check, X, Users, Globe, Share2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { IconTip } from "./_icon-tip";
 import type { NoteFolder } from "./_notes-types";
@@ -23,6 +23,7 @@ export function NoteFolderRail({
   onCreateFolder,
   onRenameFolder,
   onDeleteFolder,
+  onShareFolder,
   canManageFolder,
 }: {
   folders: NoteFolder[];
@@ -36,6 +37,8 @@ export function NoteFolderRail({
   onCreateFolder: (name: string) => void;
   onRenameFolder: (folderId: string, name: string) => void;
   onDeleteFolder: (folderId: string) => void;
+  // Task 337 — open the "Share folder" dialog for one folder (only rendered when manageable).
+  onShareFolder: (folderId: string) => void;
   // Task 311 — per-folder check (creator or admin/super_admin), matching migration 120's RLS:
   // any staff can create a folder, but only its creator or an admin can rename/delete it.
   canManageFolder: (folder: NoteFolder) => boolean;
@@ -118,12 +121,32 @@ export function NoteFolderRail({
               >
                 <Folder size={15} className="shrink-0" />
                 <span className="truncate flex-1">{folder.name}</span>
+                {/* Task 337 — persistent Public / shared indicator beside the count badge. */}
+                {folder.visibility === "public" ? (
+                  <span title="Public — visible to all staff" aria-label="Public folder" className="shrink-0 text-[#007BFF]">
+                    <Globe size={12} />
+                  </span>
+                ) : (folder.shares?.length ?? 0) > 0 ? (
+                  <span title={`Shared with ${folder.shares!.length} ${folder.shares!.length === 1 ? "person or role" : "people and roles"}`} aria-label="Shared folder" className="shrink-0 text-[#5F6A88]">
+                    <Users size={12} />
+                  </span>
+                ) : null}
                 <span className="text-[11px] font-medium text-[#5F6A88] bg-[#F4F6FB] rounded-full px-1.5 py-0.5 shrink-0">
                   {noteCountByFolder[folder.id] ?? 0}
                 </span>
               </button>
               {canManageFolder(folder) && (
                 <div className="hidden group-hover:flex items-center gap-0.5 pr-1 shrink-0">
+                  <IconTip label={`Share ${folder.name}`}>
+                    <button
+                      type="button"
+                      onClick={() => onShareFolder(folder.id)}
+                      aria-label={`Share ${folder.name}`}
+                      className="p-1 rounded-full text-[#5F6A88] hover:bg-[#F4F6FB] hover:text-[#007BFF] cursor-pointer"
+                    >
+                      <Share2 size={12} />
+                    </button>
+                  </IconTip>
                   <IconTip label={`Rename ${folder.name}`}>
                     <button
                       type="button"

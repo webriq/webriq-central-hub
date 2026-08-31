@@ -1133,6 +1133,7 @@ export interface Database {
           id: string;
           project_id: string;
           name: string;
+          visibility: "private" | "public";
           created_by: string | null;
           created_at: string;
           updated_at: string;
@@ -1141,6 +1142,7 @@ export interface Database {
           id?: string;
           project_id: string;
           name: string;
+          visibility?: "private" | "public";
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -1149,6 +1151,7 @@ export interface Database {
           id?: string;
           project_id?: string;
           name?: string;
+          visibility?: "private" | "public";
           created_by?: string | null;
           updated_at?: string;
         };
@@ -1170,6 +1173,7 @@ export interface Database {
           title: string | null;
           content: string | null;
           color: string;
+          visibility: "private" | "public";
           is_pinned: boolean;
           is_archived: boolean;
           created_by: string;
@@ -1183,6 +1187,7 @@ export interface Database {
           title?: string | null;
           content?: string | null;
           color?: string;
+          visibility?: "private" | "public";
           is_pinned?: boolean;
           is_archived?: boolean;
           created_by: string;
@@ -1196,6 +1201,7 @@ export interface Database {
           title?: string | null;
           content?: string | null;
           color?: string;
+          visibility?: "private" | "public";
           is_pinned?: boolean;
           is_archived?: boolean;
           updated_at?: string;
@@ -1252,6 +1258,57 @@ export interface Database {
           {
             foreignKeyName: "note_collaborators_user_id_fkey";
             columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      note_folder_shares: {
+        Row: {
+          id: string;
+          folder_id: string;
+          user_id: string | null;
+          role: "pm" | "developer" | "admin" | "super_admin" | null;
+          permission: "view" | "edit";
+          added_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          folder_id: string;
+          user_id?: string | null;
+          role?: "pm" | "developer" | "admin" | "super_admin" | null;
+          permission: "view" | "edit";
+          added_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          folder_id?: string;
+          user_id?: string | null;
+          role?: "pm" | "developer" | "admin" | "super_admin" | null;
+          permission?: "view" | "edit";
+          added_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "note_folder_shares_folder_id_fkey";
+            columns: ["folder_id"];
+            isOneToOne: false;
+            referencedRelation: "note_folders";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "note_folder_shares_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "note_folder_shares_added_by_fkey";
+            columns: ["added_by"];
             isOneToOne: false;
             referencedRelation: "profiles";
             referencedColumns: ["id"];

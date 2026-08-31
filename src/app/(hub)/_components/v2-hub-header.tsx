@@ -55,7 +55,7 @@ export default function V2HubHeader({ chatOpen, onOpenChat, onOpenWithMessage }:
   }
 
   return (
-    <header className="h-16 bg-white border-b border-slate-200 flex items-center px-6 gap-4 shrink-0 relative z-10">
+    <header className="h-16 bg-white border-b border-slate-200 flex items-center px-6 gap-4 shrink-0 relative z-30">
       {/* Breadcrumb */}
       <nav className="flex items-center gap-1.5 flex-1">
         <span className="text-[14px] text-slate-400">{crumb.section}</span>

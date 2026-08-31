@@ -25,25 +25,6 @@ type Bundle =
   | { mode: "task"; milestones: Milestone[]; tasklists: Tasklist[]; tasks: Task[]; members: MemberOptionWithRole[] }
   | { mode: "issue"; issues: Issue[]; members: MemberOptionWithRole[] };
 
-// Rough HTML → text for the New Issue modal's plain <textarea> seed (the New Task modal uses a
-// Tiptap editor and takes the sanitized HTML directly). Block tags become newlines; the common
-// named entities are decoded; runs of blank lines are collapsed.
-function htmlToPlainText(html: string): string {
-  return html
-    .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<\/(p|div|li|h[1-6]|tr)>/gi, "\n")
-    .replace(/<[^>]+>/g, "")
-    .replace(/&nbsp;/gi, " ")
-    .replace(/&amp;/gi, "&")
-    .replace(/&lt;/gi, "<")
-    .replace(/&gt;/gi, ">")
-    .replace(/&quot;/gi, '"')
-    .replace(/&#39;/gi, "'")
-    .replace(/[ \t]+\n/g, "\n")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
-}
-
 export function ThreadToProjectModal({
   mode,
   subject,
@@ -146,7 +127,10 @@ export function ThreadToProjectModal({
         allMembers={bundle.members}
         issues={bundle.issues}
         defaultTitle={subject}
-        defaultDescription={htmlToPlainText(message.body)}
+        // Task 338 made the New Issue modal's Description a Tiptap RTE (same as New Task), so it
+        // now takes the sanitized message HTML directly — keeping inline images and paragraph
+        // spacing — instead of a flattened plain-text conversion.
+        defaultDescription={message.isHtml ? sanitizeMessageHtml(message.body) : message.body}
         onClose={onClose}
         onCreated={() => {
           toast.success(`Issue created in ${selectedProjectName}`);
