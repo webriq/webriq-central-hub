@@ -9350,11 +9350,11 @@
       "last_name": "quandarycg"
     },
     "status": {
-      "id": "1512955000004606918",
-      "name": "Ready for QA/QC",
-      "color": "#49e6cf",
-      "color_hexcode": "#49e6cf",
-      "is_closed_type": false
+      "id": "1512955000000030087",
+      "name": "Closed",
+      "color": "#a9b2c0",
+      "color_hexcode": "#a9b2c0",
+      "is_closed_type": true
     },
     "assignee": {
       "zuid": 845829841,
@@ -9436,11 +9436,11 @@
       "last_name": "quandarycg"
     },
     "status": {
-      "id": "1512955000000030083",
-      "name": "InProgress",
-      "color": "#f6a96d",
-      "color_hexcode": "#f6a96d",
-      "is_closed_type": false
+      "id": "1512955000000030087",
+      "name": "Closed",
+      "color": "#a9b2c0",
+      "color_hexcode": "#a9b2c0",
+      "is_closed_type": true
     },
     "assignee": {
       "zuid": 878388388,
@@ -10597,11 +10597,11 @@
       "last_name": "quandarycg"
     },
     "status": {
-      "id": "1512955000004606918",
-      "name": "Ready for QA/QC",
-      "color": "#49e6cf",
-      "color_hexcode": "#49e6cf",
-      "is_closed_type": false
+      "id": "1512955000000030087",
+      "name": "Closed",
+      "color": "#a9b2c0",
+      "color_hexcode": "#a9b2c0",
+      "is_closed_type": true
     },
     "assignee": {
       "zuid": 845829049,
@@ -10611,7 +10611,7 @@
       "first_name": "Ericka",
       "last_name": "Dichon"
     },
-    "due_date": "2026-08-25T06:29:00.000Z",
+    "due_date": "2026-08-26T09:00:00.000Z",
     "severity": {
       "id": "1512955000000030149",
       "value": "Minor"
@@ -10640,11 +10640,11 @@
       "last_name": "quandarycg"
     },
     "status": {
-      "id": "1512955000000030083",
-      "name": "InProgress",
-      "color": "#f6a96d",
-      "color_hexcode": "#f6a96d",
-      "is_closed_type": false
+      "id": "1512955000000030087",
+      "name": "Closed",
+      "color": "#a9b2c0",
+      "color_hexcode": "#a9b2c0",
+      "is_closed_type": true
     },
     "assignee": {
       "zuid": 845829049,
@@ -10654,7 +10654,136 @@
       "first_name": "Ericka",
       "last_name": "Dichon"
     },
-    "due_date": "2026-08-25T05:29:00.000Z",
+    "due_date": "2026-08-26T00:33:00.000Z",
+    "severity": {
+      "id": "1512955000000030149",
+      "value": "Minor"
+    },
+    "added_via": "zohodesk",
+    "subscription_type": "Standard",
+    "_zoho_project_id": "1512955000000081363"
+  },
+  {
+    "id": "1512955000020238004",
+    "prefix": "QC1-I717",
+    "name": "#20983 QUANDARY _ URGENT _ the live page is currently only exposing the site navigation/footer to search crawlers, not the actual case-study bod",
+    "project": {
+      "id": "1512955000000081363",
+      "name": "Quandary Consulting  Group"
+    },
+    "description": "<div><div style=\"direction:ltr; font-family:Aptos, Arial, Helvetica, sans-serif; font-size:12pt; color:rgb(0, 0, 0)\">\nHi April, I asked ChatGPT to rewrite this use case study (<span style=\"font-family:-webkit-standard; text-transform:none\"><a rel=\"noreferrer\" target=\"_blank\" href=\"https://www.quandarycg.com/case-study/modernizing-legacy-platform-delivered-usd100-000-in-savings\" rel=\"noreferrer\">https://www.quandarycg.com/case-study/modernizing-legacy-platform-delivered-usd100-000-in-savings</a>)\n</span>&nbsp;for me and I got the following response:</div><p style=\"direction:ltr; text-align:left; text-indent:0px; text-transform:none\">\n<span style=\"font-family:Aptos, Arial, Helvetica, sans-serif; font-size:12pt; color:rgb(0, 0, 0); background-color:rgb(255, 255, 0)\">Yes — I can do this one in the exact same style. I pulled the current Quandary page, but there’s an issue:\n<b>the live page is currently only exposing the site navigation/footer to search crawlers, not the actual case-study body</b>, so I can’t reliably retrieve the underlying client profile, challenge, solution, or the basis for the\n<b>$100,000 savings</b>&nbsp;from the URL alone.&nbsp;</span></p><p style=\"direction:ltr; text-align:left; text-indent:0px; margin-top:0px; margin-bottom:0px\">\n<span style=\"font-size:16px\">I tried 3 other URLS </span>and<span style=\"font-size:16px\">&nbsp;I got the same response.\n</span>Please check ALL URLS that are related to case studies (which is why I am not including the additional 3); I will test the URLS at random on the case study page to make sure they have been.&nbsp;</p><p style=\"direction:ltr; text-align:left; text-indent:0px; margin-top:0px; margin-bottom:0px\">\n<span style=\"font-family:Aptos, Arial, Helvetica, sans-serif; font-size:12pt; color:rgb(0, 0, 0)\"><br/>\n</span></p><p style=\"direction:ltr; text-align:left; text-indent:0px; margin-top:0px; margin-bottom:0px\">\n<span style=\"font-size:16px\">Can you please fix this ASAP and confirm once it has been completed and I will retest the\n</span>above<span style=\"font-size:16px\">&nbsp;URL and as well as random test URLs.&nbsp;</span></p><p style=\"direction:ltr; text-align:left; text-indent:0px; margin-top:0px; margin-bottom:0px\">\n<span style=\"font-size:16px\"><br/>\n</span></p><p style=\"direction:ltr; text-align:left; text-indent:0px; margin-top:0px; margin-bottom:0px\">\n<span style=\"font-size:16px\">This is pretty urgent because these case studies are how our company gets leads and makes money - without these pages being accessible to crawlers, AI searches, etc. then our main lead funnel is OFFLINE, this is NOT GOOD, at all.</span></p><p style=\"direction:ltr; text-align:left; text-indent:0px; margin-top:0px; margin-bottom:0px\">\n<span style=\"font-size:16px\"><br/>\n</span></p><p style=\"direction:ltr; text-align:left; text-indent:0px; margin-top:0px; margin-bottom:0px\">\n<span style=\"font-size:16px; color:rgb(0, 0, 0)\">Blair</span></p><p style=\"direction:ltr; text-align:left; text-indent:0px; margin-top:0px; margin-bottom:0px\">\n<span style=\"font-size:16px; color:rgb(0, 0, 0)\"><br/>\n</span></p><div style=\"direction:ltr; text-align:left; text-indent:0px; margin-top:1em; margin-bottom:1em; font-family:Aptos, Arial, Helvetica, sans-serif; font-size:12pt; color:rgb(0, 0, 0)\">\n<br/>\n</div></div>",
+    "flag": "Internal",
+    "created_time": "2026-08-21T07:30:02.489Z",
+    "created_by": {
+      "zuid": -1,
+      "zpuid": "1512955000018118005",
+      "name": "Blair Binder",
+      "email": "bbinder@quandarycg.com",
+      "first_name": "Blair Binder",
+      "last_name": "quandarycg"
+    },
+    "status": {
+      "id": "1512955000001903944",
+      "name": "For Client Approval",
+      "color": "#e6cb4c",
+      "color_hexcode": "#e6cb4c",
+      "is_closed_type": false
+    },
+    "assignee": {
+      "zuid": 670722007,
+      "zpuid": "1512955000000056826",
+      "name": "WebriQ",
+      "email": "helpdesk@webriq.us",
+      "first_name": "Danessa",
+      "last_name": "helpdesk@webriq.us"
+    },
+    "due_date": "2026-09-02T09:00:00.000Z",
+    "severity": {
+      "id": "1512955000000030149",
+      "value": "Minor"
+    },
+    "added_via": "zohodesk",
+    "subscription_type": "Standard",
+    "_zoho_project_id": "1512955000000081363"
+  },
+  {
+    "id": "1512955000020264005",
+    "prefix": "QC1-I718",
+    "name": "#20994 Quandary: render-blocking resources issue impacting our entire website (283pages)",
+    "project": {
+      "id": "1512955000000081363",
+      "name": "Quandary Consulting  Group"
+    },
+    "description": "<div><div style=\"direction:ltr; font-family:Aptos, Arial, Helvetica, sans-serif; font-size:12pt; color:rgb(0, 0, 0)\">\nHi April,&nbsp;</div><p style=\"direction:ltr; margin-top:0px; margin-bottom:0px\"><span style=\"letter-spacing:-0.01em; font-family:Inter, system-ui, -apple-system, sans-serif, Geist, system-ui, -apple-system, sans-serif, ui-sans-serif, system-ui, sans-serif; font-size:15px; color:rgb(0, 0, 0)\">There\n is a <b>render-blocking resources issue</b>&nbsp;that is currently affecting 283 pages (which are all the pages - our entire website). Can you please fix the shared site template (or CMS asset settings first) then verify the affected URLs (which you can chose any\n of them, since this issue is impacting our </span><span style=\"letter-spacing:-0.15px; font-family:Inter, system-ui, -apple-system, sans-serif, Geist, system-ui, -apple-system, sans-serif, ui-sans-serif, system-ui, sans-serif; font-size:15px; color:rgb(0, 0, 0)\">entire</span><span style=\"letter-spacing:-0.01em; font-family:Inter, system-ui, -apple-system, sans-serif, Geist, system-ui, -apple-system, sans-serif, ui-sans-serif, system-ui, sans-serif; font-size:15px; color:rgb(0, 0, 0)\">&nbsp;website).</span></p><div style=\"direction:ltr; font-family:Inter, system-ui, -apple-system, sans-serif, Geist, system-ui, -apple-system, sans-serif, ui-sans-serif, system-ui, sans-serif; font-size:15px; color:rgb(0, 0, 0)\">\n<span style=\"letter-spacing:-0.01em\"><br/>\n</span></div><div style=\"direction:ltr; font-family:Inter, system-ui, -apple-system, sans-serif, Geist, system-ui, -apple-system, sans-serif, ui-sans-serif, system-ui, sans-serif; font-size:15px; color:rgb(0, 0, 0)\">\n<span style=\"letter-spacing:-0.01em; background-color:rgb(255, 255, 0)\">To be more specific, can you please:</span></div><div style=\"background-color:rgb(255, 255, 255); margin:0px\"><ol style=\"text-align:left; margin:0px; padding-left:22px; list-style-position:outside; list-style-type:decimal\" start=\"1\"><li style=\"letter-spacing:-0.01em; font-family:Inter, system-ui, -apple-system, sans-serif, Geist, system-ui, -apple-system, sans-serif, ui-sans-serif, system-ui, sans-serif; font-size:15px; color:rgb(0, 0, 0); line-height:1.62; margin:0px\">\n<p style=\"text-align:left; text-indent:0px; line-height:1.62; text-transform:none; margin:0px; max-width:48rem; display:inline; letter-spacing:-0.01em\">\n<span style=\"letter-spacing:-0.01em; line-height:1.62\">Identify blocking CSS and JavaScript in Lighthouse or PageSpeed Insights.</span></p>\n</li><li style=\"letter-spacing:-0.01em; font-family:Inter, system-ui, -apple-system, sans-serif, Geist, system-ui, -apple-system, sans-serif, ui-sans-serif, system-ui, sans-serif; font-size:15px; color:rgb(0, 0, 0); line-height:1.62; margin:0px\">\n<p style=\"text-align:left; text-indent:0px; line-height:1.62; text-transform:none; margin:0px; max-width:48rem; display:inline; letter-spacing:-0.01em\">\n<span style=\"letter-spacing:-0.01em; line-height:1.62\">Inline only the critical above-the-fold CSS.</span></p>\n</li><li style=\"letter-spacing:-0.01em; font-family:Inter, system-ui, -apple-system, sans-serif, Geist, system-ui, -apple-system, sans-serif, ui-sans-serif, system-ui, sans-serif; font-size:15px; color:rgb(0, 0, 0); line-height:1.62; margin:0px\">\n<p style=\"text-align:left; text-indent:0px; line-height:1.62; text-transform:none; margin:0px; max-width:48rem; display:inline; letter-spacing:-0.01em\">\n<span style=\"letter-spacing:-0.01em; line-height:1.62\">Load noncritical CSS asynchronously.</span></p>\n</li><li style=\"letter-spacing:-0.01em; font-family:Inter, system-ui, -apple-system, sans-serif, Geist, system-ui, -apple-system, sans-serif, ui-sans-serif, system-ui, sans-serif; font-size:15px; color:rgb(0, 0, 0); line-height:1.62; margin:0px\">\n<p style=\"text-align:left; text-indent:0px; line-height:1.62; text-transform:none; margin:0px; max-width:48rem; display:inline; letter-spacing:-0.01em\">\n<span style=\"letter-spacing:-0.01em; line-height:1.62\">Add </span><span style=\"letter-spacing:0px; font-family:&quot;Geist Mono&quot;, Consolas, Monaco, monospace; font-size:13.2px; line-height:1.62\"><code style=\"font-family:&quot;Geist Mono&quot;, Consolas, Monaco, monospace\">defer</code></span><span style=\"letter-spacing:-0.01em; line-height:1.62\">&nbsp;to\n first-party JavaScript that is not required before rendering.</span></p>\n</li><li style=\"letter-spacing:-0.01em; font-family:Inter, system-ui, -apple-system, sans-serif, Geist, system-ui, -apple-system, sans-serif, ui-sans-serif, system-ui, sans-serif; font-size:15px; color:rgb(0, 0, 0); line-height:1.62; margin:0px\">\n<p style=\"text-align:left; text-indent:0px; line-height:1.62; text-transform:none; margin:0px; max-width:48rem; display:inline; letter-spacing:-0.01em\">\n<span style=\"letter-spacing:-0.01em; line-height:1.62\">Delay chat widgets, analytics, maps, and other third-party scripts until after page load or user interaction.</span></p>\n</li><li style=\"letter-spacing:-0.01em; font-family:Inter, system-ui, -apple-system, sans-serif, Geist, system-ui, -apple-system, sans-serif, ui-sans-serif, system-ui, sans-serif; font-size:15px; color:rgb(0, 0, 0); line-height:1.62; margin:0px\">\n<p style=\"text-align:left; text-indent:0px; line-height:1.62; text-transform:none; margin:0px; max-width:48rem; display:inline; letter-spacing:-0.01em\">\n<span style=\"letter-spacing:-0.01em; line-height:1.62\">Remove unused CSS and JavaScript and combine or minify assets where appropriate.</span></p>\n</li><li style=\"letter-spacing:-0.01em; font-family:Inter, system-ui, -apple-system, sans-serif, Geist, system-ui, -apple-system, sans-serif, ui-sans-serif, system-ui, sans-serif; font-size:15px; color:rgb(0, 0, 0); line-height:1.62; margin:0px\">\n<p style=\"text-align:left; text-indent:0px; line-height:1.62; text-transform:none; margin:0px; max-width:48rem; display:inline; letter-spacing:-0.01em\">\n<span style=\"letter-spacing:-0.01em; line-height:1.62\">Preload only essential fonts and stylesheets. Use\n</span><span style=\"letter-spacing:0px; font-family:&quot;Geist Mono&quot;, Consolas, Monaco, monospace; font-size:13.2px; line-height:1.62\"><code style=\"font-family:&quot;Geist Mono&quot;, Consolas, Monaco, monospace\">font-display:\n swap</code></span><span style=\"letter-spacing:-0.01em; line-height:1.62\">&nbsp;for web fonts.</span></p>\n</li><li style=\"letter-spacing:-0.01em; font-family:Inter, system-ui, -apple-system, sans-serif, Geist, system-ui, -apple-system, sans-serif, ui-sans-serif, system-ui, sans-serif; font-size:15px; color:rgb(0, 0, 0); line-height:1.62; margin:0px\">\n<p style=\"text-align:left; text-indent:0px; line-height:1.62; text-transform:none; margin:0px; max-width:48rem; display:inline; letter-spacing:-0.01em\">\n<span style=\"letter-spacing:-0.01em; line-height:1.62\">Apply these changes <u>\nglobally through the shared theme, template, or build system</u>&nbsp;rather than editing all 283 pages individually.</span></p>\n</li></ol><h3 style=\"text-align:left; text-indent:0px; line-height:26.4px; margin:17.6px 0px 6.6px; max-width:48rem\">\n<span style=\"letter-spacing:-0.15px; font-family:Inter, system-ui, -apple-system, sans-serif, Geist, system-ui, -apple-system, sans-serif, ui-sans-serif, system-ui, sans-serif; font-size:15px; color:rgb(0, 0, 0)\">Once</span><span style=\"letter-spacing:-0.01em; font-family:Inter, system-ui, -apple-system, sans-serif, Geist, system-ui, -apple-system, sans-serif, ui-sans-serif, system-ui, sans-serif; font-size:15px; color:rgb(0, 0, 0)\">&nbsp;you\n have completed, </span><span style=\"letter-spacing:-0.15px; font-family:Inter, system-ui, -apple-system, sans-serif, Geist, system-ui, -apple-system, sans-serif, ui-sans-serif, system-ui, sans-serif; font-size:15px; color:rgb(0, 0, 0)\">I</span><span style=\"letter-spacing:-0.01em; font-family:Inter, system-ui, -apple-system, sans-serif, Geist, system-ui, -apple-system, sans-serif, ui-sans-serif, system-ui, sans-serif; font-size:15px; color:rgb(0, 0, 0)\">&nbsp;will\n Retest the five example pages and confirm that:</span></h3><p style=\"text-align:left; text-indent:0px; line-height:1.62; text-transform:none; margin:0px; max-width:48rem; letter-spacing:-0.01em; font-size:15px\">\n<span style=\"letter-spacing:-0.01em; font-family:Inter, system-ui, -apple-system, sans-serif, Geist, system-ui, -apple-system, sans-serif, ui-sans-serif, system-ui, sans-serif; color:rgb(0, 0, 0)\">-Lighthouse no longer reports render-blocking resources</span></p><ul style=\"text-align:left; margin-top:0px; margin-bottom:0px\"><li style=\"font-family:Inter, system-ui, -apple-system, sans-serif, Geist, system-ui, -apple-system, sans-serif, ui-sans-serif, system-ui, sans-serif; font-size:15px; color:rgb(0, 0, 0); margin:0px\">\n<p style=\"text-align:left; text-indent:0px; line-height:1.62; text-transform:none; margin-top:0px; margin-bottom:0px; max-width:48rem; letter-spacing:-0.01em\">\n<span style=\"letter-spacing:-0.01em\">First Contentful Paint improves, and no navigation, forms, or tracking features break</span></p>\n</li><li style=\"font-family:Inter, system-ui, -apple-system, sans-serif, Geist, system-ui, -apple-system, sans-serif, ui-sans-serif, system-ui, sans-serif; font-size:15px; color:rgb(0, 0, 0); margin:0px\">\n<p style=\"text-align:left; text-indent:0px; line-height:1.62; margin-top:0px; margin-bottom:0px\">\n<span style=\"letter-spacing:-0.01em\">Lighthouse no longer reports render-blocking resources</span></p>\n</li></ul><div style=\"text-align:left; text-indent:0px; line-height:1.62; margin-top:0px; margin-bottom:0px; font-family:Inter, system-ui, -apple-system, sans-serif, Geist, system-ui, -apple-system, sans-serif, ui-sans-serif, system-ui, sans-serif; font-size:15px; color:rgb(0, 0, 0)\">\n<span style=\"letter-spacing:-0.01em\">Then, if all looks good, </span><span style=\"letter-spacing:-0.15px\">I</span><span style=\"letter-spacing:-0.01em\">&nbsp;will pay to rerun the site audit to confirm the issue count decreases from 283 pages (our entire\n</span><span style=\"letter-spacing:-0.15px\">website) to 0 pages.</span></div></div><div style=\"direction:ltr; text-align:left; text-indent:0px; text-transform:none; background-color:rgb(255, 255, 255); margin:8.8px 0px 0px; width:774.406px; min-height:30.8px; font-family:Inter, system-ui, -apple-system, sans-serif, Geist, system-ui, -apple-system, sans-serif, ui-sans-serif, system-ui, sans-serif; font-size:17.6px; color:rgb(0, 0, 0)\">\n<span style=\"letter-spacing:-0.176px\">\n\n\n\n\n</span></div><div style=\"direction:ltr; font-family:Inter, system-ui, -apple-system, sans-serif, Geist, system-ui, -apple-system, sans-serif, ui-sans-serif, system-ui, sans-serif; font-size:15.4px; color:rgb(0, 0, 0)\">\n<span style=\"letter-spacing:-0.154px\"><br/>\n<br/>\n</span></div><div style=\"direction:ltr; font-family:Inter, system-ui, -apple-system, sans-serif, Geist, system-ui, -apple-system, sans-serif, ui-sans-serif, system-ui, sans-serif; font-size:15.4px\">\n<span style=\"letter-spacing:-0.154px; text-transform:none\"><br/>\n</span></div></div>",
+    "flag": "Internal",
+    "created_time": "2026-08-26T01:31:33.851Z",
+    "created_by": {
+      "zuid": -1,
+      "zpuid": "1512955000018118005",
+      "name": "Blair Binder",
+      "email": "bbinder@quandarycg.com",
+      "first_name": "Blair Binder",
+      "last_name": "quandarycg"
+    },
+    "status": {
+      "id": "1512955000000030087",
+      "name": "Closed",
+      "color": "#a9b2c0",
+      "color_hexcode": "#a9b2c0",
+      "is_closed_type": true
+    },
+    "assignee": {
+      "zuid": 760791628,
+      "zpuid": "1512955000003339043",
+      "name": "Jaymar",
+      "email": "jaymar.matiga@webriq.services",
+      "first_name": "Jaymar",
+      "last_name": "Matiga"
+    },
+    "due_date": "2026-09-03T07:23:00.000Z",
+    "severity": {
+      "id": "1512955000000030149",
+      "value": "Minor"
+    },
+    "added_via": "zohodesk",
+    "subscription_type": "Standard",
+    "_zoho_project_id": "1512955000000081363"
+  },
+  {
+    "id": "1512955000020265007",
+    "prefix": "QC1-I719",
+    "name": "#20996 QUANDARY: HTML lang attribute is missing - please add lang attribute to &lt;html&gt; tag for accessibility and SEO",
+    "project": {
+      "id": "1512955000000081363",
+      "name": "Quandary Consulting  Group"
+    },
+    "description": "<div><div style=\"direction:ltr; font-family:Aptos, Arial, Helvetica, sans-serif; font-size:12pt; color:rgb(0, 0, 0)\">\nHi April,</div><p style=\"direction:ltr; line-height:normal; margin:0px\"><span style=\"letter-spacing:-0.154px; font-family:Aptos, Arial, Helvetica, sans-serif; font-size:12pt\">I have a medium severity technical issue across all 283 pages - i.e., our entire website</span></p><p style=\"direction:ltr; line-height:normal; margin:0px\"><span style=\"letter-spacing:-0.154px; font-family:Aptos, Arial, Helvetica, sans-serif; font-size:12pt\">We are Missing HTML lang attribute Description.</span></p><p style=\"direction:ltr; line-height:normal; margin:0px\"><span style=\"letter-spacing:-0.154px; font-family:Aptos, Arial, Helvetica, sans-serif; font-size:12pt; color:rgb(0, 0, 0); background-color:rgb(255, 255, 255)\">Meaning, the HTML lang attribute\n is missing - please add lang attribute to &lt;html&gt; tag for accessibility and SEO</span></p><p style=\"direction:ltr; line-height:normal; margin:0px\"><span style=\"letter-spacing:-0.154px; font-family:Aptos, Arial, Helvetica, sans-serif; font-size:12pt; color:rgb(0, 0, 0)\"><br/>\n</span></p><div style=\"direction:ltr; font-family:Aptos, Arial, Helvetica, sans-serif; font-size:12pt\">\n<span style=\"letter-spacing:-0.154px\"><br/>\n</span></div><div style=\"direction:ltr; font-family:Aptos, Arial, Helvetica, sans-serif; font-size:12pt\">\n<span style=\"letter-spacing:-0.154px; background-color:rgb(255, 255, 0)\"><b>To be specific on what exactly I&nbsp;want:&nbsp;</b></span></div><div style=\"margin:0px; min-height:0px\"><div style=\"background-color:rgb(255, 255, 255); margin:0px; min-width:0px\"><div style=\"margin:0px; padding-top:26.4px; padding-bottom:26.4px; max-width:985.6px\"><ol style=\"text-align:left; margin:0px; padding-left:22px; list-style-position:outside; list-style-type:decimal\" start=\"1\"><li style=\"letter-spacing:-0.01em; font-family:Aptos, Arial, Helvetica, sans-serif; font-size:12pt; text-indent:0px; line-height:1.62; margin:0px\">\n<span style=\"letter-spacing:-0.01em; line-height:1.62\">Open your site's main HTML layout or template.</span></li><li style=\"letter-spacing:-0.01em; font-family:Aptos, Arial, Helvetica, sans-serif; font-size:12pt; line-height:1.62; margin:0px\">\n<span style=\"letter-spacing:-0.01em; line-height:1.62\">Update the opening\n</span><span style=\"letter-spacing:0px; line-height:1.62\"><code style=\"font-family:Aptos, Arial, Helvetica, sans-serif\">&lt;html&gt;</code></span><span style=\"letter-spacing:-0.01em; line-height:1.62\">&nbsp;tag\n to include the language attribute:</span></li></ol><pre style=\"background-color:rgb(255, 255, 255); margin:0px; padding:13.2px; border-width:1px; border-style:solid; border-radius:11px; max-width:100%\"><div style=\"text-align:left; text-indent:0px; line-height:22px; text-transform:none; font-family:Aptos, Arial, Helvetica, sans-serif; font-size:12pt\"><span style=\"letter-spacing:0px\"><code style=\"font-family:Aptos, Arial, Helvetica, sans-serif\">&lt;html lang=&quot;en-US&quot;&gt;</code></span><span style=\"letter-spacing:0px; background-color:rgb(255, 255, 0)\"><code style=\"font-family:Aptos, Arial, Helvetica, sans-serif\"><br/></code></span></div></pre><ol style=\"text-align:left; margin:0px; padding-left:22px; list-style-position:outside; list-style-type:decimal\" start=\"3\"><li style=\"letter-spacing:-0.01em; font-family:Aptos, Arial, Helvetica, sans-serif; font-size:12pt; text-indent:0px; line-height:1.62; margin:0px\">\n<span style=\"letter-spacing:-0.01em; background-color:rgb(255, 255, 0); line-height:1.62\">Save and publish the change across the site.</span></li><li style=\"letter-spacing:-0.01em; font-family:Aptos, Arial, Helvetica, sans-serif; font-size:12pt; line-height:1.62; margin:0px\">\n<span style=\"letter-spacing:-0.01em; line-height:1.62\">Verify that\n</span><span style=\"letter-spacing:0px; line-height:1.62\"><code style=\"font-family:Aptos, Arial, Helvetica, sans-serif\"><a rel=\"noreferrer\" target=\"_blank\" href=\"https://quandarycg.com/blog\" rel=\"noreferrer\">https://quandarycg.com/blog</a></code></span><span style=\"letter-spacing:-0.01em; line-height:1.62\">&nbsp;displays\n</span><span style=\"letter-spacing:0px; line-height:1.62\"><code style=\"font-family:Aptos, Arial, Helvetica, sans-serif\">lang=&quot;en-US&quot;</code></span><span style=\"letter-spacing:-0.01em; line-height:1.62\">&nbsp;in\n the page source or browser inspector*</span><span style=\"letter-spacing:-0.01em\"><br/>\n</span></li></ol><p style=\"text-align:left; text-indent:0px; line-height:1.62; text-transform:none; margin:0px; max-width:48rem; letter-spacing:-0.01em\">\n<span style=\"letter-spacing:-0.01em; font-family:Aptos, Arial, Helvetica, sans-serif; font-size:12pt\"><i>*Please make sure to Use\n</i></span><span style=\"letter-spacing:0px; font-family:Aptos, Arial, Helvetica, sans-serif; font-size:12pt\"><code style=\"font-family:Aptos, Arial, Helvetica, sans-serif\"><i>en-US</i></code></span><span style=\"letter-spacing:-0.01em; font-family:Aptos, Arial, Helvetica, sans-serif; font-size:12pt\"><i>&nbsp;because\n the site targets English-speaking users in the United States.</i></span></p><p style=\"text-align:left; text-indent:0px; line-height:1.62; text-transform:none; margin:0px; max-width:48rem; letter-spacing:-0.01em\">\n<span style=\"letter-spacing:-0.01em; font-family:Aptos, Arial, Helvetica, sans-serif; font-size:12pt\"><i><br/>\n</i></span></p><p style=\"text-align:left; text-indent:0px; line-height:1.62; margin:0px; max-width:48rem\">\n<span style=\"letter-spacing:-0.15px; font-family:Aptos, Arial, Helvetica, sans-serif; font-size:12pt\"><i>Please</i></span><span style=\"letter-spacing:-0.01em; font-family:Aptos, Arial, Helvetica, sans-serif; font-size:12pt\"><i>&nbsp;confirm\n once it's been </i></span><span style=\"letter-spacing:-0.15px; font-family:Aptos, Arial, Helvetica, sans-serif; font-size:12pt; color:rgb(176, 16, 83)\"><i>completed</i></span><span style=\"letter-spacing:-0.01em; font-family:Aptos, Arial, Helvetica, sans-serif; font-size:12pt\"><i>&nbsp;and\n</i></span><span style=\"letter-spacing:-0.15px; font-family:Aptos, Arial, Helvetica, sans-serif; font-size:12pt; color:rgb(176, 16, 83)\"><i>I</i></span><span style=\"letter-spacing:-0.01em; font-family:Aptos, Arial, Helvetica, sans-serif; font-size:12pt\"><i>&nbsp;will\n run an audit on my end to confirm</i></span></p><div style=\"direction:ltr; text-align:left; text-indent:0px; text-transform:none; margin:8.8px 0px 0px\">\n<span style=\"letter-spacing:-0.01em; font-family:Aptos, Arial, Helvetica, sans-serif; font-size:12pt\">\n\n\n\n\n</span><span style=\"letter-spacing:-0.01em; font-family:Geist, system-ui, -apple-system, sans-serif; font-size:17.6px\">\n\n</span></div></div></div></div></div>",
+    "flag": "Internal",
+    "created_time": "2026-08-26T01:33:31.273Z",
+    "created_by": {
+      "zuid": -1,
+      "zpuid": "1512955000018118005",
+      "name": "Blair Binder",
+      "email": "bbinder@quandarycg.com",
+      "first_name": "Blair Binder",
+      "last_name": "quandarycg"
+    },
+    "status": {
+      "id": "1512955000000030087",
+      "name": "Closed",
+      "color": "#a9b2c0",
+      "color_hexcode": "#a9b2c0",
+      "is_closed_type": true
+    },
+    "assignee": {
+      "zuid": 900288881,
+      "zpuid": "1512955000017126081",
+      "name": "Miguel Franco Trinidad",
+      "email": "miguel.trinidad@webriq.services",
+      "first_name": "Miguel Franco",
+      "last_name": "Trinidad"
+    },
+    "due_date": "2026-09-04T05:53:00.000Z",
     "severity": {
       "id": "1512955000000030149",
       "value": "Minor"

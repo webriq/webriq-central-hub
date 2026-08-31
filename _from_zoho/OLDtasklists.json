@@ -1,256 +1,5 @@
 [
   {
-    "id": "1512955000020220008",
-    "name": "General",
-    "milestone": {
-      "id": "1512955000000000073",
-      "name": "None"
-    },
-    "flag": "internal",
-    "status": "active",
-    "created_time": "2026-08-19T00:54:48.268Z",
-    "last_updated_time": "2024-04-22T18:37:48.125Z",
-    "created_by": {
-      "zuid": 670722007,
-      "zpuid": "1512955000000056826",
-      "name": "WebriQ",
-      "email": "helpdesk@webriq.us",
-      "first_name": "Danessa",
-      "last_name": "helpdesk@webriq.us"
-    },
-    "sequence": {
-      "milestone_sequence": 11,
-      "project_sequence": 108
-    },
-    "project": {
-      "id": "1512955000020217023",
-      "name": "Hello Homes GR Content Site"
-    },
-    "meta_info": {
-      "is_completed": false,
-      "is_rolled": false,
-      "is_general": true,
-      "has_comments": false,
-      "is_none_milestone_tasklist": true,
-      "count_info": {
-        "filtered_task_count": 1,
-        "open_task_count": 1,
-        "closed_task_count": 0
-      }
-    },
-    "_zoho_project_id": "1512955000020217023"
-  },
-  {
-    "id": "1512955000020220009",
-    "name": "Data Gathering (Week 1)",
-    "milestone": {
-      "id": "1512955000020220003",
-      "name": "Phase 1 - Data Gathering"
-    },
-    "flag": "internal",
-    "status": "active",
-    "created_via": "web",
-    "created_time": "2026-08-19T00:54:48.268Z",
-    "last_updated_time": "2024-04-22T18:32:57.800Z",
-    "created_by": {
-      "zuid": 670722007,
-      "zpuid": "1512955000000056826",
-      "name": "WebriQ",
-      "email": "helpdesk@webriq.us",
-      "first_name": "Danessa",
-      "last_name": "helpdesk@webriq.us"
-    },
-    "sequence": {
-      "milestone_sequence": 10,
-      "project_sequence": 1
-    },
-    "project": {
-      "id": "1512955000020217023",
-      "name": "Hello Homes GR Content Site"
-    },
-    "meta_info": {
-      "is_completed": false,
-      "is_rolled": false,
-      "is_general": false,
-      "has_comments": false,
-      "is_none_milestone_tasklist": false,
-      "count_info": {
-        "filtered_task_count": 6,
-        "open_task_count": 6,
-        "closed_task_count": 0
-      }
-    },
-    "_zoho_project_id": "1512955000020217023"
-  },
-  {
-    "id": "1512955000020220010",
-    "name": "Initial Round of Development (Week 2)",
-    "milestone": {
-      "id": "1512955000020220004",
-      "name": "Phase 2 - Start of Development"
-    },
-    "flag": "internal",
-    "status": "active",
-    "created_via": "web",
-    "created_time": "2026-08-19T00:54:48.268Z",
-    "last_updated_time": "2024-04-22T18:33:27.544Z",
-    "created_by": {
-      "zuid": 670722007,
-      "zpuid": "1512955000000056826",
-      "name": "WebriQ",
-      "email": "helpdesk@webriq.us",
-      "first_name": "Danessa",
-      "last_name": "helpdesk@webriq.us"
-    },
-    "sequence": {
-      "milestone_sequence": 5,
-      "project_sequence": 1
-    },
-    "project": {
-      "id": "1512955000020217023",
-      "name": "Hello Homes GR Content Site"
-    },
-    "meta_info": {
-      "is_completed": false,
-      "is_rolled": false,
-      "is_general": false,
-      "has_comments": false,
-      "is_none_milestone_tasklist": false,
-      "count_info": {
-        "filtered_task_count": 5,
-        "open_task_count": 5,
-        "closed_task_count": 0
-      }
-    },
-    "_zoho_project_id": "1512955000020217023"
-  },
-  {
-    "id": "1512955000020220011",
-    "name": "Prepare for Go Live (Week 3)",
-    "milestone": {
-      "id": "1512955000020220005",
-      "name": "Phase 3 - Tidying Up the Development"
-    },
-    "flag": "internal",
-    "status": "active",
-    "created_via": "web",
-    "created_time": "2026-08-19T00:54:48.268Z",
-    "last_updated_time": "2024-04-22T18:38:20.605Z",
-    "created_by": {
-      "zuid": 670722007,
-      "zpuid": "1512955000000056826",
-      "name": "WebriQ",
-      "email": "helpdesk@webriq.us",
-      "first_name": "Danessa",
-      "last_name": "helpdesk@webriq.us"
-    },
-    "sequence": {
-      "milestone_sequence": 4,
-      "project_sequence": 1
-    },
-    "project": {
-      "id": "1512955000020217023",
-      "name": "Hello Homes GR Content Site"
-    },
-    "meta_info": {
-      "is_completed": false,
-      "is_rolled": false,
-      "is_general": false,
-      "has_comments": false,
-      "is_none_milestone_tasklist": false,
-      "count_info": {
-        "filtered_task_count": 6,
-        "open_task_count": 6,
-        "closed_task_count": 0
-      }
-    },
-    "_zoho_project_id": "1512955000020217023"
-  },
-  {
-    "id": "1512955000020220012",
-    "name": "Checklist for Go Live (Week 4)",
-    "milestone": {
-      "id": "1512955000020220006",
-      "name": "Phase 4 - Go Live"
-    },
-    "flag": "internal",
-    "status": "active",
-    "created_via": "web",
-    "created_time": "2026-08-19T00:54:48.268Z",
-    "last_updated_time": "2024-04-22T18:38:25.375Z",
-    "created_by": {
-      "zuid": 670722007,
-      "zpuid": "1512955000000056826",
-      "name": "WebriQ",
-      "email": "helpdesk@webriq.us",
-      "first_name": "Danessa",
-      "last_name": "helpdesk@webriq.us"
-    },
-    "sequence": {
-      "milestone_sequence": 3,
-      "project_sequence": 1
-    },
-    "project": {
-      "id": "1512955000020217023",
-      "name": "Hello Homes GR Content Site"
-    },
-    "meta_info": {
-      "is_completed": false,
-      "is_rolled": false,
-      "is_general": false,
-      "has_comments": false,
-      "is_none_milestone_tasklist": false,
-      "count_info": {
-        "filtered_task_count": 5,
-        "open_task_count": 5,
-        "closed_task_count": 0
-      }
-    },
-    "_zoho_project_id": "1512955000020217023"
-  },
-  {
-    "id": "1512955000020220013",
-    "name": "SEO Grow",
-    "milestone": {
-      "id": "1512955000020220007",
-      "name": "Maintenance (if with SEO Grow)"
-    },
-    "flag": "internal",
-    "status": "active",
-    "created_via": "web",
-    "created_time": "2026-08-19T00:54:48.268Z",
-    "last_updated_time": "2024-04-22T18:25:43.000Z",
-    "created_by": {
-      "zuid": 670722007,
-      "zpuid": "1512955000000056826",
-      "name": "WebriQ",
-      "email": "helpdesk@webriq.us",
-      "first_name": "Danessa",
-      "last_name": "helpdesk@webriq.us"
-    },
-    "sequence": {
-      "milestone_sequence": 2,
-      "project_sequence": 1
-    },
-    "project": {
-      "id": "1512955000020217023",
-      "name": "Hello Homes GR Content Site"
-    },
-    "meta_info": {
-      "is_completed": false,
-      "is_rolled": false,
-      "is_general": false,
-      "has_comments": false,
-      "is_none_milestone_tasklist": false,
-      "count_info": {
-        "filtered_task_count": 4,
-        "open_task_count": 4,
-        "closed_task_count": 0
-      }
-    },
-    "_zoho_project_id": "1512955000020217023"
-  },
-  {
     "id": "1512955000020055013",
     "name": "General",
     "milestone": {
@@ -344,7 +93,7 @@
     "status": "active",
     "created_via": "web",
     "created_time": "2026-08-03T05:22:40.229Z",
-    "last_updated_time": "2026-08-21T04:10:01.250Z",
+    "last_updated_time": "2026-08-12T01:23:20.237Z",
     "created_by": {
       "zuid": 670722007,
       "zpuid": "1512955000000056826",
@@ -369,8 +118,8 @@
       "is_none_milestone_tasklist": false,
       "count_info": {
         "filtered_task_count": 5,
-        "open_task_count": 3,
-        "closed_task_count": 2
+        "open_task_count": 4,
+        "closed_task_count": 1
       }
     },
     "_zoho_project_id": "1512955000020040039"
@@ -489,13 +238,13 @@
     },
     "meta_info": {
       "is_completed": false,
-      "is_rolled": true,
+      "is_rolled": false,
       "is_general": false,
       "has_comments": false,
       "is_none_milestone_tasklist": false,
       "count_info": {
-        "filtered_task_count": 5,
-        "open_task_count": 5,
+        "filtered_task_count": 4,
+        "open_task_count": 4,
         "closed_task_count": 0
       }
     },
@@ -2422,8 +2171,8 @@
       "has_comments": false,
       "is_none_milestone_tasklist": false,
       "count_info": {
-        "filtered_task_count": 14,
-        "open_task_count": 14,
+        "filtered_task_count": 11,
+        "open_task_count": 11,
         "closed_task_count": 0
       }
     },
@@ -3236,7 +2985,7 @@
     "flag": "internal",
     "status": "active",
     "created_time": "2026-04-20T14:16:10.979Z",
-    "last_updated_time": "2026-08-21T05:15:31.636Z",
+    "last_updated_time": "2026-07-22T09:25:06.498Z",
     "created_by": {
       "zuid": 670722007,
       "zpuid": "1512955000000056826",
@@ -3261,8 +3010,8 @@
       "is_none_milestone_tasklist": true,
       "count_info": {
         "filtered_task_count": 12,
-        "open_task_count": 2,
-        "closed_task_count": 10
+        "open_task_count": 3,
+        "closed_task_count": 9
       }
     },
     "_zoho_project_id": "1512955000019048105"
@@ -10077,7 +9826,7 @@
     "status": "active",
     "created_via": "web",
     "created_time": "2025-09-02T08:49:58.011Z",
-    "last_updated_time": "2026-08-18T14:48:38.468Z",
+    "last_updated_time": "2026-08-14T07:45:34.691Z",
     "created_by": {
       "zuid": 670722007,
       "zpuid": "1512955000000056826",
@@ -10101,9 +9850,9 @@
       "has_comments": false,
       "is_none_milestone_tasklist": false,
       "count_info": {
-        "filtered_task_count": 10,
-        "open_task_count": 3,
-        "closed_task_count": 7
+        "filtered_task_count": 9,
+        "open_task_count": 4,
+        "closed_task_count": 5
       }
     },
     "_zoho_project_id": "1512955000016900548"
@@ -11819,8 +11568,8 @@
       "has_comments": false,
       "is_none_milestone_tasklist": false,
       "count_info": {
-        "filtered_task_count": 856,
-        "open_task_count": 433,
+        "filtered_task_count": 829,
+        "open_task_count": 406,
         "closed_task_count": 423
       }
     },
@@ -13343,7 +13092,7 @@
     "flag": "internal",
     "status": "active",
     "created_time": "2025-04-28T06:46:29.358Z",
-    "last_updated_time": "2026-08-21T06:59:37.819Z",
+    "last_updated_time": "2026-08-12T01:23:29.251Z",
     "created_by": {
       "zuid": 670722007,
       "zpuid": "1512955000000056826",
@@ -13368,8 +13117,8 @@
       "is_none_milestone_tasklist": true,
       "count_info": {
         "filtered_task_count": 6,
-        "open_task_count": 1,
-        "closed_task_count": 5
+        "open_task_count": 2,
+        "closed_task_count": 4
       }
     },
     "_zoho_project_id": "1512955000015385068"
@@ -14496,8 +14245,8 @@
       "has_comments": false,
       "is_none_milestone_tasklist": true,
       "count_info": {
-        "filtered_task_count": 19,
-        "open_task_count": 8,
+        "filtered_task_count": 16,
+        "open_task_count": 5,
         "closed_task_count": 11
       }
     },
@@ -16145,7 +15894,7 @@
     "flag": "internal",
     "status": "active",
     "created_time": "2024-12-20T06:29:10.116Z",
-    "last_updated_time": "2026-08-26T09:00:08.148Z",
+    "last_updated_time": "2026-08-06T00:40:09.263Z",
     "created_by": {
       "zuid": 670722007,
       "zpuid": "1512955000000056826",
@@ -16169,9 +15918,9 @@
       "has_comments": false,
       "is_none_milestone_tasklist": true,
       "count_info": {
-        "filtered_task_count": 625,
-        "open_task_count": 418,
-        "closed_task_count": 207
+        "filtered_task_count": 626,
+        "open_task_count": 420,
+        "closed_task_count": 205
       }
     },
     "_zoho_project_id": "1512955000013992048"
@@ -16270,7 +16019,7 @@
     "flag": "internal",
     "status": "active",
     "created_time": "2024-12-02T01:35:37.000Z",
-    "last_updated_time": "2026-08-21T05:15:27.996Z",
+    "last_updated_time": "2026-08-06T00:39:27.523Z",
     "created_by": {
       "zuid": 670722007,
       "zpuid": "1512955000000056826",
@@ -16294,9 +16043,9 @@
       "has_comments": false,
       "is_none_milestone_tasklist": true,
       "count_info": {
-        "filtered_task_count": 29,
-        "open_task_count": 1,
-        "closed_task_count": 28
+        "filtered_task_count": 28,
+        "open_task_count": 2,
+        "closed_task_count": 26
       }
     },
     "_zoho_project_id": "1512955000013852007"

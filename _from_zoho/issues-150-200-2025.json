@@ -6479,6 +6479,49 @@
     "_zoho_project_id": "1512955000000697473"
   },
   {
+    "id": "1512955000020225001",
+    "prefix": "WT1-I178",
+    "name": "#20975 remove image",
+    "project": {
+      "id": "1512955000000697473",
+      "name": "Welcome Tattoo"
+    },
+    "description": "<div style=\"font-size:0.9285rem\"><div style=\"font-family:Puvi\"><div>remove this image form the website where ever it appears&nbsp;<br/></div><div><br/></div><div>++ add a header and footer for this page. replace with generic image. we can use the one in the homepage</div></div></div>",
+    "flag": "Internal",
+    "created_time": "2026-08-20T00:07:08.457Z",
+    "created_by": {
+      "zuid": -1,
+      "zpuid": "1512955000001644001",
+      "name": "Morgan Grimm",
+      "email": "morgan.ashley.grimm@gmail.com",
+      "first_name": "Morgan Grimm",
+      "last_name": "gmail"
+    },
+    "status": {
+      "id": "1512955000000030087",
+      "name": "Closed",
+      "color": "#a9b2c0",
+      "color_hexcode": "#a9b2c0",
+      "is_closed_type": true
+    },
+    "assignee": {
+      "zuid": 845829841,
+      "zpuid": "1512955000011450285",
+      "name": "Renato Dulog",
+      "email": "renato.dulog@webriq.services",
+      "first_name": "Renato",
+      "last_name": "Dulog"
+    },
+    "due_date": "2026-09-01T23:31:00.000Z",
+    "severity": {
+      "id": "1512955000000030149",
+      "value": "Minor"
+    },
+    "added_via": "zohodesk",
+    "subscription_type": "Standard",
+    "_zoho_project_id": "1512955000000697473"
+  },
+  {
     "id": "1512955000014267038",
     "prefix": "MU1-I52",
     "name": "#18863 Please remove online intake forms",

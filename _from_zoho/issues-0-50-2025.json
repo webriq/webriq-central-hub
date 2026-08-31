@@ -575,11 +575,11 @@
       "last_name": "Baraquil"
     },
     "status": {
-      "id": "1512955000004606918",
-      "name": "Ready for QA/QC",
-      "color": "#49e6cf",
-      "color_hexcode": "#49e6cf",
-      "is_closed_type": false
+      "id": "1512955000000030087",
+      "name": "Closed",
+      "color": "#a9b2c0",
+      "color_hexcode": "#a9b2c0",
+      "is_closed_type": true
     },
     "assignee": {
       "zuid": 836253155,
@@ -1908,11 +1908,11 @@
       "last_name": "Baraquil"
     },
     "status": {
-      "id": "1512955000001903944",
-      "name": "For Client Approval",
-      "color": "#e6cb4c",
-      "color_hexcode": "#e6cb4c",
-      "is_closed_type": false
+      "id": "1512955000000030087",
+      "name": "Closed",
+      "color": "#a9b2c0",
+      "color_hexcode": "#a9b2c0",
+      "is_closed_type": true
     },
     "assignee": {
       "zuid": 845829049,
@@ -2252,11 +2252,11 @@
       "last_name": "Baraquil"
     },
     "status": {
-      "id": "1512955000001903944",
-      "name": "For Client Approval",
-      "color": "#e6cb4c",
-      "color_hexcode": "#e6cb4c",
-      "is_closed_type": false
+      "id": "1512955000000030087",
+      "name": "Closed",
+      "color": "#a9b2c0",
+      "color_hexcode": "#a9b2c0",
+      "is_closed_type": true
     },
     "assignee": {
       "zuid": 845829049,
@@ -2400,6 +2400,49 @@
       "value": "None"
     },
     "added_via": "zohodesk",
+    "subscription_type": "Standard",
+    "_zoho_project_id": "1512955000018218284"
+  },
+  {
+    "id": "1512955000020259013",
+    "prefix": "A8U4-I55",
+    "name": "Commission Tracking Issue for NEW (converted) Ambassador",
+    "project": {
+      "id": "1512955000018218284",
+      "name": "Always Love (FLUO)"
+    },
+    "description": "<div style=\"font-size:0.9285rem\"><div style=\"font-family:Puvi\"><div>I just converted Eli Honeycutt over from an Affiliate to an Ambassador, and everything went smoothly, other than two things: <br/></div><ol dir=\"ltr\"><li><div>I needed to opt him in to commission preferences again, even though he was already an Affiliate receiving commissions. Hardly a big deal, but it only allows the effective date to be from today onward, and he had a new member who joined place an order earlier this month.&nbsp; So, how do we make sure that commission shows up for his DIRECT attribution?<br/></div><div>(i.e. If affiliate is set to ON, retain effective date.)<br/></div></li><li><div>Also, is it automatically resetting his affiliate code from SOULMECHANIC (which he custom set as an Affiliate) to a longer number that started with something like: AMB-AA111BB-2D2DD2DD?&nbsp; Again, this is not a big deal either, as I just reset his unique code again... but I do believe it is my affiliates who will want to be ambassadors in the future, so this might be something we want to address.<br/></div><div>(i.e. if the affiliate code does not begin with &quot;REF-&quot; then carry forward the existing code.)<br/></div></li></ol><div><br/></div><div>Anyway, let me know what your guys' thoughts on this.<br/></div><div><br/></div><div>Screenshots:<br/></div><div><br/></div><div><img src=\"/portal/viewInlineAttachment/image?file=projects-f942295bd562df6a41cfc90397b80724b88643bb19b0c6a93afe0cb91d4189ed06f260f2a421613a7c7d769f92bd3880\" width=\"400\" height=\"172\"/><br/></div><div><img src=\"/portal/viewInlineAttachment/image?file=projects-f942295bd562df6a41cfc90397b80724cb0de04711ad6210d9e0e17da8e0ca56d8fd9956f328d179afebca5cecb17c19\" width=\"400\" height=\"17\"/><br/></div><div><br/></div><div>UPDATE: <br/></div><div><br/></div><div>The field in the Account settings for the Ambassador (under Ambassador Dashboard) appears to let him enter an effective date prior to the current day and hit Opt In (and it saves it... for display purposes only).<br/></div><div><br/></div><div><img src=\"/portal/viewInlineAttachment/image?file=projects-f942295bd562df6a41cfc90397b80724c0c61c20d829937aa99f6b4bf48a5af3789e6fbae13695bc8d7837a500104ef5\" width=\"400\" height=\"131\"/><br/></div><div><br/></div><div>Because in the Admin Dashboard, I cannot change it to 8/1<br/></div><div><br/></div><div><img src=\"/portal/viewInlineAttachment/image?file=projects-f942295bd562df6a41cfc90397b807240cc170ec6d77c67acc0ecfb786de1179730db013e78f8a55ae7b7a4f1544c4b9\" width=\"400\" height=\"260\"/><br/></div><div><br/></div><div>And on the Commissions tab, it does not show the commission for DIRECT for order #511<br/></div></div></div>",
+    "flag": "Internal",
+    "created_time": "2026-08-24T14:00:21.574Z",
+    "created_by": {
+      "zuid": 847035989,
+      "zpuid": "1512955000011632080",
+      "name": "Niña",
+      "email": "nina.baraquil@webriq.services",
+      "first_name": "Niña Anjerrie",
+      "last_name": "Baraquil"
+    },
+    "status": {
+      "id": "1512955000000030081",
+      "name": "Open",
+      "color": "#74cb80",
+      "color_hexcode": "#74cb80",
+      "is_closed_type": false
+    },
+    "assignee": {
+      "zuid": 836253155,
+      "zpuid": "1512955000010419263",
+      "name": "Ulrick Sanchez",
+      "email": "ulrick.sanchez@webriq.services",
+      "first_name": "Ulrick",
+      "last_name": "Sanchez"
+    },
+    "due_date": "2026-08-28T11:00:00.000Z",
+    "severity": {
+      "id": "1512955000000030141",
+      "value": "None"
+    },
+    "added_via": "web",
     "subscription_type": "Standard",
     "_zoho_project_id": "1512955000018218284"
   },

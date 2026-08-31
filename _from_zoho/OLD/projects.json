@@ -1,138 +1,6 @@
 {
   "projects": [
     {
-      "id": "1512955000020217023",
-      "name": "Hello Homes GR Content Site",
-      "project_type": "active",
-      "description": "<div><b>Existing Website:</b>&nbsp;<a target=\"_blank\" href=\"https://hellohomesgr.com/\" rel=\"noopener noreferrer\">https://hellohomesgr.com/</a><br /></div><div><b>Briefing:</b><br /></div><div><b>StackShift Development URL:</b><br /></div><div><br /></div><div><hr /><br /></div><div><div><b>SEO Blueprint Process Document:&nbsp;</b><a target=\"_blank\" href=\"https://workdrive.zohoexternal.com/external/df5cc756cb84b57f68870f2bd7490078\" class=\"f_statuslink2\" rel=\"noopener noreferrer\">https://workdrive.zohoexternal.com/external/df5cc756cb84b57f68870f2bd7490078</a><br /></div><div><br /></div><div><hr /><br /></div><div><b>Other Notes for This client:</b><br /></div><div>1.&nbsp;<br /></div><div>2.&nbsp;<br /></div><div><br /></div></div><div><br /></div>",
-      "owner": {
-        "zuid": 847035989,
-        "zpuid": "1512955000011632080",
-        "name": "Niña",
-        "email": "nina.baraquil@webriq.services",
-        "first_name": "Niña Anjerrie",
-        "last_name": "Baraquil",
-        "full_name": "Niña Anjerrie Baraquil"
-      },
-      "is_public_project": true,
-      "start_date": "2026-08-19",
-      "is_strict_project": false,
-      "created_time": "2026-08-19T00:54:24.635Z",
-      "created_by": {
-        "zuid": 847035989,
-        "zpuid": "1512955000011632080",
-        "name": "Niña",
-        "email": "nina.baraquil@webriq.services",
-        "first_name": "Niña Anjerrie",
-        "last_name": "Baraquil",
-        "full_name": "Niña Anjerrie Baraquil"
-      },
-      "modified_time": "2026-08-19T00:54:24.635Z",
-      "updated_by": {
-        "zuid": 847035989,
-        "zpuid": "1512955000011632080",
-        "name": "Niña",
-        "email": "nina.baraquil@webriq.services",
-        "first_name": "Niña Anjerrie",
-        "last_name": "Baraquil",
-        "full_name": "Niña Anjerrie Baraquil"
-      },
-      "status": {
-        "id": "1512955000000020089",
-        "name": "Open",
-        "color": "#4fd3e5",
-        "color_hexcode": "#4fd3e5",
-        "is_closed_type": false
-      },
-      "layout": {
-        "id": "1512955000012114960",
-        "name": "2024 April - StackShift Template",
-        "is_default": false,
-        "type": "public"
-      },
-      "business_hours_id": "1512955000015957015",
-      "is_rollup_project": false,
-      "budget_info": {
-        "billing_method": "project_hours",
-        "budget_type": "none",
-        "currency": "USD",
-        "cost_budget": {
-          "currency_code": "USD",
-          "formatted_amount": "$ 0.00",
-          "amount": 0
-        },
-        "hourly_budget": "00:00",
-        "rate_per_hour": {
-          "currency_code": "USD",
-          "formatted_amount": "$ 0.00",
-          "amount": 0
-        },
-        "fixed_cost": {
-          "currency_code": "USD",
-          "formatted_amount": "$ 0.00",
-          "amount": 0
-        },
-        "tracking_method": "project_hours",
-        "cost_per_hour": {
-          "currency_code": "USD",
-          "formatted_amount": "$ 0.00",
-          "amount": 0
-        },
-        "planned_cost": {
-          "currency_code": "USD",
-          "formatted_amount": "$ 0.00",
-          "amount": 0
-        },
-        "actual_cost": {
-          "currency_code": "USD",
-          "formatted_amount": "$ 0.00",
-          "amount": 0
-        },
-        "forecasted_cost": {
-          "currency_code": "USD",
-          "formatted_amount": "$ 0.00",
-          "amount": 0
-        },
-        "planned_hours": "00:00",
-        "actual_hours": "00:00",
-        "remaining_hours": "00:00",
-        "forecasted_hours": "00:00"
-      },
-      "project_group": {
-        "id": "1512955000000018001",
-        "name": "Ungrouped Projects",
-        "type": "public"
-      },
-      "tags": [
-        {
-          "id": "1512955000012114174",
-          "name": "BusinessTeam",
-          "color_class": "bg-tag18",
-          "color_hexcode": "#ba83f2"
-        },
-        {
-          "id": "1512955000011620059",
-          "name": "StackShift",
-          "color_class": "bg-tag17",
-          "color_hexcode": "#3b92ff"
-        }
-      ],
-      "percent_complete": 0,
-      "tasks": {
-        "open_count": 27,
-        "closed_count": 0
-      },
-      "issues": {
-        "open_count": 0,
-        "closed_count": 0
-      },
-      "milestones": {
-        "open_count": 5,
-        "closed_count": 0
-      },
-      "is_completed": false
-    },
-    {
       "id": "1512955000020040039",
       "name": "RCB & Associates",
       "project_type": "active",
@@ -249,10 +117,10 @@
           "color_hexcode": "#3b92ff"
         }
       ],
-      "percent_complete": 24,
+      "percent_complete": 21,
       "tasks": {
         "open_count": 22,
-        "closed_count": 7
+        "closed_count": 6
       },
       "issues": {
         "open_count": 0,
@@ -1378,7 +1246,7 @@
       ],
       "percent_complete": 0,
       "tasks": {
-        "open_count": 43,
+        "open_count": 40,
         "closed_count": 0
       },
       "issues": {
@@ -1766,10 +1634,10 @@
           "color_hexcode": "#3b92ff"
         }
       ],
-      "percent_complete": 40,
+      "percent_complete": 37,
       "tasks": {
-        "open_count": 24,
-        "closed_count": 15
+        "open_count": 25,
+        "closed_count": 14
       },
       "issues": {
         "open_count": 0,
@@ -3156,14 +3024,14 @@
           "color_hexcode": "#018ecd"
         }
       ],
-      "percent_complete": 86,
+      "percent_complete": 83,
       "tasks": {
         "open_count": 7,
         "closed_count": 13
       },
       "issues": {
-        "open_count": 3,
-        "closed_count": 52
+        "open_count": 5,
+        "closed_count": 49
       },
       "milestones": {
         "open_count": 5,
@@ -4771,8 +4639,8 @@
       ],
       "percent_complete": 86,
       "tasks": {
-        "open_count": 23,
-        "closed_count": 142
+        "open_count": 24,
+        "closed_count": 140
       },
       "issues": {
         "open_count": 0,
@@ -5543,9 +5411,9 @@
           "color_hexcode": "#018ecd"
         }
       ],
-      "percent_complete": 64,
+      "percent_complete": 65,
       "tasks": {
-        "open_count": 449,
+        "open_count": 422,
         "closed_count": 801
       },
       "issues": {
@@ -6335,10 +6203,10 @@
           "color_hexcode": "#3b92ff"
         }
       ],
-      "percent_complete": 86,
+      "percent_complete": 84,
       "tasks": {
-        "open_count": 9,
-        "closed_count": 54
+        "open_count": 10,
+        "closed_count": 53
       },
       "issues": {
         "open_count": 0,
@@ -6982,9 +6850,9 @@
           "color_hexcode": "#3b92ff"
         }
       ],
-      "percent_complete": 96,
+      "percent_complete": 97,
       "tasks": {
-        "open_count": 10,
+        "open_count": 7,
         "closed_count": 223
       },
       "issues": {
@@ -7644,14 +7512,14 @@
           "color_hexcode": "#ba83f2"
         }
       ],
-      "percent_complete": 95,
+      "percent_complete": 94,
       "tasks": {
         "open_count": 17,
         "closed_count": 273
       },
       "issues": {
-        "open_count": 0,
-        "closed_count": 58
+        "open_count": 2,
+        "closed_count": 56
       },
       "milestones": {
         "open_count": 6,
@@ -7763,8 +7631,8 @@
       },
       "percent_complete": 31,
       "tasks": {
-        "open_count": 446,
-        "closed_count": 207
+        "open_count": 448,
+        "closed_count": 205
       },
       "issues": {
         "open_count": 0,
@@ -7893,10 +7761,10 @@
           "color_hexcode": "#3b92ff"
         }
       ],
-      "percent_complete": 73,
+      "percent_complete": 72,
       "tasks": {
-        "open_count": 23,
-        "closed_count": 57
+        "open_count": 24,
+        "closed_count": 55
       },
       "issues": {
         "open_count": 0,
@@ -8530,8 +8398,8 @@
         "closed_count": 669
       },
       "issues": {
-        "open_count": 0,
-        "closed_count": 10
+        "open_count": 2,
+        "closed_count": 8
       },
       "milestones": {
         "open_count": 5,
@@ -9057,8 +8925,8 @@
         "closed_count": 288
       },
       "issues": {
-        "open_count": 2,
-        "closed_count": 44
+        "open_count": 4,
+        "closed_count": 42
       },
       "milestones": {
         "open_count": 6,
@@ -11196,7 +11064,7 @@
       },
       "issues": {
         "open_count": 0,
-        "closed_count": 16
+        "closed_count": 15
       },
       "milestones": {
         "open_count": 4,
@@ -20859,7 +20727,7 @@
       },
       "issues": {
         "open_count": 0,
-        "closed_count": 177
+        "closed_count": 176
       },
       "milestones": {
         "open_count": 1,
@@ -26527,14 +26395,14 @@
           "color_hexcode": "#f28840"
         }
       ],
-      "percent_complete": 99,
+      "percent_complete": 98,
       "tasks": {
         "open_count": 5,
         "closed_count": 102
       },
       "issues": {
-        "open_count": 1,
-        "closed_count": 710
+        "open_count": 4,
+        "closed_count": 704
       },
       "milestones": {
         "open_count": 0,
@@ -28592,5 +28460,5 @@
       "is_completed": false
     }
   ],
-  "total": 228
+  "total": 227
 }

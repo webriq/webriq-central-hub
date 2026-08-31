@@ -5739,8 +5739,8 @@
     "billing_type": "non_billable",
     "log_hours": {
       "billable_hours": "00:00",
-      "non_billable_hours": "113:15",
-      "total_hours": "113:15"
+      "non_billable_hours": "110:45",
+      "total_hours": "110:45"
     },
     "association_info": {
       "has_reminder": false,
