@@ -20,9 +20,10 @@ import type { ZohoMailMessageSummary } from "@/lib/zoho/mail";
 // listNewMessages() call already driving ticket creation — never a value re-derived from a
 // stored DB timestamp. The backfill path (fetchInlineImagesForBackfill, task 322) has no live
 // poll cycle, so it prefers an exact RFC822 Message-ID header match and falls back to the same
-// date+FROM window. IMAP SEARCH SINCE/BEFORE is date-granular, not time-precise (RFC 3501), so
-// the window search narrows by date+FROM first, then cross-checks each candidate's envelope
-// date against the target time client-side within a tight window. No confident match -> [].
+// FROM correlation. The FROM correlation is `SEARCH FROM <addr>` then nearest IMAP INTERNALDATE
+// to the target receipt time within a tight window — NOT `SEARCH SINCE/BEFORE`, which task 341
+// verified returns zero results against Zoho's IMAP server even for messages plainly in range.
+// No confident match -> [].
 
 export type InlineImage = {
   cid: string;
@@ -33,7 +34,9 @@ export type InlineImage = {
 };
 
 const CONFIDENCE_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
-const SEARCH_WINDOW_MS = 24 * 60 * 60 * 1000; // 1 day either side (SINCE/BEFORE is date-granular)
+// A single sender's history in a helpdesk mailbox is realistically in the hundreds; cap the
+// per-sender envelope fetch defensively so a mailing-list-style address can't blow up the call.
+const MAX_FROM_MATCHES_TO_INSPECT = 2000;
 
 type ImapConfig = { host: string; port: number; user: string; pass: string };
 
@@ -46,29 +49,42 @@ function getImapConfig(): ImapConfig | null {
   return { host, port: Number(port), user, pass };
 }
 
-// Narrows by date-window SEARCH (SINCE/BEFORE) + HEADER FROM, then picks the candidate whose
-// envelope date is closest to `receivedTimeMs` — but only returns it if that gap is inside the
-// tight confidence window. Ambiguous / nothing close enough -> null (never a guess).
+// Whether the IMAP env trio is present. Callers use this only to distinguish "IMAP not
+// configured for this environment" from "configured but no confident message match" when
+// reporting an unresolved inline image — never to gate behavior (fetchInlineImages already
+// degrades to [] on its own). Task 341: prod ran for weeks with these unset and no signal.
+export function isImapConfigured(): boolean {
+  return getImapConfig() !== null;
+}
+
+// Correlates by `SEARCH FROM <addr>` then picks the match whose IMAP INTERNALDATE is closest to
+// `receivedTimeMs` (Zoho REST's receipt time) — returned only if that gap is inside the tight
+// confidence window. Ambiguous / nothing close enough -> null (never a guess).
+//
+// Deliberately does NOT use IMAP `SEARCH SINCE/BEFORE`: verified live (task 341) that Zoho's IMAP
+// server returns zero results for a bare `SEARCH SINCE x BEFORE y` even when messages plainly
+// exist in that range (a bare `SEARCH FROM` against the same mailbox works fine). INTERNALDATE
+// tracks Zoho's `receivedTime` to the second, so a FROM-scoped nearest-INTERNALDATE match is both
+// more reliable and more precise than the old date-window approach.
 async function findUidByDateAndFrom(
   client: ImapFlow,
   params: { fromAddress: string; receivedTimeMs: number }
 ): Promise<number | null> {
   const { fromAddress, receivedTimeMs } = params;
-  const uids = await client.search(
-    {
-      since: new Date(receivedTimeMs - SEARCH_WINDOW_MS),
-      before: new Date(receivedTimeMs + SEARCH_WINDOW_MS),
-      from: fromAddress,
-    },
-    { uid: true }
-  );
-  if (!uids || uids.length === 0) return null;
+  const searchResult = await client.search({ from: fromAddress }, { uid: true });
+  const uids = Array.isArray(searchResult) ? searchResult : [];
+  if (uids.length === 0) return null;
+
+  // UIDs are ascending (oldest first); the newest slice covers the gap-window backfill and every
+  // forward-poll case. An older-message backfill from a prolific sender is the only case this
+  // could miss, and that path also has the Message-ID fallback.
+  const toInspect = uids.length > MAX_FROM_MATCHES_TO_INSPECT ? uids.slice(-MAX_FROM_MATCHES_TO_INSPECT) : uids;
 
   let bestUid: number | null = null;
   let bestDiff = Infinity;
-  for await (const msg of client.fetch(uids, { envelope: true, uid: true }, { uid: true })) {
-    if (!msg.envelope?.date) continue;
-    const diff = Math.abs(new Date(msg.envelope.date).getTime() - receivedTimeMs);
+  for await (const msg of client.fetch(toInspect, { internalDate: true, uid: true }, { uid: true })) {
+    if (!msg.internalDate) continue;
+    const diff = Math.abs(new Date(msg.internalDate).getTime() - receivedTimeMs);
     if (diff < bestDiff) {
       bestDiff = diff;
       bestUid = msg.uid;
@@ -160,6 +176,71 @@ export async function fetchInlineImages(summary: ZohoMailMessageSummary): Promis
     if (uid === null) return [];
     return downloadInlineImages(client, uid);
   }, [] as InlineImage[]);
+}
+
+// Diagnostic (task 341) — runs the same FROM + nearest-INTERNALDATE correlation as
+// fetchInlineImages() but returns a detailed report instead of just the images, so a "found the
+// message but got no inline parts" outcome on the backfill route's dry run is explainable
+// (wrong candidate? window miss? no Content-ID on the MIME parts?). Not used by the forward poll
+// path. Read-only (BODY.PEEK[]).
+export async function inspectInlineImageCorrelation(
+  summary: ZohoMailMessageSummary
+): Promise<Record<string, unknown>> {
+  const receivedTimeMs = Number(summary.receivedTime);
+  return withInboxConnection<Record<string, unknown>>(
+    async (client) => {
+      const toUids = (r: unknown) => (Array.isArray(r) ? (r as number[]) : []);
+      const fromUids = toUids(await client.search({ from: summary.fromAddress }, { uid: true }));
+
+      const candidates: { uid: number; internalDate: string | null; diffMs: number | null; subject?: string }[] = [];
+      const toInspect = fromUids.length > MAX_FROM_MATCHES_TO_INSPECT ? fromUids.slice(-MAX_FROM_MATCHES_TO_INSPECT) : fromUids;
+      if (toInspect.length) {
+        for await (const msg of client.fetch(toInspect, { envelope: true, internalDate: true, uid: true }, { uid: true })) {
+          const d = msg.internalDate ? new Date(msg.internalDate) : null;
+          candidates.push({
+            uid: msg.uid,
+            internalDate: d ? d.toISOString() : null,
+            diffMs: d ? Math.abs(d.getTime() - receivedTimeMs) : null,
+            subject: msg.envelope?.subject,
+          });
+        }
+      }
+      candidates.sort((a, b) => (a.diffMs ?? Infinity) - (b.diffMs ?? Infinity));
+      const best = candidates[0];
+      const withinWindow = !!best && best.diffMs !== null && best.diffMs <= CONFIDENCE_WINDOW_MS;
+
+      const report: Record<string, unknown> = {
+        receivedTimeIso: new Date(receivedTimeMs).toISOString(),
+        from: summary.fromAddress,
+        confidenceWindowMs: CONFIDENCE_WINDOW_MS,
+        fromMatchCount: fromUids.length,
+        closestCandidates: candidates.slice(0, 5),
+        bestUid: best?.uid ?? null,
+        bestDiffMs: best?.diffMs ?? null,
+        withinConfidenceWindow: withinWindow,
+      };
+
+      if (withinWindow && best) {
+        const { content } = await client.download(String(best.uid), undefined, { uid: true });
+        const chunks: Buffer[] = [];
+        for await (const chunk of content) chunks.push(chunk as Buffer);
+        const parsed = await simpleParser(Buffer.concat(chunks));
+        report.parsedAttachments = parsed.attachments.map((a) => ({
+          cid: a.cid ?? null,
+          contentType: a.contentType,
+          contentDisposition: a.contentDisposition ?? null,
+          filename: a.filename ?? null,
+          size: a.size,
+        }));
+        report.inlineImagePartCount = parsed.attachments.filter((a) => !!a.cid).length;
+        report.htmlHasImageDisplay = typeof parsed.html === "string" && parsed.html.includes("/mail/ImageDisplay");
+        report.htmlHasCidSrc = typeof parsed.html === "string" && /src=["']cid:/i.test(parsed.html);
+      }
+
+      return report;
+    },
+    { error: "IMAP operation failed or not configured" }
+  );
 }
 
 export type BackfillCorrelation =

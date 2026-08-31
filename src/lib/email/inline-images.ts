@@ -22,19 +22,33 @@ export function rewriteInlineImageSrc(html: string, cid: string, replacementUrl:
   });
 }
 
+export type ApplyInlineImagesResult = {
+  // The rewritten body — the caller is responsible for persisting it.
+  body: string;
+  // cids whose <img src> was actually swapped to the serving route.
+  rewrittenCids: string[];
+  // cids whose bytes were uploaded + attachments row upserted, but for which rewriteInlineImageSrc
+  // did NOT change the body: the mailparser Content-ID value does not textually appear in the
+  // stored src (a real fragility with some MUA/Zoho Content-ID rewrites). The image is recoverable
+  // via the serving route but the body still shows a dead <img src>. Task 341 — the backfill route
+  // reports these instead of counting them as a success.
+  storedButUnmatchedCids: string[];
+};
+
 // Uploads each resolved inline image to the ticket-attachments bucket, upserts an attachments
 // row (cid column set, external_id synthesized as `${messageRowId}:${cid}` — a Content-ID is
 // only unique within one message, but external_id has a global UNIQUE constraint, migration
 // 035), and rewrites the message body's <img src> refs to the serving route. Per-image failure
 // is logged and skipped, never fatal (mirrors the poll route's attachment-loop posture).
-// Returns the rewritten body — the caller is responsible for persisting it.
 export async function applyInlineImages(params: {
   messageRowId: string;
   ticketId: string;
   inlineImages: InlineImage[];
   body: string;
-}): Promise<string> {
+}): Promise<ApplyInlineImagesResult> {
   let body = params.body;
+  const rewrittenCids: string[] = [];
+  const storedButUnmatchedCids: string[] = [];
 
   for (const img of params.inlineImages) {
     try {
@@ -70,15 +84,22 @@ export async function applyInlineImages(params: {
         continue;
       }
 
+      const before = body;
       body = rewriteInlineImageSrc(
         body,
         img.cid,
         `/api/desk/tickets/${params.ticketId}/messages/${params.messageRowId}/inline-images/${attachmentRow.id}`
       );
+      if (body !== before) {
+        rewrittenCids.push(img.cid);
+      } else {
+        storedButUnmatchedCids.push(img.cid);
+        console.warn(`[inline-images] ${img.cid} stored but body <img src> not rewritten (cid token absent from src)`);
+      }
     } catch (e) {
       console.error(`[inline-images] ${img.cid} processing failed`, e);
     }
   }
 
-  return body;
+  return { body, rewrittenCids, storedButUnmatchedCids };
 }

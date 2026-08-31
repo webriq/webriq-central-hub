@@ -381,8 +381,25 @@ the note-collaborator route precedent.
   mode hides share management and explains all-staff view-only access.
 - **`_note-editor-modal.tsx`** — Globe/Lock visibility toggle after the collaborator picker,
   shown only to `permission === "owner"` when the note's folder is in `exposedFolderIds`; flip
-  **to** public opens an in-app confirm overlay (`describeFolderAudience()` names the audience;
-  reuses `ensureNoteCreated()` so an unsaved note is created first); flip back is immediate.
+  **to** public opens the shared `ConfirmDialog` (`@/components/ui/confirm-dialog`, the same
+  component the task/issue delete flows use) with `confirmLabel="Proceed anyway"` and a body that
+  names the audience via `describeFolderAudience()`; on confirm it reuses `ensureNoteCreated()`
+  (unsaved note created first) then routes through `changeNoteVisibility()` in `_notes-tab.tsx`,
+  which sonner-toasts success/failure. Flip back to private is immediate (no dialog).
+
+### Post-review changes (user feedback during simplify)
+- The folder **Public** toggle in `_note-folder-share-dialog.tsx` now opens the shared
+  `ConfirmDialog` (`confirmLabel="Proceed anyway"`) instead of switching immediately; **Private**
+  stays immediate.
+- Both confirm flows use the shared `ConfirmDialog` rather than a bespoke overlay, so they match
+  the delete-confirmation look.
+- Sonner toasts (matching `_create-task-modal.tsx`): `setFolderVisibility` /
+  `changeNoteVisibility` toast success + error; `shareFolder` / `changeFolderSharePermission` /
+  `unshareFolder` toast on error (and `shareFolder` on success, incl. partial-success count).
+  `<Toaster>` is already mounted in `(hub)/layout.tsx`. (The stale CLAUDE.md "toasts are not
+  sonner" note is superseded — sonner is an installed dep used across tasks 286/333/338.)
+- `patchNote()` now returns `boolean` so `changeNoteVisibility()` can branch on the outcome;
+  existing callers ignore the return.
 - **`_note-card.tsx` / `_notes-board.tsx`** — `folderPermission` + `isFolderExposed` threaded to
   every card; "Public" globe badge when `note.visibility === 'public'` and its folder is exposed.
 - **`CLAUDE.md`** — one Key-Conventions bullet on the two sharing axes + the per-note opt-in model.
@@ -417,18 +434,21 @@ the note-collaborator route precedent.
   `_note-collaborator-picker.tsx` / `_note-editor-modal.tsx`).
 
 ### Verification Run
-- `npx tsc --noEmit` - PASS
+- `npx tsc --noEmit` - PASS (re-run after the post-review ConfirmDialog + toast changes)
 - `pnpm lint` - PASS (0 errors; 2 pre-existing warnings in an unrelated `_checklist-tab.tsx`)
 - Browser acceptance - SKIPPED (blocked on the requester applying migration 127 to the remote DB)
 
 ## Quality Gate Notes
 
 ### Result
-PASS
+PASS (re-confirmed after the user-requested ConfirmDialog + sonner-toast changes)
 
 ### Standards Review
 - No blocking issues. `npx tsc --noEmit` (project tsconfig) and `pnpm lint` both clean — 0
   errors; the only lint warnings are pre-existing in an unrelated file.
+- Post-review changes reuse the shared `ConfirmDialog` and the established `toast` from `sonner`
+  (mounted in `(hub)/layout.tsx`, used by `_create-task-modal.tsx`) — no new dependency, no
+  second forms/toast pattern introduced.
 - Types: no new `any` escape hatches. The shares route narrows `role`/`permission` to typed
   unions after validation (`Role` alias, `perm`) rather than casting through `string`.
 - RLS: new cross-table checks go through `security definer` helpers per migration 121; no

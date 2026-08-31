@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import { NotesBoard } from "./_notes/_notes-board";
 import { NoteEditorModal, type NoteDraftPatch } from "./_notes/_note-editor-modal";
 import { NoteFolderShareDialog } from "./_notes/_note-folder-share-dialog";
@@ -135,15 +136,27 @@ export function NotesTab({
   async function patchNote(
     noteId: string,
     patch: Partial<Pick<NoteRow, "title" | "content" | "color" | "folder_id" | "is_pinned" | "is_archived" | "visibility">>
-  ) {
+  ): Promise<boolean> {
     const res = await fetch(`/api/projects/${projectId}/notes/${noteId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(patch),
     });
-    if (!res.ok) return;
+    if (!res.ok) return false;
     const updated: NoteRow = await res.json();
     setNotes((prev) => prev.map((n) => (n.id === noteId ? updated : n)));
+    return true;
+  }
+
+  // Task 337 — dedicated wrapper so the editor's confirm-to-public flow can toast the outcome
+  // without every generic patchNote call (pin/color/archive) also toasting.
+  async function changeNoteVisibility(noteId: string, visibility: NoteVisibility) {
+    const ok = await patchNote(noteId, { visibility });
+    if (ok) {
+      toast.success(visibility === "public" ? "Note is now visible to the folder" : "Note is now private");
+    } else {
+      toast.error("Couldn't update note visibility");
+    }
   }
 
   async function deleteNote(noteId: string) {
@@ -186,15 +199,20 @@ export function NotesTab({
   }
 
   // Task 337 — folder visibility + folder-share mutations. RLS (migrations 120/127) is the real
-  // gate; a failed response leaves local state untouched.
+  // gate; a failed response leaves local state untouched. Sonner toasts on the outcome, matching
+  // the create-task/create-issue modals' pattern.
   async function setFolderVisibility(folderId: string, visibility: NoteVisibility) {
     const res = await fetch(`/api/projects/${projectId}/notes/folders/${folderId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ visibility }),
     });
-    if (!res.ok) return;
+    if (!res.ok) {
+      toast.error("Couldn't update folder visibility");
+      return;
+    }
     patchFolderState(folderId, { visibility });
+    toast.success(visibility === "public" ? "Folder is now public to all staff" : "Folder is now private");
   }
 
   async function shareFolder(
@@ -215,13 +233,20 @@ export function NotesTab({
       });
       if (res.ok) created.push(await res.json());
     }
-    if (created.length === 0) return;
+    if (created.length === 0) {
+      toast.error("Couldn't add folder shares");
+      return;
+    }
     setFolders((prev) => prev.map((f) => {
       if (f.id !== folderId) return f;
       const kept = (f.shares ?? []).filter((s) => !created.some((c) => c.id === s.id
         || (c.user_id && c.user_id === s.user_id) || (c.role && c.role === s.role)));
       return { ...f, shares: [...kept, ...created] };
     }));
+    const total = payloads.length;
+    toast.success(created.length === total
+      ? `Shared with ${total} ${total === 1 ? "recipient" : "recipients"}`
+      : `Shared with ${created.length} of ${total} recipients`);
   }
 
   async function changeFolderSharePermission(folderId: string, shareId: string, permission: "view" | "edit") {
@@ -230,7 +255,10 @@ export function NotesTab({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ permission }),
     });
-    if (!res.ok) return;
+    if (!res.ok) {
+      toast.error("Couldn't update the share permission");
+      return;
+    }
     const updated: NoteFolderShare = await res.json();
     setFolders((prev) => prev.map((f) => (f.id === folderId
       ? { ...f, shares: (f.shares ?? []).map((s) => (s.id === shareId ? updated : s)) }
@@ -241,7 +269,8 @@ export function NotesTab({
     setFolders((prev) => prev.map((f) => (f.id === folderId
       ? { ...f, shares: (f.shares ?? []).filter((s) => s.id !== shareId) }
       : f)));
-    await fetch(`/api/projects/${projectId}/notes/folders/${folderId}/shares/${shareId}`, { method: "DELETE" });
+    const res = await fetch(`/api/projects/${projectId}/notes/folders/${folderId}/shares/${shareId}`, { method: "DELETE" });
+    if (!res.ok) toast.error("Couldn't remove the share");
   }
 
   async function shareNote(noteId: string, userId: string, permission: "view" | "edit") {
@@ -335,7 +364,7 @@ export function NotesTab({
           }}
           onChangeColor={(noteId, color: NoteColor) => patchNote(noteId, { color })}
           onChangeFolder={(noteId, folderId) => patchNote(noteId, { folder_id: folderId })}
-          onChangeVisibility={(noteId, visibility) => patchNote(noteId, { visibility })}
+          onChangeVisibility={changeNoteVisibility}
           onShare={shareNote}
           onChangePermission={changeCollaboratorPermission}
           onUnshare={unshareNote}

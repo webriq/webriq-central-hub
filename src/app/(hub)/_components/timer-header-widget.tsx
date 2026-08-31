@@ -43,11 +43,9 @@ export default function TimerHeaderWidget() {
   const triggerActiveClass = onBreak
     ? "bg-[#FFF3D6] text-[#8A5A00] hover:bg-[#FFECBF]"
     : isRunning
-    ? "bg-[#007BFF] text-white hover:bg-[#0063D6]"
+    ? "bg-[#E1EDFF] text-[#0063D6] hover:bg-[#D0E2FF]"
     : "text-[#5F6A88] hover:bg-[#F4F6FB] hover:text-[#3A4565]";
-  const triggerTooltip = open
-    ? "Minimize"
-    : onBreak
+  const triggerTooltip = onBreak
     ? timer?.break_type === "few_minutes"
       ? `On a ${BREAK_DURATIONS_MIN.few_minutes} minutes break`
       : `On a ${breakLabel}`
@@ -93,7 +91,7 @@ export default function TimerHeaderWidget() {
           <button
             onClick={() => setOpen((o) => !o)}
             aria-label={open ? "Close timer widget" : "Open timer widget"}
-            className={`inline-flex items-center gap-1.5 p-1.5 rounded-lg transition-colors cursor-pointer ${triggerActiveClass}`}
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer ${triggerActiveClass}`}
           >
             <TriggerIcon size={18} className="shrink-0" />
             {hasEntity && (
@@ -105,7 +103,9 @@ export default function TimerHeaderWidget() {
             )}
           </button>
         } />
-        <TooltipContent side="left">{triggerTooltip}</TooltipContent>
+        {/* Task 340 — the panel has its own Minimize button, so suppress the trigger tooltip
+            entirely while the panel is open. */}
+        {!open && <TooltipContent side="left">{triggerTooltip}</TooltipContent>}
       </Tooltip>
 
       {open && (

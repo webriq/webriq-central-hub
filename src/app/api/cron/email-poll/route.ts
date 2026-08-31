@@ -235,12 +235,20 @@ async function processMessage(summary: ZohoMailMessageSummary): Promise<ProcessO
   // task 321. Regular (non-inline) attachments below still key off this same id.
   const newMessageId = randomUUID();
 
-  body = await applyInlineImages({
+  const inlineResult = await applyInlineImages({
     messageRowId: newMessageId,
     ticketId: ticketDisplayId,
     inlineImages: email.inlineImages,
     body,
   });
+  body = inlineResult.body;
+
+  // Flag the message when it still carries a dead inline-image <img src> — either IMAP
+  // resolution recovered nothing (email.inlineImagesUnresolved, warned in inbound.ts) or the
+  // bytes were stored but the cid token wasn't found in the src to rewrite. Gives a straggler
+  // sweep and the render-time placeholder a precise, regex-free candidate list. Task 341.
+  const inlineImagesUnresolved =
+    email.inlineImagesUnresolved || inlineResult.storedButUnmatchedCids.length > 0;
 
   const { data: newMessage, error: messageError } = await adminClient
     .from("ticket_messages")
@@ -251,7 +259,10 @@ async function processMessage(summary: ZohoMailMessageSummary): Promise<ProcessO
       visibility: "public",
       body,
       email_message_id: summary.messageId,
-      source_meta: { contentType: bodyIsHtml ? "text/html" : "text/plain" },
+      source_meta: {
+        contentType: bodyIsHtml ? "text/html" : "text/plain",
+        ...(inlineImagesUnresolved ? { inlineImagesUnresolved: true } : {}),
+      },
     })
     .select("id")
     .single();

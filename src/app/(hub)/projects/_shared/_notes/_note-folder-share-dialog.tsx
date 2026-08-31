@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { Globe, Lock, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { IconTip } from "./_icon-tip";
 import type { NoteFolder, NoteFolderShare, NoteFolderShareRole, NoteVisibility } from "./_notes-types";
 
@@ -47,6 +48,10 @@ export function NoteFolderShareDialog({
   const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
   const [selectedRoles, setSelectedRoles] = useState<Set<NoteFolderShareRole>>(new Set());
   const [batchPermission, setBatchPermission] = useState<"view" | "edit">("view");
+  // Making a folder public exposes every author's public notes in it to all staff — confirm
+  // first (parallel to the note-level confirm-to-public in `_note-editor-modal.tsx`). Switching
+  // back to Private is immediate.
+  const [confirmPublicOpen, setConfirmPublicOpen] = useState(false);
 
   const sharedUserIds = useMemo(() => new Set(shares.filter((s) => s.user_id).map((s) => s.user_id!)), [shares]);
   const sharedRoles = useMemo(() => new Set(shares.filter((s) => s.role).map((s) => s.role!)), [shares]);
@@ -95,6 +100,7 @@ export function NoteFolderShareDialog({
   const segBtn = "flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-[10px] text-[12px] font-semibold transition-colors cursor-pointer";
 
   return (
+    <>
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0B1533]/40 p-4" onClick={onClose}>
       <div
         className="w-full max-w-md rounded-[14px] border border-[#E2E7F2] bg-white shadow-[0_8px_24px_rgba(7,17,51,.10)] flex flex-col max-h-[85vh]"
@@ -127,7 +133,7 @@ export function NoteFolderShareDialog({
             </button>
             <button
               type="button"
-              onClick={() => onSetVisibility(folder.id, "public")}
+              onClick={() => { if (folder.visibility !== "public") setConfirmPublicOpen(true); }}
               className={cn(segBtn, folder.visibility === "public"
                 ? "bg-[#E5F1FF] text-[#007BFF]"
                 : "bg-[#F4F6FB] text-[#3A4565] hover:bg-[#EDF1F9]")}
@@ -254,5 +260,16 @@ export function NoteFolderShareDialog({
         </div>
       </div>
     </div>
+
+    {/* Task 337 — confirm before exposing the folder's public notes to all staff. */}
+    <ConfirmDialog
+      open={confirmPublicOpen}
+      title="Make this folder public?"
+      body="Any staff member will be able to view notes in this folder that their authors have made public. Notes stay private until each author opts in."
+      confirmLabel="Proceed anyway"
+      onConfirm={() => { setConfirmPublicOpen(false); onSetVisibility(folder.id, "public"); }}
+      onCancel={() => setConfirmPublicOpen(false)}
+    />
+    </>
   );
 }

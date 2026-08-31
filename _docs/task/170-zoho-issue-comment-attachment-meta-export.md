@@ -4,7 +4,7 @@
 **Priority:** MEDIUM
 **Type:** feature
 **Recommended Tier:** fast
-**Status:** Planned
+**Status:** Testing
 
 ---
 
@@ -220,3 +220,25 @@ pnpm lint
 - New route only — no changes to any existing export/import route, no schema changes, no `IMPORT_LEVELS` changes.
 - Purely additive to `migrate/page.tsx`.
 - **A future Issue Comment Attachments import/upload follow-up** would need the same manual-match uploader design as tasks 106/114 (Zoho attachment download is blocked — confirmed live in task 106); `entity_type = 'comment'` is already allowed by the `attachments` table's CHECK constraint (migration 049), so no schema change would be needed there. `entity_id` would resolve to `issue_comments.id` via `external_id` lookup (comment's Zoho ID is already stored as `issue_comments.external_id`, migration 052) — same paginated-lookup-map pattern as `resolveIssueId`.
+
+---
+
+## Implementation Notes
+
+### What Changed
+- Added the **Issue Comment Attachment Metadata** export — issue-comment-scoped sibling of task 169's Comment Attachment Metadata export. New SSE route + a new card in `/admin/migrate` → **Zoho Projects** tab → Export phase, directly after "Comment Attachment Metadata". Strictly additive; no existing route, schema, or import level touched.
+
+### Files Changed
+- `src/app/api/admin/zoho-export/issue-comment-attachment-meta/route.ts` — **created.** Reads `_from_zoho/issue-comments.json`, `from`/`to` comment-index slicing, per-comment `GET /projects/{projectId}/attachments?entity_type=bug_comment&entity_id={commentId}` via `fetchZohoWithRetry` + `sleep(700)`, 404-tolerant / `throttleExhausted` → `failed_comment_ids` / other-status-logged three-way branch, every item tagged `_zoho_comment_id` / `_zoho_issue_id` / `_zoho_project_id`, SSE `progress` / `attachments` / `done` events. Copied near-verbatim from `comment-attachment-meta/route.ts`.
+- `src/app/(hub)/admin/migrate/_zoho-projects-tab.tsx` — added `IssueCommentAttachmentMetaExportState` interface, the `issue-comment-attachment-meta` `EXPORT_LEVELS` entry, the `issueCommentAttachmentMetaExport` state hook (`from: "0"`, `to: "300"`), `handleIssueCommentAttachmentMetaExport()`, and the `key === "issue-comment-attachment-meta"` render block — each placed immediately after its task-169 counterpart.
+
+### Deviations From Plan
+- **`entity_type` is `"bug_comment"`, not the doc's guessed `"comment"`.** The spec flagged this value as an unverified guess. Zoho's own embedded attachment records on the raw issue-comment objects in `issue-comments.json` read back `entity_type: "bug_comment"` on 155/155 inline records — the exact analog of task 113's `"task"` → `"bug"` swap for the issue-level `attachment-meta` export. The route, the `EXPORT_LEVELS` desc, and the code comment all use `"bug_comment"`. The `from=0&to=5` live smoke test (Verification step 4) is still worth running to confirm the dedicated endpoint honours it, but the value is now evidence-backed, not a guess.
+- **Stale doc file paths.** The spec referenced `src/app/v2/(hub)/admin/migrate/page.tsx`; the migrate UI has since been split into `src/app/(hub)/admin/migrate/_zoho-projects-tab.tsx`. All UI wiring went there instead. `V2_ROUTES`/`v2` layout references in the spec are obsolete — the migrate page is now under `(hub)`, reachable at `/admin/migrate`.
+- **Grounded count is 2,444, not the spec's 2,285.** `_from_zoho/issue-comments.json` currently holds 2,444 rows (only ~102 carry inline attachments). The "of 2444 comments" label and the state-hook comment reflect the real file; default slice left at `to: "300"` per the spec's conservative-slice reasoning.
+- **`impeccable` design hook** flags ~14 pre-existing `text-[11px]`/`text-[12px]`/`text-[13px]` literals in this file. These are the established, file-wide pattern for every sibling export/import card in the migrate UI; the new block mirrors them verbatim for visual consistency (per CLAUDE.md's page-scoped-UI / explicit-utility-class conventions). Not introduced by this task, not refactored here.
+
+### Verification Run
+- `npx tsc --noEmit` — PASS
+- `pnpm lint` — PASS (2 pre-existing unrelated warnings in `_checklist-tab.tsx`, unchanged)
+- Live `from=0&to=5` smoke test + full sliced export — NOT RUN (needs an authenticated Zoho session; hand-off to user, same as task 169's live-run deferral)

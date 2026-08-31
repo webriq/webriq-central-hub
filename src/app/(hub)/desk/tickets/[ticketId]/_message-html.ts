@@ -16,11 +16,27 @@ export function absolutizeZohoDeskInlineImages(html: string): string {
   );
 }
 
+// Inbound-email inline images referenced as `<img src="/mail/ImageDisplay?...cid=...">` (or a raw
+// `src="cid:...">`) are dead for every staff user — the endpoint needs a Zoho Mail webclient
+// session (task 321). The email-poll cron + the backfill route (tasks 321/322/341) rewrite these
+// to a Hub serving route when the bytes can be recovered over IMAP; anything still carrying the
+// dead form here could not be recovered (source email deleted/moved, IMAP not configured at poll
+// time, cid token mismatch). Swap the broken <img> for an honest inline marker instead of letting
+// the browser render a broken-image box.
+export function neutralizeDeadInlineImages(html: string): string {
+  return html.replace(
+    /<img\b[^>]*\bsrc=(["'])(?:\/mail\/ImageDisplay|cid:)[^"']*\1[^>]*>/gi,
+    '<span aria-label="inline image unavailable" title="This inline image could not be retrieved from the mail server" style="font-style:italic;opacity:0.55">[inline image unavailable]</span>'
+  );
+}
+
 // dangerouslySetInnerHTML consumers only ever receive sanitizeMessageHtml() output — message
 // bodies come from arbitrary external senders (anyone can email helpdesk@webriq.us), so
 // this is a real untrusted-content boundary, unlike the Zoho-authored descriptions elsewhere
 // in this codebase that reuse normalizeZohoDescriptionHtml (no sanitization, semi-trusted
 // staff-authored source — not appropriate to reuse here).
 export function sanitizeMessageHtml(body: string): string {
-  return DOMPurify.sanitize(absolutizeZohoDeskInlineImages(body), { USE_PROFILES: { html: true } });
+  return DOMPurify.sanitize(neutralizeDeadInlineImages(absolutizeZohoDeskInlineImages(body)), {
+    USE_PROFILES: { html: true },
+  });
 }

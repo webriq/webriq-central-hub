@@ -14,8 +14,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
-import { getMessageMetadata } from "@/lib/zoho/mail";
-import { fetchInlineImagesForBackfill } from "@/lib/email/imap";
+import { getMessageMetadata, listNewMessages, type ZohoMailMessageSummary } from "@/lib/zoho/mail";
+import {
+  fetchInlineImages,
+  fetchInlineImagesForBackfill,
+  inspectInlineImageCorrelation,
+  type InlineImage,
+} from "@/lib/email/imap";
 import { applyInlineImages } from "@/lib/email/inline-images";
 import { UNRESOLVED_INLINE_IMAGE_PATTERN } from "@/lib/email/inbound";
 
@@ -31,7 +36,7 @@ type CandidateRow = {
   tickets: { ticket_id: string } | null;
 };
 
-type Unresolved = { ticketId: string | null; messageId: string; reason: string };
+type Unresolved = { ticketId: string | null; messageId: string; reason: string; debug?: Record<string, unknown> };
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -93,6 +98,20 @@ export async function POST(req: NextRequest) {
     if (rows.length < PAGE) break;
   }
 
+  // Preferred correlation (task 341): reconstruct the real ZohoMailMessageSummary from a fresh
+  // INBOX list and run the exact trusted forward path (fetchInlineImages) — the poll cron
+  // correlates on summary.receivedTime/fromAddress from listNewMessages() and that is reliable.
+  // getMessageMetadata's /details endpoint shape is UNVERIFIED and was observed returning
+  // insufficient fields for recent gap-window messages (dry run -> "no confident IMAP match").
+  // Fall back to the metadata path only for messages that have aged out of the recent window.
+  let recentByMessageId = new Map<string, ZohoMailMessageSummary>();
+  try {
+    const recent = await listNewMessages({ folderId, limit: 200 });
+    recentByMessageId = new Map(recent.map((m) => [m.messageId, m]));
+  } catch (e) {
+    console.warn("[backfill-inline-images] listNewMessages failed — metadata fallback only:", e);
+  }
+
   const unresolved: Unresolved[] = [];
   let matched = 0;
   let imagesStored = 0;
@@ -103,35 +122,68 @@ export async function POST(req: NextRequest) {
     const ticketDisplayId = row.tickets?.ticket_id ?? null;
     const zohoMessageId = row.email_message_id as string;
 
-    let metadata: Awaited<ReturnType<typeof getMessageMetadata>>;
-    try {
-      metadata = await getMessageMetadata(zohoMessageId, folderId);
-    } catch (e) {
-      unresolved.push({
-        ticketId: ticketDisplayId,
-        messageId: row.id,
-        reason: `Zoho metadata fetch failed: ${e instanceof Error ? e.message : String(e)}`,
+    let images: InlineImage[];
+    let strategy: string;
+    let debug: Record<string, unknown> | undefined;
+    const summary = recentByMessageId.get(zohoMessageId);
+
+    if (summary) {
+      // Trusted forward path — identical to what the poll cron runs.
+      images = await fetchInlineImages(summary);
+      strategy = "list-summary";
+      if (dryRun) debug = { path: "list-summary", from: summary.fromAddress, receivedTime: summary.receivedTime };
+      if (images.length === 0) {
+        // Dig into WHY: window miss vs. no Content-ID on the MIME parts vs. wrong candidate.
+        const inspection = dryRun ? await inspectInlineImageCorrelation(summary) : undefined;
+        unresolved.push({
+          ticketId: ticketDisplayId,
+          messageId: row.id,
+          reason: "found in recent INBOX list but IMAP returned no inline parts (source moved out of INBOX, or has no cid parts)",
+          ...(debug || inspection ? { debug: { ...debug, inspection } } : {}),
+        });
+        continue;
+      }
+    } else {
+      // Metadata fallback — message aged out of the recent INBOX list.
+      let metadata: Awaited<ReturnType<typeof getMessageMetadata>>;
+      try {
+        metadata = await getMessageMetadata(zohoMessageId, folderId);
+      } catch (e) {
+        unresolved.push({
+          ticketId: ticketDisplayId,
+          messageId: row.id,
+          reason: `Zoho metadata fetch failed: ${e instanceof Error ? e.message : String(e)}`,
+        });
+        continue;
+      }
+
+      if (dryRun) debug = { path: "metadata-fallback", metadata };
+
+      const correlation = await fetchInlineImagesForBackfill({
+        fromAddress: metadata.fromAddress ?? "",
+        receivedTimeMs: metadata.receivedTime ? Number(metadata.receivedTime) : null,
+        rfc822MessageId: metadata.rfc822MessageId,
       });
-      continue;
+
+      if (!correlation.matched) {
+        unresolved.push({ ticketId: ticketDisplayId, messageId: row.id, reason: correlation.reason, ...(debug ? { debug } : {}) });
+        continue;
+      }
+      if (correlation.images.length === 0) {
+        unresolved.push({
+          ticketId: ticketDisplayId,
+          messageId: row.id,
+          reason: "matched, but source message has no inline image parts",
+          ...(debug ? { debug } : {}),
+        });
+        continue;
+      }
+      images = correlation.images;
+      strategy = correlation.strategy;
     }
 
-    const correlation = await fetchInlineImagesForBackfill({
-      fromAddress: metadata.fromAddress ?? "",
-      receivedTimeMs: metadata.receivedTime ? Number(metadata.receivedTime) : null,
-      rfc822MessageId: metadata.rfc822MessageId,
-    });
-
-    if (!correlation.matched) {
-      unresolved.push({ ticketId: ticketDisplayId, messageId: row.id, reason: correlation.reason });
-      continue;
-    }
     matched++;
-    strategies[correlation.strategy] = (strategies[correlation.strategy] ?? 0) + 1;
-
-    if (correlation.images.length === 0) {
-      unresolved.push({ ticketId: ticketDisplayId, messageId: row.id, reason: "matched, but source message has no inline image parts" });
-      continue;
-    }
+    strategies[strategy] = (strategies[strategy] ?? 0) + 1;
 
     if (ticketDisplayId == null) {
       unresolved.push({ ticketId: ticketDisplayId, messageId: row.id, reason: "ticket_id unresolved — cannot build serving URL" });
@@ -139,17 +191,17 @@ export async function POST(req: NextRequest) {
     }
 
     if (dryRun) {
-      imagesStored += correlation.images.length;
+      imagesStored += images.length;
       continue;
     }
 
-    const newBody = await applyInlineImages({
+    const { body: newBody, storedButUnmatchedCids } = await applyInlineImages({
       messageRowId: row.id,
       ticketId: ticketDisplayId,
-      inlineImages: correlation.images,
+      inlineImages: images,
       body: row.body,
     });
-    imagesStored += correlation.images.length;
+    imagesStored += images.length;
 
     if (newBody !== row.body) {
       const { error: updateError } = await adminClient
@@ -161,6 +213,18 @@ export async function POST(req: NextRequest) {
         continue;
       }
       messagesRewritten++;
+    }
+
+    // Bytes stored + attachments row upserted, but rewriteInlineImageSrc left (some of) the
+    // <img src> untouched because the mailparser Content-ID does not appear in the stored src.
+    // Previously invisible — counted toward imagesStored, no unresolved entry, body still
+    // broken. Task 341: surface it (the message may still be partially rewritten above).
+    if (storedButUnmatchedCids.length > 0) {
+      unresolved.push({
+        ticketId: ticketDisplayId,
+        messageId: row.id,
+        reason: `images stored but body <img src> not rewritten — cid token absent from stored src: ${storedButUnmatchedCids.join(", ")}`,
+      });
     }
   }
 

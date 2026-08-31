@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import { Pin, Archive, ArchiveRestore, Trash2, Globe, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NOTE_CARD_BG, getNotePermission, type NoteRow, type NoteFolder, type NoteColor, type NoteVisibility } from "./_notes-types";
@@ -8,6 +9,7 @@ import { NoteColorPicker } from "./_note-color-picker";
 import { NoteCollaboratorPicker } from "./_note-collaborator-picker";
 import { NoteRichTextEditor } from "./_note-rich-text-editor";
 import { IconTip } from "./_icon-tip";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 export type NoteDraftPatch = {
   title: string | null;
@@ -135,7 +137,10 @@ export function NoteEditorModal({
   async function confirmMakePublic() {
     setConfirmPublicOpen(false);
     const target = await ensureNoteCreated();
-    if (!target) return;
+    if (!target) {
+      toast.error("Couldn't save the note");
+      return;
+    }
     setVisibility("public");
     onChangeVisibility(target.id, "public");
   }
@@ -179,6 +184,7 @@ export function NoteEditorModal({
   }
 
   return (
+    <>
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-[#0B1533]/40 p-4"
       onClick={handleClose}
@@ -313,41 +319,17 @@ export function NoteEditorModal({
           </button>
         </div>
       </div>
-
-      {/* Task 337 — confirm-to-public. In-app overlay, never a browser confirm(). */}
-      {confirmPublicOpen && (
-        <div
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-[#0B1533]/40 p-4"
-          onClick={(e) => { e.stopPropagation(); setConfirmPublicOpen(false); }}
-        >
-          <div
-            className="w-full max-w-sm rounded-[14px] border border-[#E2E7F2] bg-white p-4 shadow-[0_8px_24px_rgba(7,17,51,.10)]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <p className="text-[13px] font-semibold text-[#0B1533] mb-1.5">Make this note public?</p>
-            <p className="text-[13px] text-[#3A4565] mb-4">
-              This note is in a {activeFolder?.visibility === "public" ? "public" : "shared"} folder.
-              Making it public will let everyone {audienceLabel} see it.
-            </p>
-            <div className="flex items-center justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setConfirmPublicOpen(false)}
-                className="px-3.5 py-1.5 rounded-full text-[12px] font-semibold text-[#3A4565] hover:bg-black/[0.04] transition-colors cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={confirmMakePublic}
-                className="px-3.5 py-1.5 rounded-full text-[12px] font-semibold text-white bg-[#007BFF] hover:bg-[#0063D6] transition-colors cursor-pointer"
-              >
-                Make public
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
+
+    {/* Task 337 — confirm-to-public. Shared ConfirmDialog (task 231), never a browser confirm(). */}
+    <ConfirmDialog
+      open={confirmPublicOpen}
+      title="Make this note public?"
+      body={`This note is in a ${activeFolder?.visibility === "public" ? "public" : "shared"} folder. Making it public will let everyone ${audienceLabel} see it.`}
+      confirmLabel="Proceed anyway"
+      onConfirm={confirmMakePublic}
+      onCancel={() => setConfirmPublicOpen(false)}
+    />
+    </>
   );
 }

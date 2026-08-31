@@ -202,3 +202,10 @@ User asked for a heavier, more legible trigger that communicates state through t
 - `npx tsc --noEmit` — PASS
 - `pnpm lint` — PASS (0 errors; same 2 pre-existing unrelated warnings)
 - Browser acceptance — still NOT RUN this session. Reviewer additionally: confirm the button fills solid blue while running (white icon + numbers), fills light amber with the meal/coffee/clock icon while on the matching break, and the tooltip text matches the state.
+
+## Follow-up 2 — Trigger Tweaks (user request)
+
+- **Trigger tooltip suppressed while the panel is open** — `<TooltipContent>` is now conditionally rendered (`{!open && …}`); the `open ? "Minimize"` branch was dropped from `triggerTooltip`. The panel's own Minimize button is the only affordance while open.
+- **More horizontal padding** — trigger button `p-1.5` → `px-2.5 py-1.5`.
+- **Lighter running fill** — running state `bg-[#007BFF] text-white hover:bg-[#0063D6]` → `bg-[#E1EDFF] text-[#0063D6] hover:bg-[#D0E2FF]`, so it reads as a light tint like the on-break amber rather than a solid button. Icon + numbers inherit `#0063D6`.
+- `npx tsc --noEmit` + `pnpm lint` — PASS (same 2 pre-existing unrelated warnings).

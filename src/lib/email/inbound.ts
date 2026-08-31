@@ -7,7 +7,7 @@
 // headers — Zoho Mail's own `threadId` groups a full conversation server-side and is used
 // directly (see the poll route), which is simpler and doesn't depend on this file at all.
 import { getMessageDetail, type ZohoMailMessageSummary } from "@/lib/zoho/mail";
-import { fetchInlineImages, type InlineImage } from "./imap";
+import { fetchInlineImages, isImapConfigured, type InlineImage } from "./imap";
 
 export type ParsedInboundEmail = {
   messageId: string;
@@ -18,6 +18,11 @@ export type ParsedInboundEmail = {
   text: string | null;
   attachments: { attachmentId: string; fileName: string; size: number }[];
   inlineImages: InlineImage[];
+  // True when the message body references an inline image (/mail/ImageDisplay or cid:) that
+  // IMAP resolution could not recover — the stored body will keep a dead <img src>. The poll
+  // route persists this as source_meta.inlineImagesUnresolved so a straggler sweep (and the
+  // render-time placeholder) has a precise, regex-free candidate list. Task 341.
+  inlineImagesUnresolved: boolean;
 };
 
 // Cheap pre-check so the (much slower) IMAP round-trip in fetchInlineImages() only runs for
@@ -33,6 +38,17 @@ export async function toParsedInboundEmail(summary: ZohoMailMessageSummary): Pro
   const hasUnresolvedInlineImages = !!detail.htmlContent && UNRESOLVED_INLINE_IMAGE_PATTERN.test(detail.htmlContent);
   const inlineImages = hasUnresolvedInlineImages ? await fetchInlineImages(summary) : [];
 
+  // Silent-degradation guard (task 341). If the body references an inline image and IMAP
+  // resolution produced nothing, say so once — and say WHY. The most common cause is a
+  // deployed environment missing the ZOHO_MAIL_IMAP_* env trio (prod ran that way for weeks
+  // with zero log signal). "no confident IMAP match" is the legitimate case (source email
+  // moved out of INBOX, clock skew past the confidence window, etc.).
+  const inlineImagesUnresolved = hasUnresolvedInlineImages && inlineImages.length === 0;
+  if (inlineImagesUnresolved) {
+    const reason = isImapConfigured() ? "no confident IMAP match" : "IMAP not configured";
+    console.warn(`[inbound] unresolved inline image(s) on ${summary.messageId}: ${reason}`);
+  }
+
   return {
     messageId: summary.messageId,
     threadId: summary.threadId,
@@ -42,5 +58,6 @@ export async function toParsedInboundEmail(summary: ZohoMailMessageSummary): Pro
     text: detail.textContent,
     attachments: detail.attachments,
     inlineImages,
+    inlineImagesUnresolved,
   };
 }
