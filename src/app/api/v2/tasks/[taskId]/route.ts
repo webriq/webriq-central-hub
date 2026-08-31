@@ -55,6 +55,19 @@ export async function PATCH(
     if ("description" in body) patch.description = body.description?.trim?.() || null;
     if ("milestone_id" in body) patch.milestone_id = body.milestone_id || null;
     if ("due_date" in body) patch.due_date = body.due_date || null;
+    // Task 338 — `start_date` and `estimate_hours` were already being sent by the Task Detail
+    // page (`_task-detail.tsx`) but were silently dropped here (never mapped into `patch`),
+    // so those edits no-op'd. Also surface `start_time` / `due_time` / `notes` (task 274's
+    // migration-110 columns) now that Task Detail edits them.
+    if ("start_date" in body) patch.start_date = body.start_date || null;
+    if ("start_time" in body) patch.start_time = body.start_time || null;
+    if ("due_time" in body) patch.due_time = body.due_time || null;
+    if ("notes" in body) patch.notes = body.notes?.trim?.() || null;
+    if ("estimate_hours" in body) {
+      patch.estimate_hours = typeof body.estimate_hours === "number" && Number.isFinite(body.estimate_hours)
+        ? body.estimate_hours
+        : null;
+    }
     if ("assignees" in body) {
       patch.assignees = Array.isArray(body.assignees) ? body.assignees : null;
       // Task 287 — reassigning a task grants each new assignee persistent project access

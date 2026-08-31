@@ -65,10 +65,14 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "10mb",
     },
     // Next.js 16 proxy.ts buffers the request body in memory (for re-reads in both proxy
-    // and the route handler) and truncates past the cap by default. Task 106's attachments
-    // uploader needed 50mb for its ~11MB/40-file dataset; task 114's Issue Attachments
-    // uploader sends much larger batches (up to 1.29GB/351 files, individual files to 119MB),
-    // so this needs a proportionally larger cap.
+    // and the route handler) and truncates past the cap by default. Kept high for the bulk
+    // Zoho-import multipart routes that still stream large payloads through a handler.
+    //
+    // NOTE: this does NOT govern production. On Vercel the platform gateway rejects any Route
+    // Handler request body over ~4.5 MB with HTTP 413 before the handler runs, and no
+    // next.config value raises that. Task/issue *attachment* uploads therefore no longer go
+    // through a handler at all — the browser uploads straight to Supabase Storage via a signed
+    // URL (task 339, src/lib/uploads/attachment-storage.ts).
     proxyClientMaxBodySize: "2gb",
   },
 };

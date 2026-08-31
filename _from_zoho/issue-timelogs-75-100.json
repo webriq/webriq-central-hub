@@ -1,0 +1,1871 @@
+[
+  {
+    "owner": {
+      "zpuid": "1512955000011696001",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=847815742",
+      "name": "Benjie Ben Garcia Garcia",
+      "last_name": "Garcia",
+      "first_name": "Benjie Ben Garcia",
+      "email": "EMAIL_CLOSED",
+      "zuid": 847815742
+    },
+    "date": "2025-02-26",
+    "created_time": "2025-02-26T06:56:04.416Z",
+    "module_detail": {
+      "prefix": "JV2-I22",
+      "name": "#18876 Update JVPC website",
+      "id": "1512955000014320013",
+      "type": "bug"
+    },
+    "notes": "<div>Timesheet log details: Start Time - 02-26-2025 11:00 AM End time 02-26-2025 12:00 PM Time spent - 00:45<br></div>",
+    "last_modified_time": "2025-02-26T09:38:14.120Z",
+    "approval": {
+      "zpuid": "1512955000013630159",
+      "name": "April Grace Trocio",
+      "last_name": "Trocio",
+      "time": "2025-02-26T14:56:04.416Z",
+      "first_name": "April Grace",
+      "email": "april.trocio@webriq.services",
+      "zuid": 871125681,
+      "status": "Approved"
+    },
+    "log_notes": "<div>Timesheet log details: Start Time - 02-26-2025 11:00 AM End time 02-26-2025 12:00 PM Time spent - 00:45<br></div>",
+    "end_time": "01:00 PM",
+    "project": {
+      "name": "JVPC",
+      "id": "1512955000008348114"
+    },
+    "type": "issue",
+    "start_time": "12:15 PM",
+    "added_by": {
+      "zpuid": "1512955000013630159",
+      "name": "April Grace Trocio",
+      "last_name": "Trocio",
+      "first_name": "April Grace",
+      "email": "april.trocio@webriq.services",
+      "zuid": 871125681
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000014643171",
+    "log_hour": "00:45",
+    "_zoho_project_id": "1512955000008348114"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000011696001",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=847815742",
+      "name": "Benjie Ben Garcia Garcia",
+      "last_name": "Garcia",
+      "first_name": "Benjie Ben Garcia",
+      "email": "EMAIL_CLOSED",
+      "zuid": 847815742
+    },
+    "date": "2025-02-05",
+    "created_time": "2025-02-05T10:01:39.929Z",
+    "module_detail": {
+      "prefix": "JV2-I22",
+      "name": "#18876 Update JVPC website",
+      "id": "1512955000014320013",
+      "type": "bug"
+    },
+    "notes": "<div>Timesheet log details: Start Time -02-05-2025 05:00 PM End Time -02-05-2025 06:02 PM  Time spent - 01:02<br></div>",
+    "last_modified_time": "2025-02-05T10:04:41.502Z",
+    "approval": {
+      "zpuid": "1512955000011696001",
+      "name": "Benjie Ben Garcia Garcia",
+      "last_name": "Garcia",
+      "time": "2025-02-05T18:01:39.924Z",
+      "first_name": "Benjie Ben Garcia",
+      "email": "EMAIL_CLOSED",
+      "zuid": 847815742,
+      "status": "Approved"
+    },
+    "log_notes": "<div>Timesheet log details: Start Time -02-05-2025 05:00 PM End Time -02-05-2025 06:02 PM  Time spent - 01:02<br></div>",
+    "end_time": "06:02 PM",
+    "project": {
+      "name": "JVPC",
+      "id": "1512955000008348114"
+    },
+    "type": "issue",
+    "start_time": "05:00 PM",
+    "added_by": {
+      "zpuid": "1512955000011696001",
+      "name": "Benjie Ben Garcia Garcia",
+      "last_name": "Garcia",
+      "first_name": "Benjie Ben Garcia",
+      "email": "EMAIL_CLOSED",
+      "zuid": 847815742
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000014362289",
+    "log_hour": "01:02",
+    "_zoho_project_id": "1512955000008348114"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000011696001",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=847815742",
+      "name": "Benjie Ben Garcia Garcia",
+      "last_name": "Garcia",
+      "first_name": "Benjie Ben Garcia",
+      "email": "EMAIL_CLOSED",
+      "zuid": 847815742
+    },
+    "date": "2025-02-04",
+    "created_time": "2025-02-04T03:19:05.341Z",
+    "module_detail": {
+      "prefix": "JV2-I22",
+      "name": "#18876 Update JVPC website",
+      "id": "1512955000014320013",
+      "type": "bug"
+    },
+    "notes": "<div>Timesheet log details:\nStart Time -02-04-2025 09:01 AM End Time -02-04-2025 11:20 AM \nTime spent - 02:19<br></div>",
+    "last_modified_time": "2025-02-04T10:13:37.826Z",
+    "approval": {
+      "zpuid": "1512955000011696001",
+      "name": "Benjie Ben Garcia Garcia",
+      "last_name": "Garcia",
+      "time": "2025-02-04T11:19:05.337Z",
+      "first_name": "Benjie Ben Garcia",
+      "email": "EMAIL_CLOSED",
+      "zuid": 847815742,
+      "status": "Approved"
+    },
+    "log_notes": "<div>Timesheet log details:\nStart Time -02-04-2025 09:01 AM End Time -02-04-2025 11:20 AM \nTime spent - 02:19<br></div>",
+    "end_time": "11:20 AM",
+    "project": {
+      "name": "JVPC",
+      "id": "1512955000008348114"
+    },
+    "type": "issue",
+    "start_time": "09:01 AM",
+    "added_by": {
+      "zpuid": "1512955000011696001",
+      "name": "Benjie Ben Garcia Garcia",
+      "last_name": "Garcia",
+      "first_name": "Benjie Ben Garcia",
+      "email": "EMAIL_CLOSED",
+      "zuid": 847815742
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000014330083",
+    "log_hour": "02:19",
+    "_zoho_project_id": "1512955000008348114"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000011696001",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=847815742",
+      "name": "Benjie Ben Garcia Garcia",
+      "last_name": "Garcia",
+      "first_name": "Benjie Ben Garcia",
+      "email": "EMAIL_CLOSED",
+      "zuid": 847815742
+    },
+    "date": "2025-02-03",
+    "created_time": "2025-02-03T07:42:20.431Z",
+    "module_detail": {
+      "prefix": "JV2-I22",
+      "name": "#18876 Update JVPC website",
+      "id": "1512955000014320013",
+      "type": "bug"
+    },
+    "notes": "<div>Timesheet log details: Start Time -02-03-2025 10:00 AM End Time -02-03-2025 03:42 PM  Time spent - 05:42<br></div>",
+    "last_modified_time": "2025-02-03T09:37:13.267Z",
+    "approval": {
+      "zpuid": "1512955000011696001",
+      "name": "Benjie Ben Garcia Garcia",
+      "last_name": "Garcia",
+      "time": "2025-02-03T15:42:20.426Z",
+      "first_name": "Benjie Ben Garcia",
+      "email": "EMAIL_CLOSED",
+      "zuid": 847815742,
+      "status": "Approved"
+    },
+    "log_notes": "<div>Timesheet log details: Start Time -02-03-2025 10:00 AM End Time -02-03-2025 03:42 PM  Time spent - 05:42<br></div>",
+    "end_time": "03:42 PM",
+    "project": {
+      "name": "JVPC",
+      "id": "1512955000008348114"
+    },
+    "type": "issue",
+    "start_time": "10:00 AM",
+    "added_by": {
+      "zpuid": "1512955000011696001",
+      "name": "Benjie Ben Garcia Garcia",
+      "last_name": "Garcia",
+      "first_name": "Benjie Ben Garcia",
+      "email": "EMAIL_CLOSED",
+      "zuid": 847815742
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000014304325",
+    "log_hour": "05:42",
+    "_zoho_project_id": "1512955000008348114"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000000050287",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=649536095",
+      "name": "Allen Edward Cartagenas",
+      "last_name": "Cartagenas",
+      "first_name": "Allen Edward",
+      "email": "allen@webriq.services",
+      "zuid": 649536095
+    },
+    "date": "2025-04-28",
+    "created_time": "2025-04-28T10:58:56.700Z",
+    "module_detail": {
+      "prefix": "JV2-I23",
+      "name": "#19102 JVPC website, member list",
+      "id": "1512955000015144001",
+      "type": "bug"
+    },
+    "notes": "<div><br></div>",
+    "last_modified_time": "2025-04-28T10:58:56.700Z",
+    "approval": {
+      "zpuid": "1512955000000050287",
+      "name": "Allen Edward Cartagenas",
+      "last_name": "Cartagenas",
+      "time": "2025-04-28T18:58:56.700Z",
+      "first_name": "Allen Edward",
+      "email": "allen@webriq.services",
+      "zuid": 649536095,
+      "status": "Approved"
+    },
+    "log_notes": "<div><br></div>",
+    "end_time": "01:00 PM",
+    "project": {
+      "name": "JVPC",
+      "id": "1512955000008348114"
+    },
+    "type": "issue",
+    "start_time": "09:30 AM",
+    "added_by": {
+      "zpuid": "1512955000000050287",
+      "name": "Allen Edward Cartagenas",
+      "last_name": "Cartagenas",
+      "first_name": "Allen Edward",
+      "email": "allen@webriq.services",
+      "zuid": 649536095
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000015379315",
+    "log_hour": "03:30",
+    "_zoho_project_id": "1512955000008348114"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000011450287",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=845830651",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651
+    },
+    "date": "2025-04-10",
+    "created_time": "2025-04-10T04:59:44.780Z",
+    "module_detail": {
+      "prefix": "JV2-I23",
+      "name": "#19102 JVPC website, member list",
+      "id": "1512955000015144001",
+      "type": "bug"
+    },
+    "notes": "Time log details:\nStart Time -04-10-2025 08:52 AM End Time -04-10-2025 12:59 PM \nTime spent - 03:37",
+    "last_modified_time": "2025-04-10T04:59:47.277Z",
+    "approval": {
+      "zpuid": "1512955000011450287",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "time": "2025-04-10T12:59:44.774Z",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651,
+      "status": "Approved"
+    },
+    "log_notes": "Time log details:\nStart Time -04-10-2025 08:52 AM End Time -04-10-2025 12:59 PM \nTime spent - 03:37",
+    "end_time": "12:59 PM",
+    "project": {
+      "name": "JVPC",
+      "id": "1512955000008348114"
+    },
+    "type": "issue",
+    "start_time": "08:52 AM",
+    "added_by": {
+      "zpuid": "1512955000011450287",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000015177211",
+    "log_hour": "03:37",
+    "_zoho_project_id": "1512955000008348114"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000011450287",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=845830651",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651
+    },
+    "date": "2025-04-09",
+    "created_time": "2025-04-09T10:06:35.140Z",
+    "module_detail": {
+      "prefix": "JV2-I23",
+      "name": "#19102 JVPC website, member list",
+      "id": "1512955000015144001",
+      "type": "bug"
+    },
+    "notes": "<div>Time log details: Start Time -04-09-2025 08:22 AM End Time -04-09-2025 06:06 PM  Time spent - 09:02<br><br>Applied:<br>Data fetching - display list of members<br>Filters- active/inctive members<br>Search</div>",
+    "last_modified_time": "2025-04-09T10:09:31.156Z",
+    "approval": {
+      "zpuid": "1512955000011450287",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "time": "2025-04-09T18:06:35.135Z",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651,
+      "status": "Approved"
+    },
+    "log_notes": "<div>Time log details: Start Time -04-09-2025 08:22 AM End Time -04-09-2025 06:06 PM  Time spent - 09:02<br><br>Applied:<br>Data fetching - display list of members<br>Filters- active/inctive members<br>Search</div>",
+    "end_time": "06:06 PM",
+    "project": {
+      "name": "JVPC",
+      "id": "1512955000008348114"
+    },
+    "type": "issue",
+    "start_time": "08:22 AM",
+    "added_by": {
+      "zpuid": "1512955000011450287",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000015167198",
+    "log_hour": "09:02",
+    "_zoho_project_id": "1512955000008348114"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000009122237",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=814277754",
+      "name": "Mariel Genodiala",
+      "last_name": "Genodiala",
+      "first_name": "Mariel",
+      "email": "mariel.genodiala@webriq.services",
+      "zuid": 814277754
+    },
+    "date": "2025-07-07",
+    "created_time": "2025-07-07T14:41:20.820Z",
+    "module_detail": {
+      "prefix": "JV2-I24",
+      "name": "#19454 File &#39;Uitgewerkte onderwerpen hand_breast_cosm_burn_conge_traum_recon&#39;",
+      "id": "1512955000016218001",
+      "type": "bug"
+    },
+    "notes": "<div>Trial and error fixing build issues<br></div><div><br></div><div><a target=\"_blank\" href=\"https://github.com/webriq/dxp-site-jvpc-ikce/commit/1e9646f89f091feea4985f26b55de4d513a1e3d4\" rel=\"noopener noreferrer\">https://github.com/webriq/dxp-site-jvpc-ikce/commit/1e9646f89f091feea4985f26b55de4d513a1e3d4</a><br></div><div><a target=\"_blank\" href=\"https://github.com/webriq/dxp-site-jvpc-ikce/commit/fb8153898e669647e45651c1cc1c8918830be20d\" rel=\"noopener noreferrer\">https://github.com/webriq/dxp-site-jvpc-ikce/commit/fb8153898e669647e45651c1cc1c8918830be20d</a><br></div>",
+    "last_modified_time": "2025-07-07T14:51:35.258Z",
+    "approval": {
+      "zpuid": "1512955000009122237",
+      "name": "Mariel Genodiala",
+      "last_name": "Genodiala",
+      "time": "2025-07-07T22:41:20.820Z",
+      "first_name": "Mariel",
+      "email": "mariel.genodiala@webriq.services",
+      "zuid": 814277754,
+      "status": "Approved"
+    },
+    "log_notes": "<div>Trial and error fixing build issues<br></div><div><br></div><div><a target=\"_blank\" href=\"https://github.com/webriq/dxp-site-jvpc-ikce/commit/1e9646f89f091feea4985f26b55de4d513a1e3d4\" rel=\"noopener noreferrer\">https://github.com/webriq/dxp-site-jvpc-ikce/commit/1e9646f89f091feea4985f26b55de4d513a1e3d4</a><br></div><div><a target=\"_blank\" href=\"https://github.com/webriq/dxp-site-jvpc-ikce/commit/fb8153898e669647e45651c1cc1c8918830be20d\" rel=\"noopener noreferrer\">https://github.com/webriq/dxp-site-jvpc-ikce/commit/fb8153898e669647e45651c1cc1c8918830be20d</a><br></div>",
+    "end_time": "10:34 PM",
+    "project": {
+      "name": "JVPC",
+      "id": "1512955000008348114"
+    },
+    "type": "issue",
+    "start_time": "08:30 PM",
+    "added_by": {
+      "zpuid": "1512955000009122237",
+      "name": "Mariel Genodiala",
+      "last_name": "Genodiala",
+      "first_name": "Mariel",
+      "email": "mariel.genodiala@webriq.services",
+      "zuid": 814277754
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000016200343",
+    "log_hour": "02:04",
+    "_zoho_project_id": "1512955000008348114"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000009122237",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=814277754",
+      "name": "Mariel Genodiala",
+      "last_name": "Genodiala",
+      "first_name": "Mariel",
+      "email": "mariel.genodiala@webriq.services",
+      "zuid": 814277754
+    },
+    "date": "2025-07-07",
+    "created_time": "2025-07-07T14:41:00.631Z",
+    "module_detail": {
+      "prefix": "JV2-I24",
+      "name": "#19454 File &#39;Uitgewerkte onderwerpen hand_breast_cosm_burn_conge_traum_recon&#39;",
+      "id": "1512955000016218001",
+      "type": "bug"
+    },
+    "notes": "<div><a target=\"_blank\" href=\"https://github.com/webriq/dxp-studio-jvpc-ikce/commit/ceb7ea155bca9c61a7f303bd141782b8c2fab914\" rel=\"noopener noreferrer\">https://github.com/webriq/dxp-studio-jvpc-ikce/commit/ceb7ea155bca9c61a7f303bd141782b8c2fab914</a><br></div><div><a target=\"_blank\" href=\"https://github.com/webriq/dxp-site-jvpc-ikce/commit/b706413b293e202e8ca79832825bb292d4f2e23a\" rel=\"noopener noreferrer\">https://github.com/webriq/dxp-site-jvpc-ikce/commit/b706413b293e202e8ca79832825bb292d4f2e23a</a><br></div><div><a target=\"_blank\" href=\"https://github.com/webriq/dxp-site-jvpc-ikce/commit/3cbd01bde34406112293c46d988c9095982cc7de\" rel=\"noopener noreferrer\">https://github.com/webriq/dxp-site-jvpc-ikce/commit/3cbd01bde34406112293c46d988c9095982cc7de</a><br></div>",
+    "last_modified_time": "2025-07-07T14:43:39.526Z",
+    "approval": {
+      "zpuid": "1512955000009122237",
+      "name": "Mariel Genodiala",
+      "last_name": "Genodiala",
+      "time": "2025-07-07T22:41:00.631Z",
+      "first_name": "Mariel",
+      "email": "mariel.genodiala@webriq.services",
+      "zuid": 814277754,
+      "status": "Approved"
+    },
+    "log_notes": "<div><a target=\"_blank\" href=\"https://github.com/webriq/dxp-studio-jvpc-ikce/commit/ceb7ea155bca9c61a7f303bd141782b8c2fab914\" rel=\"noopener noreferrer\">https://github.com/webriq/dxp-studio-jvpc-ikce/commit/ceb7ea155bca9c61a7f303bd141782b8c2fab914</a><br></div><div><a target=\"_blank\" href=\"https://github.com/webriq/dxp-site-jvpc-ikce/commit/b706413b293e202e8ca79832825bb292d4f2e23a\" rel=\"noopener noreferrer\">https://github.com/webriq/dxp-site-jvpc-ikce/commit/b706413b293e202e8ca79832825bb292d4f2e23a</a><br></div><div><a target=\"_blank\" href=\"https://github.com/webriq/dxp-site-jvpc-ikce/commit/3cbd01bde34406112293c46d988c9095982cc7de\" rel=\"noopener noreferrer\">https://github.com/webriq/dxp-site-jvpc-ikce/commit/3cbd01bde34406112293c46d988c9095982cc7de</a><br></div>",
+    "end_time": "04:45 PM",
+    "project": {
+      "name": "JVPC",
+      "id": "1512955000008348114"
+    },
+    "type": "issue",
+    "start_time": "02:00 PM",
+    "added_by": {
+      "zpuid": "1512955000009122237",
+      "name": "Mariel Genodiala",
+      "last_name": "Genodiala",
+      "first_name": "Mariel",
+      "email": "mariel.genodiala@webriq.services",
+      "zuid": 814277754
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000016200339",
+    "log_hour": "02:45",
+    "_zoho_project_id": "1512955000008348114"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000009122237",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=814277754",
+      "name": "Mariel Genodiala",
+      "last_name": "Genodiala",
+      "first_name": "Mariel",
+      "email": "mariel.genodiala@webriq.services",
+      "zuid": 814277754
+    },
+    "date": "2025-07-07",
+    "created_time": "2025-07-07T14:40:42.137Z",
+    "module_detail": {
+      "prefix": "JV2-I24",
+      "name": "#19454 File &#39;Uitgewerkte onderwerpen hand_breast_cosm_burn_conge_traum_recon&#39;",
+      "id": "1512955000016218001",
+      "type": "bug"
+    },
+    "notes": "<div><br></div>",
+    "last_modified_time": "2025-07-07T14:40:42.137Z",
+    "approval": {
+      "zpuid": "1512955000009122237",
+      "name": "Mariel Genodiala",
+      "last_name": "Genodiala",
+      "time": "2025-07-07T22:40:42.137Z",
+      "first_name": "Mariel",
+      "email": "mariel.genodiala@webriq.services",
+      "zuid": 814277754,
+      "status": "Approved"
+    },
+    "log_notes": "<div><br></div>",
+    "end_time": "01:00 PM",
+    "project": {
+      "name": "JVPC",
+      "id": "1512955000008348114"
+    },
+    "type": "issue",
+    "start_time": "11:00 AM",
+    "added_by": {
+      "zpuid": "1512955000009122237",
+      "name": "Mariel Genodiala",
+      "last_name": "Genodiala",
+      "first_name": "Mariel",
+      "email": "mariel.genodiala@webriq.services",
+      "zuid": 814277754
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000016200335",
+    "log_hour": "02:00",
+    "_zoho_project_id": "1512955000008348114"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000000050287",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=649536095",
+      "name": "Allen Edward Cartagenas",
+      "last_name": "Cartagenas",
+      "first_name": "Allen Edward",
+      "email": "allen@webriq.services",
+      "zuid": 649536095
+    },
+    "date": "2025-08-01",
+    "created_time": "2025-08-01T09:22:28.797Z",
+    "module_detail": {
+      "prefix": "JV2-I25",
+      "name": "#19551 JVPC.nl",
+      "id": "1512955000016553003",
+      "type": "bug"
+    },
+    "notes": "<div><br></div>",
+    "last_modified_time": "2025-08-01T09:22:28.797Z",
+    "approval": {
+      "zpuid": "1512955000000050287",
+      "name": "Allen Edward Cartagenas",
+      "last_name": "Cartagenas",
+      "time": "2025-08-01T17:22:28.796Z",
+      "first_name": "Allen Edward",
+      "email": "allen@webriq.services",
+      "zuid": 649536095,
+      "status": "Approved"
+    },
+    "log_notes": "<div><br></div>",
+    "project": {
+      "name": "JVPC",
+      "id": "1512955000008348114"
+    },
+    "type": "issue",
+    "added_by": {
+      "zpuid": "1512955000000050287",
+      "name": "Allen Edward Cartagenas",
+      "last_name": "Cartagenas",
+      "first_name": "Allen Edward",
+      "email": "allen@webriq.services",
+      "zuid": 649536095
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000016560054",
+    "log_hour": "07:00",
+    "_zoho_project_id": "1512955000008348114"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000012444001",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=854392166",
+      "name": "Mark John Mejias",
+      "last_name": "Mejias",
+      "first_name": "Mark John",
+      "email": "markjohn.mejias@webriq.services",
+      "zuid": 854392166
+    },
+    "date": "2025-08-11",
+    "created_time": "2025-08-11T09:52:35.903Z",
+    "module_detail": {
+      "prefix": "JV2-I26",
+      "name": "#19572 JVPC update",
+      "id": "1512955000016695001",
+      "type": "bug"
+    },
+    "notes": "Time log details:\nStart Time -08-11-2025 05:10 PM End Time -08-11-2025 05:52 PM \nTime spent - 00:42",
+    "last_modified_time": "2025-08-11T09:52:39.917Z",
+    "approval": {
+      "zpuid": "1512955000012444001",
+      "name": "Mark John Mejias",
+      "last_name": "Mejias",
+      "time": "2025-08-11T17:52:35.900Z",
+      "first_name": "Mark John",
+      "email": "markjohn.mejias@webriq.services",
+      "zuid": 854392166,
+      "status": "Approved"
+    },
+    "log_notes": "Time log details:\nStart Time -08-11-2025 05:10 PM End Time -08-11-2025 05:52 PM \nTime spent - 00:42",
+    "end_time": "05:52 PM",
+    "project": {
+      "name": "JVPC",
+      "id": "1512955000008348114"
+    },
+    "type": "issue",
+    "start_time": "05:10 PM",
+    "added_by": {
+      "zpuid": "1512955000012444001",
+      "name": "Mark John Mejias",
+      "last_name": "Mejias",
+      "first_name": "Mark John",
+      "email": "markjohn.mejias@webriq.services",
+      "zuid": 854392166
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000016704247",
+    "log_hour": "00:42",
+    "_zoho_project_id": "1512955000008348114"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000000054009",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=658223690",
+      "name": "Anliner Leona",
+      "last_name": "Leona",
+      "first_name": "Anliner",
+      "email": "EMAIL_CLOSED",
+      "zuid": 658223690
+    },
+    "date": "2025-11-24",
+    "created_time": "2025-11-24T09:13:30.799Z",
+    "module_detail": {
+      "prefix": "JV2-I27",
+      "name": "#19975 Update JVPC wbsite",
+      "id": "1512955000017642001",
+      "type": "bug"
+    },
+    "notes": "Time log details:\nStart Time -11-24-2025 03:21 PM End Time -11-24-2025 05:13 PM \nTime spent - 01:52",
+    "last_modified_time": "2025-11-24T09:13:33.389Z",
+    "approval": {
+      "zpuid": "1512955000000054009",
+      "name": "Anliner Leona",
+      "last_name": "Leona",
+      "time": "2025-11-24T17:13:30.795Z",
+      "first_name": "Anliner",
+      "email": "EMAIL_CLOSED",
+      "zuid": 658223690,
+      "status": "Approved"
+    },
+    "log_notes": "Time log details:\nStart Time -11-24-2025 03:21 PM End Time -11-24-2025 05:13 PM \nTime spent - 01:52",
+    "end_time": "05:13 PM",
+    "project": {
+      "name": "JVPC",
+      "id": "1512955000008348114"
+    },
+    "type": "issue",
+    "start_time": "03:21 PM",
+    "added_by": {
+      "zpuid": "1512955000000054009",
+      "name": "Anliner Leona",
+      "last_name": "Leona",
+      "first_name": "Anliner",
+      "email": "EMAIL_CLOSED",
+      "zuid": 658223690
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000017687024",
+    "log_hour": "01:52",
+    "_zoho_project_id": "1512955000008348114"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000000054009",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=658223690",
+      "name": "Anliner Leona",
+      "last_name": "Leona",
+      "first_name": "Anliner",
+      "email": "EMAIL_CLOSED",
+      "zuid": 658223690
+    },
+    "date": "2025-11-21",
+    "created_time": "2025-11-21T08:27:59.727Z",
+    "module_detail": {
+      "prefix": "JV2-I27",
+      "name": "#19975 Update JVPC wbsite",
+      "id": "1512955000017642001",
+      "type": "bug"
+    },
+    "notes": "Time log details:\nStart Time -11-21-2025 02:24 PM End Time -11-21-2025 04:27 PM \nTime spent - 02:03",
+    "last_modified_time": "2025-11-21T08:28:02.700Z",
+    "approval": {
+      "zpuid": "1512955000000054009",
+      "name": "Anliner Leona",
+      "last_name": "Leona",
+      "time": "2025-11-21T16:27:59.723Z",
+      "first_name": "Anliner",
+      "email": "EMAIL_CLOSED",
+      "zuid": 658223690,
+      "status": "Approved"
+    },
+    "log_notes": "Time log details:\nStart Time -11-21-2025 02:24 PM End Time -11-21-2025 04:27 PM \nTime spent - 02:03",
+    "end_time": "04:27 PM",
+    "project": {
+      "name": "JVPC",
+      "id": "1512955000008348114"
+    },
+    "type": "issue",
+    "start_time": "02:24 PM",
+    "added_by": {
+      "zpuid": "1512955000000054009",
+      "name": "Anliner Leona",
+      "last_name": "Leona",
+      "first_name": "Anliner",
+      "email": "EMAIL_CLOSED",
+      "zuid": 658223690
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000017654202",
+    "log_hour": "02:03",
+    "_zoho_project_id": "1512955000008348114"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000000054009",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=658223690",
+      "name": "Anliner Leona",
+      "last_name": "Leona",
+      "first_name": "Anliner",
+      "email": "EMAIL_CLOSED",
+      "zuid": 658223690
+    },
+    "date": "2025-11-19",
+    "created_time": "2025-11-19T07:18:59.709Z",
+    "module_detail": {
+      "prefix": "JV2-I27",
+      "name": "#19975 Update JVPC wbsite",
+      "id": "1512955000017642001",
+      "type": "bug"
+    },
+    "notes": "Time log details:\nStart Time -11-19-2025 12:51 PM End Time -11-19-2025 03:18 PM \nTime spent - 02:28",
+    "last_modified_time": "2025-11-19T07:19:02.731Z",
+    "approval": {
+      "zpuid": "1512955000000054009",
+      "name": "Anliner Leona",
+      "last_name": "Leona",
+      "time": "2025-11-19T15:18:59.704Z",
+      "first_name": "Anliner",
+      "email": "EMAIL_CLOSED",
+      "zuid": 658223690,
+      "status": "Approved"
+    },
+    "log_notes": "Time log details:\nStart Time -11-19-2025 12:51 PM End Time -11-19-2025 03:18 PM \nTime spent - 02:28",
+    "end_time": "03:18 PM",
+    "project": {
+      "name": "JVPC",
+      "id": "1512955000008348114"
+    },
+    "type": "issue",
+    "start_time": "12:51 PM",
+    "added_by": {
+      "zpuid": "1512955000000054009",
+      "name": "Anliner Leona",
+      "last_name": "Leona",
+      "first_name": "Anliner",
+      "email": "EMAIL_CLOSED",
+      "zuid": 658223690
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000017638052",
+    "log_hour": "02:28",
+    "_zoho_project_id": "1512955000008348114"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000013630159",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=871125681",
+      "name": "April Grace Trocio",
+      "last_name": "Trocio",
+      "first_name": "April Grace",
+      "email": "april.trocio@webriq.services",
+      "zuid": 871125681
+    },
+    "date": "2026-01-30",
+    "created_time": "2026-01-30T13:15:10.193Z",
+    "module_detail": {
+      "prefix": "JV2-I28",
+      "name": "#20240 update JVPC ",
+      "id": "1512955000018243017",
+      "type": "bug"
+    },
+    "notes": "<div><br></div>",
+    "last_modified_time": "2026-01-30T13:15:10.193Z",
+    "approval": {
+      "zpuid": "1512955000013630159",
+      "name": "April Grace Trocio",
+      "last_name": "Trocio",
+      "time": "2026-01-30T21:15:10.193Z",
+      "first_name": "April Grace",
+      "email": "april.trocio@webriq.services",
+      "zuid": 871125681,
+      "status": "Approved"
+    },
+    "log_notes": "<div><br></div>",
+    "project": {
+      "name": "JVPC",
+      "id": "1512955000008348114"
+    },
+    "type": "issue",
+    "added_by": {
+      "zpuid": "1512955000013630159",
+      "name": "April Grace Trocio",
+      "last_name": "Trocio",
+      "first_name": "April Grace",
+      "email": "april.trocio@webriq.services",
+      "zuid": 871125681
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000018260035",
+    "log_hour": "00:30",
+    "_zoho_project_id": "1512955000008348114"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000011450285",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=845829841",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841
+    },
+    "date": "2026-05-28",
+    "created_time": "2026-05-28T03:17:11.849Z",
+    "module_detail": {
+      "prefix": "JV2-I30",
+      "name": "#20673 JVCP website change ",
+      "id": "1512955000019397002",
+      "type": "bug"
+    },
+    "notes": "Time log details:\nStart Time -05-28-2026 08:52 AM End Time -05-28-2026 11:17 AM \nTime spent - 02:24",
+    "last_modified_time": "2026-05-28T03:17:15.556Z",
+    "approval": {
+      "zpuid": "1512955000011450285",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "time": "2026-05-28T11:17:11.843Z",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841,
+      "status": "Approved"
+    },
+    "log_notes": "Time log details:\nStart Time -05-28-2026 08:52 AM End Time -05-28-2026 11:17 AM \nTime spent - 02:24",
+    "end_time": "11:17 AM",
+    "project": {
+      "name": "JVPC",
+      "id": "1512955000008348114"
+    },
+    "type": "issue",
+    "start_time": "08:52 AM",
+    "added_by": {
+      "zpuid": "1512955000011450285",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000019385068",
+    "log_hour": "02:24",
+    "_zoho_project_id": "1512955000008348114"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000011450287",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=845830651",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651
+    },
+    "date": "2026-07-30",
+    "created_time": "2026-07-30T06:26:15.443Z",
+    "module_detail": {
+      "prefix": "JV2-I31",
+      "name": "#20898 Something to upload to the JVPC site ",
+      "id": "1512955000020008004",
+      "type": "bug"
+    },
+    "notes": "",
+    "last_modified_time": "2026-07-30T06:26:19.896Z",
+    "approval": {
+      "zpuid": "1512955000011450287",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "time": "2026-07-30T06:26:15.443Z",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651,
+      "status": "Approved"
+    },
+    "project": {
+      "name": "JVPC",
+      "id": "1512955000008348114"
+    },
+    "type": "issue",
+    "added_by": {
+      "zpuid": "1512955000011450287",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000020011083",
+    "log_hour": "00:37",
+    "_zoho_project_id": "1512955000008348114"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000011450287",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=845830651",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651
+    },
+    "date": "2026-07-30",
+    "created_time": "2026-07-30T06:33:21.052Z",
+    "module_detail": {
+      "prefix": "JV2-I32",
+      "name": "#20899 And another addition",
+      "id": "1512955000020018004",
+      "type": "bug"
+    },
+    "notes": "",
+    "last_modified_time": "2026-07-30T06:33:25.875Z",
+    "approval": {
+      "zpuid": "1512955000011450287",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "time": "2026-07-30T06:33:21.052Z",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651,
+      "status": "Approved"
+    },
+    "end_time": "02:33 PM",
+    "project": {
+      "name": "JVPC",
+      "id": "1512955000008348114"
+    },
+    "type": "issue",
+    "start_time": "02:12 PM",
+    "added_by": {
+      "zpuid": "1512955000011450287",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000020011103",
+    "log_hour": "00:21",
+    "_zoho_project_id": "1512955000008348114"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000013630159",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=871125681",
+      "name": "April Grace Trocio",
+      "last_name": "Trocio",
+      "first_name": "April Grace",
+      "email": "april.trocio@webriq.services",
+      "zuid": 871125681
+    },
+    "date": "2025-04-11",
+    "created_time": "2025-04-11T09:57:23.639Z",
+    "module_detail": {
+      "prefix": "HL1-I14",
+      "name": "#19087 Change of address on website",
+      "id": "1512955000015092003",
+      "type": "bug"
+    },
+    "notes": "<div><br></div>",
+    "last_modified_time": "2025-04-11T09:57:23.639Z",
+    "approval": {
+      "zpuid": "1512955000013630159",
+      "name": "April Grace Trocio",
+      "last_name": "Trocio",
+      "time": "2025-04-11T17:57:23.639Z",
+      "first_name": "April Grace",
+      "email": "april.trocio@webriq.services",
+      "zuid": 871125681,
+      "status": "Approved"
+    },
+    "log_notes": "<div><br></div>",
+    "project": {
+      "name": "Hitech Lighting World Corporation",
+      "id": "1512955000007777520"
+    },
+    "type": "issue",
+    "added_by": {
+      "zpuid": "1512955000013630159",
+      "name": "April Grace Trocio",
+      "last_name": "Trocio",
+      "first_name": "April Grace",
+      "email": "april.trocio@webriq.services",
+      "zuid": 871125681
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000015192570",
+    "log_hour": "01:00",
+    "_zoho_project_id": "1512955000007777520"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000013630159",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=871125681",
+      "name": "April Grace Trocio",
+      "last_name": "Trocio",
+      "first_name": "April Grace",
+      "email": "april.trocio@webriq.services",
+      "zuid": 871125681
+    },
+    "date": "2025-04-02",
+    "created_time": "2025-04-02T02:32:35.198Z",
+    "module_detail": {
+      "prefix": "HL1-I14",
+      "name": "#19087 Change of address on website",
+      "id": "1512955000015092003",
+      "type": "bug"
+    },
+    "notes": "<div><br></div>",
+    "last_modified_time": "2025-04-02T02:32:35.198Z",
+    "approval": {
+      "zpuid": "1512955000013630159",
+      "name": "April Grace Trocio",
+      "last_name": "Trocio",
+      "time": "2025-04-02T10:32:35.198Z",
+      "first_name": "April Grace",
+      "email": "april.trocio@webriq.services",
+      "zuid": 871125681,
+      "status": "Approved"
+    },
+    "log_notes": "<div><br></div>",
+    "end_time": "10:30 AM",
+    "project": {
+      "name": "Hitech Lighting World Corporation",
+      "id": "1512955000007777520"
+    },
+    "type": "issue",
+    "start_time": "10:00 AM",
+    "added_by": {
+      "zpuid": "1512955000013630159",
+      "name": "April Grace Trocio",
+      "last_name": "Trocio",
+      "first_name": "April Grace",
+      "email": "april.trocio@webriq.services",
+      "zuid": 871125681
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000015083254",
+    "log_hour": "00:30",
+    "_zoho_project_id": "1512955000007777520"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000011450287",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=845830651",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651
+    },
+    "date": "2026-01-19",
+    "created_time": "2026-01-19T13:46:46.291Z",
+    "module_detail": {
+      "prefix": "TH2-I10",
+      "name": "#20197 Need Assistance Editing Territory Map",
+      "id": "1512955000018117015",
+      "type": "bug"
+    },
+    "notes": "<div><br></div>",
+    "last_modified_time": "2026-01-19T13:46:46.291Z",
+    "approval": {
+      "zpuid": "1512955000000056826",
+      "name": "Danessa helpdesk@webriq.us",
+      "last_name": "helpdesk@webriq.us",
+      "time": "2026-01-19T21:46:46.291Z",
+      "first_name": "Danessa",
+      "email": "helpdesk@webriq.us",
+      "zuid": 670722007,
+      "status": "Approved"
+    },
+    "log_notes": "<div><br></div>",
+    "project": {
+      "name": "The Hustead Law Firm THLF",
+      "id": "1512955000007644065"
+    },
+    "type": "issue",
+    "added_by": {
+      "zpuid": "1512955000000056826",
+      "name": "Danessa helpdesk@webriq.us",
+      "last_name": "helpdesk@webriq.us",
+      "first_name": "Danessa",
+      "email": "helpdesk@webriq.us",
+      "zuid": 670722007
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000018136001",
+    "log_hour": "00:45",
+    "_zoho_project_id": "1512955000007644065"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000011450287",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=845830651",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651
+    },
+    "date": "2026-01-19",
+    "created_time": "2026-01-19T06:45:40.280Z",
+    "module_detail": {
+      "prefix": "TH2-I10",
+      "name": "#20197 Need Assistance Editing Territory Map",
+      "id": "1512955000018117015",
+      "type": "bug"
+    },
+    "notes": "Time log details:\nStart Time -01-19-2026 11:04 AM End Time -01-19-2026 02:45 PM \nTime spent - 02:00",
+    "last_modified_time": "2026-01-19T06:45:43.023Z",
+    "approval": {
+      "zpuid": "1512955000011450287",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "time": "2026-01-19T14:45:40.278Z",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651,
+      "status": "Approved"
+    },
+    "log_notes": "Time log details:\nStart Time -01-19-2026 11:04 AM End Time -01-19-2026 02:45 PM \nTime spent - 02:00",
+    "end_time": "02:45 PM",
+    "project": {
+      "name": "The Hustead Law Firm THLF",
+      "id": "1512955000007644065"
+    },
+    "type": "issue",
+    "start_time": "11:04 AM",
+    "added_by": {
+      "zpuid": "1512955000011450287",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000018115513",
+    "log_hour": "02:00",
+    "_zoho_project_id": "1512955000007644065"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000013630159",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=871125681",
+      "name": "April Grace Trocio",
+      "last_name": "Trocio",
+      "first_name": "April Grace",
+      "email": "april.trocio@webriq.services",
+      "zuid": 871125681
+    },
+    "date": "2026-01-16",
+    "created_time": "2026-01-16T13:27:34.926Z",
+    "module_detail": {
+      "prefix": "TH2-I10",
+      "name": "#20197 Need Assistance Editing Territory Map",
+      "id": "1512955000018117015",
+      "type": "bug"
+    },
+    "notes": "<div><br></div>",
+    "last_modified_time": "2026-01-16T13:27:34.926Z",
+    "approval": {
+      "zpuid": "1512955000013630159",
+      "name": "April Grace Trocio",
+      "last_name": "Trocio",
+      "time": "2026-01-16T21:27:34.926Z",
+      "first_name": "April Grace",
+      "email": "april.trocio@webriq.services",
+      "zuid": 871125681,
+      "status": "Approved"
+    },
+    "log_notes": "<div><br></div>",
+    "project": {
+      "name": "The Hustead Law Firm THLF",
+      "id": "1512955000007644065"
+    },
+    "type": "issue",
+    "added_by": {
+      "zpuid": "1512955000013630159",
+      "name": "April Grace Trocio",
+      "last_name": "Trocio",
+      "first_name": "April Grace",
+      "email": "april.trocio@webriq.services",
+      "zuid": 871125681
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000018113251",
+    "log_hour": "01:30",
+    "_zoho_project_id": "1512955000007644065"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000013630159",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=871125681",
+      "name": "April Grace Trocio",
+      "last_name": "Trocio",
+      "first_name": "April Grace",
+      "email": "april.trocio@webriq.services",
+      "zuid": 871125681
+    },
+    "date": "2026-01-19",
+    "created_time": "2026-01-19T07:36:21.639Z",
+    "module_detail": {
+      "prefix": "TH2-I11",
+      "name": "#20201 Please remove Samuel Retter from our website",
+      "id": "1512955000018121030",
+      "type": "bug"
+    },
+    "notes": "<div><br></div>",
+    "last_modified_time": "2026-01-19T14:36:04.202Z",
+    "approval": {
+      "zpuid": "1512955000013630159",
+      "name": "April Grace Trocio",
+      "last_name": "Trocio",
+      "time": "2026-01-19T15:36:21.639Z",
+      "first_name": "April Grace",
+      "email": "april.trocio@webriq.services",
+      "zuid": 871125681,
+      "status": "Approved"
+    },
+    "log_notes": "<div><br></div>",
+    "project": {
+      "name": "The Hustead Law Firm THLF",
+      "id": "1512955000007644065"
+    },
+    "type": "issue",
+    "added_by": {
+      "zpuid": "1512955000013630159",
+      "name": "April Grace Trocio",
+      "last_name": "Trocio",
+      "first_name": "April Grace",
+      "email": "april.trocio@webriq.services",
+      "zuid": 871125681
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000018127343",
+    "log_hour": "00:30",
+    "_zoho_project_id": "1512955000007644065"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000013630159",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=871125681",
+      "name": "April Grace Trocio",
+      "last_name": "Trocio",
+      "first_name": "April Grace",
+      "email": "april.trocio@webriq.services",
+      "zuid": 871125681
+    },
+    "date": "2026-01-21",
+    "created_time": "2026-01-21T04:41:41.917Z",
+    "module_detail": {
+      "prefix": "TH2-I12",
+      "name": "#20211 Update to Attorneys page",
+      "id": "1512955000018159001",
+      "type": "bug"
+    },
+    "notes": "<div><br></div>",
+    "last_modified_time": "2026-01-21T04:41:41.917Z",
+    "approval": {
+      "zpuid": "1512955000013630159",
+      "name": "April Grace Trocio",
+      "last_name": "Trocio",
+      "time": "2026-01-21T12:41:41.917Z",
+      "first_name": "April Grace",
+      "email": "april.trocio@webriq.services",
+      "zuid": 871125681,
+      "status": "Approved"
+    },
+    "log_notes": "<div><br></div>",
+    "project": {
+      "name": "The Hustead Law Firm THLF",
+      "id": "1512955000007644065"
+    },
+    "type": "issue",
+    "added_by": {
+      "zpuid": "1512955000013630159",
+      "name": "April Grace Trocio",
+      "last_name": "Trocio",
+      "first_name": "April Grace",
+      "email": "april.trocio@webriq.services",
+      "zuid": 871125681
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000018155103",
+    "log_hour": "01:00",
+    "_zoho_project_id": "1512955000007644065"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000011449057",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=845829049",
+      "name": "Ericka Dichon",
+      "last_name": "Dichon",
+      "first_name": "Ericka",
+      "email": "ericka.dichon@webriq.services",
+      "zuid": 845829049
+    },
+    "date": "2026-01-30",
+    "created_time": "2026-01-30T08:54:34.610Z",
+    "module_detail": {
+      "prefix": "TH2-I13",
+      "name": "#20241 Broken Link/Update to Attorney Page",
+      "id": "1512955000018249031",
+      "type": "bug"
+    },
+    "notes": "Time log details:\nStart Time -01-30-2026 01:15 PM End Time -01-30-2026 04:54 PM \nTime spent - 03:39",
+    "last_modified_time": "2026-01-30T08:54:37.426Z",
+    "approval": {
+      "zpuid": "1512955000011449057",
+      "name": "Ericka Dichon",
+      "last_name": "Dichon",
+      "time": "2026-01-30T16:54:34.606Z",
+      "first_name": "Ericka",
+      "email": "ericka.dichon@webriq.services",
+      "zuid": 845829049,
+      "status": "Approved"
+    },
+    "log_notes": "Time log details:\nStart Time -01-30-2026 01:15 PM End Time -01-30-2026 04:54 PM \nTime spent - 03:39",
+    "end_time": "04:54 PM",
+    "project": {
+      "name": "The Hustead Law Firm THLF",
+      "id": "1512955000007644065"
+    },
+    "type": "issue",
+    "start_time": "01:15 PM",
+    "added_by": {
+      "zpuid": "1512955000011449057",
+      "name": "Ericka Dichon",
+      "last_name": "Dichon",
+      "first_name": "Ericka",
+      "email": "ericka.dichon@webriq.services",
+      "zuid": 845829049
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000018247095",
+    "log_hour": "03:39",
+    "_zoho_project_id": "1512955000007644065"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000017126081",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=900288881",
+      "name": "Miguel Franco Trinidad",
+      "last_name": "Trinidad",
+      "first_name": "Miguel Franco",
+      "email": "miguel.trinidad@webriq.services",
+      "zuid": 900288881
+    },
+    "date": "2026-04-15",
+    "created_time": "2026-04-15T07:30:32.222Z",
+    "module_detail": {
+      "prefix": "TH2-I14",
+      "name": "#20501 Help with setting up pages on our website",
+      "id": "1512955000018995012",
+      "type": "bug"
+    },
+    "notes": "Time log details:\nStart Time -04-15-2026 02:58 PM End Time -04-15-2026 03:30 PM \nTime spent - 00:32",
+    "last_modified_time": "2026-04-15T07:30:34.592Z",
+    "approval": {
+      "zpuid": "1512955000017126081",
+      "name": "Miguel Franco Trinidad",
+      "last_name": "Trinidad",
+      "time": "2026-04-15T15:30:32.216Z",
+      "first_name": "Miguel Franco",
+      "email": "miguel.trinidad@webriq.services",
+      "zuid": 900288881,
+      "status": "Approved"
+    },
+    "log_notes": "Time log details:\nStart Time -04-15-2026 02:58 PM End Time -04-15-2026 03:30 PM \nTime spent - 00:32",
+    "end_time": "03:30 PM",
+    "project": {
+      "name": "The Hustead Law Firm THLF",
+      "id": "1512955000007644065"
+    },
+    "type": "issue",
+    "start_time": "02:58 PM",
+    "added_by": {
+      "zpuid": "1512955000017126081",
+      "name": "Miguel Franco Trinidad",
+      "last_name": "Trinidad",
+      "first_name": "Miguel Franco",
+      "email": "miguel.trinidad@webriq.services",
+      "zuid": 900288881
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000018993495",
+    "log_hour": "00:32",
+    "_zoho_project_id": "1512955000007644065"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000011450285",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=845829841",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841
+    },
+    "date": "2026-05-07",
+    "created_time": "2026-05-07T04:51:46.678Z",
+    "module_detail": {
+      "prefix": "TH2-I15",
+      "name": "#20583 Careers page",
+      "id": "1512955000019201002",
+      "type": "bug"
+    },
+    "notes": "Time log details:\nStart Time -05-07-2026 11:18 AM End Time -05-07-2026 12:51 PM \nTime spent - 01:34",
+    "last_modified_time": "2026-05-07T04:51:49.247Z",
+    "approval": {
+      "zpuid": "1512955000011450285",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "time": "2026-05-07T12:51:46.674Z",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841,
+      "status": "Approved"
+    },
+    "log_notes": "Time log details:\nStart Time -05-07-2026 11:18 AM End Time -05-07-2026 12:51 PM \nTime spent - 01:34",
+    "end_time": "12:51 PM",
+    "project": {
+      "name": "The Hustead Law Firm THLF",
+      "id": "1512955000007644065"
+    },
+    "type": "issue",
+    "start_time": "11:18 AM",
+    "added_by": {
+      "zpuid": "1512955000011450285",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000019217017",
+    "log_hour": "01:34",
+    "_zoho_project_id": "1512955000007644065"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000011450287",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=845830651",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651
+    },
+    "date": "2025-01-24",
+    "created_time": "2025-01-24T02:01:26.300Z",
+    "module_detail": {
+      "prefix": "BU1-I10",
+      "name": "Remove payment options",
+      "id": "1512955000014200997",
+      "type": "bug"
+    },
+    "notes": "Timesheet log details:\nStart Time -01-24-2025 09:02 AM End Time -01-24-2025 10:01 AM \nTime spent - 00:59",
+    "last_modified_time": "2025-01-24T02:01:30.805Z",
+    "approval": {
+      "zpuid": "1512955000011450287",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "time": "2025-01-24T10:01:26.294Z",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651,
+      "status": "Approved"
+    },
+    "log_notes": "Timesheet log details:\nStart Time -01-24-2025 09:02 AM End Time -01-24-2025 10:01 AM \nTime spent - 00:59",
+    "end_time": "10:01 AM",
+    "project": {
+      "name": "Grand Rapids Dental Team (BurdoDDS)",
+      "id": "1512955000007146104"
+    },
+    "type": "issue",
+    "start_time": "09:02 AM",
+    "added_by": {
+      "zpuid": "1512955000011450287",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000014196627",
+    "log_hour": "00:59",
+    "_zoho_project_id": "1512955000007146104"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000011450287",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=845830651",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651
+    },
+    "date": "2025-03-21",
+    "created_time": "2025-03-21T07:48:12.115Z",
+    "module_detail": {
+      "prefix": "BU1-I11",
+      "name": "Google Tag",
+      "id": "1512955000014936241",
+      "type": "bug"
+    },
+    "notes": "Timesheet log details:\nStart Time -03-21-2025 03:21 PM End Time -03-21-2025 03:48 PM \nTime spent - 00:27",
+    "last_modified_time": "2025-03-21T07:48:14.846Z",
+    "approval": {
+      "zpuid": "1512955000011450287",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "time": "2025-03-21T14:48:12.111Z",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651,
+      "status": "Approved"
+    },
+    "log_notes": "Timesheet log details:\nStart Time -03-21-2025 03:21 PM End Time -03-21-2025 03:48 PM \nTime spent - 00:27",
+    "end_time": "03:48 PM",
+    "project": {
+      "name": "Grand Rapids Dental Team (BurdoDDS)",
+      "id": "1512955000007146104"
+    },
+    "type": "issue",
+    "start_time": "03:21 PM",
+    "added_by": {
+      "zpuid": "1512955000011450287",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000014926336",
+    "log_hour": "00:27",
+    "_zoho_project_id": "1512955000007146104"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000011450287",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=845830651",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651
+    },
+    "date": "2025-07-25",
+    "created_time": "2025-07-25T07:39:46.308Z",
+    "module_detail": {
+      "prefix": "BU1-I12",
+      "name": "New Form",
+      "id": "1512955000016463067",
+      "type": "bug"
+    },
+    "notes": "Time log details:\nStart Time -07-25-2025 02:03 PM End Time -07-25-2025 03:39 PM \nTime spent - 01:37",
+    "last_modified_time": "2025-07-25T07:39:49.065Z",
+    "approval": {
+      "zpuid": "1512955000011450287",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "time": "2025-07-25T15:39:46.304Z",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651,
+      "status": "Approved"
+    },
+    "log_notes": "Time log details:\nStart Time -07-25-2025 02:03 PM End Time -07-25-2025 03:39 PM \nTime spent - 01:37",
+    "end_time": "03:39 PM",
+    "project": {
+      "name": "Grand Rapids Dental Team (BurdoDDS)",
+      "id": "1512955000007146104"
+    },
+    "type": "issue",
+    "start_time": "02:03 PM",
+    "added_by": {
+      "zpuid": "1512955000011450287",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000016466259",
+    "log_hour": "01:37",
+    "_zoho_project_id": "1512955000007146104"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000011450287",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=845830651",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651
+    },
+    "date": "2025-07-25",
+    "created_time": "2025-07-25T03:59:12.222Z",
+    "module_detail": {
+      "prefix": "BU1-I12",
+      "name": "New Form",
+      "id": "1512955000016463067",
+      "type": "bug"
+    },
+    "notes": "Time log details:\nStart Time -07-25-2025 09:52 AM End Time -07-25-2025 11:59 AM \nTime spent - 02:07",
+    "last_modified_time": "2025-07-25T03:59:14.948Z",
+    "approval": {
+      "zpuid": "1512955000011450287",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "time": "2025-07-25T11:59:12.218Z",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651,
+      "status": "Approved"
+    },
+    "log_notes": "Time log details:\nStart Time -07-25-2025 09:52 AM End Time -07-25-2025 11:59 AM \nTime spent - 02:07",
+    "end_time": "11:59 AM",
+    "project": {
+      "name": "Grand Rapids Dental Team (BurdoDDS)",
+      "id": "1512955000007146104"
+    },
+    "type": "issue",
+    "start_time": "09:52 AM",
+    "added_by": {
+      "zpuid": "1512955000011450287",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000016466058",
+    "log_hour": "02:07",
+    "_zoho_project_id": "1512955000007146104"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000011449057",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=845829049",
+      "name": "Ericka Dichon",
+      "last_name": "Dichon",
+      "first_name": "Ericka",
+      "email": "ericka.dichon@webriq.services",
+      "zuid": 845829049
+    },
+    "date": "2025-08-19",
+    "created_time": "2025-08-19T01:22:49.157Z",
+    "module_detail": {
+      "prefix": "BU1-I14",
+      "name": "Google Tag",
+      "id": "1512955000016760495",
+      "type": "bug"
+    },
+    "notes": "Time log details:\nStart Time -08-19-2025 08:00 AM End Time -08-19-2025 09:22 AM \nTime spent - 01:22",
+    "last_modified_time": "2025-08-19T01:22:52.439Z",
+    "approval": {
+      "zpuid": "1512955000011449057",
+      "name": "Ericka Dichon",
+      "last_name": "Dichon",
+      "time": "2025-08-19T09:22:49.153Z",
+      "first_name": "Ericka",
+      "email": "ericka.dichon@webriq.services",
+      "zuid": 845829049,
+      "status": "Approved"
+    },
+    "log_notes": "Time log details:\nStart Time -08-19-2025 08:00 AM End Time -08-19-2025 09:22 AM \nTime spent - 01:22",
+    "end_time": "09:22 AM",
+    "project": {
+      "name": "Grand Rapids Dental Team (BurdoDDS)",
+      "id": "1512955000007146104"
+    },
+    "type": "issue",
+    "start_time": "08:00 AM",
+    "added_by": {
+      "zpuid": "1512955000011449057",
+      "name": "Ericka Dichon",
+      "last_name": "Dichon",
+      "first_name": "Ericka",
+      "email": "ericka.dichon@webriq.services",
+      "zuid": 845829049
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000016774208",
+    "log_hour": "01:22",
+    "_zoho_project_id": "1512955000007146104"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000011449057",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=845829049",
+      "name": "Ericka Dichon",
+      "last_name": "Dichon",
+      "first_name": "Ericka",
+      "email": "ericka.dichon@webriq.services",
+      "zuid": 845829049
+    },
+    "date": "2025-08-18",
+    "created_time": "2025-08-18T07:37:25.152Z",
+    "module_detail": {
+      "prefix": "BU1-I14",
+      "name": "Google Tag",
+      "id": "1512955000016760495",
+      "type": "bug"
+    },
+    "notes": "Time log details:\nStart Time -08-18-2025 02:43 PM End Time -08-18-2025 03:37 PM \nTime spent - 00:54",
+    "last_modified_time": "2025-08-18T07:37:27.939Z",
+    "approval": {
+      "zpuid": "1512955000011449057",
+      "name": "Ericka Dichon",
+      "last_name": "Dichon",
+      "time": "2025-08-18T15:37:25.147Z",
+      "first_name": "Ericka",
+      "email": "ericka.dichon@webriq.services",
+      "zuid": 845829049,
+      "status": "Approved"
+    },
+    "log_notes": "Time log details:\nStart Time -08-18-2025 02:43 PM End Time -08-18-2025 03:37 PM \nTime spent - 00:54",
+    "end_time": "03:37 PM",
+    "project": {
+      "name": "Grand Rapids Dental Team (BurdoDDS)",
+      "id": "1512955000007146104"
+    },
+    "type": "issue",
+    "start_time": "02:43 PM",
+    "added_by": {
+      "zpuid": "1512955000011449057",
+      "name": "Ericka Dichon",
+      "last_name": "Dichon",
+      "first_name": "Ericka",
+      "email": "ericka.dichon@webriq.services",
+      "zuid": 845829049
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000016774030",
+    "log_hour": "00:54",
+    "_zoho_project_id": "1512955000007146104"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000011449057",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=845829049",
+      "name": "Ericka Dichon",
+      "last_name": "Dichon",
+      "first_name": "Ericka",
+      "email": "ericka.dichon@webriq.services",
+      "zuid": 845829049
+    },
+    "date": "2025-08-15",
+    "created_time": "2025-08-15T03:34:08.434Z",
+    "module_detail": {
+      "prefix": "BU1-I13",
+      "name": "Favicon update",
+      "id": "1512955000016765087",
+      "type": "bug"
+    },
+    "notes": "Time log details:\nStart Time -08-15-2025 10:02 AM End Time -08-15-2025 11:34 AM \nTime spent - 01:31",
+    "last_modified_time": "2025-08-15T03:34:12.757Z",
+    "approval": {
+      "zpuid": "1512955000011449057",
+      "name": "Ericka Dichon",
+      "last_name": "Dichon",
+      "time": "2025-08-15T11:34:08.430Z",
+      "first_name": "Ericka",
+      "email": "ericka.dichon@webriq.services",
+      "zuid": 845829049,
+      "status": "Approved"
+    },
+    "log_notes": "Time log details:\nStart Time -08-15-2025 10:02 AM End Time -08-15-2025 11:34 AM \nTime spent - 01:31",
+    "end_time": "11:34 AM",
+    "project": {
+      "name": "Grand Rapids Dental Team (BurdoDDS)",
+      "id": "1512955000007146104"
+    },
+    "type": "issue",
+    "start_time": "10:02 AM",
+    "added_by": {
+      "zpuid": "1512955000011449057",
+      "name": "Ericka Dichon",
+      "last_name": "Dichon",
+      "first_name": "Ericka",
+      "email": "ericka.dichon@webriq.services",
+      "zuid": 845829049
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000016759255",
+    "log_hour": "01:31",
+    "_zoho_project_id": "1512955000007146104"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000011449057",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=845829049",
+      "name": "Ericka Dichon",
+      "last_name": "Dichon",
+      "first_name": "Ericka",
+      "email": "ericka.dichon@webriq.services",
+      "zuid": 845829049
+    },
+    "date": "2025-11-24",
+    "created_time": "2025-11-24T06:03:35.842Z",
+    "module_detail": {
+      "prefix": "BU1-I15",
+      "name": "Service Forms",
+      "id": "1512955000017665291",
+      "type": "bug"
+    },
+    "notes": "Time log details:\nStart Time -11-24-2025 11:07 AM End Time -11-24-2025 02:03 PM \nTime spent - 02:09",
+    "last_modified_time": "2025-11-24T06:03:39.925Z",
+    "approval": {
+      "zpuid": "1512955000011449057",
+      "name": "Ericka Dichon",
+      "last_name": "Dichon",
+      "time": "2025-11-24T14:03:35.839Z",
+      "first_name": "Ericka",
+      "email": "ericka.dichon@webriq.services",
+      "zuid": 845829049,
+      "status": "Approved"
+    },
+    "log_notes": "Time log details:\nStart Time -11-24-2025 11:07 AM End Time -11-24-2025 02:03 PM \nTime spent - 02:09",
+    "end_time": "02:03 PM",
+    "project": {
+      "name": "Grand Rapids Dental Team (BurdoDDS)",
+      "id": "1512955000007146104"
+    },
+    "type": "issue",
+    "start_time": "11:07 AM",
+    "added_by": {
+      "zpuid": "1512955000011449057",
+      "name": "Ericka Dichon",
+      "last_name": "Dichon",
+      "first_name": "Ericka",
+      "email": "ericka.dichon@webriq.services",
+      "zuid": 845829049
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000017682052",
+    "log_hour": "02:09",
+    "_zoho_project_id": "1512955000007146104"
+  }
+]

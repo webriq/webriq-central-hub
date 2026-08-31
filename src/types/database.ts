@@ -917,6 +917,8 @@ export interface Database {
           assignee_id: string | null;
           created_by: string | null;
           due_date: string | null;
+          due_time: string | null;
+          notes: string | null;
           created_at: string;
           updated_at: string;
           source_meta: Record<string, unknown>;
@@ -938,6 +940,8 @@ export interface Database {
           assignee_id?: string | null;
           created_by?: string | null;
           due_date?: string | null;
+          due_time?: string | null;
+          notes?: string | null;
           created_at?: string;
           updated_at?: string;
           source_meta?: Record<string, unknown>;
@@ -959,6 +963,8 @@ export interface Database {
           assignee_id?: string | null;
           created_by?: string | null;
           due_date?: string | null;
+          due_time?: string | null;
+          notes?: string | null;
           updated_at?: string;
           source_meta?: Record<string, unknown>;
           display_id?: string | null;

@@ -112,6 +112,12 @@ export default function TaskDetailClient({
   const [milestoneId, setMilestoneId] = useState(task.milestone_id ?? "");
   const [dueDate, setDueDate] = useState(task.due_date ?? "");
   const [startDate, setStartDate] = useState(task.start_date ?? "");
+  // Task 338 — the time halves of due/start (task 274's migration-110 columns) + notes are now
+  // editable here; `start_date` / `estimate_hours` edits below also stopped no-op'ing once the
+  // tasks PATCH route learned to map them.
+  const [dueTime, setDueTime] = useState(task.due_time ?? "");
+  const [startTime, setStartTime] = useState(task.start_time ?? "");
+  const [notes, setNotes] = useState(task.notes ?? "");
   const [estimateHours, setEstimateHours] = useState(
     task.estimate_hours != null ? String(task.estimate_hours) : ""
   );
@@ -308,6 +314,20 @@ export default function TaskDetailClient({
                   />
                 </Meta>
 
+                <Meta label="Due time">
+                  <input
+                    type="time"
+                    value={dueTime}
+                    onChange={(e) => {
+                      const next = e.target.value;
+                      setDueTime(next);
+                      void saveField({ due_time: next || null });
+                    }}
+                    disabled={!perm.canEditDetails}
+                    className={`${inputClass} disabled:cursor-not-allowed disabled:opacity-60`}
+                  />
+                </Meta>
+
                 <Meta label="Start date">
                   <input
                     type="date"
@@ -316,6 +336,20 @@ export default function TaskDetailClient({
                       const next = e.target.value;
                       setStartDate(next);
                       void saveField({ start_date: next || null });
+                    }}
+                    disabled={!perm.canEditDetails}
+                    className={`${inputClass} disabled:cursor-not-allowed disabled:opacity-60`}
+                  />
+                </Meta>
+
+                <Meta label="Start time">
+                  <input
+                    type="time"
+                    value={startTime}
+                    onChange={(e) => {
+                      const next = e.target.value;
+                      setStartTime(next);
+                      void saveField({ start_time: next || null });
                     }}
                     disabled={!perm.canEditDetails}
                     className={`${inputClass} disabled:cursor-not-allowed disabled:opacity-60`}
@@ -396,6 +430,21 @@ export default function TaskDetailClient({
                 onSave={(html) => {
                   setDescription(html);
                   void saveField({ description: html || null });
+                }}
+              />
+            </Card>
+
+            {/* Notes — task 338 (tasks.notes, task 274's migration 110). */}
+            <Card title="Notes" noPadding>
+              <DescriptionField
+                uploadUrl={`/api/v2/projects/${projectId}/tasks/description-images`}
+                value={notes}
+                readOnly={!perm.canEditDetails}
+                fullBleed
+                scrollable
+                onSave={(html) => {
+                  setNotes(html);
+                  void saveField({ notes: html || null });
                 }}
               />
             </Card>

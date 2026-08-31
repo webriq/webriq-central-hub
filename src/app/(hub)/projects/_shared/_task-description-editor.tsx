@@ -24,15 +24,20 @@ export function TaskDescriptionEditor({
   projectId,
   value,
   onChange,
+  // Task 338 — the New Issue modal / Issue Detail reuse this editor but need their inline-image
+  // paste to hit the issues endpoint. Defaults to the tasks endpoint so every existing call site
+  // is unaffected.
+  uploadUrl = `/api/v2/projects/${projectId}/tasks/description-images`,
 }: {
   projectId: string;
   value: string;
   onChange: (html: string) => void;
+  uploadUrl?: string;
 }) {
   async function uploadAndInsertImage(file: File) {
     const fd = new FormData();
     fd.append("file", file);
-    const res = await fetch(`/api/v2/projects/${projectId}/tasks/description-images`, {
+    const res = await fetch(uploadUrl, {
       method: "POST",
       body: fd,
     });

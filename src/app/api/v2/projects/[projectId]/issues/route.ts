@@ -62,6 +62,8 @@ export async function POST(
       assignee_name: body.assignee_name?.trim() || null,
       assignee_email: body.assignee_email?.trim() || null,
       due_date: body.due_date || null,
+      due_time: body.due_time || null,
+      notes: body.notes?.trim() || null,
     })
     .select()
     .single();

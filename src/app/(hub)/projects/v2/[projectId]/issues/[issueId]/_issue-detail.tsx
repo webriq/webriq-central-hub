@@ -86,6 +86,10 @@ export default function IssueDetailClient({
   const [severity, setSeverity] = useState<IssueSeverity>(normalizeSeverity(issue.severity));
   const [assigneeId, setAssigneeId] = useState<string>(issue.assignee_id ?? "");
   const [dueDate, setDueDate] = useState(issue.due_date ?? "");
+  // Task 338 — the time half of the due date + an optional internal notes field
+  // (`issues.due_time` / `issues.notes`, migration 128).
+  const [dueTime, setDueTime] = useState(issue.due_time ?? "");
+  const [notes, setNotes] = useState(issue.notes ?? "");
   const [deleting, setDeleting] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -289,6 +293,20 @@ export default function IssueDetailClient({
                   />
                 </Meta>
 
+                <Meta label="Due time">
+                  <input
+                    type="time"
+                    value={dueTime}
+                    onChange={(e) => {
+                      const next = e.target.value;
+                      setDueTime(next);
+                      void saveField({ due_time: next || null });
+                    }}
+                    disabled={!perm.canEditDetails}
+                    className={`${inputClass} disabled:cursor-not-allowed disabled:opacity-60`}
+                  />
+                </Meta>
+
               </div>
             </AccordionCard>
 
@@ -312,6 +330,20 @@ export default function IssueDetailClient({
                 onSave={(html) => {
                   setDescription(html);
                   void saveField({ description: html || null });
+                }}
+              />
+            </AccordionCard>
+
+            {/* Task 338 — optional internal notes (issues.notes, migration 128). */}
+            <AccordionCard title="Notes" noPadding defaultOpen={false}>
+              <DescriptionField
+                uploadUrl={`/api/v2/projects/${projectId}/issues/description-images`}
+                value={notes}
+                readOnly={!perm.canEditDetails}
+                fullBleed
+                onSave={(html) => {
+                  setNotes(html);
+                  void saveField({ notes: html || null });
                 }}
               />
             </AccordionCard>

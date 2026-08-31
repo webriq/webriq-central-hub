@@ -55,6 +55,8 @@ export async function PATCH(
     if (typeof body.title === "string") patch.title = body.title.trim();
     if ("description" in body) patch.description = body.description?.trim?.() || null;
     if ("due_date" in body) patch.due_date = body.due_date || null;
+    if ("due_time" in body) patch.due_time = body.due_time || null;
+    if ("notes" in body) patch.notes = body.notes?.trim?.() || null;
     if ("flag" in body) patch.flag = body.flag?.trim?.() || null;
     if ("assignee_name" in body) patch.assignee_name = body.assignee_name?.trim?.() || null;
     if ("assignee_email" in body) patch.assignee_email = body.assignee_email?.trim?.() || null;

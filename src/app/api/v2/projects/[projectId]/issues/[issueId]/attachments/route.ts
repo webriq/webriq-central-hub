@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getIssueEditPermission } from "@/lib/issues/permissions";
-import { extensionInfoFor, isHardBlockedFilename, MAX_FILE_SIZE, MAX_FILES } from "@/config/attachment-types";
-import { verifyFile } from "@/lib/uploads/verify-file";
+import { extensionInfoFor, isHardBlockedFilename, MAX_FILES } from "@/config/attachment-types";
+import { verifyUploadedObject } from "@/lib/uploads/attachment-storage";
 
 // Task 235 — Attachments tab for Issue Detail. Reuses the existing polymorphic `attachments`
 // table (entity_type: "issue") and the shared private `project-assets` bucket — same mechanism
@@ -11,15 +11,13 @@ import { verifyFile } from "@/lib/uploads/verify-file";
 // ad-hoc isPrivileged/isOwnTask check inline), this one uses the already-canonical
 // `getIssueEditPermission` (task 234) directly.
 //
-// MIME allowlist/size cap/corruption check now come from src/config/attachment-types.ts and
+// MIME allowlist/size cap/corruption check come from src/config/attachment-types.ts and
 // src/lib/uploads/verify-file.ts (task 273) instead of a locally hand-copied list.
 //
-// Note: `attachments_pm_write`/`project_assets_staff_write` RLS (migrations 026/048/050) only
-// grant developers row-INSERT on `attachments`, not storage-bucket write — so a developer
-// creator's upload would still 403 at the storage layer today. This mirrors the task-side
-// route's own equivalent, currently-dormant gap (task 234 confirmed `created_by` is null for
-// every existing issue, so no real developer can hit this path yet); fixing the storage policy
-// is a cross-cutting decision affecting tasks too and is out of scope here.
+// Task 339 — upload no longer flows the file through this handler as multipart (Vercel's
+// gateway 413s any Route Handler request body over ~4.5 MB, e.g. retina screenshots). The
+// browser gets a signed upload URL from `./sign`, PUTs the bytes straight to Storage, then
+// calls this POST with JSON `{ path, filename, size }` to verify + register the object.
 
 // GET — read-only attachment list. Auth check only; `attachments_staff_read` RLS already scopes
 // results to admin/super_admin/pm/developer.
@@ -122,16 +120,26 @@ export async function POST(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const formData = await req.formData().catch(() => null);
-  const file = formData?.get("file") as File | null;
-  if (!file) return NextResponse.json({ error: "No file provided" }, { status: 400 });
-
-  const info = extensionInfoFor(file.name);
-  if (!info || isHardBlockedFilename(file.name)) {
-    return NextResponse.json({ error: "Unsupported file type." }, { status: 400 });
+  // Task 339 — "register" step: the file bytes were uploaded straight to Storage by the browser
+  // via the signed URL minted by `./sign`. Body is JSON `{ path, filename, size }`, never
+  // multipart (which would 413 at Vercel's gateway for files > ~4.5 MB).
+  const body = await req.json().catch(() => null);
+  const storagePath = typeof body?.path === "string" ? body.path : "";
+  const filename = typeof body?.filename === "string" ? body.filename : "";
+  const size = typeof body?.size === "number" ? body.size : null;
+  if (!storagePath || !filename) {
+    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
-  if (file.size > MAX_FILE_SIZE) {
-    return NextResponse.json({ error: `File size exceeds the ${(MAX_FILE_SIZE / (1024 * 1024)).toFixed(0)}MB limit (${(file.size / (1024 * 1024)).toFixed(1)}MB)` }, { status: 400 });
+  // The `./sign` route is the only legitimate minter of a path, and it always scopes it to this
+  // issue's folder — reject anything else outright.
+  if (!storagePath.startsWith(`issues/${issue.id}/`)) {
+    return NextResponse.json({ error: "Invalid upload path" }, { status: 400 });
+  }
+
+  const info = extensionInfoFor(filename);
+  if (!info || isHardBlockedFilename(filename)) {
+    await supabase.storage.from("project-assets").remove([storagePath]);
+    return NextResponse.json({ error: "Unsupported file type." }, { status: 400 });
   }
 
   const { count: existingCount } = await supabase
@@ -140,28 +148,13 @@ export async function POST(
     .eq("entity_type", "issue")
     .eq("entity_id", issue.id);
   if ((existingCount ?? 0) >= MAX_FILES) {
+    await supabase.storage.from("project-assets").remove([storagePath]);
     return NextResponse.json({ error: `Only up to ${MAX_FILES} files can be attached.` }, { status: 400 });
   }
 
-  const arrayBuffer = await file.arrayBuffer();
-  const buffer = Buffer.from(arrayBuffer);
-
-  const verification = await verifyFile(buffer, file.name);
+  const verification = await verifyUploadedObject(supabase, storagePath, filename);
   if (!verification.ok) {
     return NextResponse.json({ error: verification.reason }, { status: 400 });
-  }
-
-  const timestamp = Date.now();
-  const safeFilename = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-  const storagePath = `issues/${issue.id}/${timestamp}_${safeFilename}`;
-
-  const { error: uploadError } = await supabase.storage
-    .from("project-assets")
-    .upload(storagePath, buffer, { contentType: info.mime, upsert: false });
-
-  if (uploadError) {
-    console.error("[api/v2/projects/[id]/issues/[issueId]/attachments] upload failed:", uploadError.message);
-    return NextResponse.json({ error: "Failed to upload file" }, { status: 500 });
   }
 
   const { data, error } = await supabase
@@ -170,14 +163,15 @@ export async function POST(
       entity_type: "issue",
       entity_id: issue.id,
       storage_path: storagePath,
-      filename: file.name,
-      size: file.size,
+      filename,
+      size,
       uploaded_by: user.id,
     })
     .select()
     .single();
 
   if (error) {
+    await supabase.storage.from("project-assets").remove([storagePath]);
     console.error("[api/v2/projects/[id]/issues/[issueId]/attachments] insert failed:", error.message);
     return NextResponse.json({ error: "Failed to register attachment" }, { status: 500 });
   }

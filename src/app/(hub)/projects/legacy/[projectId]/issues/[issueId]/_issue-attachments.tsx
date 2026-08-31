@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { FileText, FileSpreadsheet, Image as ImageIcon, Paperclip, Video, ExternalLink, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { TaskAttachmentViewerModal } from "../../tasks/[taskId]/_task-attachment-viewer-modal";
-import { AttachmentDropzone, uploadFileWithProgress, useUploadQueue } from "@/app/(hub)/projects/_shared/_attachment-dropzone";
+import { AttachmentDropzone, uploadViaSignedUrl, useUploadQueue } from "@/app/(hub)/projects/_shared/_attachment-dropzone";
+import { extensionInfoFor } from "@/config/attachment-types";
 import { AttachmentActionsMenu } from "@/app/(hub)/projects/_shared/_attachment-actions-menu";
 
 // Attachments tab for Issue Detail (task 235) — grid/tile presentation adapted from
@@ -130,9 +131,14 @@ export function IssueAttachments({
   const [loading, setLoading] = useState(true);
   const [viewing, setViewing] = useState<AttachmentRow | null>(null);
   const uploadQueue = useUploadQueue((file, onProgress) => {
-    const fd = new FormData();
-    fd.append("file", file);
-    return uploadFileWithProgress(`/api/v2/projects/${projectId}/issues/${issueId}/attachments`, fd, onProgress).then(() => undefined);
+    const base = `/api/v2/projects/${projectId}/issues/${issueId}/attachments`;
+    return uploadViaSignedUrl({
+      signUrl: `${base}/sign`,
+      registerUrl: base,
+      file,
+      mime: extensionInfoFor(file.name)?.mime ?? "application/octet-stream",
+      onProgress,
+    }).then(() => undefined);
   });
 
   useEffect(() => {

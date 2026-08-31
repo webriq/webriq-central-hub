@@ -8,9 +8,11 @@ import { type Milestone, type Tasklist, type Task, type TaskStatus, type TaskPri
 import { CollapsibleSection } from "./_collapsible-section";
 import { TaskDescriptionEditor } from "./_task-description-editor";
 import { TaskAttachmentPicker } from "./_task-attachment-picker";
-import { useUploadQueue, UploadQueuePanel, uploadFileWithProgress } from "./_attachment-dropzone";
+import { useUploadQueue, UploadQueuePanel, uploadViaSignedUrl } from "./_attachment-dropzone";
+import { extensionInfoFor } from "@/config/attachment-types";
 import { SearchableSelect } from "./_searchable-select";
 import { DateTimeFieldPicker } from "./_datetime-field-picker";
+import { nowDateTimeValue, dueDefaultValue, splitDateTimeValue } from "./_datetime-helpers";
 import { STATUS_OPTS, PRIORITY_OPTS, type TaskDefaults, type MemberOptionWithRole } from "./_project-detail";
 
 // New Task modal (task 274) — extracted out of `_project-detail.tsx` (which was 1376 lines,
@@ -35,26 +37,7 @@ import { STATUS_OPTS, PRIORITY_OPTS, type TaskDefaults, type MemberOptionWithRol
 // completely unreachable through normal scrolling. `min-h-0` lets the flex child shrink to the
 // space actually available, which is what makes `overflow-y-auto` engage at all.
 
-function pad2(n: number): string {
-  return n.toString().padStart(2, "0");
-}
-
-// Local "YYYY-MM-DDTHH:mm" (not UTC) — matches `DateTimeFieldPicker`'s value shape so splitting
-// into date/time halves at submit time never round-trips through a timezone conversion.
-function nowDateTimeValue(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
-}
-
-// Due defaults to the current date (or `defaults.due_date` when the modal was opened from a
-// context that pre-fills one, e.g. Calendar view's "add on day") with time fixed to 7:00 PM,
-// per the request's explicit "only the time will be default to 7:00 PM" instruction.
-function dueDefaultValue(dueDate?: string | null): string {
-  const datePart = dueDate || nowDateTimeValue().slice(0, 10);
-  return `${datePart}T19:00`;
-}
-
-const inputClass = "w-full px-3 py-2 rounded-[10px] border text-[13px] outline-none transition-colors border-[#E2E7F2] bg-[#F4F6FB] text-[#3A4565] focus:border-[#007BFF] focus:bg-white focus:ring-[3px] focus:ring-[#007BFF]/[0.14]";
+const inputClass ="w-full px-3 py-2 rounded-[10px] border text-[13px] outline-none transition-colors border-[#E2E7F2] bg-[#F4F6FB] text-[#3A4565] focus:border-[#007BFF] focus:bg-white focus:ring-[3px] focus:ring-[#007BFF]/[0.14]";
 const errorInputClass = "w-full px-3 py-2 rounded-[10px] border text-[13px] outline-none transition-colors border-[#C0392B] bg-white text-[#3A4565] shadow-[0_0_0_3px_rgba(192,57,43,0.08)]";
 const labelClass = "text-[11px] font-semibold text-[#0B1533]";
 
@@ -114,9 +97,14 @@ export function CreateTaskModal({
   const [createdTask, setCreatedTask] = useState<Task | null>(null);
   const taskIdRef = useRef<string | null>(null);
   const uploadQueue = useUploadQueue((file, onProgress) => {
-    const fd = new FormData();
-    fd.append("file", file);
-    return uploadFileWithProgress(`/api/v2/projects/${projectId}/tasks/${taskIdRef.current}/attachments`, fd, onProgress).then(() => undefined);
+    const base = `/api/v2/projects/${projectId}/tasks/${taskIdRef.current}/attachments`;
+    return uploadViaSignedUrl({
+      signUrl: `${base}/sign`,
+      registerUrl: base,
+      file,
+      mime: extensionInfoFor(file.name)?.mime ?? "application/octet-stream",
+      onProgress,
+    }).then(() => undefined);
   });
   const uploading = createdTask !== null;
   const allSettled = uploadQueue.items.length > 0 && uploadQueue.items.every((it) => it.status !== "uploading");
@@ -162,8 +150,8 @@ export function CreateTaskModal({
 
   async function submit() {
     const errs = validate();
-    const [startDate, startTime] = startValue.split("T");
-    const [dueDate, dueTime] = dueValue.split("T");
+    const { date: startDate, time: startTime } = splitDateTimeValue(startValue);
+    const { date: dueDate, time: dueTime } = splitDateTimeValue(dueValue);
     if (Object.keys(errs).length > 0) {
       setFieldErrors(errs);
       toast.error("Please fix the errors below before submitting.");

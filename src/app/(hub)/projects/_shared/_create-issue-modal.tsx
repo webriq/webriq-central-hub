@@ -7,17 +7,25 @@ import { cn } from "@/lib/utils";
 import { type Issue, type IssueSeverity, SEVERITY_STYLE } from "@/app/(hub)/projects-old/_pm-shared";
 import { CollapsibleSection } from "./_collapsible-section";
 import { TaskAttachmentPicker } from "./_task-attachment-picker";
-import { useUploadQueue, UploadQueuePanel, uploadFileWithProgress } from "./_attachment-dropzone";
+import { TaskDescriptionEditor } from "./_task-description-editor";
+import { useUploadQueue, UploadQueuePanel, uploadViaSignedUrl } from "./_attachment-dropzone";
+import { extensionInfoFor } from "@/config/attachment-types";
 import { SearchableSelect } from "./_searchable-select";
+import { DateTimeFieldPicker } from "./_datetime-field-picker";
+import { dueDefaultValue, splitDateTimeValue } from "./_datetime-helpers";
 import { STATUS_OPTS, SEVERITY_OPTS, type MemberOptionWithRole } from "./_project-detail";
 
 // New Issue modal (task 286) — extracted out of `_project-detail.tsx` to match task 274's
 // New Task modal treatment: wider dialog, fields regrouped into collapsible sections, Assignee
-// made searchable. Issue's field set itself is unchanged (no Milestone/Tasklist/notes/time —
-// the `issues` table has no columns for any of those); only the container structure and
-// Assignee's control type change. Also adds Title required/duplicate validation (project-wide —
-// issues have no tasklist-style grouping to scope by, unlike tasks) with inline red-border/
-// red-text field errors, and sonner toast on submit — see task doc for full rationale.
+// made searchable. Title required/duplicate validation (project-wide — issues have no
+// tasklist-style grouping to scope by, unlike tasks) with inline red-border/red-text field
+// errors, and a sonner toast on submit.
+//
+// Task 338 brought the three lagging fields up to the New Task modal's treatment: Description
+// and a new optional Notes field are now `TaskDescriptionEditor` rich-text (pointed at the
+// issues image-upload endpoint via its `uploadUrl` prop), and Due is the combined
+// `DateTimeFieldPicker` (always-on, defaults 7:00 PM today) split into `due_date` + `due_time`
+// at submit. The `issues.due_time` / `issues.notes` columns landed in migration 128.
 
 const inputClass = "w-full px-3 py-2 rounded-[10px] border text-[13px] outline-none transition-colors border-[#E2E7F2] bg-[#F4F6FB] text-[#3A4565] focus:border-[#007BFF] focus:bg-white focus:ring-[3px] focus:ring-[#007BFF]/[0.14]";
 const errorInputClass = "w-full px-3 py-2 rounded-[10px] border text-[13px] outline-none transition-colors border-[#C0392B] bg-white text-[#3A4565] shadow-[0_0_0_3px_rgba(192,57,43,0.08)]";
@@ -49,7 +57,11 @@ export function CreateIssueModal({
   const [status, setStatus] = useState<string>("open");
   const [severity, setSeverity] = useState<IssueSeverity>("None");
   const [assigneeId, setAssigneeId] = useState<string>("");
-  const [dueDate, setDueDate] = useState<string>("");
+  // Combined date+time, `"YYYY-MM-DDTHH:mm"` (local) — same shape as the New Task modal's Due
+  // field. Always populated (defaults to 7:00 PM today); split into `due_date` + `due_time`
+  // at submit. Task 338.
+  const [dueValue, setDueValue] = useState<string>(() => dueDefaultValue());
+  const [notes, setNotes] = useState<string>("");
   const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -59,9 +71,14 @@ export function CreateIssueModal({
   const [createdIssue, setCreatedIssue] = useState<Issue | null>(null);
   const issueIdRef = useRef<string | null>(null);
   const uploadQueue = useUploadQueue((file, onProgress) => {
-    const fd = new FormData();
-    fd.append("file", file);
-    return uploadFileWithProgress(`/api/v2/projects/${projectId}/issues/${issueIdRef.current}/attachments`, fd, onProgress).then(() => undefined);
+    const base = `/api/v2/projects/${projectId}/issues/${issueIdRef.current}/attachments`;
+    return uploadViaSignedUrl({
+      signUrl: `${base}/sign`,
+      registerUrl: base,
+      file,
+      mime: extensionInfoFor(file.name)?.mime ?? "application/octet-stream",
+      onProgress,
+    }).then(() => undefined);
   });
   const uploading = createdIssue !== null;
   const allSettled = uploadQueue.items.length > 0 && uploadQueue.items.every((it) => it.status !== "uploading");
@@ -93,6 +110,7 @@ export function CreateIssueModal({
     const toastId = toast.loading("Creating issue…");
 
     const assignee = allMembers.find((m) => m.id === assigneeId);
+    const { date: dueDate, time: dueTime } = splitDateTimeValue(dueValue);
     const res = await fetch(`/api/v2/projects/${projectId}/issues`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -103,6 +121,8 @@ export function CreateIssueModal({
         severity,
         assignee_name: assignee?.full_name || undefined,
         due_date: dueDate || undefined,
+        due_time: dueTime || undefined,
+        notes: notes.trim() || undefined,
       }),
     });
     if (!res.ok) {
@@ -185,12 +205,11 @@ export function CreateIssueModal({
               </label>
 
               <CollapsibleSection title="Description" defaultOpen>
-                <textarea
+                <TaskDescriptionEditor
+                  projectId={projectId}
                   value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={2}
-                  className={cn(inputClass, "resize-none")}
-                  placeholder="Optional details…"
+                  onChange={setDescription}
+                  uploadUrl={`/api/v2/projects/${projectId}/issues/description-images`}
                 />
               </CollapsibleSection>
 
@@ -233,15 +252,20 @@ export function CreateIssueModal({
                       searchPlaceholder="Search members…"
                     />
                   </div>
-                  <label className="flex flex-col gap-1.5">
-                    <span className={labelClass}>Due date</span>
-                    <input
-                      type="date"
-                      value={dueDate}
-                      onChange={(e) => setDueDate(e.target.value)}
-                      className={inputClass}
-                    />
-                  </label>
+                  <div className="flex flex-col gap-1.5">
+                    <span className={labelClass}>Due date &amp; time</span>
+                    <DateTimeFieldPicker value={dueValue} onChange={setDueValue} />
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <span className={labelClass}>Notes (optional)</span>
+                  <TaskDescriptionEditor
+                    projectId={projectId}
+                    value={notes}
+                    onChange={setNotes}
+                    uploadUrl={`/api/v2/projects/${projectId}/issues/description-images`}
+                  />
                 </div>
               </CollapsibleSection>
 

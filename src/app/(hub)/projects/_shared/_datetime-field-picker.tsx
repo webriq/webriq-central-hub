@@ -208,11 +208,23 @@ export function DateTimeFieldPicker({
         <span className="truncate">{formatTrigger(value)}</span>
       </button>
 
-      {open && pos && createPortal(
+      {open && createPortal(
         <div
           ref={panelRef}
           {...{ [POPOVER_ROOT_ATTR]: true }}
-          style={{ position: "fixed", top: pos.top, bottom: pos.bottom, left: pos.left }}
+          // Rendered as soon as `open` (not gated on `pos`) so `usePopoverPosition` can measure
+          // the real panel on the FIRST open and flip it above the trigger when it would
+          // otherwise overflow the viewport bottom. Gating on `pos` meant the panel wasn't in
+          // the DOM when the hook first measured — height read as 0, flip skipped — and it only
+          // corrected itself on the second open (task 338 follow-up). Kept invisible for the one
+          // frame before `pos` resolves so there's no flash at the top-left.
+          style={{
+            position: "fixed",
+            top: pos?.top,
+            bottom: pos?.bottom,
+            left: pos?.left,
+            visibility: pos ? undefined : "hidden",
+          }}
           className="z-[60] flex overflow-hidden rounded-[14px] border border-[#E2E7F2] bg-white shadow-[0_8px_24px_rgba(7,17,51,0.10)]"
         >
           <div className="p-4 w-[284px] shrink-0">

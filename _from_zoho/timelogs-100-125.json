@@ -1,0 +1,2242 @@
+[
+  {
+    "owner": {
+      "zpuid": "1512955000000054009",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=658223690",
+      "name": "Anliner Leona",
+      "last_name": "Leona",
+      "first_name": "Anliner",
+      "email": "EMAIL_CLOSED",
+      "zuid": 658223690
+    },
+    "date": "2025-02-03",
+    "created_time": "2025-02-03T06:55:21.729Z",
+    "module_detail": {
+      "prefix": "",
+      "name": "Helping a team",
+      "id": "1512955000014308090",
+      "type": "task"
+    },
+    "notes": "Timesheet log details:\nStart Time - 02-03-2025 02:09 PM End time 02-03-2025 02:55 PM\nTime spent - 00:46",
+    "last_modified_time": "2025-02-03T06:55:23.821Z",
+    "approval": {
+      "zpuid": "1512955000000054009",
+      "name": "Anliner Leona",
+      "last_name": "Leona",
+      "time": "2025-02-03T14:55:21.722Z",
+      "first_name": "Anliner",
+      "email": "EMAIL_CLOSED",
+      "zuid": 658223690,
+      "status": "Approved"
+    },
+    "log_notes": "Timesheet log details:\nStart Time - 02-03-2025 02:09 PM End time 02-03-2025 02:55 PM\nTime spent - 00:46",
+    "end_time": "02:55 PM",
+    "project": {
+      "name": "JVPC",
+      "id": "1512955000008348114"
+    },
+    "type": "task",
+    "start_time": "02:09 PM",
+    "added_by": {
+      "zpuid": "1512955000000054009",
+      "name": "Anliner Leona",
+      "last_name": "Leona",
+      "first_name": "Anliner",
+      "email": "EMAIL_CLOSED",
+      "zuid": 658223690
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000014308104",
+    "log_hour": "00:46",
+    "_zoho_project_id": "1512955000008348114"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000000054009",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=658223690",
+      "name": "Anliner Leona",
+      "last_name": "Leona",
+      "first_name": "Anliner",
+      "email": "EMAIL_CLOSED",
+      "zuid": 658223690
+    },
+    "date": "2025-04-10",
+    "created_time": "2025-04-10T09:14:29.989Z",
+    "module_detail": {
+      "prefix": "",
+      "name": "Test Live Site links, form and etc...",
+      "id": "1512955000015177281",
+      "type": "task"
+    },
+    "notes": "Time log details:\nStart Time - 04-10-2025 04:05 PM End time 04-10-2025 05:14 PM\nTime spent - 01:09",
+    "last_modified_time": "2025-04-10T09:14:32.744Z",
+    "approval": {
+      "zpuid": "1512955000000054009",
+      "name": "Anliner Leona",
+      "last_name": "Leona",
+      "time": "2025-04-10T17:14:29.979Z",
+      "first_name": "Anliner",
+      "email": "EMAIL_CLOSED",
+      "zuid": 658223690,
+      "status": "Approved"
+    },
+    "log_notes": "Time log details:\nStart Time - 04-10-2025 04:05 PM End time 04-10-2025 05:14 PM\nTime spent - 01:09",
+    "end_time": "05:14 PM",
+    "project": {
+      "name": "JVPC",
+      "id": "1512955000008348114"
+    },
+    "type": "task",
+    "start_time": "04:05 PM",
+    "added_by": {
+      "zpuid": "1512955000000054009",
+      "name": "Anliner Leona",
+      "last_name": "Leona",
+      "first_name": "Anliner",
+      "email": "EMAIL_CLOSED",
+      "zuid": 658223690
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000015177467",
+    "log_hour": "01:09",
+    "_zoho_project_id": "1512955000008348114"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000000054009",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=658223690",
+      "name": "Anliner Leona",
+      "last_name": "Leona",
+      "first_name": "Anliner",
+      "email": "EMAIL_CLOSED",
+      "zuid": 658223690
+    },
+    "date": "2025-04-10",
+    "created_time": "2025-04-10T07:09:10.319Z",
+    "module_detail": {
+      "prefix": "",
+      "name": "Test Live Site links, form and etc...",
+      "id": "1512955000015177281",
+      "type": "task"
+    },
+    "notes": "Time log details:\nStart Time - 04-10-2025 01:22 PM End time 04-10-2025 03:09 PM\nTime spent - 01:46",
+    "last_modified_time": "2025-04-10T07:09:12.821Z",
+    "approval": {
+      "zpuid": "1512955000000054009",
+      "name": "Anliner Leona",
+      "last_name": "Leona",
+      "time": "2025-04-10T15:09:10.313Z",
+      "first_name": "Anliner",
+      "email": "EMAIL_CLOSED",
+      "zuid": 658223690,
+      "status": "Approved"
+    },
+    "log_notes": "Time log details:\nStart Time - 04-10-2025 01:22 PM End time 04-10-2025 03:09 PM\nTime spent - 01:46",
+    "end_time": "03:09 PM",
+    "project": {
+      "name": "JVPC",
+      "id": "1512955000008348114"
+    },
+    "type": "task",
+    "start_time": "01:22 PM",
+    "added_by": {
+      "zpuid": "1512955000000054009",
+      "name": "Anliner Leona",
+      "last_name": "Leona",
+      "first_name": "Anliner",
+      "email": "EMAIL_CLOSED",
+      "zuid": 658223690
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000015177398",
+    "log_hour": "01:46",
+    "_zoho_project_id": "1512955000008348114"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000003339043",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=760791628",
+      "name": "Jaymar Matiga",
+      "last_name": "Matiga",
+      "first_name": "Jaymar",
+      "email": "jaymar.matiga@webriq.services",
+      "zuid": 760791628
+    },
+    "date": "2025-04-10",
+    "created_time": "2025-04-10T10:44:57.860Z",
+    "module_detail": {
+      "prefix": "",
+      "name": "Pages issue investigation",
+      "id": "1512955000015196057",
+      "type": "task"
+    },
+    "notes": "<div><br></div>",
+    "last_modified_time": "2025-04-10T10:44:57.860Z",
+    "approval": {
+      "zpuid": "1512955000003339043",
+      "name": "Jaymar Matiga",
+      "last_name": "Matiga",
+      "time": "2025-04-10T18:44:57.859Z",
+      "first_name": "Jaymar",
+      "email": "jaymar.matiga@webriq.services",
+      "zuid": 760791628,
+      "status": "Approved"
+    },
+    "log_notes": "<div><br></div>",
+    "end_time": "01:00 PM",
+    "project": {
+      "name": "JVPC",
+      "id": "1512955000008348114"
+    },
+    "type": "task",
+    "start_time": "10:33 AM",
+    "added_by": {
+      "zpuid": "1512955000003339043",
+      "name": "Jaymar Matiga",
+      "last_name": "Matiga",
+      "first_name": "Jaymar",
+      "email": "jaymar.matiga@webriq.services",
+      "zuid": 760791628
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000015196063",
+    "log_hour": "02:27",
+    "_zoho_project_id": "1512955000008348114"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000000050287",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=649536095",
+      "name": "Allen Edward Cartagenas",
+      "last_name": "Cartagenas",
+      "first_name": "Allen Edward",
+      "email": "allen@webriq.services",
+      "zuid": 649536095
+    },
+    "date": "2025-04-10",
+    "created_time": "2025-04-10T11:38:32.341Z",
+    "module_detail": {
+      "prefix": "",
+      "name": "Fixing the site and app",
+      "id": "1512955000015197067",
+      "type": "task"
+    },
+    "notes": "<div><br></div>",
+    "last_modified_time": "2025-04-10T11:38:32.341Z",
+    "approval": {
+      "zpuid": "1512955000000050287",
+      "name": "Allen Edward Cartagenas",
+      "last_name": "Cartagenas",
+      "time": "2025-04-10T19:38:32.341Z",
+      "first_name": "Allen Edward",
+      "email": "allen@webriq.services",
+      "zuid": 649536095,
+      "status": "Approved"
+    },
+    "log_notes": "<div><br></div>",
+    "end_time": "04:00 PM",
+    "project": {
+      "name": "JVPC",
+      "id": "1512955000008348114"
+    },
+    "type": "task",
+    "start_time": "10:00 AM",
+    "added_by": {
+      "zpuid": "1512955000000050287",
+      "name": "Allen Edward Cartagenas",
+      "last_name": "Cartagenas",
+      "first_name": "Allen Edward",
+      "email": "allen@webriq.services",
+      "zuid": 649536095
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000015197073",
+    "log_hour": "06:00",
+    "_zoho_project_id": "1512955000008348114"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000011450287",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=845830651",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651
+    },
+    "date": "2025-04-11",
+    "created_time": "2025-04-11T09:35:48.287Z",
+    "module_detail": {
+      "prefix": "",
+      "name": "Update address",
+      "id": "1512955000015192472",
+      "type": "task"
+    },
+    "notes": "Time log details:\nStart Time - 04-11-2025 04:40 PM End time 04-11-2025 05:35 PM\nTime spent - 00:55",
+    "last_modified_time": "2025-04-11T09:35:51.883Z",
+    "approval": {
+      "zpuid": "1512955000011450287",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "time": "2025-04-11T17:35:48.278Z",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651,
+      "status": "Approved"
+    },
+    "log_notes": "Time log details:\nStart Time - 04-11-2025 04:40 PM End time 04-11-2025 05:35 PM\nTime spent - 00:55",
+    "end_time": "05:35 PM",
+    "project": {
+      "name": "Hitech Lighting World Corporation",
+      "id": "1512955000007777520"
+    },
+    "type": "task",
+    "start_time": "04:40 PM",
+    "added_by": {
+      "zpuid": "1512955000011450287",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000015192529",
+    "log_hour": "00:55",
+    "_zoho_project_id": "1512955000007777520"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000011450287",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=845830651",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651
+    },
+    "date": "2026-07-03",
+    "created_time": "2026-07-03T05:05:43.999Z",
+    "module_detail": {
+      "prefix": "",
+      "name": "Add address",
+      "id": "1512955000019730095",
+      "type": "task"
+    },
+    "notes": "Time log details:\nStart Time - 07-03-2026 12:24 PM End time 07-03-2026 01:05 PM\nTime spent - 00:40",
+    "last_modified_time": "2026-07-03T05:05:46.501Z",
+    "approval": {
+      "zpuid": "1512955000011450287",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "time": "2026-07-03T05:05:43.999Z",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651,
+      "status": "Approved"
+    },
+    "log_notes": "Time log details:\nStart Time - 07-03-2026 12:24 PM End time 07-03-2026 01:05 PM\nTime spent - 00:40",
+    "end_time": "01:05 PM",
+    "project": {
+      "name": "Hitech Lighting World Corporation",
+      "id": "1512955000007777520"
+    },
+    "type": "task",
+    "start_time": "12:24 PM",
+    "added_by": {
+      "zpuid": "1512955000011450287",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000019745108",
+    "log_hour": "00:41",
+    "_zoho_project_id": "1512955000007777520"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000011450287",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=845830651",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651
+    },
+    "date": "2026-07-02",
+    "created_time": "2026-07-02T07:00:56.135Z",
+    "module_detail": {
+      "prefix": "",
+      "name": "Add address",
+      "id": "1512955000019730095",
+      "type": "task"
+    },
+    "notes": "Time log details:\nStart Time - 07-02-2026 01:32 PM End time 07-02-2026 03:00 PM\nTime spent - 01:28",
+    "last_modified_time": "2026-07-02T07:00:59.899Z",
+    "approval": {
+      "zpuid": "1512955000011450287",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "time": "2026-07-02T07:00:56.135Z",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651,
+      "status": "Approved"
+    },
+    "log_notes": "Time log details:\nStart Time - 07-02-2026 01:32 PM End time 07-02-2026 03:00 PM\nTime spent - 01:28",
+    "end_time": "03:00 PM",
+    "project": {
+      "name": "Hitech Lighting World Corporation",
+      "id": "1512955000007777520"
+    },
+    "type": "task",
+    "start_time": "01:32 PM",
+    "added_by": {
+      "zpuid": "1512955000011450287",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000019729083",
+    "log_hour": "01:28",
+    "_zoho_project_id": "1512955000007777520"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000011450287",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=845830651",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651
+    },
+    "date": "2026-01-16",
+    "created_time": "2026-01-16T09:00:12.738Z",
+    "module_detail": {
+      "prefix": "",
+      "name": "Map color match with the box",
+      "id": "1512955000018114467",
+      "type": "task"
+    },
+    "notes": "Time log details:\nStart Time - 01-16-2026 04:29 PM End time 01-16-2026 05:00 PM\nTime spent - 00:31",
+    "last_modified_time": "2026-01-16T09:00:15.176Z",
+    "approval": {
+      "zpuid": "1512955000011450287",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "time": "2026-01-16T17:00:12.732Z",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651,
+      "status": "Approved"
+    },
+    "log_notes": "Time log details:\nStart Time - 01-16-2026 04:29 PM End time 01-16-2026 05:00 PM\nTime spent - 00:31",
+    "end_time": "05:00 PM",
+    "project": {
+      "name": "The Hustead Law Firm THLF",
+      "id": "1512955000007644065"
+    },
+    "type": "task",
+    "start_time": "04:29 PM",
+    "added_by": {
+      "zpuid": "1512955000011450287",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000018115368",
+    "log_hour": "00:31",
+    "_zoho_project_id": "1512955000007644065"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000013630159",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=871125681",
+      "name": "April Grace Trocio",
+      "last_name": "Trocio",
+      "first_name": "April Grace",
+      "email": "april.trocio@webriq.services",
+      "zuid": 871125681
+    },
+    "date": "2026-01-19",
+    "created_time": "2026-01-19T13:48:48.306Z",
+    "module_detail": {
+      "prefix": "",
+      "name": "Coordination",
+      "id": "1512955000018136005",
+      "type": "task"
+    },
+    "notes": "<div><br></div>",
+    "last_modified_time": "2026-01-19T14:35:56.127Z",
+    "approval": {
+      "zpuid": "1512955000013630159",
+      "name": "April Grace Trocio",
+      "last_name": "Trocio",
+      "time": "2026-01-19T21:48:48.306Z",
+      "first_name": "April Grace",
+      "email": "april.trocio@webriq.services",
+      "zuid": 871125681,
+      "status": "Approved"
+    },
+    "log_notes": "<div><br></div>",
+    "project": {
+      "name": "The Hustead Law Firm THLF",
+      "id": "1512955000007644065"
+    },
+    "type": "task",
+    "added_by": {
+      "zpuid": "1512955000013630159",
+      "name": "April Grace Trocio",
+      "last_name": "Trocio",
+      "first_name": "April Grace",
+      "email": "april.trocio@webriq.services",
+      "zuid": 871125681
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000018138001",
+    "log_hour": "01:00",
+    "_zoho_project_id": "1512955000007644065"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000013630159",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=871125681",
+      "name": "April Grace Trocio",
+      "last_name": "Trocio",
+      "first_name": "April Grace",
+      "email": "april.trocio@webriq.services",
+      "zuid": 871125681
+    },
+    "date": "2026-01-20",
+    "created_time": "2026-01-20T02:34:28.273Z",
+    "module_detail": {
+      "prefix": "",
+      "name": "additional update",
+      "id": "1512955000018138087",
+      "type": "task"
+    },
+    "notes": "<div><br></div>",
+    "last_modified_time": "2026-01-20T13:15:59.066Z",
+    "approval": {
+      "zpuid": "1512955000013630159",
+      "name": "April Grace Trocio",
+      "last_name": "Trocio",
+      "time": "2026-01-20T10:34:28.273Z",
+      "first_name": "April Grace",
+      "email": "april.trocio@webriq.services",
+      "zuid": 871125681,
+      "status": "Approved"
+    },
+    "log_notes": "<div><br></div>",
+    "project": {
+      "name": "The Hustead Law Firm THLF",
+      "id": "1512955000007644065"
+    },
+    "type": "task",
+    "added_by": {
+      "zpuid": "1512955000013630159",
+      "name": "April Grace Trocio",
+      "last_name": "Trocio",
+      "first_name": "April Grace",
+      "email": "april.trocio@webriq.services",
+      "zuid": 871125681
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000018138103",
+    "log_hour": "00:20",
+    "_zoho_project_id": "1512955000007644065"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000000054009",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=658223690",
+      "name": "Anliner Leona",
+      "last_name": "Leona",
+      "first_name": "Anliner",
+      "email": "EMAIL_CLOSED",
+      "zuid": 658223690
+    },
+    "date": "2025-01-24",
+    "created_time": "2025-01-24T04:48:14.587Z",
+    "module_detail": {
+      "prefix": "",
+      "name": "helping team build sitemap",
+      "id": "1512955000014214210",
+      "type": "task"
+    },
+    "notes": "Timesheet log details:\nStart Time - 01-24-2025 11:50 AM End time 01-24-2025 12:48 PM\nTime spent - 00:58",
+    "last_modified_time": "2025-01-24T04:48:16.964Z",
+    "approval": {
+      "zpuid": "1512955000000054009",
+      "name": "Anliner Leona",
+      "last_name": "Leona",
+      "time": "2025-01-24T12:48:14.582Z",
+      "first_name": "Anliner",
+      "email": "EMAIL_CLOSED",
+      "zuid": 658223690,
+      "status": "Approved"
+    },
+    "log_notes": "Timesheet log details:\nStart Time - 01-24-2025 11:50 AM End time 01-24-2025 12:48 PM\nTime spent - 00:58",
+    "end_time": "12:48 PM",
+    "project": {
+      "name": "Grand Rapids Dental Team (BurdoDDS)",
+      "id": "1512955000007146104"
+    },
+    "type": "task",
+    "start_time": "11:50 AM",
+    "added_by": {
+      "zpuid": "1512955000000054009",
+      "name": "Anliner Leona",
+      "last_name": "Leona",
+      "first_name": "Anliner",
+      "email": "EMAIL_CLOSED",
+      "zuid": 658223690
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000014214253",
+    "log_hour": "00:58",
+    "_zoho_project_id": "1512955000007146104"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000011450287",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=845830651",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651
+    },
+    "date": "2025-05-01",
+    "created_time": "2025-05-01T10:06:52.732Z",
+    "module_detail": {
+      "prefix": "",
+      "name": "Stackshift Migration",
+      "id": "1512955000015379426",
+      "type": "task"
+    },
+    "notes": "Time log details:\nStart Time - 05-01-2025 05:48 PM End time 05-01-2025 06:06 PM\nTime spent - 00:18",
+    "last_modified_time": "2025-05-01T10:06:54.999Z",
+    "approval": {
+      "zpuid": "1512955000011450287",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "time": "2025-05-01T18:06:52.725Z",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651,
+      "status": "Approved"
+    },
+    "log_notes": "Time log details:\nStart Time - 05-01-2025 05:48 PM End time 05-01-2025 06:06 PM\nTime spent - 00:18",
+    "end_time": "06:06 PM",
+    "project": {
+      "name": "Grand Rapids Dental Team (BurdoDDS)",
+      "id": "1512955000007146104"
+    },
+    "type": "task",
+    "start_time": "05:48 PM",
+    "added_by": {
+      "zpuid": "1512955000011450287",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000015432310",
+    "log_hour": "00:18",
+    "_zoho_project_id": "1512955000007146104"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000012444001",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=854392166",
+      "name": "Mark John Mejias",
+      "last_name": "Mejias",
+      "first_name": "Mark John",
+      "email": "markjohn.mejias@webriq.services",
+      "zuid": 854392166
+    },
+    "date": "2025-04-30",
+    "created_time": "2025-04-30T04:56:10.326Z",
+    "module_detail": {
+      "prefix": "",
+      "name": "Stackshift Migration",
+      "id": "1512955000015379426",
+      "type": "task"
+    },
+    "notes": "Time log details:\nStart Time - 04-30-2025 11:57 AM End time 04-30-2025 12:56 PM\nTime spent - 00:58",
+    "last_modified_time": "2025-04-30T04:56:12.677Z",
+    "approval": {
+      "zpuid": "1512955000012444001",
+      "name": "Mark John Mejias",
+      "last_name": "Mejias",
+      "time": "2025-04-30T12:56:10.319Z",
+      "first_name": "Mark John",
+      "email": "markjohn.mejias@webriq.services",
+      "zuid": 854392166,
+      "status": "Approved"
+    },
+    "log_notes": "Time log details:\nStart Time - 04-30-2025 11:57 AM End time 04-30-2025 12:56 PM\nTime spent - 00:58",
+    "end_time": "12:56 PM",
+    "project": {
+      "name": "Grand Rapids Dental Team (BurdoDDS)",
+      "id": "1512955000007146104"
+    },
+    "type": "task",
+    "start_time": "11:57 AM",
+    "added_by": {
+      "zpuid": "1512955000012444001",
+      "name": "Mark John Mejias",
+      "last_name": "Mejias",
+      "first_name": "Mark John",
+      "email": "markjohn.mejias@webriq.services",
+      "zuid": 854392166
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000015411146",
+    "log_hour": "00:58",
+    "_zoho_project_id": "1512955000007146104"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000011450287",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=845830651",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651
+    },
+    "date": "2025-04-29",
+    "created_time": "2025-04-29T11:07:19.489Z",
+    "module_detail": {
+      "prefix": "",
+      "name": "Stackshift Migration",
+      "id": "1512955000015379426",
+      "type": "task"
+    },
+    "notes": "Time log details:\nStart Time - 04-29-2025 09:51 AM End time 04-29-2025 07:07 PM\nTime spent - 08:28",
+    "last_modified_time": "2025-04-29T11:07:21.785Z",
+    "approval": {
+      "zpuid": "1512955000011450287",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "time": "2025-04-29T19:07:19.482Z",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651,
+      "status": "Approved"
+    },
+    "log_notes": "Time log details:\nStart Time - 04-29-2025 09:51 AM End time 04-29-2025 07:07 PM\nTime spent - 08:28",
+    "end_time": "07:07 PM",
+    "project": {
+      "name": "Grand Rapids Dental Team (BurdoDDS)",
+      "id": "1512955000007146104"
+    },
+    "type": "task",
+    "start_time": "09:51 AM",
+    "added_by": {
+      "zpuid": "1512955000011450287",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000015407049",
+    "log_hour": "08:28",
+    "_zoho_project_id": "1512955000007146104"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000011450287",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=845830651",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651
+    },
+    "date": "2025-04-30",
+    "created_time": "2025-04-30T10:42:08.992Z",
+    "module_detail": {
+      "prefix": "",
+      "name": "Home Page Custom Components",
+      "id": "1512955000015407138",
+      "type": "task"
+    },
+    "notes": "Time log details:\nStart Time - 04-30-2025 08:52 AM End time 04-30-2025 06:42 PM\nTime spent - 09:16",
+    "last_modified_time": "2025-04-30T10:42:12.040Z",
+    "approval": {
+      "zpuid": "1512955000011450287",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "time": "2025-04-30T18:42:08.992Z",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651,
+      "status": "Approved"
+    },
+    "log_notes": "Time log details:\nStart Time - 04-30-2025 08:52 AM End time 04-30-2025 06:42 PM\nTime spent - 09:16",
+    "end_time": "06:42 PM",
+    "project": {
+      "name": "Grand Rapids Dental Team (BurdoDDS)",
+      "id": "1512955000007146104"
+    },
+    "type": "task",
+    "start_time": "08:52 AM",
+    "added_by": {
+      "zpuid": "1512955000011450287",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000015407282",
+    "log_hour": "09:16",
+    "_zoho_project_id": "1512955000007146104"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000012444001",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=854392166",
+      "name": "Mark John Mejias",
+      "last_name": "Mejias",
+      "first_name": "Mark John",
+      "email": "markjohn.mejias@webriq.services",
+      "zuid": 854392166
+    },
+    "date": "2025-04-30",
+    "created_time": "2025-04-30T07:47:03.880Z",
+    "module_detail": {
+      "prefix": "",
+      "name": "About Page",
+      "id": "1512955000015411138",
+      "type": "task"
+    },
+    "notes": "Time log details:\nStart Time - 04-30-2025 12:56 PM End time 04-30-2025 03:47 PM\nTime spent - 02:51",
+    "last_modified_time": "2025-04-30T07:47:25.061Z",
+    "approval": {
+      "zpuid": "1512955000012444001",
+      "name": "Mark John Mejias",
+      "last_name": "Mejias",
+      "time": "2025-04-30T15:47:03.874Z",
+      "first_name": "Mark John",
+      "email": "markjohn.mejias@webriq.services",
+      "zuid": 854392166,
+      "status": "Approved"
+    },
+    "log_notes": "Time log details:\nStart Time - 04-30-2025 12:56 PM End time 04-30-2025 03:47 PM\nTime spent - 02:51",
+    "end_time": "03:47 PM",
+    "project": {
+      "name": "Grand Rapids Dental Team (BurdoDDS)",
+      "id": "1512955000007146104"
+    },
+    "type": "task",
+    "start_time": "12:56 PM",
+    "added_by": {
+      "zpuid": "1512955000012444001",
+      "name": "Mark John Mejias",
+      "last_name": "Mejias",
+      "first_name": "Mark John",
+      "email": "markjohn.mejias@webriq.services",
+      "zuid": 854392166
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000015411173",
+    "log_hour": "02:51",
+    "_zoho_project_id": "1512955000007146104"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000012444001",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=854392166",
+      "name": "Mark John Mejias",
+      "last_name": "Mejias",
+      "first_name": "Mark John",
+      "email": "markjohn.mejias@webriq.services",
+      "zuid": 854392166
+    },
+    "date": "2025-05-01",
+    "created_time": "2025-05-01T04:50:06.546Z",
+    "module_detail": {
+      "prefix": "",
+      "name": "New Patients Page",
+      "id": "1512955000015411157",
+      "type": "task"
+    },
+    "notes": "Time log details:\nStart Time - 05-01-2025 08:55 AM End time 05-01-2025 12:50 PM\nTime spent - 03:54",
+    "last_modified_time": "2025-05-01T09:18:03.192Z",
+    "approval": {
+      "zpuid": "1512955000012444001",
+      "name": "Mark John Mejias",
+      "last_name": "Mejias",
+      "time": "2025-05-01T12:50:06.539Z",
+      "first_name": "Mark John",
+      "email": "markjohn.mejias@webriq.services",
+      "zuid": 854392166,
+      "status": "Approved"
+    },
+    "log_notes": "Time log details:\nStart Time - 05-01-2025 08:55 AM End time 05-01-2025 12:50 PM\nTime spent - 03:54",
+    "end_time": "12:50 PM",
+    "project": {
+      "name": "Grand Rapids Dental Team (BurdoDDS)",
+      "id": "1512955000007146104"
+    },
+    "type": "task",
+    "start_time": "08:55 AM",
+    "added_by": {
+      "zpuid": "1512955000012444001",
+      "name": "Mark John Mejias",
+      "last_name": "Mejias",
+      "first_name": "Mark John",
+      "email": "markjohn.mejias@webriq.services",
+      "zuid": 854392166
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000015432084",
+    "log_hour": "03:54",
+    "_zoho_project_id": "1512955000007146104"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000012444001",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=854392166",
+      "name": "Mark John Mejias",
+      "last_name": "Mejias",
+      "first_name": "Mark John",
+      "email": "markjohn.mejias@webriq.services",
+      "zuid": 854392166
+    },
+    "date": "2025-04-30",
+    "created_time": "2025-04-30T10:30:36.316Z",
+    "module_detail": {
+      "prefix": "",
+      "name": "New Patients Page",
+      "id": "1512955000015411157",
+      "type": "task"
+    },
+    "notes": "Time log details:\nStart Time - 04-30-2025 03:47 PM End time 04-30-2025 06:30 PM\nTime spent - 02:44",
+    "last_modified_time": "2025-04-30T10:30:39.251Z",
+    "approval": {
+      "zpuid": "1512955000012444001",
+      "name": "Mark John Mejias",
+      "last_name": "Mejias",
+      "time": "2025-04-30T18:30:36.311Z",
+      "first_name": "Mark John",
+      "email": "markjohn.mejias@webriq.services",
+      "zuid": 854392166,
+      "status": "Approved"
+    },
+    "log_notes": "Time log details:\nStart Time - 04-30-2025 03:47 PM End time 04-30-2025 06:30 PM\nTime spent - 02:44",
+    "end_time": "06:30 PM",
+    "project": {
+      "name": "Grand Rapids Dental Team (BurdoDDS)",
+      "id": "1512955000007146104"
+    },
+    "type": "task",
+    "start_time": "03:47 PM",
+    "added_by": {
+      "zpuid": "1512955000012444001",
+      "name": "Mark John Mejias",
+      "last_name": "Mejias",
+      "first_name": "Mark John",
+      "email": "markjohn.mejias@webriq.services",
+      "zuid": 854392166
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000015411202",
+    "log_hour": "02:44",
+    "_zoho_project_id": "1512955000007146104"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000011450287",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=845830651",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651
+    },
+    "date": "2025-05-01",
+    "created_time": "2025-05-01T04:23:11.110Z",
+    "module_detail": {
+      "prefix": "",
+      "name": "Contact US Page",
+      "id": "1512955000015432009",
+      "type": "task"
+    },
+    "notes": "Time log details:\nStart Time - 05-01-2025 09:05 AM End time 05-01-2025 12:23 PM\nTime spent - 03:17",
+    "last_modified_time": "2025-05-01T04:23:13.767Z",
+    "approval": {
+      "zpuid": "1512955000011450287",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "time": "2025-05-01T12:23:11.104Z",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651,
+      "status": "Approved"
+    },
+    "log_notes": "Time log details:\nStart Time - 05-01-2025 09:05 AM End time 05-01-2025 12:23 PM\nTime spent - 03:17",
+    "end_time": "12:23 PM",
+    "project": {
+      "name": "Grand Rapids Dental Team (BurdoDDS)",
+      "id": "1512955000007146104"
+    },
+    "type": "task",
+    "start_time": "09:05 AM",
+    "added_by": {
+      "zpuid": "1512955000011450287",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000015432039",
+    "log_hour": "03:17",
+    "_zoho_project_id": "1512955000007146104"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000011450287",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=845830651",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651
+    },
+    "date": "2025-05-01",
+    "created_time": "2025-05-01T06:10:32.847Z",
+    "module_detail": {
+      "prefix": "",
+      "name": "Faqs Page",
+      "id": "1512955000015432052",
+      "type": "task"
+    },
+    "notes": "Time log details:\nStart Time - 05-01-2025 12:24 PM End time 05-01-2025 02:10 PM\nTime spent - 01:10",
+    "last_modified_time": "2025-05-01T06:10:35.967Z",
+    "approval": {
+      "zpuid": "1512955000011450287",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "time": "2025-05-01T14:10:32.837Z",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651,
+      "status": "Approved"
+    },
+    "log_notes": "Time log details:\nStart Time - 05-01-2025 12:24 PM End time 05-01-2025 02:10 PM\nTime spent - 01:10",
+    "end_time": "02:10 PM",
+    "project": {
+      "name": "Grand Rapids Dental Team (BurdoDDS)",
+      "id": "1512955000007146104"
+    },
+    "type": "task",
+    "start_time": "12:24 PM",
+    "added_by": {
+      "zpuid": "1512955000011450287",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000015432097",
+    "log_hour": "01:10",
+    "_zoho_project_id": "1512955000007146104"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000012444001",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=854392166",
+      "name": "Mark John Mejias",
+      "last_name": "Mejias",
+      "first_name": "Mark John",
+      "email": "markjohn.mejias@webriq.services",
+      "zuid": 854392166
+    },
+    "date": "2025-05-01",
+    "created_time": "2025-05-01T09:17:52.308Z",
+    "module_detail": {
+      "prefix": "",
+      "name": "Search Page and Functionality",
+      "id": "1512955000015432072",
+      "type": "task"
+    },
+    "notes": "Time log details:\nStart Time - 05-01-2025 12:50 PM End time 05-01-2025 05:17 PM\nTime spent - 04:28",
+    "last_modified_time": "2025-05-01T09:17:55.178Z",
+    "approval": {
+      "zpuid": "1512955000012444001",
+      "name": "Mark John Mejias",
+      "last_name": "Mejias",
+      "time": "2025-05-01T17:17:52.303Z",
+      "first_name": "Mark John",
+      "email": "markjohn.mejias@webriq.services",
+      "zuid": 854392166,
+      "status": "Approved"
+    },
+    "log_notes": "Time log details:\nStart Time - 05-01-2025 12:50 PM End time 05-01-2025 05:17 PM\nTime spent - 04:28",
+    "end_time": "05:17 PM",
+    "project": {
+      "name": "Grand Rapids Dental Team (BurdoDDS)",
+      "id": "1512955000007146104"
+    },
+    "type": "task",
+    "start_time": "12:50 PM",
+    "added_by": {
+      "zpuid": "1512955000012444001",
+      "name": "Mark John Mejias",
+      "last_name": "Mejias",
+      "first_name": "Mark John",
+      "email": "markjohn.mejias@webriq.services",
+      "zuid": 854392166
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000015432217",
+    "log_hour": "04:28",
+    "_zoho_project_id": "1512955000007146104"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000011450287",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=845830651",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651
+    },
+    "date": "2025-05-01",
+    "created_time": "2025-05-01T06:36:26.122Z",
+    "module_detail": {
+      "prefix": "",
+      "name": "Privacy policy",
+      "id": "1512955000015432110",
+      "type": "task"
+    },
+    "notes": "Time log details:\nStart Time - 05-01-2025 02:11 PM End time 05-01-2025 02:36 PM\nTime spent - 00:25",
+    "last_modified_time": "2025-05-01T06:36:28.843Z",
+    "approval": {
+      "zpuid": "1512955000011450287",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "time": "2025-05-01T14:36:26.110Z",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651,
+      "status": "Approved"
+    },
+    "log_notes": "Time log details:\nStart Time - 05-01-2025 02:11 PM End time 05-01-2025 02:36 PM\nTime spent - 00:25",
+    "end_time": "02:36 PM",
+    "project": {
+      "name": "Grand Rapids Dental Team (BurdoDDS)",
+      "id": "1512955000007146104"
+    },
+    "type": "task",
+    "start_time": "02:11 PM",
+    "added_by": {
+      "zpuid": "1512955000011450287",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000015432126",
+    "log_hour": "00:25",
+    "_zoho_project_id": "1512955000007146104"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000011450287",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=845830651",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651
+    },
+    "date": "2025-05-01",
+    "created_time": "2025-05-01T07:47:57.007Z",
+    "module_detail": {
+      "prefix": "",
+      "name": "Careers page",
+      "id": "1512955000015432139",
+      "type": "task"
+    },
+    "notes": "Time log details:\nStart Time - 05-01-2025 02:36 PM End time 05-01-2025 03:47 PM\nTime spent - 01:11",
+    "last_modified_time": "2025-05-01T07:47:59.787Z",
+    "approval": {
+      "zpuid": "1512955000011450287",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "time": "2025-05-01T15:47:57.001Z",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651,
+      "status": "Approved"
+    },
+    "log_notes": "Time log details:\nStart Time - 05-01-2025 02:36 PM End time 05-01-2025 03:47 PM\nTime spent - 01:11",
+    "end_time": "03:47 PM",
+    "project": {
+      "name": "Grand Rapids Dental Team (BurdoDDS)",
+      "id": "1512955000007146104"
+    },
+    "type": "task",
+    "start_time": "02:36 PM",
+    "added_by": {
+      "zpuid": "1512955000011450287",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000015432155",
+    "log_hour": "01:11",
+    "_zoho_project_id": "1512955000007146104"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000011450287",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=845830651",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651
+    },
+    "date": "2025-05-01",
+    "created_time": "2025-05-01T08:49:22.824Z",
+    "module_detail": {
+      "prefix": "",
+      "name": "Dental Services Page",
+      "id": "1512955000015432168",
+      "type": "task"
+    },
+    "notes": "Time log details:\nStart Time - 05-01-2025 03:48 PM End time 05-01-2025 04:49 PM\nTime spent - 01:00",
+    "last_modified_time": "2025-05-01T08:49:25.606Z",
+    "approval": {
+      "zpuid": "1512955000011450287",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "time": "2025-05-01T16:49:22.818Z",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651,
+      "status": "Approved"
+    },
+    "log_notes": "Time log details:\nStart Time - 05-01-2025 03:48 PM End time 05-01-2025 04:49 PM\nTime spent - 01:00",
+    "end_time": "04:49 PM",
+    "project": {
+      "name": "Grand Rapids Dental Team (BurdoDDS)",
+      "id": "1512955000007146104"
+    },
+    "type": "task",
+    "start_time": "03:48 PM",
+    "added_by": {
+      "zpuid": "1512955000011450287",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000015432184",
+    "log_hour": "01:00",
+    "_zoho_project_id": "1512955000007146104"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000011450287",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=845830651",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651
+    },
+    "date": "2025-05-01",
+    "created_time": "2025-05-01T09:31:34.616Z",
+    "module_detail": {
+      "prefix": "",
+      "name": "Thomas Burdo Page",
+      "id": "1512955000015432201",
+      "type": "task"
+    },
+    "notes": "Time log details:\nStart Time - 05-01-2025 04:51 PM End time 05-01-2025 05:31 PM\nTime spent - 00:40",
+    "last_modified_time": "2025-05-01T09:31:37.132Z",
+    "approval": {
+      "zpuid": "1512955000011450287",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "time": "2025-05-01T17:31:34.608Z",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651,
+      "status": "Approved"
+    },
+    "log_notes": "Time log details:\nStart Time - 05-01-2025 04:51 PM End time 05-01-2025 05:31 PM\nTime spent - 00:40",
+    "end_time": "05:31 PM",
+    "project": {
+      "name": "Grand Rapids Dental Team (BurdoDDS)",
+      "id": "1512955000007146104"
+    },
+    "type": "task",
+    "start_time": "04:51 PM",
+    "added_by": {
+      "zpuid": "1512955000011450287",
+      "name": "Kenet Medez",
+      "last_name": "Medez",
+      "first_name": "Kenet",
+      "email": "kenet.medez@webriq.services",
+      "zuid": 845830651
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000015432244",
+    "log_hour": "00:40",
+    "_zoho_project_id": "1512955000007146104"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000011450285",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=845829841",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841
+    },
+    "date": "2025-06-11",
+    "created_time": "2025-06-11T07:03:13.971Z",
+    "module_detail": {
+      "prefix": "",
+      "name": "Client Feedback",
+      "id": "1512955000015631236",
+      "type": "task"
+    },
+    "notes": "Time log details:\nStart Time - 06-11-2025 01:48 PM End time 06-11-2025 03:03 PM\nTime spent - 01:15",
+    "last_modified_time": "2025-06-11T07:03:16.193Z",
+    "approval": {
+      "zpuid": "1512955000011450285",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "time": "2025-06-11T15:03:13.964Z",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841,
+      "status": "Approved"
+    },
+    "log_notes": "Time log details:\nStart Time - 06-11-2025 01:48 PM End time 06-11-2025 03:03 PM\nTime spent - 01:15",
+    "end_time": "03:03 PM",
+    "project": {
+      "name": "Grand Rapids Dental Team (BurdoDDS)",
+      "id": "1512955000007146104"
+    },
+    "type": "task",
+    "start_time": "01:48 PM",
+    "added_by": {
+      "zpuid": "1512955000011450285",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000015896311",
+    "log_hour": "01:15",
+    "_zoho_project_id": "1512955000007146104"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000011450285",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=845829841",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841
+    },
+    "date": "2025-06-11",
+    "created_time": "2025-06-11T05:46:13.134Z",
+    "module_detail": {
+      "prefix": "",
+      "name": "Client Feedback",
+      "id": "1512955000015631236",
+      "type": "task"
+    },
+    "notes": "Time log details:\nStart Time - 06-11-2025 11:41 AM End time 06-11-2025 01:46 PM\nTime spent - 01:41",
+    "last_modified_time": "2025-06-11T05:46:16.256Z",
+    "approval": {
+      "zpuid": "1512955000011450285",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "time": "2025-06-11T13:46:13.129Z",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841,
+      "status": "Approved"
+    },
+    "log_notes": "Time log details:\nStart Time - 06-11-2025 11:41 AM End time 06-11-2025 01:46 PM\nTime spent - 01:41",
+    "end_time": "01:46 PM",
+    "project": {
+      "name": "Grand Rapids Dental Team (BurdoDDS)",
+      "id": "1512955000007146104"
+    },
+    "type": "task",
+    "start_time": "11:41 AM",
+    "added_by": {
+      "zpuid": "1512955000011450285",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000015896212",
+    "log_hour": "01:41",
+    "_zoho_project_id": "1512955000007146104"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000011450285",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=845829841",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841
+    },
+    "date": "2025-06-09",
+    "created_time": "2025-06-09T07:41:19.711Z",
+    "module_detail": {
+      "prefix": "",
+      "name": "Client Feedback",
+      "id": "1512955000015631236",
+      "type": "task"
+    },
+    "notes": "Time log details:\nStart Time - 06-09-2025 02:49 PM End time 06-09-2025 03:41 PM\nTime spent - 00:52",
+    "last_modified_time": "2025-06-09T07:41:22.398Z",
+    "approval": {
+      "zpuid": "1512955000011450285",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "time": "2025-06-09T15:41:19.704Z",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841,
+      "status": "Approved"
+    },
+    "log_notes": "Time log details:\nStart Time - 06-09-2025 02:49 PM End time 06-09-2025 03:41 PM\nTime spent - 00:52",
+    "end_time": "03:41 PM",
+    "project": {
+      "name": "Grand Rapids Dental Team (BurdoDDS)",
+      "id": "1512955000007146104"
+    },
+    "type": "task",
+    "start_time": "02:49 PM",
+    "added_by": {
+      "zpuid": "1512955000011450285",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000015873096",
+    "log_hour": "00:52",
+    "_zoho_project_id": "1512955000007146104"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000011450285",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=845829841",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841
+    },
+    "date": "2025-06-09",
+    "created_time": "2025-06-09T00:59:22.030Z",
+    "module_detail": {
+      "prefix": "",
+      "name": "Client Feedback",
+      "id": "1512955000015631236",
+      "type": "task"
+    },
+    "notes": "Time log details:\nStart Time - 06-09-2025 08:50 AM End time 06-09-2025 08:59 AM\nTime spent - 00:09",
+    "last_modified_time": "2025-06-09T00:59:25.028Z",
+    "approval": {
+      "zpuid": "1512955000011450285",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "time": "2025-06-09T08:59:22.024Z",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841,
+      "status": "Approved"
+    },
+    "log_notes": "Time log details:\nStart Time - 06-09-2025 08:50 AM End time 06-09-2025 08:59 AM\nTime spent - 00:09",
+    "end_time": "08:59 AM",
+    "project": {
+      "name": "Grand Rapids Dental Team (BurdoDDS)",
+      "id": "1512955000007146104"
+    },
+    "type": "task",
+    "start_time": "08:50 AM",
+    "added_by": {
+      "zpuid": "1512955000011450285",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000015870023",
+    "log_hour": "00:09",
+    "_zoho_project_id": "1512955000007146104"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000011450285",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=845829841",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841
+    },
+    "date": "2025-06-06",
+    "created_time": "2025-06-06T09:43:57.083Z",
+    "module_detail": {
+      "prefix": "",
+      "name": "Client Feedback",
+      "id": "1512955000015631236",
+      "type": "task"
+    },
+    "notes": "Time log details:\nStart Time - 06-06-2025 08:44 AM End time 06-06-2025 05:43 PM\nTime spent - 06:25",
+    "last_modified_time": "2025-06-06T09:43:59.550Z",
+    "approval": {
+      "zpuid": "1512955000011450285",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "time": "2025-06-06T17:43:57.077Z",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841,
+      "status": "Approved"
+    },
+    "log_notes": "Time log details:\nStart Time - 06-06-2025 08:44 AM End time 06-06-2025 05:43 PM\nTime spent - 06:25",
+    "end_time": "05:43 PM",
+    "project": {
+      "name": "Grand Rapids Dental Team (BurdoDDS)",
+      "id": "1512955000007146104"
+    },
+    "type": "task",
+    "start_time": "08:44 AM",
+    "added_by": {
+      "zpuid": "1512955000011450285",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000015843610",
+    "log_hour": "06:25",
+    "_zoho_project_id": "1512955000007146104"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000011450285",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=845829841",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841
+    },
+    "date": "2025-06-05",
+    "created_time": "2025-06-05T09:07:09.879Z",
+    "module_detail": {
+      "prefix": "",
+      "name": "Client Feedback",
+      "id": "1512955000015631236",
+      "type": "task"
+    },
+    "notes": "Time log details:\nStart Time - 06-05-2025 05:00 PM End time 06-05-2025 05:07 PM\nTime spent - 00:06",
+    "last_modified_time": "2025-06-05T09:07:12.148Z",
+    "approval": {
+      "zpuid": "1512955000011450285",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "time": "2025-06-05T17:07:09.873Z",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841,
+      "status": "Approved"
+    },
+    "log_notes": "Time log details:\nStart Time - 06-05-2025 05:00 PM End time 06-05-2025 05:07 PM\nTime spent - 00:06",
+    "end_time": "05:07 PM",
+    "project": {
+      "name": "Grand Rapids Dental Team (BurdoDDS)",
+      "id": "1512955000007146104"
+    },
+    "type": "task",
+    "start_time": "05:00 PM",
+    "added_by": {
+      "zpuid": "1512955000011450285",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000015834127",
+    "log_hour": "00:06",
+    "_zoho_project_id": "1512955000007146104"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000011450285",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=845829841",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841
+    },
+    "date": "2025-06-05",
+    "created_time": "2025-06-05T05:21:51.719Z",
+    "module_detail": {
+      "prefix": "",
+      "name": "Client Feedback",
+      "id": "1512955000015631236",
+      "type": "task"
+    },
+    "notes": "Time log details:\nStart Time - 06-05-2025 08:30 AM End time 06-05-2025 01:21 PM\nTime spent - 04:23",
+    "last_modified_time": "2025-06-05T05:21:54.391Z",
+    "approval": {
+      "zpuid": "1512955000011450285",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "time": "2025-06-05T13:21:51.712Z",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841,
+      "status": "Approved"
+    },
+    "log_notes": "Time log details:\nStart Time - 06-05-2025 08:30 AM End time 06-05-2025 01:21 PM\nTime spent - 04:23",
+    "end_time": "01:21 PM",
+    "project": {
+      "name": "Grand Rapids Dental Team (BurdoDDS)",
+      "id": "1512955000007146104"
+    },
+    "type": "task",
+    "start_time": "08:30 AM",
+    "added_by": {
+      "zpuid": "1512955000011450285",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000015834055",
+    "log_hour": "04:23",
+    "_zoho_project_id": "1512955000007146104"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000011450285",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=845829841",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841
+    },
+    "date": "2025-06-04",
+    "created_time": "2025-06-04T09:38:45.330Z",
+    "module_detail": {
+      "prefix": "",
+      "name": "Client Feedback",
+      "id": "1512955000015631236",
+      "type": "task"
+    },
+    "notes": "Time log details:\nStart Time - 06-04-2025 10:12 AM End time 06-04-2025 05:38 PM\nTime spent - 07:12",
+    "last_modified_time": "2025-06-04T09:38:47.690Z",
+    "approval": {
+      "zpuid": "1512955000011450285",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "time": "2025-06-04T17:38:45.320Z",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841,
+      "status": "Approved"
+    },
+    "log_notes": "Time log details:\nStart Time - 06-04-2025 10:12 AM End time 06-04-2025 05:38 PM\nTime spent - 07:12",
+    "end_time": "05:38 PM",
+    "project": {
+      "name": "Grand Rapids Dental Team (BurdoDDS)",
+      "id": "1512955000007146104"
+    },
+    "type": "task",
+    "start_time": "10:12 AM",
+    "added_by": {
+      "zpuid": "1512955000011450285",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000015813377",
+    "log_hour": "07:12",
+    "_zoho_project_id": "1512955000007146104"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000011450285",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=845829841",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841
+    },
+    "date": "2025-05-30",
+    "created_time": "2025-05-30T09:11:45.771Z",
+    "module_detail": {
+      "prefix": "",
+      "name": "Client Feedback",
+      "id": "1512955000015631236",
+      "type": "task"
+    },
+    "notes": "Time log details:\nStart Time - 05-30-2025 04:30 PM End time 05-30-2025 05:11 PM\nTime spent - 00:41",
+    "last_modified_time": "2025-05-30T09:11:47.749Z",
+    "approval": {
+      "zpuid": "1512955000011450285",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "time": "2025-05-30T17:11:45.765Z",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841,
+      "status": "Approved"
+    },
+    "log_notes": "Time log details:\nStart Time - 05-30-2025 04:30 PM End time 05-30-2025 05:11 PM\nTime spent - 00:41",
+    "end_time": "05:11 PM",
+    "project": {
+      "name": "Grand Rapids Dental Team (BurdoDDS)",
+      "id": "1512955000007146104"
+    },
+    "type": "task",
+    "start_time": "04:30 PM",
+    "added_by": {
+      "zpuid": "1512955000011450285",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000015768802",
+    "log_hour": "00:41",
+    "_zoho_project_id": "1512955000007146104"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000011450285",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=845829841",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841
+    },
+    "date": "2025-05-30",
+    "created_time": "2025-05-30T06:53:49.924Z",
+    "module_detail": {
+      "prefix": "",
+      "name": "Client Feedback",
+      "id": "1512955000015631236",
+      "type": "task"
+    },
+    "notes": "Time log details:\nStart Time - 05-30-2025 02:48 PM End time 05-30-2025 02:53 PM\nTime spent - 00:05",
+    "last_modified_time": "2025-05-30T06:53:52.326Z",
+    "approval": {
+      "zpuid": "1512955000011450285",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "time": "2025-05-30T14:53:49.919Z",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841,
+      "status": "Approved"
+    },
+    "log_notes": "Time log details:\nStart Time - 05-30-2025 02:48 PM End time 05-30-2025 02:53 PM\nTime spent - 00:05",
+    "end_time": "02:53 PM",
+    "project": {
+      "name": "Grand Rapids Dental Team (BurdoDDS)",
+      "id": "1512955000007146104"
+    },
+    "type": "task",
+    "start_time": "02:48 PM",
+    "added_by": {
+      "zpuid": "1512955000011450285",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000015768523",
+    "log_hour": "00:05",
+    "_zoho_project_id": "1512955000007146104"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000011450285",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=845829841",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841
+    },
+    "date": "2025-05-26",
+    "created_time": "2025-05-26T09:09:40.448Z",
+    "module_detail": {
+      "prefix": "",
+      "name": "Client Feedback",
+      "id": "1512955000015631236",
+      "type": "task"
+    },
+    "notes": "Time log details:\nStart Time - 05-26-2025 03:50 PM End time 05-26-2025 05:09 PM\nTime spent - 01:19",
+    "last_modified_time": "2025-05-26T09:09:42.662Z",
+    "approval": {
+      "zpuid": "1512955000011450285",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "time": "2025-05-26T17:09:40.442Z",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841,
+      "status": "Approved"
+    },
+    "log_notes": "Time log details:\nStart Time - 05-26-2025 03:50 PM End time 05-26-2025 05:09 PM\nTime spent - 01:19",
+    "end_time": "05:09 PM",
+    "project": {
+      "name": "Grand Rapids Dental Team (BurdoDDS)",
+      "id": "1512955000007146104"
+    },
+    "type": "task",
+    "start_time": "03:50 PM",
+    "added_by": {
+      "zpuid": "1512955000011450285",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000015731186",
+    "log_hour": "01:19",
+    "_zoho_project_id": "1512955000007146104"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000011450285",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=845829841",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841
+    },
+    "date": "2025-05-26",
+    "created_time": "2025-05-26T03:58:38.337Z",
+    "module_detail": {
+      "prefix": "",
+      "name": "Client Feedback",
+      "id": "1512955000015631236",
+      "type": "task"
+    },
+    "notes": "Time log details:\nStart Time - 05-26-2025 08:15 AM End time 05-26-2025 11:58 AM\nTime spent - 03:43",
+    "last_modified_time": "2025-05-26T03:58:41.043Z",
+    "approval": {
+      "zpuid": "1512955000011450285",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "time": "2025-05-26T11:58:38.332Z",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841,
+      "status": "Approved"
+    },
+    "log_notes": "Time log details:\nStart Time - 05-26-2025 08:15 AM End time 05-26-2025 11:58 AM\nTime spent - 03:43",
+    "end_time": "11:58 AM",
+    "project": {
+      "name": "Grand Rapids Dental Team (BurdoDDS)",
+      "id": "1512955000007146104"
+    },
+    "type": "task",
+    "start_time": "08:15 AM",
+    "added_by": {
+      "zpuid": "1512955000011450285",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000015731025",
+    "log_hour": "03:43",
+    "_zoho_project_id": "1512955000007146104"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000011450285",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=845829841",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841
+    },
+    "date": "2025-05-23",
+    "created_time": "2025-05-23T09:24:30.848Z",
+    "module_detail": {
+      "prefix": "",
+      "name": "Client Feedback",
+      "id": "1512955000015631236",
+      "type": "task"
+    },
+    "notes": "Time log details:\nStart Time - 05-23-2025 03:46 PM End time 05-23-2025 05:24 PM\nTime spent - 01:38",
+    "last_modified_time": "2025-05-23T09:24:34.302Z",
+    "approval": {
+      "zpuid": "1512955000011450285",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "time": "2025-05-23T17:24:30.842Z",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841,
+      "status": "Approved"
+    },
+    "log_notes": "Time log details:\nStart Time - 05-23-2025 03:46 PM End time 05-23-2025 05:24 PM\nTime spent - 01:38",
+    "end_time": "05:24 PM",
+    "project": {
+      "name": "Grand Rapids Dental Team (BurdoDDS)",
+      "id": "1512955000007146104"
+    },
+    "type": "task",
+    "start_time": "03:46 PM",
+    "added_by": {
+      "zpuid": "1512955000011450285",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000015700155",
+    "log_hour": "01:38",
+    "_zoho_project_id": "1512955000007146104"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000011450285",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=845829841",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841
+    },
+    "date": "2025-05-23",
+    "created_time": "2025-05-23T07:32:17.108Z",
+    "module_detail": {
+      "prefix": "",
+      "name": "Client Feedback",
+      "id": "1512955000015631236",
+      "type": "task"
+    },
+    "notes": "Time log details:\nStart Time - 05-23-2025 08:09 AM End time 05-23-2025 03:32 PM\nTime spent - 04:48",
+    "last_modified_time": "2025-05-23T07:32:19.902Z",
+    "approval": {
+      "zpuid": "1512955000011450285",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "time": "2025-05-23T15:32:17.102Z",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841,
+      "status": "Approved"
+    },
+    "log_notes": "Time log details:\nStart Time - 05-23-2025 08:09 AM End time 05-23-2025 03:32 PM\nTime spent - 04:48",
+    "end_time": "03:32 PM",
+    "project": {
+      "name": "Grand Rapids Dental Team (BurdoDDS)",
+      "id": "1512955000007146104"
+    },
+    "type": "task",
+    "start_time": "08:09 AM",
+    "added_by": {
+      "zpuid": "1512955000011450285",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000015700073",
+    "log_hour": "04:48",
+    "_zoho_project_id": "1512955000007146104"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000011450285",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=845829841",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841
+    },
+    "date": "2025-05-22",
+    "created_time": "2025-05-22T10:10:18.175Z",
+    "module_detail": {
+      "prefix": "",
+      "name": "Client Feedback",
+      "id": "1512955000015631236",
+      "type": "task"
+    },
+    "notes": "Time log details:\nStart Time - 05-22-2025 11:07 AM End time 05-22-2025 06:10 PM\nTime spent - 06:29",
+    "last_modified_time": "2025-05-22T10:10:20.767Z",
+    "approval": {
+      "zpuid": "1512955000011450285",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "time": "2025-05-22T18:10:18.170Z",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841,
+      "status": "Approved"
+    },
+    "log_notes": "Time log details:\nStart Time - 05-22-2025 11:07 AM End time 05-22-2025 06:10 PM\nTime spent - 06:29",
+    "end_time": "06:10 PM",
+    "project": {
+      "name": "Grand Rapids Dental Team (BurdoDDS)",
+      "id": "1512955000007146104"
+    },
+    "type": "task",
+    "start_time": "11:07 AM",
+    "added_by": {
+      "zpuid": "1512955000011450285",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000015689494",
+    "log_hour": "06:29",
+    "_zoho_project_id": "1512955000007146104"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000011450285",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=845829841",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841
+    },
+    "date": "2025-05-21",
+    "created_time": "2025-05-21T09:23:38.125Z",
+    "module_detail": {
+      "prefix": "",
+      "name": "Client Feedback",
+      "id": "1512955000015631236",
+      "type": "task"
+    },
+    "notes": "Time log details:\nStart Time - 05-21-2025 07:58 AM End time 05-21-2025 05:23 PM\nTime spent - 04:44",
+    "last_modified_time": "2025-05-21T09:23:40.480Z",
+    "approval": {
+      "zpuid": "1512955000011450285",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "time": "2025-05-21T17:23:38.118Z",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841,
+      "status": "Approved"
+    },
+    "log_notes": "Time log details:\nStart Time - 05-21-2025 07:58 AM End time 05-21-2025 05:23 PM\nTime spent - 04:44",
+    "end_time": "05:23 PM",
+    "project": {
+      "name": "Grand Rapids Dental Team (BurdoDDS)",
+      "id": "1512955000007146104"
+    },
+    "type": "task",
+    "start_time": "07:58 AM",
+    "added_by": {
+      "zpuid": "1512955000011450285",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000015670118",
+    "log_hour": "04:44",
+    "_zoho_project_id": "1512955000007146104"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000011450285",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=845829841",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841
+    },
+    "date": "2025-05-20",
+    "created_time": "2025-05-20T09:12:30.698Z",
+    "module_detail": {
+      "prefix": "",
+      "name": "Client Feedback",
+      "id": "1512955000015631236",
+      "type": "task"
+    },
+    "notes": "Time log details:\nStart Time - 05-20-2025 01:00 PM End time 05-20-2025 05:12 PM\nTime spent - 04:12",
+    "last_modified_time": "2025-05-20T09:12:32.889Z",
+    "approval": {
+      "zpuid": "1512955000011450285",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "time": "2025-05-20T17:12:30.692Z",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841,
+      "status": "Approved"
+    },
+    "log_notes": "Time log details:\nStart Time - 05-20-2025 01:00 PM End time 05-20-2025 05:12 PM\nTime spent - 04:12",
+    "end_time": "05:12 PM",
+    "project": {
+      "name": "Grand Rapids Dental Team (BurdoDDS)",
+      "id": "1512955000007146104"
+    },
+    "type": "task",
+    "start_time": "01:00 PM",
+    "added_by": {
+      "zpuid": "1512955000011450285",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000015660001",
+    "log_hour": "04:12",
+    "_zoho_project_id": "1512955000007146104"
+  },
+  {
+    "owner": {
+      "zpuid": "1512955000011450285",
+      "image_url": "https://contacts.zoho.com/file?fs=thumb&exp=600&ID=845829841",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841
+    },
+    "date": "2025-07-30",
+    "created_time": "2025-07-30T06:09:26.804Z",
+    "module_detail": {
+      "prefix": "",
+      "name": "Website Updates",
+      "id": "1512955000016522032",
+      "type": "task"
+    },
+    "notes": "Time log details:\nStart Time - 07-30-2025 10:00 AM End time 07-30-2025 02:09 PM\nTime spent - 03:42",
+    "last_modified_time": "2025-07-30T06:09:29.216Z",
+    "approval": {
+      "zpuid": "1512955000011450285",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "time": "2025-07-30T14:09:26.796Z",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841,
+      "status": "Approved"
+    },
+    "log_notes": "Time log details:\nStart Time - 07-30-2025 10:00 AM End time 07-30-2025 02:09 PM\nTime spent - 03:42",
+    "end_time": "02:09 PM",
+    "project": {
+      "name": "Grand Rapids Dental Team (BurdoDDS)",
+      "id": "1512955000007146104"
+    },
+    "type": "task",
+    "start_time": "10:00 AM",
+    "added_by": {
+      "zpuid": "1512955000011450285",
+      "name": "Renato Dulog",
+      "last_name": "Dulog",
+      "first_name": "Renato",
+      "email": "renato.dulog@webriq.services",
+      "zuid": 845829841
+    },
+    "billing_status": "Non Billable",
+    "id": "1512955000016515266",
+    "log_hour": "03:42",
+    "_zoho_project_id": "1512955000007146104"
+  }
+]

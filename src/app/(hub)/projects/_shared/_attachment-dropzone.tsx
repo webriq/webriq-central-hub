@@ -50,6 +50,79 @@ export function uploadFileWithProgress(url: string, formData: FormData, onProgre
   });
 }
 
+// Browser-direct upload to Supabase Storage (task 339). `uploadFileWithProgress` above POSTs the
+// whole file as multipart to a Next route handler — on Vercel that 413s for anything over
+// ~4.5 MB (the platform gateway rejects the request body before the handler runs, and
+// next.config.ts's proxyClientMaxBodySize can't raise that cap). Here the handler only mints a
+// signed upload URL (`signUrl`) and later verifies + registers the object (`registerUrl`); the
+// bytes go straight from the browser to Storage via an instrumented XHR PUT, so progress is
+// preserved and there is no request-body cap on that leg. Comment attachments still use
+// `uploadFileWithProgress` — migrating them is a separate follow-up.
+type SignResponse = { path: string; token: string; signedUrl: string };
+
+async function readError(res: Response, fallbackStatus: number): Promise<string> {
+  try {
+    const body = await res.json();
+    if (body?.error) return body.error as string;
+  } catch {
+    /* non-JSON body — keep the generic message */
+  }
+  return `Upload failed (${fallbackStatus})`;
+}
+
+export async function uploadViaSignedUrl({
+  signUrl,
+  registerUrl,
+  file,
+  mime,
+  onProgress,
+}: {
+  signUrl: string;
+  registerUrl: string;
+  file: File;
+  mime: string;
+  onProgress?: (pct: number) => void;
+}): Promise<unknown> {
+  // 1. Server-side gate (auth / permission / type / size / count) + signed upload URL.
+  const signRes = await fetch(signUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ filename: file.name, size: file.size }),
+  });
+  if (!signRes.ok) throw new Error(await readError(signRes, signRes.status));
+  const { path, signedUrl } = (await signRes.json()) as SignResponse;
+
+  // 2. Raw bytes straight to Storage — no Vercel body cap on this request. Kept as raw XHR (not
+  // supabase-js `uploadToSignedUrl`) so `xhr.upload.onprogress` can drive the per-file bar.
+  await new Promise<void>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", signedUrl);
+    xhr.setRequestHeader("x-upsert", "false");
+    xhr.setRequestHeader("content-type", mime || "application/octet-stream");
+    xhr.setRequestHeader("cache-control", "max-age=3600");
+    xhr.upload.onprogress = (e) => {
+      // Reserve the last 5% for the register round-trip below.
+      if (e.lengthComputable && onProgress) onProgress(Math.min(95, Math.round((e.loaded / e.total) * 95)));
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) resolve();
+      else reject(new Error(`Upload failed (${xhr.status})`));
+    };
+    xhr.onerror = () => reject(new Error("Connection lost — check your network and retry"));
+    xhr.send(file);
+  });
+
+  // 3. Verify the uploaded object + insert the attachments row.
+  const regRes = await fetch(registerUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ path, filename: file.name, size: file.size }),
+  });
+  if (!regRes.ok) throw new Error(await readError(regRes, regRes.status));
+  onProgress?.(100);
+  return regRes.json();
+}
+
 export function useUploadQueue(uploadFile: (file: File, onProgress: (pct: number) => void) => Promise<void>) {
   const [items, setItems] = useState<QueueItem[]>([]);
   const counter = useRef(0);
