@@ -46,23 +46,32 @@ function nameInitials(name: string | null | undefined): string {
 }
 
 // ─── IssueAssigneePicker — single-select (unlike tasks' multi-select AssigneePicker) ─
-// Writes assignee_name from the chosen member's full_name; assignee_email is cleared
-// (Hub has no reliable email source for members — see task 192 doc's Out of Scope).
+// Task 345 — writes `assignee_id` (the FK → profiles.id, migration 100 / source of truth for
+// getIssueEditPermission, the detail page, and the timer routes), keeping `assignee_name` in
+// sync for legacy/Zoho display and clearing `assignee_email`. Same contract as the detail
+// page's saveAssignee(). Previously this wrote assignee_name only, leaving assignee_id null —
+// which made the assignee invisible to the permission model (status 403) and the timer.
 
 function IssueAssigneePicker({
   issue,
   allMembers,
   onUpdate,
+  canEdit,
 }: {
   issue: Issue;
   allMembers: MemberProfile[];
   onUpdate: (id: string, patch: Partial<Issue>) => Promise<boolean>;
+  // Task 345 — reassignment goes through the same `canEditDetails` tier as the detail page
+  // (PM/admin/creator-developer). An assignee-only developer would just get a 403 that reverts,
+  // so the picker is read-only for them (mirrors _issue-detail.tsx's `disabled={!perm.canEditDetails}`).
+  canEdit: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [panelPos, setPanelPos] = useState({ top: 0, left: 0 });
   const btnRef = useRef<HTMLButtonElement>(null);
 
   function handleOpen() {
+    if (!canEdit) return;
     if (btnRef.current) {
       const r = btnRef.current.getBoundingClientRect();
       setPanelPos({ top: r.bottom + 4, left: r.left });
@@ -72,36 +81,47 @@ function IssueAssigneePicker({
 
   function assign(member: MemberProfile) {
     setOpen(false);
-    void onUpdate(issue.id, { assignee_name: member.full_name, assignee_email: null });
+    void onUpdate(issue.id, {
+      assignee_id: member.id,
+      assignee_name: member.full_name,
+      assignee_email: null,
+    });
   }
 
   function unassign() {
     setOpen(false);
-    void onUpdate(issue.id, { assignee_name: null, assignee_email: null });
+    void onUpdate(issue.id, { assignee_id: null, assignee_name: null, assignee_email: null });
   }
 
-  // Issue assignment is name-string-based (`assignee_name`), not a resolved `assignee_id`
-  // FK — matching against `allMembers` by name is the only avatar_url lookup available here
-  // without a broader data-layer change.
-  const assignedMember = issue.assignee_name ? allMembers.find((m) => m.full_name === issue.assignee_name) : undefined;
+  // Resolve the member by the `assignee_id` FK first (source of truth since migration 100);
+  // fall back to name-string equality for legacy rows that predate the backfill (task 345).
+  const assignedMember =
+    (issue.assignee_id ? allMembers.find((m) => m.id === issue.assignee_id) : undefined) ??
+    (issue.assignee_name ? allMembers.find((m) => m.full_name === issue.assignee_name) : undefined);
+  const assigneeLabel = assignedMember?.full_name ?? issue.assignee_name;
 
   return (
     <div className="flex items-center">
-      <button ref={btnRef} onClick={handleOpen} className="flex items-center gap-1.5 cursor-pointer group min-w-0">
-        {issue.assignee_name ? (
+      <button
+        ref={btnRef}
+        onClick={handleOpen}
+        disabled={!canEdit}
+        className="flex items-center gap-1.5 group min-w-0 cursor-pointer disabled:cursor-default"
+      >
+        {assigneeLabel ? (
           <>
             <div
               className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-semibold text-white shrink-0 overflow-hidden"
-              style={assignedMember?.avatar_url ? undefined : { background: AVATAR_COLORS[issue.assignee_name.charCodeAt(0) % AVATAR_COLORS.length] }}
+              style={assignedMember?.avatar_url ? undefined : { background: AVATAR_COLORS[assigneeLabel.charCodeAt(0) % AVATAR_COLORS.length] }}
             >
               {assignedMember?.avatar_url ? (
                 // eslint-disable-next-line @next/next/no-img-element -- external Supabase-auth-provider avatar URL, not a static/optimizable asset
-                <img src={assignedMember.avatar_url} alt={issue.assignee_name} className="w-full h-full object-cover" />
+                <img src={assignedMember.avatar_url} alt={assigneeLabel} className="w-full h-full object-cover" />
               ) : (
-                nameInitials(issue.assignee_name)
+                nameInitials(assigneeLabel)
               )}
             </div>
-            <span className="text-[12px] text-[#3A4565] truncate">{issue.assignee_name}</span>
+            <span className="text-[12px] text-[#3A4565] truncate">{assigneeLabel}</span>
           </>
         ) : (
           <span className="text-[#C7CEDD] group-hover:text-[#5F6A88] transition-colors">
@@ -119,7 +139,7 @@ function IssueAssigneePicker({
           >
             <div className="px-3 py-2.5 border-b border-[#EDF0F7] flex items-center justify-between">
               <p className="text-[11px] font-semibold text-[#5F6A88] uppercase tracking-wide">Assign to</p>
-              {issue.assignee_name && (
+              {assigneeLabel && (
                 <button onClick={unassign} className="text-[11px] text-[#C0392B] hover:underline cursor-pointer">
                   Unassign
                 </button>
@@ -127,7 +147,9 @@ function IssueAssigneePicker({
             </div>
             <div className="max-h-52 overflow-y-auto">
               {allMembers.map((m, mi) => {
-                const isAssigned = issue.assignee_name === m.full_name;
+                const isAssigned = issue.assignee_id
+                  ? issue.assignee_id === m.id
+                  : issue.assignee_name === m.full_name;
                 return (
                   <button
                     key={m.id}
@@ -387,6 +409,13 @@ export default function IssueListView({
             const dueColor = getDueColor(issue.due_date);
             const isSelected = selected.has(issue.id);
             const perm = getIssueEditPermission(currentUserRole, currentUserId, issue);
+            // Task 345 — mirror the detail page (_issue-detail.tsx): only offer the statuses this
+            // user may actually set, so the dropdown stops surfacing changes that PATCH 403s and
+            // silently reverts. `norm` is always kept in the list so the current value renders.
+            const allowedStatusOpts: readonly string[] =
+              perm.allowedStatusValues === "all"
+                ? STATUS_OPTS
+                : Array.from(new Set<string>([norm, ...perm.allowedStatusValues]));
 
             return (
               <div
@@ -436,15 +465,16 @@ export default function IssueListView({
                 <select
                   value={norm}
                   onChange={(e) => void onUpdate(issue.id, { status: e.target.value })}
-                  className="text-[11px] font-semibold rounded-full border px-2.5 py-0.5 outline-none cursor-pointer appearance-none w-full truncate"
+                  disabled={!perm.canChangeStatus}
+                  className="text-[11px] font-semibold rounded-full border px-2.5 py-0.5 outline-none cursor-pointer appearance-none w-full truncate disabled:cursor-not-allowed disabled:opacity-60"
                   style={{ color: ss.text, background: ss.bg, borderColor: ss.border }}
                 >
-                  {STATUS_OPTS.map((s) => (
-                    <option key={s} value={s} className="bg-white text-[#3A4565]">{STATUS_LABEL[s]}</option>
+                  {allowedStatusOpts.map((s) => (
+                    <option key={s} value={s} className="bg-white text-[#3A4565]">{STATUS_LABEL[s as TaskStatus] ?? s}</option>
                   ))}
                 </select>
 
-                <IssueAssigneePicker issue={issue} allMembers={allMembers} onUpdate={onUpdate} />
+                <IssueAssigneePicker issue={issue} allMembers={allMembers} onUpdate={onUpdate} canEdit={perm.canEditDetails} />
 
                 <span className={`text-[12px] font-medium tabular-nums ${dueColor}`}>{due ?? "—"}</span>
 

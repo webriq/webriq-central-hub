@@ -4,10 +4,10 @@ import { attachTaskTitle } from "@/lib/timer/serialize";
 import { appendTimerEvent } from "@/lib/timer/timeline";
 
 // POST /api/v2/timer/break/cancel — ends the active break (countdown reached zero, or the
-// developer ended it manually). If a task timer exists underneath and is currently paused, it
-// auto-resumes as part of the same update (task 265) — the developer shouldn't have to hit
-// Resume separately after a break. Deletes the row entirely if there was no task timer
-// underneath (break-only case).
+// developer ended it manually). If an entity timer (task OR issue — task 345) exists underneath
+// and is currently paused, it auto-resumes as part of the same update (task 265) — the developer
+// shouldn't have to hit Resume separately after a break. Deletes the row entirely only in the
+// break-only case (no entity timer underneath).
 export async function POST() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -15,7 +15,7 @@ export async function POST() {
 
   const { data: existing } = await supabase
     .from("active_timers")
-    .select("id, task_id, status, break_type, timeline")
+    .select("id, task_id, issue_id, status, break_type, timeline")
     .eq("user_id", user.id)
     .maybeSingle();
 
@@ -23,7 +23,10 @@ export async function POST() {
     return NextResponse.json({ error: "No active break" }, { status: 400 });
   }
 
-  if (!existing.task_id) {
+  // Task 345 — break-only row (no entity timer underneath) is deleted outright; an entity timer
+  // is a task OR an issue. Guarding on task_id alone destroyed the active_timers row for every
+  // issue timer on break-end (losing the un-logged elapsed time).
+  if (!existing.task_id && !existing.issue_id) {
     const { error } = await supabase.from("active_timers").delete().eq("id", existing.id);
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
     return NextResponse.json({ timer: null });

@@ -59,6 +59,10 @@ function getNavGroups(role: string | null): NavGroup[] {
           { label: "Contacts", href: V2_ROUTES.DESK_CONTACTS },
         ],
       },
+    ] : []),
+    // Orchestration (task 343) — matches the `/api/assessment|plan|execution|reply|zoho`
+    // route guards and the page's own guard: admin / super_admin / pm only.
+    ...((isAdmin || role === "pm") ? [
       { label: "Orchestration", icon: <Cpu size={18} />,             href: V2_ROUTES.ORCHESTRATION },
     ] : []),
     // Task 226 — time_logs RLS grants no role but client/marketing any access

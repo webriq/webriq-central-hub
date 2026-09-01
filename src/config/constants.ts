@@ -41,6 +41,7 @@ export const V2_ROUTES = {
   DASHBOARD_USERS: "/dashboard/users",
   CUSTOMERS_ONBOARD: "/customers/onboard",
   ORCHESTRATION: "/orchestration",
+  ORCHESTRATION_SIMULATE: "/orchestration/simulate",
   KB: "/kb",
   AUTH_LOGIN: "/auth/login",
   AUTH_SIGNUP: "/auth/signup",

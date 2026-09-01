@@ -12,11 +12,12 @@ export async function POST() {
 
   const { data: existing } = await supabase
     .from("active_timers")
-    .select("id, task_id, status, break_type, timeline")
+    .select("id, task_id, issue_id, status, break_type, timeline")
     .eq("user_id", user.id)
     .maybeSingle();
 
-  if (!existing?.task_id || existing.status !== "paused") {
+  // Task 345 — an entity timer is a task OR an issue; task_id alone left issue timers un-resumable.
+  if (!existing || (!existing.task_id && !existing.issue_id) || existing.status !== "paused") {
     return NextResponse.json({ error: "No paused timer to resume" }, { status: 400 });
   }
   if (existing.break_type) {

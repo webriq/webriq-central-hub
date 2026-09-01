@@ -4,6 +4,7 @@ import { useState } from "react";
 import { SectionCard } from "@/app/(hub)/dashboard/_components/dashboard-shared";
 import { AlertTriangle, Download, Upload } from "lucide-react";
 import { ImportResult, CardState, CardStatus, ResultChip, StateIcon } from "./_shared";
+import { GeneralTimelogsExportRow, GeneralTimelogsImportRow } from "./_general-timelogs-card";
 
 interface TasksExportState {
   from: string;
@@ -109,7 +110,7 @@ interface AttachmentsImportState {
 
 interface IssueAttachmentsImportState {
   progress: { current: number; total: number } | null;
-  done: { imported: number; skipped: number; errors: string[] } | null;
+  done: { imported: number; skipped: number; errors: string[]; fannedOut: string[] } | null;
   error: string | null;
 }
 
@@ -124,6 +125,7 @@ const EXPORT_LEVELS = [
   { key: "issue-comments", label: "Issue Comments", desc: "All issue comments — requires issues-*.json exported first" },
   { key: "timelogs", label: "Time Logs", desc: "All time log entries per project" },
   { key: "issue-timelogs", label: "Issue Time Logs", desc: "All time logged against issues (paginated per issue, all 1049 queried — no pre-filter available) — requires Issues exported first" },
+  { key: "general-timelogs", label: "General Time Logs", desc: "All project-level time logs with no task/bug reference (queried per project — no pre-filter) — requires projects.json" },
   { key: "attachment-meta", label: "Attachment Metadata", desc: "Attachment list per task — requires tasks.json exported first" },
   { key: "issue-attachment-meta", label: "Issue Attachment Metadata", desc: "Attachment list per issue (entity_type: bug) — requires issues-*.json exported first" },
   { key: "comment-attachment-meta", label: "Comment Attachment Metadata", desc: "Attachment list per task comment (entity_type: task_comment) — requires comments.json exported first" },
@@ -142,6 +144,7 @@ const IMPORT_LEVELS = [
   { key: "issue-comments", label: "Issue Comments", desc: "Imports issue comments from issue-comments.json — requires Issues imported first" },
   { key: "timelogs", label: "Time Logs", desc: "Imports time log entries from timelogs.json" },
   { key: "issue-timelogs", label: "Issue Time Logs", desc: "Imports time log entries from issue-timelogs-*.json — requires Issues imported first" },
+  { key: "general-timelogs", label: "General Time Logs", desc: "Imports project-level time log entries from general-timelogs-*.json — requires Projects imported first" },
   { key: "attachments", label: "Attachments", desc: "Select the files you manually downloaded from each attachment's download_url (not the attachment-meta-*.json files) — matches by filename and uploads to Supabase Storage" },
   { key: "issue-attachments", label: "Issue Attachments", desc: "Select the files you manually downloaded from each issue attachment's download_url — matches by filename+size and uploads to Supabase Storage" },
 ] as const;
@@ -1266,6 +1269,7 @@ export default function ZohoProjectsTab() {
             imported?: number;
             skipped?: number;
             errors?: string[];
+            fannedOut?: string[];
             message?: string;
           };
 
@@ -1279,7 +1283,12 @@ export default function ZohoProjectsTab() {
             setIssueAttachmentsImport((s) => ({
               ...s,
               progress: null,
-              done: { imported: evt.imported!, skipped: evt.skipped!, errors: evt.errors ?? [] },
+              done: {
+                imported: evt.imported!,
+                skipped: evt.skipped!,
+                errors: evt.errors ?? [],
+                fannedOut: evt.fannedOut ?? [],
+              },
             }));
             setImportStates((s) => ({ ...s, "issue-attachments": { state: "done" } }));
           }
@@ -1326,7 +1335,7 @@ export default function ZohoProjectsTab() {
         <div>
           <strong>Run steps in order:</strong> Export projects.json is already in{" "}
           <code className="bg-amber-100 px-1 rounded text-[11px]">_from_zoho/</code>. Then export and
-          import each level: <strong>Milestones → Tasklists → Tasks → Comments → Time Logs → Attachments</strong>.
+          import each level: <strong>Milestones → Tasklists → Tasks → Comments → Time Logs → General Time Logs → Attachments</strong>.
           Save each downloaded file to{" "}
           <code className="bg-amber-100 px-1 rounded text-[11px]">_from_zoho/</code> before running the
           corresponding import.
@@ -2088,6 +2097,20 @@ export default function ZohoProjectsTab() {
               );
             }
 
+            if (key === "general-timelogs") {
+              return (
+                <GeneralTimelogsExportRow
+                  key="general-timelogs"
+                  label={label}
+                  desc={desc}
+                  state={exportStates["general-timelogs"] ?? "idle"}
+                  setState={(v) => setExportStates((s) => ({ ...s, "general-timelogs": v }))}
+                  anyRunning={anyRunning}
+                  setAnyRunning={setAnyRunning}
+                />
+              );
+            }
+
             return (
               <div key={key} className="flex items-center justify-between gap-4 py-2 border-b border-slate-100 last:border-0">
                 <div className="min-w-0">
@@ -2480,6 +2503,17 @@ export default function ZohoProjectsTab() {
                       {issueAttachmentsImport.done.errors.length > 3 && (
                         <div className="text-slate-400 text-[11px]">+{issueAttachmentsImport.done.errors.length - 3} more</div>
                       )}
+                      {issueAttachmentsImport.done.fannedOut.length > 0 && (
+                        <div className="text-amber-600">
+                          {issueAttachmentsImport.done.fannedOut.length} file(s) linked to multiple issues — one row per link
+                        </div>
+                      )}
+                      {issueAttachmentsImport.done.fannedOut.slice(0, 3).map((n, i) => (
+                        <div key={`fan-${i}`} className="text-amber-500 text-[11px] truncate" title={n}>{n}</div>
+                      ))}
+                      {issueAttachmentsImport.done.fannedOut.length > 3 && (
+                        <div className="text-slate-400 text-[11px]">+{issueAttachmentsImport.done.fannedOut.length - 3} more</div>
+                      )}
                     </div>
                   ) : null}
 
@@ -2487,6 +2521,20 @@ export default function ZohoProjectsTab() {
                     <div className="mt-1 text-[11px] text-red-600">{issueAttachmentsImport.error}</div>
                   ) : null}
                 </div>
+              );
+            }
+
+            if (key === "general-timelogs") {
+              return (
+                <GeneralTimelogsImportRow
+                  key="general-timelogs"
+                  label={label}
+                  desc={desc}
+                  state={importStates["general-timelogs"]?.state ?? "idle"}
+                  setState={(v) => setImportStates((s) => ({ ...s, "general-timelogs": { state: v } }))}
+                  anyRunning={anyRunning}
+                  setAnyRunning={setAnyRunning}
+                />
               );
             }
 

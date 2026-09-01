@@ -12,11 +12,13 @@ export async function POST() {
 
   const { data: existing } = await supabase
     .from("active_timers")
-    .select("id, task_id, status, accumulated_seconds, segment_started_at, timeline")
+    .select("id, task_id, issue_id, status, accumulated_seconds, segment_started_at, timeline")
     .eq("user_id", user.id)
     .maybeSingle();
 
-  if (!existing?.task_id || existing.status !== "running" || !existing.segment_started_at) {
+  // Task 345 — an entity timer is a task OR an issue (task 234 / migration 100); guarding on
+  // task_id alone made every issue timer un-pausable ("No running timer to pause" → 400).
+  if (!existing || (!existing.task_id && !existing.issue_id) || existing.status !== "running" || !existing.segment_started_at) {
     return NextResponse.json({ error: "No running timer to pause" }, { status: 400 });
   }
 

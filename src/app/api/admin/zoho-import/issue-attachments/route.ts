@@ -2,10 +2,14 @@
 // since server-side Zoho Docs/WorkDrive fetch is architecturally blocked — see task 106 doc)
 // against _from_zoho/issue-attachment-meta-*.json metadata by (name, size) compound key,
 // uploads matched files directly to Supabase Storage (project-assets bucket), upserts to
-// attachments via SSE. Issue-scoped sibling of zoho-import/attachments/route.ts — the two
-// functional deltas are the compound match key (name-only matching would wrongly skip 20
-// real files that share a name but differ in size) and stripping Chrome's local " (N)"
-// dedup suffix before matching (see stripDedupSuffix below — confirmed live-necessary).
+// attachments via SSE. Issue-scoped sibling of zoho-import/attachments/route.ts — the three
+// functional deltas are: (1) the compound match key (name-only matching would wrongly skip
+// 20 real files that share a name but differ in size); (2) stripping Chrome's local " (N)"
+// dedup suffix before matching (see stripDedupSuffix below — confirmed live-necessary); and
+// (3) a (name, size) collision fans out to one attachments row per matched metadata record
+// instead of skipping — Zoho links the same design file to multiple issues and each linkage
+// is its own record with its own unique third_party_file_id (task 344). attachment_id is
+// "-1" on every Zoho Docs-backed record so it can never disambiguate these.
 import { NextRequest, NextResponse } from "next/server";
 import path from "path";
 import fs from "fs";
@@ -116,6 +120,7 @@ export async function POST(request: NextRequest) {
         let imported = 0;
         let skipped = 0;
         const errors: string[] = [];
+        const fannedOut: string[] = [];
         const total = files.length;
 
         for (let i = 0; i < files.length; i++) {
@@ -144,71 +149,74 @@ export async function POST(request: NextRequest) {
             send({ type: "progress", current: i + 1, total });
             continue;
           }
+
+          // matches.length >= 1. A (name, size) collision means Zoho linked the same file to
+          // more than one issue — each linkage is its own metadata record with its own unique
+          // third_party_file_id. Fan out: import one attachments row per record rather than
+          // skipping the whole file (the old skip-on-ambiguous behaviour lost ~57 rows across
+          // 28 groups). attachment_id is "-1" for these records so it cannot disambiguate.
           if (matches.length > 1) {
-            errors.push(`${file.name}: ${matches.length} ambiguous matches even after name+size — identical file content attached to multiple issues, skipped, import manually`);
-            skipped++;
-            send({ type: "progress", current: i + 1, total });
-            continue;
+            fannedOut.push(`${file.name} → ${matches.length} issues`);
           }
 
-          const att = matches[0];
-          const externalId = String(att.third_party_file_id ?? "");
-          if (!externalId) {
-            errors.push(`${file.name}: metadata record missing third_party_file_id`);
-            skipped++;
-            send({ type: "progress", current: i + 1, total });
-            continue;
-          }
-          if (att.trashed === true) {
-            skipped++;
-            send({ type: "progress", current: i + 1, total });
-            continue;
-          }
+          for (const att of matches) {
+            const externalId = String(att.third_party_file_id ?? "");
+            if (!externalId) {
+              errors.push(`${file.name}: metadata record missing third_party_file_id`);
+              skipped++;
+              continue;
+            }
+            if (att.trashed === true) {
+              skipped++;
+              continue;
+            }
 
-          const issueId = issueMap.get(String(att._zoho_issue_id ?? "")) ?? null;
-          if (!issueId) {
-            errors.push(`${file.name}: unresolved issue ${att._zoho_issue_id} (not yet imported)`);
-            skipped++;
-            send({ type: "progress", current: i + 1, total });
-            continue;
-          }
+            const issueId = issueMap.get(String(att._zoho_issue_id ?? "")) ?? null;
+            if (!issueId) {
+              errors.push(`${file.name}: unresolved issue ${att._zoho_issue_id} (not yet imported)`);
+              skipped++;
+              continue;
+            }
 
-          const safeName = `zoho/issues/${att._zoho_issue_id}/${externalId}_${canonicalName.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
-          let storagePath = "";
-          const { error: uploadError } = await adminClient.storage
-            .from("project-assets")
-            .upload(safeName, file, { upsert: true });
-          if (uploadError) {
-            errors.push(`${file.name}: storage upload failed: ${uploadError.message}`);
-          } else {
-            storagePath = safeName;
-          }
+            const safeName = `zoho/issues/${att._zoho_issue_id}/${externalId}_${canonicalName.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+            let storagePath = "";
+            const { error: uploadError } = await adminClient.storage
+              .from("project-assets")
+              .upload(safeName, file, { upsert: true });
+            if (uploadError) {
+              errors.push(`${file.name}: storage upload failed: ${uploadError.message}`);
+            } else {
+              storagePath = safeName;
+            }
 
-          const fileSize = att.size ? parseInt(att.size, 10) : file.size;
+            const fileSize = att.size ? parseInt(att.size, 10) : file.size;
 
-          const { error } = await adminClient.from("attachments").upsert(
-            {
-              external_id: externalId,
-              entity_type: "issue",
-              entity_id: issueId,
-              storage_path: storagePath,
-              filename: canonicalName,
-              size: fileSize,
-              source_url: att.download_url ?? null,
-            },
-            { onConflict: "external_id" }
-          );
+            const { error } = await adminClient.from("attachments").upsert(
+              {
+                external_id: externalId,
+                entity_type: "issue",
+                entity_id: issueId,
+                storage_path: storagePath,
+                filename: canonicalName,
+                size: fileSize,
+                source_url: att.download_url ?? null,
+              },
+              { onConflict: "external_id" }
+            );
 
-          if (error) {
-            errors.push(`${file.name}: ${error.message}`);
-          } else {
-            imported++;
+            if (error) {
+              errors.push(
+                `${matches.length > 1 ? `${file.name} → issue ${att._zoho_issue_id}` : file.name}: ${error.message}`
+              );
+            } else {
+              imported++;
+            }
           }
 
           send({ type: "progress", current: i + 1, total });
         }
 
-        send({ type: "done", imported, skipped, errors });
+        send({ type: "done", imported, skipped, errors, fannedOut });
       } catch (e) {
         send({ type: "error", message: String(e) });
       } finally {
