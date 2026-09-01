@@ -4,7 +4,7 @@
 **Priority:** HIGH
 **Type:** bugfix
 **Recommended Tier:** deep
-**Status:** Testing
+**Status:** Completed (2026-09-01)
 
 ---
 
@@ -420,4 +420,16 @@ PASS
 - Migration 129 failed on apply with `function min(uuid) does not exist` — Postgres has no
   `min()`/`max()` aggregate for `uuid`. Replaced `min(id)` with `(array_agg(id))[1]` (safe: the
   `having count(*) = 1` guarantees one row per group). Also cast the `project_members` seed's
-  `added_by` literal to `null::uuid`. Re-apply.
+  `added_by` literal to `null::uuid`. Operator re-applied successfully.
+
+## Completion
+
+- **Status:** Completed at the user's explicit request (2026-09-01).
+- **Applied:** migration 129 (after the `min(uuid)` fix above).
+- **Code:** `_issue-list-view.tsx`, `timer/pause`, `timer/resume`, `timer/break/cancel` — merged.
+- **Outstanding manual check (not a blocker):** end-to-end browser acceptance as a
+  developer-who-is-the-assignee on a real imported issue — assign from the listing → confirm the
+  detail page shows the assignee (not "Unassigned") → change status to In Progress from both
+  surfaces → start the Issue timer → pause / resume from the list row and the header widget →
+  take a break → end break (timer row must survive) → stop (a `time_logs` row with `issue_id`
+  set is written).

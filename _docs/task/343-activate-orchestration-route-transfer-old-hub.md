@@ -4,7 +4,7 @@
 **Priority:** MEDIUM
 **Type:** feature
 **Recommended Tier:** balanced
-**Status:** Planned
+**Status:** Completed (2026-09-01 — marked complete at user request; `tsc` + `lint` green, browser acceptance not run)
 
 ---
 

@@ -4,7 +4,23 @@
 **Priority:** MEDIUM
 **Type:** feature
 **Recommended Tier:** balanced
-**Status:** Planned
+**Status:** COMPLETED
+**Completed:** 2026-09-01
+
+---
+
+## Post-Implementation Changes & Fixes (2026-09-01)
+
+1. **2025-01-01 window floor added to the export route** (user-raised: "does the export include dates earlier than Jan 1, 2025?" — it did). `windowsFrom(created_time)` output is now `.filter(w => w.end >= "2025-01-01")` with surviving windows start-clamped to `EXPORT_FLOOR_DATE`. Rationale: 168/228 projects in `projects.json` predate 2025 (earliest `created_time` 2020-08-13); the Hub's existing task/issue time-log data is strictly 2025-01-01 onward (verified — 0 pre-2025 `date` values across `timelogs-*.json` (15,729 rows) and `issue-timelogs-*.json` (2,356 rows), a side effect of the task/issue source files being `since=2025-01-01` filtered). The floor keeps general logs consistent with that coverage.
+2. **Clamp implemented on the date-string, not via `windowsFrom`.** Passing the floor into `windowsFrom()` risked a Dec-2024 leak: that helper does a local-time `cursor.setDate(1)` month-align, so on a non-UTC host `new Date("2025-01-01T00:00:00Z")` aligns back to `2024-12-01`. The string-level `.filter().map()` clamp is timezone-independent — no window's `start_date` can precede `2025-01-01`. Simulated across a 2020, a late-2024, and a 2026 project: earliest emitted `start_date` is `2025-01-01` in every case; 2026 projects untouched; windows stay contiguous (each `end` is the day before the next `start`).
+3. Task doc (Decision #2, File Changes, Implementation Notes, Acceptance Criteria) + `TASKS.md` entry updated to describe the floor.
+
+`npx tsc --noEmit` and `pnpm lint` re-run clean after the change (lint: 2 pre-existing warnings in an unrelated file).
+
+### Still a user hand-off (not blocking completion)
+- **Decision #1 live probe** — confirm the v3 `module: { type: "general" }` (id-less) query returns general logs only, against a `from=0&to=2` slice, before the full export. Documented fallbacks if it doesn't: drop `module` + add `component_type=general`, or the v1 `/restapi/.../projects/{id}/logs/` endpoint.
+- **Full live export + import round-trip** + `external_id` collision diff vs. `timelogs-*.json` / `issue-timelogs-*.json` (Decision #4) + downloaded-file check for zero pre-2025 `date` values.
+Both need an authenticated Zoho session against the live portal — same hand-off pattern as tasks 111/112/170.
 
 ---
 
