@@ -39,6 +39,7 @@ type GeneralTimelogRow = {
   hours: number;
   billable: boolean;
   note: string | null;
+  log_title: string | null;
   source: "manual";
 };
 
@@ -135,7 +136,11 @@ export async function POST() {
             date_logged: dateLogged,
             hours: parseHours(log.log_hour ?? "0:00"),
             billable: log.billing_status === "Billable",
-            note: stripHtml(log.notes ?? log.log_notes ?? null),
+            // Task 348 — a Zoho general time log has no title field; its description IS the
+            // title. Land it in `log_title` (not `note`), matching migration 131's backfill so
+            // the Hub UI shows it in the Log Title column, not doubled into Notes.
+            note: null,
+            log_title: stripHtml(log.notes ?? log.log_notes ?? null),
             source: "manual",
           });
         }

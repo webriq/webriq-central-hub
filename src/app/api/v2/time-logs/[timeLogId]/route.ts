@@ -50,6 +50,9 @@ export async function PATCH(
   const startTime = typeof body.start_time === "string" ? body.start_time : "";
   const endTime = typeof body.end_time === "string" ? body.end_time : "";
   const note = typeof body.note === "string" && body.note.trim() ? body.note.trim() : null;
+  // Task 348 — free-text title for a General Log entry (its own column, separate from `note`).
+  // Forced null below for task-/issue-linked rows.
+  const logTitle = typeof body.log_title === "string" && body.log_title.trim() ? body.log_title.trim() : null;
   // Task 292 — mirrors POST /api/v2/time-logs's duration_hours branch (Add/Edit modal's Duration
   // toggle); see that route for the full rationale.
   const durationHours = typeof body.duration_hours === "number" && Number.isFinite(body.duration_hours) ? body.duration_hours : null;
@@ -57,8 +60,8 @@ export async function PATCH(
   if (taskId && issueId) {
     return NextResponse.json({ error: "An entry can be linked to a task or an issue, not both" }, { status: 400 });
   }
-  if (!taskId && !issueId && !note) {
-    return NextResponse.json({ error: "A General Log entry requires a description" }, { status: 400 });
+  if (!taskId && !issueId && !logTitle) {
+    return NextResponse.json({ error: "A General Log entry requires a title" }, { status: 400 });
   }
   if (!dateLogged) {
     return NextResponse.json({ error: "date_logged is required" }, { status: 400 });
@@ -94,13 +97,14 @@ export async function PATCH(
     end_time: durationHours !== null ? null : endTime,
     hours,
     note,
+    log_title: taskId || issueId ? null : logTitle,
   };
 
   const { data: updated, error } = await supabase
     .from("time_logs")
     .update(patch)
     .eq("id", timeLogId)
-    .select("id, task_id, issue_id, project_id, date_logged, hours, note, source, start_time, end_time, created_at")
+    .select("id, task_id, issue_id, project_id, date_logged, hours, note, log_title, source, start_time, end_time, created_at")
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });

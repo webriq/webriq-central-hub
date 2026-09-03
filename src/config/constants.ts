@@ -40,6 +40,7 @@ export const V2_ROUTES = {
   DASHBOARD_SETTINGS: "/dashboard/settings",
   DASHBOARD_USERS: "/dashboard/users",
   CUSTOMERS_ONBOARD: "/customers/onboard",
+  STACKSHIFT_ORDERS: "/stackshift-orders",
   ORCHESTRATION: "/orchestration",
   ORCHESTRATION_SIMULATE: "/orchestration/simulate",
   KB: "/kb",

@@ -1061,6 +1061,125 @@ export interface Database {
           }
         ];
       };
+      stackshift_orders: {
+        Row: {
+          id: string;
+          status: "pending_review" | "converted" | "dismissed";
+          submitted_at: string | null;
+          contact_name: string | null;
+          company_name: string;
+          website: string | null;
+          business_email: string | null;
+          billing_name: string | null;
+          billing_email: string | null;
+          mobile_phone: string | null;
+          company_address: string | null;
+          services: string[];
+          mapped_classifications: string[];
+          proposal_path: string | null;
+          proposal_filename: string | null;
+          flowforge_spec_path: string | null;
+          flowforge_spec_filename: string | null;
+          approved_by: string | null;
+          approval_date: string | null;
+          terms_accepted: boolean;
+          raw_payload: Json;
+          dedupe_key: string | null;
+          notification_sent_at: string | null;
+          customer_id: string | null;
+          project_id: string | null;
+          is_new_customer: boolean | null;
+          review_notes: string | null;
+          dismiss_reason: string | null;
+          converted_by: string | null;
+          converted_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          status?: "pending_review" | "converted" | "dismissed";
+          submitted_at?: string | null;
+          contact_name?: string | null;
+          company_name: string;
+          website?: string | null;
+          business_email?: string | null;
+          billing_name?: string | null;
+          billing_email?: string | null;
+          mobile_phone?: string | null;
+          company_address?: string | null;
+          services?: string[];
+          mapped_classifications?: string[];
+          proposal_path?: string | null;
+          proposal_filename?: string | null;
+          flowforge_spec_path?: string | null;
+          flowforge_spec_filename?: string | null;
+          approved_by?: string | null;
+          approval_date?: string | null;
+          terms_accepted?: boolean;
+          raw_payload?: Json;
+          dedupe_key?: string | null;
+          notification_sent_at?: string | null;
+          customer_id?: string | null;
+          project_id?: string | null;
+          is_new_customer?: boolean | null;
+          review_notes?: string | null;
+          dismiss_reason?: string | null;
+          converted_by?: string | null;
+          converted_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          status?: "pending_review" | "converted" | "dismissed";
+          submitted_at?: string | null;
+          contact_name?: string | null;
+          company_name?: string;
+          website?: string | null;
+          business_email?: string | null;
+          billing_name?: string | null;
+          billing_email?: string | null;
+          mobile_phone?: string | null;
+          company_address?: string | null;
+          services?: string[];
+          mapped_classifications?: string[];
+          proposal_path?: string | null;
+          proposal_filename?: string | null;
+          flowforge_spec_path?: string | null;
+          flowforge_spec_filename?: string | null;
+          approved_by?: string | null;
+          approval_date?: string | null;
+          terms_accepted?: boolean;
+          raw_payload?: Json;
+          dedupe_key?: string | null;
+          notification_sent_at?: string | null;
+          customer_id?: string | null;
+          project_id?: string | null;
+          is_new_customer?: boolean | null;
+          review_notes?: string | null;
+          dismiss_reason?: string | null;
+          converted_by?: string | null;
+          converted_at?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "stackshift_orders_customer_id_fkey";
+            columns: ["customer_id"];
+            isOneToOne: false;
+            referencedRelation: "customers";
+            referencedColumns: ["customer_id"];
+          },
+          {
+            foreignKeyName: "stackshift_orders_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
       contacts: {
         Row: {
           id: string;
@@ -1676,6 +1795,7 @@ export interface Database {
           hours: number;
           billable: boolean;
           note: string | null;
+          log_title: string | null;
           source: "timer" | "manual";
           timesheet_id: string | null;
           external_id: string | null;
@@ -1696,6 +1816,7 @@ export interface Database {
           hours: number;
           billable?: boolean;
           note?: string | null;
+          log_title?: string | null;
           source?: "timer" | "manual";
           timesheet_id?: string | null;
           external_id?: string | null;
@@ -1716,6 +1837,7 @@ export interface Database {
           hours?: number;
           billable?: boolean;
           note?: string | null;
+          log_title?: string | null;
           source?: "timer" | "manual";
           timesheet_id?: string | null;
           external_id?: string | null;

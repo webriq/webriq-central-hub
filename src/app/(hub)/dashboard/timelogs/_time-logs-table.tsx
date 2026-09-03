@@ -53,7 +53,7 @@ function maxTimeFor(dateStr: string): string | undefined {
 async function patchEntry(
   id: string,
   body: Record<string, unknown>
-): Promise<{ ok: true; data: { hours: number; start_time: string | null; end_time: string | null; date_logged: string; note: string | null } } | { ok: false; error: string }> {
+): Promise<{ ok: true; data: { hours: number; start_time: string | null; end_time: string | null; date_logged: string; note: string | null; log_title: string | null } } | { ok: false; error: string }> {
   const res = await fetch(`/api/v2/time-logs/${id}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
@@ -72,6 +72,7 @@ function basePatchBody(entry: TimeLogEntry) {
     start_time: entry.start_time,
     end_time: entry.end_time,
     note: entry.note,
+    log_title: entry.log_title,
   };
 }
 
@@ -104,7 +105,8 @@ function pickerValueFromEntry(entry: TimeLogEntry): TaskIssueValue {
   if (entry.entry_kind === "issue" && entry.issue_id) {
     return { kind: "issue", id: entry.issue_id, label: entry.log_title, displayId: entry.issue_display_id };
   }
-  return { kind: "general", text: entry.note ?? "" };
+  // Task 348 — a General Log's title lives in `log_title`, not `note`.
+  return { kind: "general", text: entry.log_title ?? "" };
 }
 
 // Inline editor for the Log Title cell — reassigns an entry between task/issue/General Log in
@@ -126,8 +128,10 @@ function LogTitleEditor({
     setSaving(true);
     const taskId = value.kind === "task" ? value.id : null;
     const issueId = value.kind === "issue" ? value.id : null;
-    const note = value.kind === "general" ? value.text.trim() : entry.note;
-    const result = await patchEntry(entry.id, { ...basePatchBody(entry), task_id: taskId, issue_id: issueId, note });
+    // Task 348 — this cell edits the Log Title only: a General Log title goes to `log_title`,
+    // the entry's notes (`note`) are left untouched and edited via the modal instead.
+    const logTitle = value.kind === "general" ? value.text.trim() : null;
+    const result = await patchEntry(entry.id, { ...basePatchBody(entry), task_id: taskId, issue_id: issueId, log_title: logTitle });
     setSaving(false);
     if (result.ok) {
       onSaved({

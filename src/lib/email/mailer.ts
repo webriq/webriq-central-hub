@@ -12,6 +12,10 @@ const transporter = nodemailer.createTransport({
 
 const FROM = process.env.MAIL_FROM ? `WebriQ Central Hub <${process.env.MAIL_FROM}>` : "WebriQ Central Hub <noreply@webriq.com>";
 
+// Shared with other transactional-email modules (e.g. stackshift-order-notification.ts, task
+// 347) so the nodemailer transport + From header are configured in exactly one place.
+export { transporter, FROM };
+
 export async function sendInvitationEmail(to: string, fullName: string, tempPassword: string) {
   await transporter.sendMail({
     from: FROM,

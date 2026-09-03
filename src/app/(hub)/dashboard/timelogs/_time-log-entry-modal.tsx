@@ -31,6 +31,10 @@ import { POPOVER_ROOT_ATTR } from "./_use-popover-position";
 // a failed submit; and Add/Save is gated on full validity (`isValid`) rather than "every required
 // field has some value" (`requiredFilled`, this file's previous task-230 design — see the removed
 // comment this replaces).
+//
+// Task 348 — the General Log free text is a *Log Title* (stored in `time_logs.log_title`), no
+// longer the note. The Notes field now renders for a General Log entry too (previously hidden),
+// and `note` is sent independently as optional rich-text notes for every entry kind.
 
 type TimeMode = "period" | "duration";
 type TouchedField = "project" | "picker" | "date" | "startTime" | "endTime" | "duration";
@@ -43,7 +47,8 @@ function initialPickerValue(initial: TimeLogEntry | undefined): TaskIssueValue |
   if (initial.entry_kind === "issue" && initial.issue_id) {
     return { kind: "issue", id: initial.issue_id, label: initial.log_title, displayId: initial.issue_display_id };
   }
-  return { kind: "general", text: initial.note ?? "" };
+  // Task 348 — a General Log's free text is its title, stored in `log_title` (not `note`).
+  return { kind: "general", text: initial.log_title ?? "" };
 }
 
 // An entry with no start_time/end_time was created in Duration mode (task 292) — reopen it the
@@ -97,7 +102,9 @@ export function TimeLogEntryModal({
   const [duration, setDuration] = useState(() =>
     initial && initialTimeMode(initial) === "duration" ? formatHoursAsHHMM(initial.hours) : ""
   );
-  const [notesHtml, setNotesHtml] = useState(initial && initial.entry_kind !== "general" ? initial.note ?? "" : "");
+  // Task 348 — `note` is now optional rich-text notes for every entry kind, including General
+  // Log (whose title lives in `log_title`), so it seeds from `initial.note` unconditionally.
+  const [notesHtml, setNotesHtml] = useState(initial?.note ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -156,7 +163,7 @@ export function TimeLogEntryModal({
   if (!pickerValue) {
     errors.picker = "Select a task or issue, or enter a general log.";
   } else if (pickerValue.kind === "general" && !pickerValue.text.trim()) {
-    errors.picker = "A description is required for a General Log entry.";
+    errors.picker = "A title is required for a General Log entry.";
   }
   if (!date) errors.date = "Date is required.";
 
@@ -190,7 +197,8 @@ export function TimeLogEntryModal({
     const startIso = timeMode === "period" ? combineDateTime(date, startTime) : null;
     const endIso = timeMode === "period" ? combineDateTime(date, endTime) : null;
     const durationHours = timeMode === "duration" ? parseHHMMToHours(duration) : null;
-    const noteToSend = pickerValue.kind === "general" ? pickerValue.text.trim() : notesHtml || null;
+    const noteToSend = notesHtml || null;
+    const logTitleToSend = pickerValue.kind === "general" ? pickerValue.text.trim() : null;
     const selectedProject = projects.find((p) => p.project_id === projectPublicId);
 
     const body = {
@@ -200,6 +208,7 @@ export function TimeLogEntryModal({
       date_logged: date,
       ...(timeMode === "period" ? { start_time: startIso, end_time: endIso } : { duration_hours: durationHours }),
       note: noteToSend,
+      log_title: logTitleToSend,
     };
 
     const url = initial ? `/api/v2/time-logs/${initial.id}` : "/api/v2/time-logs";
@@ -347,12 +356,13 @@ export function TimeLogEntryModal({
                 )}
               </div>
 
-              {pickerValue?.kind !== "general" && (
-                <div>
-                  <FieldLabel>Notes (optional)</FieldLabel>
-                  <TimeLogNotesEditor content={notesHtml} onChange={setNotesHtml} />
-                </div>
-              )}
+              {/* Task 348 — Notes shows for every entry kind, including General Log: the
+                  General Log free text is a Log Title (the tabbed picker above), separate
+                  from these optional rich-text notes. */}
+              <div>
+                <FieldLabel>Notes (optional)</FieldLabel>
+                <TimeLogNotesEditor content={notesHtml} onChange={setNotesHtml} />
+              </div>
             </>
           )}
 

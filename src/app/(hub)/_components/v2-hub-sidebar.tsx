@@ -7,7 +7,7 @@ import {
   LayoutDashboard, LayoutGrid, Inbox, Cpu, Users,
   Megaphone, BookOpen, Settings, ChevronLeft, ChevronDown,
   Circle, LogOut, Building2,
-  ChartGantt, Clock,
+  ChartGantt, Clock, ClipboardList,
 } from "lucide-react";
 import { V2_ROUTES } from "@/config/constants";
 import { cn } from "@/lib/utils";
@@ -59,6 +59,11 @@ function getNavGroups(role: string | null): NavGroup[] {
           { label: "Contacts", href: V2_ROUTES.DESK_CONTACTS },
         ],
       },
+    ] : []),
+    // StackShift Orders review queue (task 347) — matches the page + API guards: admin /
+    // super_admin / pm only.
+    ...((isAdmin || role === "pm") ? [
+      { label: "Orders", icon: <ClipboardList size={18} />,          href: V2_ROUTES.STACKSHIFT_ORDERS },
     ] : []),
     // Orchestration (task 343) — matches the `/api/assessment|plan|execution|reply|zoho`
     // route guards and the page's own guard: admin / super_admin / pm only.

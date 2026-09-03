@@ -13,8 +13,9 @@ import { createClient } from "@/lib/supabase/server";
 // the sibling per-task route's `resolveOwnerName()` pattern.
 //
 // Task 230 — POST added below (unified, non-nested create: task-linked, issue-linked, or a
-// task-less/issue-less "General Log", storing the free text directly in `note`, per the task
-// doc's Assumption 1/2). GET extended to resolve issue titles/display_id alongside task ones, and
+// task-less/issue-less "General Log"). Task 348 — a General Log's title lives in its own
+// `log_title` column (not `note`); `note` is optional rich-text notes for every entry kind.
+// GET extended to resolve issue titles/display_id alongside task ones, and
 // to surface `project_public_id`/`task_display_id`/`issue_display_id`/`entry_kind`/`log_title` so
 // the table's inline editors and detail-link icon (Requirement 15) don't need a second fetch.
 const VIEW_ALL_ROLES = ["admin", "super_admin", "pm", "hr"];
@@ -29,6 +30,7 @@ type TimeLogRow = {
   date_logged: string;
   hours: number;
   note: string | null;
+  log_title: string | null;
   source: "timer" | "manual";
   owner_name: string | null;
   owner_email: string | null;
@@ -86,7 +88,7 @@ export async function GET(req: NextRequest) {
   for (;;) {
     let q = supabase
       .from("time_logs")
-      .select("id, task_id, issue_id, project_id, employee_id, date_logged, hours, note, source, owner_name, owner_email, start_time, end_time, created_at")
+      .select("id, task_id, issue_id, project_id, employee_id, date_logged, hours, note, log_title, source, owner_name, owner_email, start_time, end_time, created_at")
       .gte("date_logged", from)
       .lte("date_logged", to)
       .order("date_logged", { ascending: false })
@@ -153,7 +155,10 @@ export async function GET(req: NextRequest) {
         ? taskTitles.get(r.task_id!) ?? "Untitled task"
         : entryKind === "issue"
           ? issueTitles.get(r.issue_id!) ?? "Untitled issue"
-          : truncateNote(r.note);
+          : // Task 348 — general entries carry their title in the dedicated `log_title`
+            // column; `truncateNote(r.note)` is the fallback for rows created before that
+            // column existed and never re-saved (migration 131 backfills most of them).
+            r.log_title ?? truncateNote(r.note);
 
     return {
       id: r.id,
@@ -192,7 +197,8 @@ export async function GET(req: NextRequest) {
 // `/api/v2/tasks/[taskId]/time-logs` nested route (still used by the task-detail page's own Time
 // Logs tab, untouched by this task), this route isn't scoped to a single task in the URL — it
 // accepts an optional `task_id` *or* `issue_id` in the body, or neither for a "General Log" entry
-// (free text stored directly in `note`, per the task doc's Assumption 1). `hours` is always
+// (task 348 — its free-text title goes in `log_title`; `note` is optional rich-text notes for any
+// kind). `hours` is always
 // computed server-side from `start_time`/`end_time`, never trusted from the client, matching every
 // other time-log write route in this codebase.
 export async function POST(req: NextRequest) {
@@ -213,6 +219,10 @@ export async function POST(req: NextRequest) {
   const startTime = typeof body.start_time === "string" ? body.start_time : "";
   const endTime = typeof body.end_time === "string" ? body.end_time : "";
   const note = typeof body.note === "string" && body.note.trim() ? body.note.trim() : null;
+  // Task 348 — free-text title for a General Log (task-less/issue-less) entry, stored in its
+  // own `log_title` column so `note` is free to hold optional rich-text notes for any entry
+  // kind. Forced null below for task-/issue-linked rows (their title derives from the work item).
+  const logTitle = typeof body.log_title === "string" && body.log_title.trim() ? body.log_title.trim() : null;
   // Task 292 — manual "duration" entry mode (Add/Edit Time Log modal's Duration toggle): the
   // client sends decimal hours directly instead of a start/end clock pair, so this stays null
   // for those rows (time_logs.start_time/end_time have been nullable since migration 095, and
@@ -224,8 +234,8 @@ export async function POST(req: NextRequest) {
   if (taskId && issueId) {
     return NextResponse.json({ error: "An entry can be linked to a task or an issue, not both" }, { status: 400 });
   }
-  if (!taskId && !issueId && !note) {
-    return NextResponse.json({ error: "A General Log entry requires a description" }, { status: 400 });
+  if (!taskId && !issueId && !logTitle) {
+    return NextResponse.json({ error: "A General Log entry requires a title" }, { status: 400 });
   }
   if (!dateLogged) {
     return NextResponse.json({ error: "date_logged is required" }, { status: 400 });
@@ -263,12 +273,13 @@ export async function POST(req: NextRequest) {
       date_logged: dateLogged,
       hours,
       note,
+      log_title: taskId || issueId ? null : logTitle,
       source: "manual",
       billable: false,
       start_time: durationHours !== null ? null : startTime,
       end_time: durationHours !== null ? null : endTime,
     })
-    .select("id, task_id, issue_id, project_id, date_logged, hours, note, source, start_time, end_time, created_at")
+    .select("id, task_id, issue_id, project_id, date_logged, hours, note, log_title, source, start_time, end_time, created_at")
     .single();
 
   if (error) {
