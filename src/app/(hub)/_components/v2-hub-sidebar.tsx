@@ -156,12 +156,12 @@ export default function V2HubSidebar({ userRole, displayName, avatarUrl }: V2Hub
             title="Expand sidebar"
             aria-label="Expand sidebar"
           >
-            <Image src="/logo.png" alt="W" width={32} height={32} />
+            <Image src="/webriq_logo.webp" alt="WebriQ" width={32} height={32} />
           </button>
         ) : (
           <>
             <div className="flex items-center gap-2.5">
-              <Image src="/logo.png" alt="Logo" width={36} height={36} />
+              <Image src="/webriq_logo.webp" alt="WebriQ" width={36} height={36} />
               <span className="font-heading text-base font-bold tracking-tight whitespace-nowrap">
                 <span className="text-white">WebriQ</span>{" "}
                 <span className="text-brand-orange">Central Hub</span>

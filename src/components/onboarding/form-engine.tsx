@@ -123,7 +123,7 @@ function FormEngineInner({
       {/* Sticky header */}
       <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-200 px-8 h-15 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
-          <Image src="/logo.png" alt="WebriQ" width={44} height={44} className="shrink-0" />
+          <Image src="/webriq_logo.webp" alt="WebriQ" width={44} height={44} className="shrink-0" />
           <div className="flex items-center gap-1.5">
             <span className="text-[15px] font-bold text-slate-900 tracking-[-0.01em]">{schema.productName}</span>
             <span className="text-[15px] text-slate-400 font-normal">/ Client Onboarding</span>

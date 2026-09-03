@@ -40,32 +40,27 @@ function loadImageAsDataUrl(src: string): Promise<LoadedImage> {
   });
 }
 
-// Loaded once per page session and reused across exports — logos never change mid-session.
-let logosPromise: Promise<{ company: LoadedImage; hub: LoadedImage }> | null = null;
-function loadLogos() {
-  logosPromise ??= Promise.all([
-    loadImageAsDataUrl("/company_logo.webp"),
-    loadImageAsDataUrl("/logo.png"),
-  ]).then(([company, hub]) => ({ company, hub }));
-  return logosPromise;
+// Loaded once per page session and reused across exports — the logo never changes mid-session.
+let logoPromise: Promise<LoadedImage> | null = null;
+function loadLogo() {
+  logoPromise ??= loadImageAsDataUrl("/webriq_logo.webp");
+  return logoPromise;
 }
 
 // Repeating page header (task 227 point 9) — drawn via autoTable's `didDrawPage`, which fires for
 // every page a table spans (including pages autoTable adds itself on overflow), so this reliably
 // repeats without the caller tracking which pages exist.
-function drawPageHeader(doc: jsPDF, logos: { company: LoadedImage; hub: LoadedImage }, exportedOnLabel: string) {
+function drawPageHeader(doc: jsPDF, logo: LoadedImage, exportedOnLabel: string) {
   const logoTop = 8;
   const logoHeight = 12;
-  const companyWidth = logoHeight * (logos.company.width / logos.company.height);
-  const hubWidth = logoHeight * (logos.hub.width / logos.hub.height);
+  const logoWidth = logoHeight * (logo.width / logo.height);
 
-  doc.addImage(logos.company.dataUrl, "PNG", MARGIN_X, logoTop, companyWidth, logoHeight);
-  doc.addImage(logos.hub.dataUrl, "PNG", MARGIN_X + companyWidth + 3, logoTop, hubWidth, logoHeight);
+  doc.addImage(logo.dataUrl, "PNG", MARGIN_X, logoTop, logoWidth, logoHeight);
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9);
   doc.setTextColor(11, 21, 51);
-  doc.text("WebriQ Central Hub", MARGIN_X + companyWidth + hubWidth + 8, logoTop + logoHeight / 2 + 3);
+  doc.text("WebriQ Central Hub", MARGIN_X + logoWidth + 8, logoTop + logoHeight / 2 + 3);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
@@ -151,7 +146,7 @@ export async function exportTimeLogsToPdf(
   meta: { period: PeriodValue; projectName: string | null }
 ) {
   const doc = new jsPDF({ orientation: "landscape" });
-  const logos = await loadLogos();
+  const logo = await loadLogo();
   const exportedOnLabel = `${formatDate(new Date())} ${new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}`;
 
   const showDateColumn = meta.period.mode !== "day";
@@ -217,7 +212,7 @@ export async function exportTimeLogsToPdf(
           data.cell.styles.fontStyle = "bold";
         }
       },
-      didDrawPage: () => drawPageHeader(doc, logos, exportedOnLabel),
+      didDrawPage: () => drawPageHeader(doc, logo, exportedOnLabel),
     });
 
     cursorY = (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? cursorY;

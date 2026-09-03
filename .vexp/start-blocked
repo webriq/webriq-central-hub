@@ -1,0 +1,3 @@
+vexp: concurrent-workspace cap reached (2 live daemons; plan 'free' allows 1).
+Live workspaces: /Users/brandondwite/Desktop/Projects/Clients/Belmont Studio D2C & B2B App/repo/stackshift-belmontstudio2025-bbyf
+Stop one with `vexp stop <workspace>`, or for fleet/automated use the SDK line has no cap: https://vexp.dev/sdk

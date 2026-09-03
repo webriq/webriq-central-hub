@@ -81,7 +81,7 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Static files under public/ (e.g. /assets/team-work.lottie, /logo.png, /company_logo.webp)
+    // Static files under public/ (e.g. /assets/team-work.lottie, /webriq_logo.webp)
     // must never hit the proxy: when a hub-gate cookie (mfa_pending, change_password_required)
     // is set, the isHubRoute redirect above would hijack the asset request and return the
     // redirected page's HTML instead of the file — e.g. corrupting the auth-verify Lottie fetch.

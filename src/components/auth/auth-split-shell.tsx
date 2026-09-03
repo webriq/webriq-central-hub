@@ -63,7 +63,7 @@ export function AuthSplitShell({ title, subtitle, headingIcon, children }: AuthS
             <div className="absolute -top-24 -right-16 h-64 w-64 rounded-full bg-auth-blue/25 blur-3xl pointer-events-none" />
             <div className="absolute -bottom-20 -left-10 h-56 w-56 rounded-full bg-auth-navy blur-3xl pointer-events-none" />
             <Link href="/" className="relative z-10 -ml-1.5 inline-flex items-center gap-2 font-semibold tracking-tight">
-              <Image src="/logo.png" alt="WebriQ" width={36} height={36} className="h-9 w-9 object-contain" />
+              <Image src="/webriq_logo.webp" alt="WebriQ" width={36} height={36} className="h-9 w-9 object-contain" />
               <span className="text-base font-heading">WebriQ <span className="text-auth-blue">Central Hub</span></span>
             </Link>
             <div className="relative z-10 mt-8 space-y-2">
@@ -86,7 +86,7 @@ export function AuthSplitShell({ title, subtitle, headingIcon, children }: AuthS
             {/* Desktop heading */}
             <div className="hidden lg:block mb-8 space-y-6">
               <Link href="/" className="-ml-1.5 inline-flex items-center gap-2.5 font-semibold tracking-tight text-foreground">
-                <Image src="/logo.png" alt="WebriQ" width={36} height={36} className="h-9 w-9 object-contain" />
+                <Image src="/webriq_logo.webp" alt="WebriQ" width={36} height={36} className="h-9 w-9 object-contain" />
                 <span className="text-base font-heading">WebriQ <span className="text-auth-blue">Central Hub</span></span>
               </Link>
               <div className="space-y-2">
