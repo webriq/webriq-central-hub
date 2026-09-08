@@ -9,7 +9,7 @@ import { getCurrentProgrammeDay, getPhaseByNumber } from "@/config/customer-phas
 import { AssetRow, AssetFolder, DeliverableRow, InternalDeliverableRow, StaffPerson, WizardV2Project, WizardTabKey } from "./_wizard-v2-types";
 import { textPrimary, textMuted, cardCls } from "./_shared-ui";
 import { WorkspaceHeader } from "./_workspace-header";
-import { uploadFileWithProgress } from "./_upload-queue";
+import { uploadViaSignedUrl } from "./_upload-queue";
 import { BusinessInfoTab } from "./_business-info-tab";
 import { FilesTab } from "./_files-tab";
 import { AccessTab } from "./_access-tab";
@@ -167,10 +167,7 @@ export default function OnboardingWizardV2({
   };
 
   const handleUpload = async (file: File, folderId: string, onProgress?: (pct: number) => void) => {
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("project_id", project.id);
-    const uploaded = await uploadFileWithProgress(`/api/customers/${project.customer_id}/assets/upload`, formData, onProgress);
+    const uploaded = await uploadViaSignedUrl(`/api/customers/${project.customer_id}/assets/upload/sign`, file, project.id, onProgress);
     const assetRes = await fetch(`/api/customers/${project.customer_id}/assets`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { FilesTab as FilesTabPresentational } from "@/app/(hub)/projects/v2/[projectId]/onboarding-workspace/_files-tab";
-import { uploadFileWithProgress } from "@/app/(hub)/projects/v2/[projectId]/onboarding-workspace/_upload-queue";
+import { uploadViaSignedUrl } from "@/app/(hub)/projects/v2/[projectId]/onboarding-workspace/_upload-queue";
 import type { AssetRow, AssetFolder, StaffPerson } from "@/app/(hub)/projects/v2/[projectId]/onboarding-workspace/_wizard-v2-types";
 
 // Task 276 — Files tab, shared by both the legacy and v2 project-detail routes. Thin
@@ -54,10 +54,7 @@ export function FilesTab({
   }, [customerId, projectId]);
 
   async function handleUpload(file: File, folderId: string, onProgress?: (pct: number) => void) {
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("project_id", projectId);
-    const uploaded = await uploadFileWithProgress(`/api/customers/${customerId}/assets/upload`, formData, onProgress);
+    const uploaded = await uploadViaSignedUrl(`/api/customers/${customerId}/assets/upload/sign`, file, projectId, onProgress);
     const assetRes = await fetch(`/api/customers/${customerId}/assets`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },

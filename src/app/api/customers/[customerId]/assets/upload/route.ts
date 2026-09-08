@@ -1,28 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
+import { ALLOWED_MIME_TYPES, MAX_FILE_SIZE, buildCustomerAssetPath } from "@/lib/uploads/customer-asset-storage";
 
-const ALLOWED_MIME_TYPES = [
-  "image/jpeg",
-  "image/png",
-  "image/gif",
-  "image/webp",
-  "image/svg+xml",
-  "application/pdf",
-  "application/msword",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  "application/vnd.ms-excel",
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  // HTML mockups / MD source content / plain-text access notes — Bert's onboarding wizard
-  // (task 122) explicitly uploads these alongside branding/document files.
-  "text/html",
-  "text/markdown",
-  "text/plain",
-  "text/csv",
-];
-
-const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB — matches the customer-assets bucket's file_size_limit
-
+// PREFER `POST ./sign` (task 350): it mints a signed upload URL so the browser PUTs the bytes
+// straight to Storage, avoiding Vercel's ~4.5 MB Route Handler body cap that 413s this multipart
+// route in production. This handler is kept for the legacy v2 onboarding wizard
+// (`src/app/(hub)/projects/v2/[projectId]/_onboarding-wizard.tsx`), which still posts multipart
+// from its own inline helper — migrating it is a documented follow-up.
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ customerId: string }> }
@@ -59,17 +44,10 @@ export async function POST(
       );
     }
 
-    const timestamp = Date.now();
-    const safeFilename = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-    // Nested under project_id when the caller has a project context (e.g. the onboarding
-    // wizard) so files are actually separated per-project in the bucket, not just in the
-    // customer_assets DB row's project_id column. Falls back to the flat customer-level
-    // path when absent (e.g. the Customers -> Assets tab's non-project-scoped uploads) —
-    // fully backward compatible, existing stored file_path values are read as-is regardless
-    // of shape.
-    const storagePath = projectId
-      ? `${customerId}/${projectId}/${timestamp}_${safeFilename}`
-      : `${customerId}/${timestamp}_${safeFilename}`;
+    // Server-generated path (shared with ./sign) — nested under project_id when the caller has a
+    // project context so files are separated per-project in the bucket, flat customer-level path
+    // otherwise. Existing stored file_path values are read as-is regardless of shape.
+    const storagePath = buildCustomerAssetPath({ customerId, projectId, filename: file.name });
 
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);

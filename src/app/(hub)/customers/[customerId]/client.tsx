@@ -11,6 +11,7 @@ import type { CustomerRow, CustomerProductRow, ProjectRow, Database } from "@/ty
 import type { ProductName } from "@/types/hub";
 import { getIncompleteSections, getOnboardingSchema, computeCompletionPercentage } from "@/config/onboarding-schemas";
 import { V2_ROUTES } from "@/config/constants";
+import { uploadViaSignedUrl } from "@/app/(hub)/projects/v2/[projectId]/onboarding-workspace/_upload-queue";
 import ProgrammeTab from "./_programme-tab";
 
 type ClassificationRow = Database["public"]["Tables"]["classification_records"]["Row"];
@@ -94,8 +95,8 @@ const ASSET_TYPE_CLS_DARK: Record<AssetRow["type"], string> = {
 const assetTypeCls = (type: AssetRow["type"], isDark: boolean) =>
   (isDark ? ASSET_TYPE_CLS_DARK : ASSET_TYPE_CLS_LIGHT)[type];
 
-// Matches the upload route's MIME allowlist + customer-assets bucket limit
-// (src/app/api/customers/[customerId]/assets/upload/route.ts).
+// Matches the customer-asset MIME allowlist + 25MB bucket limit
+// (src/lib/uploads/customer-asset-storage.ts).
 const ASSET_TYPE_HELP: Record<AssetRow["type"], string> = {
   link: "e.g. staging URL, admin dashboard, documentation page.",
   file: "Accepted: images, PDF, Word docs, Excel spreadsheets, HTML, Markdown, plain text — up to 25MB.",
@@ -692,17 +693,9 @@ export default function CustomerProfileClient({ customer, zohoPortalName }: Cust
 
       if (addAssetForm.type === "file") {
         if (!addAssetFile) throw new Error("Please choose a file");
-        const formData = new FormData();
-        formData.append("file", addAssetFile);
-        const uploadRes = await fetch(`/api/customers/${customer.customer_id}/assets/upload`, {
-          method: "POST",
-          body: formData,
-        });
-        if (!uploadRes.ok) {
-          const json = await uploadRes.json().catch(() => ({}));
-          throw new Error(json.error ?? "Failed to upload file");
-        }
-        const uploaded = await uploadRes.json();
+        // Task 350 — browser-direct upload to Storage (no project context on this tab, so the
+        // file lands under the flat customer-level path). No progress bar here.
+        const uploaded = await uploadViaSignedUrl(`/api/customers/${customer.customer_id}/assets/upload/sign`, addAssetFile);
         filePayload = {
           file_path: uploaded.path,
           file_name: uploaded.filename,

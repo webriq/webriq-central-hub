@@ -44,6 +44,60 @@ export function uploadFileWithProgress(
   });
 }
 
+// Task 350 — browser-direct upload to the `customer-assets` Storage bucket. Replaces the
+// multipart `uploadFileWithProgress` POST above for the Files-tab / asset upload path: the file
+// bytes no longer transit a Next route handler, so Vercel's ~4.5 MB request-body cap (which
+// 413'd anything larger, e.g. a ~5 MB image) no longer applies.
+//   1. POST { filename, size, mimeType, project_id? } to the sign URL -> { path, signedUrl }
+//   2. XHR PUT the File straight to signedUrl (raw XHR so the progress bar still works)
+//   3. resolve the same { path, filename, size, mimeType } shape `uploadFileWithProgress`
+//      returned, so callers swap one line and their existing `POST /assets` register call
+//      (which varies per caller — label, phase, folder, post-processing) is untouched.
+// `uploadFileWithProgress` is kept — the legacy v2 onboarding wizard still uses the multipart route.
+export async function uploadViaSignedUrl(
+  signUrl: string,
+  file: File,
+  projectId?: string | null,
+  onProgress?: (pct: number) => void
+): Promise<{ path: string; filename: string; size: number; mimeType: string }> {
+  const mimeType = file.type || "application/octet-stream";
+
+  const signRes = await fetch(signUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ filename: file.name, size: file.size, mimeType, project_id: projectId ?? null }),
+  });
+  if (!signRes.ok) {
+    let message = `Upload failed (${signRes.status})`;
+    try {
+      const body = await signRes.json();
+      if (body?.error) message = body.error;
+    } catch {
+      /* non-JSON error body — keep the generic message */
+    }
+    throw new Error(message);
+  }
+  const { path, signedUrl } = (await signRes.json()) as { path: string; signedUrl: string };
+
+  await new Promise<void>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", signedUrl);
+    xhr.setRequestHeader("x-upsert", "false");
+    xhr.setRequestHeader("content-type", mimeType);
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable && onProgress) onProgress(Math.round((e.loaded / e.total) * 100));
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) resolve();
+      else reject(new Error(`Upload failed (${xhr.status})`));
+    };
+    xhr.onerror = () => reject(new Error("Connection lost — check your network and retry"));
+    xhr.send(file);
+  });
+
+  return { path, filename: file.name, size: file.size, mimeType };
+}
+
 // Queue-item state as a hook (not baked into a single component) so _files-tab.tsx can enqueue
 // from multiple entry points — the drag zone, a folder-tile drop, the file-input picker — without
 // duplicating progress/retry bookkeeping at each call site.
