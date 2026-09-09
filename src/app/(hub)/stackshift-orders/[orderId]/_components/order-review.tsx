@@ -8,7 +8,7 @@ import { cn, formatDate } from "@/lib/utils";
 import { V2_ROUTES } from "@/config/constants";
 import type { CustomerMatch } from "@/lib/stackshift-orders/match-customer";
 import type { Database } from "@/types/database";
-import { Section, Field, FileRow, StatusPill, ERROR_BOX_CLASS } from "./_order-ui";
+import { Section, Field, FileRow, StatusPill, ContactRiskPill, ERROR_BOX_CLASS } from "./_order-ui";
 import ConvertPanel from "./_convert-panel";
 
 type OrderRow = Database["public"]["Tables"]["stackshift_orders"]["Row"];
@@ -69,10 +69,22 @@ export default function OrderReview({ order }: { order: OrderDetail }) {
             Submitted {formatDate(order.submitted_at ?? order.created_at)}
           </p>
         </div>
-        <StatusPill status={order.status} />
+        <div className="flex flex-col items-end gap-1.5">
+          <StatusPill status={order.status} />
+          <ContactRiskPill risk={order.contact_risk} />
+        </div>
       </div>
 
       {fileError && <div className={cn("mb-4", ERROR_BOX_CLASS)}>{fileError}</div>}
+
+      {(order.contact_risk === "medium" || order.contact_risk === "high") && order.status === "pending_review" && (
+        <div className="mb-4 rounded-[10px] border border-[#F0D9A8] bg-[#FFF9EC] px-4 py-2.5 text-[12px] text-[#8A5A00]">
+          The submitter&rsquo;s contact email/phone was flagged by validation
+          {order.contact_risk === "high" ? " as high risk" : " for review"} on webriq.com. Double-check{" "}
+          <span className="font-medium">{order.business_email}</span>
+          {order.mobile_phone ? <> / <span className="font-medium">{order.mobile_phone}</span></> : null} before converting.
+        </div>
+      )}
 
       <div className="grid gap-4">
         <Section title="Customer information">

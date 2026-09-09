@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-  ClipboardList, Search, X, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
+  ClipboardList, Search, X, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, AlertTriangle,
 } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
 import { V2_ROUTES } from "@/config/constants";
@@ -22,6 +22,7 @@ export type OrderListItem = {
   submitted_at: string | null;
   customer_id: string | null;
   project_id: string | null;
+  contact_risk: "low" | "medium" | "high" | null;
 };
 
 export type PaginationMeta = { page: number; pageSize: number; total: number };
@@ -183,7 +184,20 @@ export default function OrdersTable({
                 className="w-full text-left grid grid-cols-[1.3fr_1.2fr_1.4fr_120px] items-center gap-3 px-5 py-3 border-b border-[#EDF0F7] last:border-0 hover:bg-[#F0F7FF] transition-colors group cursor-pointer"
               >
                 <div className="min-w-0">
-                  <div className="text-[13px] font-medium text-[#0B1533] truncate group-hover:text-[#007BFF]">{o.company_name}</div>
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="text-[13px] font-medium text-[#0B1533] truncate group-hover:text-[#007BFF]">{o.company_name}</span>
+                    {(o.contact_risk === "medium" || o.contact_risk === "high") && (
+                      <span
+                        title={o.contact_risk === "high" ? "Contact email/phone flagged high risk" : "Contact email/phone flagged for review"}
+                        className={cn(
+                          "inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10.5px] font-semibold shrink-0",
+                          o.contact_risk === "high" ? "bg-[#FDECEC] text-[#9B2C2C]" : "bg-[#FFF3D6] text-[#8A5A00]"
+                        )}
+                      >
+                        <AlertTriangle size={10} /> Contact
+                      </span>
+                    )}
+                  </div>
                   {o.mapped_classifications.length > 0 && (
                     <div className="text-[11px] text-[#5F6A88] truncate">{o.mapped_classifications.join(", ")}</div>
                   )}

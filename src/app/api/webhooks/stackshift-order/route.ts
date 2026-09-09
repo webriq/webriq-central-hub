@@ -88,6 +88,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Failed to record submission" }, { status: 500 });
   }
 
+  // Task 353 — surface the contact-validation flag for the reviewer. Best-effort and done as
+  // a separate update so a pre-migration-134 DB (no `contact_risk` column) never fails the
+  // relay — `raw_payload` carries `contactRisk` regardless.
+  if (p.contactRisk && p.contactRisk !== "low") {
+    const { error: riskErr } = await adminClient
+      .from("stackshift_orders")
+      .update({ contact_risk: p.contactRisk })
+      .eq("id", order.id);
+    if (riskErr) console.warn("[stackshift-order] contact_risk not stored:", riskErr.message);
+  }
+
   // Notification is best-effort — never fail the request over email.
   try {
     const recipients = await getOrderNotificationRecipients();

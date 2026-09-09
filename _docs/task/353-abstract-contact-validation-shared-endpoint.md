@@ -588,6 +588,52 @@ free tier actually returns.
 
 ---
 
+## Follow-up — StackShift order `contact_risk` surfacing (2026-09-09)
+
+The webriq.com form that consumes this endpoint is the **StackShift Order Form**,
+which already has a server-side proxy (task 347) relaying to
+`POST /api/webhooks/stackshift-order`. The proxy now runs the validation check
+before relaying: a blocked (`allowed:false`) submission never reaches the webhook;
+a borderline one is relayed with `contactRisk:"medium"` in the payload. Added the
+Hub landing spot + reviewer surfacing for that flag:
+
+- **`supabase/migrations/134_stackshift_orders_contact_risk.sql`** — adds
+  `stackshift_orders.contact_risk text check (contact_risk in ('low','medium','high'))`,
+  nullable. **Written, not applied** (StackShift-migration convention).
+- **`src/lib/stackshift-orders/schema.ts`** — `orderIntakeSchema` gains
+  `contactRisk: z.enum(["low","medium","high"]).optional().nullable()`.
+- **`src/app/api/webhooks/stackshift-order/route.ts`** — after the main insert, a
+  **best-effort `update({ contact_risk })`** wrapped so a missing column
+  (pre-migration-134) only `console.warn`s — the relay never fails, and
+  `raw_payload` carries `contactRisk` regardless. Only runs when
+  `contactRisk` is `"medium"`/`"high"`.
+- **`src/types/database.ts`** — `contact_risk` on `stackshift_orders` Row/Insert/Update.
+- **`/stackshift-orders` list** (`orders-table.tsx` + `page.tsx` select) — amber
+  `AlertTriangle` "Contact" pill next to the company name for `medium`/`high`.
+- **`/stackshift-orders/[orderId]`** (`order-review.tsx` + `_order-ui.tsx`) — new
+  `ContactRiskPill` in the header beside `StatusPill`, plus an amber warning
+  banner naming the flagged email/phone on `pending_review` orders.
+
+**Deploy order matters:** apply migration 134 + deploy the Hub *before* webriq.com
+starts sending `contactRisk`. If webriq.com sends it first, the value still lands
+in `raw_payload` and the `update` just warns — no data loss, no failed relays,
+just no badge until the migration lands (no re-relay happens, so those early
+flagged orders won't backfill a badge — acceptable for a short deploy window).
+
+**Design-hook note:** the `impeccable` hook flags `text-[Npx]` literals across the
+touched StackShift files. Those are task 347's shipped convention (CLAUDE.md's "UI
+Polish Conventions" explicitly keeps the hand-rolled `text-[10-11px]` pill
+pattern and says *not* to refactor existing files to a generic ramp). New markup
+matches its immediate siblings (`ContactRiskPill` = `StatusPill`'s `text-[11px]`;
+list pill = the services pill's `text-[10.5px]`; banner = `ERROR_BOX_CLASS`'s
+`text-[12px]`). Left as-is intentionally.
+
+Verification: `npx tsc --noEmit` PASS, `pnpm lint` PASS (2 pre-existing unrelated
+warnings). Browser check of the pill/banner NOT run (needs migration 134 + a
+flagged order).
+
+---
+
 ## Quality Gate Notes
 
 ### Result

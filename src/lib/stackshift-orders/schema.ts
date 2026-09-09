@@ -49,6 +49,10 @@ export const orderIntakeSchema = z.object({
     approvalDate: z.string().min(1).max(32),
     termsAccepted: z.literal(true),
   }),
+  // Task 353 — highest riskLevel the webriq.com proxy got back from POST /api/public/validate
+  // for the contact email/phone. "high" means the proxy should have blocked the submission, so
+  // in practice only "low"/"medium" arrive; absent = the check was skipped or came back clean.
+  contactRisk: z.enum(["low", "medium", "high"]).optional().nullable(),
 });
 export type OrderIntake = z.infer<typeof orderIntakeSchema>;
 

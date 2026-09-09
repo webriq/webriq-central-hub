@@ -1,4 +1,4 @@
-import { Building2, CheckCircle2, Download, FileText, XCircle } from "lucide-react";
+import { AlertTriangle, Building2, CheckCircle2, Download, FileText, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Shared presentational pieces for the StackShift order review page (task 347).
@@ -61,6 +61,23 @@ export function StatusPill({ status }: { status: string }) {
   return (
     <span className={cn("inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold shrink-0", s.cls)}>
       {s.icon} {s.label}
+    </span>
+  );
+}
+
+// Task 353 — contact-validation flag from the webriq.com proxy (POST /api/public/validate).
+// Only "medium"/"high" render; "high" shouldn't occur (the proxy blocks before relaying).
+export function ContactRiskPill({ risk }: { risk: string | null }) {
+  if (risk !== "medium" && risk !== "high") return null;
+  const isHigh = risk === "high";
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold shrink-0",
+        isHigh ? "bg-[#FDECEC] text-[#9B2C2C]" : "bg-[#FFF3D6] text-[#8A5A00]"
+      )}
+    >
+      <AlertTriangle size={12} /> Contact {isHigh ? "high risk" : "flagged"}
     </span>
   );
 }
