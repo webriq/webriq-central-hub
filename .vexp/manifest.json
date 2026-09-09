@@ -483,13 +483,31 @@
     "supabase/migrations/089_task_issue_display_id.sql": "8edab4674de9e6fcfda54cd97f0dfeb79cc7eea1c8174bb2d296c14fd0422645",
     "worker/index.ts": "83350712449db3ec76c4015cedb2bad5dfd0d0ccd91509ee9a6f09ee4f66f9cc"
   },
-  "indexed_at_commit": "986007d050a6cb2b02dcaab3c393e6ee1c6f63d7",
-  "indexed_at_timestamp": "2026-09-03T11:26:36.001220+00:00",
+  "indexed_at_commit": "720ce7e9197f11b383d9f56ce0979edad6f5d9fc",
+  "indexed_at_timestamp": "2026-09-09T09:01:50.328234+00:00",
+  "languages": {
+    "javascript": {
+      "calls": 123,
+      "nodes": 99
+    },
+    "markdown": {
+      "calls": 0,
+      "nodes": 565
+    },
+    "sql": {
+      "calls": 2,
+      "nodes": 116
+    },
+    "typescript": {
+      "calls": 1074,
+      "nodes": 1220
+    }
+  },
   "schema_version": 3,
   "stats": {
     "total_edges": 2488,
     "total_files": 482,
     "total_nodes": 2000
   },
-  "vexp_version": "3.1.0"
+  "vexp_version": "3.1.2"
 }

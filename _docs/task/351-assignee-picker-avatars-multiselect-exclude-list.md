@@ -392,6 +392,16 @@ Apply migration 132 in the Supabase SQL editor before the multi-assignee accepta
 - **`SearchableSelect` reverted** to its pre-351 state — the per-option `avatar` / `OptionAvatar` / `SelectOptionAvatar` additions were removed (only the assignee field used them, and it no longer uses `SearchableSelect`). Milestone / Tasklist keep their unchanged "Unassigned"-style clear row.
 - Files touched in this pass: `_assignee-multi-select.tsx` (+`variant`), `_searchable-select.tsx` (revert), `_create-task-modal.tsx`, `_create-issue-modal.tsx`. `npx tsc --noEmit` + `pnpm lint` re-run PASS.
 
+### Post-review fix 2 (user request, 2026-09-09) — popover flips above the trigger on FIRST open
+
+> "The select assignee field places the selection below on first click even when it already overlaps the edge of the screen … it should be placed on top already if it exceeds the screen, not just on the second click. Apply this to the task/issue listing as well."
+
+Root cause: the popover `<div ref={panelRef}>` was gated `{open && pos && createPortal(...)}`, so on the first open the panel was not in the DOM when `usePopoverPosition` first measured it — `offsetHeight` read as `0`, the flip-above check was skipped, and it only self-corrected on the second open (when `pos` retained its previous value and the panel mounted immediately). Same bug `_datetime-field-picker.tsx` already hit and fixed in task 338.
+
+Fix — mirror the datetime-picker pattern in both popovers: render the portal as soon as `open` (drop the `&& pos` gate), position from `pos?.*`, and keep it `visibility: hidden` for the one frame until `pos` resolves. Now `usePopoverPosition` measures the real panel on the first open and flips it above when it would overflow the viewport bottom. `_assignee-multi-select.tsx` covers both the New Task / New Issue `variant="field"` fields **and** the Tasks/Issues listing cells (one component); `_searchable-select.tsx` gets the same fix for the New Task modal's Milestone / Tasklist fields.
+
+Files: `_assignee-multi-select.tsx`, `_searchable-select.tsx`. `npx tsc --noEmit` + `pnpm lint` PASS.
+
 ## Quality Gate Notes
 
 ### Result

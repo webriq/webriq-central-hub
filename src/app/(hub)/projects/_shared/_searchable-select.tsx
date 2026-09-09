@@ -111,11 +111,23 @@ export function SearchableSelect({
         <ChevronDown size={13} className={cn("shrink-0 text-[#5F6A88] transition-transform", open && "rotate-180")} />
       </button>
 
-      {open && pos && createPortal(
+      {open && createPortal(
         <div
           ref={panelRef}
           {...{ [POPOVER_ROOT_ATTR]: true }}
-          style={{ position: "fixed", top: pos.top, bottom: pos.bottom, left: pos.left, width: pos.width }}
+          // Rendered as soon as `open` (not gated on `pos`) so `usePopoverPosition` measures the
+          // real panel on the FIRST open and can flip it above the trigger when it would overflow
+          // the viewport bottom — otherwise the panel wasn't in the DOM at first measure (height
+          // 0, flip skipped) and only corrected on the second open. Invisible for the one frame
+          // before `pos` resolves. (Same fix as `_datetime-field-picker.tsx`, task 338.)
+          style={{
+            position: "fixed",
+            top: pos?.top,
+            bottom: pos?.bottom,
+            left: pos?.left,
+            width: pos?.width,
+            visibility: pos ? undefined : "hidden",
+          }}
           className="z-[60] overflow-hidden rounded-lg border border-[#E2E7F2] bg-white shadow-[0_8px_24px_rgba(7,17,51,0.10)]"
         >
           <div className="border-b border-[#EDF0F7] p-2">

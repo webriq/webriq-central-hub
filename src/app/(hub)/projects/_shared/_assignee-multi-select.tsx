@@ -230,11 +230,24 @@ export function AssigneeMultiSelect({
         )}
       </span>
 
-      {open && pos && createPortal(
+      {open && createPortal(
         <div
           ref={panelRef}
           {...{ [POPOVER_ROOT_ATTR]: true }}
-          style={{ position: "fixed", top: pos.top, bottom: pos.bottom, left: pos.left, width: pos.width }}
+          // Rendered as soon as `open` (not gated on `pos`) so `usePopoverPosition` measures the
+          // real panel on the FIRST open and can flip it above the trigger when it would overflow
+          // the viewport bottom. Gating on `pos` left the panel out of the DOM at first measure —
+          // height read as 0, flip skipped — so it only corrected on the second open. Kept
+          // invisible for the one frame before `pos` resolves so there's no top-left flash.
+          // (Same fix as `_datetime-field-picker.tsx`, task 338.)
+          style={{
+            position: "fixed",
+            top: pos?.top,
+            bottom: pos?.bottom,
+            left: pos?.left,
+            width: pos?.width,
+            visibility: pos ? undefined : "hidden",
+          }}
           className="z-[60] flex flex-col overflow-hidden rounded-[10px] border border-[#E2E7F2] bg-white shadow-[0_8px_24px_rgba(7,17,51,0.10)]"
         >
           <div className="px-3 py-2.5 border-b border-[#EDF0F7]">
