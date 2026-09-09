@@ -3277,6 +3277,83 @@ export interface Database {
         };
         Relationships: [];
       };
+      validation_cache: {
+        Row: {
+          id: string;
+          kind: "email" | "phone";
+          value_hash: string;
+          normalized_value: string | null;
+          result: Record<string, unknown>;
+          expires_at: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          kind: "email" | "phone";
+          value_hash: string;
+          normalized_value?: string | null;
+          result: Record<string, unknown>;
+          expires_at: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          kind?: "email" | "phone";
+          value_hash?: string;
+          normalized_value?: string | null;
+          result?: Record<string, unknown>;
+          expires_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      validation_logs: {
+        Row: {
+          id: string;
+          kind: "email" | "phone";
+          value_hash: string;
+          allowed: boolean;
+          risk_level: "low" | "medium" | "high" | "unknown";
+          risk_score: number | null;
+          reason_code: string;
+          degraded: boolean;
+          cache_hit: boolean;
+          abstract_calls: Record<string, unknown>;
+          source: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          kind: "email" | "phone";
+          value_hash: string;
+          allowed: boolean;
+          risk_level: "low" | "medium" | "high" | "unknown";
+          risk_score?: number | null;
+          reason_code: string;
+          degraded?: boolean;
+          cache_hit?: boolean;
+          abstract_calls?: Record<string, unknown>;
+          source?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          kind?: "email" | "phone";
+          value_hash?: string;
+          allowed?: boolean;
+          risk_level?: "low" | "medium" | "high" | "unknown";
+          risk_score?: number | null;
+          reason_code?: string;
+          degraded?: boolean;
+          cache_hit?: boolean;
+          abstract_calls?: Record<string, unknown>;
+          source?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       kb_entries: {
         Row: {
           id: string;
