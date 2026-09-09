@@ -109,7 +109,6 @@ export function CreateIssueModal({
     setError(null);
     const toastId = toast.loading("Creating issue…");
 
-    const assignee = allMembers.find((m) => m.id === assigneeId);
     const { date: dueDate, time: dueTime } = splitDateTimeValue(dueValue);
     const res = await fetch(`/api/v2/projects/${projectId}/issues`, {
       method: "POST",
@@ -119,7 +118,9 @@ export function CreateIssueModal({
         description: description.trim() || undefined,
         status,
         severity,
-        assignee_name: assignee?.full_name || undefined,
+        // Task 351 — issues are now multi-assignee (`issues.assignees`); the API derives the
+        // synced scalar `assignee_id`/`assignee_name` columns from this array.
+        assignees: assigneeId ? [assigneeId] : undefined,
         due_date: dueDate || undefined,
         due_time: dueTime || undefined,
         notes: notes.trim() || undefined,
@@ -247,7 +248,11 @@ export function CreateIssueModal({
                     <SearchableSelect
                       value={assigneeId}
                       onChange={setAssigneeId}
-                      options={allMembers.map((m) => ({ value: m.id, label: m.full_name ?? "Unknown" }))}
+                      options={allMembers.map((m) => ({
+                        value: m.id,
+                        label: m.full_name ?? "Unknown",
+                        avatar: { url: m.avatar_url, name: m.full_name },
+                      }))}
                       placeholder="Unassigned"
                       searchPlaceholder="Search members…"
                     />

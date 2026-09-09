@@ -1,4 +1,5 @@
 import type { Task, Issue } from "@/app/(hub)/projects-old/_pm-shared";
+import { issueAssigneeIds } from "@/lib/issues/permissions";
 import type { FilterOption } from "./_list-toolbar-controls";
 
 // Task 346 — pure helpers backing the Assignee filter on the Tasks and Issues toolbars.
@@ -68,12 +69,16 @@ export function issueMatchesAssigneeFilter(
   allSelected: boolean,
 ): boolean {
   if (allSelected) return true;
-  const resolvedId =
-    issue.assignee_id ??
-    (issue.assignee_name ? memberIdByName.get(issue.assignee_name.toLowerCase().trim()) ?? null : null);
+  // Task 351 — issues are multi-assignee. `issueAssigneeIds` reads the `assignees` array (or
+  // the legacy scalar `assignee_id` for un-backfilled rows).
+  const ids = issueAssigneeIds(issue);
+  if (ids.length > 0) return ids.some((id) => selectedSet.has(id));
+  // No array/FK: resolve the legacy free-text `assignee_name`, else treat as unassigned.
+  const resolvedId = issue.assignee_name
+    ? memberIdByName.get(issue.assignee_name.toLowerCase().trim()) ?? null
+    : null;
   if (resolvedId) return selectedSet.has(resolvedId);
-  // No FK and no resolvable name: unassigned only when neither field is set;
-  // a legacy name that maps to nobody is excluded while the filter is narrowed.
-  if (!issue.assignee_id && !issue.assignee_name) return selectedSet.has(UNASSIGNED_VALUE);
+  if (!issue.assignee_name) return selectedSet.has(UNASSIGNED_VALUE);
+  // A legacy name that maps to nobody is excluded while the filter is narrowed.
   return false;
 }

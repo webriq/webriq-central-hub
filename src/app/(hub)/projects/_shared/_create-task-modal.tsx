@@ -119,7 +119,9 @@ export function CreateTaskModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- onCreated is a stable callback from the parent; only fire once when the queue actually settles
   }, [uploading, allSettled, hasFailures]);
 
-  const developers = allMembers.filter((m) => m.role === "developer");
+  // Task 351 — the assignee pool is every assignable staff member (see `getAssignableMembers`),
+  // no longer developer-only.
+  const assignableMembers = allMembers;
 
   function toggleAssignMilestone(checked: boolean) {
     setAssignMilestone(checked);
@@ -395,9 +397,13 @@ export function CreateTaskModal({
                   <SearchableSelect
                     value={assigneeId}
                     onChange={setAssigneeId}
-                    options={developers.map((m) => ({ value: m.id, label: m.full_name ?? "Unknown" }))}
+                    options={assignableMembers.map((m) => ({
+                      value: m.id,
+                      label: m.full_name ?? "Unknown",
+                      avatar: { url: m.avatar_url, name: m.full_name },
+                    }))}
                     placeholder="Unassigned"
-                    searchPlaceholder="Search developers…"
+                    searchPlaceholder="Search members…"
                   />
                 </div>
 

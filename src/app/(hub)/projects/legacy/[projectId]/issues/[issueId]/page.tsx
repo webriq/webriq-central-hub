@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { adminClient } from "@/lib/supabase/admin";
 import { isProjectVisibleToCurrentUser } from "@/app/(hub)/projects-old/_project-access";
+import { getAssignableMembers } from "@/lib/members/assignable";
+import { issueAssigneeIds } from "@/lib/issues/permissions";
 import { getIssueMetadataInfo } from "../../../../_shared/_get-metadata-titles";
 import IssueDetailClient from "./_issue-detail";
 
@@ -43,16 +46,19 @@ export default async function IssueDetailPage({
   const currentUserName = profile?.full_name ?? null;
   const currentUserAvatarUrl = profile?.avatar_url ?? null;
 
-  const [{ data: issue }, { data: allMembers }] = await Promise.all([
+  const [{ data: issue }, allMembers] = await Promise.all([
     supabase.from("issues").select("*").eq("display_id", issueId).eq("project_id", project.id).single(),
-    supabase
-      .from("profiles")
-      .select("id, full_name, avatar_url")
-      .in("role", ["developer", "pm", "admin", "super_admin"])
-      .order("full_name", { ascending: true }),
+    // Task 351 — assignee pool = all staff roles minus the exclude list (shared helper).
+    getAssignableMembers(),
   ]);
 
   if (!issue) notFound();
+
+  // Resolve every current assignee's name/avatar even if they've since left the member pool.
+  const assigneeIds = issueAssigneeIds(issue);
+  const { data: assigneeProfiles } = assigneeIds.length > 0
+    ? await adminClient.from("profiles").select("id, full_name, avatar_url").in("id", assigneeIds)
+    : { data: [] };
 
   // Quick Access Panel (task 257, Requirement H) — other tasks/issues assigned to the current
   // user in this project, excluding the one being viewed. Admin/PM viewers are rarely assignees
@@ -71,7 +77,7 @@ export default async function IssueDetailPage({
           .from("issues")
           .select("id, display_id, title, status, severity")
           .eq("project_id", project.id)
-          .eq("assignee_id", currentUserId)
+          .contains("assignees", [currentUserId])
           .neq("id", issue.id)
           .order("due_date", { ascending: true, nullsFirst: false })
           .limit(8),
@@ -103,7 +109,8 @@ export default async function IssueDetailPage({
     <IssueDetailClient
       issue={issue}
       project={project}
-      allMembers={allMembers ?? []}
+      allMembers={allMembers}
+      assigneeProfiles={assigneeProfiles ?? []}
       currentUserId={currentUserId}
       currentUserRole={currentUserRole}
       currentUserName={currentUserName}

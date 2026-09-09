@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { isProjectVisibleToCurrentUser } from "@/app/(hub)/projects-old/_project-access";
+import { getAssignableMembers } from "@/lib/members/assignable";
 import type { Project, Milestone, Tasklist, Task, Issue } from "@/app/(hub)/projects-old/_pm-shared";
 
 export type ProjectDetailData = {
@@ -53,7 +54,7 @@ export async function getProjectDetailData(projectId: string): Promise<ProjectDe
     classification = product?.classification ?? null;
   }
 
-  const [milestonesRes, tasklistsRes, tasksRes, issuesRes, customerRes, profilesRes, timeLogsRes] = await Promise.all([
+  const [milestonesRes, tasklistsRes, tasksRes, issuesRes, customerRes, profilesRes, timeLogsRes, assignableMembers] = await Promise.all([
     supabase
       .from("milestones")
       .select("*")
@@ -77,8 +78,13 @@ export async function getProjectDetailData(projectId: string): Promise<ProjectDe
     supabase.from("customers").select("company_name").eq("customer_id", project.customer_id).single(),
     // profiles' own RLS (profiles_read_own) only lets a caller read their own row —
     // adminClient bypasses that for this read-only display lookup (assignee/member names).
-    adminClient.from("profiles").select("id, full_name, avatar_url, role").in("role", ["developer", "pm", "admin", "super_admin"]).order("full_name", { ascending: true }),
+    // Task 351 — this list still feeds `profilesById` (the display-name/avatar fallback for
+    // *any* assignee, incl. anyone excluded from the assignable pool) + `currentUserRole`; the
+    // selectable pool `allMembers` comes from `getAssignableMembers()` (all staff roles minus
+    // the exclude list) below.
+    adminClient.from("profiles").select("id, full_name, avatar_url, role").in("role", ["developer", "pm", "admin", "super_admin", "hr", "marketing"]).order("full_name", { ascending: true }),
     supabase.from("time_logs").select("task_id, hours").eq("project_id", project.id),
+    getAssignableMembers(),
   ]);
 
   const profilesById: Record<string, { full_name: string; avatar_url: string | null }> = {};
@@ -105,7 +111,7 @@ export async function getProjectDetailData(projectId: string): Promise<ProjectDe
     currentUserId,
     currentUserRole,
     profilesById,
-    allMembers: profilesRes.data ?? [],
+    allMembers: assignableMembers,
     initialHoursById: hoursById,
   };
 }

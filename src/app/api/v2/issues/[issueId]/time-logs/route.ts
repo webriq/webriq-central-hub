@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { issueAssigneeIds } from "@/lib/issues/permissions";
 
 // Time Logs tab for the issue detail page (task 237) — adapted from
 // `api/v2/tasks/[taskId]/time-logs/route.ts` (task 214/215/226), swapping `task_id` for
@@ -69,8 +70,8 @@ export async function GET(
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
   let canAdd = false;
   if (profile?.role === "developer") {
-    const { data: issue } = await supabase.from("issues").select("assignee_id").eq("id", issueId).maybeSingle();
-    canAdd = !!issue?.assignee_id && issue.assignee_id === user.id;
+    const { data: issue } = await supabase.from("issues").select("assignee_id, assignees").eq("id", issueId).maybeSingle();
+    canAdd = !!issue && issueAssigneeIds(issue).includes(user.id);
   }
   const canSeeSource = !!profile?.role && SOURCE_VISIBLE_ROLES.includes(profile.role);
 
@@ -96,9 +97,9 @@ export async function POST(
     return NextResponse.json({ error: "You do not have permission to log time" }, { status: 403 });
   }
 
-  const { data: issue } = await supabase.from("issues").select("id, assignee_id, project_id").eq("id", issueId).maybeSingle();
+  const { data: issue } = await supabase.from("issues").select("id, assignee_id, assignees, project_id").eq("id", issueId).maybeSingle();
   if (!issue) return NextResponse.json({ error: "Issue not found" }, { status: 404 });
-  if (issue.assignee_id !== user.id) {
+  if (!issueAssigneeIds(issue).includes(user.id)) {
     return NextResponse.json({ error: "You must be assigned to this issue to log time" }, { status: 403 });
   }
 

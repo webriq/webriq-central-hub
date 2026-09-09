@@ -11,6 +11,7 @@ import { Calendar } from "lucide-react";
 import {
   type Issue, BOARD_COLUMNS, SEVERITY_STYLE, formatDueDate, normalizeStatus, normalizeSeverity, decodeHtmlEntities,
 } from "@/app/(hub)/projects-old/_pm-shared";
+import { issueAssigneeIds } from "@/lib/issues/permissions";
 
 // Issues have no `position` column (unlike tasks) — board drag only changes status
 // (cross-column). Within a column, cards sort by due date (soonest first, nulls
@@ -163,7 +164,10 @@ function CardBody({ issue, dragging }: { issue: Issue; dragging?: boolean }) {
           </span>
         )}
         {issue.assignee_name && (
-          <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#EDF0F7] text-[#5F6A88]">{issue.assignee_name}</span>
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#EDF0F7] text-[#5F6A88]">
+            {issue.assignee_name}
+            {issueAssigneeIds(issue).length > 1 && ` +${issueAssigneeIds(issue).length - 1}`}
+          </span>
         )}
       </div>
     </div>

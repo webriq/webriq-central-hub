@@ -12,6 +12,7 @@ import { listNewMessages, downloadAttachment, type ZohoMailMessageSummary } from
 import { toParsedInboundEmail } from "@/lib/email/inbound";
 import { applyInlineImages, INLINE_IMAGE_BUCKET as BUCKET } from "@/lib/email/inline-images";
 import { shouldIngestEmail } from "@/lib/email/intake-filter";
+import { parseSupportFormEmail, buildSupportFormBody } from "@/lib/email/support-form";
 import { subjectsMatch } from "@/lib/email/subject";
 
 const MAX_SIZE = 52428800; // 50MB — matches the bucket's file_size_limit (migration 117)
@@ -111,6 +112,26 @@ async function processMessage(summary: ZohoMailMessageSummary): Promise<ProcessO
 
   const email = await toParsedInboundEmail(summary);
 
+  // Task 352 — the webriq.com support form relays every submission from no-reply@webriq.me
+  // (allowlisted past the intake filter as source "webriq-support-form"). The real submitter,
+  // their subject, and their message are fields inside the body, not the envelope — parse them
+  // out so ticket attribution, contact matching, thread matching, and staff replies all use
+  // the customer's own address instead of the no-reply relay. Parse failure -> fall back to
+  // the raw envelope (still better than dropping a real support request).
+  let requesterEmail = email.from;
+  let ticketSubject = email.subject;
+  let formBody: string | null = null;
+  if (gate.source === "webriq-support-form") {
+    const form = parseSupportFormEmail(email);
+    if (form?.requesterEmail) {
+      requesterEmail = form.requesterEmail;
+      ticketSubject = form.subject?.trim() || email.subject;
+      formBody = buildSupportFormBody(form);
+    } else {
+      console.warn(`[cron/email-poll] ${summary.messageId}: support-form parse failed — using raw envelope`);
+    }
+  }
+
   let ticketId: string | null = null;
   let ticketNumber: number | null = null;
   // The readable TKT-<n> id (task 326) — used to build inline-image serving URLs.
@@ -166,14 +187,14 @@ async function processMessage(summary: ZohoMailMessageSummary): Promise<ProcessO
     const { data: candidates } = await adminClient
       .from("tickets")
       .select("id, ticket_number, ticket_id, status, subject, requester_email, zoho_mail_thread_id")
-      .ilike("requester_email", email.from)
+      .ilike("requester_email", requesterEmail)
       .gt("created_at", since)
       .order("created_at", { ascending: false })
       .limit(25);
     const match = (candidates ?? []).find(
       (t) =>
-        (t.requester_email ?? "").toLowerCase() === email.from.toLowerCase() &&
-        subjectsMatch(t.subject, email.subject)
+        (t.requester_email ?? "").toLowerCase() === requesterEmail.toLowerCase() &&
+        subjectsMatch(t.subject, ticketSubject)
     );
     if (match) {
       ticketId = match.id;
@@ -193,7 +214,7 @@ async function processMessage(summary: ZohoMailMessageSummary): Promise<ProcessO
     const { data: contactMatches } = await adminClient
       .from("contacts")
       .select("customer_id")
-      .ilike("email", email.from)
+      .ilike("email", requesterEmail)
       .not("customer_id", "is", null)
       .limit(1);
 
@@ -201,11 +222,11 @@ async function processMessage(summary: ZohoMailMessageSummary): Promise<ProcessO
       .from("tickets")
       .insert({
         customer_id: contactMatches?.[0]?.customer_id ?? null,
-        subject: email.subject,
+        subject: ticketSubject,
         channel: "email",
         status: "open",
         priority: "normal",
-        requester_email: email.from,
+        requester_email: requesterEmail,
         zoho_mail_thread_id: email.threadId,
       })
       .select("id, ticket_number, ticket_id")
@@ -226,8 +247,10 @@ async function processMessage(summary: ZohoMailMessageSummary): Promise<ProcessO
     await adminClient.from("tickets").update({ status: "open" }).eq("id", ticketId);
   }
 
-  const bodyIsHtml = !!email.html;
-  let body = email.html ?? email.text ?? "";
+  // A parsed support-form body (task 352) is plain text we assembled ourselves — the raw HTML
+  // (banner image, field markup) is discarded and there are no cid: inline images to resolve.
+  const bodyIsHtml = formBody === null && !!email.html;
+  let body = formBody ?? email.html ?? email.text ?? "";
 
   // The message id is generated up front (attachments.entity_id carries no FK constraint, so
   // referencing a not-yet-inserted row is safe) so inline images can be uploaded and their
@@ -235,12 +258,15 @@ async function processMessage(summary: ZohoMailMessageSummary): Promise<ProcessO
   // task 321. Regular (non-inline) attachments below still key off this same id.
   const newMessageId = randomUUID();
 
-  const inlineResult = await applyInlineImages({
-    messageRowId: newMessageId,
-    ticketId: ticketDisplayId,
-    inlineImages: email.inlineImages,
-    body,
-  });
+  const inlineResult =
+    formBody !== null
+      ? { body, rewrittenCids: [] as string[], storedButUnmatchedCids: [] as string[] }
+      : await applyInlineImages({
+          messageRowId: newMessageId,
+          ticketId: ticketDisplayId,
+          inlineImages: email.inlineImages,
+          body,
+        });
   body = inlineResult.body;
 
   // Flag the message when it still carries a dead inline-image <img src> — either IMAP
@@ -248,7 +274,7 @@ async function processMessage(summary: ZohoMailMessageSummary): Promise<ProcessO
   // bytes were stored but the cid token wasn't found in the src to rewrite. Gives a straggler
   // sweep and the render-time placeholder a precise, regex-free candidate list. Task 341.
   const inlineImagesUnresolved =
-    email.inlineImagesUnresolved || inlineResult.storedButUnmatchedCids.length > 0;
+    formBody === null && (email.inlineImagesUnresolved || inlineResult.storedButUnmatchedCids.length > 0);
 
   const { data: newMessage, error: messageError } = await adminClient
     .from("ticket_messages")

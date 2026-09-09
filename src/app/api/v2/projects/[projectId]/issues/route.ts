@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { addProjectMember } from "@/lib/programme/phase-membership";
+import { buildIssueAssigneeSync } from "@/lib/issues/assignee-sync";
 
 const VALID_STATUS = ["open", "in_progress", "ready_for_qa", "testing_completed", "for_client_approval", "ready_to_merge", "post_live_qa", "closed"] as const;
 const VALID_SEVERITY = ["Show stopper", "Critical", "Major", "Minor", "None"] as const;
@@ -51,6 +53,13 @@ export async function POST(
     return NextResponse.json({ error: "invalid severity" }, { status: 400 });
   }
 
+  // Task 351 — issues are multi-assignee (`issues.assignees`). New callers send `assignees: []`;
+  // the legacy `assignee_name`/`assignee_email` free-text path is still accepted for anything
+  // not yet migrated. The scalar `assignee_id`/`assignee_name` columns are derived from the array.
+  const sync = "assignees" in body
+    ? await buildIssueAssigneeSync(supabase, body.assignees)
+    : { assignees: [], assignee_id: null, assignee_name: body.assignee_name?.trim() || null, assignee_email: body.assignee_email?.trim() || null };
+
   const { data, error } = await supabase
     .from("issues")
     .insert({
@@ -59,8 +68,10 @@ export async function POST(
       description: body.description?.trim() || null,
       status: body.status || "open",
       severity: body.severity || null,
-      assignee_name: body.assignee_name?.trim() || null,
-      assignee_email: body.assignee_email?.trim() || null,
+      assignees: sync.assignees.length > 0 ? sync.assignees : null,
+      assignee_id: sync.assignee_id,
+      assignee_name: sync.assignee_name,
+      assignee_email: sync.assignee_email,
       due_date: body.due_date || null,
       due_time: body.due_time || null,
       notes: body.notes?.trim() || null,
@@ -72,5 +83,12 @@ export async function POST(
     console.error("[api/v2/projects/[id]/issues] create failed:", error.message);
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
+
+  // Task 287 / 351 — each assignee gets persistent project access. Best-effort.
+  if (sync.assignees.length > 0) {
+    await Promise.all(sync.assignees.map((id) => addProjectMember(project.id, id, user.id)))
+      .catch((err) => console.error("[api/v2/projects/[id]/issues] project_members sync failed:", err));
+  }
+
   return NextResponse.json(data, { status: 201 });
 }

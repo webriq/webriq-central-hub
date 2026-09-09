@@ -36,6 +36,7 @@ type IssueRow = {
   assignee_name: string | null;
   assignee_email: string | null;
   assignee_id: string | null;
+  assignees: string[] | null;
   due_date: string | null;
   created_at?: string;
   source_meta: Record<string, unknown>;
@@ -121,6 +122,7 @@ export async function POST() {
     }
 
     const assigneeEmail = cleanName(issue.assignee?.email);
+    const assigneeId = assigneeEmail ? (hubUserMap.get(assigneeEmail.toLowerCase()) ?? null) : null;
 
     rows.push({
       external_id: externalId,
@@ -133,7 +135,10 @@ export async function POST() {
       flag: issue.flag ?? null,
       assignee_name: cleanName(issue.assignee?.name),
       assignee_email: assigneeEmail,
-      assignee_id: assigneeEmail ? (hubUserMap.get(assigneeEmail.toLowerCase()) ?? null) : null,
+      assignee_id: assigneeId,
+      // Task 351 — issues went multi-assignee (`issues.assignees`). Zoho carries at most one
+      // assignee, so seed the array from the resolved FK.
+      assignees: assigneeId ? [assigneeId] : null,
       due_date: toDateOnly(issue.due_date),
       created_at: issue.created_time ?? undefined,
       source_meta: {

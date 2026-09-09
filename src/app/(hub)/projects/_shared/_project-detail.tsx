@@ -664,6 +664,7 @@ export default function ProjectDetail({
                   currentUserId={currentUserId}
                   currentUserRole={currentUserRole}
                   allMembers={allMembers}
+                  profilesById={profilesById}
                   sortKey={issueSortKey}
                   sortDir={issueSortDir}
                   onToggleSort={toggleIssueSort}

@@ -15,7 +15,37 @@ import { usePopoverPosition, POPOVER_ROOT_ATTR } from "./_use-popover-position";
 // Title/Status/Priority. Not imported cross-directory from `dashboard/timelogs/` — same
 // per-feature-area duplication convention that directory's own comments already establish.
 
-function OptionRow({ label, selected, onClick }: { label: string; selected: boolean; onClick: () => void }) {
+// Task 351 — the Assignee field passes `avatar` per option so members render with their photo
+// (or 2-letter initials fallback). Milestone/Tasklist callers omit it and are unchanged.
+export type SelectOptionAvatar = { url: string | null; name: string | null };
+
+const AVATAR_COLORS = ["#0063D6", "#6A48E0", "#0B8A93", "#B85512", "#177E48", "#44508A"];
+
+function initialsFor(name: string | null): string {
+  if (!name) return "?";
+  return name.split(" ").filter(Boolean).map((w) => w[0]).join("").slice(0, 2).toUpperCase() || "?";
+}
+
+function OptionAvatar({ avatar }: { avatar: SelectOptionAvatar }) {
+  const bg = avatar.url
+    ? undefined
+    : (avatar.name ? AVATAR_COLORS[avatar.name.charCodeAt(0) % AVATAR_COLORS.length] : "#5F6A88");
+  return (
+    <span
+      className="w-5 h-5 text-[9px] rounded-full flex items-center justify-center font-semibold text-white shrink-0 overflow-hidden"
+      style={bg ? { background: bg } : undefined}
+    >
+      {avatar.url ? (
+        // eslint-disable-next-line @next/next/no-img-element -- external Supabase-auth-provider avatar URL, not a static/optimizable asset
+        <img src={avatar.url} alt={avatar.name ?? ""} className="w-full h-full object-cover" />
+      ) : (
+        initialsFor(avatar.name)
+      )}
+    </span>
+  );
+}
+
+function OptionRow({ label, selected, onClick, avatar }: { label: string; selected: boolean; onClick: () => void; avatar?: SelectOptionAvatar }) {
   return (
     <button
       type="button"
@@ -25,8 +55,11 @@ function OptionRow({ label, selected, onClick }: { label: string; selected: bool
         selected && "bg-[#F0F7FF]"
       )}
     >
-      <span className={selected ? "font-medium text-[#0B1533]" : "text-[#3A4565]"}>{label}</span>
-      {selected && <Check size={12} className="text-[#007BFF]" />}
+      <span className="flex items-center gap-2 min-w-0">
+        {avatar && <OptionAvatar avatar={avatar} />}
+        <span className={cn("truncate", selected ? "font-medium text-[#0B1533]" : "text-[#3A4565]")}>{label}</span>
+      </span>
+      {selected && <Check size={12} className="text-[#007BFF] shrink-0" />}
     </button>
   );
 }
@@ -36,7 +69,7 @@ export function SearchableSelect({
 }: {
   value: string;
   onChange: (v: string) => void;
-  options: { value: string; label: string }[];
+  options: { value: string; label: string; avatar?: SelectOptionAvatar }[];
   placeholder: string;
   searchPlaceholder: string;
   disabled?: boolean;
@@ -76,7 +109,8 @@ export function SearchableSelect({
   }, [open]);
 
   const filtered = options.filter((o) => o.label.toLowerCase().includes(query.trim().toLowerCase()));
-  const selectedLabel = options.find((o) => o.value === value)?.label;
+  const selectedOption = options.find((o) => o.value === value);
+  const selectedLabel = selectedOption?.label;
 
   function toggleOpen() {
     if (disabled) return;
@@ -107,7 +141,10 @@ export function SearchableSelect({
               : "border-[#E2E7F2] bg-[#F4F6FB] text-[#3A4565] hover:border-[#A8C6F5]"
         )}
       >
-        <span className={cn("truncate", !selectedLabel && "text-[#5F6A88]")}>{selectedLabel ?? placeholder}</span>
+        <span className="flex items-center gap-2 min-w-0">
+          {selectedOption?.avatar && <OptionAvatar avatar={selectedOption.avatar} />}
+          <span className={cn("truncate", !selectedLabel && "text-[#5F6A88]")}>{selectedLabel ?? placeholder}</span>
+        </span>
         <ChevronDown size={13} className={cn("shrink-0 text-[#5F6A88] transition-transform", open && "rotate-180")} />
       </button>
 
@@ -136,7 +173,7 @@ export function SearchableSelect({
               <div className="px-2 py-2 text-[11.5px] text-[#5F6A88]">No matches</div>
             ) : (
               filtered.map((o) => (
-                <OptionRow key={o.value} label={o.label} selected={o.value === value} onClick={() => pick(o.value)} />
+                <OptionRow key={o.value} label={o.label} avatar={o.avatar} selected={o.value === value} onClick={() => pick(o.value)} />
               ))
             )}
           </div>

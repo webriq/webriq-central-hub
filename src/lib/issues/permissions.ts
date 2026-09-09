@@ -28,17 +28,31 @@ const READ_ONLY: IssueEditPermission = {
 };
 
 /**
+ * Normalize an issue row's assignees to an id array — reads the multi-assignee `assignees`
+ * column (migration 132), falling back to the legacy scalar `assignee_id` for rows not yet
+ * backfilled / read before that migration is applied. The one place the array/scalar bridge
+ * lives; every consumer (permissions, timer eligibility, filter, list picker) goes through it.
+ */
+export function issueAssigneeIds(issue: {
+  assignees?: string[] | null;
+  assignee_id?: string | null;
+}): string[] {
+  if (issue.assignees && issue.assignees.length > 0) return issue.assignees;
+  return issue.assignee_id ? [issue.assignee_id] : [];
+}
+
+/**
  * Single source of truth for issue edit rights — used both server-side (API route enforcement)
  * and client-side (disabling/hiding controls). Keep in sync with the `issues_developer_update`
- * RLS policy (migration 100), which only enforces row visibility; this is what enforces which
+ * RLS policy (migration 132), which only enforces row visibility; this is what enforces which
  * fields/values are actually allowed.
  */
 export function getIssueEditPermission(
   role: string | null | undefined,
   userId: string,
-  issue: { created_by: string | null; assignee_id: string | null }
+  issue: { created_by: string | null; assignees?: string[] | null; assignee_id?: string | null }
 ): IssueEditPermission {
-  const isAssignee = issue.assignee_id === userId;
+  const isAssignee = issueAssigneeIds(issue).includes(userId);
 
   if (role === "admin" || role === "pm" || role === "super_admin") {
     return { ...FULL_EDIT_BASE, canStartTimer: false };

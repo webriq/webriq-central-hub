@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
 import { getIssueEditPermission } from "@/lib/issues/permissions";
 import { addProjectMember } from "@/lib/programme/phase-membership";
+import { buildIssueAssigneeSync } from "@/lib/issues/assignee-sync";
 
 const VALID_STATUS = ["open", "in_progress", "ready_for_qa", "testing_completed", "for_client_approval", "ready_to_merge", "post_live_qa", "closed"] as const;
 const VALID_SEVERITY = ["Show stopper", "Critical", "Major", "Minor", "None"] as const;
@@ -29,7 +30,7 @@ export async function PATCH(
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const [{ data: existingIssue }, { data: profile }] = await Promise.all([
-    supabase.from("issues").select("created_by, assignee_id, project_id").eq("id", issueId).maybeSingle(),
+    supabase.from("issues").select("created_by, assignee_id, assignees, project_id").eq("id", issueId).maybeSingle(),
     supabase.from("profiles").select("role").eq("id", user.id).maybeSingle(),
   ]);
   if (!existingIssue) return NextResponse.json({ error: "Issue not found" }, { status: 404 });
@@ -60,10 +61,24 @@ export async function PATCH(
     if ("flag" in body) patch.flag = body.flag?.trim?.() || null;
     if ("assignee_name" in body) patch.assignee_name = body.assignee_name?.trim?.() || null;
     if ("assignee_email" in body) patch.assignee_email = body.assignee_email?.trim?.() || null;
-    if ("assignee_id" in body) {
+    // Task 351 — multi-assignee (`issues.assignees`). Prefer `assignees: []`; the scalar
+    // `assignee_id`/`assignee_name` columns are derived from it. The legacy single `assignee_id`
+    // branch below stays for callers not yet migrated.
+    if ("assignees" in body) {
+      const sync = await buildIssueAssigneeSync(supabase, body.assignees);
+      patch.assignees = sync.assignees.length > 0 ? sync.assignees : null;
+      patch.assignee_id = sync.assignee_id;
+      patch.assignee_name = sync.assignee_name;
+      patch.assignee_email = sync.assignee_email;
+      // Task 287 — each assignee gets persistent project access (project_members), so it
+      // survives the issue being unassigned/deleted later. Best-effort.
+      if (sync.assignees.length > 0) {
+        void Promise.all(sync.assignees.map((id) => addProjectMember(existingIssue.project_id, id, user.id)))
+          .catch((err) => console.error("[api/v2/issues/[id]] project_members sync failed:", err));
+      }
+    } else if ("assignee_id" in body) {
       patch.assignee_id = body.assignee_id || null;
-      // Task 287 — assigning an issue grants the assignee persistent project access
-      // (project_members), so it survives the issue being unassigned/deleted later.
+      patch.assignees = body.assignee_id ? [body.assignee_id] : null;
       if (patch.assignee_id) {
         void addProjectMember(existingIssue.project_id, patch.assignee_id, user.id)
           .catch((err) => console.error("[api/v2/issues/[id]] project_members sync failed:", err));

@@ -2,7 +2,6 @@
 
 import { Fragment, useState, useMemo, useEffect, useRef } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
 import { ChevronDown, ChevronRight, Users, X, Clock, SearchX, Trash2, ClipboardList, Plus } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -14,6 +13,7 @@ import {
 import { getTaskEditPermission } from "@/lib/tasks/permissions";
 import { TaskTimerButton } from "./_task-timer-button";
 import { CopyLinkButton } from "./_copy-link-button";
+import { AssigneeMultiSelect } from "./_assignee-multi-select";
 import { formatHoursAsHHMM, formatHoursInWords } from "@/lib/timer/format";
 
 export type SortKey = "title" | "status" | "priority" | "due_date";
@@ -30,10 +30,6 @@ const STATUS_OPTS: TaskStatus[] = [
   "for_client_approval", "ready_to_merge", "post_live_qa", "closed",
 ];
 
-// DESIGN.md Avatars spec — fixed 6-color rotation, matches the stacks already
-// shipped on /projects and /portfolio-tracker.
-const AVATAR_COLORS = ["#0063D6", "#6A48E0", "#0B8A93", "#B85512", "#177E48", "#44508A"];
-
 const DEPTH_INDENT = ["pl-0", "pl-4", "pl-8", "pl-12", "pl-16", "pl-20", "pl-24"] as const;
 
 type MemberProfile = { id: string; full_name: string | null; avatar_url: string | null };
@@ -44,162 +40,6 @@ function getDueColor(due: string | null): string {
   if (days < 0) return "text-[#C0392B]";
   if (days <= 7) return "text-[#8A5A00]";
   return "text-[#3A4565]";
-}
-
-function nameInitials(name: string | null | undefined, fallbackId: string): string {
-  if (name) return name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
-  return fallbackId.replace(/-/g, "").slice(0, 2).toUpperCase();
-}
-
-// ─── ResolvedAssigneeChip ─────────────────────────────────────────────────────
-// Local-only — uses real name initials. Does NOT replace AssigneeChip in _pm-shared.tsx.
-
-function ResolvedAssigneeChip({ id, idx, name, avatarUrl }: { id: string; idx: number; name?: string; avatarUrl?: string | null }) {
-  return (
-    <Tooltip>
-      <TooltipTrigger
-        render={
-          <motion.div
-            className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-semibold text-white border-2 border-white shrink-0 cursor-default overflow-hidden"
-            style={avatarUrl ? undefined : { background: AVATAR_COLORS[idx % AVATAR_COLORS.length] }}
-            whileHover={{ y: -4, zIndex: 10 }}
-            transition={{ type: "spring", stiffness: 500, damping: 20 }}
-          >
-            {avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element -- external Supabase-auth-provider avatar URL, not a static/optimizable asset
-              <img src={avatarUrl} alt={name ?? "Unnamed"} className="w-full h-full object-cover" />
-            ) : (
-              nameInitials(name, id)
-            )}
-          </motion.div>
-        }
-      />
-      <TooltipContent side="top">{name ?? "Unnamed"}</TooltipContent>
-    </Tooltip>
-  );
-}
-
-// ─── AssigneePicker ───────────────────────────────────────────────────────────
-// Uses fixed positioning to escape overflow:hidden on the table container.
-
-function AssigneePicker({
-  task,
-  allMembers,
-  profilesById,
-  onUpdate,
-  readOnly = false,
-}: {
-  task: Task;
-  allMembers: MemberProfile[];
-  profilesById: Record<string, { full_name: string; avatar_url: string | null }>;
-  onUpdate: (id: string, patch: Partial<Task>) => Promise<boolean>;
-  readOnly?: boolean;
-}) {
-  const [open, setOpen] = useState(false);
-  const [panelPos, setPanelPos] = useState({ top: 0, left: 0 });
-  const btnRef = useRef<HTMLButtonElement>(null);
-  const currentAssignees = task.assignees ?? [];
-
-  function handleOpen() {
-    if (btnRef.current) {
-      const r = btnRef.current.getBoundingClientRect();
-      setPanelPos({ top: r.bottom + 4, left: r.left });
-    }
-    setOpen(true);
-  }
-
-  function toggleMember(memberId: string) {
-    const next = currentAssignees.includes(memberId)
-      ? currentAssignees.filter((a) => a !== memberId)
-      : [...currentAssignees, memberId];
-    void onUpdate(task.id, { assignees: next });
-  }
-
-  // Task 209 — a developer who's only assigned (not the creator) can't reassign the task.
-  if (readOnly) {
-    return (
-      <div className="flex items-center">
-        {currentAssignees.slice(0, 3).map((a, i) => (
-          <div key={a} style={{ marginLeft: i > 0 ? -6 : 0 }} className="shrink-0">
-            <ResolvedAssigneeChip id={a} idx={i} name={profilesById[a]?.full_name} avatarUrl={profilesById[a]?.avatar_url} />
-          </div>
-        ))}
-        {currentAssignees.length > 3 && (
-          <span className="text-[10px] text-[#5F6A88] ml-1.5 shrink-0">+{currentAssignees.length - 3}</span>
-        )}
-        {currentAssignees.length === 0 && <span className="text-[#C7CEDD]"><Users size={14} /></span>}
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex items-center">
-      <button ref={btnRef} onClick={handleOpen} className="flex items-center gap-0.5 cursor-pointer group min-w-0">
-        {currentAssignees.slice(0, 3).map((a, i) => (
-          <div key={a} style={{ marginLeft: i > 0 ? -6 : 0 }} className="shrink-0">
-            <ResolvedAssigneeChip id={a} idx={i} name={profilesById[a]?.full_name} avatarUrl={profilesById[a]?.avatar_url} />
-          </div>
-        ))}
-        {currentAssignees.length > 3 && (
-          <span className="text-[10px] text-[#5F6A88] ml-1.5 shrink-0">+{currentAssignees.length - 3}</span>
-        )}
-        {currentAssignees.length === 0 && (
-          <span className="text-[#C7CEDD] group-hover:text-[#5F6A88] transition-colors">
-            <Users size={14} />
-          </span>
-        )}
-      </button>
-
-      {open && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div
-            className="fixed z-50 w-52 rounded-[10px] border border-[#E2E7F2] bg-white shadow-[0_8px_24px_rgba(7,17,51,0.10)] overflow-hidden"
-            style={{ top: panelPos.top, left: panelPos.left }}
-          >
-            <div className="px-3 py-2.5 border-b border-[#EDF0F7]">
-              <p className="text-[11px] font-semibold text-[#5F6A88] uppercase tracking-wide">Assign to</p>
-            </div>
-            <div className="max-h-52 overflow-y-auto">
-              {allMembers.map((m, mi) => {
-                const isAssigned = currentAssignees.includes(m.id);
-                return (
-                  <button
-                    key={m.id}
-                    onClick={() => toggleMember(m.id)}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2 text-[12px] hover:bg-[#F4F6FB] cursor-pointer transition-colors text-left ${
-                      isAssigned ? "bg-[#F0F7FF]" : ""
-                    }`}
-                  >
-                    <div
-                      className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-semibold text-white shrink-0 overflow-hidden"
-                      style={m.avatar_url ? undefined : { background: AVATAR_COLORS[mi % AVATAR_COLORS.length] }}
-                    >
-                      {m.avatar_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element -- external Supabase-auth-provider avatar URL, not a static/optimizable asset
-                        <img src={m.avatar_url} alt={m.full_name ?? "Unknown"} className="w-full h-full object-cover" />
-                      ) : (
-                        nameInitials(m.full_name, m.id)
-                      )}
-                    </div>
-                    <span className={`flex-1 truncate ${isAssigned ? "font-medium text-[#0B1533]" : "text-[#3A4565]"}`}>
-                      {m.full_name ?? "Unknown"}
-                    </span>
-                    {isAssigned && (
-                      <span className="text-[#007BFF] text-[11px] shrink-0">✓</span>
-                    )}
-                  </button>
-                );
-              })}
-              {allMembers.length === 0 && (
-                <p className="text-[12px] text-[#5F6A88] px-3 py-3">No members found</p>
-              )}
-            </div>
-          </div>
-        </>
-      )}
-    </div>
-  );
 }
 
 // ─── ListView ─────────────────────────────────────────────────────────────────
@@ -441,7 +281,7 @@ export default function ListView({
     );
   }
 
-  const GRID = "grid-cols-[32px_1fr_148px_120px_108px_80px_64px_48px]";
+  const GRID = "grid-cols-[32px_1fr_148px_156px_108px_80px_64px_48px]";
 
   function renderRows(list: Task[], depth = 0): React.ReactNode {
     return list.map((t) => {
@@ -725,12 +565,12 @@ function Row({
       </select>
 
       {/* Assignee picker */}
-      <AssigneePicker
-        task={task}
-        allMembers={allMembers}
-        profilesById={profilesById}
-        onUpdate={onUpdate}
-        readOnly={!perm.canEditDetails}
+      <AssigneeMultiSelect
+        value={task.assignees ?? []}
+        members={allMembers}
+        nameById={profilesById}
+        editable={perm.canEditDetails}
+        onChange={(ids) => void onUpdate(task.id, { assignees: ids })}
       />
 
       {/* Due date */}

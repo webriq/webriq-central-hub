@@ -4,7 +4,7 @@
 **Priority:** HIGH
 **Type:** bugfix
 **Recommended Tier:** deep
-**Status:** Testing
+**Status:** Completed (2026-09-08) — marked complete at the user's explicit request; browser acceptance on a Vercel preview is the outstanding manual check.
 
 ---
 

@@ -2,7 +2,7 @@
 
 import { useState, useRef, useMemo, useEffect } from "react";
 import Link from "next/link";
-import { Users, SearchX, Check, X, Trash2, Bug, Plus } from "lucide-react";
+import { Users, SearchX, X, Trash2, Bug, Plus } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
@@ -10,9 +10,10 @@ import {
   STATUS_LABEL, STATUS_STYLE, SEVERITY_STYLE,
   formatDueDate, normalizeStatus, normalizeSeverity, decodeHtmlEntities,
 } from "@/app/(hub)/projects-old/_pm-shared";
-import { getIssueEditPermission } from "@/lib/issues/permissions";
+import { getIssueEditPermission, issueAssigneeIds } from "@/lib/issues/permissions";
 import { CopyLinkButton } from "./_copy-link-button";
 import { TaskTimerButton } from "./_task-timer-button";
+import { AssigneeMultiSelect } from "./_assignee-multi-select";
 
 export type IssueSortKey = "title" | "status" | "severity" | "due_date";
 export type IssueSortDir = "asc" | "desc";
@@ -28,8 +29,6 @@ const STATUS_OPTS: TaskStatus[] = [
   "for_client_approval", "ready_to_merge", "post_live_qa", "closed",
 ];
 
-const AVATAR_COLORS = ["#0063D6", "#6A48E0", "#0B8A93", "#B85512", "#177E48", "#44508A"];
-
 type MemberProfile = { id: string; full_name: string | null; avatar_url: string | null };
 
 function getDueColor(due: string | null): string {
@@ -38,153 +37,6 @@ function getDueColor(due: string | null): string {
   if (days < 0) return "text-[#C0392B]";
   if (days <= 7) return "text-[#8A5A00]";
   return "text-[#3A4565]";
-}
-
-function nameInitials(name: string | null | undefined): string {
-  if (name) return name.split(" ").filter(Boolean).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
-  return "?";
-}
-
-// ─── IssueAssigneePicker — single-select (unlike tasks' multi-select AssigneePicker) ─
-// Task 345 — writes `assignee_id` (the FK → profiles.id, migration 100 / source of truth for
-// getIssueEditPermission, the detail page, and the timer routes), keeping `assignee_name` in
-// sync for legacy/Zoho display and clearing `assignee_email`. Same contract as the detail
-// page's saveAssignee(). Previously this wrote assignee_name only, leaving assignee_id null —
-// which made the assignee invisible to the permission model (status 403) and the timer.
-
-function IssueAssigneePicker({
-  issue,
-  allMembers,
-  onUpdate,
-  canEdit,
-}: {
-  issue: Issue;
-  allMembers: MemberProfile[];
-  onUpdate: (id: string, patch: Partial<Issue>) => Promise<boolean>;
-  // Task 345 — reassignment goes through the same `canEditDetails` tier as the detail page
-  // (PM/admin/creator-developer). An assignee-only developer would just get a 403 that reverts,
-  // so the picker is read-only for them (mirrors _issue-detail.tsx's `disabled={!perm.canEditDetails}`).
-  canEdit: boolean;
-}) {
-  const [open, setOpen] = useState(false);
-  const [panelPos, setPanelPos] = useState({ top: 0, left: 0 });
-  const btnRef = useRef<HTMLButtonElement>(null);
-
-  function handleOpen() {
-    if (!canEdit) return;
-    if (btnRef.current) {
-      const r = btnRef.current.getBoundingClientRect();
-      setPanelPos({ top: r.bottom + 4, left: r.left });
-    }
-    setOpen(true);
-  }
-
-  function assign(member: MemberProfile) {
-    setOpen(false);
-    void onUpdate(issue.id, {
-      assignee_id: member.id,
-      assignee_name: member.full_name,
-      assignee_email: null,
-    });
-  }
-
-  function unassign() {
-    setOpen(false);
-    void onUpdate(issue.id, { assignee_id: null, assignee_name: null, assignee_email: null });
-  }
-
-  // Resolve the member by the `assignee_id` FK first (source of truth since migration 100);
-  // fall back to name-string equality for legacy rows that predate the backfill (task 345).
-  const assignedMember =
-    (issue.assignee_id ? allMembers.find((m) => m.id === issue.assignee_id) : undefined) ??
-    (issue.assignee_name ? allMembers.find((m) => m.full_name === issue.assignee_name) : undefined);
-  const assigneeLabel = assignedMember?.full_name ?? issue.assignee_name;
-
-  return (
-    <div className="flex items-center">
-      <button
-        ref={btnRef}
-        onClick={handleOpen}
-        disabled={!canEdit}
-        className="flex items-center gap-1.5 group min-w-0 cursor-pointer disabled:cursor-default"
-      >
-        {assigneeLabel ? (
-          <>
-            <div
-              className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-semibold text-white shrink-0 overflow-hidden"
-              style={assignedMember?.avatar_url ? undefined : { background: AVATAR_COLORS[assigneeLabel.charCodeAt(0) % AVATAR_COLORS.length] }}
-            >
-              {assignedMember?.avatar_url ? (
-                // eslint-disable-next-line @next/next/no-img-element -- external Supabase-auth-provider avatar URL, not a static/optimizable asset
-                <img src={assignedMember.avatar_url} alt={assigneeLabel} className="w-full h-full object-cover" />
-              ) : (
-                nameInitials(assigneeLabel)
-              )}
-            </div>
-            <span className="text-[12px] text-[#3A4565] truncate">{assigneeLabel}</span>
-          </>
-        ) : (
-          <span className="text-[#C7CEDD] group-hover:text-[#5F6A88] transition-colors">
-            <Users size={14} />
-          </span>
-        )}
-      </button>
-
-      {open && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div
-            className="fixed z-50 w-52 rounded-[10px] border border-[#E2E7F2] bg-white shadow-[0_8px_24px_rgba(7,17,51,0.10)] overflow-hidden"
-            style={{ top: panelPos.top, left: panelPos.left }}
-          >
-            <div className="px-3 py-2.5 border-b border-[#EDF0F7] flex items-center justify-between">
-              <p className="text-[11px] font-semibold text-[#5F6A88] uppercase tracking-wide">Assign to</p>
-              {assigneeLabel && (
-                <button onClick={unassign} className="text-[11px] text-[#C0392B] hover:underline cursor-pointer">
-                  Unassign
-                </button>
-              )}
-            </div>
-            <div className="max-h-52 overflow-y-auto">
-              {allMembers.map((m, mi) => {
-                const isAssigned = issue.assignee_id
-                  ? issue.assignee_id === m.id
-                  : issue.assignee_name === m.full_name;
-                return (
-                  <button
-                    key={m.id}
-                    onClick={() => assign(m)}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2 text-[12px] hover:bg-[#F4F6FB] cursor-pointer transition-colors text-left ${
-                      isAssigned ? "bg-[#F0F7FF]" : ""
-                    }`}
-                  >
-                    <div
-                      className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-semibold text-white shrink-0 overflow-hidden"
-                      style={m.avatar_url ? undefined : { background: AVATAR_COLORS[mi % AVATAR_COLORS.length] }}
-                    >
-                      {m.avatar_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element -- external Supabase-auth-provider avatar URL, not a static/optimizable asset
-                        <img src={m.avatar_url} alt={m.full_name ?? "Unknown"} className="w-full h-full object-cover" />
-                      ) : (
-                        nameInitials(m.full_name)
-                      )}
-                    </div>
-                    <span className={`flex-1 truncate ${isAssigned ? "font-medium text-[#0B1533]" : "text-[#3A4565]"}`}>
-                      {m.full_name ?? "Unknown"}
-                    </span>
-                    {isAssigned && <Check size={13} className="text-[#007BFF] shrink-0" />}
-                  </button>
-                );
-              })}
-              {allMembers.length === 0 && (
-                <p className="text-[12px] text-[#5F6A88] px-3 py-3">No members found</p>
-              )}
-            </div>
-          </div>
-        </>
-      )}
-    </div>
-  );
 }
 
 // ─── IssueListView ────────────────────────────────────────────────────────────
@@ -197,6 +49,7 @@ export default function IssueListView({
   currentUserId,
   currentUserRole,
   allMembers,
+  profilesById,
   sortKey,
   sortDir,
   onToggleSort,
@@ -213,6 +66,8 @@ export default function IssueListView({
   currentUserId: string;
   currentUserRole: string | null;
   allMembers: MemberProfile[];
+  // Task 351 — display-name/avatar fallback for an assignee no longer in the member pool.
+  profilesById: Record<string, { full_name: string; avatar_url: string | null }>;
   sortKey: IssueSortKey;
   sortDir: IssueSortDir;
   onToggleSort: (key: IssueSortKey) => void;
@@ -474,7 +329,13 @@ export default function IssueListView({
                   ))}
                 </select>
 
-                <IssueAssigneePicker issue={issue} allMembers={allMembers} onUpdate={onUpdate} canEdit={perm.canEditDetails} />
+                <AssigneeMultiSelect
+                  value={issueAssigneeIds(issue)}
+                  members={allMembers}
+                  nameById={profilesById}
+                  editable={perm.canEditDetails}
+                  onChange={(ids) => void onUpdate(issue.id, { assignees: ids })}
+                />
 
                 <span className={`text-[12px] font-medium tabular-nums ${dueColor}`}>{due ?? "—"}</span>
 

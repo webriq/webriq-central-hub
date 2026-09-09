@@ -12,7 +12,8 @@ import { DescriptionField } from "@/app/(hub)/projects/_shared/_description-fiel
 import { AccordionCard } from "@/app/(hub)/projects/_shared/_accordion-card";
 import { IssueAttachmentsCommentsPanel } from "./_issue-attachments-comments-panel";
 import { IssueQuickAccessPanel, type QuickAccessTask, type QuickAccessIssue } from "./_issue-quick-access-panel";
-import { getIssueEditPermission } from "@/lib/issues/permissions";
+import { getIssueEditPermission, issueAssigneeIds } from "@/lib/issues/permissions";
+import { AssigneeMultiSelect } from "@/app/(hub)/projects/_shared/_assignee-multi-select";
 import { TaskTimerButton } from "@/app/(hub)/projects/_shared/_task-timer-button";
 import { CopyLinkButton } from "@/app/(hub)/projects/_shared/_copy-link-button";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
@@ -49,6 +50,7 @@ export default function IssueDetailClient({
   issue,
   project,
   allMembers,
+  assigneeProfiles,
   currentUserId,
   currentUserRole,
   currentUserName,
@@ -59,6 +61,8 @@ export default function IssueDetailClient({
   issue: Issue;
   project: { id: string; name: string; customer_id: string; project_id: string | null };
   allMembers: MemberOption[];
+  // Task 351 — every current assignee's name/avatar, even any who've left the member pool.
+  assigneeProfiles: MemberOption[];
   currentUserId: string;
   currentUserRole: string | null;
   currentUserName: string | null;
@@ -84,7 +88,7 @@ export default function IssueDetailClient({
   const [description, setDescription] = useState(issue.description ?? "");
   const [status, setStatus] = useState<string>(normalizeStatus(issue.status));
   const [severity, setSeverity] = useState<IssueSeverity>(normalizeSeverity(issue.severity));
-  const [assigneeId, setAssigneeId] = useState<string>(issue.assignee_id ?? "");
+  const [assignees, setAssignees] = useState<string[]>(() => issueAssigneeIds(issue));
   const [dueDate, setDueDate] = useState(issue.due_date ?? "");
   // Task 338 — the time half of the due date + an optional internal notes field
   // (`issues.due_time` / `issues.notes`, migration 128).
@@ -127,18 +131,11 @@ export default function IssueDetailClient({
     if (trimmed && trimmed !== issue.title) void saveField({ title: trimmed });
   }, [title, issue.title, saveField]);
 
-  function saveAssignee(nextId: string) {
-    setAssigneeId(nextId);
-    const member = allMembers.find((m) => m.id === nextId);
-    // assignee_id is now the source of truth (migration 100); assignee_name is kept in sync for
-    // display/back-compat with Zoho-sourced UI, assignee_email is cleared — this selector never
-    // sets a free-text-only email, and re-deriving it from a stale value once assignee_id is the
-    // real link would just be misleading.
-    void saveField({
-      assignee_id: nextId || null,
-      assignee_name: member?.full_name ?? null,
-      assignee_email: null,
-    });
+  function saveAssignees(nextIds: string[]) {
+    setAssignees(nextIds);
+    // Task 351 — issues are multi-assignee (`issues.assignees`); the PATCH route derives the
+    // synced scalar `assignee_id`/`assignee_name` columns from this array.
+    void saveField({ assignees: nextIds });
   }
 
   async function handleDelete() {
@@ -265,18 +262,16 @@ export default function IssueDetailClient({
                   </select>
                 </Meta>
 
-                <Meta label="Assignee">
-                  <select
-                    value={assigneeId}
-                    onChange={(e) => saveAssignee(e.target.value)}
-                    disabled={!perm.canEditDetails}
-                    className={`${inputClass} bg-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-60`}
-                  >
-                    <option value="">Unassigned</option>
-                    {allMembers.map((m) => (
-                      <option key={m.id} value={m.id}>{m.full_name ?? "Unknown"}</option>
-                    ))}
-                  </select>
+                <Meta label={assignees.length > 1 ? "Assignees" : "Assignee"}>
+                  <AssigneeMultiSelect
+                    value={assignees}
+                    members={allMembers}
+                    nameById={Object.fromEntries(
+                      assigneeProfiles.map((p) => [p.id, { full_name: p.full_name, avatar_url: p.avatar_url }])
+                    )}
+                    editable={perm.canEditDetails}
+                    onChange={saveAssignees}
+                  />
                 </Meta>
 
                 <Meta label="Due date">

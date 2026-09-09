@@ -915,6 +915,7 @@ export interface Database {
           assignee_name: string | null;
           assignee_email: string | null;
           assignee_id: string | null;
+          assignees: string[] | null;
           created_by: string | null;
           due_date: string | null;
           due_time: string | null;
@@ -938,6 +939,7 @@ export interface Database {
           assignee_name?: string | null;
           assignee_email?: string | null;
           assignee_id?: string | null;
+          assignees?: string[] | null;
           created_by?: string | null;
           due_date?: string | null;
           due_time?: string | null;
@@ -961,6 +963,7 @@ export interface Database {
           assignee_name?: string | null;
           assignee_email?: string | null;
           assignee_id?: string | null;
+          assignees?: string[] | null;
           created_by?: string | null;
           due_date?: string | null;
           due_time?: string | null;
