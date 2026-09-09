@@ -384,6 +384,14 @@ Apply migration 132 in the Supabase SQL editor before the multi-assignee accepta
 - `pnpm build` - SKIPPED (not required by the task doc; tsc + lint cover compile)
 - Browser acceptance - NOT RUN (handoff to `test` stage; migration 132 must be applied first for the multi-assignee paths)
 
+### Post-review refinement (user request, 2026-09-09)
+
+> "Hide the 'Unassigned' on the selection … make the assignee selection on New Task and New Issue multiple, same as the assign feature on the task/issue listing."
+
+- **New Task + New Issue modals now use `AssigneeMultiSelect` for Assignee** (not the single-select `SearchableSelect`) — same searchable, checkable, `×`-chip popover as the listings. New `variant="field"` prop on `AssigneeMultiSelect` renders the trigger as a full-width form-input box + chevron (empty state shows a muted "Select assignees…" prompt, not the placeholder-avatar + "Unassigned" the listing cell uses). Both modals' assignee state is now `string[]`; submit sends `assignees: ids.length ? ids : undefined`.
+- **`SearchableSelect` reverted** to its pre-351 state — the per-option `avatar` / `OptionAvatar` / `SelectOptionAvatar` additions were removed (only the assignee field used them, and it no longer uses `SearchableSelect`). Milestone / Tasklist keep their unchanged "Unassigned"-style clear row.
+- Files touched in this pass: `_assignee-multi-select.tsx` (+`variant`), `_searchable-select.tsx` (revert), `_create-task-modal.tsx`, `_create-issue-modal.tsx`. `npx tsc --noEmit` + `pnpm lint` re-run PASS.
+
 ## Quality Gate Notes
 
 ### Result

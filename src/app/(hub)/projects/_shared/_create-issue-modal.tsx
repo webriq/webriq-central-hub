@@ -10,7 +10,7 @@ import { TaskAttachmentPicker } from "./_task-attachment-picker";
 import { TaskDescriptionEditor } from "./_task-description-editor";
 import { useUploadQueue, UploadQueuePanel, uploadViaSignedUrl } from "./_attachment-dropzone";
 import { extensionInfoFor } from "@/config/attachment-types";
-import { SearchableSelect } from "./_searchable-select";
+import { AssigneeMultiSelect } from "./_assignee-multi-select";
 import { DateTimeFieldPicker } from "./_datetime-field-picker";
 import { dueDefaultValue, splitDateTimeValue } from "./_datetime-helpers";
 import { STATUS_OPTS, SEVERITY_OPTS, type MemberOptionWithRole } from "./_project-detail";
@@ -56,7 +56,7 @@ export function CreateIssueModal({
   const [description, setDescription] = useState(defaultDescription ?? "");
   const [status, setStatus] = useState<string>("open");
   const [severity, setSeverity] = useState<IssueSeverity>("None");
-  const [assigneeId, setAssigneeId] = useState<string>("");
+  const [assignees, setAssignees] = useState<string[]>([]);
   // Combined date+time, `"YYYY-MM-DDTHH:mm"` (local) — same shape as the New Task modal's Due
   // field. Always populated (defaults to 7:00 PM today); split into `due_date` + `due_time`
   // at submit. Task 338.
@@ -120,7 +120,7 @@ export function CreateIssueModal({
         severity,
         // Task 351 — issues are now multi-assignee (`issues.assignees`); the API derives the
         // synced scalar `assignee_id`/`assignee_name` columns from this array.
-        assignees: assigneeId ? [assigneeId] : undefined,
+        assignees: assignees.length > 0 ? assignees : undefined,
         due_date: dueDate || undefined,
         due_time: dueTime || undefined,
         notes: notes.trim() || undefined,
@@ -245,16 +245,12 @@ export function CreateIssueModal({
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1.5">
                     <span className={labelClass}>Assignee</span>
-                    <SearchableSelect
-                      value={assigneeId}
-                      onChange={setAssigneeId}
-                      options={allMembers.map((m) => ({
-                        value: m.id,
-                        label: m.full_name ?? "Unknown",
-                        avatar: { url: m.avatar_url, name: m.full_name },
-                      }))}
-                      placeholder="Unassigned"
-                      searchPlaceholder="Search members…"
+                    <AssigneeMultiSelect
+                      variant="field"
+                      value={assignees}
+                      members={allMembers}
+                      editable
+                      onChange={setAssignees}
                     />
                   </div>
                   <div className="flex flex-col gap-1.5">

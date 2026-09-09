@@ -3,15 +3,18 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
-import { Check, Search, X } from "lucide-react";
+import { Check, ChevronDown, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { usePopoverPosition, POPOVER_ROOT_ATTR } from "./_use-popover-position";
 
-// Task 351 — the one assignee control for the Tasks + Issues listings and the Issue Detail page.
-// Collapsed it's the compact cell display (first assignee avatar + name, then a "+N" pill,
-// hover for the full name list); expanded (editable only) it's a searchable, multi-select
-// popover with removable chips. Unassigned renders "Unassigned" + the placeholder avatar.
+// Task 351 — the one assignee control for the Tasks + Issues listings, the Issue Detail page,
+// and (via `variant="field"`) the New Task / New Issue modals. Collapsed it's the compact
+// display (first assignee avatar + name, then a "+N" pill, hover for the full name list);
+// expanded (editable only) it's a searchable, multi-select popover with removable chips.
+// Unassigned renders "Unassigned" + the placeholder avatar. `variant="field"` swaps the bare
+// inline trigger for a full-width form-input box with a chevron (no explicit "Unassigned"
+// option — an empty selection just means unassigned).
 //
 // Page-scoped duplicate of the avatar colour/initials derivation used across this feature area
 // (`_list-view.tsx`, `_status-report-assignee-cell.tsx`, `_v2-listing/_avatar-stack.tsx`) —
@@ -81,6 +84,7 @@ export function AssigneeMultiSelect({
   editable,
   nameById,
   headerLabel = "Project Users",
+  variant = "cell",
 }: {
   value: string[];
   members: AssigneeMember[];
@@ -90,6 +94,9 @@ export function AssigneeMultiSelect({
   // `_list-view.tsx` used `profilesById`). Optional — `members` alone covers the common case.
   nameById?: Record<string, { full_name: string | null; avatar_url: string | null }>;
   headerLabel?: string;
+  // "cell" (default) — bare inline trigger for a table cell. "field" — full-width form-input
+  // box with a chevron, for the New Task / New Issue modals.
+  variant?: "cell" | "field";
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -146,11 +153,17 @@ export function AssigneeMultiSelect({
   const display = (
     <>
       {value.length === 0 ? (
-        <span className="flex items-center gap-1.5 min-w-0">
-          {/* eslint-disable-next-line @next/next/no-img-element -- tiny local placeholder asset */}
-          <img src={PLACEHOLDER_AVATAR} alt="" className="w-6 h-6 rounded-full shrink-0" />
-          <span className="text-[12px] text-[#94A0BE] truncate">Unassigned</span>
-        </span>
+        // The listing cell shows the placeholder-avatar + "Unassigned" (task 351 spec); the
+        // form-field variant just shows muted prompt text, like any other empty form input.
+        variant === "field" ? (
+          <span className="text-[13px] text-[#5F6A88] truncate">Select assignees…</span>
+        ) : (
+          <span className="flex items-center gap-1.5 min-w-0">
+            {/* eslint-disable-next-line @next/next/no-img-element -- tiny local placeholder asset */}
+            <img src={PLACEHOLDER_AVATAR} alt="" className="w-6 h-6 rounded-full shrink-0" />
+            <span className="text-[12px] text-[#94A0BE] truncate">Unassigned</span>
+          </span>
+        )
       ) : (
         <span className="flex items-center gap-1.5 min-w-0">
           <Avatar name={selectedResolved[0].full_name} avatarUrl={selectedResolved[0].avatar_url} />
@@ -165,10 +178,31 @@ export function AssigneeMultiSelect({
     </>
   );
 
-  const triggerInner = editable ? (
+  const toggleOpen = () => { setOpen((o) => !o); setQuery(""); };
+
+  const triggerInner = variant === "field" ? (
     <button
       type="button"
-      onClick={() => { setOpen((o) => !o); setQuery(""); }}
+      disabled={!editable}
+      onClick={toggleOpen}
+      aria-haspopup="listbox"
+      aria-expanded={open}
+      className={cn(
+        "w-full flex items-center justify-between gap-2 px-3 py-2 rounded-[10px] border text-[13px] outline-none transition-colors text-left",
+        !editable
+          ? "opacity-50 cursor-not-allowed border-[#E2E7F2] bg-[#F4F6FB]"
+          : open
+            ? "border-[#007BFF] bg-white ring-[3px] ring-[#007BFF]/[0.14] cursor-pointer"
+            : "border-[#E2E7F2] bg-[#F4F6FB] hover:border-[#A8C6F5] cursor-pointer"
+      )}
+    >
+      {display}
+      <ChevronDown size={13} className={cn("shrink-0 text-[#5F6A88] transition-transform", open && "rotate-180")} />
+    </button>
+  ) : editable ? (
+    <button
+      type="button"
+      onClick={toggleOpen}
       className="flex items-center min-w-0 max-w-full rounded-md px-1 -mx-1 py-0.5 cursor-pointer hover:bg-[#EDF0F7] transition-colors"
     >
       {display}
@@ -179,8 +213,8 @@ export function AssigneeMultiSelect({
 
   return (
     <>
-      <span ref={triggerRef} className="inline-flex min-w-0 max-w-full">
-        {value.length > 1 ? (
+      <span ref={triggerRef} className={variant === "field" ? "block w-full" : "inline-flex min-w-0 max-w-full"}>
+        {variant === "cell" && value.length > 1 ? (
           <Tooltip>
             <TooltipTrigger render={triggerInner} />
             <TooltipContent side="top">

@@ -11,6 +11,7 @@ import { TaskAttachmentPicker } from "./_task-attachment-picker";
 import { useUploadQueue, UploadQueuePanel, uploadViaSignedUrl } from "./_attachment-dropzone";
 import { extensionInfoFor } from "@/config/attachment-types";
 import { SearchableSelect } from "./_searchable-select";
+import { AssigneeMultiSelect } from "./_assignee-multi-select";
 import { DateTimeFieldPicker } from "./_datetime-field-picker";
 import { nowDateTimeValue, dueDefaultValue, splitDateTimeValue } from "./_datetime-helpers";
 import { STATUS_OPTS, PRIORITY_OPTS, type TaskDefaults, type MemberOptionWithRole } from "./_project-detail";
@@ -83,7 +84,7 @@ export function CreateTaskModal({
   const [tasklistId, setTasklistId] = useState<string>(() => tasklists.find((tl) => tl.is_default)?.id ?? "");
   const [creatingTasklist, setCreatingTasklist] = useState(false);
   const [newTasklistName, setNewTasklistName] = useState("");
-  const [assigneeId, setAssigneeId] = useState<string>("");
+  const [assignees, setAssignees] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
   const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
   const [saving, setSaving] = useState(false);
@@ -204,7 +205,7 @@ export function CreateTaskModal({
         start_time: startTime,
         due_time: dueTime,
         notes: notes.trim() || undefined,
-        assignees: assigneeId ? [assigneeId] : undefined,
+        assignees: assignees.length > 0 ? assignees : undefined,
       }),
     });
     if (!res.ok) {
@@ -394,16 +395,12 @@ export function CreateTaskModal({
 
                 <div className="flex flex-col gap-1.5">
                   <span className={labelClass}>Assignee</span>
-                  <SearchableSelect
-                    value={assigneeId}
-                    onChange={setAssigneeId}
-                    options={assignableMembers.map((m) => ({
-                      value: m.id,
-                      label: m.full_name ?? "Unknown",
-                      avatar: { url: m.avatar_url, name: m.full_name },
-                    }))}
-                    placeholder="Unassigned"
-                    searchPlaceholder="Search members…"
+                  <AssigneeMultiSelect
+                    variant="field"
+                    value={assignees}
+                    members={assignableMembers}
+                    editable
+                    onChange={setAssignees}
                   />
                 </div>
 
