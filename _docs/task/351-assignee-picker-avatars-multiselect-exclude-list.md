@@ -4,7 +4,7 @@
 **Priority:** HIGH
 **Type:** enhancement
 **Recommended Tier:** deep
-**Status:** Testing
+**Status:** Completed (2026-09-09 — marked complete at the user's explicit request; migration 132 apply + full browser acceptance are outstanding manual checks)
 
 ---
 
@@ -401,6 +401,10 @@ Root cause: the popover `<div ref={panelRef}>` was gated `{open && pos && create
 Fix — mirror the datetime-picker pattern in both popovers: render the portal as soon as `open` (drop the `&& pos` gate), position from `pos?.*`, and keep it `visibility: hidden` for the one frame until `pos` resolves. Now `usePopoverPosition` measures the real panel on the first open and flips it above when it would overflow the viewport bottom. `_assignee-multi-select.tsx` covers both the New Task / New Issue `variant="field"` fields **and** the Tasks/Issues listing cells (one component); `_searchable-select.tsx` gets the same fix for the New Task modal's Milestone / Tasklist fields.
 
 Files: `_assignee-multi-select.tsx`, `_searchable-select.tsx`. `npx tsc --noEmit` + `pnpm lint` PASS.
+
+### Post-review fix 3 (user request, 2026-09-09) — search input not auto-focused on open
+
+Side effect of fix 2: the portal now mounts `visibility:hidden` for one frame, and a `visibility:hidden` element cannot take focus, so the search `<input autoFocus>` silently no-op'd and never got focus once the panel became visible. Replaced `autoFocus` with a `searchRef` + a `useEffect([open, pos])` that focuses the input once, the first time `pos` resolves (panel visible) per open cycle (guard ref reset on close; scroll/resize `pos` updates don't re-steal focus). Applied to both `_assignee-multi-select.tsx` and `_searchable-select.tsx`. `npx tsc --noEmit` + `pnpm lint` PASS.
 
 ## Quality Gate Notes
 

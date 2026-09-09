@@ -104,6 +104,8 @@ export function AssigneeMultiSelect({
   // never has to also carry a ref — matches how the rest of this feature area composes Tooltip.
   const triggerRef = useRef<HTMLSpanElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const searchFocusedRef = useRef(false);
   const pos = usePopoverPosition(open, triggerRef, panelRef, 248);
 
   const resolve = (id: string): { full_name: string | null; avatar_url: string | null } => {
@@ -120,6 +122,17 @@ export function AssigneeMultiSelect({
     setOpen(false);
     setQuery("");
   }
+
+  // Focus the search input once the panel is actually visible. `autoFocus` alone no longer
+  // works: the portal now mounts `visibility:hidden` for a frame (so `usePopoverPosition` can
+  // measure it) and a `visibility:hidden` element can't take focus. Fire once per open cycle.
+  useEffect(() => {
+    if (!open) { searchFocusedRef.current = false; return; }
+    if (pos && !searchFocusedRef.current) {
+      searchFocusedRef.current = true;
+      searchRef.current?.focus();
+    }
+  }, [open, pos]);
 
   useEffect(() => {
     if (!open) return;
@@ -257,7 +270,7 @@ export function AssigneeMultiSelect({
             <div className="relative">
               <Search size={12} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[#5F6A88]" />
               <input
-                autoFocus
+                ref={searchRef}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search members…"

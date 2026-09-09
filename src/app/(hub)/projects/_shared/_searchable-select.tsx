@@ -50,12 +50,24 @@ export function SearchableSelect({
   const [query, setQuery] = useState("");
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const searchFocusedRef = useRef(false);
   const pos = usePopoverPosition(open, triggerRef, panelRef, 200);
 
   function close() {
     setOpen(false);
     setQuery("");
   }
+
+  // Focus the search input once the panel is visible — `autoFocus` alone can't, since the
+  // portal now mounts `visibility:hidden` for a frame so `usePopoverPosition` can measure it.
+  useEffect(() => {
+    if (!open) { searchFocusedRef.current = false; return; }
+    if (pos && !searchFocusedRef.current) {
+      searchFocusedRef.current = true;
+      searchRef.current?.focus();
+    }
+  }, [open, pos]);
 
   useEffect(() => {
     if (!open) return;
@@ -134,7 +146,7 @@ export function SearchableSelect({
             <div className="relative">
               <Search size={12} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[#5F6A88]" />
               <input
-                autoFocus
+                ref={searchRef}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder={searchPlaceholder}
