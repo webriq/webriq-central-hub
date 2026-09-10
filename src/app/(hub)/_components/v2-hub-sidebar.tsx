@@ -7,7 +7,7 @@ import {
   LayoutDashboard, LayoutGrid, Inbox, Cpu, Users,
   Megaphone, BookOpen, Settings, ChevronLeft, ChevronDown,
   Circle, LogOut, Building2,
-  ChartGantt, Clock, ClipboardList,
+  Clock, ClipboardList,
 } from "lucide-react";
 import { V2_ROUTES } from "@/config/constants";
 import { cn } from "@/lib/utils";
@@ -36,9 +36,6 @@ function getNavGroups(role: string | null): NavGroup[] {
     { label: "Dashboard",     icon: <LayoutDashboard size={18} />, href: V2_ROUTES.DASHBOARD, exact: true },
     ...(!isDev ? [
       { label: "Customers",   icon: <Building2 size={18} />,       href: V2_ROUTES.CUSTOMERS },
-    ] : []),
-    ...(role !== "client" && !isDev ? [
-      { label: "Tracker",     icon: <ChartGantt size={18} />,          href: V2_ROUTES.PORTFOLIO_TRACKER },
     ] : []),
     {
       label: "Projects",

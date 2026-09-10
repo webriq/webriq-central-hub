@@ -4,7 +4,7 @@
 **Priority:** MEDIUM
 **Type:** feature
 **Recommended Tier:** deep
-**Status:** Planned
+**Status:** Completed (2026-09-10 — marked complete at the user's explicit request; browser acceptance not run)
 
 ---
 

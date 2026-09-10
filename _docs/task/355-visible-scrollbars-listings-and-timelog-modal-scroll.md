@@ -4,7 +4,7 @@
 **Priority:** MEDIUM
 **Type:** bugfix
 **Recommended Tier:** fast
-**Status:** Planned
+**Status:** Completed (2026-09-10 — marked complete at user's explicit request; browser acceptance not run)
 
 ---
 
