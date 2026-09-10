@@ -483,8 +483,8 @@
     "supabase/migrations/089_task_issue_display_id.sql": "8edab4674de9e6fcfda54cd97f0dfeb79cc7eea1c8174bb2d296c14fd0422645",
     "worker/index.ts": "83350712449db3ec76c4015cedb2bad5dfd0d0ccd91509ee9a6f09ee4f66f9cc"
   },
-  "indexed_at_commit": "d3eefbe360153f71b71bc886444d413e3712d032",
-  "indexed_at_timestamp": "2026-09-10T06:45:22.570703+00:00",
+  "indexed_at_commit": "b97ba732be03b88d7db4bbb1618eb41d0c3b28f2",
+  "indexed_at_timestamp": "2026-09-10T07:28:39.259570+00:00",
   "languages": {
     "javascript": {
       "calls": 123,

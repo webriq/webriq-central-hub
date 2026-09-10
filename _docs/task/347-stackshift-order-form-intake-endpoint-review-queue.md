@@ -148,7 +148,7 @@ const BUCKET = "project-assets";
 export async function createAttachmentUploadUrl(supabase, storagePath): Promise<{ path; token; signedUrl }>;
 export async function verifyUploadedObject(supabase, storagePath, filename): Promise<VerifyFileResult>; // 64KB ranged read + verifyFile(); removes object on failure
 ```
-`uploads.ts` reuses these with `storagePath = ` `` `stackshift-orders/incoming/${crypto.randomUUID()}/${safeName}` ``. Allowed types: proposal → `pdf | doc | docx`; FlowForge spec → also `txt | md | xls | xlsx | csv`. Size cap 25 MB (well under the bucket's 50 MB `file_size_limit`). Uploads land in the `incoming/` prefix and stay there — the stored path is recorded on the order; `/convert` optionally also inserts `attachments` rows (`entity_type: 'project'`, `entity_id: project.id`).
+`uploads.ts` reuses these with `storagePath = ` `` `stackshift-orders/incoming/${crypto.randomUUID()}/${safeName}` ``. Allowed types: proposal → `pdf | doc | docx | html | md | zip | rar`; FlowForge spec → also `txt | xls | xlsx | csv` (superset of proposal). Size cap 25 MB (well under the bucket's 50 MB `file_size_limit`). Uploads land in the `incoming/` prefix and stay there — the stored path is recorded on the order; `/convert` optionally also inserts `attachments` rows (`entity_type: 'project'`, `entity_id: project.id`).
 
 ### Email transport (`src/lib/email/mailer.ts`)
 

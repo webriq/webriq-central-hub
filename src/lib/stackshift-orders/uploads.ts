@@ -10,8 +10,8 @@ import type { UploadsManifest } from "./schema";
 const PREFIX = "stackshift-orders/incoming";
 
 const EXT_BY_FIELD: Record<string, string[]> = {
-  proposal: ["pdf", "doc", "docx"],
-  flowforge_spec: ["pdf", "doc", "docx", "txt", "md", "xls", "xlsx", "csv"],
+  proposal: ["pdf", "doc", "docx", "html", "md", "zip", "rar"],
+  flowforge_spec: ["pdf", "doc", "docx", "txt", "md", "xls", "xlsx", "csv", "html", "zip", "rar"],
 };
 
 function extOf(filename: string): string {
