@@ -1087,6 +1087,8 @@ export interface Database {
           approval_date: string | null;
           terms_accepted: boolean;
           contact_risk: "low" | "medium" | "high" | null;
+          submitter_ip: string | null;
+          submitter_user_agent: string | null;
           raw_payload: Json;
           dedupe_key: string | null;
           notification_sent_at: string | null;
@@ -1123,6 +1125,8 @@ export interface Database {
           approval_date?: string | null;
           terms_accepted?: boolean;
           contact_risk?: "low" | "medium" | "high" | null;
+          submitter_ip?: string | null;
+          submitter_user_agent?: string | null;
           raw_payload?: Json;
           dedupe_key?: string | null;
           notification_sent_at?: string | null;
@@ -1159,6 +1163,8 @@ export interface Database {
           approval_date?: string | null;
           terms_accepted?: boolean;
           contact_risk?: "low" | "medium" | "high" | null;
+          submitter_ip?: string | null;
+          submitter_user_agent?: string | null;
           raw_payload?: Json;
           dedupe_key?: string | null;
           notification_sent_at?: string | null;

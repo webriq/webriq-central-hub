@@ -53,6 +53,11 @@ export const orderIntakeSchema = z.object({
   // for the contact email/phone. "high" means the proxy should have blocked the submission, so
   // in practice only "low"/"medium" arrive; absent = the check was skipped or came back clean.
   contactRisk: z.enum(["low", "medium", "high"]).optional().nullable(),
+  // Task 356 — submitter request metadata, forwarded by the webriq.com proxy in the payload
+  // (the Hub is called server-to-server by the proxy, so it can't read the real submitter's
+  // IP/UA from its own request headers). Both optional; absent = the proxy didn't send them.
+  submitterIp: z.string().max(64).optional().nullable(),
+  submitterUserAgent: z.string().max(1024).optional().nullable(),
 });
 export type OrderIntake = z.infer<typeof orderIntakeSchema>;
 

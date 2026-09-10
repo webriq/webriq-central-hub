@@ -100,6 +100,21 @@ export async function POST(req: NextRequest) {
     if (riskErr) console.warn("[stackshift-order] contact_risk not stored:", riskErr.message);
   }
 
+  // Task 356 — submitter IP / user-agent, forwarded by the webriq.com proxy (the Hub is
+  // called server-to-server, so its own request headers aren't the submitter's). Best-effort
+  // and a separate update from `contact_risk` so a pre-migration-136 DB (no columns) never
+  // fails the relay — `raw_payload` carries them regardless.
+  if (p.submitterIp || p.submitterUserAgent) {
+    const { error: metaErr } = await adminClient
+      .from("stackshift_orders")
+      .update({
+        submitter_ip: p.submitterIp ?? null,
+        submitter_user_agent: p.submitterUserAgent ?? null,
+      })
+      .eq("id", order.id);
+    if (metaErr) console.warn("[stackshift-order] submitter meta not stored:", metaErr.message);
+  }
+
   // Notification is best-effort — never fail the request over email.
   try {
     const recipients = await getOrderNotificationRecipients();
