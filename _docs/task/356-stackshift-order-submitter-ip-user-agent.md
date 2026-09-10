@@ -231,3 +231,21 @@ PASS
 
 ### Required Fixes
 - None.
+
+---
+
+## Completion (2026-09-10)
+
+**Marked complete at the user's explicit request.** Code + quality gate done; outstanding
+items are operator / deploy / cross-repo steps:
+
+- Migration `136_stackshift_orders_submitter_meta.sql` applied via `supabase db push` (the
+  webhook records submissions without it — the values just aren't persisted to the two
+  columns, only to `raw_payload`, until it lands).
+- Hub redeploy.
+- **webriq.com** — the proxy must be updated to read `x-forwarded-for` (first hop) +
+  `user-agent` from the browser request and include `submitterIp` / `submitterUserAgent`
+  in the relayed payload. Standalone prompt handed off; the user confirmed the rest of the
+  webriq.com proxy is already implemented, so this is the only remaining webriq.com work
+  for this task.
+- Live acceptance: submit behind the production CDN → confirm both columns populate.

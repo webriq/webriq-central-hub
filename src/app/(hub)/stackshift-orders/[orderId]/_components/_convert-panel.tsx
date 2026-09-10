@@ -5,9 +5,15 @@ import { useRouter } from "next/navigation";
 import { Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { V2_ROUTES } from "@/config/constants";
-import { CLASSIFICATIONS, isValidClassificationCombo, type Classification } from "@/config/customer-phases";
+import {
+  CLASSIFICATIONS,
+  isValidClassificationCombo,
+  type Classification,
+  type PhasePlanInput,
+} from "@/config/customer-phases";
 import type { CustomerMatch } from "@/lib/stackshift-orders/match-customer";
 import { Section, ERROR_BOX_CLASS } from "./_order-ui";
+import PhaseSetupDialog, { type PhaseSetup } from "./_phase-setup-dialog";
 import type { OrderDetail } from "./order-review";
 
 const MATCH_LABEL: Record<CustomerMatch["matchMethod"], string> = {
@@ -40,8 +46,13 @@ export default function ConvertPanel({ order }: { order: OrderDetail }) {
   const [projectName, setProjectName] = useState("");
   const [busy, setBusy] = useState<null | "convert" | "dismiss">(null);
   const [error, setError] = useState<string | null>(null);
+  const [phaseDialogOpen, setPhaseDialogOpen] = useState(false);
 
   const comboValid = isValidClassificationCombo(classifications);
+  // Task 357 — StackShift I skips the phase-setup dialog: its structure is the 120-day
+  // customer_phases engine, seeded later at Start Onboarding. Every other classification is
+  // asked how to seed its milestones.
+  const isStackShiftI = classifications.includes("StackShift I");
 
   function toggleClassification(c: Classification) {
     setClassifications((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]));
@@ -66,11 +77,24 @@ export default function ConvertPanel({ order }: { order: OrderDetail }) {
     }
   }
 
-  async function convert() {
+  function validate(): string | null {
+    if (classifications.length === 0) return "Select at least one classification.";
+    if (!comboValid) return "At most one StackShift tier may be selected.";
+    if (mode === "existing_customer" && !existingCustomerId) return "Pick an existing customer.";
+    return null;
+  }
+
+  function handleCreateClick() {
+    const v = validate();
+    if (v) return setError(v);
     setError(null);
-    if (classifications.length === 0) return setError("Select at least one classification.");
-    if (!comboValid) return setError("At most one StackShift tier may be selected.");
-    if (mode === "existing_customer" && !existingCustomerId) return setError("Pick an existing customer.");
+    // StackShift I: no dialog — draft project, phases seed at Start Onboarding.
+    if (isStackShiftI) return void submitConvert("stackshift_default");
+    setPhaseDialogOpen(true);
+  }
+
+  async function submitConvert(phaseSetup: PhaseSetup, phasePlan?: PhasePlanInput) {
+    setError(null);
     setBusy("convert");
     try {
       const res = await fetch(`/api/stackshift-orders/${order.id}/convert`, {
@@ -81,6 +105,8 @@ export default function ConvertPanel({ order }: { order: OrderDetail }) {
           existingCustomerId: mode === "existing_customer" ? existingCustomerId : undefined,
           classifications,
           projectName: projectName.trim() || undefined,
+          phaseSetup,
+          phasePlan,
         }),
       });
       const json = await res.json();
@@ -89,6 +115,7 @@ export default function ConvertPanel({ order }: { order: OrderDetail }) {
     } catch (e) {
       setError(e instanceof Error ? e.message : "Conversion failed");
       setBusy(null);
+      setPhaseDialogOpen(false);
     }
   }
 
@@ -196,20 +223,28 @@ export default function ConvertPanel({ order }: { order: OrderDetail }) {
 
       <div className="col-span-2 flex items-center gap-2 pt-1">
         <button
-          onClick={convert}
-          disabled={busy !== null}
+          onClick={handleCreateClick}
+          disabled={busy !== null || phaseDialogOpen}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-[12px] font-semibold bg-[#FB914E] text-[#471F02] hover:bg-[#E2762F] hover:text-white disabled:opacity-50 cursor-pointer transition-colors"
         >
           {busy === "convert" ? "Converting…" : "Create customer & project"}
         </button>
         <button
           onClick={dismiss}
-          disabled={busy !== null}
+          disabled={busy !== null || phaseDialogOpen}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-[12px] font-semibold border border-[#E2E7F2] bg-white text-[#3A4565] hover:bg-[#FDF2F2] hover:text-[#9B2C2C] hover:border-[#F3C7C7] disabled:opacity-50 cursor-pointer transition-colors"
         >
           {busy === "dismiss" ? "Dismissing…" : "Dismiss"}
         </button>
       </div>
+
+      {phaseDialogOpen && (
+        <PhaseSetupDialog
+          busy={busy === "convert"}
+          onCancel={() => setPhaseDialogOpen(false)}
+          onConfirm={submitConvert}
+        />
+      )}
     </Section>
   );
 }

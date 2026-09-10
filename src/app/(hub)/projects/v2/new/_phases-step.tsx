@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { type Classification } from "@/config/customer-phases";
-import PhaseBuilder from "./_phase-builder";
+import PhaseBuilder from "@/components/programme/phase-builder";
 import { DateTimePicker } from "./_date-time-picker";
 import {
   defaultPhasePlanDraft,

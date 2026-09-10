@@ -49,7 +49,7 @@ Per the user's direction (2026-09-03), the endpoint does **not** auto-create cus
 
 - **No changes to `webriq.com`** — this repo only exposes the endpoint + documents the proxy contract.
 - **No auto-creation of customers/projects from the webhook.** Only the authenticated `/convert` action creates records.
-- **No programme auto-start.** Convert creates a *draft* project exactly like the New Project intake's `mode: "save"` path. Starting the 120-day clock stays a separate PM action (`seedAndStartProgramme` is **not** called here).
+- **No programme auto-start.** Convert creates a *draft* project exactly like the New Project intake's `mode: "save"` path. Starting the 120-day clock stays a separate PM action (`seedAndStartProgramme` is **not** called here). _(Task 357 update: convert now also seeds the project's phase structure — StackShift I marks the `customer_phases` engine as a draft with empty config; other classifications seed generic `milestones`/`tasklists` per a confirm dialog. Still no `seedAndStartProgramme` / clock start.)_
 - Do not modify the existing Zoho webhook (`src/app/api/webhooks/route.ts`), `POST /api/customers`, `POST /api/onboarding/projects`, or the onboarding form engine.
 - Do not add a `sonner` toast dependency or `react-hook-form` — follow the codebase's controlled-`useState` + inline-fetch form pattern (see CLAUDE.md "UI Polish Conventions → Rejected").
 - Do not introduce `dark:` Tailwind classes into `(hub)` files — use the `isDark`-prop pattern already in v2.
@@ -389,3 +389,48 @@ PASS
 ### Required Fixes
 
 - None (all gate findings fixed in place; `npx tsc --noEmit` + `pnpm lint` re-run clean).
+
+---
+
+## Post-Ship Amendments (2026-09-10)
+
+Small follow-ups made while wiring up the webriq.com side and completing tasks 354 / 356:
+
+### 1. Expanded accepted upload file types
+
+`EXT_BY_FIELD` in `src/lib/stackshift-orders/uploads.ts` widened on **both** fields
+(previously proposal was `pdf | doc | docx` only):
+
+| Field | Accepted extensions (now) |
+|-------|---------------------------|
+| `proposal` | `pdf, doc, docx, html, md, zip, rar` |
+| `flowforge_spec` | `pdf, doc, docx, txt, md, xls, xlsx, csv, html, zip, rar` |
+
+`html` / `md` / `zip` / `rar` are all recognized categories in
+`src/config/attachment-types.ts` and none are hard-blocked, so `verifyUploadedObject`'s
+post-upload magic-byte check accepts genuine files of these types (and still rejects a
+mislabeled/renamed one — e.g. a `.docx` renamed `.zip` fails because `file-type` inspects
+the container). `npx tsc --noEmit` + `pnpm lint` clean.
+
+**webriq.com follow-up:** the public form's file-input `accept` attributes + client-side
+extension validation must be widened to match this list (a prompt was handed off). Until
+the Hub is redeployed, the live `/uploads` endpoint still rejects the new types with
+`proposal: .zip is not an accepted type (pdf, doc, docx)`.
+
+### 2. Notify-list name correction
+
+The `STACKSHIFT_ORDER_NOTIFY_EMAILS` recipient list is **Philippe / Danielle / Dannea /
+Alex / Bert** — the code comment in `src/lib/stackshift-orders/recipients.ts` and this
+doc's requirement + open-question lines said "Brandon", corrected to "Dannea". Addresses
+are added manually to the deployment env (comment-only change; no behavior impact).
+
+### Outstanding (unchanged from the Quality Gate Notes)
+
+- Migration `130_stackshift_orders.sql` applied via `supabase db push`.
+- `STACKSHIFT_ORDER_WEBHOOK_SECRET` + `MAIL_*` set in the deployment env.
+- Hub redeploy to pick up the widened file-type list + tasks 354 / 356.
+- End-to-end browser acceptance (submit → review queue → convert → dismiss/reopen →
+  notification + customer-confirmation emails).
+
+**Marked complete at the user's explicit request** — the items above are operator /
+deploy steps, consistent with how tasks 345 / 350 / 351 were closed.

@@ -62,16 +62,52 @@ export const orderIntakeSchema = z.object({
 export type OrderIntake = z.infer<typeof orderIntakeSchema>;
 
 // ─── review actions ──────────────────────────────────────────────────────────
+
+// Task 357 — generic phase plan for the convert dialog's "set the phases now" option. Mirrors
+// PhasePlanInput / PhasePlan / DeliverablePlan / ChecklistItemPlan in customer-phases.ts (there's
+// no zod schema for those; POST /api/onboarding/projects casts its own `phase_plan` field). Fed
+// straight to seedCustomPhases — phases → milestones, deliverables → tasklists, checklist → tasks.
+const checklistItemPlanSchema = z.object({ title: z.string().min(1).max(300) });
+const deliverablePlanSchema = z.object({
+  name: z.string().min(1).max(300),
+  dayStart: z.number().int().positive(),
+  dayEnd: z.number().int().positive(),
+  checklist: z.array(checklistItemPlanSchema).max(50),
+});
+export const phasePlanInputSchema = z.object({
+  phases: z
+    .array(
+      z.object({
+        name: z.string().min(1).max(300),
+        dayStart: z.number().int().positive(),
+        dayEnd: z.number().int().positive(),
+        deliverables: z.array(deliverablePlanSchema).max(30),
+      })
+    )
+    .max(20),
+});
+
 export const convertSchema = z
   .object({
     mode: z.enum(["new_customer", "existing_customer"]),
     existingCustomerId: z.string().min(1).max(64).optional(),
     classifications: z.array(z.enum(CLASSIFICATIONS)).min(1).max(4),
     projectName: z.string().min(1).max(300).optional(),
+    // Task 357 — how the new project's phase/deliverable structure is seeded on convert.
+    // "skip" (default): no phases. "stackshift_default": copy the StackShift I template into
+    // generic milestones/tasklists. "custom": seed the reviewer-built plan in `phasePlan`.
+    // Ignored when the classification is StackShift I — that path only marks the customer_phases
+    // engine as a draft (see create-from-order.ts), it never seeds milestones here.
+    phaseSetup: z.enum(["stackshift_default", "custom", "skip"]).default("skip"),
+    phasePlan: phasePlanInputSchema.optional(),
   })
   .refine((v) => v.mode !== "existing_customer" || !!v.existingCustomerId, {
     message: "existingCustomerId is required when mode is existing_customer",
     path: ["existingCustomerId"],
+  })
+  .refine((v) => v.phaseSetup !== "custom" || (v.phasePlan?.phases.length ?? 0) > 0, {
+    message: "phasePlan with at least one phase is required when phaseSetup is 'custom'",
+    path: ["phasePlan"],
   });
 export type ConvertBody = z.infer<typeof convertSchema>;
 

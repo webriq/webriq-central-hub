@@ -65,6 +65,10 @@ export async function POST(
       classifications: parsed.data.classifications,
       projectName: parsed.data.projectName,
       actingUserId: auth.userId,
+      // Task 357 — createFromOrder ignores these for a StackShift I classification (that path
+      // only marks the customer_phases engine as a draft).
+      phaseSetup: parsed.data.phaseSetup,
+      phasePlan: parsed.data.phasePlan,
     });
     return NextResponse.json({ ok: true, ...result }, { status: 201 });
   } catch (err) {

@@ -388,3 +388,22 @@ PASS
 
 ### Required Fixes
 - None.
+
+---
+
+## Completion (2026-09-10)
+
+**Marked complete at the user's explicit request.** Code + quality gate done; the
+following are operator / deploy steps (consistent with how tasks 345 / 350 / 351 closed):
+
+- Migration `135_stackshift_orders_customer_notification.sql` applied via `supabase db push`
+  (the confirmation email sends without it — only the `customer_notification_sent_at` stamp
+  and the "Customer emailed" UI indicator need it).
+- `MAIL_*` env set; optional `STACKSHIFT_ORDER_REPLY_TO` for a monitored reply inbox.
+- Hub redeploy.
+- Live acceptance: submit a real order → confirm the submitter receives the confirmation
+  email (and the staff notification still fires independently) → confirm a forced failure
+  in one email path doesn't suppress the other.
+
+No webriq.com change required for this task (the Hub sends the email; webriq.com only owns
+the on-page success state, which pre-existed).

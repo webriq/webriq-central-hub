@@ -20,7 +20,7 @@ import {
   type PhaseDraft,
   type DeliverableDraft,
   type EmptyNameError,
-} from "./_new-project-types";
+} from "@/lib/programme/phase-plan-draft";
 
 // Task 244 follow-up: reused everywhere a list here needs drag-reorder (phases in free-form mode,
 // deliverables in either mode, checklist items in free-form mode) — a single sensor config
@@ -277,7 +277,7 @@ function PhaseSection({
   phase: PhaseDraft;
   mode: "fixed-phases" | "free-form";
   // Task 249 (Requirement D) — fixed-phases mode only: this phase's day-range validation message,
-  // if any (see phasePlanValidationErrors, _new-project-types.ts).
+  // if any (see phasePlanValidationErrors, phase-plan-draft.ts).
   error?: string;
   // Chat follow-up: see ChecklistItemRow/DeliverableRow — same full empty-name error map, this
   // section resolves its own (name-editable phases only) entry plus forwards it to each
@@ -508,8 +508,9 @@ function PhaseSection({
 // mode="fixed-phases": StackShift I always, StackShift II when "generate default" is checked —
 // phasePlan.phases is pre-seeded with the 5 programme phases and never gains/loses a phase here,
 // only deliverables within each. mode="free-form": Access / Access Plus / Discrete Development,
-// and StackShift II when its checkbox is unchecked — phases themselves are addable/removable/
-// reorderable, and each deliverable also carries an editable, reorderable checklist.
+// StackShift II when its checkbox is unchecked, and the StackShift Orders convert dialog's "set
+// the phases now" option (task 357) — phases themselves are addable/removable/reorderable, and
+// each deliverable also carries an editable, reorderable checklist.
 
 export default function PhaseBuilder({
   mode,
