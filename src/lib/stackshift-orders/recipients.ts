@@ -1,9 +1,9 @@
 import { adminClient } from "@/lib/supabase/admin";
 
 // Task 347 — every StackShift order submission notifies a fixed list (Philippe, Danielle,
-// Brandon, Alex, Bert — addresses live in STACKSHIFT_ORDER_NOTIFY_EMAILS, "more on this
-// later") plus every PM. `profiles` has no email column, so PM addresses come from auth.users
-// intersected with profiles.role = 'pm'.
+// Dannea, Alex, Bert — addresses live in STACKSHIFT_ORDER_NOTIFY_EMAILS) plus every PM.
+// `profiles` has no email column, so PM addresses come from auth.users intersected with
+// profiles.role = 'pm'.
 export async function getOrderNotificationRecipients(): Promise<string[]> {
   const out = new Set<string>();
 

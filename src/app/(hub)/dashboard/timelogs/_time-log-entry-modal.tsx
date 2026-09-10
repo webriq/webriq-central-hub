@@ -259,15 +259,15 @@ export function TimeLogEntryModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0B1533]/40 p-4">
-      <div className="w-full max-w-md rounded-[14px] border border-[#E2E7F2] bg-white shadow-[0_8px_24px_rgba(7,17,51,0.10)] overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[#EDF0F7]">
+      <div className="w-full max-w-md rounded-[14px] border border-[#E2E7F2] bg-white shadow-[0_8px_24px_rgba(7,17,51,0.10)] overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#EDF0F7] shrink-0">
           <h2 className="font-heading text-[15px] font-semibold text-[#0B1533]">{initial ? "Edit Time Log" : "Add Time Log"}</h2>
           <button type="button" onClick={onClose} aria-label="Close" className="p-1 rounded-full text-[#5F6A88] hover:bg-[#F4F6FB] cursor-pointer transition-colors">
             <X size={16} />
           </button>
         </div>
 
-        <div className="px-5 py-4 flex flex-col gap-3">
+        <div className="px-5 py-4 flex flex-col gap-3 flex-1 min-h-0 overflow-y-auto scrollbar-light">
           {initial ? (
             <div>
               <FieldLabel>Project</FieldLabel>
@@ -369,7 +369,7 @@ export function TimeLogEntryModal({
           {error && <p className="text-[11px] text-[#C0392B]">{error}</p>}
         </div>
 
-        <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-[#EDF0F7] bg-[#F4F6FB]">
+        <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-[#EDF0F7] bg-[#F4F6FB] shrink-0">
           <button
             type="button"
             onClick={onClose}

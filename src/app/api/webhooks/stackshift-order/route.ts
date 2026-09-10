@@ -7,6 +7,7 @@ import { mapServicesToClassifications } from "@/lib/stackshift-orders/service-ma
 import { verifyIncomingObject } from "@/lib/stackshift-orders/uploads";
 import { getOrderNotificationRecipients } from "@/lib/stackshift-orders/recipients";
 import { sendStackShiftOrderNotification } from "@/lib/email/stackshift-order-notification";
+import { sendStackShiftOrderCustomerConfirmation } from "@/lib/email/stackshift-order-customer-confirmation";
 
 // Task 347 — records a StackShift Order Form submission and notifies the review queue.
 // Does NOT create customers/projects — that's a deliberate human action from
@@ -125,6 +126,32 @@ export async function POST(req: NextRequest) {
     console.error("[stackshift-order] notification email failed:", err);
   }
 
+  // Task 354 — customer confirmation email. Independent of the staff notification above:
+  // a failure in either must not suppress the other, and neither fails the request.
+  try {
+    if (p.contactRisk === "high") {
+      console.warn("[stackshift-order] contact_risk=high — skipping customer confirmation email");
+    } else {
+      const recipients = dedupeEmails([p.contact.email, p.contact.billingEmail]);
+      await sendStackShiftOrderCustomerConfirmation({
+        to: recipients,
+        companyName: p.company.name,
+        contactName: p.contact.name,
+        services: p.services,
+        proposalFilename: p.proposalFilename,
+        flowforgeSpecFilename: p.flowforgeSpecFilename ?? null,
+      });
+      // Best-effort — a pre-migration-135 DB has no `customer_notification_sent_at` column.
+      const { error: stampErr } = await adminClient
+        .from("stackshift_orders")
+        .update({ customer_notification_sent_at: new Date().toISOString() })
+        .eq("id", order.id);
+      if (stampErr) console.warn("[stackshift-order] customer_notification_sent_at not stored:", stampErr.message);
+    }
+  } catch (err) {
+    console.error("[stackshift-order] customer confirmation email failed:", err);
+  }
+
   return NextResponse.json({ ok: true, orderId: order.id }, { status: 201 });
 }
 
@@ -136,4 +163,15 @@ function toIsoOrNull(value: string | null | undefined): string | null {
   if (!value) return null;
   const d = new Date(value);
   return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}
+
+// Trim + lowercase + drop blanks, de-duplicated. Used for the customer confirmation
+// recipients (contact email + billing email, which is often the same or empty).
+function dedupeEmails(values: (string | null | undefined)[]): string[] {
+  const out = new Set<string>();
+  for (const raw of values) {
+    const email = raw?.trim().toLowerCase();
+    if (email && email.includes("@")) out.add(email);
+  }
+  return [...out];
 }

@@ -222,7 +222,7 @@ export default function IssueListView({
         onCancel={() => setConfirmOpen(false)}
       />
 
-      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto px-8 pb-5">
+      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto scrollbar-light px-8 pb-5">
         {/* No overflow-hidden here — it would create its own clipping/scroll-container
             box and break the header's `sticky` positioning against the real scrolling
             ancestor above. Corner rounding is applied directly to the header (top) and

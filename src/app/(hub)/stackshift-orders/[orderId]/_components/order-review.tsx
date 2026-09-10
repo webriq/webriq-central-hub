@@ -68,6 +68,11 @@ export default function OrderReview({ order }: { order: OrderDetail }) {
           <p className="text-[13px] text-[#5F6A88] mt-0.5">
             Submitted {formatDate(order.submitted_at ?? order.created_at)}
           </p>
+          {order.customer_notification_sent_at && (
+            <p className="text-[12px] text-[#1E7C4B] mt-0.5">
+              Customer emailed {formatDate(order.customer_notification_sent_at)}
+            </p>
+          )}
         </div>
         <div className="flex flex-col items-end gap-1.5">
           <StatusPill status={order.status} />

@@ -1090,6 +1090,7 @@ export interface Database {
           raw_payload: Json;
           dedupe_key: string | null;
           notification_sent_at: string | null;
+          customer_notification_sent_at: string | null;
           customer_id: string | null;
           project_id: string | null;
           is_new_customer: boolean | null;
@@ -1125,6 +1126,7 @@ export interface Database {
           raw_payload?: Json;
           dedupe_key?: string | null;
           notification_sent_at?: string | null;
+          customer_notification_sent_at?: string | null;
           customer_id?: string | null;
           project_id?: string | null;
           is_new_customer?: boolean | null;
@@ -1160,6 +1162,7 @@ export interface Database {
           raw_payload?: Json;
           dedupe_key?: string | null;
           notification_sent_at?: string | null;
+          customer_notification_sent_at?: string | null;
           customer_id?: string | null;
           project_id?: string | null;
           is_new_customer?: boolean | null;

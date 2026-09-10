@@ -57,7 +57,9 @@ export function TimeLogNotesEditor({
           </button>
         ))}
       </div>
-      <EditorContent editor={editor} />
+      <div className="max-h-[220px] overflow-y-auto scrollbar-light">
+        <EditorContent editor={editor} />
+      </div>
     </div>
   );
 }
