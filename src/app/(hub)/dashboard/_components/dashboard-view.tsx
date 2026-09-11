@@ -1,5 +1,4 @@
 import PMDashboard from "./pm-dashboard";
-import DevDashboard from "./dev-dashboard";
 import AdminDashboard from "./admin-dashboard";
 import MarketingDashboard from "./marketing-dashboard";
 
@@ -7,8 +6,6 @@ interface DashboardViewProps {
   role: string | null;
   displayName: string | null;
   userId: string;
-  devProjectsCount?: number;
-  devCustomerIds?: string[];
 }
 
 /**
@@ -17,22 +14,13 @@ interface DashboardViewProps {
  * tab switcher — users cannot view a dashboard their role does not own.
  *
  *   admin/super_admin → Admin dashboard
- *   developer          → Dev dashboard
+ *   developer          → Dev dashboard (task 360 — handled directly in page.tsx, so the
+ *                        developer branch can stream behind its own Suspense boundary)
  *   marketing          → Marketing dashboard (Tracker-first)
  *   pm                 → PM dashboard
  *   hr/client          → PM dashboard (fallback; HR dashboard ships in Sprint 6)
  */
-export default function DashboardView({ role, displayName, userId, devProjectsCount, devCustomerIds }: DashboardViewProps) {
-  if (role === "developer") {
-    return (
-      <DevDashboard
-        userId={userId}
-        displayName={displayName}
-        projectsCount={devProjectsCount ?? 0}
-        customerIds={devCustomerIds ?? []}
-      />
-    );
-  }
+export default function DashboardView({ role, displayName, userId }: DashboardViewProps) {
   if (role === "admin" || role === "super_admin") {
     return <AdminDashboard userId={userId} displayName={displayName} />;
   }

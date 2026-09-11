@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
+import { useSearchParams } from "next/navigation";
 import { Download, Loader2, Plus } from "lucide-react";
 import { TimePeriodPicker } from "./_time-period-picker";
 import { TimeLogsTable } from "./_time-logs-table";
@@ -20,13 +21,19 @@ import {
 const VIEW_ALL_ROLES = ["admin", "super_admin", "pm", "hr"];
 
 export function TimeLogsContent({ role, currentUserId }: { role: string | null; currentUserId: string }) {
+  // Task 360 — `?new=1` opens the Add modal straight away, so the developer dashboard's
+  // "Log time" button can deep-link into it. Lazily initialized: the param only ever seeds the
+  // first render, and the same role gate the Add button uses (`canAdd`) applies.
+  const searchParams = useSearchParams();
   const [period, setPeriod] = useState<PeriodValue>(defaultPeriod());
   const [projects, setProjects] = useState<ProjectOption[]>([]);
   const [projectFilter, setProjectFilter] = useState("");
   const [entries, setEntries] = useState<TimeLogEntry[]>([]);
   const [grouped, setGrouped] = useState(role ? VIEW_ALL_ROLES.includes(role) : false);
   const [employeeFilter, setEmployeeFilter] = useState("");
-  const [modal, setModal] = useState<"add" | TimeLogEntry | null>(null);
+  const [modal, setModal] = useState<"add" | TimeLogEntry | null>(() =>
+    searchParams.get("new") === "1" && !!role && role !== "client" && role !== "marketing" ? "add" : null
+  );
   const [exporting, setExporting] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [deleteTarget, setDeleteTarget] = useState<TimeLogEntry | null>(null);

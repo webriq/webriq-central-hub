@@ -6,7 +6,7 @@
 **Version Impact:** minor
 **Platform:** Web
 **Automation:** manual
-**Status:** TESTING — implementation complete
+**Status:** COMPLETED — marked complete at the user's explicit request
 **Completed:** 2026-09-11
 
 ---
