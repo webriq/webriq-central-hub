@@ -1,6 +1,6 @@
 # Developer Dashboard — Redesign to `_final_design/dashboard/developer-dashboard.html`
 
-> **Status:** TESTING
+> **Status:** COMPLETE
 > **Priority:** HIGH
 > **Type:** enhancement
 > **Version Impact:** minor
@@ -8,6 +8,10 @@
 > **Completed:** 2026-09-11
 > **Platform:** Web
 > **Automation:** manual
+>
+> **Marked complete at the user's explicit request.** Browser acceptance was not run in-session
+> (no Playwright MCP / connected Claude-in-Chrome extension available) — see the outstanding
+> checklist items below.
 
 ## Implementation Notes (for the tester)
 
@@ -18,6 +22,44 @@ warnings in `onboarding-workspace/_checklist-tab.tsx`) · `pnpm build` PASS (com
 "critical overdue outranks critical due next week" case, sort immutability, tab predicates,
 anchored relative time, stable project tint). **Browser acceptance NOT RUN** — the whole
 Testing Checklist above still needs a real developer session.
+
+## Post-Review Fixes (same day, before marking complete)
+
+User feedback after an initial browser look surfaced four issues, all fixed and re-verified
+(`tsc`/`lint`/`build` PASS; 11 new pure-logic assertions PASS):
+
+1. **Stat tile miscommunication.** The "In progress" tile paired a big count (e.g. "54") with
+   "Timer running now" — read as if all 54 items had a live timer, when only the one with the
+   active timer did. Sub-text now shows a `{tasks} · {issues}` breakdown, matching the Due Today
+   tile. The now-unused `TimerRunningLabel` leaf was removed from `_start-timer-button.tsx`.
+2. **Panel rename + two new tabs + regrouped sort.** "My work" → **"My Tasks"** (the term the
+   predecessor dashboard used for this exact concept — "Todos" isn't used anywhere else in the
+   app). Added **Open** and **Closed** tabs. Sort changed from flat priority-first to
+   **status-group → priority/severity → latest-updated-first**, reusing the exact workflow order
+   `_pm-shared.tsx`'s `BOARD_COLUMNS`/`STATUS_ORDER` already establish (open → in_progress →
+   ready_for_qa → testing_completed → for_client_approval → ready_to_merge → post_live_qa →
+   closed) rather than inventing a new bucket scheme. Sorting moved from the loader to the client
+   shell (`_dev-dashboard.tsx`, after `normalizeStatus()` runs) since the new primary key is
+   status and the loader only has the raw, unnormalized value.
+3. **Closed items now fetched at all.** Adding a Closed tab meant the loader had to stop
+   excluding `status = closed` entirely. Bounded via `.or()` to "not closed, OR closed within the
+   last 30 days" so a developer's full closing history can't crowd genuinely open work out of the
+   `WORK_LIMIT`-row, `updated_at`-ordered fetch. The closed-detection (both the SQL filter and the
+   "Heaviest workload" open-count guard) checks **both** raw spellings `normalizeStatus()` maps to
+   `"closed"` (`"closed"` and `"Closed"`) — `tasks`/`issues` don't guarantee already-normalized
+   casing for Zoho-imported rows. `DueLabel` gained a `closed` prop so a closed item shows its
+   plain due date instead of a misleading red "overdue" pill.
+4. **In-row ticking clock broke the layout.** `TaskTimerButton`'s elapsed-time text
+   (`05:14:38`) inline in a "My Tasks" row was overflowing/wrapping the row. Replaced with a
+   static `RunningBadge` ("Currently running", no ticking text) next to the title plus a
+   compact icon-only stop button (`RunningRowStop`, a small leaf isolated from the rest of the
+   list so only that one row re-renders on the timer's per-second tick) — the live clock now only
+   ever appears on the Timer card and the header widget. The item with the active timer also now
+   floats to the top of whichever tab it's visible in (All, In progress, or any tab it belongs to).
+
+New pure helpers in `_types.ts`: `STATUS_ORDER` (workflow order table). `matchesTab()` gained
+`"open"`/`"closed"` cases. `sortWorkItems()`'s comparator is now status → priority →
+`updatedAt` desc → overdue-first → due-date asc.
 
 **Four deviations from the plan, all decided during implementation:**
 

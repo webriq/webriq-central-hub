@@ -1,6 +1,7 @@
 "use client";
 
 import { useSyncExternalStore, useCallback } from "react";
+import { DEFAULT_CLASSIFICATION_TAB, isProjectsTabId, type ProjectsTabId } from "./_classification-tabs";
 
 // localStorage-backed "last visited Projects tab" — modeled on src/hooks/use-pm-settings.ts's
 // module-level cache + useSyncExternalStore pattern (task 276). Replaces the old draggable
@@ -9,22 +10,22 @@ import { useSyncExternalStore, useCallback } from "react";
 // bare `/projects` is visited. Storage key intentionally kept as "projects-v2-tab-order" — an old
 // `{ order: [...] }` value is simply treated as unrecognized and falls back to the default rather
 // than being migrated, since this is a low-stakes cosmetic preference, not user data.
+//
+// Task 361 widened ProjectsTabId from "v2" | "legacy" to one id per classification plus "legacy"
+// (see _classification-tabs.ts). The key is kept again for the same reason: a stored `"v2"` from
+// before this task fails isProjectsTabId and falls back to StackShift I.
 
-export type ProjectsTabId = "v2" | "legacy";
+export type { ProjectsTabId };
 
 const STORAGE_KEY = "projects-v2-tab-order";
-const DEFAULT_TAB: ProjectsTabId = "v2";
-
-function isValidTab(v: unknown): v is ProjectsTabId {
-  return v === "v2" || v === "legacy";
-}
+const DEFAULT_TAB: ProjectsTabId = DEFAULT_CLASSIFICATION_TAB;
 
 function readLastTab(): ProjectsTabId {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return DEFAULT_TAB;
     const parsed = JSON.parse(raw);
-    return isValidTab(parsed?.lastTab) ? parsed.lastTab : DEFAULT_TAB;
+    return isProjectsTabId(parsed?.lastTab) ? parsed.lastTab : DEFAULT_TAB;
   } catch {
     return DEFAULT_TAB;
   }

@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { isRoleGatedByMembership, canManageProjectMembers, canSetProjectOwner } from "@/lib/programme/membership-rules";
 import { getDeveloperAccessibleProjectIds } from "../../projects-old/_project-access";
-import { getCurrentProgrammeDay, resolveEffectivePhase, DEFAULT_PROGRAMME_DAYS } from "@/config/customer-phases";
+import { getCurrentProgrammeDay, resolveEffectivePhase, DEFAULT_PROGRAMME_DAYS, type Classification } from "@/config/customer-phases";
 import type { OnboardingProjectListItem } from "./_onboarding-list";
 
 // Server-only paginated/filtered/sorted query for the Portfolio Tracker list page (task 263).
@@ -15,7 +15,9 @@ const CREATE_ROLES = ["admin", "super_admin", "marketing", "pm"];
 export type OnboardingListParams = {
   search: string;
   statusValues: string[] | null; // null = all (unfiltered), [] = explicitly none
-  classificationValues: string[] | null;
+  // Task 361 — the active classification tab. Single and required: the tab strip replaced the
+  // old multi-select Classification filter, so there is no "all classifications" state.
+  classification: Classification;
   sort: string;
   page: number;
   pageSize: number;
@@ -42,30 +44,6 @@ export async function loadOnboardingProjectsList(
   const sortSpec = SORT_MAP[params.sort] ?? SORT_MAP.newest;
   const from = (params.page - 1) * params.pageSize;
   const to = from + params.pageSize - 1;
-
-  // Legacy/Zoho-imported projects with no real classification (no customer_product_id at all, or
-  // a customer_products row whose classification is null — same population the card footer used
-  // to label "Unclassified") are excluded from every query this page runs, independent of the
-  // classification filter's state (task 272) — they're import noise, not real programme-tracked
-  // projects. A stray "unclassified" value in classificationValues (e.g. an old bookmarked URL,
-  // since that filter option no longer exists in the UI) is stripped rather than treated as a
-  // request to re-include them.
-  const classificationValues = params.classificationValues?.filter((v) => v !== "unclassified") ?? null;
-
-  // Two-step lookup for classification, since it lives on the joined customer_products row, not
-  // on projects itself — mirrors /projects/page.tsx's own two-step customer-name search pattern.
-  let classificationOrParts: string[] | null = null;
-  if (classificationValues !== null) {
-    const matchingProductIds: string[] = [];
-    if (classificationValues.length > 0) {
-      const { data } = await supabase.from("customer_products").select("id").in("classification", classificationValues);
-      matchingProductIds.push(...(data ?? []).map((r) => r.id));
-    }
-    classificationOrParts = matchingProductIds.length > 0 ? [`customer_product_id.in.(${matchingProductIds.join(",")})`] : [];
-  }
-
-  const { data: nullClassificationProducts } = await supabase.from("customer_products").select("id").is("classification", null);
-  const nullClassificationProductIds = (nullClassificationProducts ?? []).map((r) => r.id);
 
   // Task 153: marketing only sees projects they're a member of; a project with zero
   // project_members rows is unrestricted (backward compatibility for already in-progress
@@ -110,26 +88,33 @@ export async function loadOnboardingProjectsList(
       onboarding_status,
       target_handover_at,
       customers(company_name),
-      customer_products(classification)
+      customer_products!inner(classification)
     `,
       { count: "exact" }
     )
     .gte("created_at", "2026-07-06T00:00:00Z")
     .neq("status", "deleted")
     .not("customer_product_id", "is", null)
+    // Task 361 — tab membership: the linked customer_products row's multi-select array OR its
+    // primary column. A union, not a fallback, because live data has three row shapes: intake/
+    // import/order-convert rows write both; pre-task-157 rows have an empty array and only the
+    // column; and PATCH .../classification (task 268) updates only the column (kept in sync as of
+    // this task, but rows edited before it still exist). `!inner` makes this a join filter, so a
+    // row with neither value set — legacy/Zoho import noise, task 272 — drops out by construction.
+    // That replaces an unbounded `.is("classification", null)` exclusion lookup that had the
+    // >1000-row truncation shape CLAUDE.md flags. `classifications` is filtered here but not
+    // selected above — only the primary `classification` is read downstream (map below), and the
+    // referencedTable filter operates on the underlying column regardless of the select list
+    // (verified against the live DB), so there's no reason to transfer the array on every row.
+    .or(
+      `classification.eq."${params.classification}",classifications.cs.{"${params.classification}"}`,
+      { referencedTable: "customer_products" }
+    )
     .order(sortSpec.column, { ascending: sortSpec.ascending, nullsFirst: sortSpec.nullsFirst });
 
-  if (nullClassificationProductIds.length > 0) {
-    query = query.not("customer_product_id", "in", `(${nullClassificationProductIds.join(",")})`);
-  }
   if (params.statusValues !== null) {
     const statusFilter = params.statusValues.length > 0 ? params.statusValues : ["__none__"];
     query = query.in("onboarding_status", statusFilter);
-  }
-  if (classificationOrParts !== null) {
-    query = classificationOrParts.length > 0
-      ? query.or(classificationOrParts.join(","))
-      : query.eq("id", ZERO_ROWS_ID);
   }
   if (params.search) {
     const { data: matchedCustomers } = await supabase

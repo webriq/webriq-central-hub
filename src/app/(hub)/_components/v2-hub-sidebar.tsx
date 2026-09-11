@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   LayoutDashboard, LayoutGrid, Inbox, Cpu, Users,
@@ -13,6 +13,21 @@ import { V2_ROUTES } from "@/config/constants";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { signOut } from "@/app/(auth)/actions";
+import { CLASSIFICATION_TABS, classificationTabHref, parseClassificationTab } from "@/app/(hub)/projects/_classification-tabs";
+
+// A child href either has no query (plain path match, same as always) or carries a `?tab=`
+// (the /projects/v2 classification links, task 361 follow-up) — in which case the current URL's
+// tab must resolve, via the same parseClassificationTab() the page itself uses, to the value the
+// href encodes. Without this, every classification child would share the /projects/v2 pathname
+// and all seven would light up as "active" at once.
+function isChildActive(pathname: string, searchParams: URLSearchParams, href: string): boolean {
+  const queryIndex = href.indexOf("?");
+  const hrefPath = queryIndex === -1 ? href : href.slice(0, queryIndex);
+  if (pathname !== hrefPath && !pathname.startsWith(hrefPath + "/")) return false;
+  if (queryIndex === -1) return true;
+  const hrefTab = new URLSearchParams(href.slice(queryIndex + 1)).get("tab");
+  return hrefTab === null || parseClassificationTab(searchParams.get("tab")) === hrefTab;
+}
 
 type NavItem = {
   label: string;
@@ -41,9 +56,14 @@ function getNavGroups(role: string | null): NavGroup[] {
       label: "Projects",
       icon: <LayoutGrid size={18} />,
       href: V2_ROUTES.PROJECTS,
+      // Task 361 follow-up — one sidebar link per classification (linking into the same
+      // /projects/v2?tab=<slug> routes the listing page itself uses) plus Legacy, replacing the
+      // old flat "V2 Projects" / "Legacy Projects" pair. classificationTabHref() and
+      // CLASSIFICATION_TABS are the single source of truth for the tab catalog and its order —
+      // see _classification-tabs.ts.
       children: [
-        { label: "V2 Projects",     href: V2_ROUTES.PROJECTS_V2 },
-        { label: "Legacy Projects", href: V2_ROUTES.PROJECTS_LEGACY },
+        ...CLASSIFICATION_TABS.map((tab) => ({ label: tab.classification, href: classificationTabHref(tab.id) })),
+        { label: "Legacy", href: V2_ROUTES.PROJECTS_LEGACY },
       ],
     },
     ...(!isDev ? [
@@ -121,6 +141,7 @@ interface V2HubSidebarProps {
 
 export default function V2HubSidebar({ userRole, displayName, avatarUrl }: V2HubSidebarProps) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
   // Collapsible nav items ("Projects" — task 279; "Desk" — task 335), keyed by label.
@@ -193,9 +214,7 @@ export default function V2HubSidebar({ userRole, displayName, avatarUrl }: V2Hub
             )}
             {group.items.map(item => {
               const hasChildren = !!item.children?.length;
-              const childActive = hasChildren && item.children!.some(
-                c => pathname === c.href || pathname.startsWith(c.href + "/")
-              );
+              const childActive = hasChildren && item.children!.some(c => isChildActive(pathname, searchParams, c.href));
               const active = item.exact
                 ? pathname === item.href
                 : pathname === item.href || pathname.startsWith(item.href + "/") || childActive;
@@ -258,7 +277,7 @@ export default function V2HubSidebar({ userRole, displayName, avatarUrl }: V2Hub
                           className="overflow-hidden"
                         >
                           {item.children!.map(child => {
-                            const childIsActive = pathname === child.href || pathname.startsWith(child.href + "/");
+                            const childIsActive = isChildActive(pathname, searchParams, child.href);
                             return (
                               <button
                                 key={child.label}

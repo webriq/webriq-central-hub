@@ -5,6 +5,7 @@ import { V2_ROUTES } from "@/config/constants";
 import { loadOnboardingProjectsList } from "../_v2-listing/_load-list-data";
 import V2ProjectsListing from "../_v2-listing/_onboarding-list";
 import ListingShell from "../_listing-shell";
+import { classificationForTab, parseClassificationTab } from "../_classification-tabs";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Projects" };
@@ -13,11 +14,15 @@ export const metadata: Metadata = { title: "Projects" };
 // route now that the tab strip drives real paths instead of a query param. Auth guard mirrors
 // portfolio-tracker/page.tsx (default-allow via role-access.ts fallthrough; only the client-role
 // redirect is enforced here, matching the source page).
+//
+// Task 361 — `?classification=` (a multi-select filter) is replaced by `?tab=` (the single active
+// classification tab). Absent or unrecognized resolves to StackShift I, so every existing link to
+// bare /projects/v2 lands on that tab.
 
 type SearchParams = {
   search?: string;
   status?: string;
-  classification?: string;
+  tab?: string;
   sort?: string;
   page?: string;
   pageSize?: string;
@@ -42,27 +47,28 @@ export default async function ProjectsV2ListingPage({
 
   // Same absent="All"/""=explicitly-none/csv convention as the source page.
   const statusValues = params.status === undefined ? null : params.status === "" ? [] : params.status.split(",");
-  const classificationValues = params.classification === undefined ? null : params.classification === "" ? [] : params.classification.split(",");
   const page = Math.max(1, parseInt(params.page ?? "1", 10) || 1);
   const pageSize = Math.max(1, parseInt(params.pageSize ?? "15", 10) || 15);
+  const tabId = parseClassificationTab(params.tab);
 
   const { projects, paginationMeta, canCreate } = await loadOnboardingProjectsList(userId, role, {
     search: params.search?.trim() ?? "",
     statusValues,
-    classificationValues,
+    classification: classificationForTab(tabId),
     sort: params.sort ?? "newest",
     page,
     pageSize,
   });
 
   return (
-    <ListingShell activeTab="v2">
+    <ListingShell activeTab={tabId}>
       <V2ProjectsListing
         role={role}
         currentUserId={userId}
         projects={projects}
         paginationMeta={paginationMeta}
         canCreate={canCreate}
+        activeTabId={tabId}
       />
     </ListingShell>
   );

@@ -9,8 +9,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { V2_ROUTES } from "@/config/constants";
-import { CLASSIFICATIONS } from "@/config/customer-phases";
 import { isRoleGatedByMembership } from "@/lib/programme/membership-rules";
+import { classificationTabHref, labelForTab, type ClassificationTabId } from "../_classification-tabs";
 import { FilterMultiSelect, parseMultiParam } from "./_filter-multi-select";
 import { SortSelect } from "./_sort-select";
 import { ProjectCard } from "./_project-card";
@@ -56,9 +56,9 @@ const STATUS_OPTIONS = [
   { value: "in_progress", label: "In Progress" },
   { value: "completed", label: "Completed" },
 ] as const;
-// Legacy/Zoho-imported projects that predate the classification system (classification: null)
-// are excluded from this list entirely (task 272) — no "Unclassified" filter option needed.
-const CLASSIFICATION_OPTIONS = CLASSIFICATIONS.map((c) => ({ value: c, label: c }));
+// Task 361 — the Classification multi-select filter that used to sit next to Status is gone; the
+// shell's tab strip is the classification selection now, and the active tab arrives as props
+// (activeTabId / classificationLabel) rather than as a URL filter this component owns.
 // Sort — pill style matching /projects' SortSelect (task 224 follow-up amendment; this page
 // previously had no sort control at all).
 const SORT_OPTIONS = [
@@ -74,13 +74,14 @@ const PAGE_SIZES = [15, 45, 90] as const;
 // this is the entry component for the "V2 Projects" tab (now `/projects/v2`, task 279); props
 // are unchanged from the original.
 export default function V2ProjectsListing({
-  role, currentUserId, projects, paginationMeta, canCreate,
+  role, currentUserId, projects, paginationMeta, canCreate, activeTabId,
 }: {
   role: string | null;
   currentUserId: string | null;
   projects: OnboardingProjectListItem[];
   paginationMeta: OnboardingPaginationMeta;
   canCreate: boolean;
+  activeTabId: ClassificationTabId;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -89,8 +90,13 @@ export default function V2ProjectsListing({
   const [searchInput, setSearchInput] = useState(searchParams.get("search") ?? "");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const statusSelected = parseMultiParam(searchParams.get("status"), STATUS_OPTIONS);
-  const classificationSelected = parseMultiParam(searchParams.get("classification"), CLASSIFICATION_OPTIONS);
   const sortValue = searchParams.get("sort") ?? "newest";
+  // Derived from activeTabId rather than taken as a separate prop — the label is fully
+  // determined by the tab id, so a second prop would just be state that could drift from it.
+  const classificationLabel = labelForTab(activeTabId);
+  // Clearing filters must land back on the *current* tab, not bare /projects/v2 (which would
+  // bounce the user to StackShift I).
+  const clearFiltersHref = classificationTabHref(activeTabId);
 
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
@@ -120,7 +126,7 @@ export default function V2ProjectsListing({
   // Encodes a checkbox-group selection back into the URL: a full selection clears the param
   // entirely (equivalent "All"/unfiltered state, keeps URLs clean), an empty selection writes
   // an explicit empty string, otherwise a comma-separated list. Mirrors /projects.
-  function handleMultiChange(key: "status" | "classification", next: string[], optionsCount: number) {
+  function handleMultiChange(key: "status", next: string[], optionsCount: number) {
     const value = next.length === optionsCount ? null : next.length === 0 ? "" : next.join(",");
     navigate(buildUrl({ [key]: value, page: 1 }));
   }
@@ -136,9 +142,10 @@ export default function V2ProjectsListing({
   const from = (page - 1) * pageSize;
   const hasNext = from + pageSize < total;
   const hasPrev = page > 1;
+  // The active tab is not a "filter" for this purpose — an empty tab with no search/status
+  // narrowing is the "nothing here yet" empty state, not the "no match" one.
   const isFiltered = (searchParams.get("search") ?? "").length > 0
-    || statusSelected.length !== STATUS_OPTIONS.length
-    || classificationSelected.length !== CLASSIFICATION_OPTIONS.length;
+    || statusSelected.length !== STATUS_OPTIONS.length;
 
   const roleEditable = role === "marketing" || role === "admin" || role === "super_admin" || role === "pm";
   // A gated role (marketing, as of task 291 — pm moved into roleEditable above) that's a
@@ -169,8 +176,10 @@ export default function V2ProjectsListing({
             <div>
               <p className="text-[13px] text-[#5F6A88]">
                 {/* Task 282 — unified across roles: previously the non-roleEditable branch said
-                    "project(s)" and falsely claimed every project was in Phase 1 onboarding. */}
-                {`${total} project${total === 1 ? "" : "s"} · Current classifications: StackShift I/II, Access, Access Plus & Discrete Development — succeeding Legacy's original StackShift`}
+                    "project(s)" and falsely claimed every project was in Phase 1 onboarding.
+                    Task 361 — scoped to the active classification tab; the old sentence listing
+                    every classification is redundant now that they are the tab strip. */}
+                {`${total} ${classificationLabel} project${total === 1 ? "" : "s"}`}
               </p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
@@ -227,15 +236,6 @@ export default function V2ProjectsListing({
               onChange={(next) => handleMultiChange("status", next, STATUS_OPTIONS.length)}
             />
 
-            {/* Classification filter — StackShift I/II/Access/Access Plus, PipelineForge,
-                Discrete Development, plus "Unclassified" for legacy/pre-classification rows. */}
-            <FilterMultiSelect
-              label="Classification"
-              options={CLASSIFICATION_OPTIONS}
-              selected={classificationSelected}
-              onChange={(next) => handleMultiChange("classification", next, CLASSIFICATION_OPTIONS.length)}
-            />
-
             {/* Sort — pill style matching /projects' SortSelect (task 224 follow-up amendment;
                 this page previously had no sort control). */}
             <SortSelect
@@ -246,7 +246,7 @@ export default function V2ProjectsListing({
 
             {isFiltered && (
               <button
-                onClick={() => { setSearchInput(""); navigate(V2_ROUTES.PROJECTS_V2); }}
+                onClick={() => { setSearchInput(""); navigate(clearFiltersHref); }}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#E2E7F2] bg-white text-[12px] text-[#3A4565] hover:bg-[#F0F7FF] cursor-pointer shrink-0 transition-colors"
               >
                 <X size={13} /> Clear filters
@@ -298,9 +298,9 @@ export default function V2ProjectsListing({
             <ChartGantt size={26} className="text-[#007BFF]" />
           </div>
           <div className="text-center">
-            <div className="text-[15px] font-semibold text-[#0B1533]">No projects in onboarding</div>
+            <div className="text-[15px] font-semibold text-[#0B1533]">No {classificationLabel} projects</div>
             <p className="text-[13px] mt-1 text-[#5F6A88]">
-              {canCreate ? "Start a new intake to begin an onboarding programme." : "Nothing is currently gated behind Phase 1."}
+              {canCreate ? "Start a new intake to begin an onboarding programme." : "Nothing in this classification is visible to you yet."}
             </p>
           </div>
         </div>
@@ -310,11 +310,11 @@ export default function V2ProjectsListing({
             <Search size={24} className="text-[#8A5A00]" />
           </div>
           <div className="text-center">
-            <div className="text-[15px] font-semibold text-[#0B1533]">No clients match your search</div>
-            <p className="text-[13px] mt-1 text-[#5F6A88]">Try a different search term or clear the status filter.</p>
+            <div className="text-[15px] font-semibold text-[#0B1533]">No {classificationLabel} projects match your search</div>
+            <p className="text-[13px] mt-1 text-[#5F6A88]">Try a different search term, clear the status filter, or switch to another classification tab.</p>
           </div>
           <button
-            onClick={() => { setSearchInput(""); navigate(V2_ROUTES.PROJECTS_V2); }}
+            onClick={() => { setSearchInput(""); navigate(clearFiltersHref); }}
             className="inline-flex items-center gap-1.5 mt-1 px-3 py-1.5 rounded-full border border-[#E2E7F2] bg-white text-[12px] text-[#3A4565] hover:bg-[#F0F7FF] cursor-pointer transition-colors"
           >
             <X size={13} /> Clear filters
