@@ -1,10 +1,16 @@
-allowBuilds:
-  core-js: true
-  msw: set this to true or false
-  sharp: true
-  supabase: set this to true or false
-  unrs-resolver: true
+overrides:
+  sharp: ">=0.35.0"
+  serialize-javascript: ">=7.0.3"
+  js-yaml: ">=4.3.0"
+  fast-uri: ">=3.1.4"
 
 onlyBuiltDependencies:
   - sharp
   - unrs-resolver
+  - supabase
+  - core-js
+
+allowBuilds:
+  core-js: true
+  sharp: true
+  unrs-resolver: true

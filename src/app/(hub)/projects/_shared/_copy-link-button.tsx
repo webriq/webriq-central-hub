@@ -13,19 +13,29 @@ function resolveUrl(url?: string): string {
   }
 }
 
+// Task 359 — the imperative half of useCopyLink, split out so callers that copy a URL computed
+// per-click (the Files tab's Copy Folder/File URL menu actions, one handler serving every tile)
+// can reuse the same relative-to-absolute resolution instead of re-implementing it. useCopyLink
+// stays the hook for the fixed-url, shows-a-checkmark case.
+export async function copyLink(url?: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(resolveUrl(url));
+    return true;
+  } catch {
+    // Clipboard unavailable/denied — no-op, low-stakes convenience action.
+    return false;
+  }
+}
+
 export function useCopyLink(url?: string) {
   const [copied, setCopied] = useState(false);
 
   const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(resolveUrl(url));
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-      return true;
-    } catch {
-      // Clipboard unavailable/denied — no-op, low-stakes convenience action.
-      return false;
-    }
+    const ok = await copyLink(url);
+    if (!ok) return false;
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+    return true;
   };
 
   return { copied, copy };

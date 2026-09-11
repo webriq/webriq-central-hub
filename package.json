@@ -85,13 +85,5 @@
     "supabase": "^2.98.2",
     "tailwindcss": "^4",
     "typescript": "^5"
-  },
-  "pnpm": {
-    "overrides": {
-      "sharp": ">=0.35.0",
-      "serialize-javascript": ">=7.0.3",
-      "js-yaml": ">=4.3.0",
-      "fast-uri": ">=3.1.4"
-    }
   }
 }
