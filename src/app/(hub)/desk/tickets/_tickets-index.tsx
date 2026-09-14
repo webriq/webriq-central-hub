@@ -72,7 +72,7 @@ export default function TicketsIndex({
   const isFiltered = (searchParams.get("search")?.trim().length ?? 0) > 0 || !isAllStatusView;
 
   return (
-    <div onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)} className="h-full overflow-y-auto">
+    <div onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)} className="h-full overflow-y-auto scrollbar-light">
       {/* ── Sticky header (title row + toolbar row) ─────────────────────────── */}
       <div className={cn("sticky top-0 z-20 bg-[#F4F6FB] transition-shadow duration-150", scrolled && "shadow-[0_1px_0_0_rgba(7,17,51,0.08)]")}>
         <div className="max-w-[1400px] mx-auto px-8 pt-6 pb-4">

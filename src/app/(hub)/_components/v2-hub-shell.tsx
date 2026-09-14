@@ -53,7 +53,7 @@ export default function V2HubShell({ userRole, displayName, avatarUrl, children 
         />
         {/* Row below header: scrollable page + OpsChat panel */}
         <div className="flex flex-1 overflow-hidden min-h-0">
-          <main className="flex-1 overflow-y-auto">
+          <main className="flex-1 overflow-y-auto scrollbar-light">
             {children}
           </main>
           {/* OpsChat is below the header — shares the same row as main */}
