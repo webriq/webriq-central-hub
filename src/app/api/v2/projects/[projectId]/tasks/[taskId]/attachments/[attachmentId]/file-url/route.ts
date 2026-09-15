@@ -15,7 +15,7 @@ import { extensionInfoFor } from "@/config/attachment-types";
 // allowlist) always downloads instead of ever being navigable as a raw browser-rendered URL.
 const INLINE_SAFE_CATEGORIES = new Set(["image", "pdf", "word", "excel", "video"]);
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ projectId: string; taskId: string; attachmentId: string }> }
 ) {
   const { projectId, taskId, attachmentId } = await params;
@@ -39,8 +39,11 @@ export async function GET(
 
   if (!attachment) return NextResponse.json({ error: "Attachment not found" }, { status: 404 });
 
+  // Task 368, R6 — an explicit ?download=1 (kebab "Download" action) always forces a real file
+  // download regardless of category, on top of the existing non-inline-safe-category default.
+  const downloadParam = new URL(req.url).searchParams.get("download") === "1";
   const category = extensionInfoFor(attachment.filename)?.category;
-  const forceDownload = !category || !INLINE_SAFE_CATEGORIES.has(category);
+  const forceDownload = downloadParam || !category || !INLINE_SAFE_CATEGORIES.has(category);
 
   const { data: signed, error: signError } = await supabase.storage
     .from("project-assets")

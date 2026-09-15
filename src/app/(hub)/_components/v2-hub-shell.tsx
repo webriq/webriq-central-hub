@@ -9,12 +9,13 @@ import { TimerProvider } from "./timer-context";
 
 interface V2HubShellProps {
   userRole: string | null;
+  departmentName: string | null;
   displayName: string | null;
   avatarUrl: string | null;
   children: React.ReactNode;
 }
 
-export default function V2HubShell({ userRole, displayName, avatarUrl, children }: V2HubShellProps) {
+export default function V2HubShell({ userRole, departmentName, displayName, avatarUrl, children }: V2HubShellProps) {
   const [opsChatOpen, setOpsChatOpen] = useState(false);
   const [chatTrigger, setChatTrigger] = useState<{ message: string; ts: number } | null>(null);
 
@@ -42,7 +43,7 @@ export default function V2HubShell({ userRole, displayName, avatarUrl, children 
     <div className="flex h-screen overflow-hidden bg-slate-50">
       <PushPermissionPrompt />
       {/* Sidebar */}
-      <V2HubSidebar userRole={userRole} displayName={displayName} avatarUrl={avatarUrl} />
+      <V2HubSidebar userRole={userRole} departmentName={departmentName} displayName={displayName} avatarUrl={avatarUrl} />
 
       {/* Main content column */}
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">

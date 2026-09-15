@@ -36,7 +36,7 @@ export default async function StackShiftOrdersPage({
   let query = supabase
     .from("stackshift_orders")
     .select(
-      "id, status, company_name, contact_name, business_email, services, mapped_classifications, created_at, submitted_at, customer_id, project_id, contact_risk, customer_notification_sent_at",
+      "id, status, company_name, contact_name, business_email, services, mapped_classifications, created_at, submitted_at, customer_id, project_id, contact_risk",
       { count: "exact" }
     )
     .eq("status", status)

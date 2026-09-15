@@ -63,7 +63,7 @@ export default function TimerHeaderWidget() {
     timer?.project_display_id && timer.task_id && timer.task_display_id
       ? `${V2_ROUTES.PROJECTS_V2}/${timer.project_display_id}/tasks/${timer.task_display_id}`
       : timer?.project_display_id && timer.issue_id && timer.issue_display_id
-      ? `${V2_ROUTES.PROJECTS_V2}/${timer.project_display_id}/issues/${timer.issue_display_id}`
+      ? `${V2_ROUTES.PROJECTS_V2}/${timer.project_display_id}/tickets/${timer.issue_display_id}`
       : null;
   const projectHref = timer?.project_display_id
     ? `${V2_ROUTES.PROJECTS_V2}/${timer.project_display_id}/timeline`

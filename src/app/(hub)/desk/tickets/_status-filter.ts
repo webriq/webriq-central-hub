@@ -1,45 +1,29 @@
-// Shared between `page.tsx` (server) and `_tickets-index.tsx`/`_filter-multi-select.tsx`
-// (client) — deliberately not marked "use client": Next.js proxies every export of a "use
-// client" module as a client reference, so a plain function or const exported from one cannot
-// be called/read from server code at runtime (only types, which erase at compile time, cross
-// that boundary safely). This file has no client-only APIs, so it's safe on both sides.
-
-// Curated status filter. `open`/`on_hold`/`escalated`/`closed` are the real `tickets.status`
-// enum values (task 326); "Overdue" is a computed condition (`sla_due_at` in the past, not yet
-// closed), not a status value at all — the query layer expresses it as a nested `and(...)`.
+// Shared between `page.tsx` (server) and `_filed-issues-index.tsx`/`_filter-multi-select.tsx`
+// (client) — see `desk/inbox/_status-filter.ts`'s identical header comment for why this file
+// is deliberately NOT marked "use client".
 //
-// "Archived" (task 331) is also not a status — it's `source_meta.isArchived === true` on the
-// imported Zoho Desk archive (task 325), orthogonal to every status (an archived ticket is
-// always `closed`). It sits below a divider in the dropdown and defaults OFF: when unchecked
-// the query AND-excludes archived rows; when checked they're OR'd back in. See
-// `ARCHIVED_FILTER_VALUE` and `buildStatusOrClause` in `page.tsx`.
-export const ARCHIVED_FILTER_VALUE = "archived";
+// Task 363 — the full `issues.status` vocabulary (same 8 values as a project's own Issues tab),
+// distinct from Inbox's `tickets.status` vocabulary (open/on_hold/escalated/closed) — no
+// "overdue"/"archived" concepts here, those are ticket-specific.
 
 export const STATUS_FILTER_OPTIONS = [
   { value: "open", label: "Open" },
-  { value: "on_hold", label: "On Hold" },
-  { value: "escalated", label: "Escalated" },
+  { value: "in_progress", label: "In Progress" },
+  { value: "ready_for_qa", label: "Ready for QA/QC" },
+  { value: "testing_completed", label: "Testing Completed" },
+  { value: "for_client_approval", label: "For Client Approval" },
+  { value: "ready_to_merge", label: "Ready to Merge" },
+  { value: "post_live_qa", label: "Post-live QA/QC" },
   { value: "closed", label: "Closed" },
-  { value: "overdue", label: "Overdue" },
-  { value: ARCHIVED_FILTER_VALUE, label: "Archived" },
 ] as const;
 
-// What the dropdown's "All" row toggles and reflects — every status EXCEPT "Archived", so the
-// archive stays opt-in even from the "All" shortcut. Checking "Archived" therefore un-checks
-// "All" (the selection is no longer exactly this set), and clicking "All" clears "Archived".
-export const ALL_STATUS_VALUES = STATUS_FILTER_OPTIONS
-  .map((o) => o.value)
-  .filter((v) => v !== ARCHIVED_FILTER_VALUE);
+export const ALL_STATUS_VALUES = STATUS_FILTER_OPTIONS.map((o) => o.value);
 
-// Absent `status` param (first-ever visit to the page) defaults to "Open" only — distinct from
-// an explicit `?status=all` (the "All" row: every status EXCEPT "Archived", written by
-// `FilterMultiSelect`'s own toggle) and an explicit `?status=` (every option unchecked, shows
-// zero tickets). "Archived" is never part of `?status=all` — to include it the URL carries the
-// full explicit list. Once the user interacts with the filter at all, the URL always carries an
-// explicit value and this default never re-applies.
+// Absent `status` param (default view) shows every status — unlike Inbox, there's no
+// "Open only" default here since a filed issue's whole lifecycle (through Closed) is relevant to
+// the assignee tracking this tab exists for.
 export function parseStatusFilterParam(raw: string | null): string[] {
-  if (raw === null) return ["open"];
-  if (raw === "all") return [...ALL_STATUS_VALUES];
+  if (raw === null || raw === "all") return [...ALL_STATUS_VALUES];
   if (raw === "") return [];
   return raw.split(",");
 }

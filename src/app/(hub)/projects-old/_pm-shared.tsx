@@ -10,7 +10,10 @@ export type Project = Database["public"]["Tables"]["projects"]["Row"];
 export type Milestone = Database["public"]["Tables"]["milestones"]["Row"];
 export type Tasklist = Database["public"]["Tables"]["tasklists"]["Row"];
 export type Task = Database["public"]["Tables"]["tasks"]["Row"];
-export type Issue = Database["public"]["Tables"]["issues"]["Row"];
+// "Ticket" (task 364, renamed from "Issue" everywhere at the application layer) — the
+// underlying `issues` table keeps its name (see task 364's Out of Scope: `tickets` is taken by
+// the Desk email table).
+export type Ticket = Database["public"]["Tables"]["issues"]["Row"];
 
 export type TaskStatus = Task["status"];
 export type TaskPriority = Task["priority"];
@@ -62,9 +65,9 @@ export const PRIORITY_STYLE: Record<string, { label: string; text: string; dot: 
   none:     { label: "—",        text: "#5F6A88", dot: "#E2E7F2" },
 };
 
-// ─── Issue severity — Zoho's own vocabulary (migration 051), NOT the task priority enum ─
+// ─── Ticket severity — Zoho's own vocabulary (migration 051), NOT the task priority enum ─
 export const SEVERITY_OPTS = ["Show stopper", "Critical", "Major", "Minor", "None"] as const;
-export type IssueSeverity = (typeof SEVERITY_OPTS)[number];
+export type TicketSeverity = (typeof SEVERITY_OPTS)[number];
 
 export const SEVERITY_STYLE: Record<string, { label: string; text: string; dot: string }> = {
   "Show stopper": { label: "Show stopper", text: "#C0392B", dot: "#C0392B" },
@@ -74,8 +77,8 @@ export const SEVERITY_STYLE: Record<string, { label: string; text: string; dot: 
   "None":         { label: "None",         text: "#5F6A88", dot: "#E2E7F2" },
 };
 
-export function normalizeSeverity(s: string | null | undefined): IssueSeverity {
-  return s && (SEVERITY_OPTS as readonly string[]).includes(s) ? (s as IssueSeverity) : "None";
+export function normalizeSeverity(s: string | null | undefined): TicketSeverity {
+  return s && (SEVERITY_OPTS as readonly string[]).includes(s) ? (s as TicketSeverity) : "None";
 }
 
 // Mirrors task 184/185's established project-status mapping: active/completed → ok,

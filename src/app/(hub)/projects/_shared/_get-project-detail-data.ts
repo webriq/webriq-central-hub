@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { isProjectVisibleToCurrentUser } from "@/app/(hub)/projects-old/_project-access";
 import { getAssignableMembers } from "@/lib/members/assignable";
-import type { Project, Milestone, Tasklist, Task, Issue } from "@/app/(hub)/projects-old/_pm-shared";
+import type { Project, Milestone, Tasklist, Task, Ticket } from "@/app/(hub)/projects-old/_pm-shared";
 
 export type ProjectDetailData = {
   project: Project;
@@ -15,7 +15,7 @@ export type ProjectDetailData = {
   initialMilestones: Milestone[];
   initialTasklists: Tasklist[];
   initialTasks: Task[];
-  initialIssues: Issue[];
+  initialTickets: Ticket[];
   currentUserId: string;
   currentUserRole: string | null;
   profilesById: Record<string, { full_name: string; avatar_url: string | null }>;
@@ -107,7 +107,7 @@ export async function getProjectDetailData(projectId: string): Promise<ProjectDe
     initialMilestones: milestonesRes.data ?? [],
     initialTasklists: tasklistsRes.data ?? [],
     initialTasks: tasksRes.data ?? [],
-    initialIssues: issuesRes.data ?? [],
+    initialTickets: issuesRes.data ?? [],
     currentUserId,
     currentUserRole,
     profilesById,

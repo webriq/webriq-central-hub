@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isProjectVisibleToCurrentUser } from "../../../_project-access";
-import IssueDetailClient from "./_issue-detail";
+import IssueDetailClient from "./_ticket-detail";
 
 export const dynamic = "force-dynamic";
 
@@ -42,7 +42,7 @@ export default async function IssueDetailPage({
 
   // Quick Access Panel (task 257, Requirement H) — other tasks/issues assigned to the current
   // user in this project, excluding the one being viewed. Admin/PM viewers are rarely assignees
-  // (see getIssueEditPermission's role model), so when both come back empty we fall back to the
+  // (see getTicketEditPermission's role model), so when both come back empty we fall back to the
   // project's other open issues so the panel isn't empty for them.
   const [{ data: myTasks }, { data: myIssues }] = currentUserId
     ? await Promise.all([

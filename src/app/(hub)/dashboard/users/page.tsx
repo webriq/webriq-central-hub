@@ -1,15 +1,17 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Users, Mail, CheckCircle2, Clock, Loader2, AlertCircle, UserCog, ToggleLeft, ToggleRight, Lock, LockOpen } from "lucide-react";
+import { Users, Mail, CheckCircle2, AlertCircle, UserCog, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { InviteUserModal } from "./_invite-user-modal";
+import { UserRow, type DepartmentOption } from "./_user-row";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type ProfileRole = "admin" | "super_admin" | "hr" | "pm" | "developer" | "client";
-type SelectRole  = ProfileRole | "other" | "";
+export type ProfileRole = "admin" | "super_admin" | "hr" | "pm" | "developer" | "client";
+export type SelectRole  = ProfileRole | "other" | "";
 
-interface HubUser {
+export interface HubUser {
   id: string;
   email: string;
   first_name: string | null;
@@ -24,11 +26,13 @@ interface HubUser {
   external_id: string | null;
   created_at: string;
   otp_locked_until: string | null;
+  department_id: string | null;
+  department_name: string | null;
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const ROLE_OPTIONS: { value: SelectRole; label: string }[] = [
+export const ROLE_OPTIONS: { value: SelectRole; label: string }[] = [
   { value: "super_admin", label: "Super Admin" },
   { value: "admin",       label: "Admin" },
   { value: "hr",          label: "HR" },
@@ -37,50 +41,6 @@ const ROLE_OPTIONS: { value: SelectRole; label: string }[] = [
   { value: "client",      label: "Client" },
   { value: "other",       label: "Other" },
 ];
-
-// Keyed by select value (not profile_role) so "other" and "" get their own colours
-const ROLE_BADGE: Record<string, string> = {
-  "":             "bg-amber-50 text-amber-700 border-amber-200",
-  "super_admin":  "bg-violet-50 text-violet-700 border-violet-200",
-  "admin":        "bg-purple-50 text-purple-700 border-purple-200",
-  "hr":           "bg-teal-50 text-teal-700 border-teal-200",
-  "pm":           "bg-blue-50 text-blue-700 border-blue-200",
-  "developer":    "bg-green-50 text-green-700 border-green-200",
-  "client":       "bg-slate-50 text-slate-600 border-slate-200",
-  "other":        "bg-orange-50 text-orange-700 border-orange-200",
-};
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-// Drive the select off hub_users.role (display string, nullable) so that imported users
-// with hub_users.role = null show "--" even though profiles.role defaults to "client".
-function getSelectValue(user: HubUser): SelectRole {
-  if (!user.role) return "";
-  if (user.role === "Other") return "other";
-  return user.profile_role ?? "";
-}
-
-function getInitials(user: HubUser): string {
-  const name = user.full_name ?? `${user.first_name ?? ""} ${user.last_name ?? ""}`.trim();
-  if (!name) return user.email.slice(0, 2).toUpperCase();
-  const parts = name.trim().split(/\s+/);
-  return parts.length >= 2
-    ? (parts[0][0] + parts[1][0]).toUpperCase()
-    : parts[0].slice(0, 2).toUpperCase();
-}
-
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return "—";
-  return new Date(dateStr).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
-}
-
-const AVATAR_COLORS = ["#2563EB", "#7C3AED", "#0D9488", "#DC2626", "#D97706", "#0891B2"];
-
-function avatarColor(id: string): string {
-  let hash = 0;
-  for (const ch of id) hash = (hash * 31 + ch.charCodeAt(0)) & 0xffffffff;
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
-}
 
 // ── KPI Cards ─────────────────────────────────────────────────────────────────
 
@@ -98,184 +58,6 @@ function KpiCard({ label, value, icon, accent }: { label: string; value: number;
   );
 }
 
-// ── Row ───────────────────────────────────────────────────────────────────────
-
-interface RowProps {
-  user: HubUser;
-  idx: number;
-  savingId: string | null;
-  toastMsg: string | null;
-  onRoleChange: (userId: string, role: SelectRole) => void;
-  onStatusToggle: (userId: string, current: string) => void;
-  onInvite: (userId: string) => void;
-  invitingId: string | null;
-  viewerRole: ProfileRole | null;
-  onUnlock: (userId: string) => void;
-  unlockingId: string | null;
-}
-
-function UserRow({ user, idx, savingId, onRoleChange, onStatusToggle, onInvite, invitingId, viewerRole, onUnlock, unlockingId }: RowProps) {
-  const initials = getInitials(user);
-  const displayName =
-    (user.full_name ?? `${user.first_name ?? ""} ${user.last_name ?? ""}`.trim()) || user.email;
-  const isActive = user.status === "active";
-  const isSaving = savingId === user.id;
-  const isInviting = invitingId === user.id;
-  const isLocked = !!user.otp_locked_until && new Date(user.otp_locked_until) > new Date();
-  const isUnlocking = unlockingId === user.id;
-
-  return (
-    <tr className={cn("border-b border-slate-100 last:border-0 transition-colors", idx % 2 === 0 ? "bg-white" : "bg-slate-50/40", "hover:bg-slate-50")}>
-      {/* User */}
-      <td className="py-3 px-4">
-        <div className="flex items-center gap-3 min-w-0">
-          {user.avatar_url ? (
-            // eslint-disable-next-line @next/next/no-img-element -- external Supabase-auth-provider avatar URL, not a static/optimizable asset
-            <img src={user.avatar_url} alt={displayName} className="flex h-8 w-8 shrink-0 rounded-full object-cover" />
-          ) : (
-            <div
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold text-white"
-              style={{ background: avatarColor(user.id) }}
-            >
-              {initials}
-            </div>
-          )}
-          <div className="min-w-0">
-            <p className="text-[13px] font-semibold text-slate-900 truncate">{displayName}</p>
-            <p className="text-[11px] text-slate-400 truncate">{user.email}</p>
-          </div>
-        </div>
-      </td>
-
-      {/* Role */}
-      <td className="py-3 px-4">
-        <div className="relative flex items-center gap-1.5">
-          <select
-            value={getSelectValue(user)}
-            onChange={(e) => e.target.value && onRoleChange(user.id, e.target.value as SelectRole)}
-            disabled={isSaving}
-            className={cn(
-              "text-[12px] font-medium border rounded-md px-2.5 py-1 pr-7 appearance-none cursor-pointer transition-colors focus:outline-none focus:ring-1 focus:ring-brand-orange",
-              ROLE_BADGE[getSelectValue(user)] ?? ROLE_BADGE[""],
-              isSaving && "opacity-50 cursor-not-allowed"
-            )}
-          >
-            {!user.role && <option value="">--</option>}
-            {ROLE_OPTIONS.map((r) => (
-              <option key={r.value} value={r.value}>{r.label}</option>
-            ))}
-          </select>
-          {isSaving && <Loader2 size={12} className="animate-spin text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />}
-        </div>
-      </td>
-
-      {/* Status */}
-      <td className="py-3 px-4">
-        <div className="flex items-center gap-1.5">
-          <button
-            onClick={() => onStatusToggle(user.id, user.status)}
-            disabled={isSaving}
-            title={isActive ? "Click to deactivate" : "Click to activate"}
-            className={cn(
-              "inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full border transition-all cursor-pointer",
-              isActive
-                ? "bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
-                : "bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100",
-              isSaving && "opacity-50 cursor-not-allowed pointer-events-none"
-            )}
-          >
-            {isActive
-              ? <ToggleRight size={13} />
-              : <ToggleLeft size={13} />
-            }
-            {isActive ? "Active" : "Inactive"}
-          </button>
-          {isLocked && (
-            <span
-              title={`Locked until ${new Date(user.otp_locked_until!).toLocaleTimeString()}`}
-              className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full border bg-red-50 text-red-700 border-red-200"
-            >
-              <Lock size={12} />
-              Locked
-            </span>
-          )}
-        </div>
-      </td>
-
-      {/* Invite status */}
-      <td className="py-3 px-4">
-        {user.is_invited ? (
-          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">
-            <CheckCircle2 size={11} />
-            Invited
-          </span>
-        ) : (
-          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-full">
-            <Clock size={11} />
-            Pending
-          </span>
-        )}
-      </td>
-
-      {/* Joined */}
-      <td className="py-3 px-4 text-[12px] text-slate-400 whitespace-nowrap">
-        {formatDate(user.joined_at)}
-      </td>
-
-      {/* Actions */}
-      <td className="py-3 px-4">
-        <div className="flex items-center gap-2">
-        {isLocked && viewerRole === "super_admin" && (
-          <button
-            onClick={() => onUnlock(user.id)}
-            disabled={isUnlocking || isSaving}
-            className={cn(
-              "inline-flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-lg transition-all",
-              "bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 cursor-pointer",
-              (isUnlocking || isSaving) && "opacity-50 cursor-not-allowed pointer-events-none"
-            )}
-          >
-            {isUnlocking ? <Loader2 size={12} className="animate-spin" /> : <LockOpen size={12} />}
-            {isUnlocking ? "Unlocking…" : "Unlock"}
-          </button>
-        )}
-        {!user.is_invited && user.profile_role && (
-          <button
-            onClick={() => onInvite(user.id)}
-            disabled={isInviting || isSaving}
-            className={cn(
-              "inline-flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-lg transition-all",
-              "bg-brand-orange text-white hover:bg-brand-orange/90 shadow-sm cursor-pointer",
-              (isInviting || isSaving) && "opacity-50 cursor-not-allowed pointer-events-none"
-            )}
-          >
-            {isInviting ? <Loader2 size={12} className="animate-spin" /> : <Mail size={12} />}
-            {isInviting ? "Sending…" : "Send Invite"}
-          </button>
-        )}
-        {!user.is_invited && !user.profile_role && (
-          <span className="text-[11px] text-slate-400 italic">Assign a role first</span>
-        )}
-        {user.is_invited && (
-          <button
-            onClick={() => onInvite(user.id)}
-            disabled={isInviting || isSaving}
-            className={cn(
-              "inline-flex items-center gap-1.5 text-[12px] font-medium px-3 py-1.5 rounded-lg transition-all",
-              "bg-slate-100 text-slate-600 hover:bg-slate-200 cursor-pointer border border-slate-200",
-              (isInviting || isSaving) && "opacity-50 cursor-not-allowed pointer-events-none"
-            )}
-          >
-            {isInviting ? <Loader2 size={12} className="animate-spin" /> : <Mail size={12} />}
-            {isInviting ? "Sending…" : "Resend"}
-          </button>
-        )}
-        </div>
-      </td>
-    </tr>
-  );
-}
-
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function UsersPage() {
@@ -288,6 +70,8 @@ export default function UsersPage() {
   const [unlockingId, setUnlockingId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ msg: string; type: "ok" | "err" } | null>(null);
   const [search, setSearch] = useState("");
+  const [showInvite, setShowInvite] = useState(false);
+  const [departments, setDepartments] = useState<DepartmentOption[]>([]);
 
   function showToast(msg: string, type: "ok" | "err" = "ok") {
     setToast({ msg, type });
@@ -343,6 +127,18 @@ export default function UsersPage() {
     return () => { ignore = true; };
   }, []);
 
+  useEffect(() => {
+    let ignore = false;
+    fetch("/api/departments")
+      .then(async (res) => {
+        if (!res.ok) return;
+        const data = await res.json() as { departments: DepartmentOption[] };
+        if (!ignore) setDepartments(data.departments);
+      })
+      .catch(() => {});
+    return () => { ignore = true; };
+  }, []);
+
   const handleRoleChange = useCallback(async (userId: string, role: SelectRole) => {
     setSavingId(userId);
     try {
@@ -374,6 +170,38 @@ export default function UsersPage() {
       setSavingId(null);
     }
   }, []);
+
+  const handleDepartmentChange = useCallback(async (userId: string, departmentId: string | null) => {
+    setSavingId(userId);
+    try {
+      const res = await fetch(`/api/v2/users/${userId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ department_id: departmentId }),
+      });
+      if (!res.ok) {
+        const d = await res.json() as { error?: string };
+        showToast(d.error ?? "Failed to update department", "err");
+        return;
+      }
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.id === userId
+            ? {
+                ...u,
+                department_id: departmentId,
+                department_name: departmentId ? departments.find((d) => d.id === departmentId)?.name ?? null : null,
+              }
+            : u
+        )
+      );
+      showToast("Department updated");
+    } catch {
+      showToast("Failed to update department", "err");
+    } finally {
+      setSavingId(null);
+    }
+  }, [departments]);
 
   const handleStatusToggle = useCallback(async (userId: string, current: string) => {
     const next = current === "active" ? "inactive" : "active";
@@ -476,13 +304,21 @@ export default function UsersPage() {
             Manage team members, roles, and account invitations.
           </p>
         </div>
-        <button
-          onClick={loadUsers}
-          disabled={loading}
-          className="text-[12px] font-medium text-slate-500 hover:text-slate-900 transition-colors disabled:opacity-50"
-        >
-          {loading ? "Loading…" : "Refresh"}
-        </button>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={loadUsers}
+            disabled={loading}
+            className="text-[12px] font-medium text-slate-500 hover:text-slate-900 transition-colors disabled:opacity-50"
+          >
+            {loading ? "Loading…" : "Refresh"}
+          </button>
+          <button
+            onClick={() => setShowInvite(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#FB914E] text-[#471F02] text-[12.5px] font-medium hover:bg-[#E2762F] hover:text-white transition-colors cursor-pointer shrink-0"
+          >
+            <UserPlus size={15} /> Invite
+          </button>
+        </div>
       </div>
 
       {/* KPI row */}
@@ -528,7 +364,7 @@ export default function UsersPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-100 bg-slate-50/80">
-                  {["Member", "Role", "Status", "Invite", "Joined", "Actions"].map((h) => (
+                  {["Member", "Role", "Department", "Status", "Invite", "Joined", "Actions"].map((h) => (
                     <th key={h} className="text-left py-2.5 px-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
                       {h}
                     </th>
@@ -538,7 +374,7 @@ export default function UsersPage() {
               <tbody>
                 {filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-12 text-center text-[13px] text-slate-400">
+                    <td colSpan={7} className="py-12 text-center text-[13px] text-slate-400">
                       {search ? "No users match your search." : "No users found."}
                     </td>
                   </tr>
@@ -549,8 +385,9 @@ export default function UsersPage() {
                       user={user}
                       idx={i}
                       savingId={savingId}
-                      toastMsg={null}
+                      departments={departments}
                       onRoleChange={handleRoleChange}
+                      onDepartmentChange={handleDepartmentChange}
                       onStatusToggle={handleStatusToggle}
                       onInvite={handleInvite}
                       invitingId={invitingId}
@@ -582,6 +419,17 @@ export default function UsersPage() {
           }
           {toast.msg}
         </div>
+      )}
+
+      {/* Invite modal */}
+      {showInvite && (
+        <InviteUserModal
+          onClose={() => setShowInvite(false)}
+          onInvited={(newUser) => {
+            setUsers((prev) => [newUser, ...prev]);
+            showToast(`Invitation sent to ${newUser.email}`);
+          }}
+        />
       )}
     </div>
   );

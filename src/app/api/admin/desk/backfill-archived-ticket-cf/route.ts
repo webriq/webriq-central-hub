@@ -69,7 +69,7 @@ export async function POST(req: Request) {
     let from = 0;
     while (candidates.length < limit) {
       // `source_meta->>isArchived.eq.true` — same PostgREST JSON-path predicate the Desk
-      // Tickets list view uses (src/app/(hub)/desk/tickets/page.tsx).
+      // Inbox list view uses (src/app/(hub)/desk/inbox/page.tsx).
       let q = adminClient
         .from("tickets")
         .select("id, external_id, ticket_number, source_meta")

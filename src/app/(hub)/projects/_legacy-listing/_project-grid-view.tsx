@@ -46,7 +46,7 @@ export function GridView({
 // wrapping every element — a native <a> forbids interactive-content descendants per the HTML
 // spec, and this codebase already hit the real-world consequences of that once (task 264's
 // ManageCollaboratorsModal needed createPortal to escape being a DOM descendant of this same
-// Link). This task's rename `<input>` and the tasks/issues `ProgressStat` buttons reintroduced
+// Link). This task's rename `<input>` and the tasks/tickets `ProgressStat` buttons reintroduced
 // that exact nesting, and it surfaced as a live bug: pressing Enter inside the rename input (or,
 // on the sibling Portfolio Tracker card, Space) triggered the ancestor element's native keyboard
 // activation independent of this component's own `stopPropagation()` calls — that native
@@ -61,7 +61,7 @@ export function GridView({
 // content renders as a normal sibling on top (z-10) with `pointer-events-none`, so clicks on
 // non-interactive areas (padding, gaps, plain text) fall through to the Link underneath exactly
 // like before; each genuinely interactive piece (the rename input, the kebab menu, the tasks/
-// issues buttons, tag-remove buttons, avatar tooltips) opts back in with `pointer-events-auto` so
+// tickets buttons, tag-remove buttons, avatar tooltips) opts back in with `pointer-events-auto` so
 // it keeps capturing its own clicks/focus/keyboard input directly, with no shared DOM ancestor
 // that has its own competing default action. The card's hover-border styling moves from the
 // (now invisible) Link to `group-hover` on the outer wrapper, since CSS `:hover` still reaches
@@ -155,7 +155,7 @@ function ProjectGridCard({
           </div>
         )}
 
-        {/* Footer: avatar stack + tasks/issues progress (each its own click target — task 268) */}
+        {/* Footer: avatar stack + tasks/tickets progress (each its own click target — task 268) */}
         <div className="mt-auto pt-3 border-t border-[#EDF0F7] flex items-center justify-between gap-2">
           <div className="pointer-events-auto">
             <AvatarStack members={p.members} fallbackName={p.owner_name} fallbackAvatarUrl={p.owner_avatar_url} />
@@ -169,11 +169,11 @@ function ProjectGridCard({
               tooltipLabel="View tasks"
             />
             <ProgressStat
-              label="issues"
+              label="tickets"
               done={p.issue_done}
               total={p.issue_total}
-              href={p.project_id ? `${V2_ROUTES.PROJECTS_LEGACY}/${p.project_id}/issues` : undefined}
-              tooltipLabel="View issues"
+              href={p.project_id ? `${V2_ROUTES.PROJECTS_LEGACY}/${p.project_id}/tickets` : undefined}
+              tooltipLabel="View tickets"
             />
           </div>
         </div>

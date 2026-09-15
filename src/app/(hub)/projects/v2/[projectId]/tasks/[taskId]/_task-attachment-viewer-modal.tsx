@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { X } from "lucide-react";
+import { downloadAttachment } from "@/app/(hub)/projects/_shared/_attachment-grid-tile";
 
 // In-app file viewer, shared by the Attachments grid (task 211) and comment attachments (task
 // 212) — reduced port of ../../../portfolio-tracker/[projectId]/_onboarding-wizard.tsx's
@@ -12,6 +13,12 @@ import { X } from "lucide-react";
 // "View" downloads them instead of failing silently. Only `filename` is read here — the caller
 // supplies `fetchUrl` directly, so this component doesn't need to know the attachment's id,
 // size, or which entity it belongs to (task 212 Decision #8).
+//
+// Task 368 follow-up — the "other" kind's Download control used a plain `<a href download>`,
+// which the browser silently ignores for a cross-origin URL (the signed Supabase Storage URL is
+// always cross-origin), so it just opened a new tab instead of downloading. Routed through the
+// same `downloadAttachment()` helper the kebab's "Download" action uses — it re-fetches
+// `fetchUrl` with `?download=1` for a URL that actually carries `Content-Disposition: attachment`.
 type AttachmentRow = { filename: string };
 
 const IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "gif", "webp"];
@@ -136,13 +143,13 @@ export function TaskAttachmentViewerModal({
               {kind === "other" && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-6 text-center">
                   <span className="text-[12.5px] text-[#5F6A88]">Preview not available for this file type.</span>
-                  <a
-                    href={url}
-                    download={attachment.filename}
-                    className="text-[12.5px] font-semibold text-[#0063D6] hover:underline"
+                  <button
+                    type="button"
+                    onClick={() => void downloadAttachment(fetchUrl)}
+                    className="text-[12.5px] font-semibold text-[#0063D6] hover:underline cursor-pointer border-none bg-transparent"
                   >
                     Download {attachment.filename}
-                  </a>
+                  </button>
                 </div>
               )}
             </>

@@ -117,8 +117,8 @@ export function TypeIcon({ kind }: { kind: DevWorkKind }) {
         "w-[26px] h-[26px] rounded-[7px] flex items-center justify-center shrink-0",
         isTask ? "bg-[#E5F1FF] text-[#0063D6]" : "bg-[#FDE8E6] text-[#C0392B]"
       )}
-      title={isTask ? "Task" : "Issue"}
-      aria-label={isTask ? "Task" : "Issue"}
+      title={isTask ? "Task" : "Ticket"}
+      aria-label={isTask ? "Task" : "Ticket"}
       role="img"
     >
       {isTask ? <ClipboardCheck size={14} /> : <Bug size={14} />}

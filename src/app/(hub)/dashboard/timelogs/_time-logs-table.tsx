@@ -11,7 +11,7 @@ import { formatHoursAsHHMM, formatClockTime } from "@/lib/timer/format";
 import { groupByEmployee, sumHours, toISODate, nowHHmm, combineDateTime, isoToHHmm, type TimeLogEntry } from "./_time-logs-shared";
 import { DateFieldPicker } from "./_date-field-picker";
 import { TimePeriodInlineEditor } from "./_time-period-inline-editor";
-import { TaskIssuePicker, type TaskIssueValue } from "./_task-issue-picker";
+import { TaskTicketPicker, type TaskTicketValue } from "./_task-ticket-picker";
 import { POPOVER_ROOT_ATTR } from "./_use-popover-position";
 
 // Table body for the dedicated Time Logs page (task 226). View-all roles (admin/super_admin/pm/
@@ -21,7 +21,7 @@ import { POPOVER_ROOT_ATTR } from "./_use-popover-position";
 //
 // Task 230 — row actions only reveal on hover (Requirement 13); the Log Title, Time Period, and
 // Date cells are inline-editable on click (Requirement 14), each committing through the unified
-// `PATCH /api/v2/time-logs/[id]` route; a task/issue-linked Log Title also shows a detail-link
+// `PATCH /api/v2/time-logs/[id]` route; a task/ticket-linked Log Title also shows a detail-link
 // icon on hover (Requirement 15). Every write here uses the same-shaped `TimeLogEntry` the modal
 // already produces so `onInlineSave` can reuse `_time-logs-content.tsx`'s existing
 // `handleSaved`-style merge.
@@ -81,8 +81,8 @@ function detailHref(entry: TimeLogEntry): string | null {
   if (entry.entry_kind === "task" && entry.task_display_id) {
     return `/projects/${entry.project_public_id}/tasks/${entry.task_display_id}`;
   }
-  if (entry.entry_kind === "issue" && entry.issue_display_id) {
-    return `/projects/${entry.project_public_id}/issues/${entry.issue_display_id}`;
+  if (entry.entry_kind === "ticket" && entry.issue_display_id) {
+    return `/projects/${entry.project_public_id}/tickets/${entry.issue_display_id}`;
   }
   return null;
 }
@@ -98,19 +98,19 @@ function TimePeriodCell({ entry }: { entry: TimeLogEntry }) {
   );
 }
 
-function pickerValueFromEntry(entry: TimeLogEntry): TaskIssueValue {
+function pickerValueFromEntry(entry: TimeLogEntry): TaskTicketValue {
   if (entry.entry_kind === "task" && entry.task_id) {
     return { kind: "task", id: entry.task_id, label: entry.task_title, displayId: entry.task_display_id };
   }
-  if (entry.entry_kind === "issue" && entry.issue_id) {
-    return { kind: "issue", id: entry.issue_id, label: entry.log_title, displayId: entry.issue_display_id };
+  if (entry.entry_kind === "ticket" && entry.issue_id) {
+    return { kind: "ticket", id: entry.issue_id, label: entry.log_title, displayId: entry.issue_display_id };
   }
   // Task 348 — a General Log's title lives in `log_title`, not `note`.
   return { kind: "general", text: entry.log_title ?? "" };
 }
 
-// Inline editor for the Log Title cell — reassigns an entry between task/issue/General Log in
-// place. Task/issue picks commit immediately (mirrors `TaskIssuePicker`'s own close-on-pick);
+// Inline editor for the Log Title cell — reassigns an entry between task/ticket/General Log in
+// place. Task/ticket picks commit immediately (mirrors `TaskTicketPicker`'s own close-on-pick);
 // General Log needs an explicit Save/Cancel since it's free text, not a single click.
 function LogTitleEditor({
   entry, currentUserId, onSaved, onCancel,
@@ -120,14 +120,14 @@ function LogTitleEditor({
   onSaved: (updated: TimeLogEntry) => void;
   onCancel: () => void;
 }) {
-  const [draft, setDraft] = useState<TaskIssueValue | null>(() => pickerValueFromEntry(entry));
+  const [draft, setDraft] = useState<TaskTicketValue | null>(() => pickerValueFromEntry(entry));
   const [saving, setSaving] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  async function commit(value: TaskIssueValue) {
+  async function commit(value: TaskTicketValue) {
     setSaving(true);
     const taskId = value.kind === "task" ? value.id : null;
-    const issueId = value.kind === "issue" ? value.id : null;
+    const issueId = value.kind === "ticket" ? value.id : null;
     // Task 348 — this cell edits the Log Title only: a General Log title goes to `log_title`,
     // the entry's notes (`note`) are left untouched and edited via the modal instead.
     const logTitle = value.kind === "general" ? value.text.trim() : null;
@@ -141,7 +141,7 @@ function LogTitleEditor({
         entry_kind: value.kind,
         task_title: value.kind === "task" ? value.label : "—",
         task_display_id: value.kind === "task" ? value.displayId : null,
-        issue_display_id: value.kind === "issue" ? value.displayId : null,
+        issue_display_id: value.kind === "ticket" ? value.displayId : null,
         log_title: value.kind === "general" ? value.text.trim() || "General log" : value.label,
         note: result.data.note,
         hours: result.data.hours,
@@ -151,9 +151,9 @@ function LogTitleEditor({
     }
   }
 
-  function handleChange(v: TaskIssueValue | null) {
+  function handleChange(v: TaskTicketValue | null) {
     if (!v) {
-      // Only reachable via `TaskIssuePicker`'s "switch to General Log" toggle with no text typed
+      // Only reachable via `TaskTicketPicker`'s "switch to General Log" toggle with no text typed
       // yet, or "switch back to picker" with nothing previously selected — keep the draft as an
       // empty General Log rather than losing the in-progress toggle.
       setDraft({ kind: "general", text: "" });
@@ -167,11 +167,11 @@ function LogTitleEditor({
     function handleOutside(e: MouseEvent) {
       const target = e.target as Node;
       if (containerRef.current?.contains(target)) return;
-      // `TaskIssuePicker`'s own dropdown panel is portaled to `document.body` — outside this
-      // wrapper's DOM subtree even while a task/issue row inside it is being clicked. Without this
+      // `TaskTicketPicker`'s own dropdown panel is portaled to `document.body` — outside this
+      // wrapper's DOM subtree even while a task/ticket row inside it is being clicked. Without this
       // check, that `mousedown` reads as "outside" and cancels the whole inline edit before the
       // row's own `onClick` (the actual pick) can fire, which was silently breaking reassignment
-      // from a General Log to a task/issue (task/issue -> General Log worked, since that path only
+      // from a General Log to a task/ticket (task/ticket -> General Log worked, since that path only
       // ever interacts with non-portaled elements already inside `containerRef`).
       if (target instanceof Element && target.closest(`[${POPOVER_ROOT_ATTR}]`)) return;
       onCancel();
@@ -189,7 +189,7 @@ function LogTitleEditor({
 
   return (
     <div ref={containerRef} className="min-w-[220px]">
-      <TaskIssuePicker
+      <TaskTicketPicker
         projectId={entry.project_public_id ?? ""}
         currentUserId={currentUserId}
         value={draft}
@@ -355,7 +355,7 @@ function EntryRow({
             <TooltipContent side="top">
               {/* Task 317 — `note` is Tiptap-authored HTML (`_time-log-notes-editor.tsx`), same
                   staff-authored trust boundary already rendered via dangerouslySetInnerHTML for
-                  task/issue comments (`_task-comments.tsx`). Rendering it as plain text prints the
+                  task/ticket comments (`_task-comments.tsx`). Rendering it as plain text prints the
                   literal tags instead of formatted content. Zoho-imported notes are already
                   HTML-stripped at import (`zoho-import/timelogs/route.ts`), so this is a no-op for
                   those (no tags to interpret). The HTML lives on this inner span, not directly on

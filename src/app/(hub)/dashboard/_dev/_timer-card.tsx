@@ -84,7 +84,7 @@ export default function DevTimerCard({
   const entity = timer?.task_id
     ? { title: timer.task_title, displayId: timer.task_display_id, segment: "tasks" }
     : timer?.issue_id
-      ? { title: timer.issue_title, displayId: timer.issue_display_id, segment: "issues" }
+      ? { title: timer.issue_title, displayId: timer.issue_display_id, segment: "tickets" }
       : null;
 
   if (!timer || !entity) {
@@ -182,7 +182,7 @@ export default function DevTimerCard({
           href={entityHref}
           className="relative block mt-3 text-[12px] font-semibold text-[#5EB0FF] hover:text-white transition-colors motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5EB0FF] rounded-sm"
         >
-          Open {timer.task_id ? "task" : "issue"} →
+          Open {timer.task_id ? "task" : "ticket"} →
         </Link>
       ) : null}
 

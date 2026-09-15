@@ -105,7 +105,7 @@ export async function loadDevDashboard(userId: string, fullName: string | null):
   // three parallel queries in the same Promise.all cost no extra round trip anyway.
   //
   // This re-expresses, as a SQL filter, the same array-or-scalar-or-legacy-name assignee rule
-  // that `issueAssigneeIds()` (`@/lib/issues/permissions.ts`) and `issueMatchesAssigneeFilter()`
+  // that `ticketAssigneeIds()` (`@/lib/tickets/permissions.ts`) and `ticketMatchesAssigneeFilter()`
   // (`_shared/_assignee-filter.ts`) already apply in JS to an already-fetched row. Those two
   // operate over a single project's already-loaded rows (client-side matchers); this loader needs
   // an org-wide, by-user query, which is a genuinely different shape — no SQL-level equivalent
@@ -139,7 +139,7 @@ export async function loadDevDashboard(userId: string, fullName: string | null):
         .order("updated_at", { ascending: false })
         .limit(WORK_LIMIT),
       // Legacy Zoho-imported issues can carry only the free-text assignee name — same fallback
-      // `issueMatchesAssigneeFilter()` in `_shared/_assignee-filter.ts` applies.
+      // `ticketMatchesAssigneeFilter()` in `_shared/_assignee-filter.ts` applies.
       trimmedName
         ? supabase
             .from("issues")
@@ -249,7 +249,7 @@ export async function loadDevDashboard(userId: string, fullName: string | null):
   }
 
   for (const t of taskRows) pushItem("task", t, normalizeTaskPriority(t.priority), null);
-  for (const i of issueRows) pushItem("issue", i, severityToPriority(i.severity), i.severity);
+  for (const i of issueRows) pushItem("ticket", i, severityToPriority(i.severity), i.severity);
 
   // ─── Today's logged time (one pass — js-combine-iterations) ─────────────────
   // `activityLogs` already spans today (it covers the last `ACTIVITY_WINDOW_DAYS`), so today's

@@ -1,8 +1,8 @@
-import type { Task, Issue } from "@/app/(hub)/projects-old/_pm-shared";
-import { issueAssigneeIds } from "@/lib/issues/permissions";
+import type { Task, Ticket } from "@/app/(hub)/projects-old/_pm-shared";
+import { ticketAssigneeIds } from "@/lib/tickets/permissions";
 import type { FilterOption } from "./_list-toolbar-controls";
 
-// Task 346 — pure helpers backing the Assignee filter on the Tasks and Issues toolbars.
+// Task 346 — pure helpers backing the Assignee filter on the Tasks and Tickets toolbars.
 // Kept out of `_project-detail.tsx` (one concern per file, unit-testable).
 
 export const UNASSIGNED_VALUE = "__unassigned__";
@@ -38,7 +38,7 @@ export function buildAssigneeFilterOptions(
   ];
 }
 
-/** Normalized `full_name` → member id, for resolving an Issue's legacy `assignee_name`. */
+/** Normalized `full_name` → member id, for resolving a Ticket's legacy `assignee_name`. */
 export function buildMemberIdByName(allMembers: MemberLite[]): Map<string, string> {
   return new Map(
     allMembers
@@ -62,23 +62,23 @@ export function taskMatchesAssigneeFilter(
   return ids.some((id) => selectedSet.has(id));
 }
 
-export function issueMatchesAssigneeFilter(
-  issue: Issue,
+export function ticketMatchesAssigneeFilter(
+  ticket: Ticket,
   memberIdByName: Map<string, string>,
   selectedSet: Set<string>,
   allSelected: boolean,
 ): boolean {
   if (allSelected) return true;
-  // Task 351 — issues are multi-assignee. `issueAssigneeIds` reads the `assignees` array (or
+  // Task 351 — tickets are multi-assignee. `ticketAssigneeIds` reads the `assignees` array (or
   // the legacy scalar `assignee_id` for un-backfilled rows).
-  const ids = issueAssigneeIds(issue);
+  const ids = ticketAssigneeIds(ticket);
   if (ids.length > 0) return ids.some((id) => selectedSet.has(id));
   // No array/FK: resolve the legacy free-text `assignee_name`, else treat as unassigned.
-  const resolvedId = issue.assignee_name
-    ? memberIdByName.get(issue.assignee_name.toLowerCase().trim()) ?? null
+  const resolvedId = ticket.assignee_name
+    ? memberIdByName.get(ticket.assignee_name.toLowerCase().trim()) ?? null
     : null;
   if (resolvedId) return selectedSet.has(resolvedId);
-  if (!issue.assignee_name) return selectedSet.has(UNASSIGNED_VALUE);
+  if (!ticket.assignee_name) return selectedSet.has(UNASSIGNED_VALUE);
   // A legacy name that maps to nobody is excluded while the filter is narrowed.
   return false;
 }

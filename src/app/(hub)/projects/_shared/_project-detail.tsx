@@ -10,20 +10,20 @@ import {
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import {
-  type Project, type Milestone, type Tasklist, type Task, type Issue,
-  type TaskStatus, type TaskPriority, type IssueSeverity,
+  type Project, type Milestone, type Tasklist, type Task, type Ticket,
+  type TaskStatus, type TaskPriority, type TicketSeverity,
   STATUS_LABEL, PRIORITY_STYLE, SEVERITY_STYLE, normalizeStatus, normalizeSeverity,
 } from "@/app/(hub)/projects-old/_pm-shared";
 import BoardView from "./_board-view";
 import ListView, { type SortKey, type SortDir } from "./_list-view";
 import CalendarView from "./_calendar-view";
-import IssueListView, { type IssueSortKey, type IssueSortDir } from "./_issue-list-view";
-import IssueBoardView from "./_issue-board-view";
-import IssueCalendarView from "./_issue-calendar-view";
+import TicketListView, { type TicketSortKey, type TicketSortDir } from "./_ticket-list-view";
+import TicketBoardView from "./_ticket-board-view";
+import TicketCalendarView from "./_ticket-calendar-view";
 import MilestonePanel from "./_milestone-panel";
 import MilestoneSwimlane from "./_milestone-swimlane";
 import { CreateTaskModal } from "./_create-task-modal";
-import { CreateIssueModal } from "./_create-issue-modal";
+import { CreateTicketModal } from "./_create-ticket-modal";
 import { MembersTab } from "./_members-tab";
 import { StatusReportTab } from "./_status-report-tab";
 import { TimeLogsTab } from "./_time-logs-tab";
@@ -33,7 +33,7 @@ import { AccessTab } from "./_access-tab";
 import { FilterMultiSelect, SortSelect } from "./_list-toolbar-controls";
 import {
   buildAssigneeFilterOptions, buildMemberIdByName,
-  taskMatchesAssigneeFilter, issueMatchesAssigneeFilter,
+  taskMatchesAssigneeFilter, ticketMatchesAssigneeFilter,
 } from "./_assignee-filter";
 
 // Task 276 — ported ONCE from the old `/projects/[projectId]/_project-detail.tsx` (now
@@ -47,7 +47,7 @@ import {
 // accepted and doesn't break the `"legacy"` case, which has no Overview tab.
 
 type ViewId = "board" | "list" | "calendar";
-type PrimaryTab = "tasks" | "issues" | "milestones" | "files" | "notes" | "access" | "members" | "status_report" | "time_logs";
+type PrimaryTab = "tasks" | "tickets" | "milestones" | "files" | "notes" | "access" | "members" | "status_report" | "time_logs";
 
 const VIEW_LABELS: Record<ViewId, string> = { list: "List", board: "Board", calendar: "Calendar" };
 const VIEW_ICONS: Record<ViewId, React.ReactNode> = {
@@ -58,7 +58,7 @@ const VIEW_ICONS: Record<ViewId, React.ReactNode> = {
 const VIEW_ORDER: ViewId[] = ["list", "board", "calendar"];
 
 // Task 276 — 5 new tabs (Files/Access/Members/Status Report/Time Logs) alongside the ported
-// Tasks/Issues/Milestones. Each new tab's actual body lives in its own `_shared/_*-tab.tsx` file
+// Tasks/Tickets/Milestones. Each new tab's actual body lives in its own `_shared/_*-tab.tsx` file
 // (see imports above) — this file only gains a conditional render per tab, per the task doc's
 // file-length guidance. The tab-strip's own entry list now lives in
 // `_project-detail-tab-strip.tsx` (Phase 3 extraction — see `ProjectDetailTabStrip` usage below).
@@ -87,20 +87,20 @@ const SORT_OPTIONS: { value: SortValue; label: string; key: SortKey; dir: SortDi
   { value: "priority_low",  label: "Priority (lowest first)",  key: "priority", dir: "desc" },
 ];
 
-// ─── Issues tab — status pipeline is shared with tasks (see task 192 doc); severity
+// ─── Tickets tab — status pipeline is shared with tasks (see task 192 doc); severity
 // is a separate 5-value Zoho vocabulary, not the task priority enum. ────────────────
-// Exported (task 286) — `_create-issue-modal.tsx` (extracted out of this file) reuses this
+// Exported (task 286) — `_create-ticket-modal.tsx` (extracted out of this file) reuses this
 // same Severity option list rather than duplicating it, same as STATUS_OPTS/PRIORITY_OPTS.
-export const SEVERITY_OPTS: IssueSeverity[] = ["Show stopper", "Critical", "Major", "Minor", "None"];
+export const SEVERITY_OPTS: TicketSeverity[] = ["Show stopper", "Critical", "Major", "Minor", "None"];
 const SEVERITY_FILTER_OPTIONS = SEVERITY_OPTS.map((s) => ({ value: s, label: SEVERITY_STYLE[s].label }));
 
-type IssueSortValue = "istatus_asc" | "istatus_desc" | "iname_asc" | "iname_desc" | "idue_soonest" | "idue_latest" | "severity_high" | "severity_low";
+type TicketSortValue = "istatus_asc" | "istatus_desc" | "iname_asc" | "iname_desc" | "idue_soonest" | "idue_latest" | "severity_high" | "severity_low";
 
-const ISSUE_SORT_OPTIONS: { value: IssueSortValue; label: string; key: IssueSortKey; dir: IssueSortDir }[] = [
+const TICKET_SORT_OPTIONS: { value: TicketSortValue; label: string; key: TicketSortKey; dir: TicketSortDir }[] = [
   { value: "istatus_asc",    label: "Status (pipeline order)",   key: "status",   dir: "asc" },
   { value: "istatus_desc",   label: "Status (reverse order)",    key: "status",   dir: "desc" },
-  { value: "iname_asc",      label: "Issue name (A–Z)",          key: "title",    dir: "asc" },
-  { value: "iname_desc",     label: "Issue name (Z–A)",          key: "title",    dir: "desc" },
+  { value: "iname_asc",      label: "Ticket name (A–Z)",          key: "title",    dir: "asc" },
+  { value: "iname_desc",     label: "Ticket name (Z–A)",          key: "title",    dir: "desc" },
   { value: "idue_soonest",   label: "Due date (soonest)",        key: "due_date", dir: "asc" },
   { value: "idue_latest",    label: "Due date (latest)",         key: "due_date", dir: "desc" },
   { value: "severity_high",  label: "Severity (highest first)",  key: "severity", dir: "asc" },
@@ -118,7 +118,7 @@ export default function ProjectDetail({
   initialMilestones,
   initialTasklists,
   initialTasks,
-  initialIssues,
+  initialTickets,
   currentUserId,
   currentUserRole,
   profilesById,
@@ -132,7 +132,7 @@ export default function ProjectDetail({
   initialMilestones: Milestone[];
   initialTasklists: Tasklist[];
   initialTasks: Task[];
-  initialIssues: Issue[];
+  initialTickets: Ticket[];
   currentUserId: string;
   currentUserRole: string | null;
   profilesById: Record<string, { full_name: string; avatar_url: string | null }>;
@@ -164,15 +164,15 @@ export default function ProjectDetail({
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
-  // ─── Issue state (own view/toolbar state — independent of the Tasks tab) ───
-  const [issues, setIssues] = useState<Issue[]>(initialIssues);
-  const [issueView, setIssueView] = useState<ViewId>("list");
-  const [issueSearch, setIssueSearch] = useState("");
-  const [issueStatusFilter, setIssueStatusFilter] = useState<string[]>(() => STATUS_OPTS.map((s) => s as string));
+  // ─── Ticket state (own view/toolbar state — independent of the Tasks tab) ───
+  const [tickets, setTickets] = useState<Ticket[]>(initialTickets);
+  const [ticketView, setTicketView] = useState<ViewId>("list");
+  const [ticketSearch, setTicketSearch] = useState("");
+  const [ticketStatusFilter, setTicketStatusFilter] = useState<string[]>(() => STATUS_OPTS.map((s) => s as string));
   const [severityFilter, setSeverityFilter] = useState<string[]>(() => SEVERITY_OPTS.map((s) => s as string));
-  const [issueSortKey, setIssueSortKey] = useState<IssueSortKey>("status");
-  const [issueSortDir, setIssueSortDir] = useState<IssueSortDir>("asc");
-  const [createIssueOpen, setCreateIssueOpen] = useState(false);
+  const [ticketSortKey, setTicketSortKey] = useState<TicketSortKey>("status");
+  const [ticketSortDir, setTicketSortDir] = useState<TicketSortDir>("asc");
+  const [createTicketOpen, setCreateTicketOpen] = useState(false);
 
   // ─── Assignee filter (task 346) — one shared option list, independent state per tab ─
   const assigneeOptions = useMemo(
@@ -181,7 +181,7 @@ export default function ProjectDetail({
   );
   const memberIdByName = useMemo(() => buildMemberIdByName(allMembers), [allMembers]);
   const [assigneeFilter, setAssigneeFilter] = useState<string[]>(() => assigneeOptions.map((o) => o.value));
-  const [issueAssigneeFilter, setIssueAssigneeFilter] = useState<string[]>(() => assigneeOptions.map((o) => o.value));
+  const [ticketAssigneeFilter, setTicketAssigneeFilter] = useState<string[]>(() => assigneeOptions.map((o) => o.value));
 
   // ─── Realtime sync ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -214,23 +214,26 @@ export default function ProjectDetail({
   useEffect(() => {
     const supabase = createClient();
     const channel = supabase
-      .channel(`project_issues_${project.id}`)
+      .channel(`project_tickets_${project.id}`)
       .on(
         "postgres_changes",
+        // NOTE: `table: "issues"` is the real DB table name (unchanged by task 364's Ticket
+        // rename — see the task doc's Out of Scope) — do not "fix" this to "tickets", that is a
+        // *different* table (Desk helpdesk emails).
         { event: "*", schema: "public", table: "issues", filter: `project_id=eq.${project.id}` },
         (payload) => {
           if (payload.eventType === "UPDATE") {
-            setIssues((prev) =>
-              prev.map((i) => (i.id === (payload.new as Issue).id ? { ...i, ...(payload.new as Issue) } : i))
+            setTickets((prev) =>
+              prev.map((i) => (i.id === (payload.new as Ticket).id ? { ...i, ...(payload.new as Ticket) } : i))
             );
           } else if (payload.eventType === "INSERT") {
-            const incoming = payload.new as Issue;
-            setIssues((prev) =>
+            const incoming = payload.new as Ticket;
+            setTickets((prev) =>
               prev.some((i) => i.id === incoming.id) ? prev : [...prev, incoming]
             );
           } else if (payload.eventType === "DELETE") {
             const deletedId = (payload.old as { id: string }).id;
-            setIssues((prev) => prev.filter((i) => i.id !== deletedId));
+            setTickets((prev) => prev.filter((i) => i.id !== deletedId));
           }
         }
       )
@@ -272,34 +275,34 @@ export default function ProjectDetail({
     setTasklists((prev) => [...prev, tasklist]);
   }, []);
 
-  // ─── Issue mutations (optimistic) ────────────────────────────────────────
-  const updateIssue = useCallback(async (id: string, patch: Partial<Issue>) => {
-    const snapshot = issues;
-    setIssues((prev) => prev.map((i) => (i.id === id ? { ...i, ...patch } : i)));
-    const res = await fetch(`/api/v2/issues/${id}`, {
+  // ─── Ticket mutations (optimistic) ────────────────────────────────────────
+  const updateTicket = useCallback(async (id: string, patch: Partial<Ticket>) => {
+    const snapshot = tickets;
+    setTickets((prev) => prev.map((i) => (i.id === id ? { ...i, ...patch } : i)));
+    const res = await fetch(`/api/v2/tickets/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(patch),
     });
-    if (!res.ok) { setIssues(snapshot); return false; }
-    const updated: Issue = await res.json();
-    setIssues((prev) => prev.map((i) => (i.id === id ? updated : i)));
+    if (!res.ok) { setTickets(snapshot); return false; }
+    const updated: Ticket = await res.json();
+    setTickets((prev) => prev.map((i) => (i.id === id ? updated : i)));
     return true;
-  }, [issues]);
+  }, [tickets]);
 
-  const addIssue = useCallback((issue: Issue) => {
-    setIssues((prev) => [...prev, issue]);
+  const addTicket = useCallback((ticket: Ticket) => {
+    setTickets((prev) => [...prev, ticket]);
   }, []);
 
-  const bulkDeleteIssues = useCallback(async (ids: string[]) => {
+  const bulkDeleteTickets = useCallback(async (ids: string[]) => {
     const results = await Promise.all(
       ids.map(async (id) => {
-        const res = await fetch(`/api/v2/issues/${id}`, { method: "DELETE" });
+        const res = await fetch(`/api/v2/tickets/${id}`, { method: "DELETE" });
         return { id, ok: res.ok };
       })
     );
     const deletedIds = new Set(results.filter((r) => r.ok).map((r) => r.id));
-    setIssues((prev) => prev.filter((i) => !deletedIds.has(i.id)));
+    setTickets((prev) => prev.filter((i) => !deletedIds.has(i.id)));
   }, []);
 
   // ─── Milestone mutations ──────────────────────────────────────────────────
@@ -396,48 +399,48 @@ export default function ProjectDetail({
     else { setSortKey(key); setSortDir("asc"); }
   }
 
-  // ─── Issue search / filter ────────────────────────────────────────────────
-  const filteredIssues = useMemo(() => {
-    const q = issueSearch.trim().toLowerCase();
-    const statusSet = new Set(issueStatusFilter);
+  // ─── Ticket search / filter ────────────────────────────────────────────────
+  const filteredTickets = useMemo(() => {
+    const q = ticketSearch.trim().toLowerCase();
+    const statusSet = new Set(ticketStatusFilter);
     const severitySet = new Set(severityFilter);
-    const assigneeSet = new Set(issueAssigneeFilter);
-    const assigneeAll = issueAssigneeFilter.length >= assigneeOptions.length;
-    return issues.filter((i) => {
+    const assigneeSet = new Set(ticketAssigneeFilter);
+    const assigneeAll = ticketAssigneeFilter.length >= assigneeOptions.length;
+    return tickets.filter((i) => {
       if (!statusSet.has(normalizeStatus(i.status))) return false;
       if (!severitySet.has(normalizeSeverity(i.severity))) return false;
-      if (!issueMatchesAssigneeFilter(i, memberIdByName, assigneeSet, assigneeAll)) return false;
+      if (!ticketMatchesAssigneeFilter(i, memberIdByName, assigneeSet, assigneeAll)) return false;
       if (!q) return true;
       return i.title.toLowerCase().includes(q) || (i.assignee_name?.toLowerCase().includes(q) ?? false);
     });
-  }, [issues, issueSearch, issueStatusFilter, severityFilter, issueAssigneeFilter, assigneeOptions.length, memberIdByName]);
+  }, [tickets, ticketSearch, ticketStatusFilter, severityFilter, ticketAssigneeFilter, assigneeOptions.length, memberIdByName]);
 
-  const hasActiveIssueFilters =
-    issueSearch.trim().length > 0 ||
-    issueStatusFilter.length < STATUS_OPTS.length ||
+  const hasActiveTicketFilters =
+    ticketSearch.trim().length > 0 ||
+    ticketStatusFilter.length < STATUS_OPTS.length ||
     severityFilter.length < SEVERITY_OPTS.length ||
-    issueAssigneeFilter.length < assigneeOptions.length;
+    ticketAssigneeFilter.length < assigneeOptions.length;
 
-  function clearIssueFilters() {
-    setIssueSearch("");
-    setIssueStatusFilter(STATUS_OPTS.map((s) => s as string));
+  function clearTicketFilters() {
+    setTicketSearch("");
+    setTicketStatusFilter(STATUS_OPTS.map((s) => s as string));
     setSeverityFilter(SEVERITY_OPTS.map((s) => s as string));
-    setIssueAssigneeFilter(assigneeOptions.map((o) => o.value));
+    setTicketAssigneeFilter(assigneeOptions.map((o) => o.value));
   }
 
-  const issueSortValue: IssueSortValue =
-    ISSUE_SORT_OPTIONS.find((o) => o.key === issueSortKey && o.dir === issueSortDir)?.value ?? "istatus_asc";
+  const ticketSortValue: TicketSortValue =
+    TICKET_SORT_OPTIONS.find((o) => o.key === ticketSortKey && o.dir === ticketSortDir)?.value ?? "istatus_asc";
 
-  function handleIssueSortChange(value: string) {
-    const opt = ISSUE_SORT_OPTIONS.find((o) => o.value === value);
+  function handleTicketSortChange(value: string) {
+    const opt = TICKET_SORT_OPTIONS.find((o) => o.value === value);
     if (!opt) return;
-    setIssueSortKey(opt.key);
-    setIssueSortDir(opt.dir);
+    setTicketSortKey(opt.key);
+    setTicketSortDir(opt.dir);
   }
 
-  function toggleIssueSort(key: IssueSortKey) {
-    if (issueSortKey === key) setIssueSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    else { setIssueSortKey(key); setIssueSortDir("asc"); }
+  function toggleTicketSort(key: TicketSortKey) {
+    if (ticketSortKey === key) setTicketSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setTicketSortKey(key); setTicketSortDir("asc"); }
   }
 
   // ─── Collapse / expand all tasklist groups ───────────────────────────────
@@ -587,29 +590,29 @@ export default function ProjectDetail({
           </>
         )}
 
-        {/* ── Issues tab ── */}
-        {primaryTab === "issues" && (
+        {/* ── Tickets tab ── */}
+        {primaryTab === "tickets" && (
           <>
             <div className="flex flex-wrap items-center justify-between gap-2 px-8 py-2.5 bg-white border-b border-[#E2E7F2] shrink-0">
               <div className="flex flex-wrap items-center gap-2">
                 <div className="relative">
                   <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#5F6A88] pointer-events-none" />
                   <input
-                    value={issueSearch}
-                    onChange={(e) => setIssueSearch(e.target.value)}
-                    placeholder="Search issues…"
+                    value={ticketSearch}
+                    onChange={(e) => setTicketSearch(e.target.value)}
+                    placeholder="Search tickets…"
                     className="w-56 pl-8 pr-3 py-[6.5px] rounded-[10px] border text-[12px] outline-none transition-colors border-[#E2E7F2] bg-[#F4F6FB] text-[#3A4565] focus:border-[#007BFF] focus:bg-white focus:ring-[3px] focus:ring-[#007BFF]/[0.14] placeholder:text-[#5F6A88]"
                   />
                 </div>
 
-                <FilterMultiSelect label="Status" options={STATUS_FILTER_OPTIONS} selected={issueStatusFilter} onChange={setIssueStatusFilter} />
+                <FilterMultiSelect label="Status" options={STATUS_FILTER_OPTIONS} selected={ticketStatusFilter} onChange={setTicketStatusFilter} />
                 <FilterMultiSelect label="Severity" options={SEVERITY_FILTER_OPTIONS} selected={severityFilter} onChange={setSeverityFilter} />
-                <FilterMultiSelect label="Assignee" options={assigneeOptions} selected={issueAssigneeFilter} onChange={setIssueAssigneeFilter} />
-                <SortSelect value={issueSortValue} onChange={handleIssueSortChange} options={ISSUE_SORT_OPTIONS} />
+                <FilterMultiSelect label="Assignee" options={assigneeOptions} selected={ticketAssigneeFilter} onChange={setTicketAssigneeFilter} />
+                <SortSelect value={ticketSortValue} onChange={handleTicketSortChange} options={TICKET_SORT_OPTIONS} />
 
-                {hasActiveIssueFilters && (
+                {hasActiveTicketFilters && (
                   <button
-                    onClick={clearIssueFilters}
+                    onClick={clearTicketFilters}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#E2E7F2] bg-white text-[12px] text-[#3A4565] hover:bg-[#F0F7FF] cursor-pointer shrink-0 transition-colors"
                   >
                     <X size={13} /> Clear filters
@@ -623,11 +626,11 @@ export default function ProjectDetail({
                     <Tooltip key={v}>
                       <TooltipTrigger render={
                         <button
-                          onClick={() => setIssueView(v)}
+                          onClick={() => setTicketView(v)}
                           aria-label={`${VIEW_LABELS[v]} view`}
                           className={cn(
                             "p-1.5 rounded-full transition-colors cursor-pointer",
-                            issueView === v ? "bg-[#071133] text-white" : "text-[#5F6A88] hover:text-[#0B1533]"
+                            ticketView === v ? "bg-[#071133] text-white" : "text-[#5F6A88] hover:text-[#0B1533]"
                           )}
                         >
                           {VIEW_ICONS[v]}
@@ -640,43 +643,43 @@ export default function ProjectDetail({
                 {/* Task 282 (item F) — moved here from the page header, vertically centered
                     with the view toggle. */}
                 <button
-                  onClick={() => setCreateIssueOpen(true)}
+                  onClick={() => setCreateTicketOpen(true)}
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#FB914E] text-[#471F02] text-[12.5px] font-medium hover:bg-[#E2762F] hover:text-white transition-colors cursor-pointer shrink-0"
                 >
-                  <Plus size={15} /> New Issue
+                  <Plus size={15} /> New Ticket
                 </button>
               </div>
             </div>
             <div className="flex-1 min-h-0 overflow-hidden">
-              {issueView === "board" && (
-                <IssueBoardView
-                  issues={filteredIssues}
-                  onMove={async (id, status) => { await updateIssue(id, { status }); }}
-                  onOpen={(issue) => router.push(`${basePath}/issues/${issue.display_id}`)}
+              {ticketView === "board" && (
+                <TicketBoardView
+                  tickets={filteredTickets}
+                  onMove={async (id, status) => { await updateTicket(id, { status }); }}
+                  onOpen={(ticket) => router.push(`${basePath}/tickets/${ticket.display_id}`)}
                 />
               )}
-              {issueView === "list" && (
-                <IssueListView
-                  issues={filteredIssues}
-                  getHref={(issue) => `${basePath}/issues/${issue.display_id}`}
-                  onUpdate={updateIssue}
-                  onBulkDelete={bulkDeleteIssues}
+              {ticketView === "list" && (
+                <TicketListView
+                  tickets={filteredTickets}
+                  getHref={(ticket) => `${basePath}/tickets/${ticket.display_id}`}
+                  onUpdate={updateTicket}
+                  onBulkDelete={bulkDeleteTickets}
                   currentUserId={currentUserId}
                   currentUserRole={currentUserRole}
                   allMembers={allMembers}
                   profilesById={profilesById}
-                  sortKey={issueSortKey}
-                  sortDir={issueSortDir}
-                  onToggleSort={toggleIssueSort}
-                  onCreateNew={() => setCreateIssueOpen(true)}
-                  hasActiveFilters={hasActiveIssueFilters}
-                  onClearFilters={clearIssueFilters}
+                  sortKey={ticketSortKey}
+                  sortDir={ticketSortDir}
+                  onToggleSort={toggleTicketSort}
+                  onCreateNew={() => setCreateTicketOpen(true)}
+                  hasActiveFilters={hasActiveTicketFilters}
+                  onClearFilters={clearTicketFilters}
                 />
               )}
-              {issueView === "calendar" && (
-                <IssueCalendarView
-                  issues={filteredIssues}
-                  onOpen={(issue) => router.push(`${basePath}/issues/${issue.display_id}`)}
+              {ticketView === "calendar" && (
+                <TicketCalendarView
+                  tickets={filteredTickets}
+                  onOpen={(ticket) => router.push(`${basePath}/tickets/${ticket.display_id}`)}
                 />
               )}
             </div>
@@ -779,21 +782,21 @@ export default function ProjectDetail({
         />
       )}
 
-      {/* Create issue modal */}
-      {createIssueOpen && (
-        <CreateIssueModal
+      {/* Create ticket modal */}
+      {createTicketOpen && (
+        <CreateTicketModal
           projectId={project.project_id ?? project.id}
           allMembers={allMembers}
-          issues={issues}
-          onClose={() => setCreateIssueOpen(false)}
-          onCreated={(i) => { addIssue(i); setCreateIssueOpen(false); }}
+          tickets={tickets}
+          onClose={() => setCreateTicketOpen(false)}
+          onCreated={(i) => { addTicket(i); setCreateTicketOpen(false); }}
         />
       )}
     </>
   );
 }
 
-// `CreateTaskModal` extracted to `_create-task-modal.tsx` (task 274), `CreateIssueModal`
-// extracted to `_create-issue-modal.tsx` (task 286) — exported here since both extracted files
+// `CreateTaskModal` extracted to `_create-task-modal.tsx` (task 274), `CreateTicketModal`
+// extracted to `_create-ticket-modal.tsx` (task 286) — exported here since both extracted files
 // import this type back for their own props.
 export type MemberOptionWithRole = { id: string; full_name: string | null; avatar_url: string | null; role: string };

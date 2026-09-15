@@ -8,7 +8,7 @@ import type { ProjectListItem, CustomerOption, PaginationMeta } from "./_project
 // task 279), extracted from the old src/app/(hub)/projects-old/page.tsx's inline data-loading
 // logic (that file is read-only — this is a parallel copy, not a shared import) so page.tsx
 // doesn't balloon past the file-length guidance. Behavior is unchanged from the source: same
-// multi-select status filter, same sort map, same developer-project-id scoping, same task/issue
+// multi-select status filter, same sort map, same developer-project-id scoping, same task/ticket
 // counts via RPC, same member avatar lookups.
 //
 // Task 308 — the query always restricts to `external_project_id IS NOT NULL` (legacy/Zoho-imported

@@ -5,8 +5,8 @@ import { ProjectDetailHeader } from "../../../_shared/_project-detail-header";
 export const dynamic = "force-dynamic";
 
 // Task 283 — Legacy equivalent of `v2/[projectId]/(tabs)/layout.tsx`. Wraps Overview, Tasks,
-// Issues, Milestones, Files, Access, Members, Status Report, Time Logs. Detail sub-routes
-// (`tasks/[taskId]`, `issues/[issueId]`, `milestones/[milestoneId]`) stay outside this group,
+// Tickets, Milestones, Files, Access, Members, Status Report, Time Logs. Detail sub-routes
+// (`tasks/[taskId]`, `tickets/[ticketId]`, `milestones/[milestoneId]`) stay outside this group,
 // as siblings of `(tabs)/tasks` etc. — see the V2 layout's comment for why.
 export default async function LegacyProjectTabsLayout({
   params,

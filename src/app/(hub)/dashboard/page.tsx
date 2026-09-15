@@ -30,7 +30,7 @@ export default async function DashboardPage() {
   const role        = (profile?.role as string | null) ?? null;
   const displayName = (profile?.full_name as string | null) ?? null;
 
-  // Task 360 — the developer dashboard reads the developer's own assigned tasks/issues, live
+  // Task 360 — the developer dashboard reads the developer's own assigned tasks/tickets, live
   // timer and time logs. `displayName` is forwarded rather than re-queried inside the loader so
   // the legacy `issues.assignee_name` lookup doesn't add a second round trip; the Suspense
   // boundary lets the hub shell paint before those queries resolve.

@@ -12,16 +12,16 @@ import { cn } from "@/lib/utils";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { V2_ROUTES } from "@/config/constants";
 import {
-  type Project, type Milestone, type Tasklist, type Task, type Issue,
-  type TaskStatus, type TaskPriority, type IssueSeverity, ProjectStatusBadge,
+  type Project, type Milestone, type Tasklist, type Task, type Ticket,
+  type TaskStatus, type TaskPriority, type TicketSeverity, ProjectStatusBadge,
   STATUS_LABEL, PRIORITY_STYLE, SEVERITY_STYLE, normalizeStatus, normalizeSeverity,
 } from "../_pm-shared";
 import BoardView from "./_board-view";
 import ListView, { type SortKey, type SortDir } from "./_list-view";
 import CalendarView from "./_calendar-view";
-import IssueListView, { type IssueSortKey, type IssueSortDir } from "./_issue-list-view";
-import IssueBoardView from "./_issue-board-view";
-import IssueCalendarView from "./_issue-calendar-view";
+import IssueListView, { type IssueSortKey, type IssueSortDir } from "./_ticket-list-view";
+import IssueBoardView from "./_ticket-board-view";
+import IssueCalendarView from "./_ticket-calendar-view";
 import MilestonePanel from "./_milestone-panel";
 import MilestoneSwimlane from "./_milestone-swimlane";
 import { TaskAttachmentPicker } from "./_task-attachment-picker";
@@ -73,7 +73,7 @@ const SORT_OPTIONS: { value: SortValue; label: string; key: SortKey; dir: SortDi
 
 // ─── Issues tab — status pipeline is shared with tasks (see task 192 doc); severity
 // is a separate 5-value Zoho vocabulary, not the task priority enum. ────────────────
-const SEVERITY_OPTS: IssueSeverity[] = ["Show stopper", "Critical", "Major", "Minor", "None"];
+const SEVERITY_OPTS: TicketSeverity[] = ["Show stopper", "Critical", "Major", "Minor", "None"];
 const SEVERITY_FILTER_OPTIONS = SEVERITY_OPTS.map((s) => ({ value: s, label: SEVERITY_STYLE[s].label }));
 
 type IssueSortValue = "istatus_asc" | "istatus_desc" | "iname_asc" | "iname_desc" | "idue_soonest" | "idue_latest" | "severity_high" | "severity_low";
@@ -81,8 +81,8 @@ type IssueSortValue = "istatus_asc" | "istatus_desc" | "iname_asc" | "iname_desc
 const ISSUE_SORT_OPTIONS: { value: IssueSortValue; label: string; key: IssueSortKey; dir: IssueSortDir }[] = [
   { value: "istatus_asc",    label: "Status (pipeline order)",   key: "status",   dir: "asc" },
   { value: "istatus_desc",   label: "Status (reverse order)",    key: "status",   dir: "desc" },
-  { value: "iname_asc",      label: "Issue name (A–Z)",          key: "title",    dir: "asc" },
-  { value: "iname_desc",     label: "Issue name (Z–A)",          key: "title",    dir: "desc" },
+  { value: "iname_asc",      label: "Ticket name (A–Z)",          key: "title",    dir: "asc" },
+  { value: "iname_desc",     label: "Ticket name (Z–A)",          key: "title",    dir: "desc" },
   { value: "idue_soonest",   label: "Due date (soonest)",        key: "due_date", dir: "asc" },
   { value: "idue_latest",    label: "Due date (latest)",         key: "due_date", dir: "desc" },
   { value: "severity_high",  label: "Severity (highest first)",  key: "severity", dir: "asc" },
@@ -115,7 +115,7 @@ export default function ProjectDetail({
   initialMilestones: Milestone[];
   initialTasklists: Tasklist[];
   initialTasks: Task[];
-  initialIssues: Issue[];
+  initialIssues: Ticket[];
   currentUserId: string;
   currentUserRole: string | null;
   profilesById: Record<string, { full_name: string; avatar_url: string | null }>;
@@ -144,8 +144,8 @@ export default function ProjectDetail({
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
-  // ─── Issue state (own view/toolbar state — independent of the Tasks tab) ───
-  const [issues, setIssues] = useState<Issue[]>(initialIssues);
+  // ─── Ticket state (own view/toolbar state — independent of the Tasks tab) ───
+  const [issues, setIssues] = useState<Ticket[]>(initialIssues);
   const [issueView, setIssueView] = useState<ViewId>("list");
   const [issueSearch, setIssueSearch] = useState("");
   const [issueStatusFilter, setIssueStatusFilter] = useState<string[]>(() => STATUS_OPTS.map((s) => s as string));
@@ -192,10 +192,10 @@ export default function ProjectDetail({
         (payload) => {
           if (payload.eventType === "UPDATE") {
             setIssues((prev) =>
-              prev.map((i) => (i.id === (payload.new as Issue).id ? { ...i, ...(payload.new as Issue) } : i))
+              prev.map((i) => (i.id === (payload.new as Ticket).id ? { ...i, ...(payload.new as Ticket) } : i))
             );
           } else if (payload.eventType === "INSERT") {
-            const incoming = payload.new as Issue;
+            const incoming = payload.new as Ticket;
             setIssues((prev) =>
               prev.some((i) => i.id === incoming.id) ? prev : [...prev, incoming]
             );
@@ -247,8 +247,8 @@ export default function ProjectDetail({
     setTasklists((prev) => [...prev, tasklist]);
   }, []);
 
-  // ─── Issue mutations (optimistic) ────────────────────────────────────────
-  const updateIssue = useCallback(async (id: string, patch: Partial<Issue>) => {
+  // ─── Ticket mutations (optimistic) ────────────────────────────────────────
+  const updateIssue = useCallback(async (id: string, patch: Partial<Ticket>) => {
     const snapshot = issues;
     setIssues((prev) => prev.map((i) => (i.id === id ? { ...i, ...patch } : i)));
     const res = await fetch(`/api/v2/issues/${id}`, {
@@ -257,12 +257,12 @@ export default function ProjectDetail({
       body: JSON.stringify(patch),
     });
     if (!res.ok) { setIssues(snapshot); return false; }
-    const updated: Issue = await res.json();
+    const updated: Ticket = await res.json();
     setIssues((prev) => prev.map((i) => (i.id === id ? updated : i)));
     return true;
   }, [issues]);
 
-  const addIssue = useCallback((issue: Issue) => {
+  const addIssue = useCallback((issue: Ticket) => {
     setIssues((prev) => [...prev, issue]);
   }, []);
 
@@ -366,7 +366,7 @@ export default function ProjectDetail({
     else { setSortKey(key); setSortDir("asc"); }
   }
 
-  // ─── Issue search / filter ────────────────────────────────────────────────
+  // ─── Ticket search / filter ────────────────────────────────────────────────
   const filteredIssues = useMemo(() => {
     const q = issueSearch.trim().toLowerCase();
     const statusSet = new Set(issueStatusFilter);
@@ -469,7 +469,7 @@ export default function ProjectDetail({
               onClick={() => (primaryTab === "issues" ? setCreateIssueOpen(true) : setCreateDefaults({}))}
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#FB914E] text-[#471F02] text-[13px] font-medium hover:bg-[#E2762F] hover:text-white transition-colors cursor-pointer"
             >
-              <Plus size={16} /> {primaryTab === "issues" ? "New Issue" : "New Task"}
+              <Plus size={16} /> {primaryTab === "issues" ? "New Ticket" : "New Task"}
             </button>
           </div>
         </div>
@@ -886,7 +886,7 @@ function SortSelect({
 // the extracted file imports this type back for its own props.
 export type MemberOptionWithRole = { id: string; full_name: string | null; avatar_url: string | null; role: string };
 
-// ─── Create Issue modal ───────────────────────────────────────────────────────
+// ─── Create Ticket modal ───────────────────────────────────────────────────────
 
 type MemberOption = { id: string; full_name: string | null; avatar_url: string | null };
 
@@ -899,12 +899,12 @@ function CreateIssueModal({
   projectId: string;
   allMembers: MemberOption[];
   onClose: () => void;
-  onCreated: (i: Issue) => void;
+  onCreated: (i: Ticket) => void;
 }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState<string>("open");
-  const [severity, setSeverity] = useState<IssueSeverity>("None");
+  const [severity, setSeverity] = useState<TicketSeverity>("None");
   const [assigneeId, setAssigneeId] = useState<string>("");
   const [dueDate, setDueDate] = useState<string>("");
   const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
@@ -912,7 +912,7 @@ function CreateIssueModal({
   const [error, setError] = useState<string | null>(null);
   // Post-creation upload phase (task 273 follow-up) — see CreateTaskModal's identical pattern for
   // why `issueIdRef` (not the `createdIssue` state) is what the upload closure reads.
-  const [createdIssue, setCreatedIssue] = useState<Issue | null>(null);
+  const [createdIssue, setCreatedIssue] = useState<Ticket | null>(null);
   const issueIdRef = useRef<string | null>(null);
   const uploadQueue = useUploadQueue((file, onProgress) => {
     const fd = new FormData();
@@ -951,7 +951,7 @@ function CreateIssueModal({
       setSaving(false);
       return;
     }
-    const issue: Issue = await res.json();
+    const issue: Ticket = await res.json();
     setSaving(false);
 
     if (attachmentFiles.length > 0) {
@@ -973,7 +973,7 @@ function CreateIssueModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-[#EDF0F7] shrink-0">
-          <h2 className="text-[15px] font-semibold text-[#0B1533]">New Issue</h2>
+          <h2 className="text-[15px] font-semibold text-[#0B1533]">New Ticket</h2>
           {!uploading && (
             <button onClick={onClose} className="p-1 rounded-md text-[#5F6A88] hover:text-[#0B1533] hover:bg-[#F4F6FB] cursor-pointer transition-colors">
               <X size={16} />
@@ -985,10 +985,10 @@ function CreateIssueModal({
             <div className="p-5 flex flex-col gap-3 overflow-y-auto">
               <p className="text-[13px] text-[#3A4565]">
                 {!allSettled
-                  ? "Issue created — uploading attachments…"
+                  ? "Ticket created — uploading attachments…"
                   : hasFailures
-                    ? "Issue created. Some attachments failed to upload — retry or continue without them."
-                    : "Issue created — all attachments uploaded."}
+                    ? "Ticket created. Some attachments failed to upload — retry or continue without them."
+                    : "Ticket created — all attachments uploaded."}
               </p>
               <UploadQueuePanel items={uploadQueue.items} onRetry={uploadQueue.retry} onDismiss={uploadQueue.dismiss} />
             </div>
@@ -1043,7 +1043,7 @@ function CreateIssueModal({
               <span className={labelClass}>Severity</span>
               <select
                 value={severity}
-                onChange={(e) => setSeverity(e.target.value as IssueSeverity)}
+                onChange={(e) => setSeverity(e.target.value as TicketSeverity)}
                 className={cn(inputClass, "bg-white cursor-pointer")}
               >
                 {SEVERITY_OPTS.map((s) => <option key={s} value={s}>{SEVERITY_STYLE[s].label}</option>)}

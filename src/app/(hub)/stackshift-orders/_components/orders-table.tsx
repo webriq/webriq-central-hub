@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-  ClipboardList, Search, X, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, AlertTriangle, Check,
+  ClipboardList, Search, X, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, AlertTriangle,
 } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
 import { V2_ROUTES } from "@/config/constants";
@@ -23,7 +23,6 @@ export type OrderListItem = {
   customer_id: string | null;
   project_id: string | null;
   contact_risk: "low" | "medium" | "high" | null;
-  customer_notification_sent_at: string | null;
 };
 
 export type PaginationMeta = { page: number; pageSize: number; total: number };
@@ -206,11 +205,6 @@ export default function OrdersTable({
                 <div className="min-w-0">
                   <div className="text-[13px] text-[#3A4565] truncate">{o.contact_name ?? "—"}</div>
                   {o.business_email && <div className="text-[11px] text-[#5F6A88] truncate">{o.business_email}</div>}
-                  {o.customer_notification_sent_at && (
-                    <div className="flex items-center gap-1 text-[10.5px] text-[#1E7C4B] mt-0.5">
-                      <Check size={10} /> Confirmation sent
-                    </div>
-                  )}
                 </div>
                 <div className="min-w-0 flex flex-wrap gap-1">
                   {o.services.length === 0 ? (

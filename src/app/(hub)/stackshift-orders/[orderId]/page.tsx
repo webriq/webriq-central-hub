@@ -24,9 +24,16 @@ export default async function StackShiftOrderDetailPage({
   if (!claims?.claims) redirect(V2_ROUTES.AUTH_LOGIN);
 
   const userId = claims.claims.sub as string;
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", userId).maybeSingle();
+  const { data: profile } = await supabase.from("profiles").select("role, department_id").eq("id", userId).maybeSingle();
   const role = profile?.role ?? null;
   if (role !== "admin" && role !== "super_admin" && role !== "pm") redirect(V2_ROUTES.DASHBOARD);
+
+  let departmentName: string | null = null;
+  if (profile?.department_id) {
+    const { data: department } = await supabase.from("departments").select("name").eq("id", profile.department_id).maybeSingle();
+    departmentName = department?.name ?? null;
+  }
+  const readOnly = departmentName === "Finance";
 
   const { data: order, error } = await supabase
     .from("stackshift_orders")
@@ -78,5 +85,5 @@ export default async function StackShiftOrderDetailPage({
     _linkedProjectName: linkedProjectName,
   };
 
-  return <OrderReview order={detail} />;
+  return <OrderReview order={detail} readOnly={readOnly} />;
 }

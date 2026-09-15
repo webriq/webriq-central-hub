@@ -6,7 +6,7 @@ import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip
 import { SearchableSelect } from "./_searchable-select";
 import { DateFieldPicker } from "./_date-field-picker";
 import { NativeTimeInput, DurationInput } from "./_native-time-input";
-import { TaskIssuePicker, type TaskIssueValue } from "./_task-issue-picker";
+import { TaskTicketPicker, type TaskTicketValue } from "./_task-ticket-picker";
 import { TimeLogNotesEditor } from "./_time-log-notes-editor";
 import { formatHoursAsHHMM } from "@/lib/timer/format";
 import {
@@ -17,16 +17,16 @@ import { POPOVER_ROOT_ATTR } from "./_use-popover-position";
 
 // Add/Edit modal for the dedicated Time Logs page (task 226). Task 230 reworked this into a
 // guided flow: Add mode hides everything but Project until one is picked (Requirement 3); the
-// Task field is now the tabbed Tasks/Issues/General-Log picker (Requirements 5/6); Notes is a
+// Task field is now the tabbed Tasks/Tickets/General-Log picker (Requirements 5/6); Notes is a
 // rich text field (Requirement 7); every required field is validated inline (Requirements 8/9);
 // Date/Time labels carry a helper tooltip (Requirement 10); future times are disabled alongside
 // the existing future-date guard (Requirement 11); and Edit mode now supports reassigning the
-// entry's task/issue/general-log, backed by the unified, non-nested
+// entry's task/ticket/general-log, backed by the unified, non-nested
 // `POST /api/v2/time-logs` / `PATCH /api/v2/time-logs/[id]` routes (Requirement 12).
 //
 // Task 292 — Start Time/End Time switched from the custom Tile-grid `TimeFieldPicker` to native
 // `<input type="time">` (`_native-time-input.tsx`); added a Period ⇄ Duration toggle mirroring
-// `TaskIssuePicker`'s own General Log toggle, letting a manual entry be logged as elapsed `hh:mm`
+// `TaskTicketPicker`'s own General Log toggle, letting a manual entry be logged as elapsed `hh:mm`
 // instead of a start/end pair; validation errors now show live per-field (on blur), not only after
 // a failed submit; and Add/Save is gated on full validity (`isValid`) rather than "every required
 // field has some value" (`requiredFilled`, this file's previous task-230 design — see the removed
@@ -39,13 +39,13 @@ import { POPOVER_ROOT_ATTR } from "./_use-popover-position";
 type TimeMode = "period" | "duration";
 type TouchedField = "project" | "picker" | "date" | "startTime" | "endTime" | "duration";
 
-function initialPickerValue(initial: TimeLogEntry | undefined): TaskIssueValue | null {
+function initialPickerValue(initial: TimeLogEntry | undefined): TaskTicketValue | null {
   if (!initial) return null;
   if (initial.entry_kind === "task" && initial.task_id) {
     return { kind: "task", id: initial.task_id, label: initial.task_title, displayId: initial.task_display_id };
   }
-  if (initial.entry_kind === "issue" && initial.issue_id) {
-    return { kind: "issue", id: initial.issue_id, label: initial.log_title, displayId: initial.issue_display_id };
+  if (initial.entry_kind === "ticket" && initial.issue_id) {
+    return { kind: "ticket", id: initial.issue_id, label: initial.log_title, displayId: initial.issue_display_id };
   }
   // Task 348 — a General Log's free text is its title, stored in `log_title` (not `note`).
   return { kind: "general", text: initial.log_title ?? "" };
@@ -93,7 +93,7 @@ export function TimeLogEntryModal({
 }) {
   const [projects, setProjects] = useState<ProjectOption[]>([]);
   const [projectPublicId, setProjectPublicId] = useState(initial?.project_public_id ?? "");
-  const [pickerValue, setPickerValue] = useState<TaskIssueValue | null>(() => initialPickerValue(initial));
+  const [pickerValue, setPickerValue] = useState<TaskTicketValue | null>(() => initialPickerValue(initial));
 
   const [timeMode, setTimeMode] = useState<TimeMode>(() => initialTimeMode(initial));
   const [date, setDate] = useState(initial?.date_logged ?? toISODate(new Date()));
@@ -112,7 +112,7 @@ export function TimeLogEntryModal({
   // as soon as the user leaves it (blur), not only after a failed submit attempt. Monotonic (once
   // touched, stays touched) and set via each field's wrapping `<div onBlur>` — `onBlur` bubbles
   // from any focusable descendant, so this needs no changes to the field components themselves,
-  // including the portaled popovers (SearchableSelect/TaskIssuePicker/DateFieldPicker), where a
+  // including the portaled popovers (SearchableSelect/TaskTicketPicker/DateFieldPicker), where a
   // click on a portaled option still fires focusout on the way there.
   const [touched, setTouched] = useState<Partial<Record<TouchedField, boolean>>>({});
   const [submitAttempted, setSubmitAttempted] = useState(false);
@@ -125,7 +125,7 @@ export function TimeLogEntryModal({
     return !!touched[field] || submitAttempted;
   }
 
-  // Task 294 — the Project/Task-Issue/Date fields each open a `createPortal`-ed popover (tagged
+  // Task 294 — the Project/Task-Ticket/Date fields each open a `createPortal`-ed popover (tagged
   // `[data-popover-root]`) that lives outside this field's own wrapping `<div>` in the DOM tree.
   // `SearchableSelect`'s dropdown in particular auto-focuses its own search input the instant it
   // opens, which blurs this field's trigger before the user has made a choice or left the field —
@@ -161,7 +161,7 @@ export function TimeLogEntryModal({
   const errors: { project?: string; picker?: string; date?: string; startTime?: string; endTime?: string; duration?: string } = {};
   if (!initial && !projectPublicId) errors.project = "Project is required.";
   if (!pickerValue) {
-    errors.picker = "Select a task or issue, or enter a general log.";
+    errors.picker = "Select a task or ticket, or enter a general log.";
   } else if (pickerValue.kind === "general" && !pickerValue.text.trim()) {
     errors.picker = "A title is required for a General Log entry.";
   }
@@ -204,7 +204,7 @@ export function TimeLogEntryModal({
     const body = {
       project_id: initial ? initial.project_id : selectedProject?.id ?? "",
       task_id: pickerValue.kind === "task" ? pickerValue.id : null,
-      issue_id: pickerValue.kind === "issue" ? pickerValue.id : null,
+      issue_id: pickerValue.kind === "ticket" ? pickerValue.id : null,
       date_logged: date,
       ...(timeMode === "period" ? { start_time: startIso, end_time: endIso } : { duration_hours: durationHours }),
       note: noteToSend,
@@ -227,14 +227,14 @@ export function TimeLogEntryModal({
       onSaved({
         id: initial?.id ?? saved.id,
         task_id: entryKind === "task" ? pickerValue.id : null,
-        issue_id: entryKind === "issue" ? pickerValue.id : null,
+        issue_id: entryKind === "ticket" ? pickerValue.id : null,
         entry_kind: entryKind,
         project_id: initial?.project_id ?? selectedProject?.id ?? "",
         project_name: initial?.project_name ?? selectedProject?.name ?? "Unknown project",
         project_public_id: initial?.project_public_id ?? selectedProject?.project_id ?? null,
         task_title: entryKind === "task" ? pickerValue.label : "—",
         task_display_id: entryKind === "task" ? pickerValue.displayId : null,
-        issue_display_id: entryKind === "issue" ? pickerValue.displayId : null,
+        issue_display_id: entryKind === "ticket" ? pickerValue.displayId : null,
         log_title: logTitle,
         date_logged: saved.date_logged,
         hours: saved.hours,
@@ -296,8 +296,8 @@ export function TimeLogEntryModal({
           {showRestOfForm && (
             <>
               <div onBlur={guardedBlur("picker")}>
-                <FieldLabel required>Task/Issue</FieldLabel>
-                <TaskIssuePicker
+                <FieldLabel required>Task/Ticket</FieldLabel>
+                <TaskTicketPicker
                   projectId={projectPublicId}
                   currentUserId={currentUserId}
                   value={pickerValue}

@@ -39,7 +39,7 @@ export async function GET(
   const { data: task } = await supabase.from("tasks").select("id").eq("id", taskId).eq("project_id", project.id).maybeSingle();
   if (!task) return NextResponse.json({ error: "Task not found" }, { status: 404 });
 
-  const { data, error } = await supabase
+  const { data: taskAttachments, error } = await supabase
     .from("attachments")
     .select("id, filename, size, created_at")
     .eq("entity_type", "task")
@@ -47,7 +47,54 @@ export async function GET(
     .order("created_at", { ascending: true });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-  return NextResponse.json(data ?? []);
+
+  // Task 368, R3 — merge in attachments uploaded on this task's comments (entity_type: "comment")
+  // so they also surface in the Attachments tab, not just the comment thread. Mirrors the
+  // equivalent merge already shipped for tickets (task 257, Requirement F) in
+  // `.../tickets/[ticketId]/attachments/route.ts`. `fetchUrl` is computed server-side so the
+  // client never has to branch-construct the right signed-URL endpoint per source.
+  const { data: comments } = await supabase
+    .from("task_comments")
+    .select("id")
+    .eq("task_id", task.id);
+  const commentIds = (comments ?? []).map((c) => c.id);
+
+  type MergedAttachment = {
+    id: string; filename: string; size: number | null; created_at: string;
+    source: "task" | "comment"; commentId: string | null; fetchUrl: string;
+  };
+
+  const merged: MergedAttachment[] = (taskAttachments ?? []).map((a) => ({
+    ...a,
+    source: "task",
+    commentId: null,
+    fetchUrl: `/api/v2/projects/${projectId}/tasks/${taskId}/attachments/${a.id}/file-url`,
+  }));
+
+  if (commentIds.length > 0) {
+    const { data: commentAttachments } = await supabase
+      .from("attachments")
+      .select("id, filename, size, created_at, entity_id")
+      .eq("entity_type", "comment")
+      .in("entity_id", commentIds)
+      .order("created_at", { ascending: true });
+
+    for (const a of commentAttachments ?? []) {
+      merged.push({
+        id: a.id,
+        filename: a.filename,
+        size: a.size,
+        created_at: a.created_at,
+        source: "comment",
+        commentId: a.entity_id,
+        fetchUrl: `/api/v2/tasks/${taskId}/comments/${a.entity_id}/attachments/${a.id}/file-url`,
+      });
+    }
+  }
+
+  merged.sort((a, b) => a.created_at.localeCompare(b.created_at));
+
+  return NextResponse.json(merged);
 }
 
 export async function POST(

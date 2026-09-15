@@ -12,10 +12,10 @@ import { createClient } from "@/lib/supabase/server";
 // embed through, so display names/project/task are resolved via batch `Map` lookups, mirroring
 // the sibling per-task route's `resolveOwnerName()` pattern.
 //
-// Task 230 — POST added below (unified, non-nested create: task-linked, issue-linked, or a
-// task-less/issue-less "General Log"). Task 348 — a General Log's title lives in its own
+// Task 230 — POST added below (unified, non-nested create: task-linked, ticket-linked, or a
+// task-less/ticket-less "General Log"). Task 348 — a General Log's title lives in its own
 // `log_title` column (not `note`); `note` is optional rich-text notes for every entry kind.
-// GET extended to resolve issue titles/display_id alongside task ones, and
+// GET extended to resolve ticket titles/display_id alongside task ones, and
 // to surface `project_public_id`/`task_display_id`/`issue_display_id`/`entry_kind`/`log_title` so
 // the table's inline editors and detail-link icon (Requirement 15) don't need a second fetch.
 const VIEW_ALL_ROLES = ["admin", "super_admin", "pm", "hr"];
@@ -137,24 +137,24 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  const issueIds = [...new Set(rows.map((r) => r.issue_id).filter((id): id is string => !!id))];
-  const issueTitles = new Map<string, string>();
-  const issueDisplayIds = new Map<string, string>();
-  if (issueIds.length > 0) {
-    const { data: issues } = await supabase.from("issues").select("id, title, display_id").in("id", issueIds);
-    for (const i of issues ?? []) {
-      issueTitles.set(i.id, i.title);
-      if (i.display_id) issueDisplayIds.set(i.id, i.display_id);
+  const ticketIds = [...new Set(rows.map((r) => r.issue_id).filter((id): id is string => !!id))];
+  const ticketTitles = new Map<string, string>();
+  const ticketDisplayIds = new Map<string, string>();
+  if (ticketIds.length > 0) {
+    const { data: tickets } = await supabase.from("issues").select("id, title, display_id").in("id", ticketIds);
+    for (const i of tickets ?? []) {
+      ticketTitles.set(i.id, i.title);
+      if (i.display_id) ticketDisplayIds.set(i.id, i.display_id);
     }
   }
 
   const entries = rows.map((r) => {
-    const entryKind: "task" | "issue" | "general" = r.task_id ? "task" : r.issue_id ? "issue" : "general";
+    const entryKind: "task" | "ticket" | "general" = r.task_id ? "task" : r.issue_id ? "ticket" : "general";
     const logTitle =
       entryKind === "task"
         ? taskTitles.get(r.task_id!) ?? "Untitled task"
-        : entryKind === "issue"
-          ? issueTitles.get(r.issue_id!) ?? "Untitled issue"
+        : entryKind === "ticket"
+          ? ticketTitles.get(r.issue_id!) ?? "Untitled ticket"
           : // Task 348 — general entries carry their title in the dedicated `log_title`
             // column; `truncateNote(r.note)` is the fallback for rows created before that
             // column existed and never re-saved (migration 131 backfills most of them).
@@ -170,7 +170,7 @@ export async function GET(req: NextRequest) {
       project_public_id: projectPublicIds.get(r.project_id) ?? null,
       task_title: r.task_id ? taskTitles.get(r.task_id) ?? "Untitled task" : "—",
       task_display_id: r.task_id ? taskDisplayIds.get(r.task_id) ?? null : null,
-      issue_display_id: r.issue_id ? issueDisplayIds.get(r.issue_id) ?? null : null,
+      issue_display_id: r.issue_id ? ticketDisplayIds.get(r.issue_id) ?? null : null,
       log_title: logTitle,
       date_logged: r.date_logged,
       hours: r.hours,
@@ -182,7 +182,7 @@ export async function GET(req: NextRequest) {
       display_name: resolveOwnerName(r, profileNames),
       avatar_url: resolveOwnerAvatarUrl(r, profileAvatarUrls),
       employee_id: r.employee_id,
-      // Every entry this route resolves (task-linked, issue-linked, or general) is now editable
+      // Every entry this route resolves (task-linked, ticket-linked, or general) is now editable
       // through the unified `/api/v2/time-logs/[timeLogId]` route (task 230) — the earlier
       // `&& !!r.task_id` restriction only existed because the old nested write route couldn't
       // reach a task-less row at all.
@@ -214,14 +214,14 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const projectId = typeof body.project_id === "string" ? body.project_id : "";
   const taskId = typeof body.task_id === "string" && body.task_id ? body.task_id : null;
-  const issueId = typeof body.issue_id === "string" && body.issue_id ? body.issue_id : null;
+  const ticketId = typeof body.issue_id === "string" && body.issue_id ? body.issue_id : null;
   const dateLogged = typeof body.date_logged === "string" ? body.date_logged : "";
   const startTime = typeof body.start_time === "string" ? body.start_time : "";
   const endTime = typeof body.end_time === "string" ? body.end_time : "";
   const note = typeof body.note === "string" && body.note.trim() ? body.note.trim() : null;
-  // Task 348 — free-text title for a General Log (task-less/issue-less) entry, stored in its
+  // Task 348 — free-text title for a General Log (task-less/ticket-less) entry, stored in its
   // own `log_title` column so `note` is free to hold optional rich-text notes for any entry
-  // kind. Forced null below for task-/issue-linked rows (their title derives from the work item).
+  // kind. Forced null below for task-/ticket-linked rows (their title derives from the work item).
   const logTitle = typeof body.log_title === "string" && body.log_title.trim() ? body.log_title.trim() : null;
   // Task 292 — manual "duration" entry mode (Add/Edit Time Log modal's Duration toggle): the
   // client sends decimal hours directly instead of a start/end clock pair, so this stays null
@@ -231,10 +231,10 @@ export async function POST(req: NextRequest) {
   const durationHours = typeof body.duration_hours === "number" && Number.isFinite(body.duration_hours) ? body.duration_hours : null;
 
   if (!projectId) return NextResponse.json({ error: "project_id is required" }, { status: 400 });
-  if (taskId && issueId) {
-    return NextResponse.json({ error: "An entry can be linked to a task or an issue, not both" }, { status: 400 });
+  if (taskId && ticketId) {
+    return NextResponse.json({ error: "An entry can be linked to a task or a ticket, not both" }, { status: 400 });
   }
-  if (!taskId && !issueId && !logTitle) {
+  if (!taskId && !ticketId && !logTitle) {
     return NextResponse.json({ error: "A General Log entry requires a title" }, { status: 400 });
   }
   if (!dateLogged) {
@@ -250,9 +250,9 @@ export async function POST(req: NextRequest) {
     if (!task.assignees?.includes(user.id)) {
       return NextResponse.json({ error: "You must be assigned to this task to log time" }, { status: 403 });
     }
-  } else if (issueId) {
-    const { data: issue } = await supabase.from("issues").select("id, project_id").eq("id", issueId).maybeSingle();
-    if (!issue) return NextResponse.json({ error: "Issue not found" }, { status: 404 });
+  } else if (ticketId) {
+    const { data: ticket } = await supabase.from("issues").select("id, project_id").eq("id", ticketId).maybeSingle();
+    if (!ticket) return NextResponse.json({ error: "Ticket not found" }, { status: 404 });
   }
 
   const hours = durationHours !== null ? durationHours : (new Date(endTime).getTime() - new Date(startTime).getTime()) / 3_600_000;
@@ -267,13 +267,13 @@ export async function POST(req: NextRequest) {
     .from("time_logs")
     .insert({
       task_id: taskId,
-      issue_id: issueId,
+      issue_id: ticketId,
       project_id: projectId,
       employee_id: user.id,
       date_logged: dateLogged,
       hours,
       note,
-      log_title: taskId || issueId ? null : logTitle,
+      log_title: taskId || ticketId ? null : logTitle,
       source: "manual",
       billable: false,
       start_time: durationHours !== null ? null : startTime,

@@ -10,7 +10,7 @@ import { useTimer } from "@/app/(hub)/_components/timer-context";
 import { Panel, EmptyState, PriorityDot, RunningBadge, StatusPill, TypeIcon, DueLabel, TRANSITION } from "./_ui";
 import { matchesTab, type DevWorkItem, type DevWorkTab } from "./_types";
 
-// Task 360 — "My Tasks": the developer's assigned tasks and issues in one status-grouped,
+// Task 360 — "My Tasks": the developer's assigned tasks and tickets in one status-grouped,
 // priority-sorted list. The mockup's third row action ("Edit") is deliberately dropped — editing
 // lives on the detail page, and duplicating `getTaskEditPermission` gating here would buy nothing.
 
@@ -52,10 +52,10 @@ function RunningRowStop() {
 
 function WorkRow({ item, today, isActiveTimer }: { item: DevWorkItem; today: string; isActiveTimer: boolean }) {
   const isClosed = item.status === "closed";
-  // An issue shows Zoho's own severity vocabulary; a task shows the priority enum. The dot
+  // A ticket shows Zoho's own severity vocabulary; a task shows the priority enum. The dot
   // colour is the mapped priority in both cases, so ordering and colour stay consistent.
   const priorityLabel =
-    item.kind === "issue"
+    item.kind === "ticket"
       ? SEVERITY_STYLE[item.rawSeverity ?? "None"]?.label ?? "None"
       : PRIORITY_STYLE[item.priority]?.label ?? "Normal";
 
@@ -156,7 +156,7 @@ export default function DevWorkList({
 }) {
   const [tab, setTab] = useState<DevWorkTab>("all");
   const [expanded, setExpanded] = useState(false);
-  // Only read for its task/issue *identity* — see `activeKey` below — but React context has no
+  // Only read for its task/ticket *identity* — see `activeKey` below — but React context has no
   // per-field subscription, so this component (and therefore its visible rows) still re-renders
   // once a second while a timer is running, the same as every row's own `TaskTimerButton`
   // already does today. Centralizing the subscription here (one `useTimer()` call instead of one
@@ -172,7 +172,7 @@ export default function DevWorkList({
     return { all: items.length, today: dueTodayCount, open: openCount, progress: inProgressCount, review, closed: closedCount };
   }, [items, today, dueTodayCount, openCount, inProgressCount, closedCount]);
 
-  const activeKey = timer?.task_id ? `task:${timer.task_id}` : timer?.issue_id ? `issue:${timer.issue_id}` : null;
+  const activeKey = timer?.task_id ? `task:${timer.task_id}` : timer?.issue_id ? `ticket:${timer.issue_id}` : null;
 
   // The item with the running timer floats to the top of whichever tab it's visible in,
   // overriding the normal status/priority order — it stays the one thing you're actually doing
@@ -242,14 +242,14 @@ export default function DevWorkList({
         <EmptyState
           icon={<CheckCircle2 size={16} />}
           title="No work assigned"
-          body="Tasks and issues assigned to you across every project will appear here."
+          body="Tasks and tickets assigned to you across every project will appear here."
         />
       ) : (
         <>
           <div className="flex items-center gap-2 px-[18px] pb-3 text-[12px] font-medium text-[#5F6A88]">
             <ArrowDownUp size={13} className="shrink-0" />
             Grouped by <b className="font-semibold text-[#3A4565]">status</b>, highest priority then latest first
-            within each — tasks and issues combined
+            within each — tasks and tickets combined
           </div>
           {visible.length === 0 ? (
             <EmptyState

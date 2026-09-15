@@ -13,7 +13,7 @@ export type DetailTabId =
   | "overview"
   | "timeline"
   | "tasks"
-  | "issues"
+  | "tickets"
   | "milestones"
   | "files"
   | "notes"
@@ -24,7 +24,7 @@ export type DetailTabId =
 
 const BASE_TABS: { id: DetailTabId; label: string }[] = [
   { id: "tasks", label: "Tasks" },
-  { id: "issues", label: "Issues" },
+  { id: "tickets", label: "Tickets" },
   { id: "milestones", label: "Milestones" },
   { id: "files", label: "Files" },
   { id: "notes", label: "Notes" },

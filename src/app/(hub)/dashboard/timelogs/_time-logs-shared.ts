@@ -2,7 +2,7 @@
 // content/table/picker components so each of those stays under the file-length guideline and
 // none of them re-derives the same date math independently.
 
-export type EntryKind = "task" | "issue" | "general";
+export type EntryKind = "task" | "ticket" | "general";
 
 export type TimeLogEntry = {
   id: string;

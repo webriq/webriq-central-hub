@@ -1,30 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
-
-const VALID_ROLES = ["admin", "super_admin", "hr", "pm", "developer", "client", "other"] as const;
-type ValidRole = (typeof VALID_ROLES)[number];
-
-const ROLE_DISPLAY: Record<ValidRole, string> = {
-  admin: "Admin",
-  super_admin: "Super Admin",
-  hr: "HR",
-  pm: "PM",
-  developer: "Developer",
-  client: "Client",
-  other: "Other",
-};
-
-// "other" maps to "client" in profiles (closest enum value for non-standard roles)
-const PROFILE_ROLE: Record<ValidRole, "admin" | "super_admin" | "hr" | "pm" | "developer" | "client"> = {
-  admin: "admin",
-  super_admin: "super_admin",
-  hr: "hr",
-  pm: "pm",
-  developer: "developer",
-  client: "client",
-  other: "client",
-};
+import { VALID_ROLES, ROLE_DISPLAY, PROFILE_ROLE, type ValidRole } from "@/lib/auth/hub-role-map";
+import { DEPARTMENT_ROLES, type DepartmentName } from "@/lib/auth/department-map";
 
 export async function PATCH(
   req: NextRequest,
@@ -46,7 +24,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const body = await req.json() as { role?: string; status?: string; unlockOtp?: boolean };
+  const body = await req.json() as { role?: string; status?: string; unlockOtp?: boolean; department_id?: string | null };
 
   if (body.role !== undefined) {
     if (!(VALID_ROLES as readonly string[]).includes(body.role)) {
@@ -57,6 +35,23 @@ export async function PATCH(
     }
     const role = body.role as ValidRole;
 
+    const { data: current } = await adminClient
+      .from("profiles")
+      .select("department_id")
+      .eq("id", userId)
+      .maybeSingle();
+    let deptName: string | null = null;
+    if (current?.department_id) {
+      const { data: dept } = await adminClient.from("departments").select("name").eq("id", current.department_id).maybeSingle();
+      deptName = dept?.name ?? null;
+    }
+    if (deptName && !DEPARTMENT_ROLES[deptName as DepartmentName].includes(role)) {
+      return NextResponse.json(
+        { error: `"${ROLE_DISPLAY[role]}" isn't compatible with this user's department (${deptName}).` },
+        { status: 400 }
+      );
+    }
+
     // Write to both tables atomically — profiles.role (auth enum) + hub_users.role (display string)
     const [profileRes, hubRes] = await Promise.all([
       adminClient.from("profiles").update({ role: PROFILE_ROLE[role] }).eq("id", userId),
@@ -65,6 +60,31 @@ export async function PATCH(
 
     if (profileRes.error) return NextResponse.json({ error: profileRes.error.message }, { status: 500 });
     if (hubRes.error) return NextResponse.json({ error: hubRes.error.message }, { status: 500 });
+  }
+
+  if (body.department_id !== undefined) {
+    if (body.department_id === null) {
+      const { error } = await adminClient.from("profiles").update({ department_id: null }).eq("id", userId);
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    } else {
+      const { data: dept } = await adminClient
+        .from("departments")
+        .select("id, name")
+        .eq("id", body.department_id)
+        .maybeSingle();
+      if (!dept) return NextResponse.json({ error: "Invalid department" }, { status: 400 });
+
+      const { data: current } = await adminClient.from("profiles").select("role").eq("id", userId).maybeSingle();
+      if (current?.role && !DEPARTMENT_ROLES[dept.name as DepartmentName].includes(current.role as ValidRole)) {
+        return NextResponse.json(
+          { error: `This user's role isn't compatible with ${dept.name}. Change their role first.` },
+          { status: 400 }
+        );
+      }
+
+      const { error } = await adminClient.from("profiles").update({ department_id: dept.id }).eq("id", userId);
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    }
   }
 
   if (body.status !== undefined) {

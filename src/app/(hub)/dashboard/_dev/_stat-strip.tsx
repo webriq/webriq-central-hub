@@ -65,7 +65,7 @@ export default function DevStatStrip({ stats }: { stats: DevStats }) {
         value={stats.dueTodayCount}
         sub={
           stats.dueTodayCount > 0
-            ? `${stats.dueTodayTasks} ${stats.dueTodayTasks === 1 ? "task" : "tasks"} · ${stats.dueTodayIssues} ${stats.dueTodayIssues === 1 ? "issue" : "issues"}`
+            ? `${stats.dueTodayTasks} ${stats.dueTodayTasks === 1 ? "task" : "tasks"} · ${stats.dueTodayIssues} ${stats.dueTodayIssues === 1 ? "ticket" : "tickets"}`
             : "Nothing due today"
         }
       />
@@ -76,7 +76,7 @@ export default function DevStatStrip({ stats }: { stats: DevStats }) {
         value={stats.inProgressCount}
         sub={
           stats.inProgressCount > 0
-            ? `${stats.inProgressTasks} ${stats.inProgressTasks === 1 ? "task" : "tasks"} · ${stats.inProgressIssues} ${stats.inProgressIssues === 1 ? "issue" : "issues"}`
+            ? `${stats.inProgressTasks} ${stats.inProgressTasks === 1 ? "task" : "tasks"} · ${stats.inProgressIssues} ${stats.inProgressIssues === 1 ? "ticket" : "tickets"}`
             : "Nothing in progress"
         }
       />

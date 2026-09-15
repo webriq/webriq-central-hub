@@ -52,10 +52,10 @@ export async function sendStackShiftOrderNotification(
     ["FlowForge spec", data.flowforgeSpecFilename ?? "none"],
   ];
 
-  const subject = `${data.needsReview ? "[Needs review] " : ""}New StackShift order — ${data.companyName}`;
+  const subject = `${data.needsReview ? "[Needs review] " : ""}A New Order Form Has Been Submitted — ${data.companyName}`;
 
   const text = [
-    `A new StackShift Order Form submission is waiting in the Hub review queue.`,
+    `A New Order Form Has Been Submitted`,
     ``,
     ...rows.map(([k, v]) => `${k}: ${v}`),
     ``,
@@ -72,8 +72,8 @@ export async function sendStackShiftOrderNotification(
     `<tr><td align="center">`,
     `<table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0;">`,
     `<tr><td style="padding:24px 28px 8px;">`,
-    `<p style="margin:0;font-size:16px;font-weight:700;color:#0f172a;">New StackShift order — ${esc(data.companyName)}</p>`,
-    `<p style="margin:6px 0 0;font-size:13px;color:#64748b;">Waiting in the Hub review queue.</p>`,
+    `<p style="margin:0;font-size:16px;font-weight:700;color:#0f172a;">A New Order Form Has Been Submitted</p>`,
+    `<p style="margin:6px 0 0;font-size:13px;color:#64748b;">${esc(data.companyName)} — waiting in the Hub review queue.</p>`,
     data.needsReview
       ? `<p style="margin:12px 0 0;font-size:13px;color:#b45309;font-weight:600;">Multiple StackShift tiers were selected — a reviewer must pick one before converting.</p>`
       : ``,

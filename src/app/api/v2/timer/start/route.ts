@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { attachTaskTitle } from "@/lib/timer/serialize";
 import type { TimerEvent } from "@/lib/timer/timeline";
-import { issueAssigneeIds } from "@/lib/issues/permissions";
+import { ticketAssigneeIds } from "@/lib/tickets/permissions";
 
 // POST /api/v2/timer/start { task_id, project_id } or { issue_id, project_id }
 // Starts a fresh timer for the current user. Exactly one of task_id/issue_id must be given (task
@@ -40,9 +40,9 @@ export async function POST(req: NextRequest) {
       .eq("id", issueId as string)
       .eq("project_id", projectId)
       .maybeSingle();
-    if (!issue) return NextResponse.json({ error: "Issue not found" }, { status: 404 });
-    if (!issueAssigneeIds(issue).includes(user.id)) {
-      return NextResponse.json({ error: "You must be assigned to this issue to time it" }, { status: 403 });
+    if (!issue) return NextResponse.json({ error: "Ticket not found" }, { status: 404 });
+    if (!ticketAssigneeIds(issue).includes(user.id)) {
+      return NextResponse.json({ error: "You must be assigned to this ticket to time it" }, { status: 403 });
     }
   }
 

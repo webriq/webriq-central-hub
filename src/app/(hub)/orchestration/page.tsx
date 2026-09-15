@@ -6,7 +6,7 @@ import OrchestrationContent from "./_content";
 
 // Orchestration console (task 343) — Assess → Plan → Execute → Reply pipeline,
 // transferred from the parked `_hub_(OLD)/orchestration/`. Gated to the roles with
-// real RLS/API access to the orchestration tables (mirrors `desk/tickets/page.tsx`
+// real RLS/API access to the orchestration tables (mirrors `desk/inbox/page.tsx`
 // and the `/api/assessment|plan|execution|reply|zoho` route guards): admin,
 // super_admin, pm. Replaces the old `requireRole()` path, which queried the
 // deprecated `hub_users` table.

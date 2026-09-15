@@ -6,7 +6,7 @@
 // boundary, where every property is serialized into the HTML payload, so they carry only the
 // fields the client panels actually render (vercel-react-best-practices `server-serialization`).
 
-export type DevWorkKind = "task" | "issue";
+export type DevWorkKind = "task" | "ticket";
 export type DevPriority = "critical" | "high" | "normal" | "low";
 type DevDueBucket = "overdue" | "today" | "future" | "none";
 
@@ -27,7 +27,7 @@ export type DevWorkItem = {
    */
   status: string;
   priority: DevPriority;
-  /** Issues only — Zoho's own severity vocabulary, kept for the row label. */
+  /** Tickets only — Zoho's own severity vocabulary, kept for the row label. */
   rawSeverity: string | null;
   /** `yyyy-mm-dd` or null. */
   dueDate: string | null;
@@ -156,30 +156,11 @@ export function localDateKey(d: Date): string {
 
 // ─── Deep links ───────────────────────────────────────────────────────────────
 
-/**
- * A project carrying `external_project_id` is Zoho-imported and lives under the Legacy tab —
- * the same discriminator `_legacy-listing/_load-list-data.ts` filters on. Both URL segments are
- * *display* ids, not UUIDs (the documented CLAUDE.md exception for these two routes).
- * Returns null when either id is missing, so the caller renders an unlinked row rather than a
- * href that 404s.
- */
-export function buildProjectHref(project: {
-  projectDisplayId: string | null;
-  isLegacy: boolean;
-}): string | null {
-  if (!project.projectDisplayId) return null;
-  const tab = project.isLegacy ? "legacy" : "v2";
-  return `/projects/${tab}/${project.projectDisplayId}`;
-}
-
-export function buildItemHref(
-  projectHref: string | null,
-  kind: DevWorkKind,
-  displayId: string | null
-): string | null {
-  if (!projectHref || !displayId) return null;
-  return `${projectHref}/${kind === "task" ? "tasks" : "issues"}/${displayId}`;
-}
+// Task 369 — moved to `@/lib/projects/deep-links` so Desk (Inbox + Tickets) can share this same
+// legacy/v2 routing decision instead of re-implementing it; re-exported here so this file's one
+// existing caller (`_load-dev-dashboard.ts`, `import { buildItemHref, buildProjectHref } from
+// "./_types"`) needs no change.
+export { buildProjectHref, buildItemHref } from "@/lib/projects/deep-links";
 
 // ─── Sorting ──────────────────────────────────────────────────────────────────
 

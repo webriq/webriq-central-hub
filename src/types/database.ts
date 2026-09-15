@@ -507,6 +507,7 @@ export interface Database {
           full_name: string | null;
           avatar_url: string | null;
           customer_id: string | null;
+          department_id: string | null;
           otp_failed_attempts: number;
           otp_locked_until: string | null;
           created_at: string;
@@ -518,6 +519,7 @@ export interface Database {
           full_name?: string | null;
           avatar_url?: string | null;
           customer_id?: string | null;
+          department_id?: string | null;
           otp_failed_attempts?: number;
           otp_locked_until?: string | null;
           created_at?: string;
@@ -529,6 +531,7 @@ export interface Database {
           full_name?: string | null;
           avatar_url?: string | null;
           customer_id?: string | null;
+          department_id?: string | null;
           otp_failed_attempts?: number;
           otp_locked_until?: string | null;
           updated_at?: string;
@@ -540,8 +543,33 @@ export interface Database {
             isOneToOne: false;
             referencedRelation: "customers";
             referencedColumns: ["customer_id"];
+          },
+          {
+            foreignKeyName: "profiles_department_id_fkey";
+            columns: ["department_id"];
+            isOneToOne: false;
+            referencedRelation: "departments";
+            referencedColumns: ["id"];
           }
         ];
+      };
+      departments: {
+        Row: {
+          id: string;
+          name: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          created_at?: string;
+        };
+        Relationships: [];
       };
       projects: {
         Row: {
@@ -924,6 +952,7 @@ export interface Database {
           updated_at: string;
           source_meta: Record<string, unknown>;
           display_id: string | null;
+          source_ticket_id: string | null;
         };
         Insert: {
           id?: string;
@@ -948,6 +977,7 @@ export interface Database {
           updated_at?: string;
           source_meta?: Record<string, unknown>;
           display_id?: string | null;
+          source_ticket_id?: string | null;
         };
         Update: {
           id?: string;
@@ -971,6 +1001,7 @@ export interface Database {
           updated_at?: string;
           source_meta?: Record<string, unknown>;
           display_id?: string | null;
+          source_ticket_id?: string | null;
         };
         Relationships: [
           {
@@ -999,6 +1030,13 @@ export interface Database {
             columns: ["created_by"];
             isOneToOne: false;
             referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "issues_source_ticket_id_fkey";
+            columns: ["source_ticket_id"];
+            isOneToOne: false;
+            referencedRelation: "tickets";
             referencedColumns: ["id"];
           }
         ];

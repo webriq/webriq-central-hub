@@ -9,7 +9,7 @@ import { formatRelativeToAnchor, projectInitials, projectTint, type DevProjectSu
 //
 // The mockup calls the first one "Recently accessed", but this schema has no page-visit log, so
 // it is titled "Recently worked on" and derived from the developer's own activity: their most
-// recent time log on the project, or their most recent touch of an assigned task/issue there.
+// recent time log on the project, or their most recent touch of an assigned task/ticket there.
 
 const RECENT_MAX = 4;
 const WORKLOAD_MAX = 5;

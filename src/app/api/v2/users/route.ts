@@ -27,18 +27,26 @@ export async function GET() {
   const ids = (hubUsers ?? []).map((u) => u.id);
 
   const { data: profiles } = ids.length > 0
-    ? await adminClient.from("profiles").select("id, role, full_name, avatar_url, otp_locked_until").in("id", ids)
-    : { data: [] as { id: string; role: string; full_name: string | null; avatar_url: string | null; otp_locked_until: string | null }[] };
+    ? await adminClient.from("profiles").select("id, role, full_name, avatar_url, otp_locked_until, department_id").in("id", ids)
+    : { data: [] as { id: string; role: string; full_name: string | null; avatar_url: string | null; otp_locked_until: string | null; department_id: string | null }[] };
+
+  const { data: departments } = await adminClient.from("departments").select("id, name");
+  const departmentMap = new Map((departments ?? []).map((d) => [d.id, d.name]));
 
   const profileMap = new Map((profiles ?? []).map((p) => [p.id, p]));
 
-  const merged = (hubUsers ?? []).map((u) => ({
-    ...u,
-    profile_role: profileMap.get(u.id)?.role ?? null,
-    full_name: profileMap.get(u.id)?.full_name ?? null,
-    avatar_url: profileMap.get(u.id)?.avatar_url ?? null,
-    otp_locked_until: profileMap.get(u.id)?.otp_locked_until ?? null,
-  }));
+  const merged = (hubUsers ?? []).map((u) => {
+    const departmentId = profileMap.get(u.id)?.department_id ?? null;
+    return {
+      ...u,
+      profile_role: profileMap.get(u.id)?.role ?? null,
+      full_name: profileMap.get(u.id)?.full_name ?? null,
+      avatar_url: profileMap.get(u.id)?.avatar_url ?? null,
+      otp_locked_until: profileMap.get(u.id)?.otp_locked_until ?? null,
+      department_id: departmentId,
+      department_name: departmentId ? departmentMap.get(departmentId) ?? null : null,
+    };
+  });
 
   return NextResponse.json({ viewerRole, users: merged });
 }

@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 // exactly: session-bound client (project-assets storage RLS, migration 050, already grants
 // admin/super_admin/pm/developer select directly — no adminClient bypass needed).
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ taskId: string; commentId: string; attachmentId: string }> }
 ) {
   const { taskId, commentId, attachmentId } = await params;
@@ -19,16 +19,19 @@ export async function GET(
 
   const { data: attachment } = await supabase
     .from("attachments")
-    .select("storage_path")
+    .select("storage_path, filename")
     .eq("id", attachmentId)
     .eq("entity_type", "comment")
     .eq("entity_id", comment.id)
     .maybeSingle();
   if (!attachment) return NextResponse.json({ error: "Attachment not found" }, { status: 404 });
 
+  // Task 368, R6 — ?download=1 (kebab "Download" action) forces Content-Disposition: attachment,
+  // mirroring the sibling task/ticket-attachment file-url routes' existing force-download option.
+  const downloadParam = new URL(req.url).searchParams.get("download") === "1";
   const { data: signed, error: signError } = await supabase.storage
     .from("project-assets")
-    .createSignedUrl(attachment.storage_path, 60);
+    .createSignedUrl(attachment.storage_path, 60, downloadParam ? { download: attachment.filename } : undefined);
 
   if (signError || !signed) {
     console.error("[api/v2/tasks/[id]/comments/[id]/attachments/[id]/file-url] sign failed:", signError?.message);

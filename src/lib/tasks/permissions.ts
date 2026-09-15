@@ -13,7 +13,7 @@ export type TaskEditPermission = {
   // Independent of the edit tier — an assignee gets this regardless of whether they're also the
   // creator; PM/Admin/super_admin get `false` since /api/v2/timer/start already 403s any
   // non-developer role, so the client should never show a button that would fail. Mirrors
-  // getIssueEditPermission's `canStartTimer` (src/lib/issues/permissions.ts).
+  // getTicketEditPermission's `canStartTimer` (src/lib/tickets/permissions.ts).
   canStartTimer: boolean;
 };
 

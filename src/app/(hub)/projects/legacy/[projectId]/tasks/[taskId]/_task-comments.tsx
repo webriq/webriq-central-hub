@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { MessageSquare, FileText, Image as ImageIcon } from "lucide-react";
+import { MessageSquare, ExternalLink, Download, Link2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { formatRelativeTime, formatDate, cn } from "@/lib/utils";
 import { formatClockTime } from "@/lib/timer/format";
@@ -9,13 +9,19 @@ import { OwnerChip, normalizeZohoDescriptionHtml } from "@/app/(hub)/projects-ol
 import { CommentEditor } from "./_comment-editor";
 import { CommentComposer } from "@/app/(hub)/projects/_shared/_comment-composer";
 import { TaskAttachmentViewerModal } from "./_task-attachment-viewer-modal";
+import { AttachmentAction } from "@/app/(hub)/projects/_shared/_attachment-actions-menu";
+import { AttachmentGridTile, AttachmentThumbnail, CommentAttachmentGrid, downloadAttachment } from "@/app/(hub)/projects/_shared/_attachment-grid-tile";
 
 // Comment thread for the task detail page (task 206). Rich-text body + optional file
 // attachments (task 212) — built on the existing `task_comments` table (RLS: staff
 // read/insert/own-delete already shipped, migration 048) and the generic `attachments` table
 // (entity_type: "comment", already a legal value since migration 049). No edit/delete UI yet —
 // see task 206 Decision #6, a deliberate fast-follow boundary, not an oversight.
-const IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "gif", "webp"];
+//
+// Task 368, R1/R2 — comment attachments render as the shared grid tile (same card the
+// Attachments tab uses) instead of a single-column list row, with a trimmed View/Download/Copy
+// URL kebab. `fetchUrl` is built per-attachment (task-comment-attachment file-url route), not
+// stored on `CommentAttachment` — the same value the viewer modal already computed inline.
 
 // Wider than the New Task modal's attachment picker (image/pdf/office only) — comment
 // attachments also allow HTML, Markdown, plain text, and MP4, matching the comment
@@ -41,18 +47,12 @@ const COMMENT_ATTACHMENT_MIME_TYPES = [
 type CommentAttachment = { id: string; filename: string; size: number | null };
 type CommentRow = { id: string; body: string; created_at: string; author_name: string; attachments: CommentAttachment[] };
 
-function formatFileSize(bytes: number | null): string {
-  if (bytes == null) return "";
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
 export function TaskComments({
   taskId,
   currentUserName,
   currentUserAvatarUrl,
   onCountChange,
+  copyAttachmentUrl,
 }: {
   taskId: string;
   currentUserName: string | null;
@@ -60,6 +60,9 @@ export function TaskComments({
   // Task 270 — lifted up to the panel so its tab label can show a live count, mirroring
   // `_issue-comments.tsx`'s identical `onCountChange` prop (task 257, Requirement G).
   onCountChange?: (n: number) => void;
+  // Task 368, R7 — deep-link Copy URL action, shared with the Attachments tab so the same
+  // attachment id resolves the same way regardless of which tile it was copied from.
+  copyAttachmentUrl: (attachmentId: string) => void;
 }) {
   const [comments, setComments] = useState<CommentRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -245,31 +248,27 @@ export function TaskComments({
                   dangerouslySetInnerHTML={{ __html: normalizeZohoDescriptionHtml(c.body) }}
                 />
                 {c.attachments.length > 0 && (
-                  <ul className="flex flex-col gap-1 mt-1.5">
-                    {c.attachments.map((file) => {
-                      const ext = file.filename.split(".").pop()?.toLowerCase() ?? "";
-                      const isImage = IMAGE_EXTENSIONS.includes(ext);
+                  <CommentAttachmentGrid
+                    items={c.attachments}
+                    renderItem={(file) => {
+                      const fetchUrl = `/api/v2/tasks/${taskId}/comments/${c.id}/attachments/${file.id}/file-url`;
+                      const actions: AttachmentAction[] = [
+                        { label: "View", icon: ExternalLink, onClick: () => setViewing({ commentId: c.id, attachment: file }) },
+                        { label: "Download", icon: Download, onClick: () => void downloadAttachment(fetchUrl) },
+                        { label: "Copy URL", icon: Link2, onClick: () => copyAttachmentUrl(file.id) },
+                      ];
                       return (
-                        <li
+                        <AttachmentGridTile
                           key={file.id}
-                          className="flex items-center gap-2 rounded-[8px] border border-[#E2E7F2] bg-white px-2.5 py-1.5"
-                        >
-                          {isImage
-                            ? <ImageIcon size={13} className="text-[#5F6A88] shrink-0" />
-                            : <FileText size={13} className="text-[#5F6A88] shrink-0" />}
-                          <span className="flex-1 truncate text-[12px] text-[#3A4565]">{file.filename}</span>
-                          <span className="text-[10px] text-[#5F6A88] shrink-0">{formatFileSize(file.size)}</span>
-                          <button
-                            type="button"
-                            onClick={() => setViewing({ commentId: c.id, attachment: file })}
-                            className="text-[11px] font-semibold text-[#0063D6] hover:underline cursor-pointer shrink-0"
-                          >
-                            View
-                          </button>
-                        </li>
+                          filename={file.filename}
+                          size={file.size}
+                          thumbnail={<AttachmentThumbnail filename={file.filename} fetchUrl={fetchUrl} />}
+                          actions={actions}
+                          onClick={() => setViewing({ commentId: c.id, attachment: file })}
+                        />
                       );
-                    })}
-                  </ul>
+                    }}
+                  />
                 )}
               </div>
             </li>

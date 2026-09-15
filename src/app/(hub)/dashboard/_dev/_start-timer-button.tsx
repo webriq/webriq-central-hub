@@ -14,7 +14,7 @@ import type { DevWorkItem } from "./_types";
 // once per second. Keeping the subscription in this leaf means the per-second tick never reaches
 // the stat strip or the side panels. (An earlier `TimerRunningLabel` leaf drove the "In progress"
 // stat tile's sub-line with live timer state — removed once that sub-line became a plain
-// tasks/issues breakdown of the "In progress" count, which reads confusingly less like "1 of 54
+// tasks/tickets breakdown of the "In progress" count, which reads confusingly less like "1 of 54
 // tasks has a live timer" and more like "all 54 are being timed". The work list's per-row
 // `RunningBadge` now carries the "is this the live-timed item" signal instead.)
 

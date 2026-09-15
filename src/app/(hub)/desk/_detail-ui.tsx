@@ -121,7 +121,7 @@ export function RelatedTickets({ tickets }: { tickets: RelatedTicket[] }) {
       {tickets.map((t) => (
         <Link
           key={t.id}
-          href={`/desk/tickets/${t.ticketId}`}
+          href={`/desk/inbox/${t.ticketId}`}
           className="flex items-center gap-3 py-2 border-b border-[#EDF0F7] last:border-0 hover:bg-[#F0F7FF] -mx-2 px-2 rounded-md transition-colors"
         >
           <span className="text-[11px] font-mono text-[#5F6A88] shrink-0 w-14">#{t.ticketNumber}</span>

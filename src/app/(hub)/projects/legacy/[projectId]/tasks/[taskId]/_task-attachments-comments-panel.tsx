@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { TaskAttachments } from "./_task-attachments";
 import { TaskComments } from "./_task-comments";
 import { TaskTimeLogs } from "./_task-time-logs";
+import { useAttachmentDeepLink } from "@/app/(hub)/projects/_shared/_use-attachment-deeplink";
 
 // Attachments and Comments used to be two separate stacked Cards (task 206); task 211 merges
 // them into one panel with a tab switcher instead. Task 214 adds a third "Time Logs" tab to
@@ -38,7 +39,11 @@ export function TaskAttachmentsCommentsPanel({
   // Task 218 — bumped by the header's TaskTimerButton on stop, so the Time Logs tab refetches.
   timeLogsRefreshKey?: number;
 }) {
-  const [tab, setTab] = useState<PanelTab>("comments");
+  // Task 368, R8 — a `?attachment=<id>` deep link lands directly on the Attachments tab; the
+  // `useState` initializer only reads it once, matching the Files tab's `?file=` one-shot pattern
+  // (no re-forcing the tab back to Attachments if the viewer manually switches away afterward).
+  const { deepLinkedAttachmentId, copyAttachmentUrl } = useAttachmentDeepLink();
+  const [tab, setTab] = useState<PanelTab>(() => (deepLinkedAttachmentId ? "attachments" : "comments"));
   const [counts, setCounts] = useState<{ comments: number | null; attachments: number | null }>({
     comments: null,
     attachments: null,
@@ -81,10 +86,17 @@ export function TaskAttachmentsCommentsPanel({
             currentUserName={currentUserName}
             currentUserAvatarUrl={currentUserAvatarUrl}
             onCountChange={onCommentsCount}
+            copyAttachmentUrl={copyAttachmentUrl}
           />
         </div>
         <div className={cn(tab !== "attachments" && "hidden")}>
-          <TaskAttachments projectId={projectId} taskId={taskId} onCountChange={onAttachmentsCount} />
+          <TaskAttachments
+            projectId={projectId}
+            taskId={taskId}
+            onCountChange={onAttachmentsCount}
+            autoOpenAttachmentId={deepLinkedAttachmentId}
+            copyAttachmentUrl={copyAttachmentUrl}
+          />
         </div>
         <div className={cn(tab !== "timelogs" && "hidden")}>
           <TaskTimeLogs taskId={taskId} refreshKey={timeLogsRefreshKey} />

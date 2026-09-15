@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { isProjectVisibleToCurrentUser } from "../_project-access";
-import type { Project, Milestone, Tasklist, Task, Issue } from "../_pm-shared";
+import type { Project, Milestone, Tasklist, Task, Ticket } from "../_pm-shared";
 
 export type ProjectDetailData = {
   project: Project;
@@ -9,7 +9,7 @@ export type ProjectDetailData = {
   initialMilestones: Milestone[];
   initialTasklists: Tasklist[];
   initialTasks: Task[];
-  initialIssues: Issue[];
+  initialIssues: Ticket[];
   currentUserId: string;
   currentUserRole: string | null;
   profilesById: Record<string, { full_name: string; avatar_url: string | null }>;

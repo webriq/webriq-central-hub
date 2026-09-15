@@ -22,7 +22,7 @@ export type OrderDetail = OrderRow & {
   _linkedProjectName: string | null;
 };
 
-export default function OrderReview({ order }: { order: OrderDetail }) {
+export default function OrderReview({ order, readOnly = false }: { order: OrderDetail; readOnly?: boolean }) {
   const router = useRouter();
   const [fileError, setFileError] = useState<string | null>(null);
   const [reopening, setReopening] = useState(false);
@@ -68,11 +68,6 @@ export default function OrderReview({ order }: { order: OrderDetail }) {
           <p className="text-[13px] text-[#5F6A88] mt-0.5">
             Submitted {formatDate(order.submitted_at ?? order.created_at)}
           </p>
-          {order.customer_notification_sent_at && (
-            <p className="text-[12px] text-[#1E7C4B] mt-0.5">
-              Customer emailed {formatDate(order.customer_notification_sent_at)}
-            </p>
-          )}
         </div>
         <div className="flex flex-col items-end gap-1.5">
           <StatusPill status={order.status} />
@@ -165,15 +160,23 @@ export default function OrderReview({ order }: { order: OrderDetail }) {
         ) : order.status === "dismissed" ? (
           <Section title="Dismissed">
             <Field label="Reason" value={order.dismiss_reason || "—"} full />
-            <div className="col-span-2">
-              <button
-                onClick={reopen}
-                disabled={reopening}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-[12px] font-semibold border border-[#E2E7F2] bg-white text-[#3A4565] hover:bg-[#F0F7FF] disabled:opacity-50 cursor-pointer transition-colors"
-              >
-                {reopening ? "Reopening…" : "Reopen for review"}
-              </button>
-            </div>
+            {!readOnly && (
+              <div className="col-span-2">
+                <button
+                  onClick={reopen}
+                  disabled={reopening}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-[12px] font-semibold border border-[#E2E7F2] bg-white text-[#3A4565] hover:bg-[#F0F7FF] disabled:opacity-50 cursor-pointer transition-colors"
+                >
+                  {reopening ? "Reopening…" : "Reopen for review"}
+                </button>
+              </div>
+            )}
+          </Section>
+        ) : readOnly ? (
+          <Section title="Convert to customer & project">
+            <p className="col-span-2 text-[13px] text-[#5F6A88]">
+              Finance has read-only access to Orders — viewing only, no actions available.
+            </p>
           </Section>
         ) : (
           <ConvertPanel order={order} />

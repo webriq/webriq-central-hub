@@ -163,7 +163,7 @@ export function ProgressRing({ pct, size = 34 }: { pct: number; size?: number })
   );
 }
 
-// Task 268 — `href`/`tooltipLabel` make this its own click target (tasks/issues regions on the
+// Task 268 — `href`/`tooltipLabel` make this its own click target (tasks/tickets regions on the
 // Projects grid card, each navigating independently of the rest of the card). A <button> here,
 // never a nested <a> — the card itself is already a <Link>/<a>, and HTML forbids nested anchors
 // (browsers force-close them), the same nested-interactive-element bug class task 264's Round 2

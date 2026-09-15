@@ -25,7 +25,7 @@ export function ListView({
               <th className="text-left px-3 py-3 text-[9.5px] font-bold uppercase tracking-[0.09em] text-[#5F6A88] w-14">%</th>
               <th className="text-left px-3 py-3 text-[9.5px] font-bold uppercase tracking-[0.09em] text-[#5F6A88] w-28">Status</th>
               <th className="text-left px-3 py-3 text-[9.5px] font-bold uppercase tracking-[0.09em] text-[#5F6A88] min-w-[140px]">Tasks</th>
-              <th className="text-left px-3 py-3 text-[9.5px] font-bold uppercase tracking-[0.09em] text-[#5F6A88] min-w-[140px]">Issues</th>
+              <th className="text-left px-3 py-3 text-[9.5px] font-bold uppercase tracking-[0.09em] text-[#5F6A88] min-w-[140px]">Tickets</th>
               <th className="text-left px-3 py-3 text-[9.5px] font-bold uppercase tracking-[0.09em] text-[#5F6A88] w-36">Type</th>
               <th className="text-left px-3 py-3 text-[9.5px] font-bold uppercase tracking-[0.09em] text-[#5F6A88] min-w-[160px]">Tags</th>
               <th className="text-left px-3 py-3 text-[9.5px] font-bold uppercase tracking-[0.09em] text-[#5F6A88] w-36">Members</th>
@@ -68,7 +68,7 @@ export function ListView({
                     </div>
                   </td>
 
-                  {/* Issues with progress bar — real data (task 185) */}
+                  {/* Tickets with progress bar — real data (task 185) */}
                   <td className="px-3 py-3">
                     {p.issue_total > 0 ? (
                       <div className="flex items-center gap-2 text-[12px] text-[#5F6A88]">
@@ -81,7 +81,7 @@ export function ListView({
                       </div>
                     ) : (
                       <span className="text-[11px] text-[#A8B0C6] bg-[#F4F6FB] border border-[#EDF0F7] rounded-full px-2 py-0.5 whitespace-nowrap">
-                        No issues
+                        No tickets
                       </span>
                     )}
                   </td>

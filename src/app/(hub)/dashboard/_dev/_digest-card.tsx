@@ -53,7 +53,7 @@ function buildLines({
   if (topInProgress) {
     lines.push({
       key: "progress",
-      icon: topInProgress.kind === "issue" ? <Bug size={13} /> : <ClipboardCheck size={13} />,
+      icon: topInProgress.kind === "ticket" ? <Bug size={13} /> : <ClipboardCheck size={13} />,
       content: (
         <>
           <b className="font-bold">{topInProgress.title}</b> is your highest-priority item in progress

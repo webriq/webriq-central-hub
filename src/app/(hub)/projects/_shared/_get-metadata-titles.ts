@@ -1,9 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 
 // Lightweight, title-only queries for generateMetadata — shared by both the legacy and v2
-// project route trees since both query the same `projects`/`tasks`/`issues`/`milestones`
+// project route trees since both query the same `projects`/`tasks`/`tickets`/`milestones`
 // schema. Deliberately separate from `_get-project-detail-data.ts`'s getProjectDetailData(),
-// which fetches the full detail payload (milestones/tasklists/tasks/issues/members) — pulling
+// which fetches the full detail payload (milestones/tasklists/tasks/tickets/members) — pulling
 // that just to read a name would double the work generateMetadata and the page component
 // already each do independently (Next.js doesn't dedupe unrelated Supabase calls across the two).
 
@@ -40,23 +40,23 @@ export async function getTaskMetadataInfo(
   return { taskTitle: task.title, projectName: project.name };
 }
 
-export async function getIssueMetadataInfo(
+export async function getTicketMetadataInfo(
   projectId: string,
-  issueId: string
-): Promise<{ issueTitle: string; projectName: string } | null> {
+  ticketId: string
+): Promise<{ ticketTitle: string; projectName: string } | null> {
   const supabase = await createClient();
   const project = await getProjectIdAndName(supabase, projectId);
   if (!project) return null;
 
-  const { data: issue } = await supabase
+  const { data: ticket } = await supabase
     .from("issues")
     .select("title")
-    .eq("display_id", issueId)
+    .eq("display_id", ticketId)
     .eq("project_id", project.id)
     .maybeSingle();
-  if (!issue) return null;
+  if (!ticket) return null;
 
-  return { issueTitle: issue.title, projectName: project.name };
+  return { ticketTitle: ticket.title, projectName: project.name };
 }
 
 export async function getMilestoneMetadataInfo(
@@ -68,7 +68,7 @@ export async function getMilestoneMetadataInfo(
   if (!project) return null;
 
   // Milestones are keyed by UUID `id` in the route (see milestones/[milestoneId]/page.tsx),
-  // not a display_id like tasks/issues, and the table column is `name`, not `title`.
+  // not a display_id like tasks/tickets, and the table column is `name`, not `title`.
   const { data: milestone } = await supabase
     .from("milestones")
     .select("name")

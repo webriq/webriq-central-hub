@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminClient } from "@/lib/supabase/admin";
-import { requireOrderReviewer } from "../_auth";
+import { requireOrderMutator } from "../_auth";
 import { patchOrderSchema } from "@/lib/stackshift-orders/schema";
 import type { Database } from "@/types/database";
 
@@ -12,7 +12,7 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ orderId: string }> }
 ) {
-  const auth = await requireOrderReviewer();
+  const auth = await requireOrderMutator();
   if (auth instanceof NextResponse) return auth;
 
   const { orderId } = await params;

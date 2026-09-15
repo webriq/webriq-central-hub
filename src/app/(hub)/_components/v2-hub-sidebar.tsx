@@ -10,6 +10,7 @@ import {
   Clock, ClipboardList,
 } from "lucide-react";
 import { V2_ROUTES } from "@/config/constants";
+import { isPathAllowedForDepartment } from "@/lib/auth/department-map";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { signOut } from "@/app/(auth)/actions";
@@ -43,7 +44,7 @@ type NavGroup = {
   items: NavItem[];
 };
 
-function getNavGroups(role: string | null): NavGroup[] {
+function getNavGroups(role: string | null, departmentName: string | null): NavGroup[] {
   const isAdmin = role === "admin" || role === "super_admin";
   const isDev   = role === "developer";
 
@@ -70,8 +71,13 @@ function getNavGroups(role: string | null): NavGroup[] {
       {
         label: "Desk",
         icon: <Inbox size={18} />,
-        href: V2_ROUTES.DESK_TICKETS,
+        href: V2_ROUTES.DESK_INBOX,
+        // Task 363 split the old single "Tickets" tab in two: "Inbox" (the raw helpdesk-email
+        // inbox, what "Tickets" used to be — renamed from "Mailbox" per user preference) and
+        // "Tickets" (a new cross-project listing of issues filed from an Inbox thread message —
+        // assignable to developers).
         children: [
+          { label: "Inbox",    href: V2_ROUTES.DESK_INBOX },
           { label: "Tickets",  href: V2_ROUTES.DESK_TICKETS },
           { label: "Contacts", href: V2_ROUTES.DESK_CONTACTS },
         ],
@@ -107,17 +113,19 @@ function getNavGroups(role: string | null): NavGroup[] {
     { label: "Settings",      icon: <Settings size={18} />,        href: V2_ROUTES.DASHBOARD_SETTINGS },
   ] : [];
 
-  const groups: NavGroup[] = [
-    { group: "Work",      items: workItems },
-    { group: "People",    items: peopleItems },
-    { group: "Knowledge", items: knowledgeItems },
+  // Task 366 — department can further narrow the nav beyond role (e.g. HR/Finance
+  // departments), on top of everything already filtered above by role.
+  const filterByDept = (items: NavItem[]) =>
+    items.filter((item) => isPathAllowedForDepartment(item.href, departmentName));
+
+  const groupDefs: { group: string; items: NavItem[] }[] = [
+    { group: "Work",      items: filterByDept(workItems) },
+    { group: "People",    items: filterByDept(peopleItems) },
+    { group: "Knowledge", items: filterByDept(knowledgeItems) },
+    { group: "Admin",     items: filterByDept(adminItems) },
   ];
 
-  if (adminItems.length > 0) {
-    groups.push({ group: "Admin", items: adminItems });
-  }
-
-  return groups;
+  return groupDefs.filter((g) => g.items.length > 0);
 }
 
 function getInitials(name: string | null): string {
@@ -135,11 +143,12 @@ const ROLE_LABEL: Record<string, string> = {
 
 interface V2HubSidebarProps {
   userRole: string | null;
+  departmentName: string | null;
   displayName: string | null;
   avatarUrl: string | null;
 }
 
-export default function V2HubSidebar({ userRole, displayName, avatarUrl }: V2HubSidebarProps) {
+export default function V2HubSidebar({ userRole, departmentName, displayName, avatarUrl }: V2HubSidebarProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -148,7 +157,7 @@ export default function V2HubSidebar({ userRole, displayName, avatarUrl }: V2Hub
   // Absent = not yet manually toggled this session, so expand state follows the current route.
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const shouldReduceMotion = useReducedMotion();
-  const navGroups = getNavGroups(userRole);
+  const navGroups = getNavGroups(userRole, departmentName);
   const initials = getInitials(displayName);
 
   return (
@@ -220,9 +229,15 @@ export default function V2HubSidebar({ userRole, displayName, avatarUrl }: V2Hub
                 : pathname === item.href || pathname.startsWith(item.href + "/") || childActive;
 
               if (hasChildren) {
+                // Default (never manually toggled) expansion must follow ANY child's active
+                // route, not just the group's own `href` — a group whose children live under
+                // different path prefixes (Desk: Inbox/Tickets/Contacts; Projects: Legacy)
+                // would otherwise collapse the moment the active route was a child other than
+                // the one `item.href` itself points at (e.g. landing on Desk > Tickets collapsed
+                // the group, since `/desk/tickets` doesn't start with `item.href`'s `/desk/mailbox`).
                 const isExpanded = collapsed
                   ? false
-                  : (expanded[item.label] ?? pathname.startsWith(item.href));
+                  : (expanded[item.label] ?? (pathname.startsWith(item.href) || childActive));
                 return (
                   <div key={item.label}>
                     <button
