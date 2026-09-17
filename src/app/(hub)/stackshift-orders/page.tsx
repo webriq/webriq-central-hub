@@ -21,7 +21,7 @@ export default async function StackShiftOrdersPage({
   const userId = claims.claims.sub as string;
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", userId).maybeSingle();
   const role = profile?.role ?? null;
-  if (role !== "admin" && role !== "super_admin" && role !== "pm") redirect(V2_ROUTES.DASHBOARD);
+  if (role !== "admin" && role !== "super_admin") redirect(V2_ROUTES.DASHBOARD);
 
   const params = await searchParams;
   const page = Math.max(1, parseInt(params.page ?? "1", 10));

@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { toast } from "sonner";
+import { ArrowLeft, Mail } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
 import { V2_ROUTES } from "@/config/constants";
 import type { CustomerMatch } from "@/lib/stackshift-orders/match-customer";
@@ -26,6 +27,7 @@ export default function OrderReview({ order, readOnly = false }: { order: OrderD
   const router = useRouter();
   const [fileError, setFileError] = useState<string | null>(null);
   const [reopening, setReopening] = useState(false);
+  const [resending, setResending] = useState(false);
 
   async function openFile(which: "proposal" | "spec") {
     try {
@@ -53,6 +55,21 @@ export default function OrderReview({ order, readOnly = false }: { order: OrderD
     }
   }
 
+  async function resendNotification() {
+    setResending(true);
+    try {
+      const res = await fetch(`/api/stackshift-orders/${order.id}/resend`, { method: "POST" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Resend failed");
+      toast.success("Notification email resent");
+      router.refresh();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to resend notification");
+    } finally {
+      setResending(false);
+    }
+  }
+
   return (
     <div className="max-w-[900px] mx-auto px-8 py-6">
       <Link
@@ -72,6 +89,18 @@ export default function OrderReview({ order, readOnly = false }: { order: OrderD
         <div className="flex flex-col items-end gap-1.5">
           <StatusPill status={order.status} />
           <ContactRiskPill risk={order.contact_risk} />
+          {!readOnly && (
+            <button
+              onClick={resendNotification}
+              disabled={resending}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold border border-[#E2E7F2] bg-white text-[#3A4565] hover:bg-[#F0F7FF] disabled:opacity-50 cursor-pointer transition-colors"
+            >
+              <Mail size={12} /> {resending ? "Sending…" : "Resend notification"}
+            </button>
+          )}
+          {order.notification_sent_at && (
+            <span className="text-[10.5px] text-[#5F6A88]">Last sent {formatDate(order.notification_sent_at)}</span>
+          )}
         </div>
       </div>
 

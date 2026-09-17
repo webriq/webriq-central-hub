@@ -4,7 +4,7 @@
 **Priority:** HIGH
 **Type:** security
 **Recommended Tier:** balanced
-**Status:** Testing
+**Status:** Completed (2026-09-17) — marked complete at the user's explicit request; browser/API acceptance testing not run this session. See Quality Gate Notes.
 
 ---
 

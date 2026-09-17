@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 
-const REVIEWER_ROLES = ["admin", "super_admin", "pm"];
+const REVIEWER_ROLES = ["admin", "super_admin"];
 
-// Task 347 — the /stackshift-orders review actions are admin/super_admin/pm only.
+// Task 347 — the /stackshift-orders review actions are admin/super_admin only
+// (task 375 removed pm).
 export async function requireOrderReviewer():
   Promise<{ userId: string; departmentName: string | null } | NextResponse> {
   const supabase = await createClient();

@@ -84,8 +84,8 @@ function getNavGroups(role: string | null, departmentName: string | null): NavGr
       },
     ] : []),
     // StackShift Orders review queue (task 347) — matches the page + API guards: admin /
-    // super_admin / pm only.
-    ...((isAdmin || role === "pm") ? [
+    // super_admin only (task 375 removed pm).
+    ...(isAdmin ? [
       { label: "Orders", icon: <ClipboardList size={18} />,          href: V2_ROUTES.STACKSHIFT_ORDERS },
     ] : []),
     // Orchestration (task 343) — matches the `/api/assessment|plan|execution|reply|zoho`

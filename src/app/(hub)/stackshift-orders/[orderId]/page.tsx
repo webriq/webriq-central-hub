@@ -26,7 +26,7 @@ export default async function StackShiftOrderDetailPage({
   const userId = claims.claims.sub as string;
   const { data: profile } = await supabase.from("profiles").select("role, department_id").eq("id", userId).maybeSingle();
   const role = profile?.role ?? null;
-  if (role !== "admin" && role !== "super_admin" && role !== "pm") redirect(V2_ROUTES.DASHBOARD);
+  if (role !== "admin" && role !== "super_admin") redirect(V2_ROUTES.DASHBOARD);
 
   let departmentName: string | null = null;
   if (profile?.department_id) {
