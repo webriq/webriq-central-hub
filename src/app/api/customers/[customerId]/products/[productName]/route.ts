@@ -12,6 +12,9 @@ export async function PATCH(
 ) {
   try {
     const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     const { customerId, productName } = await params;
     const body = await request.json();
 

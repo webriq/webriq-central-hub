@@ -3,9 +3,29 @@
 import { CloudUpload, FolderPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { textMuted } from "./_shared-ui";
+import type { AssetFolder, AssetRow } from "./_wizard-v2-types";
 
 // Task 359 — small presentational pieces extracted from _files-tab.tsx (537 lines, past the hard
 // limit in nextjs-file-length-best-practices.md).
+
+// Task 371 — walks the already-loaded folders/assets arrays to describe what a recursive folder
+// delete will remove, for the delete-confirmation dialog body. Informational only: the server
+// (collectFolderSubtree) is the source of truth for what actually gets deleted.
+export function describeFolderContents(
+  folders: AssetFolder[], assets: AssetRow[], folderId: string
+): { folderCount: number; fileCount: number } {
+  const subtreeIds = [folderId];
+  let frontier = [folderId];
+  while (frontier.length > 0) {
+    const children = folders.filter((f) => f.parent_folder_id && frontier.includes(f.parent_folder_id));
+    if (children.length === 0) break;
+    subtreeIds.push(...children.map((f) => f.id));
+    frontier = children.map((f) => f.id);
+  }
+  const folderCount = subtreeIds.length - 1;
+  const fileCount = assets.filter((a) => a.folder_id && subtreeIds.includes(a.folder_id)).length;
+  return { folderCount, fileCount };
+}
 
 export function EmptyPanel({ text }: { text: string }) {
   return (

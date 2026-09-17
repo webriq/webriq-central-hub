@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { AssetRow, AssetFolder, StaffPerson } from "./_wizard-v2-types";
 import { textMuted, cardCls } from "./_shared-ui";
 import { FileTile } from "./_file-tile";
@@ -14,7 +15,14 @@ import { useUploadQueue, UploadQueuePanel, UploadDropzone } from "./_upload-queu
 import { ALLOWED_UPLOAD_TYPES, ALLOWED_TYPES_LABEL, MAX_FILE_SIZE, MAX_SIZE_LABEL } from "./_file-upload-constants";
 import { useFilesTabDerived, type VersionGroup } from "./_use-files-tab-derived";
 import { FilesToolbar } from "./_files-toolbar";
-import { EmptyPanel, NewFolderTile } from "./_files-tab-parts";
+import { EmptyPanel, NewFolderTile, describeFolderContents } from "./_files-tab-parts";
+import { hasDirectoryEntry, readDataTransferEntries, buildTreeFromRelativePaths } from "./_folder-upload-tree";
+import { useFolderUpload } from "./_use-folder-upload";
+
+type PendingDelete =
+  | { kind: "folder"; id: string; name: string }
+  | { kind: "file"; id: string; name: string }
+  | { kind: "bulk"; ids: string[] };
 
 export function FilesTab({
   customerId, assets, folders, staffDirectory, canEdit, openFolderId, onOpenFolder,
@@ -26,13 +34,13 @@ export function FilesTab({
   assets: AssetRow[]; folders: AssetFolder[]; staffDirectory: StaffPerson[]; canEdit: boolean;
   openFolderId: string | null; onOpenFolder: (id: string | null) => void;
   onUpload: (file: File, folderId: string, onProgress?: (pct: number) => void) => Promise<void>;
-  onDeleteAsset: (id: string) => void;
+  onDeleteAsset: (id: string) => Promise<boolean>;
   onAssetPermissionChange: (assetId: string, updates: { allowed_roles?: string[]; allowed_user_ids?: string[] }) => void;
   onFolderPermissionChange: (folderId: string, updates: { allowed_roles?: string[]; allowed_user_ids?: string[] }) => void;
-  onCreateFolder: (name: string, parentFolderId: string | null) => Promise<void>;
+  onCreateFolder: (name: string, parentFolderId: string | null) => Promise<AssetFolder | undefined>;
   onRenameAsset: (assetId: string, fileName: string) => Promise<boolean>;
   onRenameFolder: (folderId: string, name: string) => Promise<boolean>;
-  onDeleteFolder: (folderId: string) => Promise<void>;
+  onDeleteFolder: (folderId: string) => Promise<boolean>;
   onMoveAsset: (assetId: string, folderId: string) => Promise<void>;
   // Task 359 — deep-link extras, all optional. The Onboarding Workspace omits them (it has its
   // own name-path ?parent_folder=/?sub_folder_lN= scheme in _workspace-url-params.ts), so the
@@ -54,9 +62,13 @@ export function FilesTab({
   const [moveTargetAssetIds, setMoveTargetAssetIds] = useState<string[] | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; actions: ItemAction[] } | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const folderInputRef = useRef<HTMLInputElement>(null);
 
   const { items: queueItems, enqueue, retry: retryUpload, dismiss: dismissQueueItem } = useUploadQueue(onUpload);
+  const { preparing: preparingFolders, uploadFolderTree } = useFolderUpload({ folders, onCreateFolder, enqueue });
 
   const {
     currentLevelFolders, openFolder, breadcrumbChain, filesInOpenFolder,
@@ -97,11 +109,32 @@ export function FilesTab({
     }
   };
 
-  const handleZoneDrop = (e: React.DragEvent) => {
+  // Task 372 — a dropped local folder shows up in `dataTransfer.files` as a bogus zero-byte
+  // entry, not its contents; `items`/`webkitGetAsEntry()` is the only way to read a directory's
+  // contents. `hasDirectoryEntry` is a cheap synchronous pre-check so a plain file drop never
+  // pays for the async recursive read below.
+  const handlePossibleFolderDrop = async (e: React.DragEvent, targetFolderId: string | null): Promise<boolean> => {
+    if (!hasDirectoryEntry(e.dataTransfer.items)) return false;
+    const { trees, looseFiles } = await readDataTransferEntries(e.dataTransfer.items);
+    await uploadFolderTree(trees, targetFolderId, looseFiles);
+    return true;
+  };
+
+  const handleZoneDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
     if (!openFolderId) return; // root: empty space never accepts a drop (folder tiles handle their own drop below)
+    if (!canEdit) return;
+    if (await handlePossibleFolderDrop(e, openFolderId)) return;
     if (e.dataTransfer.files.length > 0) handleFiles(e.dataTransfer.files, openFolderId);
+  };
+
+  const [rootDragOver, setRootDragOver] = useState(false);
+  const handleRootDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setRootDragOver(false);
+    if (!canEdit) return;
+    await handlePossibleFolderDrop(e, null);
   };
 
   // Case-insensitive next-free "{name} (n)" suffix — mirrors a standard OS duplicate-file
@@ -146,13 +179,21 @@ export function FilesTab({
       onOpen={() => onOpenFolder(folder.id)}
       onPermissionChange={(u) => onFolderPermissionChange(folder.id, u)}
       onRename={() => setRenameTarget({ kind: "folder", id: folder.id, name: folder.name })}
-      onDelete={() => onDeleteFolder(folder.id)}
+      onDelete={() => setPendingDelete({ kind: "folder", id: folder.id, name: folder.name })}
       onCopyFolderUrl={onCopyFolderUrl ? () => onCopyFolderUrl(folder.id) : undefined}
       staffDirectory={staffDirectory}
       isDropTarget={dragOverFolderId === folder.id}
       onDragOverTile={(e) => { e.preventDefault(); e.stopPropagation(); if (canEdit) setDragOverFolderId(folder.id); }}
       onDragLeaveTile={(e) => { e.stopPropagation(); setDragOverFolderId((id) => (id === folder.id ? null : id)); }}
-      onDropTile={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverFolderId(null); if (canEdit && e.dataTransfer.files.length > 0) handleFiles(e.dataTransfer.files, folder.id); }}
+      onDropTile={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setDragOverFolderId(null);
+        if (!canEdit) return;
+        handlePossibleFolderDrop(e, folder.id).then((handled) => {
+          if (!handled && e.dataTransfer.files.length > 0) handleFiles(e.dataTransfer.files, folder.id);
+        });
+      }}
       onContextMenu={openContextMenu}
     />
   );
@@ -181,7 +222,7 @@ export function FilesTab({
       autoPreview={autoPreviewAssetId === asset.id}
       onToggleSelect={() => toggleSelect(asset.id)}
       onContextMenu={openContextMenu}
-      onDelete={() => onDeleteAsset(asset.id)}
+      onDelete={() => setPendingDelete({ kind: "file", id: asset.id, name: asset.file_name ?? asset.label })}
       onPermissionChange={(u) => onAssetPermissionChange(asset.id, u)}
       onRename={() => setRenameTarget({ kind: "file", id: asset.id, name: asset.file_name ?? asset.label })}
       onMove={() => setMoveTargetAssetIds([asset.id])}
@@ -189,6 +230,40 @@ export function FilesTab({
       staffDirectory={staffDirectory}
     />
   );
+
+  const confirmDelete = async () => {
+    if (!pendingDelete) return;
+    setDeleting(true);
+    try {
+      if (pendingDelete.kind === "folder") await onDeleteFolder(pendingDelete.id);
+      else if (pendingDelete.kind === "file") await onDeleteAsset(pendingDelete.id);
+      else {
+        await Promise.all(pendingDelete.ids.map((id) => onDeleteAsset(id)));
+        clearSelection();
+      }
+    } finally {
+      setDeleting(false);
+      setPendingDelete(null);
+    }
+  };
+
+  const deleteDialogCopy = (() => {
+    if (!pendingDelete) return { title: "", body: "" };
+    if (pendingDelete.kind === "folder") {
+      const { folderCount, fileCount } = describeFolderContents(folders, assets, pendingDelete.id);
+      const parts: string[] = [];
+      if (folderCount > 0) parts.push(`${folderCount} sub-folder${folderCount === 1 ? "" : "s"}`);
+      if (fileCount > 0) parts.push(`${fileCount} file${fileCount === 1 ? "" : "s"}`);
+      const body = parts.length > 0
+        ? `This will permanently delete "${pendingDelete.name}" and everything inside it — ${parts.join(" and ")}.`
+        : `This will permanently delete "${pendingDelete.name}".`;
+      return { title: "Delete folder?", body };
+    }
+    if (pendingDelete.kind === "file") {
+      return { title: "Delete file?", body: `This will permanently delete "${pendingDelete.name}".` };
+    }
+    return { title: "Delete files?", body: `This will permanently delete ${pendingDelete.ids.length} selected file${pendingDelete.ids.length === 1 ? "" : "s"}.` };
+  })();
 
   return (
     <div className={cn(cardCls, "p-4")} onClick={() => setContextMenu(null)}>
@@ -210,12 +285,18 @@ export function FilesTab({
         sortBy={sortBy}
         viewMode={viewMode}
         fileInputRef={fileInputRef}
+        folderInputRef={folderInputRef}
         onOpenFolder={onOpenFolder}
         onSearchChange={setSearchQuery}
         onToggleSort={() => setSortBy((s) => (s === "newest" ? "name" : "newest"))}
         onViewModeChange={setViewMode}
         onFilesPicked={handleFiles}
+        onFolderPicked={(files, targetFolderId) => { uploadFolderTree(buildTreeFromRelativePaths(files), targetFolderId); }}
       />
+
+      {preparingFolders ? (
+        <p className={cn("text-[12px] mb-3", textMuted)}>Preparing folders…</p>
+      ) : null}
 
       {openFolder ? <UploadQueuePanel items={queueItems} onRetry={retryUpload} onDismiss={dismissQueueItem} /> : null}
 
@@ -233,22 +314,31 @@ export function FilesTab({
           onClear={clearSelection}
           onBulkPermissionChange={async (updates) => { await Promise.all(Array.from(selectedIds).map((id) => onAssetPermissionChange(id, updates))); }}
           onMove={() => setMoveTargetAssetIds(Array.from(selectedIds))}
-          onDelete={async () => { await Promise.all(Array.from(selectedIds).map((id) => onDeleteAsset(id))); clearSelection(); }}
+          onDelete={() => setPendingDelete({ kind: "bulk", ids: Array.from(selectedIds) })}
         />
       ) : null}
 
       {!openFolder ? (
-        currentLevelFolders.length === 0 ? (
-          <EmptyPanel text="No folders yet — folders are created automatically per deliverable, or add your own." />
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
-            {visibleFolders.map(renderFolderTile)}
-            {!searchQuery && canEdit ? renderNewFolderTile() : null}
-            {visibleFolders.length === 0 && searchQuery ? (
-              <p className={cn("text-[12.5px] col-span-full text-center py-6", textMuted)}>No folders match &ldquo;{searchQuery}&rdquo;.</p>
-            ) : null}
-          </div>
-        )
+        <div
+          // Task 372 — root level previously accepted no drop at all (folder tiles handled their
+          // own drop only); a dropped local folder here becomes a new top-level folder tree.
+          onDragOver={(e) => { e.preventDefault(); if (canEdit) setRootDragOver(true); }}
+          onDragLeave={() => setRootDragOver(false)}
+          onDrop={handleRootDrop}
+          className={cn("rounded-[10px] transition-colors", rootDragOver && canEdit && "bg-[#F0F7FF] ring-2 ring-[#007BFF]/30")}
+        >
+          {currentLevelFolders.length === 0 ? (
+            <EmptyPanel text="No folders yet — folders are created automatically per deliverable, drag & drop a local folder, or add your own." />
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
+              {visibleFolders.map(renderFolderTile)}
+              {!searchQuery && canEdit ? renderNewFolderTile() : null}
+              {visibleFolders.length === 0 && searchQuery ? (
+                <p className={cn("text-[12.5px] col-span-full text-center py-6", textMuted)}>No folders match &ldquo;{searchQuery}&rdquo;.</p>
+              ) : null}
+            </div>
+          )}
+        </div>
       ) : (
         <div className="flex flex-col gap-3.5">
           {/* Sub-folders (task 220) — folders inside the currently open folder, rendered above its
@@ -320,6 +410,15 @@ export function FilesTab({
           onConfirm={() => submitCreateFolder(duplicatePrompt.suggested)}
         />
       ) : null}
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title={deleteDialogCopy.title}
+        body={deleteDialogCopy.body}
+        confirmLabel={deleting ? "Deleting…" : "Delete"}
+        confirmDisabled={deleting}
+        onConfirm={confirmDelete}
+        onCancel={() => setPendingDelete(null)}
+      />
     </div>
   );
 }

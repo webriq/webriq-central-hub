@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { Sparkles, CheckCircle2, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -191,9 +192,14 @@ export default function OnboardingWizardV2({
     }
   };
 
-  const handleDeleteAsset = async (id: string) => {
+  const handleDeleteAsset = async (id: string): Promise<boolean> => {
+    const res = await fetch(`/api/customers/${project.customer_id}/assets?id=${id}`, { method: "DELETE" });
+    if (!res.ok) {
+      toast.error("Couldn't delete file — try again");
+      return false;
+    }
     setAssets((prev) => prev.filter((a) => a.id !== id));
-    await fetch(`/api/customers/${project.customer_id}/assets?id=${id}`, { method: "DELETE" });
+    return true;
   };
 
   const handleAssetPermissionChange = async (assetId: string, updates: { allowed_roles?: string[]; allowed_user_ids?: string[] }) => {
@@ -210,15 +216,16 @@ export default function OnboardingWizardV2({
     setFolders((prev) => prev.map((f) => (f.id === folderId ? updated : f)));
   };
 
-  const handleCreateFolder = async (name: string, parentFolderId: string | null = null) => {
+  const handleCreateFolder = async (name: string, parentFolderId: string | null = null): Promise<AssetFolder | undefined> => {
     const res = await fetch(`/api/customers/${project.customer_id}/assets/folders`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ projectId: project.id, phaseNumber: 1, name, parent_folder_id: parentFolderId }),
     });
-    if (!res.ok) return;
+    if (!res.ok) return undefined;
     const created: AssetFolder = await res.json();
     setFolders((prev) => [...prev, created]);
+    return created;
   };
 
   const handleRenameAsset = async (assetId: string, fileName: string): Promise<boolean> => {
@@ -237,10 +244,22 @@ export default function OnboardingWizardV2({
     return true;
   };
 
-  const handleDeleteFolder = async (folderId: string) => {
+  const handleDeleteFolder = async (folderId: string): Promise<boolean> => {
     const res = await fetch(`/api/customers/${project.customer_id}/assets/folders/${folderId}`, { method: "DELETE" });
-    if (!res.ok) return;
-    setFolders((prev) => prev.filter((f) => f.id !== folderId));
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      toast.error(body?.error || "Couldn't delete folder — try again");
+      return false;
+    }
+    // A recursive delete may have removed nested sub-folders/files the client doesn't have
+    // ids for individually — refetch both rather than computing the removed subtree locally.
+    const [foldersRes, assetsRes] = await Promise.all([
+      fetch(`/api/customers/${project.customer_id}/assets/folders?projectId=${project.id}&phaseNumber=1`),
+      fetch(`/api/customers/${project.customer_id}/assets`),
+    ]);
+    if (foldersRes.ok) setFolders(await foldersRes.json());
+    if (assetsRes.ok) setAssets(await assetsRes.json());
+    return true;
   };
 
   const handleMoveAsset = async (assetId: string, folderId: string) => {

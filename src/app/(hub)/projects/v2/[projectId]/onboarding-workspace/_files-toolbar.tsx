@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, type RefObject } from "react";
-import { ChevronRight, LayoutGrid, List, CircleQuestionMark, Search, ArrowUpDown, CloudUpload } from "lucide-react";
+import { ChevronRight, LayoutGrid, List, CircleQuestionMark, Search, ArrowUpDown, CloudUpload, FolderUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AssetFolder } from "./_wizard-v2-types";
 import { textPrimary, IconTip } from "./_shared-ui";
@@ -12,7 +12,8 @@ import { textPrimary, IconTip } from "./_shared-ui";
 // triggers it.
 export function FilesToolbar({
   breadcrumbChain, openFolder, openFolderId, canEdit, searchQuery, sortBy, viewMode,
-  fileInputRef, onOpenFolder, onSearchChange, onToggleSort, onViewModeChange, onFilesPicked,
+  fileInputRef, folderInputRef, onOpenFolder, onSearchChange, onToggleSort, onViewModeChange,
+  onFilesPicked, onFolderPicked,
 }: {
   breadcrumbChain: AssetFolder[];
   openFolder: AssetFolder | null;
@@ -22,11 +23,16 @@ export function FilesToolbar({
   sortBy: "newest" | "name";
   viewMode: "grid" | "list";
   fileInputRef: RefObject<HTMLInputElement | null>;
+  // Task 372 — separate ref/input from `fileInputRef`: `webkitdirectory` is set imperatively (not
+  // a typed JSX attribute) once, on mount, so it can't share an element with the plain multi-file
+  // picker without toggling the attribute on every open.
+  folderInputRef: RefObject<HTMLInputElement | null>;
   onOpenFolder: (id: string | null) => void;
   onSearchChange: (value: string) => void;
   onToggleSort: () => void;
   onViewModeChange: (mode: "grid" | "list") => void;
   onFilesPicked: (files: FileList, targetFolderId: string) => void;
+  onFolderPicked: (files: FileList, targetFolderId: string) => void;
 }) {
   return (
     <div className="flex items-center gap-2.5 mb-3.5 flex-wrap">
@@ -88,6 +94,21 @@ export function FilesToolbar({
           <input ref={fileInputRef} type="file" multiple className="hidden" onChange={(e) => { if (e.target.files) onFilesPicked(e.target.files, openFolderId!); }} />
           <button type="button" onClick={() => fileInputRef.current?.click()} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold bg-[#007BFF] text-white cursor-pointer border-none hover:bg-[#0063D6] transition-colors shrink-0">
             <CloudUpload size={13} /> Upload
+          </button>
+          {/* Task 372 — `webkitdirectory` isn't a typed JSX attribute, so it's set imperatively via
+              the ref callback below rather than passed as a prop. */}
+          <input
+            ref={(el) => {
+              if (el) el.webkitdirectory = true;
+              folderInputRef.current = el;
+            }}
+            type="file"
+            multiple
+            className="hidden"
+            onChange={(e) => { if (e.target.files && e.target.files.length > 0) onFolderPicked(e.target.files, openFolderId!); e.target.value = ""; }}
+          />
+          <button type="button" onClick={() => folderInputRef.current?.click()} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold border border-[#E2E7F2] bg-white text-[#3A4565] cursor-pointer hover:border-[#A8C6F5] transition-colors shrink-0">
+            <FolderUp size={13} /> Upload folder
           </button>
         </>
       ) : null}

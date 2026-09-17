@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { collectFolderSubtree } from "@/lib/uploads/customer-asset-folder-tree";
 
 async function getRequesterRole(supabase: Awaited<ReturnType<typeof createClient>>, userId: string) {
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", userId).maybeSingle();
@@ -8,6 +9,21 @@ async function getRequesterRole(supabase: Awaited<ReturnType<typeof createClient
 
 // Mirror of the sibling assets routes' canSeeAsset()/canSeeFolder() (tasks 138/144).
 function canSeeFolder(
+  role: string | null, userId: string | null,
+  allowedRoles: string[] | null, allowedUserIds: string[] | null
+) {
+  if (role === "admin" || role === "super_admin") return true;
+  const noRoleRestriction = !allowedRoles || allowedRoles.length === 0;
+  const noUserRestriction = !allowedUserIds || allowedUserIds.length === 0;
+  if (noRoleRestriction && noUserRestriction) return true;
+  const roleMatches = !noRoleRestriction && !!role && allowedRoles.includes(role);
+  const userMatches = !noUserRestriction && !!userId && allowedUserIds.includes(userId);
+  return roleMatches || userMatches;
+}
+
+// Mirror of src/app/api/customers/[customerId]/assets/route.ts's canSeeAsset() — needed here too
+// (task 371) to authorize every file in a folder's subtree before a recursive delete.
+function canSeeAsset(
   role: string | null, userId: string | null,
   allowedRoles: string[] | null, allowedUserIds: string[] | null
 ) {
@@ -126,28 +142,36 @@ export async function DELETE(
       return NextResponse.json({ error: "System folders can't be deleted" }, { status: 400 });
     }
 
-    // Empty-only delete (task 144): customer_asset_folders.parent_folder_id is ON DELETE
-    // CASCADE (would silently delete nested sub-folders) and customer_assets.folder_id is
-    // ON DELETE SET NULL (files would silently become unfiled root-level orphans) — both
-    // are avoided by requiring the folder to already have zero direct children of either kind.
-    const { count: childFolderCount, error: childFolderError } = await supabase
-      .from("customer_asset_folders")
-      .select("id", { count: "exact", head: true })
-      .eq("parent_folder_id", folderId);
-    if (childFolderError) {
-      console.error("DELETE .../assets/folders/[folderId] child-folder count error:", childFolderError);
+    // Task 371 — recursive delete: walk the full subtree so a folder's nested sub-folders and
+    // files are authorized (and, for is_system, blocked) before anything is deleted, since each
+    // carries its own independent allowed_roles/allowed_user_ids that can be narrower than the
+    // folder being clicked.
+    const subtree = await collectFolderSubtree(supabase, { id: folder.id, is_system: folder.is_system, allowed_roles: folder.allowed_roles, allowed_user_ids: folder.allowed_user_ids });
+    if ("error" in subtree) {
+      console.error("DELETE .../assets/folders/[folderId] subtree lookup error:", subtree.error);
       return NextResponse.json({ error: "Failed to delete folder" }, { status: 500 });
     }
-    const { count: assetCount, error: assetError } = await supabase
+    const { folders: subtreeFolders, assets: subtreeAssets } = subtree;
+
+    if (subtreeFolders.some((f) => f.is_system)) {
+      return NextResponse.json({ error: "System folders can't be deleted" }, { status: 400 });
+    }
+    const canSeeEverything =
+      subtreeFolders.every((f) => canSeeFolder(myRole, user.id, f.allowed_roles, f.allowed_user_ids)) &&
+      subtreeAssets.every((a) => canSeeAsset(myRole, user.id, a.allowed_roles, a.allowed_user_ids));
+    if (!canSeeEverything) {
+      return NextResponse.json({ error: "Some items inside this folder aren't visible to you" }, { status: 403 });
+    }
+
+    const subtreeFolderIds = subtreeFolders.map((f) => f.id);
+    const { error: deleteAssetsError } = await supabase
       .from("customer_assets")
-      .select("id", { count: "exact", head: true })
-      .eq("folder_id", folderId);
-    if (assetError) {
-      console.error("DELETE .../assets/folders/[folderId] asset count error:", assetError);
+      .delete()
+      .eq("customer_id", customerId)
+      .in("folder_id", subtreeFolderIds);
+    if (deleteAssetsError) {
+      console.error("DELETE .../assets/folders/[folderId] subtree asset delete error:", deleteAssetsError);
       return NextResponse.json({ error: "Failed to delete folder" }, { status: 500 });
-    }
-    if ((childFolderCount ?? 0) > 0 || (assetCount ?? 0) > 0) {
-      return NextResponse.json({ error: "Folder is not empty — move or remove its contents first" }, { status: 400 });
     }
 
     const { error: deleteError } = await supabase

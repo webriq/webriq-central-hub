@@ -20,6 +20,12 @@ const BUCKET = "customer-assets";
 
 // MIME allowlist for customer-asset uploads. Kept here (not inline in the route) so the `sign`
 // route and the legacy multipart `upload` route stay in lockstep.
+//
+// Task 372 follow-up — must be kept in sync with the client-side ALLOWED_UPLOAD_TYPES in
+// onboarding-workspace/_file-upload-constants.ts (this is the server-side gate the client list
+// mirrors; a type allowed client-side but missing here 400s at `/upload/sign` before the file
+// ever reaches Storage). See that file's comment for the .ico/.zip/.rar/.js/.ts/.xml MIME-variant
+// and MIME-sniffing-reliability notes — same caveats apply here.
 export const ALLOWED_MIME_TYPES = [
   "image/jpeg",
   "image/png",
@@ -37,6 +43,17 @@ export const ALLOWED_MIME_TYPES = [
   "text/markdown",
   "text/plain",
   "text/csv",
+  "image/x-icon",
+  "image/vnd.microsoft.icon",
+  "application/zip",
+  "application/x-zip-compressed",
+  "application/vnd.rar",
+  "application/x-rar-compressed",
+  "text/javascript",
+  "application/javascript",
+  "video/mp2t",
+  "application/xml",
+  "text/xml",
 ];
 
 export const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB — matches the customer-assets bucket's file_size_limit

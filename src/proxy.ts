@@ -53,6 +53,14 @@ export async function proxy(request: NextRequest) {
   const nonHubPrefixes = ["/auth/", "/api/", "/callback", "/onboarding"];
   const isHubRoute = pathname !== "/" && !nonHubPrefixes.some((prefix) => pathname.startsWith(prefix));
 
+  // A directly-invoked Server Action (e.g. signOut()) POSTs to the current hub page's own URL.
+  // It must never be intercepted with a bare redirect — Next's client runtime requires either an
+  // RSC response or an `x-action-redirect` header, and a raw NextResponse.redirect() satisfies
+  // neither, throwing "An unexpected response was received from the server" (task 370). Every
+  // Server Action already performs its own auth check where one is needed, so letting the
+  // request through here does not weaken enforcement for real page navigations.
+  const isServerAction = request.headers.has("next-action");
+
   // Already authenticated users shouldn't land back on the login form. Scoped to GET only —
   // the login form's own postLoginGate Server Action POSTs to this same /auth/login URL right
   // after signInWithPassword sets the session cookie, so a method-agnostic check here would
@@ -63,11 +71,11 @@ export async function proxy(request: NextRequest) {
 
   // Unauthenticated users can't reach hub routes — bounce to login with a returnTo so the
   // post-login gate (postLoginGate) can send them back to what they asked for.
-  if (isHubRoute && !isAuthenticated) {
+  if (isHubRoute && !isAuthenticated && !isServerAction) {
     return NextResponse.redirect(new URL(`/auth/login?returnTo=${encodeURIComponent(pathnameValue)}`, request.url));
   }
 
-  if (isHubRoute) {
+  if (isHubRoute && !isServerAction) {
     if (request.cookies.get("change_password_required")?.value) {
       return NextResponse.redirect(new URL("/auth/change-password", request.url));
     }

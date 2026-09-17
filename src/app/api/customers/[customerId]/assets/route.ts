@@ -63,6 +63,15 @@ export async function POST(
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+    // Task 177 (#8) — file-type creation was already effectively staff-only (every caller
+    // uploads via /upload/sign first, which gates on this same role set), but link/credential
+    // assets skip that step and had zero server-side gating here — any authenticated user,
+    // including client, could attach a fake credential/link to any customer_id.
+    const myRole = await getRequesterRole(supabase, user.id);
+    if (!["admin", "super_admin", "pm", "marketing"].includes(myRole ?? "")) {
+      return NextResponse.json({ error: "Not permitted to create customer assets" }, { status: 403 });
+    }
+
     const { customerId } = await params;
     const body = await request.json();
     const {

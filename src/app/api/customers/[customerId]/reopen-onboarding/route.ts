@@ -13,6 +13,12 @@ export async function POST(
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    // Task 177 (#5) — resetting a customer's onboarding status back to open is a PM/admin
+    // action; without this, any authenticated client-role user could reopen any customer.
+    const { data: callerProfile } = await adminClient.from("profiles").select("role").eq("id", user.id).maybeSingle();
+    if (!["pm", "admin", "super_admin"].includes(callerProfile?.role ?? "")) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     const { customerId } = await params;
 

@@ -19,6 +19,12 @@ export async function POST(
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  // Task 177 (#7) — sending a reply draft is a PM/admin action; without this, any authenticated
+  // user could mark any customer's AI-generated reply as sent.
+  const { data: callerProfile } = await adminClient.from("profiles").select("role").eq("id", user.id).maybeSingle();
+  if (!["pm", "admin", "super_admin"].includes(callerProfile?.role ?? "")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const { id } = await params;
   const body = await req.json().catch(() => null);

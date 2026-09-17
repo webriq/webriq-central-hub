@@ -16,6 +16,15 @@ export async function GET(
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+    // Task 177 (#6) — staff-only, matching contacts_staff_read RLS's admin/super_admin/pm/
+    // developer set PLUS marketing (this route's own adminClient comment above already
+    // documents marketing as a legitimate caller — the New Project intake's existing-company
+    // pre-fill — despite not being in that RLS; excluding it here would break that flow).
+    const { data: callerProfile } = await adminClient.from("profiles").select("role").eq("id", user.id).maybeSingle();
+    if (!["admin", "super_admin", "pm", "developer", "marketing"].includes(callerProfile?.role ?? "")) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const { customerId } = await params;
     const { data, error } = await adminClient
       .from("contacts")

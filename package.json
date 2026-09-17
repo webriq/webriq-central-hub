@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "NODE_OPTIONS='--max-http-header-size=32768' next dev",
     "build": "pnpm type-check && next build",
-    "start": "next start",
+    "start": "NODE_OPTIONS='--max-http-header-size=32768' next start",
     "lint": "eslint . --ext .ts,.tsx",
     "type-check": "tsc",
     "type-check:watch": "tsc --watch"
