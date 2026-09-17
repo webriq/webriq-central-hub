@@ -39,7 +39,7 @@ export async function POST(
     }
     if (file.size > MAX_FILE_SIZE) {
       return NextResponse.json(
-        { error: `File size exceeds 50MB limit (${(file.size / (1024 * 1024)).toFixed(1)}MB)` },
+        { error: `File size exceeds 200MB limit (${(file.size / (1024 * 1024)).toFixed(1)}MB)` },
         { status: 400 }
       );
     }

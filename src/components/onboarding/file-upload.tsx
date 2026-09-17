@@ -49,7 +49,7 @@ const ALLOWED_MIME_TYPES = [
 
 const ALLOWED_EXTENSIONS =
   ".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.html,.md,.txt,.csv,.ico,.zip,.rar,.js,.ts,.xml";
-const MAX_FILE_SIZE = 50 * 1024 * 1024;
+const MAX_FILE_SIZE = 200 * 1024 * 1024;
 
 export default function FileUpload({
   fieldName: _fieldName,
@@ -70,7 +70,7 @@ export default function FileUpload({
       return `Unsupported file type: ${file.type}. Supported: images (incl. ICO), PDF, Word, Excel, HTML, Markdown, plain text, CSV, XML, JS/TS, ZIP/RAR.`;
     }
     if (file.size > MAX_FILE_SIZE) {
-      return `File too large (${(file.size / (1024 * 1024)).toFixed(1)}MB). Max 50MB.`;
+      return `File too large (${(file.size / (1024 * 1024)).toFixed(1)}MB). Max 200MB.`;
     }
     return null;
   };
@@ -171,7 +171,7 @@ export default function FileUpload({
           <span className="text-brand font-semibold">click to browse</span>
         </p>
         <p className="text-[11px] text-slate-400">
-          Supported: images, PDF, Word, Excel &amp; more &bull; Max 50MB
+          Supported: images, PDF, Word, Excel &amp; more &bull; Max 200MB
         </p>
         <input
           ref={fileInputRef}

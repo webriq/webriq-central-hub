@@ -95,11 +95,11 @@ const ASSET_TYPE_CLS_DARK: Record<AssetRow["type"], string> = {
 const assetTypeCls = (type: AssetRow["type"], isDark: boolean) =>
   (isDark ? ASSET_TYPE_CLS_DARK : ASSET_TYPE_CLS_LIGHT)[type];
 
-// Matches the customer-asset MIME allowlist + 50MB bucket limit
+// Matches the customer-asset MIME allowlist + 200MB bucket limit
 // (src/lib/uploads/customer-asset-storage.ts).
 const ASSET_TYPE_HELP: Record<AssetRow["type"], string> = {
   link: "e.g. staging URL, admin dashboard, documentation page.",
-  file: "Accepted: images, PDF, Word docs, Excel spreadsheets, HTML, Markdown, plain text — up to 50MB.",
+  file: "Accepted: images, PDF, Word docs, Excel spreadsheets, HTML, Markdown, plain text — up to 200MB.",
   credential: "e.g. payment API keys, DNS registrar access, CMS admin login. Store references only (e.g. LastPass item name, vault path) — not actual passwords or API keys.",
 };
 

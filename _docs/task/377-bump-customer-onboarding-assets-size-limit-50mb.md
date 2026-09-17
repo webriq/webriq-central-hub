@@ -205,3 +205,11 @@ After the quality gate passed, the user asked to also add a DB-level `allowed_mi
 **Fix:** reverted `141` back to its originally-applied content (size bump only for `customer-assets`; size + MIME widen for `onboarding-assets`), and created a new migration, `supabase/migrations/142_customer_assets_allowed_mime_types.sql`, containing only the `customer-assets` `allowed_mime_types` addition (same 25-type list as `customer-asset-storage.ts`'s `ALLOWED_MIME_TYPES`, including `image/svg+xml` — this bucket is private/staff-only, so the public-bucket XSS rationale doesn't apply). Verified via `npx supabase db push --dry-run` that `142` is now the only pending migration.
 
 No app code changed for this amendment (app-level MIME gating for `customer-assets` was already this exact list). `npx tsc --noEmit` / `pnpm lint` unaffected (SQL-only change). `142` is written but not applied — the user applies it via their own `db push`.
+
+## Post-Gate Amendment 2 (size limit raised to 200MB)
+
+User requested the size limit be raised further, to 200MB, for both buckets (superseding the 50MB target from the original task). By this point migrations `140`–`142` were already applied remotely (confirmed via `npx supabase migration list`), so — following the same lesson as Amendment 1 — a new migration was written rather than editing `141` again: `supabase/migrations/143_customer_onboarding_assets_200mb.sql` sets `file_size_limit = 209715200` (200MB) for both `customer-assets` and `onboarding-assets`. Verified via `npx supabase db push --dry-run` that `143` is the only pending migration (140–142 confirmed already applied).
+
+All app-level `MAX_FILE_SIZE`/`MAX_SIZE_LABEL` constants and hardcoded size strings updated from 50MB/"50 MB" to 200MB/"200 MB" across the same 8 files touched in the original implementation: `customer-asset-storage.ts`, `_file-upload-constants.ts`, both `assets/upload*/route.ts` error strings, `client.tsx` help copy + comment, `api/upload/route.ts` (constant + error string), `file-upload.tsx` (constant + error string + hint copy), `onboarding-schemas.ts` hint text.
+
+`npx tsc --noEmit` - PASS. `pnpm lint` - PASS (2 pre-existing unrelated warnings, same as before). `143` is written but not applied — the user applies it via their own `db push`.

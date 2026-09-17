@@ -56,7 +56,7 @@ export const ALLOWED_MIME_TYPES = [
   "text/xml",
 ];
 
-export const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB — matches the customer-assets bucket's file_size_limit
+export const MAX_FILE_SIZE = 200 * 1024 * 1024; // 200MB — matches the customer-assets bucket's file_size_limit
 
 // Server-generated storage path. Nested under project_id when the caller has a project context
 // (project Files tab / onboarding wizard) so files are separated per-project in the bucket;
