@@ -340,3 +340,97 @@ pnpm dev   # manual browser walkthrough of the acceptance criteria above
 
 None — purely internal routing/redirect logic; no packaging, docs, or adapter surface affected. No
 migration, no new dependency.
+
+## Implementation Notes
+
+### What Changed
+- `src/lib/auth/department-map.ts`: added `DEPARTMENT_HOME` (Finance → `/stackshift-orders`, every
+  other department implicitly `/dashboard`) and `getDepartmentHome()`; `isPathAllowedForDepartment`'s
+  hardcoded `pathname === V2_ROUTES.DASHBOARD` home special-case now calls `getDepartmentHome()`
+  instead. Updated the comment above `DEPARTMENT_NAV_RESTRICTION` to describe the home concept
+  generically instead of hardcoding "/dashboard".
+- `src/app/(hub)/layout.tsx`: department-gate fallback now redirects to
+  `getDepartmentHome(departmentName)` instead of the hardcoded `V2_ROUTES.DASHBOARD`; removed the
+  now-unused `V2_ROUTES` import (its only use was that one redirect call).
+- `src/app/(auth)/actions.ts`: added a private `getUserDepartmentName()` helper (profile →
+  department-name join, mirrors the layout's inline lookup); `postLoginGate`'s trusted-device tail
+  now computes the department home, validates the requested/returnTo target against
+  `isPathAllowedForDepartment`, and falls back to the home route otherwise.
+- `src/app/(auth)/auth/verify/page.tsx`: the post-OTP-success hardcoded `router.push("/dashboard")`
+  is replaced with a second `postLoginGate(deviceId)` call (the just-verified device is now trusted,
+  so this takes the same fast path) and navigates to its `redirect` field, handling `gateError`
+  exactly like `login/page.tsx` already does. No new import — `postLoginGate` was already imported
+  in this file for the resend flow.
+- No sidebar change was needed — confirmed by inspection that `Dashboard`/`Announcements` (both
+  pointing at `V2_ROUTES.DASHBOARD`) are already filtered through `isPathAllowedForDepartment` in
+  `v2-hub-sidebar.tsx`'s `filterByDept`, so they fall out of a Finance user's nav automatically once
+  `/dashboard` is no longer their home.
+
+### Files Changed
+- `src/lib/auth/department-map.ts` — new `DEPARTMENT_HOME` map + `getDepartmentHome()`, per plan.
+- `src/app/(hub)/layout.tsx` — department-gate fallback target + import cleanup, per plan.
+- `src/app/(auth)/actions.ts` — new private helper + department-aware `postLoginGate` tail, per plan.
+- `src/app/(auth)/auth/verify/page.tsx` — post-OTP navigation reuses `postLoginGate`, per plan.
+
+### Deviations From Plan
+- None. Implementation followed the Implementation Steps and Code Context exactly, including the
+  decision (already made during planning) not to touch the sidebar, the Orders page's own role
+  check, or the Zoho OAuth callback / proxy authenticated-login redirect.
+
+### Verification Run
+- `npx tsc --noEmit` — PASS
+- `pnpm lint` — PASS (2 pre-existing unrelated warnings in
+  `(hub)/projects/v2/[projectId]/onboarding-workspace/_checklist-tab.tsx`, same ones prior tasks
+  have also noted as pre-existing; untouched by this change)
+- Manual browser walkthrough (Acceptance Criteria) — NOT RUN in this session (no live
+  Finance-department test account/credentials available here). **User follow-up needed** — please
+  verify in `pnpm dev`: a Finance-department Admin's sidebar shows only Orders (no Dashboard), lands
+  on `/stackshift-orders` on both a normal trusted-device login and after new-device OTP
+  verification, and is bounced to Orders if they navigate directly to `/dashboard`; and confirm a
+  non-Finance user (and an HR-department user specifically) sees no change in their own
+  sign-in destination or sidebar.
+
+## Quality Gate Notes
+
+### Result
+PASS
+
+### Standards Review
+- Re-read all four changed files end to end against the Proposed File Changes / Code Context /
+  Implementation Steps — each change matches the planned shape exactly, no unplanned edits found.
+- `src/app/(hub)/layout.tsx`: confirmed the now-unused `V2_ROUTES` import was correctly removed
+  (its only use in this file was the redirect call now replaced by `getDepartmentHome`).
+- `src/app/(auth)/actions.ts`: `getUserDepartmentName()` is properly typed
+  (`Awaited<ReturnType<typeof createClient>>`, `Promise<string | null>`), no `any` introduced beyond
+  the pre-existing, unrelated `db = adminClient as any` alias. It silently treats a missing/failed
+  profile or department row as `null` (unassigned) rather than surfacing an error — this matches the
+  exact pattern `(hub)/layout.tsx` and `stackshift-orders/page.tsx` already use for the same lookup,
+  so it's consistent with established convention, not a gap.
+- Traced the full decision logic by hand for every Acceptance Criterion (Finance nav hiding,
+  trusted-device login, OTP-verify login, direct `/dashboard` nav, an allowed `returnTo` deep link,
+  an explicit disallowed `returnTo=/dashboard`, and non-Finance/unassigned/HR unaffected) against the
+  actual `isPathAllowedForDepartment`/`getDepartmentHome` implementation — every case resolves to the
+  destination the task doc specifies. (Live browser verification is still the open follow-up noted in
+  Implementation Notes; this is static/logical verification only.)
+- No unused code, no deep nesting, no secrets/debug logging introduced. Naming
+  (`getDepartmentHome`, `getUserDepartmentName`) is self-explanatory and consistent with the file's
+  existing `isPathAllowedForDepartment` style.
+- `verify/page.tsx`'s new block mirrors `login/page.tsx:46-52` verbatim in structure
+  (`gateError`/`gateWarning` handling), matching the plan's explicit intent to avoid a second,
+  divergent pattern for the same decision.
+
+### Deviations
+- Minor: the profile→department-name lookup now exists in two places (`(hub)/layout.tsx`'s inline
+  combined select, and the new `getUserDepartmentName()` in `(auth)/actions.ts`) rather than one
+  shared helper. This was a deliberate, planning-stage decision (see task doc's Code Context note),
+  not an oversight — layout.tsx fetches `department_id` as one column in a single combined
+  `profiles` select alongside `role`/`full_name`/`avatar_url`, while `postLoginGate` has no other
+  profile data to fetch; forcing a shared helper would either cost layout.tsx an extra round trip or
+  give the helper an awkward flexible-select API for one duplicated ~8-line block. Acceptable as
+  documented; not a maintenance risk at this size.
+- No other deviations. All Requirements, Out-of-Scope boundaries (Zoho callback, proxy redirect,
+  `DEPARTMENT_ROLES`/`DEPARTMENT_INVITE_ROLES`/`DEPARTMENT_NAV_RESTRICTION`, the Orders page's own
+  role check, `login/page.tsx`) are confirmed untouched by reading the live files.
+
+### Required Fixes
+- None.

@@ -124,7 +124,15 @@ export default function VerifyPage() {
       return;
     }
 
-    router.push("/dashboard");
+    // Device just verified as trusted — postLoginGate now takes the trusted-device fast path and
+    // returns the correct, department-aware landing page (task 376), same pattern as login/page.tsx.
+    const { redirect: dest, error: gateError, warning: gateWarning } = await postLoginGate(deviceId);
+    if (gateError) {
+      setError(gateError);
+      setLoading(false);
+      return;
+    }
+    router.push(gateWarning ? `${dest}?emailWarning=${encodeURIComponent(gateWarning)}` : dest);
   }
 
   async function handleResend() {

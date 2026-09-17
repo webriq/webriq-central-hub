@@ -40,19 +40,32 @@ export const DEPARTMENT_INVITE_ROLES: Record<DepartmentName, ValidRole[]> = {
 
 // Path prefixes a department restricts nav/routing to, ON TOP of role-based access.
 // Absent key = no additional restriction (falls back to whatever role already
-// allows) — Business Team, Enterprise Team, Project Management. "/dashboard" itself
-// (the home page) is always allowed — handled separately in isPathAllowedForDepartment
-// — so it is deliberately NOT listed here (listing it as a prefix would also match
-// every other /dashboard/* route and defeat the restriction).
+// allows) — Business Team, Enterprise Team, Project Management. A department's own
+// home route (see DEPARTMENT_HOME below) is always allowed — handled separately in
+// isPathAllowedForDepartment — so it is deliberately NOT listed here (listing
+// "/dashboard" as a prefix would also match every other /dashboard/* route and
+// defeat the restriction).
 export const DEPARTMENT_NAV_RESTRICTION: Partial<Record<DepartmentName, string[]>> = {
   HR: [V2_ROUTES.DASHBOARD_USERS, V2_ROUTES.KB],
   Finance: [V2_ROUTES.STACKSHIFT_ORDERS],
 };
 
+// Each department's "home" — always reachable regardless of DEPARTMENT_NAV_RESTRICTION, and the
+// destination the department-gate fallback (hub layout) and sign-in flow (postLoginGate) land the
+// user on. Defaults to the Dashboard for every department except Finance (task 376 — Dashboard is
+// hidden for Finance "for now", Orders is their home instead).
+export const DEPARTMENT_HOME: Partial<Record<DepartmentName, string>> = {
+  Finance: V2_ROUTES.STACKSHIFT_ORDERS,
+};
+
+export function getDepartmentHome(departmentName: string | null): string {
+  return DEPARTMENT_HOME[departmentName as DepartmentName] ?? V2_ROUTES.DASHBOARD;
+}
+
 export function isPathAllowedForDepartment(pathname: string, departmentName: string | null): boolean {
   if (!departmentName) return true; // unassigned = unrestricted until HR sets one
   const allowed = DEPARTMENT_NAV_RESTRICTION[departmentName as DepartmentName];
   if (!allowed) return true; // Business Team / Enterprise Team / Project Management
-  if (pathname === V2_ROUTES.DASHBOARD) return true; // home always reachable
+  if (pathname === getDepartmentHome(departmentName)) return true; // home always reachable
   return allowed.some((p) => pathname === p || pathname.startsWith(p + "/"));
 }

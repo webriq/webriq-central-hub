@@ -7,6 +7,7 @@ import { randomBytes, createHash } from "node:crypto";
 import { sendOtpEmail, sendInvitationEmail, sendPasswordResetOtpEmail } from "@/lib/email/mailer";
 import { setGateCookie, clearGateCookie } from "@/lib/auth/gate-cookies";
 import { checkOtpLockout, registerOtpFailure, resetOtpAttempts } from "@/lib/auth/otp-lockout";
+import { getDepartmentHome, isPathAllowedForDepartment } from "@/lib/auth/department-map";
 
 // device_sessions and otp_codes are not yet in generated types — use untyped alias until supabase gen types is re-run
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -16,6 +17,27 @@ export async function signOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();
   redirect("/auth/login");
+}
+
+// Task 376 — postLoginGate's trusted-device destination needs to know the user's department to
+// land Finance users on Orders instead of Dashboard. Local to this file (layout.tsx's own combined
+// profiles select stays as-is; not worth an extra shared module for one caller).
+async function getUserDepartmentName(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string
+): Promise<string | null> {
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("department_id")
+    .eq("id", userId)
+    .maybeSingle();
+  if (!profile?.department_id) return null;
+  const { data: department } = await supabase
+    .from("departments")
+    .select("name")
+    .eq("id", profile.department_id)
+    .maybeSingle();
+  return department?.name ?? null;
 }
 
 export async function postLoginGate(
@@ -88,7 +110,10 @@ export async function postLoginGate(
   await clearGateCookie("mfa_pending");
   await clearGateCookie("change_password_required");
 
-  const safe = returnTo && returnTo.startsWith("/") && !returnTo.startsWith("//") ? returnTo : "/dashboard";
+  const departmentName = await getUserDepartmentName(supabase, user.id);
+  const home = getDepartmentHome(departmentName);
+  const requested = returnTo && returnTo.startsWith("/") && !returnTo.startsWith("//") ? returnTo : home;
+  const safe = isPathAllowedForDepartment(requested, departmentName) ? requested : home;
   return { redirect: safe };
 }
 

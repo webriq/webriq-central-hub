@@ -2,8 +2,7 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { Toaster } from "@/components/ui/sonner";
-import { V2_ROUTES } from "@/config/constants";
-import { isPathAllowedForDepartment } from "@/lib/auth/department-map";
+import { getDepartmentHome, isPathAllowedForDepartment } from "@/lib/auth/department-map";
 import V2HubShell from "./_components/v2-hub-shell";
 
 export default async function HubLayout({ children }: { children: React.ReactNode }) {
@@ -49,7 +48,7 @@ export default async function HubLayout({ children }: { children: React.ReactNod
   }
 
   if (!isPathAllowedForDepartment(pathname, departmentName)) {
-    redirect(V2_ROUTES.DASHBOARD);
+    redirect(getDepartmentHome(departmentName));
   }
 
   return (
