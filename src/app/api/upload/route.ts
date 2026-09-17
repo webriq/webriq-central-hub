@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { adminClient } from "@/lib/supabase/admin";
 import type { ProductName } from "@/types/hub";
 
+// Task 377 — widened to match the customer-assets allowlist (task 372), minus
+// image/svg+xml, which stays excluded because this bucket is public.
 const ALLOWED_MIME_TYPES = [
   "image/jpeg",
   "image/png",
@@ -14,11 +16,26 @@ const ALLOWED_MIME_TYPES = [
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "application/vnd.ms-excel",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "text/html",
+  "text/markdown",
+  "text/plain",
+  "text/csv",
+  "image/x-icon",
+  "image/vnd.microsoft.icon",
+  "application/zip",
+  "application/x-zip-compressed",
+  "application/vnd.rar",
+  "application/x-rar-compressed",
+  "text/javascript",
+  "application/javascript",
+  "video/mp2t",
+  "application/xml",
+  "text/xml",
 ];
 
 const VALID_PRODUCTS: ProductName[] = ["StackShift", "PublishForge", "PipelineForge"];
 
-const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 
 export async function POST(request: NextRequest) {
   try {
@@ -59,7 +76,7 @@ export async function POST(request: NextRequest) {
     if (!ALLOWED_MIME_TYPES.includes(file.type)) {
       return NextResponse.json(
         {
-          error: `Unsupported file type: ${file.type}. Supported types: images, PDF, Word docs, Excel spreadsheets`,
+          error: `Unsupported file type: ${file.type}. Supported types: images (incl. ICO), PDF, Word docs, Excel spreadsheets, HTML, Markdown, plain text, CSV, XML, JS/TS, ZIP/RAR`,
         },
         { status: 400 }
       );
@@ -68,7 +85,7 @@ export async function POST(request: NextRequest) {
     // Validate file size
     if (file.size > MAX_FILE_SIZE) {
       return NextResponse.json(
-        { error: `File size exceeds 25MB limit (${(file.size / (1024 * 1024)).toFixed(1)}MB)` },
+        { error: `File size exceeds 50MB limit (${(file.size / (1024 * 1024)).toFixed(1)}MB)` },
         { status: 400 }
       );
     }

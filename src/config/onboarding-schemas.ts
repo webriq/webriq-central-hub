@@ -104,7 +104,7 @@ const stackShiftSections: FormSection[] = [
         name: "brandGuide",
         label: "Brand Guide Upload",
         type: "file",
-        hint: "Upload your brand guide (PDF, images, or documents). Max 25MB.",
+        hint: "Upload your brand guide (PDF, images, or documents). Max 50MB.",
         condition: { field: "hasBrandGuide", value: "Yes" },
       },
       {

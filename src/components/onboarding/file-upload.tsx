@@ -14,21 +14,42 @@ interface FileUploadProps {
   onChange: (fileData: UploadedFile | null) => void;
 }
 
+// Task 377 — widened to match the server allowlist (src/app/api/upload/route.ts, itself
+// matching customer-assets' task-372 list). image/svg+xml deliberately excluded, matching
+// the server — this bucket is public, and SVGs can carry embedded <script> (stored-XSS
+// risk when served back at the storage domain). Previously this list allowed svg while the
+// server always rejected it, so an svg upload attempt would fail server-side with a
+// confusing error after passing client-side validation.
 const ALLOWED_MIME_TYPES = [
   "image/jpeg",
   "image/png",
   "image/gif",
   "image/webp",
-  "image/svg+xml",
   "application/pdf",
   "application/msword",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "application/vnd.ms-excel",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "text/html",
+  "text/markdown",
+  "text/plain",
+  "text/csv",
+  "image/x-icon",
+  "image/vnd.microsoft.icon",
+  "application/zip",
+  "application/x-zip-compressed",
+  "application/vnd.rar",
+  "application/x-rar-compressed",
+  "text/javascript",
+  "application/javascript",
+  "video/mp2t",
+  "application/xml",
+  "text/xml",
 ];
 
-const ALLOWED_EXTENSIONS = ".jpg,.jpeg,.png,.gif,.webp,.svg,.pdf,.doc,.docx,.xls,.xlsx";
-const MAX_FILE_SIZE = 25 * 1024 * 1024;
+const ALLOWED_EXTENSIONS =
+  ".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.html,.md,.txt,.csv,.ico,.zip,.rar,.js,.ts,.xml";
+const MAX_FILE_SIZE = 50 * 1024 * 1024;
 
 export default function FileUpload({
   fieldName: _fieldName,
@@ -46,10 +67,10 @@ export default function FileUpload({
 
   const validateFile = (file: File): string | null => {
     if (!ALLOWED_MIME_TYPES.includes(file.type)) {
-      return `Unsupported file type: ${file.type}. Supported: images, PDF, Word, Excel.`;
+      return `Unsupported file type: ${file.type}. Supported: images (incl. ICO), PDF, Word, Excel, HTML, Markdown, plain text, CSV, XML, JS/TS, ZIP/RAR.`;
     }
     if (file.size > MAX_FILE_SIZE) {
-      return `File too large (${(file.size / (1024 * 1024)).toFixed(1)}MB). Max 25MB.`;
+      return `File too large (${(file.size / (1024 * 1024)).toFixed(1)}MB). Max 50MB.`;
     }
     return null;
   };
@@ -150,7 +171,7 @@ export default function FileUpload({
           <span className="text-brand font-semibold">click to browse</span>
         </p>
         <p className="text-[11px] text-slate-400">
-          Supported: images, PDF, Word, Excel &bull; Max 25MB
+          Supported: images, PDF, Word, Excel &amp; more &bull; Max 50MB
         </p>
         <input
           ref={fileInputRef}

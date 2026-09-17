@@ -42,5 +42,5 @@ const MIME_LABELS: Record<string, string> = {
 };
 
 export const ALLOWED_TYPES_LABEL = Array.from(new Set(ALLOWED_UPLOAD_TYPES.map((m) => MIME_LABELS[m] ?? m))).join(", ");
-export const MAX_FILE_SIZE = 25 * 1024 * 1024; // matches the customer-assets bucket's file_size_limit (upload/route.ts)
-export const MAX_SIZE_LABEL = "25 MB";
+export const MAX_FILE_SIZE = 50 * 1024 * 1024; // matches the customer-assets bucket's file_size_limit (upload/route.ts)
+export const MAX_SIZE_LABEL = "50 MB";
