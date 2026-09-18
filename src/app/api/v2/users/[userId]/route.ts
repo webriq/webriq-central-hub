@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { VALID_ROLES, ROLE_DISPLAY, PROFILE_ROLE, type ValidRole } from "@/lib/auth/hub-role-map";
 import { DEPARTMENT_ROLES, type DepartmentName } from "@/lib/auth/department-map";
+import { requireAdmin } from "@/lib/users/admin-guard";
 
 export async function PATCH(
   req: NextRequest,
@@ -10,19 +10,13 @@ export async function PATCH(
 ) {
   const { userId } = await params;
 
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const { data: callerProfile } = await adminClient
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-  const callerRole = callerProfile?.role;
-  if (callerRole !== "admin" && callerRole !== "super_admin") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  // /simplify pass (task 378) — this used to be its own inline copy of the same 401/403 check
+  // now shared with the deactivate/reactivate routes; consolidated onto one implementation.
+  // Only the base check applies here — role/department/unlock edits keep their own narrower,
+  // per-field super_admin rules below and were never blocked from self-service.
+  const guard = await requireAdmin();
+  if (!guard.ok) return guard.response;
+  const callerRole = guard.callerRole;
 
   const body = await req.json() as { role?: string; status?: string; unlockOtp?: boolean; department_id?: string | null };
 
@@ -87,12 +81,15 @@ export async function PATCH(
     }
   }
 
+  // Task 378 — account status is no longer a bare column write. Deactivating also bans the
+  // auth user, terminates their sessions and drops their project/phase memberships; doing any
+  // of that here would duplicate the logic, and writing status alone would leave a row reading
+  // "Inactive" while the person could still log in. Routed to the dedicated endpoints instead.
   if (body.status !== undefined) {
-    const { error } = await adminClient
-      .from("hub_users")
-      .update({ status: body.status })
-      .eq("id", userId);
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json(
+      { error: "Use POST /api/v2/users/[userId]/deactivate or /reactivate to change account status." },
+      { status: 409 }
+    );
   }
 
   if (body.unlockOtp === true) {

@@ -8,6 +8,7 @@ import { sendOtpEmail, sendInvitationEmail, sendPasswordResetOtpEmail } from "@/
 import { setGateCookie, clearGateCookie } from "@/lib/auth/gate-cookies";
 import { checkOtpLockout, registerOtpFailure, resetOtpAttempts } from "@/lib/auth/otp-lockout";
 import { getDepartmentHome, isPathAllowedForDepartment } from "@/lib/auth/department-map";
+import { isHubUserActive } from "@/lib/users/status";
 
 // device_sessions and otp_codes are not yet in generated types — use untyped alias until supabase gen types is re-run
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -50,9 +51,34 @@ export async function postLoginGate(
 
   // Account-level OTP lockout blocks login entirely, before any other gate —
   // "wait 1 hour to relogin" applies regardless of device trust or forced-password state.
-  const { locked, lockedUntil } = await checkOtpLockout(user.id);
+  // Run alongside the deactivation check below: independent single-row reads on unrelated
+  // tables (profiles.otp_locked_until vs hub_users.status), so there's no reason to serialize
+  // them — lockout wins first when both apply, same precedence as before this was combined.
+  const [{ locked, lockedUntil }, isActive] = await Promise.all([
+    checkOtpLockout(user.id),
+    isHubUserActive(user.id),
+  ]);
   if (locked) {
     return { redirect: "/auth/verify", locked: true, lockedUntil: lockedUntil! };
+  }
+
+  // Task 378 — Gate 0.5: deactivated account. deactivateUser() bans FIRST and only flips
+  // hub_users.status LAST, so a fresh sign-in for an already-deactivated account already fails
+  // at signInWithPassword itself (mapped to a friendly message on the login page) and never
+  // reaches here — this gate is not closing a race with that ban. What it actually covers is
+  // narrower: a session established BEFORE deactivation that re-invokes postLoginGate without
+  // a fresh sign-in (e.g. a re-verification prompt when device trust expires, or /auth/verify
+  // hit directly with a still-valid JWT). It does NOT cover a live session already inside
+  // (hub) pages — src/proxy.ts's getClaims() is the actual per-request gate there, and it only
+  // validates the JWT's signature/expiry, not banned_until or session-table state, so that case
+  // is closed only by force_logout_user (migration 144) invalidating the session outright, not
+  // by this check (see the signpost comment on proxy.ts's isAuthenticated check).
+  if (!isActive) {
+    await supabase.auth.signOut();
+    return {
+      redirect: "/auth/login",
+      error: "This account has been deactivated. Please contact your administrator.",
+    };
   }
 
   // Gate 1: forced password change

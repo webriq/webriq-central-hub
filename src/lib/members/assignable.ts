@@ -1,4 +1,5 @@
 import { adminClient } from "@/lib/supabase/admin";
+import { getInactiveHubUserIds } from "@/lib/users/status";
 
 // Task 351 — single source of truth for "who can be assigned a task or issue".
 //
@@ -65,11 +66,17 @@ export function filterExcludedMembers(
  * failure degrades to name-only filtering rather than failing the caller.
  */
 export async function getAssignableMembers(): Promise<AssignableMember[]> {
-  const { data: profiles, error } = await adminClient
-    .from("profiles")
-    .select("id, full_name, avatar_url, role")
-    .in("role", [...ASSIGNABLE_ROLES])
-    .order("full_name", { ascending: true });
+  // Task 378 — the profiles query and the deactivated-ids lookup are independent (the latter
+  // doesn't need the former's ids — see getInactiveHubUserIds()'s own comment), so they run in
+  // parallel instead of one gating the other.
+  const [{ data: profiles, error }, deactivatedIds] = await Promise.all([
+    adminClient
+      .from("profiles")
+      .select("id, full_name, avatar_url, role")
+      .in("role", [...ASSIGNABLE_ROLES])
+      .order("full_name", { ascending: true }),
+    getInactiveHubUserIds(),
+  ]);
 
   if (error) {
     console.error("[members/assignable] profiles fetch failed:", error.message);
@@ -83,10 +90,16 @@ export async function getAssignableMembers(): Promise<AssignableMember[]> {
     role: p.role ?? "",
   }));
 
+  // A deactivated user can't log in, so they must not be offered for NEW work. This never
+  // rewrites an existing tasks.assignee_id/assignees value, so their name keeps rendering on
+  // everything already assigned to them. getInactiveHubUserIds() already fails open (an empty
+  // set on lookup failure), so this filter naturally keeps every row when it can't tell.
+  const activeRows = deactivatedIds.size === 0 ? rows : rows.filter((r) => !deactivatedIds.has(r.id));
+
   const emailById = new Map<string, string>();
   if (ASSIGNEE_EXCLUDE.some((e) => e.includes("@"))) {
     try {
-      const idSet = new Set(rows.map((r) => r.id));
+      const idSet = new Set(activeRows.map((r) => r.id));
       for (let page = 1; page <= 20; page++) {
         const { data, error: listErr } = await adminClient.auth.admin.listUsers({ page, perPage: 1000 });
         if (listErr || !data) break;
@@ -100,5 +113,5 @@ export async function getAssignableMembers(): Promise<AssignableMember[]> {
     }
   }
 
-  return filterExcludedMembers(rows, emailById);
+  return filterExcludedMembers(activeRows, emailById);
 }

@@ -30,9 +30,14 @@ function getSelectValue(user: HubUser): SelectRole {
   return user.profile_role ?? "";
 }
 
+// /simplify pass (task 378): shared by getInitials below and by _deactivate-dialog.tsx, which
+// previously carried its own copy of this same fallback expression.
+export function getDisplayName(user: HubUser): string {
+  return (user.full_name ?? `${user.first_name ?? ""} ${user.last_name ?? ""}`.trim()) || user.email;
+}
+
 function getInitials(user: HubUser): string {
-  const name = user.full_name ?? `${user.first_name ?? ""} ${user.last_name ?? ""}`.trim();
-  if (!name) return user.email.slice(0, 2).toUpperCase();
+  const name = getDisplayName(user);
   const parts = name.trim().split(/\s+/);
   return parts.length >= 2
     ? (parts[0][0] + parts[1][0]).toUpperCase()
@@ -64,7 +69,10 @@ interface RowProps {
   departments: DepartmentOption[];
   onRoleChange: (userId: string, role: SelectRole) => void;
   onDepartmentChange: (userId: string, departmentId: string | null) => void;
-  onStatusToggle: (userId: string, current: string) => void;
+  // Task 378 — takes the whole row, not (id, status): deactivation opens a confirmation
+  // dialog that needs the display name for its title.
+  onStatusToggle: (user: HubUser) => void;
+  statusBusyId: string | null;
   onInvite: (userId: string) => void;
   invitingId: string | null;
   viewerRole: ProfileRole | null;
@@ -74,13 +82,13 @@ interface RowProps {
 
 export function UserRow({
   user, idx, savingId, departments, onRoleChange, onDepartmentChange, onStatusToggle,
-  onInvite, invitingId, viewerRole, onUnlock, unlockingId,
+  statusBusyId, onInvite, invitingId, viewerRole, onUnlock, unlockingId,
 }: RowProps) {
   const initials = getInitials(user);
-  const displayName =
-    (user.full_name ?? `${user.first_name ?? ""} ${user.last_name ?? ""}`.trim()) || user.email;
+  const displayName = getDisplayName(user);
   const isActive = user.status === "active";
   const isSaving = savingId === user.id;
+  const isStatusBusy = statusBusyId === user.id;
   const isInviting = invitingId === user.id;
   const isLocked = !!user.otp_locked_until && new Date(user.otp_locked_until) > new Date();
   const isUnlocking = unlockingId === user.id;
@@ -152,20 +160,22 @@ export function UserRow({
       <td className="py-3 px-4">
         <div className="flex items-center gap-1.5">
           <button
-            onClick={() => onStatusToggle(user.id, user.status)}
-            disabled={isSaving}
+            onClick={() => onStatusToggle(user)}
+            disabled={isSaving || isStatusBusy}
             title={isActive ? "Click to deactivate" : "Click to activate"}
             className={cn(
               "inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full border transition-all cursor-pointer",
               isActive
                 ? "bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
                 : "bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100",
-              isSaving && "opacity-50 cursor-not-allowed pointer-events-none"
+              (isSaving || isStatusBusy) && "opacity-50 cursor-not-allowed pointer-events-none"
             )}
           >
-            {isActive
-              ? <ToggleRight size={13} />
-              : <ToggleLeft size={13} />
+            {isStatusBusy
+              ? <Loader2 size={13} className="animate-spin" />
+              : isActive
+                ? <ToggleRight size={13} />
+                : <ToggleLeft size={13} />
             }
             {isActive ? "Active" : "Inactive"}
           </button>

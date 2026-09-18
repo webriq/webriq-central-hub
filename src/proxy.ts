@@ -43,6 +43,16 @@ export async function proxy(request: NextRequest) {
   );
 
   // Refresh session if expired — getClaims validates JWT signature against project keys
+  //
+  // Task 378 — this is the actual per-request gate for every hub route (not (hub)/layout.tsx's
+  // own getClaims() call, which is secondary). getClaims() here only checks the JWT's signature
+  // and expiry — it does NOT re-check auth.users.banned_until or session-table state. So a
+  // deactivated user's still-valid access token keeps passing isAuthenticated until it expires
+  // naturally, or until a refresh is attempted and fails against the refresh token that
+  // force_logout_user (migration 144) deleted. If you're debugging "why can a deactivated user
+  // still browse the hub," this is where that gap lives — see src/lib/users/status.ts and
+  // src/lib/users/deactivate.ts for the deactivation side, and (auth)/actions.ts's postLoginGate
+  // for the narrower, non-overlapping gate that covers a session re-entering the login flow.
   const { data } = await supabase.auth.getClaims();
   const isAuthenticated = !!data?.claims;
 

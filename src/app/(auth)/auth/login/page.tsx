@@ -35,7 +35,12 @@ export default function LoginPage() {
     const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
 
     if (authError) {
-      setError(authError.message);
+      // Task 378 — a deactivated account is banned at the GoTrue layer, which surfaces as the
+      // raw "User is banned" string. Map it to something an employee can act on.
+      const banned = authError.code === "user_banned" || /banned/i.test(authError.message);
+      setError(banned
+        ? "This account has been deactivated. Please contact your administrator."
+        : authError.message);
       setLoading(false);
       return;
     }

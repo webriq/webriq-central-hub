@@ -5,6 +5,8 @@ import { Users, Mail, CheckCircle2, AlertCircle, UserCog, UserPlus } from "lucid
 import { cn } from "@/lib/utils";
 import { InviteUserModal } from "./_invite-user-modal";
 import { UserRow, type DepartmentOption } from "./_user-row";
+import { DeactivateUserDialog, membershipParts } from "./_deactivate-dialog";
+import { useDeactivateUser, type DeactivationImpact } from "./_use-deactivate-user";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -203,30 +205,37 @@ export default function UsersPage() {
     }
   }, [departments]);
 
-  const handleStatusToggle = useCallback(async (userId: string, current: string) => {
-    const next = current === "active" ? "inactive" : "active";
-    setSavingId(userId);
-    try {
-      const res = await fetch(`/api/v2/users/${userId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: next }),
-      });
-      if (!res.ok) {
-        const d = await res.json() as { error?: string };
-        showToast(d.error ?? "Failed to update status", "err");
-        return;
-      }
-      setUsers((prev) =>
-        prev.map((u) => u.id === userId ? { ...u, status: next } : u)
-      );
-      showToast(`User ${next === "active" ? "activated" : "deactivated"}`);
-    } catch {
-      showToast("Failed to update status", "err");
-    } finally {
-      setSavingId(null);
-    }
+  // Task 378 — deactivation is no longer a status flip: it bans the auth user, ends their
+  // sessions and drops their project/phase memberships, so it goes through a confirmation
+  // dialog with a pre-flight impact check. Reactivation is non-destructive and stays one-click.
+  const handleDeactivated = useCallback((userId: string, impact: DeactivationImpact, sessionsCleared: boolean) => {
+    setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, status: "inactive" } : u));
+    const removed = membershipParts(impact);
+    const base = removed.length > 0 ? `User deactivated — removed from ${removed.join(" and ")}` : "User deactivated";
+    // sessionsCleared is false when the force_logout_user RPC failed — most likely because
+    // migration 144 hasn't been applied yet. The ban already blocks their next sign-in either
+    // way; this just tells the admin an existing open session may still work until it expires.
+    showToast(sessionsCleared ? base : `${base}. Their existing session may still work until it expires.`);
   }, []);
+
+  const handleReactivated = useCallback((userId: string) => {
+    setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, status: "active" } : u));
+    showToast("User activated");
+  }, []);
+
+  const deact = useDeactivateUser({
+    onDeactivated: handleDeactivated,
+    onReactivated: handleReactivated,
+    onError: (message) => showToast(message, "err"),
+  });
+
+  const handleStatusToggle = useCallback((user: HubUser) => {
+    if (user.status === "active") {
+      deact.request(user);
+      return;
+    }
+    void deact.reactivate(user.id);
+  }, [deact]);
 
   const handleUnlock = useCallback(async (userId: string) => {
     setUnlockingId(userId);
@@ -389,6 +398,7 @@ export default function UsersPage() {
                       onRoleChange={handleRoleChange}
                       onDepartmentChange={handleDepartmentChange}
                       onStatusToggle={handleStatusToggle}
+                      statusBusyId={deact.busyId}
                       onInvite={handleInvite}
                       invitingId={invitingId}
                       viewerRole={viewerRole}
@@ -420,6 +430,16 @@ export default function UsersPage() {
           {toast.msg}
         </div>
       )}
+
+      {/* Deactivation confirmation (task 378) */}
+      <DeactivateUserDialog
+        pending={deact.pending}
+        impact={deact.impact}
+        loadingImpact={deact.loadingImpact}
+        submitting={deact.submitting}
+        onConfirm={() => void deact.confirm()}
+        onCancel={deact.cancel}
+      />
 
       {/* Invite modal */}
       {showInvite && (
