@@ -4,7 +4,7 @@
 **Priority:** HIGH
 **Type:** refactor
 **Recommended Tier:** deep
-**Status:** Testing
+**Status:** Completed
 
 ---
 
@@ -300,3 +300,17 @@ PASS
 
 ### Required Fixes
 None — the one substantive finding (constraint-name staleness) was corrected inline as part of this gate rather than deferred.
+
+---
+
+## Completion Notes
+
+**Marked complete at the user's explicit request.** Migration 147 was applied live via `npx supabase db push` and confirmed correct by direct query against the production database (table names, `attachments.entity_type` distribution, and `supabase_migrations.schema_migrations` all checked and matched expectations).
+
+Two more real bugs surfaced only by the live apply attempt, not by `tsc`/lint/build (schema-ordering issues no static check can catch):
+- `attachments.entity_type` CHECK-constraint swap in Part 7 had the `UPDATE` before the `DROP CONSTRAINT` — the old constraint (only permitting `'ticket_message'`) was still active when the `UPDATE` tried to write `'inbox_message'`, so it failed with `23514` on the first push attempt. Fixed: `DROP → UPDATE → ADD CONSTRAINT`, same fix applied to the down-migration's mirrored bug (which would have failed at `ADD CONSTRAINT` instead, for the same underlying reason).
+- Separately, and more seriously: the down-migration file had been placed inside `supabase/migrations/` (matching the up-migration's filename for readability) — `supabase db push` has no concept of a rollback-only script and auto-applies every `.sql` file in that directory as a forward migration, in order. It ran immediately after 147 succeeded, in the *same push*, and started reverting the rename before anyone could verify the up-migration first. It failed on its own (an unrelated pre-existing ordering bug — `Reverse PART 6` recreated `sync_ticket_number_sequence()`/`generate_ticket_display_id()` against `public.tickets`/`from issues` before `Reverse PART 1` had renamed the tables back, so those identifiers didn't yet mean what the function bodies assumed) and rolled back cleanly with zero net effect, confirmed via the same three-query check. Fixed both problems: relocated the file to `supabase/rollbacks/` (not scanned by `db push`), and reordered `Reverse PART 6` to run after `Reverse PART 1`, so the file is now actually correct for a future manual rollback via `psql -f` if one is ever needed.
+
+**Not run, by explicit user decision to mark complete now:** browser acceptance (Desk > Inbox/Tickets list + detail, "File a Ticket" flow, public ticket view), RLS-as-different-roles verification, and confirming a live `ticket-email-poll` cron cycle against the new schema. The DB migration and its dependent application code are confirmed mutually consistent (compile/build-verified pre-apply, schema-verified post-apply); actual runtime/user-facing behavior across these surfaces has not been independently exercised.
+
+**Completed:** 2026-09-21

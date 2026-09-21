@@ -253,6 +253,13 @@
 .scrollbar-light::-webkit-scrollbar-thumb { background: #cbd5e1; border: 2px solid #f1f5f9; }
 .scrollbar-light::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
+/* Fully hides the scrollbar while the element stays scrollable (by drag, wheel, or JS-set
+   `scrollLeft`) — used where a second, JS-synced scroll region shouldn't paint its own visible
+   scrollbar alongside the "real" one (e.g. Desk > Tickets' sticky header row, task 383). Same
+   "Tailwind v4 doesn't generate ::-webkit-scrollbar-* output" reason as `.scrollbar-light` above. */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; }
+
 /* ─── PM Dashboard theme tokens ─────────────────────────────────────────── */
 /* Applied as a class on each pm-tab root div; children reference var(--c-xxx) */
 /* v2.0 brand hex (task 166) — navy/blue/orange, matching DESIGN.md's frontmatter exactly. */
