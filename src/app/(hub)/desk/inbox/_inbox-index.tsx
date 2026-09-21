@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Inbox, Search, X } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { V2_ROUTES } from "@/config/constants";
 import { InboxTable } from "./_inbox-table";
@@ -22,6 +23,8 @@ export type TicketListItem = {
   receivedAt: string;
   status: "open" | "on_hold" | "escalated" | "closed";
   linkedIssue: { issueDisplayId: string; href: string } | null;
+  // Task 380 — gates the "Send Notification" icon button; there's no address to send to.
+  hasRequesterEmail: boolean;
 };
 
 export type PaginationMeta = { page: number; pageSize: number; total: number };
@@ -61,6 +64,27 @@ export default function InboxIndex({
       body: JSON.stringify({ status }),
     });
     if (!res.ok) setTickets(snapshot);
+  }
+
+  // Task 380 — manual resend of the task-379 "ticket created" email. Nothing in the row itself
+  // changes on success, so this only needs a "which row is currently sending" flag (unlike
+  // updateTicketStatus above, there's no optimistic row state to update or roll back).
+  const [sendingId, setSendingId] = useState<string | null>(null);
+  async function sendNotification(ticketId: string): Promise<void> {
+    setSendingId(ticketId);
+    try {
+      const res = await fetch(`/api/desk/tickets/${ticketId}/resend-notification`, { method: "POST" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error ?? "Failed to send the notification email.");
+        return;
+      }
+      toast.success("Notification email sent.");
+    } catch {
+      toast.error("Failed to send the notification email.");
+    } finally {
+      setSendingId(null);
+    }
   }
 
   const [searchInput, setSearchInput] = useState(searchParams.get("search") ?? "");
@@ -229,7 +253,12 @@ export default function InboxIndex({
             </div>
           )
         ) : (
-          <InboxTable tickets={tickets} onUpdateStatus={updateTicketStatus} />
+          <InboxTable
+            tickets={tickets}
+            onUpdateStatus={updateTicketStatus}
+            sendingId={sendingId}
+            onSendNotification={sendNotification}
+          />
         )}
       </div>
     </div>

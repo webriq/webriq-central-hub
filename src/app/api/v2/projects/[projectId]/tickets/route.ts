@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { adminClient } from "@/lib/supabase/admin";
 import { addProjectMember } from "@/lib/programme/phase-membership";
 import { buildTicketAssigneeSync } from "@/lib/tickets/assignee-sync";
+import { notifyCustomerTicketCreated } from "@/lib/desk/customer-view-access";
 
 const VALID_STATUS = ["open", "in_progress", "ready_for_qa", "testing_completed", "for_client_approval", "ready_to_merge", "post_live_qa", "closed"] as const;
 const VALID_SEVERITY = ["Show stopper", "Critical", "Major", "Minor", "None"] as const;
@@ -91,6 +93,29 @@ export async function POST(
   if (sync.assignees.length > 0) {
     await Promise.all(sync.assignees.map((id) => addProjectMember(project.id, id, user.id)))
       .catch((err) => console.error("[api/v2/projects/[id]/tickets] project_members sync failed:", err));
+  }
+
+  // Task 381 — "File a Ticket" sets source_ticket_id (task 363) to the originating Desk > Inbox
+  // ticket; when present, resend that ticket's task-379 "ticket created" customer email. adminClient
+  // (not the route's session-scoped `supabase`) for consistency with every other call site that
+  // touches `tickets` for this feature. Best-effort — notifyCustomerTicketCreated already swallows
+  // its own failures and returns a boolean this call site doesn't need to act on.
+  if (data.source_ticket_id) {
+    const { data: sourceTicket, error: sourceTicketError } = await adminClient
+      .from("tickets")
+      .select("id, ticket_number, subject, requester_email")
+      .eq("id", data.source_ticket_id)
+      .maybeSingle();
+    if (sourceTicketError) {
+      console.error("[api/v2/projects/[id]/tickets] source ticket lookup failed:", sourceTicketError.message);
+    } else if (sourceTicket?.requester_email) {
+      await notifyCustomerTicketCreated({
+        ticketId: sourceTicket.id,
+        ticketNumber: sourceTicket.ticket_number,
+        subject: sourceTicket.subject,
+        requesterEmail: sourceTicket.requester_email,
+      });
+    }
   }
 
   return NextResponse.json(data, { status: 201 });

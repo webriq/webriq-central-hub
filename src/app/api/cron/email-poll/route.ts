@@ -14,6 +14,7 @@ import { applyInlineImages, INLINE_IMAGE_BUCKET as BUCKET } from "@/lib/email/in
 import { shouldIngestEmail } from "@/lib/email/intake-filter";
 import { parseSupportFormEmail, buildSupportFormBody } from "@/lib/email/support-form";
 import { subjectsMatch } from "@/lib/email/subject";
+import { notifyCustomerTicketCreated } from "@/lib/desk/customer-view-access";
 
 const MAX_SIZE = 52428800; // 50MB — matches the bucket's file_size_limit (migration 117)
 const CURSOR_ID = "helpdesk";
@@ -236,6 +237,15 @@ async function processMessage(summary: ZohoMailMessageSummary): Promise<ProcessO
     ticketId = newTicket.id;
     ticketNumber = newTicket.ticket_number;
     ticketDisplayId = newTicket.ticket_id;
+
+    // Task 379 — customer "ticket created" confirmation, only on genuine first creation (never
+    // on a matched reply above). Best-effort/non-blocking — swallows its own failures.
+    await notifyCustomerTicketCreated({
+      ticketId,
+      ticketNumber,
+      subject: ticketSubject,
+      requesterEmail,
+    });
   }
 
   if (ticketNumber == null) throw new Error(`could not resolve ticket_number for ticket ${ticketId}`);

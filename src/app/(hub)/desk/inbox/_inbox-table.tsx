@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { Mail, Loader2 } from "lucide-react";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import type { TicketListItem } from "./_inbox-index";
 
 // Task 363 (follow-up) — Ticket ID/Owner/Responded/Due Date moved to the Tickets tab
@@ -37,14 +39,18 @@ function formatFullDateTime(iso: string): string {
   }).format(new Date(iso));
 }
 
-const GRID_COLS = "grid-cols-[170px_1fr_150px_150px_120px_130px]";
+const GRID_COLS = "grid-cols-[170px_1fr_150px_150px_120px_130px_40px]";
 
 export function InboxTable({
   tickets,
   onUpdateStatus,
+  sendingId,
+  onSendNotification,
 }: {
   tickets: TicketListItem[];
   onUpdateStatus: (ticketId: string, status: TicketStatus) => void;
+  sendingId: string | null;
+  onSendNotification: (ticketId: string) => void;
 }) {
   return (
     <div className="rounded-[14px] border border-[#E2E7F2] bg-white overflow-hidden">
@@ -55,6 +61,7 @@ export function InboxTable({
         <span className="text-[9.5px] font-bold uppercase tracking-[0.09em] text-[#5F6A88]">Received</span>
         <span className="text-[9.5px] font-bold uppercase tracking-[0.09em] text-[#5F6A88]">Status</span>
         <span className="text-[9.5px] font-bold uppercase tracking-[0.09em] text-[#5F6A88]">Linked ticket</span>
+        <span className="sr-only">Actions</span>
       </div>
       {tickets.map((t) => (
         <div
@@ -101,6 +108,40 @@ export function InboxTable({
           ) : (
             <span className="block text-[12px] text-[#5F6A88]">—</span>
           )}
+          {/* Task 380 — manual resend of the task-379 "ticket created" email. Icon-only to keep
+              the dense grid narrow; the tooltip carries the explanation. Deliberately NOT a
+              native `disabled` button when hasRequesterEmail is false — a disabled button stops
+              receiving hover/mouse events in every browser, which would silently kill the
+              tooltip in exactly the case it most needs to explain itself. `aria-disabled` +
+              guarding the click handler keeps it hoverable/focusable while staying inert. */}
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (t.hasRequesterEmail && sendingId !== t.ticketId) onSendNotification(t.ticketId);
+                  }}
+                  aria-disabled={!t.hasRequesterEmail || sendingId === t.ticketId}
+                  aria-label="Send ticket notification email"
+                  className={`flex h-7 w-7 items-center justify-center rounded-full transition-colors cursor-pointer ${
+                    t.hasRequesterEmail
+                      ? "text-[#5F6A88] hover:bg-[#F0F7FF] hover:text-[#007BFF]"
+                      : "text-[#5F6A88]/40 cursor-not-allowed"
+                  }`}
+                >
+                  {sendingId === t.ticketId ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <Mail size={14} />
+                  )}
+                </button>
+              }
+            />
+            <TooltipContent side="top">
+              {t.hasRequesterEmail ? "Send ticket notification email" : "No requester email on this ticket"}
+            </TooltipContent>
+          </Tooltip>
         </div>
       ))}
     </div>

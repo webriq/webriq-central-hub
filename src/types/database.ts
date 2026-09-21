@@ -1947,6 +1947,11 @@ export interface Database {
           match_method: "contact" | "account_name" | null;
           source_meta: Record<string, unknown>;
           zoho_mail_thread_id: string | null;
+          customer_view_password_hash: string | null;
+          customer_view_password_set_at: string | null;
+          customer_view_failed_attempts: number;
+          customer_view_locked_until: string | null;
+          customer_notified_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -1972,6 +1977,11 @@ export interface Database {
           match_method?: "contact" | "account_name" | null;
           source_meta?: Record<string, unknown>;
           zoho_mail_thread_id?: string | null;
+          customer_view_password_hash?: string | null;
+          customer_view_password_set_at?: string | null;
+          customer_view_failed_attempts?: number;
+          customer_view_locked_until?: string | null;
+          customer_notified_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -1997,6 +2007,11 @@ export interface Database {
           match_method?: "contact" | "account_name" | null;
           source_meta?: Record<string, unknown>;
           zoho_mail_thread_id?: string | null;
+          customer_view_password_hash?: string | null;
+          customer_view_password_set_at?: string | null;
+          customer_view_failed_attempts?: number;
+          customer_view_locked_until?: string | null;
+          customer_notified_at?: string | null;
           updated_at?: string;
         };
         Relationships: [

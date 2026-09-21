@@ -192,6 +192,7 @@ export default async function DeskInboxPage({
     receivedAt: t.created_at,
     status: t.status,
     linkedIssue: linkedIssueByTicketId.get(t.id) ?? null,
+    hasRequesterEmail: !!t.requester_email,
   }));
 
   const paginationMeta: PaginationMeta = {
