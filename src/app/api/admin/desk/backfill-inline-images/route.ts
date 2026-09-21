@@ -30,10 +30,10 @@ const SCAN_CAP = 10000; // hard ceiling on rows examined per call, independent o
 
 type CandidateRow = {
   id: string;
-  ticket_id: string;
+  inbox_id: string;
   body: string;
   email_message_id: string | null;
-  tickets: { ticket_id: string } | null;
+  inbox: { ticket_id: string } | null;
 };
 
 type Unresolved = { ticketId: string | null; messageId: string; reason: string; debug?: Record<string, unknown> };
@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
   if (ticketNumberParam != null) {
     const n = Number(ticketNumberParam);
     if (!Number.isInteger(n)) return NextResponse.json({ error: "Invalid ticketNumber" }, { status: 400 });
-    const { data: ticket } = await adminClient.from("tickets").select("id").eq("ticket_number", n).maybeSingle();
+    const { data: ticket } = await adminClient.from("inbox").select("id").eq("ticket_number", n).maybeSingle();
     if (!ticket) return NextResponse.json({ error: "Ticket not found" }, { status: 404 });
     ticketIdFilter = ticket.id;
   }
@@ -77,14 +77,14 @@ export async function POST(req: NextRequest) {
   let scanned = 0;
   for (let from = 0; from < SCAN_CAP && candidates.length < limit; from += PAGE) {
     let q = adminClient
-      .from("ticket_messages")
-      .select("id, ticket_id, body, email_message_id, tickets(ticket_id)")
+      .from("inbox_messages")
+      .select("id, inbox_id, body, email_message_id, inbox(ticket_id)")
       .eq("author_type", "client")
       .not("email_message_id", "is", null)
       .or("body.ilike.%ImageDisplay%,body.ilike.%cid:%")
       .order("created_at", { ascending: false })
       .range(from, from + PAGE - 1);
-    if (ticketIdFilter) q = q.eq("ticket_id", ticketIdFilter);
+    if (ticketIdFilter) q = q.eq("inbox_id", ticketIdFilter);
 
     const { data, error } = await q;
     if (error) return NextResponse.json({ error: `candidate query failed: ${error.message}` }, { status: 500 });
@@ -119,7 +119,7 @@ export async function POST(req: NextRequest) {
   const strategies: Record<string, number> = {};
 
   for (const row of candidates) {
-    const ticketDisplayId = row.tickets?.ticket_id ?? null;
+    const ticketDisplayId = row.inbox?.ticket_id ?? null;
     const zohoMessageId = row.email_message_id as string;
 
     let images: InlineImage[];
@@ -197,7 +197,9 @@ export async function POST(req: NextRequest) {
 
     const { body: newBody, storedButUnmatchedCids } = await applyInlineImages({
       messageRowId: row.id,
-      ticketId: ticketDisplayId,
+      // Task 382 — the serving route now takes inbox.id (UUID), not ticketDisplayId ("TKT-<n>",
+      // still used above for the human-readable `unresolved` diagnostic entries).
+      ticketId: row.inbox_id,
       inlineImages: images,
       body: row.body,
     });
@@ -205,7 +207,7 @@ export async function POST(req: NextRequest) {
 
     if (newBody !== row.body) {
       const { error: updateError } = await adminClient
-        .from("ticket_messages")
+        .from("inbox_messages")
         .update({ body: newBody })
         .eq("id", row.id);
       if (updateError) {

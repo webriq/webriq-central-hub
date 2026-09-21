@@ -26,7 +26,7 @@ export async function POST(
   const { data: project } = await supabase.from("projects").select("id").eq("project_id", projectId).single();
   if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 });
 
-  const { data: ticket } = await supabase.from("issues").select("id").eq("id", ticketId).eq("project_id", project.id).maybeSingle();
+  const { data: ticket } = await supabase.from("tickets").select("id").eq("id", ticketId).eq("project_id", project.id).maybeSingle();
   if (!ticket) return NextResponse.json({ error: "Ticket not found" }, { status: 404 });
 
   const formData = await req.formData().catch(() => null);

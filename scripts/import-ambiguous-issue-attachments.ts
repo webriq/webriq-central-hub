@@ -135,7 +135,7 @@ async function main() {
       }
 
       const { data: issueRow, error: issueErr } = await supabase
-        .from("issues")
+        .from("tickets")
         .select("id")
         .eq("external_id", zohoIssueId)
         .maybeSingle();

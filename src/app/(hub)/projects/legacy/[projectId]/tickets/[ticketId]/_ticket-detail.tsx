@@ -167,6 +167,13 @@ export default function TicketDetailClient({
               <span className="text-[11px] font-mono text-[#5F6A88] bg-[#EDF0F7] px-2 py-0.5 rounded-[5px]">
                 TICKET · {ticket.display_id ?? ticket.prefix ?? ticket.id}
               </span>
+              {/* Task 382 rider — Zoho's original per-project issue id (e.g. "TC3-I1"), shown as a
+                  muted reference only for imported rows; null for anything created natively. */}
+              {ticket.prefix && (
+                <span className="text-[11px] font-mono text-[#5F6A88] opacity-60">
+                  formerly {ticket.prefix}
+                </span>
+              )}
               <StatusBadge status={status as TaskStatus} />
               <SeverityBadge severity={severity} />
               {perm.canStartTimer && (

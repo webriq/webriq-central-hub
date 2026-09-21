@@ -815,7 +815,7 @@ export interface Database {
             foreignKeyName: "active_timers_issue_id_fkey";
             columns: ["issue_id"];
             isOneToOne: false;
-            referencedRelation: "issues";
+            referencedRelation: "tickets";
             referencedColumns: ["id"];
           },
           {
@@ -928,7 +928,7 @@ export interface Database {
           }
         ];
       };
-      issues: {
+      tickets: {
         Row: {
           id: string;
           project_id: string;
@@ -952,7 +952,7 @@ export interface Database {
           updated_at: string;
           source_meta: Record<string, unknown>;
           display_id: string | null;
-          source_ticket_id: string | null;
+          source_inbox_id: string | null;
         };
         Insert: {
           id?: string;
@@ -977,7 +977,7 @@ export interface Database {
           updated_at?: string;
           source_meta?: Record<string, unknown>;
           display_id?: string | null;
-          source_ticket_id?: string | null;
+          source_inbox_id?: string | null;
         };
         Update: {
           id?: string;
@@ -1001,42 +1001,42 @@ export interface Database {
           updated_at?: string;
           source_meta?: Record<string, unknown>;
           display_id?: string | null;
-          source_ticket_id?: string | null;
+          source_inbox_id?: string | null;
         };
         Relationships: [
           {
-            foreignKeyName: "issues_project_id_fkey";
+            foreignKeyName: "tickets_project_id_fkey";
             columns: ["project_id"];
             isOneToOne: false;
             referencedRelation: "projects";
             referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "issues_task_id_fkey";
+            foreignKeyName: "tickets_task_id_fkey";
             columns: ["task_id"];
             isOneToOne: false;
             referencedRelation: "tasks";
             referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "issues_assignee_id_fkey";
+            foreignKeyName: "tickets_assignee_id_fkey";
             columns: ["assignee_id"];
             isOneToOne: false;
             referencedRelation: "profiles";
             referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "issues_created_by_fkey";
+            foreignKeyName: "tickets_created_by_fkey";
             columns: ["created_by"];
             isOneToOne: false;
             referencedRelation: "profiles";
             referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "issues_source_ticket_id_fkey";
-            columns: ["source_ticket_id"];
+            foreignKeyName: "tickets_source_inbox_id_fkey";
+            columns: ["source_inbox_id"];
             isOneToOne: false;
-            referencedRelation: "tickets";
+            referencedRelation: "inbox";
             referencedColumns: ["id"];
           }
         ];
@@ -1516,10 +1516,10 @@ export interface Database {
         };
         Relationships: [];
       };
-      issue_comments: {
+      ticket_comments: {
         Row: {
           id: string;
-          issue_id: string;
+          ticket_id: string;
           author_id: string | null;
           author_name: string | null;
           author_email: string | null;
@@ -1531,7 +1531,7 @@ export interface Database {
         };
         Insert: {
           id?: string;
-          issue_id: string;
+          ticket_id: string;
           author_id?: string | null;
           author_name?: string | null;
           author_email?: string | null;
@@ -1543,7 +1543,7 @@ export interface Database {
         };
         Update: {
           id?: string;
-          issue_id?: string;
+          ticket_id?: string;
           author_id?: string | null;
           author_name?: string | null;
           author_email?: string | null;
@@ -1554,10 +1554,10 @@ export interface Database {
         };
         Relationships: [
           {
-            foreignKeyName: "issue_comments_issue_id_fkey";
-            columns: ["issue_id"];
+            foreignKeyName: "ticket_comments_ticket_id_fkey";
+            columns: ["ticket_id"];
             isOneToOne: false;
-            referencedRelation: "issues";
+            referencedRelation: "tickets";
             referencedColumns: ["id"];
           }
         ];
@@ -1566,7 +1566,7 @@ export interface Database {
         Row: {
           id: string;
           project_id: string;
-          ticket_id: string | null;
+          inbox_id: string | null;
           parent_task_id: string | null;
           milestone_id: string | null;
           tasklist_id: string | null;
@@ -1601,7 +1601,7 @@ export interface Database {
         Insert: {
           id?: string;
           project_id: string;
-          ticket_id?: string | null;
+          inbox_id?: string | null;
           parent_task_id?: string | null;
           milestone_id?: string | null;
           tasklist_id?: string | null;
@@ -1636,7 +1636,7 @@ export interface Database {
         Update: {
           id?: string;
           project_id?: string;
-          ticket_id?: string | null;
+          inbox_id?: string | null;
           parent_task_id?: string | null;
           milestone_id?: string | null;
           tasklist_id?: string | null;
@@ -1676,10 +1676,10 @@ export interface Database {
             referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "tasks_ticket_id_fkey";
-            columns: ["ticket_id"];
+            foreignKeyName: "tasks_inbox_id_fkey";
+            columns: ["inbox_id"];
             isOneToOne: false;
-            referencedRelation: "tickets";
+            referencedRelation: "inbox";
             referencedColumns: ["id"];
           },
           {
@@ -1912,7 +1912,7 @@ export interface Database {
             foreignKeyName: "time_logs_issue_id_fkey";
             columns: ["issue_id"];
             isOneToOne: false;
-            referencedRelation: "issues";
+            referencedRelation: "tickets";
             referencedColumns: ["id"];
           },
           {
@@ -1924,7 +1924,7 @@ export interface Database {
           }
         ];
       };
-      tickets: {
+      inbox: {
         Row: {
           id: string;
           ticket_number: number;
@@ -2016,7 +2016,7 @@ export interface Database {
         };
         Relationships: [
           {
-            foreignKeyName: "tickets_customer_id_fkey";
+            foreignKeyName: "inbox_customer_id_fkey";
             columns: ["customer_id"];
             isOneToOne: false;
             referencedRelation: "customers";
@@ -2042,10 +2042,10 @@ export interface Database {
         };
         Relationships: [];
       };
-      ticket_messages: {
+      inbox_messages: {
         Row: {
           id: string;
-          ticket_id: string;
+          inbox_id: string;
           author_type: "client" | "staff" | "system" | "llm_draft";
           author_id: string | null;
           body: string;
@@ -2057,7 +2057,7 @@ export interface Database {
         };
         Insert: {
           id?: string;
-          ticket_id: string;
+          inbox_id: string;
           author_type: "client" | "staff" | "system" | "llm_draft";
           author_id?: string | null;
           body: string;
@@ -2069,7 +2069,7 @@ export interface Database {
         };
         Update: {
           id?: string;
-          ticket_id?: string;
+          inbox_id?: string;
           author_type?: "client" | "staff" | "system" | "llm_draft";
           author_id?: string | null;
           body?: string;
@@ -2080,10 +2080,10 @@ export interface Database {
         };
         Relationships: [
           {
-            foreignKeyName: "ticket_messages_ticket_id_fkey";
-            columns: ["ticket_id"];
+            foreignKeyName: "inbox_messages_inbox_id_fkey";
+            columns: ["inbox_id"];
             isOneToOne: false;
-            referencedRelation: "tickets";
+            referencedRelation: "inbox";
             referencedColumns: ["id"];
           }
         ];
@@ -3793,6 +3793,7 @@ export type CustomerPhaseRow = Database["public"]["Tables"]["customer_phases"]["
 export type CustomerDeliverableRow = Database["public"]["Tables"]["customer_deliverables"]["Row"];
 export type OnboardingInternalDeliverableRow = Database["public"]["Tables"]["onboarding_internal_deliverables"]["Row"];
 export type TaskRow = Database["public"]["Tables"]["tasks"]["Row"];
+export type InboxRow = Database["public"]["Tables"]["inbox"]["Row"];
 export type TicketRow = Database["public"]["Tables"]["tickets"]["Row"];
 export type EventBusRow = Database["public"]["Tables"]["event_bus"]["Row"];
 export type NotificationRow = Database["public"]["Tables"]["notifications"]["Row"];

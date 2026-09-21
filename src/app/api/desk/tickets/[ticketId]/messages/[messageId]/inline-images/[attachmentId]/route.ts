@@ -11,8 +11,9 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ ticketId: string; messageId: string; attachmentId: string }> }
 ) {
+  // Task 382 — routes by inbox.id (UUID), not the "TKT-<n>" display key. See _resolve.ts.
   const { ticketId, messageId, attachmentId } = await params;
-  if (!/^TKT-\d+$/.test(ticketId)) {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(ticketId)) {
     return NextResponse.json({ error: "Invalid ticket id" }, { status: 400 });
   }
 
@@ -22,14 +23,14 @@ export async function GET(
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { data: ticket } = await supabase.from("tickets").select("id").eq("ticket_id", ticketId).maybeSingle();
+  const { data: ticket } = await supabase.from("inbox").select("id").eq("id", ticketId).maybeSingle();
   if (!ticket) return NextResponse.json({ error: "Ticket not found" }, { status: 404 });
 
   const { data: message } = await supabase
-    .from("ticket_messages")
+    .from("inbox_messages")
     .select("id")
     .eq("id", messageId)
-    .eq("ticket_id", ticket.id)
+    .eq("inbox_id", ticket.id)
     .maybeSingle();
   if (!message) return NextResponse.json({ error: "Message not found" }, { status: 404 });
 
@@ -37,7 +38,7 @@ export async function GET(
     .from("attachments")
     .select("storage_path")
     .eq("id", attachmentId)
-    .eq("entity_type", "ticket_message")
+    .eq("entity_type", "inbox_message")
     .eq("entity_id", message.id)
     .not("cid", "is", null)
     .maybeSingle();

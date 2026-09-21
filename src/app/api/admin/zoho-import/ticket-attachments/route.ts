@@ -1,7 +1,7 @@
 // dev-only import endpoint — downloads real Zoho Desk Thread/Comment attachment files
 // (metadata already captured in ticket_messages.source_meta.attachments by the desk-threads/
 // desk-ticket-comments imports) and stores them in the ticket-attachments Supabase Storage
-// bucket + the native attachments table (entity_type: 'ticket_message', entity_id =
+// bucket + the native attachments table (entity_type: 'inbox_message', entity_id =
 // ticket_messages.id — the specific message, not tickets.id). No export step needed — every
 // attachment's href/name/size already lives in the live ticket_messages table.
 //
@@ -60,7 +60,7 @@ export async function POST() {
     let from = 0;
     while (true) {
       const { data: page, error } = await adminClient
-        .from("ticket_messages")
+        .from("inbox_messages")
         .select("id, source_meta")
         .range(from, from + PAGE - 1);
       if (error) {
@@ -97,7 +97,7 @@ export async function POST() {
       const { data: page } = await adminClient
         .from("attachments")
         .select("external_id")
-        .eq("entity_type", "ticket_message")
+        .eq("entity_type", "inbox_message")
         .not("external_id", "is", null)
         .range(from, from + PAGE - 1);
       if (!page || page.length === 0) break;
@@ -174,7 +174,7 @@ export async function POST() {
           const { error: dbError } = await adminClient.from("attachments").upsert(
             {
               external_id: externalId,
-              entity_type: "ticket_message",
+              entity_type: "inbox_message",
               entity_id: ticketMessageId,
               storage_path: safeName,
               filename,

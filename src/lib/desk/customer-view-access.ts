@@ -35,7 +35,7 @@ export async function verifyCustomerViewPassword(
   password: string
 ): Promise<VerifyResult> {
   const { data: ticket } = await adminClient
-    .from("tickets")
+    .from("inbox")
     .select("customer_view_password_hash, customer_view_failed_attempts, customer_view_locked_until")
     .eq("id", ticketId)
     .maybeSingle();
@@ -58,7 +58,7 @@ export async function verifyCustomerViewPassword(
     // Lazy expiry — clear it before checking the password so a correct guess right after
     // the lock window ends succeeds instead of being rejected on a stale lock.
     await adminClient
-      .from("tickets")
+      .from("inbox")
       .update({ customer_view_failed_attempts: 0, customer_view_locked_until: null })
       .eq("id", ticketId);
     ticket.customer_view_failed_attempts = 0;
@@ -71,14 +71,14 @@ export async function verifyCustomerViewPassword(
     if (nextCount >= MAX_VIEW_ATTEMPTS) {
       const lockedUntil = new Date(Date.now() + VIEW_LOCK_DURATION_MS).toISOString();
       await adminClient
-        .from("tickets")
+        .from("inbox")
         .update({ customer_view_failed_attempts: nextCount, customer_view_locked_until: lockedUntil })
         .eq("id", ticketId);
       return { ok: false, locked: true, lockedUntil, attemptsRemaining: 0 };
     }
 
     await adminClient
-      .from("tickets")
+      .from("inbox")
       .update({ customer_view_failed_attempts: nextCount })
       .eq("id", ticketId);
     return {
@@ -91,7 +91,7 @@ export async function verifyCustomerViewPassword(
 
   if ((ticket.customer_view_failed_attempts ?? 0) > 0) {
     await adminClient
-      .from("tickets")
+      .from("inbox")
       .update({ customer_view_failed_attempts: 0, customer_view_locked_until: null })
       .eq("id", ticketId);
   }
@@ -128,7 +128,7 @@ export async function notifyCustomerTicketCreated(params: {
     const passwordHash = hashCustomerViewPassword(password);
 
     const { error: updateError } = await adminClient
-      .from("tickets")
+      .from("inbox")
       .update({
         customer_view_password_hash: passwordHash,
         customer_view_password_set_at: new Date().toISOString(),
@@ -155,7 +155,7 @@ export async function notifyCustomerTicketCreated(params: {
     });
 
     await adminClient
-      .from("tickets")
+      .from("inbox")
       .update({ customer_notified_at: new Date().toISOString() })
       .eq("id", params.ticketId);
     return true;

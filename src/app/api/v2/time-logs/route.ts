@@ -141,7 +141,7 @@ export async function GET(req: NextRequest) {
   const ticketTitles = new Map<string, string>();
   const ticketDisplayIds = new Map<string, string>();
   if (ticketIds.length > 0) {
-    const { data: tickets } = await supabase.from("issues").select("id, title, display_id").in("id", ticketIds);
+    const { data: tickets } = await supabase.from("tickets").select("id, title, display_id").in("id", ticketIds);
     for (const i of tickets ?? []) {
       ticketTitles.set(i.id, i.title);
       if (i.display_id) ticketDisplayIds.set(i.id, i.display_id);
@@ -251,7 +251,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "You must be assigned to this task to log time" }, { status: 403 });
     }
   } else if (ticketId) {
-    const { data: ticket } = await supabase.from("issues").select("id, project_id").eq("id", ticketId).maybeSingle();
+    const { data: ticket } = await supabase.from("tickets").select("id, project_id").eq("id", ticketId).maybeSingle();
     if (!ticket) return NextResponse.json({ error: "Ticket not found" }, { status: 404 });
   }
 

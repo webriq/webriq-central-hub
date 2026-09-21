@@ -47,7 +47,7 @@ export default async function TicketDetailPage({
   const currentUserAvatarUrl = profile?.avatar_url ?? null;
 
   const [{ data: ticket }, allMembers] = await Promise.all([
-    supabase.from("issues").select("*").eq("display_id", ticketId).eq("project_id", project.id).single(),
+    supabase.from("tickets").select("*").eq("display_id", ticketId).eq("project_id", project.id).single(),
     // Task 351 — assignee pool = all staff roles minus the exclude list (shared helper).
     getAssignableMembers(),
   ]);
@@ -74,7 +74,7 @@ export default async function TicketDetailPage({
           .order("due_date", { ascending: true, nullsFirst: false })
           .limit(8),
         supabase
-          .from("issues")
+          .from("tickets")
           .select("id, display_id, title, status, severity")
           .eq("project_id", project.id)
           .contains("assignees", [currentUserId])
@@ -94,7 +94,7 @@ export default async function TicketDetailPage({
   let quickAccessTickets = (myTickets ?? []).filter(hasDisplayId);
   if (quickAccessTasks.length === 0 && quickAccessTickets.length === 0) {
     const { data: fallbackTickets } = await supabase
-      .from("issues")
+      .from("tickets")
       .select("id, display_id, title, status, severity")
       .eq("project_id", project.id)
       .neq("status", "closed")

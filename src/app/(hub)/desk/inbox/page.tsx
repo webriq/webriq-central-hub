@@ -28,7 +28,8 @@ import { resolveContactName, type ContactRow } from "./_resolve";
 // (`buildStatusOrClause`/`NOT_ARCHIVED_OR` below filter server-side via `.or()`, which doesn't
 // require the filtered columns to be in the `select` list at all), only the removed columns'
 // *display* is gone. In their place: a "Linked Ticket" column — a reverse lookup of any
-// `issues.source_ticket_id` pointing at this row, linking to that filed issue's existing detail
+// `tickets.source_inbox_id` (renamed from `issues.source_ticket_id` by migration 147) pointing
+// at this row, linking to that filed ticket's existing detail
 // page under Projects (no dedicated Desk-side ticket detail page exists).
 //
 // Follow-up (task 370) — the Tickets tab's read-only "Ticket status" column (the origin ticket's
@@ -44,14 +45,13 @@ type TicketRow = {
   subject: string;
   requester_email: string | null;
   external_contact_id: string | null;
-  ticket_id: string;
   status: "open" | "on_hold" | "escalated" | "closed";
   created_at: string;
   customers: { company_name: string } | null;
 };
 
 type LinkedIssueRow = {
-  source_ticket_id: string | null;
+  source_inbox_id: string | null;
   display_id: string | null;
   created_at: string;
   projects: { project_id: string; external_project_id: string | null } | null;
@@ -107,9 +107,9 @@ export default async function DeskInboxPage({
   const realStatuses = statusSelected.filter((s) => s !== ARCHIVED_FILTER_VALUE);
 
   let ticketsQuery = supabase
-    .from("tickets")
+    .from("inbox")
     .select(
-      "id, subject, requester_email, external_contact_id, ticket_id, status, created_at, customers(company_name)",
+      "id, subject, requester_email, external_contact_id, status, created_at, customers(company_name)",
       { count: "exact" }
     )
     .order("created_at", { ascending: false });
@@ -159,33 +159,36 @@ export default async function DeskInboxPage({
   }
 
   // Linked Ticket — the reverse of the Tickets tab's "Origin Ticket" column: does any filed
-  // issue point back at this ticket via `source_ticket_id`? At most one is shown per ticket
+  // ticket point back at this inbox row via `source_inbox_id`? At most one is shown per row
   // (the most recently filed, if more than one somehow exists — no DB constraint enforces
-  // uniqueness, but in practice a ticket is filed into an issue once).
+  // uniqueness, but in practice an inbox message is filed into a ticket once).
   const ticketIds = ticketRows.map((t) => t.id);
   const linkedIssueByTicketId = new Map<string, { issueDisplayId: string; href: string }>();
   if (ticketIds.length > 0) {
     const { data: linkedRows } = await supabase
-      .from("issues")
-      .select("source_ticket_id, display_id, created_at, projects(project_id, external_project_id)")
-      .in("source_ticket_id", ticketIds)
+      .from("tickets")
+      .select("source_inbox_id, display_id, created_at, projects(project_id, external_project_id)")
+      .in("source_inbox_id", ticketIds)
       .order("created_at", { ascending: false });
     for (const iss of (linkedRows ?? []) as unknown as LinkedIssueRow[]) {
-      if (!iss.source_ticket_id || linkedIssueByTicketId.has(iss.source_ticket_id)) continue;
+      if (!iss.source_inbox_id || linkedIssueByTicketId.has(iss.source_inbox_id)) continue;
       const projectHref = buildProjectHref({
         projectDisplayId: iss.projects?.project_id ?? null,
         isLegacy: !!iss.projects?.external_project_id,
       });
       const href = buildItemHref(projectHref, "ticket", iss.display_id);
       if (iss.display_id && href) {
-        linkedIssueByTicketId.set(iss.source_ticket_id, { issueDisplayId: iss.display_id, href });
+        linkedIssueByTicketId.set(iss.source_inbox_id, { issueDisplayId: iss.display_id, href });
       }
     }
   }
 
+  // Task 382 — `ticketId` now carries the row's UUID (`id`), the routing key for both the
+  // detail-page Link and the status/resend-notification API calls in _inbox-table.tsx /
+  // _inbox-index.tsx (was `ticket_id`, the "TKT-<n>" display key, through task 326–381).
   const tickets: TicketListItem[] = ticketRows.map((t) => ({
     id: t.id,
-    ticketId: t.ticket_id,
+    ticketId: t.id,
     subject: t.subject,
     contactName: resolveContactName(t, contactByExternalId.get(t.external_contact_id ?? "")),
     accountName: t.customers?.company_name ?? null,

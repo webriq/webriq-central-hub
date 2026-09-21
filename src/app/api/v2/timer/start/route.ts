@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
     }
   } else {
     const { data: issue } = await supabase
-      .from("issues")
+      .from("tickets")
       .select("id, assignee_id, assignees, project_id")
       .eq("id", issueId as string)
       .eq("project_id", projectId)

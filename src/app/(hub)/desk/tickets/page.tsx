@@ -6,14 +6,15 @@ import { buildProjectHref, buildItemHref } from "@/lib/projects/deep-links";
 import FiledIssuesIndex, { type PaginationMeta, type FiledIssueListItem } from "./_filed-issues-index";
 import { parseStatusFilterParam, ALL_STATUS_VALUES } from "./_status-filter";
 
-// Desk > Tickets (task 363) — a cross-project listing of `issues` rows filed from an Inbox
-// (Desk) ticket thread message via the "File an Issue" action (task 333), linked by the new
-// `issues.source_ticket_id` column (migration 137). The support→dev handoff board: PM/Admin
-// assign a developer, track status, and see total logged hours, without opening the owning
-// project. Same role gate as Inbox (admin/super_admin/pm) — `issues_staff_read` (migration 051)
-// would technically let a developer read every row too, but this page deliberately doesn't
-// surface it to them; their own filed-and-assigned issues remain visible on the project's own
-// Issues tab and Dev Dashboard → My Tasks.
+// Desk > Tickets (task 363) — a cross-project listing of `tickets` rows filed from an Inbox
+// (Desk) message via the "File a Ticket" action (task 333), linked by the
+// `tickets.source_inbox_id` column (migration 137, renamed from `issues.source_ticket_id` by
+// migration 147's task-382 rename). The support→dev handoff board: PM/Admin assign a
+// developer, track status, and see total logged hours, without opening the owning project.
+// Same role gate as Inbox (admin/super_admin/pm) — `tickets_staff_read` (migration 051, was
+// `issues_staff_read`) would technically let a developer read every row too, but this page
+// deliberately doesn't surface it to them; their own filed-and-assigned tickets remain
+// visible on the project's own Tickets tab and Dev Dashboard → My Tasks.
 //
 // This is a *different* route than `/desk/inbox` (the renamed old `/desk/tickets`, itself
 // renamed from "Mailbox" per user preference) — no shared query logic, no shared components
@@ -32,9 +33,9 @@ type FiledIssueRow = {
   created_at: string;
   projects: { project_id: string; external_project_id: string | null; name: string } | null;
   // Ticket ID/Responded/Due Date/Status moved here from the Inbox list table (still task 363's
-  // follow-up) — these are the *origin ticket's own* fields, distinct from this issue's own
-  // `status` above (the dev-workflow status).
-  tickets: {
+  // follow-up) — these are the *origin Inbox message's own* fields, distinct from this ticket's
+  // own `status` above (the dev-workflow status).
+  inbox: {
     ticket_id: string;
     subject: string;
     status: string;
@@ -73,12 +74,12 @@ export default async function DeskFiledIssuesPage({
   const statusSelected = parseStatusFilterParam(params.status ?? null);
 
   let issuesQuery = supabase
-    .from("issues")
+    .from("tickets")
     .select(
-      "id, title, display_id, status, severity, assignees, assignee_id, created_at, projects(project_id, external_project_id, name), tickets(ticket_id, subject, status, first_response_at, sla_due_at)",
+      "id, title, display_id, status, severity, assignees, assignee_id, created_at, projects(project_id, external_project_id, name), inbox(ticket_id, subject, status, first_response_at, sla_due_at)",
       { count: "exact" }
     )
-    .not("source_ticket_id", "is", null)
+    .not("source_inbox_id", "is", null)
     .order("created_at", { ascending: false });
 
   if (statusSelected.length === 0) {
@@ -128,11 +129,11 @@ export default async function DeskFiledIssuesPage({
       projectHref,
       ticketHref: buildItemHref(projectHref, "ticket", i.display_id),
       projectName: i.projects?.name ?? "—",
-      ticketId: i.tickets?.ticket_id ?? "",
-      ticketSubject: i.tickets?.subject ?? "",
-      ticketRespondedAt: i.tickets?.first_response_at ?? null,
-      ticketDueAt: i.tickets?.sla_due_at ?? null,
-      ticketOverdue: i.tickets ? isTicketOverdue(i.tickets.status, i.tickets.sla_due_at) : false,
+      ticketId: i.inbox?.ticket_id ?? "",
+      ticketSubject: i.inbox?.subject ?? "",
+      ticketRespondedAt: i.inbox?.first_response_at ?? null,
+      ticketDueAt: i.inbox?.sla_due_at ?? null,
+      ticketOverdue: i.inbox ? isTicketOverdue(i.inbox.status, i.inbox.sla_due_at) : false,
       totalHours: hoursByIssueId.get(i.id) ?? 0,
     };
   });

@@ -149,6 +149,13 @@ export default function IssueDetailClient({
               <span className="text-[11px] font-mono text-[#5F6A88] bg-[#EDF0F7] px-2 py-0.5 rounded-[5px]">
                 ISSUE · {issue.display_id ?? issue.prefix ?? issue.id}
               </span>
+              {/* Task 382 rider — Zoho's original per-project issue id (e.g. "TC3-I1"), shown as a
+                  muted reference only for imported rows; null for anything created natively. */}
+              {issue.prefix && (
+                <span className="text-[11px] font-mono text-[#5F6A88] opacity-60">
+                  formerly {issue.prefix}
+                </span>
+              )}
               <StatusBadge status={status as TaskStatus} />
               <SeverityBadge severity={severity} />
               {perm.canStartTimer && (

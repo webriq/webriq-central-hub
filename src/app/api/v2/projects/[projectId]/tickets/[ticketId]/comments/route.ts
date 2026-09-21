@@ -54,13 +54,13 @@ export async function GET(
   const { data: project } = await supabase.from("projects").select("id").eq("project_id", projectId).single();
   if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 });
 
-  const { data: ticket } = await supabase.from("issues").select("id").eq("id", ticketId).eq("project_id", project.id).maybeSingle();
+  const { data: ticket } = await supabase.from("tickets").select("id").eq("id", ticketId).eq("project_id", project.id).maybeSingle();
   if (!ticket) return NextResponse.json({ error: "Ticket not found" }, { status: 404 });
 
   const { data: comments, error } = await supabase
-    .from("issue_comments")
+    .from("ticket_comments")
     .select("id, body, created_at, author_id, author_name, author_email, source_meta")
-    .eq("issue_id", ticket.id)
+    .eq("ticket_id", ticket.id)
     .order("created_at", { ascending: true });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
@@ -121,7 +121,7 @@ export async function POST(
   const { data: project } = await supabase.from("projects").select("id").eq("project_id", projectId).single();
   if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 });
 
-  const { data: ticket } = await supabase.from("issues").select("id").eq("id", ticketId).eq("project_id", project.id).maybeSingle();
+  const { data: ticket } = await supabase.from("tickets").select("id").eq("id", ticketId).eq("project_id", project.id).maybeSingle();
   if (!ticket) return NextResponse.json({ error: "Ticket not found" }, { status: 404 });
 
   // Task 301 — body may be empty when the comment is attachment-only (client enforces
@@ -133,8 +133,8 @@ export async function POST(
   const text = typeof body.body === "string" ? body.body.trim() : "";
 
   const { data: comment, error } = await supabase
-    .from("issue_comments")
-    .insert({ issue_id: ticket.id, author_id: user.id, body: text })
+    .from("ticket_comments")
+    .insert({ ticket_id: ticket.id, author_id: user.id, body: text })
     .select("id, body, created_at")
     .single();
 

@@ -33,7 +33,8 @@ export function resolveOwnerName(agent: DeskAgentRow | undefined): string {
 
 // The displayed ticket number. Since task 326 `ticket_number` holds Zoho's real ticketNumber
 // for imported rows (and a serial above the imported max for Hub-native ones). Routing is by
-// `ticket_id` (`TKT-<ticket_number>`), so the `#<n>` badge and the `TKT-<n>` URL agree.
+// `id` (UUID) as of task 382 — this badge is purely a display label now, fully decoupled from
+// the URL (was `ticket_id`, "TKT-<n>", through task 326–381).
 export function resolveDisplayId(ticket: { ticket_number: number }): string {
   return `#${ticket.ticket_number}`;
 }

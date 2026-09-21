@@ -110,7 +110,7 @@ async function uploadAndUpsert(
   downloadUrl: string | null
 ): Promise<{ ok: boolean; message?: string }> {
   const { data: issueRow, error: issueErr } = await supabase
-    .from("issues")
+    .from("tickets")
     .select("id")
     .eq("external_id", zohoIssueId)
     .maybeSingle();

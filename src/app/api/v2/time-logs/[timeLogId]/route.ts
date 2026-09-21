@@ -77,7 +77,7 @@ export async function PATCH(
       return NextResponse.json({ error: "You must be assigned to this task to log time" }, { status: 403 });
     }
   } else if (issueId) {
-    const { data: issue } = await supabase.from("issues").select("id").eq("id", issueId).maybeSingle();
+    const { data: issue } = await supabase.from("tickets").select("id").eq("id", issueId).maybeSingle();
     if (!issue) return NextResponse.json({ error: "Issue not found" }, { status: 404 });
   }
 

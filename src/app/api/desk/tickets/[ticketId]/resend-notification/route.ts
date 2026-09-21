@@ -18,15 +18,16 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  // Task 382 — routes by inbox.id (UUID), not the "TKT-<n>" display key. See _resolve.ts.
   const { ticketId } = await params;
-  if (!/^TKT-\d+$/.test(ticketId)) {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(ticketId)) {
     return NextResponse.json({ error: "Invalid ticket id" }, { status: 400 });
   }
 
   const { data: ticket, error } = await adminClient
-    .from("tickets")
+    .from("inbox")
     .select("id, ticket_number, subject, requester_email")
-    .eq("ticket_id", ticketId)
+    .eq("id", ticketId)
     .maybeSingle();
 
   if (error) {

@@ -1,4 +1,5 @@
-// dev-only import endpoint — reads _from_zoho/issue-comments.json, upserts to issue_comments table.
+// dev-only import endpoint — reads _from_zoho/issue-comments.json, upserts to ticket_comments table
+// (renamed from issue_comments by migration 147 / task 382).
 import { NextResponse } from "next/server";
 import path from "path";
 import fs from "fs";
@@ -19,7 +20,7 @@ type ZohoIssueCommentRaw = {
 
 type IssueCommentRow = {
   external_id: string;
-  issue_id: string;
+  ticket_id: string;
   author_id: string | null;
   author_name: string | null;
   author_email: string | null;
@@ -42,7 +43,7 @@ async function upsertChunkWithRetry(
 ): Promise<{ error: string | null }> {
   let lastError = "";
   for (let attempt = 1; attempt <= MAX_UPSERT_RETRIES; attempt++) {
-    const { error } = await adminClient.from("issue_comments").upsert(chunk, { onConflict: "external_id" });
+    const { error } = await adminClient.from("ticket_comments").upsert(chunk, { onConflict: "external_id" });
     if (!error) return { error: null };
 
     lastError = error.message;
@@ -83,7 +84,7 @@ export async function POST() {
     let from = 0;
     while (true) {
       const { data: page, error: issueFetchError } = await adminClient
-        .from("issues")
+        .from("tickets")
         .select("id, external_id")
         .not("external_id", "is", null)
         .range(from, from + PAGE - 1);
@@ -133,7 +134,7 @@ export async function POST() {
 
     rows.push({
       external_id: externalId,
-      issue_id: issueId,
+      ticket_id: issueId,
       author_id: authorId,
       author_name: c.added_by?.full_name ?? c.added_by?.name ?? null,
       author_email: c.added_by?.email ?? null,

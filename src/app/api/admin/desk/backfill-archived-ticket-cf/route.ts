@@ -71,7 +71,7 @@ export async function POST(req: Request) {
       // `source_meta->>isArchived.eq.true` — same PostgREST JSON-path predicate the Desk
       // Inbox list view uses (src/app/(hub)/desk/inbox/page.tsx).
       let q = adminClient
-        .from("tickets")
+        .from("inbox")
         .select("id, external_id, ticket_number, source_meta")
         .or("source_meta->>isArchived.eq.true")
         .not("external_id", "is", null)
@@ -141,7 +141,7 @@ export async function POST(req: Request) {
               stackShiftSite: resolveCfField(cf, CF_TARGETS.stackShiftSite),
             };
             const { error: updateError } = await adminClient
-              .from("tickets")
+              .from("inbox")
               .update({ source_meta: patched })
               .eq("id", cand.id);
             if (updateError) throw new Error(`row update failed: ${updateError.message}`);

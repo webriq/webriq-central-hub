@@ -30,7 +30,7 @@ export default async function IssueDetailPage({
   const currentUserRole = profile?.role ?? null;
 
   const [{ data: issue }, { data: allMembers }] = await Promise.all([
-    supabase.from("issues").select("*").eq("display_id", issueId).eq("project_id", project.id).single(),
+    supabase.from("tickets").select("*").eq("display_id", issueId).eq("project_id", project.id).single(),
     supabase
       .from("profiles")
       .select("id, full_name, avatar_url")
@@ -54,7 +54,7 @@ export default async function IssueDetailPage({
           .order("due_date", { ascending: true, nullsFirst: false })
           .limit(8),
         supabase
-          .from("issues")
+          .from("tickets")
           .select("id, display_id, title, status, severity")
           .eq("project_id", project.id)
           .eq("assignee_id", currentUserId)
@@ -74,7 +74,7 @@ export default async function IssueDetailPage({
   let quickAccessIssues = (myIssues ?? []).filter(hasDisplayId);
   if (quickAccessTasks.length === 0 && quickAccessIssues.length === 0) {
     const { data: fallbackIssues } = await supabase
-      .from("issues")
+      .from("tickets")
       .select("id, display_id, title, status, severity")
       .eq("project_id", project.id)
       .neq("status", "closed")

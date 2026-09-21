@@ -7,7 +7,7 @@ import { buildTicketAssigneeSync } from "@/lib/tickets/assignee-sync";
 
 const VALID_STATUS = ["open", "in_progress", "ready_for_qa", "testing_completed", "for_client_approval", "ready_to_merge", "post_live_qa", "closed"] as const;
 const VALID_SEVERITY = ["Show stopper", "Critical", "Major", "Minor", "None"] as const;
-type TicketUpdate = Database["public"]["Tables"]["issues"]["Update"];
+type TicketUpdate = Database["public"]["Tables"]["tickets"]["Update"];
 
 // Task 234 — fields an assignee-only developer (not the creator) may still touch: status.
 // Tickets have no `position` column (unlike tasks — no board drag-and-drop reordering here).
@@ -30,7 +30,7 @@ export async function PATCH(
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const [{ data: existingTicket }, { data: profile }] = await Promise.all([
-    supabase.from("issues").select("created_by, assignee_id, assignees, project_id").eq("id", ticketId).maybeSingle(),
+    supabase.from("tickets").select("created_by, assignee_id, assignees, project_id").eq("id", ticketId).maybeSingle(),
     supabase.from("profiles").select("role").eq("id", user.id).maybeSingle(),
   ]);
   if (!existingTicket) return NextResponse.json({ error: "Ticket not found" }, { status: 404 });
@@ -102,7 +102,7 @@ export async function PATCH(
   }
 
   const { data, error } = await supabase
-    .from("issues")
+    .from("tickets")
     .update(patch)
     .eq("id", ticketId)
     .select()
@@ -128,7 +128,7 @@ export async function DELETE(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { error } = await supabase.from("issues").delete().eq("id", ticketId);
+  const { error } = await supabase.from("tickets").delete().eq("id", ticketId);
   if (error) {
     console.error("[api/v2/tickets/[id]] delete failed:", error.message);
     return NextResponse.json({ error: error.message }, { status: 400 });

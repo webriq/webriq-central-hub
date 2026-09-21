@@ -93,7 +93,7 @@ async function processMessage(summary: ZohoMailMessageSummary): Promise<ProcessO
   // Idempotency — a re-poll of a message already processed (e.g. after another message in the
   // same batch failed and blocked the cursor) must not create a duplicate ticket_message.
   const { data: existingMessage } = await adminClient
-    .from("ticket_messages")
+    .from("inbox_messages")
     .select("id")
     .eq("email_message_id", summary.messageId)
     .maybeSingle();
@@ -135,8 +135,6 @@ async function processMessage(summary: ZohoMailMessageSummary): Promise<ProcessO
 
   let ticketId: string | null = null;
   let ticketNumber: number | null = null;
-  // The readable TKT-<n> id (task 326) — used to build inline-image serving URLs.
-  let ticketDisplayId: string | null = null;
   // Status of a pre-existing ticket this message was matched onto (null when we create a new
   // ticket) — drives the closed -> open reopen below.
   let matchedTicketStatus: string | null = null;
@@ -144,14 +142,13 @@ async function processMessage(summary: ZohoMailMessageSummary): Promise<ProcessO
   // Match 1 — Zoho Mail's threadId groups a full conversation server-side; a ticket we created
   // stores it as zoho_mail_thread_id.
   const { data: existingTicket } = await adminClient
-    .from("tickets")
-    .select("id, ticket_number, ticket_id, status")
+    .from("inbox")
+    .select("id, ticket_number, status")
     .eq("zoho_mail_thread_id", email.threadId)
     .maybeSingle();
   if (existingTicket) {
     ticketId = existingTicket.id;
     ticketNumber = existingTicket.ticket_number;
-    ticketDisplayId = existingTicket.ticket_id;
     matchedTicketStatus = existingTicket.status;
   }
 
@@ -161,20 +158,19 @@ async function processMessage(summary: ZohoMailMessageSummary): Promise<ProcessO
   // Backfill the ticket for future direct-hit lookups.
   if (!ticketId) {
     const { data: rootMessage } = await adminClient
-      .from("ticket_messages")
-      .select("ticket_id")
+      .from("inbox_messages")
+      .select("inbox_id")
       .eq("email_message_id", email.threadId)
       .maybeSingle();
     if (rootMessage) {
-      ticketId = rootMessage.ticket_id;
-      await adminClient.from("tickets").update({ zoho_mail_thread_id: email.threadId }).eq("id", ticketId);
+      ticketId = rootMessage.inbox_id;
+      await adminClient.from("inbox").update({ zoho_mail_thread_id: email.threadId }).eq("id", ticketId);
       const { data: ticketRow } = await adminClient
-        .from("tickets")
-        .select("ticket_number, ticket_id, status")
+        .from("inbox")
+        .select("ticket_number, status")
         .eq("id", ticketId)
         .maybeSingle();
       ticketNumber = ticketRow?.ticket_number ?? null;
-      ticketDisplayId = ticketRow?.ticket_id ?? null;
       matchedTicketStatus = ticketRow?.status ?? null;
     }
   }
@@ -186,8 +182,8 @@ async function processMessage(summary: ZohoMailMessageSummary): Promise<ProcessO
   if (!ticketId) {
     const since = new Date(Date.now() - THREAD_MATCH_LOOKBACK_DAYS * 86_400_000).toISOString();
     const { data: candidates } = await adminClient
-      .from("tickets")
-      .select("id, ticket_number, ticket_id, status, subject, requester_email, zoho_mail_thread_id")
+      .from("inbox")
+      .select("id, ticket_number, status, subject, requester_email, zoho_mail_thread_id")
       .ilike("requester_email", requesterEmail)
       .gt("created_at", since)
       .order("created_at", { ascending: false })
@@ -200,10 +196,9 @@ async function processMessage(summary: ZohoMailMessageSummary): Promise<ProcessO
     if (match) {
       ticketId = match.id;
       ticketNumber = match.ticket_number;
-      ticketDisplayId = match.ticket_id;
       matchedTicketStatus = match.status;
       if (!match.zoho_mail_thread_id) {
-        await adminClient.from("tickets").update({ zoho_mail_thread_id: email.threadId }).eq("id", match.id);
+        await adminClient.from("inbox").update({ zoho_mail_thread_id: email.threadId }).eq("id", match.id);
       }
     }
   }
@@ -220,7 +215,7 @@ async function processMessage(summary: ZohoMailMessageSummary): Promise<ProcessO
       .limit(1);
 
     const { data: newTicket, error: ticketError } = await adminClient
-      .from("tickets")
+      .from("inbox")
       .insert({
         customer_id: contactMatches?.[0]?.customer_id ?? null,
         subject: ticketSubject,
@@ -230,13 +225,12 @@ async function processMessage(summary: ZohoMailMessageSummary): Promise<ProcessO
         requester_email: requesterEmail,
         zoho_mail_thread_id: email.threadId,
       })
-      .select("id, ticket_number, ticket_id")
+      .select("id, ticket_number")
       .single();
 
     if (ticketError || !newTicket) throw new Error(`failed to create ticket: ${ticketError?.message}`);
     ticketId = newTicket.id;
     ticketNumber = newTicket.ticket_number;
-    ticketDisplayId = newTicket.ticket_id;
 
     // Task 379 — customer "ticket created" confirmation, only on genuine first creation (never
     // on a matched reply above). Best-effort/non-blocking — swallows its own failures.
@@ -249,12 +243,13 @@ async function processMessage(summary: ZohoMailMessageSummary): Promise<ProcessO
   }
 
   if (ticketNumber == null) throw new Error(`could not resolve ticket_number for ticket ${ticketId}`);
-  // Belt-and-braces: the DB trigger always sets ticket_id, but derive it if a stale read missed it.
-  ticketDisplayId = ticketDisplayId ?? `TKT-${ticketNumber}`;
+  // Belt-and-braces: every branch above sets ticketId before reaching here, but this narrows the
+  // `string | null` type for the applyInlineImages() call below (task 382).
+  if (!ticketId) throw new Error("could not resolve ticket id");
 
   // Reopen a closed ticket when the customer replies (task 327).
   if (matchedTicketStatus === "closed") {
-    await adminClient.from("tickets").update({ status: "open" }).eq("id", ticketId);
+    await adminClient.from("inbox").update({ status: "open" }).eq("id", ticketId);
   }
 
   // A parsed support-form body (task 352) is plain text we assembled ourselves — the raw HTML
@@ -273,7 +268,9 @@ async function processMessage(summary: ZohoMailMessageSummary): Promise<ProcessO
       ? { body, rewrittenCids: [] as string[], storedButUnmatchedCids: [] as string[] }
       : await applyInlineImages({
           messageRowId: newMessageId,
-          ticketId: ticketDisplayId,
+          // Task 382 — the inline-image serving route now takes inbox.id (UUID) in the URL,
+          // not the "TKT-<n>" display key ticketDisplayId used to hold here.
+          ticketId,
           inlineImages: email.inlineImages,
           body,
         });
@@ -287,10 +284,10 @@ async function processMessage(summary: ZohoMailMessageSummary): Promise<ProcessO
     formBody === null && (email.inlineImagesUnresolved || inlineResult.storedButUnmatchedCids.length > 0);
 
   const { data: newMessage, error: messageError } = await adminClient
-    .from("ticket_messages")
+    .from("inbox_messages")
     .insert({
       id: newMessageId,
-      ticket_id: ticketId,
+      inbox_id: ticketId,
       author_type: "client",
       visibility: "public",
       body,
@@ -306,7 +303,7 @@ async function processMessage(summary: ZohoMailMessageSummary): Promise<ProcessO
   if (messageError || !newMessage) throw new Error(`failed to create ticket_message: ${messageError?.message}`);
 
   // Attachments — stored in the existing ticket-attachments bucket + attachments table
-  // (entity_type: 'ticket_message'), same shape the ticket-attachments import route already
+  // (entity_type: 'inbox_message'), same shape the ticket-attachments import route already
   // writes (task 306). external_id doubles as an idempotency key for a retried upload.
   for (const att of email.attachments) {
     try {
@@ -327,7 +324,7 @@ async function processMessage(summary: ZohoMailMessageSummary): Promise<ProcessO
       await adminClient.from("attachments").upsert(
         {
           external_id: att.attachmentId,
-          entity_type: "ticket_message",
+          entity_type: "inbox_message",
           entity_id: newMessage.id,
           storage_path: storagePath,
           filename: att.fileName,

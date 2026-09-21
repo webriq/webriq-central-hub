@@ -33,7 +33,7 @@ export async function GET(
   const { data: project } = await supabase.from("projects").select("id").eq("project_id", projectId).single();
   if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 });
 
-  const { data: ticket } = await supabase.from("issues").select("id").eq("id", ticketId).eq("project_id", project.id).maybeSingle();
+  const { data: ticket } = await supabase.from("tickets").select("id").eq("id", ticketId).eq("project_id", project.id).maybeSingle();
   if (!ticket) return NextResponse.json({ error: "Ticket not found" }, { status: 404 });
 
   const { data: issueAttachments, error } = await supabase
@@ -50,9 +50,9 @@ export async function GET(
   // thread. `fetchUrl` is computed server-side so the client never has to branch-construct the
   // right signed-URL endpoint per source.
   const { data: comments } = await supabase
-    .from("issue_comments")
+    .from("ticket_comments")
     .select("id")
-    .eq("issue_id", ticket.id);
+    .eq("ticket_id", ticket.id);
   const commentIds = (comments ?? []).map((c) => c.id);
 
   type MergedAttachment = {
@@ -108,7 +108,7 @@ export async function POST(
   if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 });
 
   const { data: ticket } = await supabase
-    .from("issues")
+    .from("tickets")
     .select("id, created_by, assignee_id, assignees")
     .eq("id", ticketId)
     .eq("project_id", project.id)

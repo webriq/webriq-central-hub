@@ -124,7 +124,7 @@ export async function resolveTaskId(externalId: string): Promise<string | null> 
 export async function resolveIssueId(externalId: string): Promise<string | null> {
   if (!externalId) return null;
   const { data } = await adminClient
-    .from("issues")
+    .from("tickets")
     .select("id")
     .eq("external_id", externalId)
     .maybeSingle();

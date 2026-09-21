@@ -52,7 +52,7 @@ export async function getProjectDetailData(projectId: string): Promise<ProjectDe
       .eq("project_id", project.id)
       .order("position", { ascending: true, nullsFirst: false }),
     supabase
-      .from("issues")
+      .from("tickets")
       .select("*")
       .eq("project_id", project.id)
       .order("created_at", { ascending: false }),

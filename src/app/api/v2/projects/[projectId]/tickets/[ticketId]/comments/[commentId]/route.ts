@@ -19,14 +19,14 @@ export async function DELETE(
   const { data: project } = await supabase.from("projects").select("id").eq("project_id", projectId).single();
   if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 });
 
-  const { data: ticket } = await supabase.from("issues").select("id").eq("id", ticketId).eq("project_id", project.id).maybeSingle();
+  const { data: ticket } = await supabase.from("tickets").select("id").eq("id", ticketId).eq("project_id", project.id).maybeSingle();
   if (!ticket) return NextResponse.json({ error: "Ticket not found" }, { status: 404 });
 
   const { data: comment } = await supabase
-    .from("issue_comments")
+    .from("ticket_comments")
     .select("id, author_id")
     .eq("id", commentId)
-    .eq("issue_id", ticket.id)
+    .eq("ticket_id", ticket.id)
     .maybeSingle();
   if (!comment) return NextResponse.json({ error: "Comment not found" }, { status: 404 });
 
@@ -37,7 +37,7 @@ export async function DELETE(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { error } = await supabase.from("issue_comments").delete().eq("id", commentId);
+  const { error } = await supabase.from("ticket_comments").delete().eq("id", commentId);
   if (error) {
     console.error("[api/v2/projects/[id]/tickets/[id]/comments/[id]] delete failed:", error.message);
     return NextResponse.json({ error: error.message }, { status: 400 });

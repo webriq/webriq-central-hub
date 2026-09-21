@@ -19,8 +19,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  // Task 382 — routes by inbox.id (UUID), not the "TKT-<n>" display key. See _resolve.ts.
   const { ticketId } = await params;
-  if (!/^TKT-\d+$/.test(ticketId)) {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(ticketId)) {
     return NextResponse.json({ error: "Invalid ticket id" }, { status: 400 });
   }
 
@@ -33,9 +34,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   }
 
   const { data: ticket } = await adminClient
-    .from("tickets")
+    .from("inbox")
     .select("id, subject, requester_email, external_contact_id")
-    .eq("ticket_id", ticketId)
+    .eq("id", ticketId)
     .maybeSingle();
   if (!ticket) return NextResponse.json({ error: "Ticket not found" }, { status: 404 });
 
@@ -57,9 +58,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   // param), unlike Resend's manual In-Reply-To/References headers. Replying to the most recent
   // message in the thread keeps the conversation's tip growing correctly for multi-hop chains.
   const { data: latestMessage } = await adminClient
-    .from("ticket_messages")
+    .from("inbox_messages")
     .select("email_message_id")
-    .eq("ticket_id", ticket.id)
+    .eq("inbox_id", ticket.id)
     .not("email_message_id", "is", null)
     .order("created_at", { ascending: false })
     .limit(1)
@@ -95,9 +96,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   }
 
   const { data, error } = await adminClient
-    .from("ticket_messages")
+    .from("inbox_messages")
     .insert({
-      ticket_id: ticket.id,
+      inbox_id: ticket.id,
       author_type: "staff",
       author_id: user.id,
       body: replyBody,

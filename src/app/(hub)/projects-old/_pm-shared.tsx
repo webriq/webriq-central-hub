@@ -10,10 +10,10 @@ export type Project = Database["public"]["Tables"]["projects"]["Row"];
 export type Milestone = Database["public"]["Tables"]["milestones"]["Row"];
 export type Tasklist = Database["public"]["Tables"]["tasklists"]["Row"];
 export type Task = Database["public"]["Tables"]["tasks"]["Row"];
-// "Ticket" (task 364, renamed from "Issue" everywhere at the application layer) — the
-// underlying `issues` table keeps its name (see task 364's Out of Scope: `tickets` is taken by
-// the Desk email table).
-export type Ticket = Database["public"]["Tables"]["issues"]["Row"];
+// "Ticket" (task 364, renamed from "Issue" everywhere at the application layer). Task 382
+// finished the DB-level rename this comment used to explain the absence of: `issues` -> `tickets`,
+// old `tickets` (Desk email) -> `inbox`.
+export type Ticket = Database["public"]["Tables"]["tickets"]["Row"];
 
 export type TaskStatus = Task["status"];
 export type TaskPriority = Task["priority"];

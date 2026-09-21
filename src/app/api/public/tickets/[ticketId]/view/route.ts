@@ -53,7 +53,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tic
   }
 
   const { data: ticket } = await adminClient
-    .from("tickets")
+    .from("inbox")
     .select("ticket_number, subject, status, created_at")
     .eq("id", ticketId)
     .maybeSingle();
@@ -63,9 +63,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tic
   }
 
   const { data: messages } = await adminClient
-    .from("ticket_messages")
+    .from("inbox_messages")
     .select("id, author_type, body, source_meta, created_at")
-    .eq("ticket_id", ticketId)
+    .eq("inbox_id", ticketId)
     .eq("visibility", "public")
     .order("created_at", { ascending: true });
 

@@ -42,6 +42,9 @@ export type ApplyInlineImagesResult = {
 // is logged and skipped, never fatal (mirrors the poll route's attachment-loop posture).
 export async function applyInlineImages(params: {
   messageRowId: string;
+  // Task 382 — must be the inbox row's UUID (`inbox.id`), not the "TKT-<n>" display key:
+  // it's embedded verbatim into the serving-route URL below, and that route now validates/
+  // looks up by UUID.
   ticketId: string;
   inlineImages: InlineImage[];
   body: string;
@@ -68,7 +71,7 @@ export async function applyInlineImages(params: {
         .upsert(
           {
             external_id: `${params.messageRowId}:${img.cid}`,
-            entity_type: "ticket_message",
+            entity_type: "inbox_message",
             entity_id: params.messageRowId,
             storage_path: storagePath,
             filename: img.filename,

@@ -125,14 +125,14 @@ export async function loadDevDashboard(userId: string, fullName: string | null):
         .order("updated_at", { ascending: false })
         .limit(WORK_LIMIT),
       supabase
-        .from("issues")
+        .from("tickets")
         .select(ISSUE_SELECT)
         .contains("assignees", [userId])
         .or(statusFilter)
         .order("updated_at", { ascending: false })
         .limit(WORK_LIMIT),
       supabase
-        .from("issues")
+        .from("tickets")
         .select(ISSUE_SELECT)
         .eq("assignee_id", userId)
         .or(statusFilter)
@@ -142,7 +142,7 @@ export async function loadDevDashboard(userId: string, fullName: string | null):
       // `ticketMatchesAssigneeFilter()` in `_shared/_assignee-filter.ts` applies.
       trimmedName
         ? supabase
-            .from("issues")
+            .from("tickets")
             .select(ISSUE_SELECT)
             .ilike("assignee_name", trimmedName)
             .or(statusFilter)

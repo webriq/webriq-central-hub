@@ -29,7 +29,7 @@ export type DeskTicketCommentRaw = {
 };
 
 type TicketMessageRow = {
-  ticket_id: string;
+  inbox_id: string;
   author_type: "staff" | "client";
   author_id: string | null;
   body: string;
@@ -47,7 +47,7 @@ const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 async function upsertChunkWithRetry(chunk: TicketMessageRow[]): Promise<{ error: string | null }> {
   let lastError = "";
   for (let attempt = 1; attempt <= MAX_UPSERT_RETRIES; attempt++) {
-    const { error } = await adminClient.from("ticket_messages").upsert(chunk, { onConflict: "external_id" });
+    const { error } = await adminClient.from("inbox_messages").upsert(chunk, { onConflict: "external_id" });
     if (!error) return { error: null };
 
     lastError = error.message;
@@ -68,7 +68,7 @@ export async function importDeskComments(comments: DeskTicketCommentRaw[]): Prom
     let from = 0;
     while (true) {
       const { data: page, error: ticketFetchError } = await adminClient
-        .from("tickets")
+        .from("inbox")
         .select("id, external_id")
         .not("external_id", "is", null)
         .range(from, from + PAGE - 1);
@@ -127,7 +127,7 @@ export async function importDeskComments(comments: DeskTicketCommentRaw[]): Prom
     const authorId = email ? (userCache.get(email) ?? null) : null;
 
     rows.push({
-      ticket_id: ticketId,
+      inbox_id: ticketId,
       author_type: authorType,
       author_id: authorId,
       body,

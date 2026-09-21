@@ -51,7 +51,7 @@ export function CreateTicketModal({
   defaultTitle?: string;
   defaultDescription?: string;
   // Task 363 — the Desk ticket's UUID `id` when this modal was opened via "File a Ticket" on a
-  // ticket thread message. Stamps `tickets.source_ticket_id` so the ticket surfaces on the Desk >
+  // ticket thread message. Stamps `tickets.source_inbox_id` so the ticket surfaces on the Desk >
   // Tickets tab. Omitted for the normal (project-page) New Ticket flow.
   sourceTicketId?: string;
   onClose: () => void;
@@ -129,7 +129,7 @@ export function CreateTicketModal({
         due_date: dueDate || undefined,
         due_time: dueTime || undefined,
         notes: notes.trim() || undefined,
-        source_ticket_id: sourceTicketId || undefined,
+        source_inbox_id: sourceTicketId || undefined,
       }),
     });
     if (!res.ok) {

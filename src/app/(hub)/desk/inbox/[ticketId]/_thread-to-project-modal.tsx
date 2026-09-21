@@ -99,7 +99,7 @@ export function ThreadToProjectModal({
         // it takes the sanitized message HTML directly — keeping inline images and paragraph
         // spacing — instead of a flattened plain-text conversion.
         defaultDescription={message.isHtml ? sanitizeMessageHtml(message.body) : message.body}
-        // Task 363 — stamps the new ticket's `source_ticket_id` so it surfaces on the Desk >
+        // Task 363 — stamps the new ticket's `source_inbox_id` (migration 147) so it surfaces on the Desk >
         // Tickets tab (the support→dev handoff board).
         sourceTicketId={ticketDbId}
         onClose={onClose}

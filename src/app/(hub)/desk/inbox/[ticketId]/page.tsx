@@ -13,9 +13,9 @@ import {
   type DeskAgentRow,
 } from "../_resolve";
 
-// Ticket Detail (task 303) — routed by tickets.ticket_id (`TKT-<n>`), not the id UUID
-// (task 326 — was the bare ticket_number; a deliberate "display value in the route param"
-// exception, same as /v2/projects/[projectId]). Same role gate as the list page.
+// Ticket Detail (task 303) — routed by inbox.id (UUID) as of task 382 (was inbox.ticket_id,
+// "TKT-<n>", since task 326 — that display key stays a UI label only now, no longer the
+// routing key; see _resolve.ts's resolveDisplayId()). Same role gate as the list page.
 export const dynamic = "force-dynamic";
 
 type TicketDetailRow = {
@@ -71,12 +71,15 @@ export async function generateMetadata({
   params: Promise<{ ticketId: string }>;
 }): Promise<Metadata> {
   const { ticketId } = await params;
-  return { title: `Ticket #${ticketId.replace(/^TKT-/, "")} · Desk` };
+  const supabase = await createClient();
+  const { data } = await supabase.from("inbox").select("ticket_number").eq("id", ticketId).maybeSingle();
+  return { title: data ? `Ticket #${data.ticket_number} · Desk` : "Ticket · Desk" };
 }
 
 export default async function TicketDetailPage({ params }: { params: Promise<{ ticketId: string }> }) {
+  // Task 382 — routes by inbox.id (UUID), not the "TKT-<n>" display key. See _resolve.ts.
   const { ticketId } = await params;
-  if (!/^TKT-\d+$/.test(ticketId)) notFound();
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(ticketId)) notFound();
 
   const supabase = await createClient();
   const { data: claims } = await supabase.auth.getClaims();
@@ -88,11 +91,11 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ t
   if (role !== "admin" && role !== "super_admin" && role !== "pm") redirect(V2_ROUTES.DASHBOARD);
 
   const { data: ticketData, error } = await supabase
-    .from("tickets")
+    .from("inbox")
     .select(
       "id, ticket_number, ticket_id, subject, status, priority, channel, requester_email, external_contact_id, source_meta, created_at, resolved_at, first_response_at, sla_due_at, customer_id, customers(company_name)"
     )
-    .eq("ticket_id", ticketId)
+    .eq("id", ticketId)
     .maybeSingle();
 
   if (error || !ticketData) notFound();
@@ -120,9 +123,9 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ t
   }
 
   const { data: messagesData } = await supabase
-    .from("ticket_messages")
+    .from("inbox_messages")
     .select("id, author_type, author_id, body, visibility, source_meta, created_at, email_message_id")
-    .eq("ticket_id", t.id)
+    .eq("inbox_id", t.id)
     .order("created_at", { ascending: true });
   const messageRows = (messagesData ?? []) as MessageRow[];
   const messageIds = messageRows.map((m) => m.id);
@@ -186,7 +189,7 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ t
     const { data: attachmentRows } = await supabase
       .from("attachments")
       .select("id, entity_id, filename, size")
-      .eq("entity_type", "ticket_message")
+      .eq("entity_type", "inbox_message")
       .in("entity_id", messageIds)
       .is("cid", null);
     for (const a of (attachmentRows ?? []) as AttachmentRow[]) {

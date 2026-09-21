@@ -21,7 +21,7 @@ export default async function TicketViewPage({ params }: TicketViewPageProps) {
 
   let exists = false;
   if (UUID_RE.test(ticketId)) {
-    const { data } = await adminClient.from("tickets").select("id").eq("id", ticketId).maybeSingle();
+    const { data } = await adminClient.from("inbox").select("id").eq("id", ticketId).maybeSingle();
     exists = data !== null;
   }
 

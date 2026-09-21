@@ -8,6 +8,7 @@ export const MCP_SCOPES = [
   "classifications:read",
   "classifications:write",
   "tickets:read",
+  "filed-tickets:read",
   "orchestration:run",
 ] as const;
 export type McpScope = (typeof MCP_SCOPES)[number];
@@ -19,7 +20,8 @@ export const MCP_SCOPE_DESCRIPTIONS: Record<McpScope, string> = {
   "tasks:delete": "Permanently delete tasks",
   "classifications:read": "View the AI pipeline classification queue",
   "classifications:write": "Update classification records in the AI pipeline queue",
-  "tickets:read": "View client support tickets",
+  "tickets:read": "View client support tickets (Desk Inbox)",
+  "filed-tickets:read": "View filed, assignable tickets on your projects",
   "orchestration:run": "Run the automation pipeline (classify, enumerate sub-tasks, execute in Sanity) on a task",
 };
 
@@ -39,6 +41,7 @@ const STAFF_SCOPES: McpScope[] = [
   "classifications:read",
   "classifications:write",
   "tickets:read",
+  "filed-tickets:read",
   "orchestration:run",
 ];
 

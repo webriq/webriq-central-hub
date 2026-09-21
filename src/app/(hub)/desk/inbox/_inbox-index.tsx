@@ -53,8 +53,9 @@ export default function InboxIndex({
 
   // Optimistic status PATCH — mirrors `_filed-issues-index.tsx`'s `updateIssue`, but against the
   // Desk ticket's own status via the ticket detail page's existing endpoint (`PATCH
-  // /api/desk/tickets/[ticketId]/status`, task 303), keyed by the display `ticket_id` (e.g.
-  // "TKT-123") that endpoint expects, not the row's UUID `id`.
+  // /api/desk/tickets/[ticketId]/status`, task 303). `ticketId` here carries the row's UUID
+  // `id` as of task 382 (that endpoint used to expect the display `ticket_id`, e.g. "TKT-123",
+  // through task 326–381 — see page.tsx).
   async function updateTicketStatus(ticketId: string, status: TicketListItem["status"]): Promise<void> {
     const snapshot = tickets;
     setTickets((prev) => prev.map((t) => (t.ticketId === ticketId ? { ...t, status } : t)));

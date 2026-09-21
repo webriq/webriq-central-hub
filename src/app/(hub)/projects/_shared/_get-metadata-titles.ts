@@ -49,7 +49,7 @@ export async function getTicketMetadataInfo(
   if (!project) return null;
 
   const { data: ticket } = await supabase
-    .from("issues")
+    .from("tickets")
     .select("title")
     .eq("display_id", ticketId)
     .eq("project_id", project.id)

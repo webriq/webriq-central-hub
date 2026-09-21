@@ -17,10 +17,10 @@ export async function GET(
   const { data: project } = await supabase.from("projects").select("id").eq("project_id", projectId).single();
   if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 });
 
-  const { data: ticket } = await supabase.from("issues").select("id").eq("id", ticketId).eq("project_id", project.id).maybeSingle();
+  const { data: ticket } = await supabase.from("tickets").select("id").eq("id", ticketId).eq("project_id", project.id).maybeSingle();
   if (!ticket) return NextResponse.json({ error: "Ticket not found" }, { status: 404 });
 
-  const { data: comment } = await supabase.from("issue_comments").select("id").eq("id", commentId).eq("issue_id", ticket.id).maybeSingle();
+  const { data: comment } = await supabase.from("ticket_comments").select("id").eq("id", commentId).eq("ticket_id", ticket.id).maybeSingle();
   if (!comment) return NextResponse.json({ error: "Comment not found" }, { status: 404 });
 
   const { data: attachment } = await supabase

@@ -70,7 +70,7 @@ export async function GET(
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
   let canAdd = false;
   if (profile?.role === "developer") {
-    const { data: ticket } = await supabase.from("issues").select("assignee_id, assignees").eq("id", ticketId).maybeSingle();
+    const { data: ticket } = await supabase.from("tickets").select("assignee_id, assignees").eq("id", ticketId).maybeSingle();
     canAdd = !!ticket && ticketAssigneeIds(ticket).includes(user.id);
   }
   const canSeeSource = !!profile?.role && SOURCE_VISIBLE_ROLES.includes(profile.role);
@@ -97,7 +97,7 @@ export async function POST(
     return NextResponse.json({ error: "You do not have permission to log time" }, { status: 403 });
   }
 
-  const { data: ticket } = await supabase.from("issues").select("id, assignee_id, assignees, project_id").eq("id", ticketId).maybeSingle();
+  const { data: ticket } = await supabase.from("tickets").select("id, assignee_id, assignees, project_id").eq("id", ticketId).maybeSingle();
   if (!ticket) return NextResponse.json({ error: "Ticket not found" }, { status: 404 });
   if (!ticketAssigneeIds(ticket).includes(user.id)) {
     return NextResponse.json({ error: "You must be assigned to this ticket to log time" }, { status: 403 });

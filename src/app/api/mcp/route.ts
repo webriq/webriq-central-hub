@@ -15,6 +15,7 @@ import {
   updateClassificationStatusInputSchema,
 } from "@/lib/mcp/tools/update-classification-status";
 import { listTickets, listTicketsInputSchema } from "@/lib/mcp/tools/list-tickets";
+import { listFiledTickets, listFiledTicketsInputSchema } from "@/lib/mcp/tools/list-filed-tickets";
 import { runOrchestrationTool, runOrchestrationInputSchema } from "@/lib/mcp/tools/run-orchestration";
 
 // run_orchestration chains multiple sequential LLM calls plus a Sanity write with
@@ -148,10 +149,21 @@ const handler = createMcpHandler(
       "list_tickets",
       {
         title: "List Tickets",
-        description: "List client support tickets. Requires the tickets:read scope.",
+        description: "List client support tickets (Desk Inbox). Requires the tickets:read scope.",
         inputSchema: listTicketsInputSchema,
       },
       async (args, extra) => listTickets(args, extra.authInfo)
+    );
+
+    server.registerTool(
+      "list_filed_tickets",
+      {
+        title: "List Filed Tickets",
+        description:
+          "List filed, assignable tickets on your projects. Requires the filed-tickets:read scope.",
+        inputSchema: listFiledTicketsInputSchema,
+      },
+      async (args, extra) => listFiledTickets(args, extra.authInfo)
     );
 
     server.registerTool(

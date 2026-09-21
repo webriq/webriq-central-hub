@@ -19,7 +19,7 @@ export async function attachTaskTitle<T extends { task_id: string | null; issue_
   const titleQuery = timer.task_id
     ? supabase.from("tasks").select("title, display_id").eq("id", timer.task_id).maybeSingle()
     : timer.issue_id
-    ? supabase.from("issues").select("title, display_id").eq("id", timer.issue_id).maybeSingle()
+    ? supabase.from("tickets").select("title, display_id").eq("id", timer.issue_id).maybeSingle()
     : null;
   const projectQuery = timer.project_id
     ? supabase.from("projects").select("name, project_id").eq("id", timer.project_id).maybeSingle()

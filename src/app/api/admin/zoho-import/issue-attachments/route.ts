@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
           let from = 0;
           while (true) {
             const { data: page } = await adminClient
-              .from("issues")
+              .from("tickets")
               .select("id, external_id")
               .not("external_id", "is", null)
               .range(from, from + PAGE - 1);

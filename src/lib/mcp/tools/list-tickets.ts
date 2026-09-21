@@ -21,7 +21,7 @@ export async function listTickets(
 ) {
   return runScopedTool("list_tickets", "tickets:read", authInfo, async (client) => {
     let q = client
-      .from("tickets")
+      .from("inbox")
       .select("id,ticket_number,subject,status,priority,customer_id,requester_email,sla_due_at,created_at")
       .order("created_at", { ascending: false })
       .limit(limit);

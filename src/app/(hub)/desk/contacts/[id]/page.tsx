@@ -100,14 +100,16 @@ export default async function DeskContactDetailPage({ params }: { params: Promis
   let tickets: RelatedTicket[] = [];
   if (c.external_id) {
     const { data } = await supabase
-      .from("tickets")
-      .select("id, ticket_id, ticket_number, subject, status, created_at")
+      .from("inbox")
+      .select("id, ticket_number, subject, status, created_at")
       .eq("external_contact_id", c.external_id)
       .order("created_at", { ascending: false })
       .limit(50);
+    // Task 382 — ticketId carries the row's UUID (the detail-page routing key), not the old
+    // "TKT-<n>" display string.
     tickets = (data ?? []).map((t) => ({
       id: t.id,
-      ticketId: t.ticket_id,
+      ticketId: t.id,
       ticketNumber: t.ticket_number,
       subject: t.subject,
       status: t.status,

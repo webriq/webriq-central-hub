@@ -21,7 +21,7 @@ export async function DELETE(
   if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 });
 
   const { data: ticket } = await supabase
-    .from("issues")
+    .from("tickets")
     .select("id, created_by, assignee_id, assignees")
     .eq("id", ticketId)
     .eq("project_id", project.id)

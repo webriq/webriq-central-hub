@@ -155,7 +155,7 @@ export async function POST() {
 
   for (let i = 0; i < rows.length; i += CHUNK_SIZE) {
     const chunk = rows.slice(i, i + CHUNK_SIZE);
-    const { error } = await adminClient.from("issues").upsert(chunk, { onConflict: "external_id" });
+    const { error } = await adminClient.from("tickets").upsert(chunk, { onConflict: "external_id" });
     const chunkNum = Math.floor(i / CHUNK_SIZE) + 1;
     const totalChunks = Math.ceil(rows.length / CHUNK_SIZE);
     if (error) {

@@ -22,7 +22,7 @@ export async function GET(
   if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 });
 
   const { data, error } = await supabase
-    .from("issues")
+    .from("tickets")
     .select("*")
     .eq("project_id", project.id)
     .order("created_at", { ascending: false });
@@ -63,7 +63,7 @@ export async function POST(
     : { assignees: [], assignee_id: null, assignee_name: body.assignee_name?.trim() || null, assignee_email: body.assignee_email?.trim() || null };
 
   const { data, error } = await supabase
-    .from("issues")
+    .from("tickets")
     .insert({
       project_id: project.id,
       title: body.title.trim(),
@@ -78,8 +78,9 @@ export async function POST(
       due_time: body.due_time || null,
       notes: body.notes?.trim() || null,
       // Task 363 — set when this ticket was filed from a Desk ticket thread message (the "File a
-      // Ticket" flow). The FK constraint (migration 137) rejects a bad/nonexistent ticket id.
-      source_ticket_id: body.source_ticket_id || null,
+      // Ticket" flow). The FK constraint (migration 137, retargeted at `inbox` by migration 147)
+      // rejects a bad/nonexistent ticket id.
+      source_inbox_id: body.source_inbox_id || null,
     })
     .select()
     .single();
@@ -95,16 +96,17 @@ export async function POST(
       .catch((err) => console.error("[api/v2/projects/[id]/tickets] project_members sync failed:", err));
   }
 
-  // Task 381 — "File a Ticket" sets source_ticket_id (task 363) to the originating Desk > Inbox
-  // ticket; when present, resend that ticket's task-379 "ticket created" customer email. adminClient
-  // (not the route's session-scoped `supabase`) for consistency with every other call site that
-  // touches `tickets` for this feature. Best-effort — notifyCustomerTicketCreated already swallows
-  // its own failures and returns a boolean this call site doesn't need to act on.
-  if (data.source_ticket_id) {
+  // Task 381 — "File a Ticket" sets source_inbox_id (task 363, renamed from source_ticket_id by
+  // migration 147) to the originating Desk > Inbox message; when present, resend that message's
+  // task-379 "ticket created" customer email. adminClient (not the route's session-scoped
+  // `supabase`) for consistency with every other call site that touches `inbox` for this
+  // feature. Best-effort — notifyCustomerTicketCreated already swallows its own failures and
+  // returns a boolean this call site doesn't need to act on.
+  if (data.source_inbox_id) {
     const { data: sourceTicket, error: sourceTicketError } = await adminClient
-      .from("tickets")
+      .from("inbox")
       .select("id, ticket_number, subject, requester_email")
-      .eq("id", data.source_ticket_id)
+      .eq("id", data.source_inbox_id)
       .maybeSingle();
     if (sourceTicketError) {
       console.error("[api/v2/projects/[id]/tickets] source ticket lookup failed:", sourceTicketError.message);
