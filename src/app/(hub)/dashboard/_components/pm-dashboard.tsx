@@ -5,7 +5,7 @@ import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Building2, AlertTriangle, CalendarClock, Rocket, Bell,
-  ChartGantt, CheckCircle2, Clock3, Download,
+  ChartGantt, CheckCircle2, Clock3, Download, ListChecks, Inbox, Clock,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { V2_ROUTES } from "@/config/constants";
@@ -369,10 +369,17 @@ function PublishProgressCard({ project, rows, loading }: {
 
 interface Props {
   displayName?: string | null;
+  // Task 385 — this component is also the fallback dashboard for hr/client (see
+  // dashboard-view.tsx), which the Quick Links row below must not blanket-show to: Tasks/Tickets
+  // redirect anyone but admin/super_admin/pm away, and Time Logs redirects client. Optional/null
+  // renders no Quick Links row at all, rather than guessing a permissive default.
+  role?: string | null;
 }
 
-export default function PMDashboard({ displayName = null }: Props) {
+export default function PMDashboard({ displayName = null, role = null }: Props) {
   const { visible, text, dateLabel, dismiss } = useGreeting(displayName);
+  const canSeeTasksTickets = role === "admin" || role === "super_admin" || role === "pm";
+  const canSeeTimeLogs = role !== null && role !== "client" && role !== "marketing";
 
   const [trackerProjects, setTrackerProjects] = useState<OnboardingProjectListItem[]>([]);
   const [customersCount, setCustomersCount] = useState(0);
@@ -486,6 +493,42 @@ export default function PMDashboard({ displayName = null }: Props) {
           Export weekly report
         </button>
       </div>
+
+      {/* Quick Links (task 385) — one-click jump to the cross-project Tasks/Tickets tables and
+          Time Logs, mirroring the sidebar's "Quick Links" group at the bottom of the nav. Gated
+          per-link since this component also renders for hr/client (dashboard-view.tsx fallback),
+          who must not see links to pages they'd immediately be redirected away from. */}
+      {(canSeeTasksTickets || canSeeTimeLogs) && (
+        <div className="flex items-center gap-2.5 flex-wrap">
+          {canSeeTasksTickets && (
+            <>
+              <Link
+                href={V2_ROUTES.DASHBOARD_TASKS}
+                className="inline-flex items-center gap-2 px-[15px] py-2 rounded-full text-[12px] font-semibold border border-[#E2E7F2] bg-white text-[#3A4565] hover:border-[#A8C6F5] hover:text-[#0B1533] transition-colors shrink-0"
+              >
+                <ListChecks size={13} />
+                Tasks
+              </Link>
+              <Link
+                href={V2_ROUTES.DESK_TICKETS}
+                className="inline-flex items-center gap-2 px-[15px] py-2 rounded-full text-[12px] font-semibold border border-[#E2E7F2] bg-white text-[#3A4565] hover:border-[#A8C6F5] hover:text-[#0B1533] transition-colors shrink-0"
+              >
+                <Inbox size={13} />
+                Tickets
+              </Link>
+            </>
+          )}
+          {canSeeTimeLogs && (
+            <Link
+              href={V2_ROUTES.DASHBOARD_TIMELOGS}
+              className="inline-flex items-center gap-2 px-[15px] py-2 rounded-full text-[12px] font-semibold border border-[#E2E7F2] bg-white text-[#3A4565] hover:border-[#A8C6F5] hover:text-[#0B1533] transition-colors shrink-0"
+            >
+              <Clock size={13} />
+              Time Logs
+            </Link>
+          )}
+        </div>
+      )}
 
       {/* Stat tiles */}
       <div className="grid grid-cols-4 gap-3.5">

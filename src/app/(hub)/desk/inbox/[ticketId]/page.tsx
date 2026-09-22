@@ -215,7 +215,10 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ t
 
   const ticket: TicketDetailData = {
     id: t.id,
-    ticketId: t.ticket_id,
+    // Task 386 — must be the UUID: task 382 moved every /api/desk/tickets/[ticketId]/*
+    // route (status/notes/reply/file-url) to validate by inbox.id, not the "TKT-<n>"
+    // display key t.ticket_id used to be here.
+    ticketId: t.id,
     displayId: resolveDisplayId(t),
     subject: t.subject,
     status: t.status,

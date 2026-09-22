@@ -22,10 +22,10 @@ interface DashboardViewProps {
  */
 export default function DashboardView({ role, displayName, userId }: DashboardViewProps) {
   if (role === "admin" || role === "super_admin") {
-    return <AdminDashboard userId={userId} displayName={displayName} />;
+    return <AdminDashboard userId={userId} displayName={displayName} role={role} />;
   }
   if (role === "marketing") {
     return <MarketingDashboard userId={userId} displayName={displayName} />;
   }
-  return <PMDashboard displayName={displayName} />;
+  return <PMDashboard displayName={displayName} role={role} />;
 }

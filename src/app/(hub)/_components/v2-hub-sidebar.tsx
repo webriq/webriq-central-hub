@@ -7,7 +7,7 @@ import {
   LayoutDashboard, LayoutGrid, Inbox, Cpu, Users,
   Megaphone, BookOpen, Settings, ChevronLeft, ChevronDown,
   Circle, LogOut, Building2,
-  Clock, ClipboardList,
+  Clock, ClipboardList, ListChecks,
 } from "lucide-react";
 import { V2_ROUTES } from "@/config/constants";
 import { isPathAllowedForDepartment } from "@/lib/auth/department-map";
@@ -93,11 +93,7 @@ function getNavGroups(role: string | null, departmentName: string | null): NavGr
     ...((isAdmin || role === "pm") ? [
       { label: "Orchestration", icon: <Cpu size={18} />,             href: V2_ROUTES.ORCHESTRATION },
     ] : []),
-    // Task 226 — time_logs RLS grants no role but client/marketing any access
-    // (time_logs_manager_read / time_logs_developer_own / time_logs_developer_read_all).
-    ...(role !== "client" && role !== "marketing" ? [
-      { label: "Time Logs",    icon: <Clock size={18} />,          href: V2_ROUTES.DASHBOARD_TIMELOGS },
-    ] : []),
+    // Time Logs moved to the "Quick Links" group (task 385) — see quickLinksItems below.
   ];
 
   const peopleItems: NavItem[] = [
@@ -113,16 +109,36 @@ function getNavGroups(role: string | null, departmentName: string | null): NavGr
     { label: "Settings",      icon: <Settings size={18} />,        href: V2_ROUTES.DASHBOARD_SETTINGS },
   ] : [];
 
+  // Task 385 — a dedicated bottom-of-sidebar "Quick Links" group (Tasks / Tickets / Time Logs),
+  // per user request, instead of scattering these into Work. Tasks (a cross-project table, task
+  // 385) and Tickets (a flat duplicate of the existing nested Desk > Tickets entry — genuinely
+  // useful here since Desk is a collapsible group, unlike Time Logs which was already flat) share
+  // the same admin/super_admin/pm gate as their target pages. Time Logs moved out of workItems
+  // above (was already flat there, so the move is a pure relocation, not a duplicate).
+  const isAdminOrPm = isAdmin || role === "pm";
+  const quickLinksItems: NavItem[] = [
+    ...(isAdminOrPm ? [
+      { label: "Tasks",    icon: <ListChecks size={18} />, href: V2_ROUTES.DASHBOARD_TASKS },
+      { label: "Tickets",  icon: <Inbox size={18} />,       href: V2_ROUTES.DESK_TICKETS },
+    ] : []),
+    // Task 226 — time_logs RLS grants no role but client/marketing any access
+    // (time_logs_manager_read / time_logs_developer_own / time_logs_developer_read_all).
+    ...(role !== "client" && role !== "marketing" ? [
+      { label: "Time Logs", icon: <Clock size={18} />,      href: V2_ROUTES.DASHBOARD_TIMELOGS },
+    ] : []),
+  ];
+
   // Task 366 — department can further narrow the nav beyond role (e.g. HR/Finance
   // departments), on top of everything already filtered above by role.
   const filterByDept = (items: NavItem[]) =>
     items.filter((item) => isPathAllowedForDepartment(item.href, departmentName));
 
   const groupDefs: { group: string; items: NavItem[] }[] = [
-    { group: "Work",      items: filterByDept(workItems) },
-    { group: "People",    items: filterByDept(peopleItems) },
-    { group: "Knowledge", items: filterByDept(knowledgeItems) },
-    { group: "Admin",     items: filterByDept(adminItems) },
+    { group: "Work",        items: filterByDept(workItems) },
+    { group: "People",      items: filterByDept(peopleItems) },
+    { group: "Knowledge",   items: filterByDept(knowledgeItems) },
+    { group: "Admin",       items: filterByDept(adminItems) },
+    { group: "Quick Links", items: filterByDept(quickLinksItems) },
   ];
 
   return groupDefs.filter((g) => g.items.length > 0);
