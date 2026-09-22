@@ -26,11 +26,18 @@ import type { FiledIssueListItem } from "./_filed-issues-index";
 
 // Task 383 — Origin shrank from a full subject-line link to a short "Inbox"/"Manual" label,
 // funding just enough width for Severity/Responded/Due date/Created to show a full formatted
-// date+time (and Due date the extra "(ND)" overdue badge) without internally clipping. Kept
-// close to the original 1540px total on purpose — widening the whole row further only pushes
-// Created/Logged further past the viewport edge on real screens (the container's max-width isn't
-// the bottleneck; available window width is), trading one visibility problem for another.
-const GRID_COLS = "grid-cols-[1fr_90px_130px_150px_130px_110px_120px_145px_150px_90px] min-w-[1565px]";
+// date+time (and Due date the extra "(ND)" overdue badge) without internally clipping.
+//
+// Task 384 — 383's 1565px total was actually wider than this table's own page container's max
+// content width (_filed-issues-index.tsx's `max-w-[1400px] px-8` => 1336px ceiling), so Created
+// was still overflowing off-screen on every viewport, not just small ones — widening the browser
+// window never helped because the container capped out below the table's own min-width first.
+// Retuned every column except Responded/Due date/Created (left alone — those are the ones 383
+// protected from clipping) down to a 1320px total, safely under that 1336px ceiling. `1fr` ->
+// `minmax(0,1fr)` on Ticket so a long unbroken title can't force the row past the declared
+// min-width (a bare `1fr` track's implicit min-width is its content size, which defeats
+// `truncate` on the title until the track is allowed to shrink below it).
+const GRID_COLS = "grid-cols-[minmax(0,1fr)_70px_110px_130px_115px_95px_120px_145px_150px_75px] min-w-[1320px]";
 
 function formatDateTime(iso: string): string {
   return new Intl.DateTimeFormat("en-US", {
@@ -110,12 +117,13 @@ export function FiledIssuesTable({
         </div>
       </div>
       {/* No `rounded-b-[14px] overflow-hidden` wrapper here on purpose — that clips this div to
-          its OWN parent's width instead of letting the wider (min-w-1565px) rows push it out to
-          their full intrinsic width, silently defeating horizontal scroll entirely (confirmed via
-          scrollWidth === clientWidth after adding it — the rows were being cut off, not scrolled
-          to). The outer card's own `rounded-[14px]` already rounds these corners with nothing to
-          clip (row content is padded well clear of the edges), so `last:rounded-b-[14px]` below
-          is purely a belt-and-suspenders visual nicety, not a functional requirement. */}
+          its OWN parent's width instead of letting the wider (per GRID_COLS's `min-w`) rows push
+          it out to their full intrinsic width, silently defeating horizontal scroll entirely
+          (confirmed via scrollWidth === clientWidth after adding it — the rows were being cut
+          off, not scrolled to). The outer card's own `rounded-[14px]` already rounds these
+          corners with nothing to clip (row content is padded well clear of the edges), so
+          `last:rounded-b-[14px]` below is purely a belt-and-suspenders visual nicety, not a
+          functional requirement. */}
       <div
         ref={bodyScrollRef}
         onScroll={() => syncScroll(bodyScrollRef.current, headerScrollRef.current)}
