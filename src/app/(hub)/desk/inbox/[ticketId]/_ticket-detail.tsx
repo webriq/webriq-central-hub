@@ -28,6 +28,17 @@ const ReplyComposer = dynamic(() => import("./_reply-composer"), {
 
 const AttachmentsTab = dynamic(() => import("./_attachments-tab"), { ssr: false });
 
+// Friendly label for `ticket.channel` — a raw capitalize() on "api" would render "Api", and
+// more importantly a ticket ingested via task 388's StackShift Desk poll needs to read as
+// "StackShift" rather than "Manual" (its literal DB value before that task existed as a
+// distinct channel) so staff don't mistake a customer-filed ticket for one typed in by hand.
+const CHANNEL_LABELS: Record<string, string> = {
+  email: "Email",
+  portal: "Portal",
+  manual: "Manual",
+  api: "StackShift",
+};
+
 export type TicketDetailData = {
   id: string;
   ticketId: string;
@@ -398,7 +409,7 @@ export default function TicketDetail({
                 </div>
                 <div>
                   <div className="text-[11px] text-[#5F6A88] mb-0.5">Channel</div>
-                  <div className="text-[#0B1533] capitalize">{ticket.channel}</div>
+                  <div className="text-[#0B1533]">{CHANNEL_LABELS[ticket.channel] ?? ticket.channel}</div>
                 </div>
                 <div>
                   <div className="text-[11px] text-[#5F6A88] mb-0.5">Business Name</div>

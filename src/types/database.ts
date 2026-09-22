@@ -1932,7 +1932,7 @@ export interface Database {
           customer_id: string | null;
           customer_product_id: string | null;
           subject: string;
-          channel: "portal" | "email" | "manual";
+          channel: "portal" | "email" | "manual" | "api";
           priority: "low" | "normal" | "high" | "critical";
           status: "open" | "on_hold" | "escalated" | "closed";
           requester_email: string | null;
@@ -1962,7 +1962,7 @@ export interface Database {
           customer_id?: string | null;
           customer_product_id?: string | null;
           subject: string;
-          channel: "portal" | "email" | "manual";
+          channel: "portal" | "email" | "manual" | "api";
           priority?: "low" | "normal" | "high" | "critical";
           status?: "open" | "on_hold" | "escalated" | "closed";
           requester_email?: string | null;
@@ -1992,7 +1992,7 @@ export interface Database {
           customer_id?: string | null;
           customer_product_id?: string | null;
           subject?: string;
-          channel?: "portal" | "email" | "manual";
+          channel?: "portal" | "email" | "manual" | "api";
           priority?: "low" | "normal" | "high" | "critical";
           status?: "open" | "on_hold" | "escalated" | "closed";
           requester_email?: string | null;

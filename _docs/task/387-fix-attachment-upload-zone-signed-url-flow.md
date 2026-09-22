@@ -4,7 +4,7 @@
 **Priority:** HIGH
 **Type:** bugfix
 **Recommended Tier:** fast
-**Status:** Planned
+**Status:** Completed (marked complete at the user's explicit request — browser acceptance not run)
 
 ---
 

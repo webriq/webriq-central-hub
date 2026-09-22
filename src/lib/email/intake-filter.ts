@@ -47,6 +47,13 @@ const SYSTEM_SENDER_DOMAINS: string[] = [
   "notification.wix.com", // wix-team@notification.wix.com and siblings (task 352)
 ];
 
+// Individual sender addresses that are always automation, never a real customer/ticket. Exact
+// match on the full address (case-insensitive) — use this when the local part doesn't fit any
+// SYSTEM_SENDER_PATTERNS regex and blocking the whole domain would be too broad.
+const SYSTEM_SENDER_ADDRESSES: string[] = [
+  "testflight_no_reply@email.apple.com", // Apple TestFlight beta-invite notifications
+];
+
 const NOISE_SUBJECT_PATTERNS: RegExp[] = [
   /your webriq hub verification code/i,
   /reset your webriq hub password/i,
@@ -86,6 +93,10 @@ export function shouldIngestEmail(input: {
 
   for (const re of SYSTEM_SENDER_PATTERNS) {
     if (re.test(from)) return { ingest: false, reason: `automated sender (${re.source})` };
+  }
+
+  if (SYSTEM_SENDER_ADDRESSES.includes(from)) {
+    return { ingest: false, reason: `denylisted sender address (${from})` };
   }
 
   for (const d of SYSTEM_SENDER_DOMAINS) {
