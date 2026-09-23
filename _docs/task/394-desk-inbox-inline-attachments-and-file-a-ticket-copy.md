@@ -345,3 +345,21 @@ has its own local copy for `File.size`; this new list needed the same formatting
 - Live re-verification (does the list render correctly, does excluding a file actually skip its
   copy, does the resulting ticket end up with only the selected files) - NOT YET RUN — pending
   the user's next live pass.
+
+## Final Verification Summary (task marked Completed)
+
+Partial live confirmation: a screenshot of the "New Ticket" modal (opened via "File a ticket")
+showed correct Title/Description seeding, and attachment grid tiles visible on the underlying
+page behind the modal (Part A's inline grid working). However:
+- **Part A** (inline per-message grid) was not individually exercised — View/Download/Copy URL
+  kebab actions on an inline message attachment were not explicitly clicked/confirmed.
+- **Part B** (File a Ticket attachment copy) had a real bug found and fixed mid-session (the
+  silent-copy issue — see Live Testing Fix above), but the *fix itself* was never re-verified
+  live afterward: whether the "From this message (N)" list actually renders correctly, whether
+  excluding a file actually excludes it from the copy, and whether the resulting project Ticket
+  ends up with the expected attachments were all left unconfirmed in this session.
+
+**Marked Completed at the user's explicit request** — Part B in particular has a real, recent
+code change (the silent-copy fix) that has not been exercised live even once; this is the single
+highest-priority item worth a live check the next time "File a ticket" is used with an
+attachment-bearing message.

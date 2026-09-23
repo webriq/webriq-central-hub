@@ -258,3 +258,15 @@ PASS
 - Per this repo's durable no-git-commands instruction, changed files were identified from the
   task document's own `Implementation Notes` rather than `git diff --name-only`, same adaptation
   used for tasks 389/390's quality gates.
+
+## Final Verification Summary (task marked Completed)
+
+Confirmed working implicitly but consistently: every subsequent task's live testing in this
+session (390, 392, 393, 394) navigated `/desk/inbox/<uuid>` — the renamed `[inboxId]` route —
+repeatedly, with no routing errors, 404s, or broken pages reported at any point. The rename's
+own explicit acceptance criteria (page still resolves, status/reply/notes/attachments still
+work) were never called out as broken across dozens of live interactions on this exact route.
+
+**Marked Completed at the user's explicit request** — no dedicated standalone re-test of this
+task in isolation was run, but its success is thoroughly corroborated by every other task's
+testing that depended on this same route working correctly.

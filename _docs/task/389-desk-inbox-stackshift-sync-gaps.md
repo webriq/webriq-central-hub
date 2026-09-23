@@ -468,3 +468,29 @@ PASS
   including read-only ones (`git diff`, `git status`). Changed files were identified from the
   task document's own `Implementation Notes` (4 files, listed there) instead of
   `git diff --name-only`, per this repo's explicit override of the generic skill instruction.
+
+## Final Verification Summary (task marked Completed)
+
+Confirmed live, across subsequent testing in tasks 390–392 (which exercise this exact code
+path — `syncTicketMessages()`/`enrichThreadContent()` were later extracted into
+`src/lib/desk/stackshift-message-sync.ts` by task 390, unchanged in behavior):
+- **Missing opening-thread message** — fixed and confirmed; the Maxton ticket's Guest message,
+  previously absent, now syncs correctly.
+- **Raw HTML rendering** — fixed and confirmed, after task 390's live-testing follow-up
+  corrected the `contentType` derivation this task originally shipped (see that task's own
+  Live Testing Fix section for the full story — the fix landed there, not here, since the
+  shared module didn't exist yet when this task was written).
+- **Wrong author ("Guest" showing as "WebriQ")** — confirmed fixed for genuine thread-level
+  authorship. A separate, structural limitation was later found and documented in task 390's
+  doc: StackShift-posted *comments* (not threads) all share one Zoho Desk agent identity
+  regardless of who really typed them — not fixable on Central Hub's side, see that task's
+  "Confirmed, Permanent Limitation" section.
+- **Attachment ingestion** — correctly deferred to task 392 as planned; this task's own
+  thread/comment-embedded attachment logic passed through without issue once live-tested.
+- **Inline-image gap** — was explicitly out of this task's code scope (flagged as an env/ops
+  check only). Investigated later in this session: `ZOHO_MAIL_IMAP_*` env vars confirmed present
+  in Vercel; `backfill-inline-images` dry run against the known-broken ticket returned a clean
+  match (2 candidates, 8 images, 0 unresolved) — live run instructions given, final confirmation
+  of rendered images not explicitly reported back in this session.
+
+**Marked Completed at the user's explicit request.**

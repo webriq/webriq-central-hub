@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WebriQ Central Hub — Wiki Structure Mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy-950:#0b1120;
+    --navy-900:#0f172a;
+    --navy-800:#141d33;
+    --navy-700:#1b2440;
+    --navy-border:#232d4a;
+    --orange:#f2743a;
+    --orange-dark:#d95f2b;
+    --ink:#0f172a;
+    --ink-soft:#475569;
+    --ink-faint:#94a3b8;
+    --paper:#f7f8fb;
+    --card:#ffffff;
+    --line:#e6e9f0;
+    --blue:#2f6fed;
+    --green:#16a34a;
+    --amber:#c8860a;
+    --purple:#7c5cf0;
+    --annot-bg:#fff7ed;
+    --annot-border:#f2743a;
+    --annot-text:#9a3f12;
+    --radius-s:6px;
+    --radius-m:10px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#0c1220; --card:#121a2b; --ink:#e7ebf3; --ink-soft:#a9b3c7; --ink-faint:#6b7690; --line:#232c42;
+      --annot-bg:#2a1a10; --annot-text:#f2b48a;
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#0c1220; --card:#121a2b; --ink:#e7ebf3; --ink-soft:#a9b3c7; --ink-faint:#6b7690; --line:#232c42;
+    --annot-bg:#2a1a10; --annot-text:#f2b48a;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased;}
+  .mono{font-family:'JetBrains Mono',monospace;}
+
+  /* ============ App shell ============ */
+  .app{display:flex;height:100vh;min-height:640px;overflow:hidden;}
+
+  /* ---- global left rail (existing product chrome, replicated) ---- */
+  .rail{
+    width:236px;flex:0 0 236px;background:linear-gradient(180deg,var(--navy-900),var(--navy-950));
+    color:#c9d2e6;display:flex;flex-direction:column;border-right:1px solid var(--navy-border);
+  }
+  .rail-brand{display:flex;align-items:center;gap:9px;padding:16px 16px 14px;border-bottom:1px solid var(--navy-border);}
+  .rail-brand .mark{width:26px;height:26px;border-radius:7px;background:radial-gradient(circle at 30% 30%,#4f7cff,#22346b);flex:0 0 26px;}
+  .rail-brand b{color:#fff;font-size:14.5px;font-weight:700;}
+  .rail-brand span{color:var(--orange);font-weight:700;}
+  .rail-scroll{flex:1;overflow-y:auto;padding:14px 10px;}
+  .rail-group-label{font-size:10.5px;letter-spacing:.06em;color:#5c6a90;font-weight:600;margin:14px 10px 6px;}
+  .rail-group-label:first-child{margin-top:0;}
+  .rail-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;font-size:13.5px;color:#aab6d4;text-decoration:none;margin-bottom:1px;}
+  .rail-item .ic{width:16px;text-align:center;opacity:.85;font-size:13px;}
+  .rail-item.active{background:#1b2440;color:#fff;box-shadow:inset 2px 0 0 var(--orange);}
+  .rail-item.soon{opacity:.4;}
+  .rail-foot{border-top:1px solid var(--navy-border);padding:12px 14px;display:flex;align-items:center;gap:10px;}
+  .rail-foot .av{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#f2743a,#c85a1f);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:12px;}
+  .rail-foot .who b{display:block;font-size:13px;color:#fff;}
+  .rail-foot .who small{font-size:11px;color:#6b7aa0;}
+
+  /* ---- top bar ---- */
+  .content{flex:1;display:flex;flex-direction:column;min-width:0;background:var(--paper);}
+  .topbar{height:57px;flex:0 0 57px;background:var(--card);border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 20px;gap:16px;}
+  .crumbs{font-size:13px;color:var(--ink-faint);white-space:nowrap;}
+  .crumbs b{color:var(--ink);font-weight:600;}
+  .ask{flex:1;max-width:520px;margin:0 auto;display:flex;align-items:center;gap:9px;background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:8px 14px;color:var(--ink-faint);font-size:13px;}
+  .ask .dot{width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#f2743a,#f7b733);flex:0 0 20px;}
+  .topbar-icons{display:flex;gap:14px;color:var(--ink-faint);align-items:center;font-size:15px;}
+
+  /* ============ Wiki-specific layout (the new part) ============ */
+  .wiki{flex:1;display:flex;min-height:0;}
+
+  /* -- panel 1: spaces + page tree -- */
+  .panel-tree{width:264px;flex:0 0 264px;background:var(--card);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0;}
+  .tree-head{padding:14px 14px 10px;}
+  .tree-search{display:flex;align-items:center;gap:8px;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:12.5px;color:var(--ink-faint);}
+  .space-switch{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;margin:2px 8px 4px;}
+  .space-switch .lbl{font-size:10.5px;letter-spacing:.06em;font-weight:700;color:var(--ink-faint);}
+  .new-page-btn{display:flex;align-items:center;gap:6px;background:var(--orange);color:#fff;border:none;font-size:12px;font-weight:600;padding:6px 10px;border-radius:7px;cursor:pointer;}
+
+  .tree-scroll{flex:1;overflow-y:auto;padding:4px 8px 16px;}
+  .space-block{margin-bottom:2px;}
+  .space-row{display:flex;align-items:center;gap:7px;padding:8px 8px;border-radius:7px;cursor:pointer;font-size:13px;font-weight:600;color:var(--ink);}
+  .space-row .chev{width:12px;color:var(--ink-faint);font-size:10px;}
+  .space-row .sw-ic{width:20px;height:20px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;flex:0 0 20px;}
+  .space-row.open{background:var(--paper);}
+  .page-list{padding-left:19px;border-left:1px solid var(--line);margin-left:18px;}
+  .page-row{display:flex;align-items:center;gap:7px;padding:6.5px 8px;border-radius:6px;font-size:12.8px;color:var(--ink-soft);cursor:pointer;position:relative;}
+  .page-row .ic{font-size:12px;opacity:.75;width:14px;}
+  .page-row.active{background:#fdeee6;color:var(--orange-dark);font-weight:600;}
+  :root[data-theme="dark"] .page-row.active, @media (prefers-color-scheme:dark){.page-row.active{background:#3a2013;color:#f2a374;}}
+  .page-row.child{padding-left:24px;}
+  .badge-count{margin-left:auto;font-size:10px;color:var(--ink-faint);background:var(--paper);border:1px solid var(--line);border-radius:99px;padding:1px 6px;}
+
+  /* -- panel 2: document body -- */
+  .panel-doc{flex:1;min-width:0;overflow-y:auto;padding:32px 40px 80px;}
+  .doc-wrap{max-width:760px;margin:0 auto;}
+  .doc-eyebrow{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-faint);margin-bottom:10px;}
+  .status-pill{font-size:11px;font-weight:600;padding:2px 9px;border-radius:99px;}
+  .status-pill.published{background:#e6f6ec;color:var(--green);}
+  .status-pill.draft{background:#fdf3da;color:var(--amber);}
+  .doc-title{font-size:30px;font-weight:800;letter-spacing:-.01em;margin:0 0 12px;line-height:1.2;}
+  .doc-meta{display:flex;align-items:center;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--ink-faint);border-bottom:1px solid var(--line);padding-bottom:18px;margin-bottom:22px;}
+  .doc-meta .who{display:flex;align-items:center;gap:7px;}
+  .doc-meta .who .av{width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#7c5cf0,#4f7cff);flex:0 0 20px;}
+  .tag{background:var(--paper);border:1px solid var(--line);color:var(--ink-soft);font-size:11px;padding:2px 9px;border-radius:99px;}
+  .doc-body h2{font-size:18px;font-weight:700;margin:28px 0 10px;}
+  .doc-body h3{font-size:14.5px;font-weight:700;margin:20px 0 8px;color:var(--ink);}
+  .doc-body p{font-size:14.5px;line-height:1.7;color:var(--ink-soft);margin:0 0 14px;}
+  .doc-body ul{margin:0 0 14px;padding-left:20px;color:var(--ink-soft);font-size:14.5px;line-height:1.7;}
+  .code-block{background:var(--navy-900);color:#d7e0f7;border-radius:8px;padding:14px 16px;font-size:12.5px;line-height:1.6;overflow-x:auto;margin:0 0 16px;}
+  .callout{display:flex;gap:10px;background:#eef3ff;border:1px solid #d7e3ff;border-radius:8px;padding:12px 14px;font-size:13px;color:#243b6b;margin:0 0 18px;}
+  .table-wrap{overflow-x:auto;margin-bottom:18px;}
+  table{border-collapse:collapse;width:100%;font-size:13px;}
+  th{text-align:left;font-size:11px;text-transform:none;color:var(--ink-faint);border-bottom:1px solid var(--line);padding:7px 10px;font-weight:600;}
+  td{padding:8px 10px;border-bottom:1px solid var(--line);color:var(--ink-soft);}
+
+  /* -- panel 3: on this page + info -- */
+  .panel-info{width:236px;flex:0 0 236px;border-left:1px solid var(--line);padding:24px 18px;overflow-y:auto;}
+  .info-block{margin-bottom:26px;}
+  .info-title{font-size:11px;font-weight:700;color:var(--ink-faint);letter-spacing:.03em;margin-bottom:10px;}
+  .toc-item{display:block;font-size:12.8px;color:var(--ink-soft);padding:5px 0;text-decoration:none;border-left:2px solid transparent;padding-left:10px;}
+  .toc-item.active{color:var(--orange-dark);border-left-color:var(--orange);font-weight:600;}
+  .toc-item.sub{padding-left:20px;font-size:12.2px;}
+  .info-row{display:flex;justify-content:space-between;font-size:12.5px;padding:5px 0;color:var(--ink-soft);}
+  .info-row b{color:var(--ink);font-weight:600;}
+  .contrib-avatars{display:flex;margin-top:4px;}
+  .contrib-avatars .av{width:24px;height:24px;border-radius:50%;border:2px solid var(--card);margin-left:-7px;font-size:9px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;}
+  .contrib-avatars .av:first-child{margin-left:0;}
+  .related-link{display:block;font-size:12.5px;color:var(--blue);text-decoration:none;padding:5px 0;}
+
+  /* ============ Dev annotation callouts ============ */
+  .annot{position:relative;}
+  .annot::after{content:attr(data-annot);position:absolute;top:-9px;left:8px;transform:translateY(-100%);
+    background:var(--annot-bg);border:1px solid var(--annot-border);color:var(--annot-text);font-family:'JetBrains Mono',monospace;
+    font-size:10px;font-weight:600;padding:3px 8px;border-radius:5px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .12s ease;z-index:50;}
+  .annot:hover::after{opacity:1;}
+  .annot:hover{outline:1.5px dashed var(--annot-border);outline-offset:2px;}
+
+  .legend{position:fixed;bottom:16px;right:16px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-size:11.5px;color:var(--ink-soft);box-shadow:0 8px 24px rgba(0,0,0,.12);max-width:230px;z-index:100;}
+  .legend b{display:block;margin-bottom:4px;color:var(--ink);font-size:12px;}
+  .legend kbd{background:var(--paper);border:1px solid var(--line);border-radius:4px;padding:0 4px;font-family:'JetBrains Mono',monospace;font-size:10px;}
+
+  ::-webkit-scrollbar{width:8px;height:8px;}
+  ::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px;}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ============ GLOBAL LEFT RAIL (existing chrome) ============ -->
+  <aside class="rail">
+    <div class="rail-brand">
+      <div class="mark"></div>
+      <b>WebriQ <span>Central Hub</span></b>
+    </div>
+    <div class="rail-scroll">
+      <div class="rail-group-label">WORK</div>
+      <a class="rail-item"><span class="ic">▦</span>Dashboard</a>
+      <a class="rail-item"><span class="ic">🏢</span>Customers</a>
+      <a class="rail-item"><span class="ic">☰</span>Tracker</a>
+      <a class="rail-item"><span class="ic">▦</span>Projects</a>
+      <a class="rail-item"><span class="ic">📥</span>Desk</a>
+      <a class="rail-item"><span class="ic">📋</span>Orders</a>
+      <a class="rail-item"><span class="ic">⚙</span>Orchestration</a>
+      <a class="rail-item"><span class="ic">🕐</span>Time Logs</a>
+      <div class="rail-group-label">PEOPLE</div>
+      <a class="rail-item"><span class="ic">👥</span>HR</a>
+      <a class="rail-item soon"><span class="ic">📣</span>Announcements</a>
+      <div class="rail-group-label">KNOWLEDGE</div>
+      <a class="rail-item active"><span class="ic">📖</span>Wiki</a>
+      <div class="rail-group-label">ADMIN</div>
+      <a class="rail-item"><span class="ic">⚙</span>Settings</a>
+    </div>
+    <div class="rail-foot">
+      <div class="av">NG</div>
+      <div class="who"><b>Nikki Gabato</b><small>Super Admin · Online</small></div>
+    </div>
+  </aside>
+
+  <!-- ============ CONTENT ============ -->
+  <div class="content">
+    <div class="topbar">
+      <div class="crumbs">Knowledge / <b>Wiki</b></div>
+      <div class="ask"><div class="dot"></div>Ask anything — tasks, tickets, leave</div>
+      <div class="topbar-icons"><span>⏱</span><span>🔔</span><span>❔</span></div>
+    </div>
+
+    <div class="wiki">
+
+      <!-- PANEL 1 — Spaces + page tree -->
+      <div class="panel-tree annot" data-annot="① Space switcher + page tree — collapsible, drag-to-reorder">
+        <div class="tree-head">
+          <div class="tree-search">🔍 Search wiki…</div>
+        </div>
+        <div class="space-switch annot" data-annot="④ Import — upload .docx/.md/.pdf to create a page">
+          <span class="lbl">SPACES</span>
+          <div style="display:flex;gap:6px;">
+            <button class="new-page-btn" style="background:var(--card);color:var(--ink-soft);border:1px solid var(--line);">⇩ Import</button>
+            <button class="new-page-btn">+ New page</button>
+          </div>
+        </div>
+        <div class="tree-scroll">
+
+          <div class="space-block">
+            <div class="space-row open"><span class="chev">▾</span><span class="sw-ic" style="background:#2f6fed;">P</span>PipelineForge</div>
+            <div class="page-list">
+              <div class="page-row active"><span class="ic">📄</span>Overview & Architecture<span class="badge-count">v2</span></div>
+              <div class="page-row"><span class="ic">📄</span>Setup & Config</div>
+              <div class="page-row"><span class="ic">📄</span>API Reference</div>
+              <div class="page-row"><span class="ic">📄</span>Changelog</div>
+            </div>
+          </div>
+
+          <div class="space-block">
+            <div class="space-row"><span class="chev">▸</span><span class="sw-ic" style="background:#7c5cf0;">P</span>PublishForge</div>
+          </div>
+          <div class="space-block">
+            <div class="space-row"><span class="chev">▸</span><span class="sw-ic" style="background:#16a34a;">C</span>CiteForge</div>
+          </div>
+          <div class="space-block">
+            <div class="space-row"><span class="chev">▸</span><span class="sw-ic" style="background:#c8860a;">S1</span>StackShift I</div>
+          </div>
+          <div class="space-block">
+            <div class="space-row"><span class="chev">▸</span><span class="sw-ic" style="background:#e15b64;">S2</span>StackShift II</div>
+          </div>
+          <div class="space-block">
+            <div class="space-row"><span class="chev">▸</span><span class="sw-ic" style="background:#0891b2;">G</span>Citation Grader</div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- PANEL 2 — Document body -->
+      <div class="panel-doc annot" data-annot="② Document canvas — renders page content, versioned">
+        <div class="doc-wrap">
+          <div class="doc-eyebrow" style="justify-content:space-between;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span class="status-pill published">Published</span>
+              <span>PipelineForge / Overview & Architecture</span>
+            </div>
+            <div class="annot" data-annot="⑤ Export — download page as PDF / Word / Markdown">
+              <button style="display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--line);color:var(--ink-soft);font-size:12px;font-weight:600;padding:5px 11px;border-radius:7px;cursor:pointer;">⇧ Export ▾</button>
+            </div>
+          </div>
+          <h1 class="doc-title">PipelineForge — Overview & Architecture</h1>
+          <div class="doc-meta">
+            <div class="who"><div class="av"></div>Edited by Nikki Gabato</div>
+            <span>Updated Sep 8, 2026</span>
+            <span>v2 · Sprint 1C</span>
+            <span class="tag">pipelineforge</span>
+            <span class="tag">architecture</span>
+            <span class="tag">sprint-1</span>
+          </div>
+
+          <div class="doc-body">
+            <p>This page documents what PipelineForge does, how it's built, and where to look for setup and API details. It's the entry point for anyone new to the product.</p>
+
+            <div class="callout">💡 Every product space follows the same page set: Overview & Architecture → Setup & Config → API Reference → Changelog. Keep new products consistent with this shape.</div>
+
+            <h2>Purpose</h2>
+            <p>Give every team a single place to document each product's decisions, specs and processes — searchable from the same "Ask anything" bar used across the rest of the Hub.</p>
+
+            <h2>Structure</h2>
+            <ul>
+              <li><b>Spaces</b> — one per product (PipelineForge, PublishForge, CiteForge, StackShift I, StackShift II, Citation Grader)</li>
+              <li><b>Pages</b> — nested, versioned documents inside a space</li>
+              <li><b>Blocks</b> — headings, callouts, code, tables and embeds inside a page</li>
+            </ul>
+
+            <h3>Page metadata</h3>
+            <div class="table-wrap">
+              <table>
+                <tr><th>Field</th><th>Type</th><th>Notes</th></tr>
+                <tr><td>Status</td><td>enum</td><td>Draft / In review / Published</td></tr>
+                <tr><td>Owner</td><td>user</td><td>Defaults to creator</td></tr>
+                <tr><td>Version</td><td>int</td><td>Auto-increments on publish</td></tr>
+                <tr><td>Tags</td><td>string[]</td><td>Used for search & filtering</td></tr>
+              </table>
+            </div>
+
+            <h3>Example page reference</h3>
+            <div class="code-block">GET /api/wiki/spaces/:spaceId/pages/:pageId<br>&nbsp;&nbsp;→ { title, body, version, status, tags, owner }</div>
+
+            <h2>Open questions</h2>
+            <p>Decide whether page history shows a full diff view or a flat version list, and whether comments live inline or in a side thread.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANEL 3 — On this page / info -->
+      <div class="panel-info annot" data-annot="③ Contextual rail — TOC, version, contributors, related">
+        <div class="info-block">
+          <div class="info-title">ON THIS PAGE</div>
+          <a class="toc-item active">Purpose</a>
+          <a class="toc-item">Structure</a>
+          <a class="toc-item sub">Page metadata</a>
+          <a class="toc-item sub">Example page reference</a>
+          <a class="toc-item">Open questions</a>
+        </div>
+        <div class="info-block">
+          <div class="info-title">PAGE INFO</div>
+          <div class="info-row">Status <b>Published</b></div>
+          <div class="info-row">Version <b>v2</b></div>
+          <div class="info-row">Views <b>128</b></div>
+        </div>
+        <div class="info-block">
+          <div class="info-title">CONTRIBUTORS</div>
+          <div class="contrib-avatars">
+            <div class="av" style="background:#2f6fed;">NG</div>
+            <div class="av" style="background:#7c5cf0;">JD</div>
+            <div class="av" style="background:#16a34a;">MR</div>
+          </div>
+        </div>
+        <div class="info-block">
+          <div class="info-title">RELATED PAGES</div>
+          <a class="related-link">Setup & Config</a>
+          <a class="related-link">API Reference</a>
+          <a class="related-link">Changelog</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="legend">
+  <b>Dev handoff notes</b>
+  Hover any dashed panel to see its role. Three-pane layout: tree (fixed 264px) · doc canvas (fluid, max 760px content) · info rail (fixed 236px). Global sidebar/topbar unchanged from existing app.
+</div>
+
+<!-- ============ IMPORT MODAL (click "Import" to preview) ============ -->
+<div id="importOverlay" style="display:none;position:fixed;inset:0;background:rgba(11,17,32,.5);z-index:200;align-items:center;justify-content:center;">
+  <div style="background:var(--card);border-radius:12px;width:440px;max-width:90vw;padding:22px 22px 18px;box-shadow:0 24px 60px rgba(0,0,0,.25);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+      <h3 style="margin:0;font-size:16px;font-weight:700;">Import a document</h3>
+      <span onclick="document.getElementById('importOverlay').style.display='none'" style="cursor:pointer;color:var(--ink-faint);font-size:16px;">✕</span>
+    </div>
+    <p style="font-size:12.5px;color:var(--ink-faint);margin:4px 0 16px;">Creates a new page in the current space from an uploaded file.</p>
+    <div style="border:1.5px dashed var(--line);border-radius:10px;padding:26px 16px;text-align:center;color:var(--ink-faint);font-size:12.5px;margin-bottom:14px;">
+      <div style="font-size:22px;margin-bottom:6px;">⇧</div>
+      Drag a file here, or <span style="color:var(--blue);font-weight:600;">browse</span>
+      <div style="margin-top:8px;font-size:11px;">Supports .docx · .md · .pdf · .html · .txt</div>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;">
+      <span class="tag">.docx</span><span class="tag">.md</span><span class="tag">.pdf</span><span class="tag">.html</span><span class="tag">.txt</span>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;">
+      <button onclick="document.getElementById('importOverlay').style.display='none'" style="background:none;border:1px solid var(--line);color:var(--ink-soft);font-size:12.5px;font-weight:600;padding:7px 14px;border-radius:7px;cursor:pointer;">Cancel</button>
+      <button style="background:var(--orange);border:none;color:#fff;font-size:12.5px;font-weight:600;padding:7px 14px;border-radius:7px;cursor:pointer;">Import & create page</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ EXPORT DROPDOWN (click "Export" to preview) ============ -->
+<div id="exportMenu" style="display:none;position:absolute;background:var(--card);border:1px solid var(--line);border-radius:9px;box-shadow:0 12px 28px rgba(0,0,0,.15);padding:6px;z-index:200;min-width:170px;">
+  <div id="exportHtml" style="padding:8px 10px;font-size:12.5px;color:var(--ink-soft);border-radius:6px;cursor:pointer;">📄 Export as PDF</div>
+  <div id="exportWord" style="padding:8px 10px;font-size:12.5px;color:var(--ink-soft);border-radius:6px;cursor:pointer;">📝 Export as Word (.docx)</div>
+  <div id="exportMd" style="padding:8px 10px;font-size:12.5px;color:var(--ink-soft);border-radius:6px;cursor:pointer;">🔤 Export as Markdown</div>
+  <div id="exportHtmlFile" style="padding:8px 10px;font-size:12.5px;color:var(--ink-soft);border-radius:6px;cursor:pointer;">🌐 Export as HTML</div>
+</div>
+
+<script>
+  document.querySelectorAll('.new-page-btn')[0].addEventListener('click', function(e){
+    e.stopPropagation();
+    document.getElementById('importOverlay').style.display = 'flex';
+  });
+  var exportBtn = document.querySelector('.doc-eyebrow button');
+  exportBtn.addEventListener('click', function(e){
+    e.stopPropagation();
+    var menu = document.getElementById('exportMenu');
+    var r = exportBtn.getBoundingClientRect();
+    menu.style.top = (r.bottom + 6) + 'px';
+    menu.style.left = (r.right - 170) + 'px';
+    menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+  });
+  document.addEventListener('click', function(){
+    document.getElementById('exportMenu').style.display = 'none';
+  });
+
+  // ---- Real, working download: "Export as HTML" ----
+  (async function(){
+    var downloads = null;
+    try { downloads = await claude.use("downloads"); } catch(e) { downloads = null; }
+
+    var htmlBtn = document.getElementById('exportHtmlFile');
+    if (!downloads) {
+      htmlBtn.style.opacity = '.5';
+      htmlBtn.title = 'Downloads unavailable in this view';
+      return;
+    }
+    htmlBtn.addEventListener('click', async function(e){
+      e.stopPropagation();
+      // Build a standalone HTML file of just the current page's content (title + meta + body).
+      var title = document.querySelector('.doc-title').textContent.trim();
+      var bodyHtml = document.querySelector('.doc-body').innerHTML;
+      var metaHtml = document.querySelector('.doc-meta').innerHTML;
+      var page = '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="UTF-8">\n<title>' + title +
+        '</title>\n<style>body{font-family:Arial,Helvetica,sans-serif;max-width:720px;margin:40px auto;padding:0 20px;color:#0f172a;line-height:1.6;}' +
+        'h1{font-size:26px;}h2{font-size:18px;margin-top:28px;}h3{font-size:15px;}' +
+        '.doc-meta{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:#64748b;border-bottom:1px solid #e2e8f0;padding-bottom:14px;margin-bottom:20px;}' +
+        'table{border-collapse:collapse;width:100%;}th,td{border-bottom:1px solid #e2e8f0;padding:6px 10px;text-align:left;font-size:13px;}' +
+        'pre{background:#0f172a;color:#e2e8f0;padding:12px 14px;border-radius:6px;overflow-x:auto;}' +
+        '.tag,.status-pill{display:none;} .av{display:none;}</style>\n</head>\n<body>\n<h1>' + title +
+        '</h1>\n<div class="doc-meta">' + metaHtml + '</div>\n' + bodyHtml + '\n</body>\n</html>';
+
+      try {
+        var res = await downloads.save({
+          filename: title.replace(/[^\w\- ]+/g, '').trim().replace(/\s+/g, '-').toLowerCase() + '.html',
+          data: page
+        });
+        // res.status === "saved" — viewer accepted and downloaded the file.
+      } catch (err) {
+        // err.code: "declined" (viewer said no), "rate_limited", "unavailable", etc. — no retry loop.
+        console.log('Export cancelled or unavailable:', err && err.code);
+      }
+    });
+  })();
+</script>
+
+</body>
+</html>

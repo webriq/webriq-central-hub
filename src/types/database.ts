@@ -571,6 +571,120 @@ export interface Database {
         };
         Relationships: [];
       };
+      wiki_pages: {
+        Row: {
+          id: string;
+          product: "PipelineForge" | "PublishForge" | "CiteForge" | "StackShift I" | "StackShift II" | "Citation Grader";
+          parent_id: string | null;
+          title: string;
+          content_html: string;
+          status: "draft" | "published" | "archived";
+          sort_order: number;
+          version: number;
+          tags: string[];
+          created_by: string | null;
+          updated_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          product: "PipelineForge" | "PublishForge" | "CiteForge" | "StackShift I" | "StackShift II" | "Citation Grader";
+          parent_id?: string | null;
+          title: string;
+          content_html?: string;
+          status?: "draft" | "published" | "archived";
+          sort_order?: number;
+          version?: number;
+          tags?: string[];
+          created_by?: string | null;
+          updated_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          product?: "PipelineForge" | "PublishForge" | "CiteForge" | "StackShift I" | "StackShift II" | "Citation Grader";
+          parent_id?: string | null;
+          title?: string;
+          content_html?: string;
+          status?: "draft" | "published" | "archived";
+          sort_order?: number;
+          version?: number;
+          tags?: string[];
+          created_by?: string | null;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "wiki_pages_parent_id_fkey";
+            columns: ["parent_id"];
+            isOneToOne: false;
+            referencedRelation: "wiki_pages";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "wiki_pages_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "wiki_pages_updated_by_fkey";
+            columns: ["updated_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      wiki_page_versions: {
+        Row: {
+          id: string;
+          page_id: string;
+          version: number;
+          title: string;
+          content_html: string;
+          edited_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          page_id: string;
+          version: number;
+          title: string;
+          content_html: string;
+          edited_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          page_id?: string;
+          version?: number;
+          title?: string;
+          content_html?: string;
+          edited_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "wiki_page_versions_page_id_fkey";
+            columns: ["page_id"];
+            isOneToOne: false;
+            referencedRelation: "wiki_pages";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "wiki_page_versions_edited_by_fkey";
+            columns: ["edited_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
       projects: {
         Row: {
           id: string;

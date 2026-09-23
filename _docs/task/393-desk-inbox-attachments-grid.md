@@ -309,3 +309,18 @@ PASS
 - Per this repo's durable no-git-commands instruction, changed files were identified from the
   task document's own `Implementation Notes` (3 files) rather than `git diff --name-only`, same
   adaptation used for tasks 389–392's quality gates.
+
+## Final Verification Summary (task marked Completed)
+
+Partial live confirmation: a later screenshot in this session (task 394 follow-up, the "New
+Ticket" modal opened via "File a ticket") showed attachment grid tiles rendering on the
+underlying ticket detail page behind the modal — consistent with this task's grid work
+rendering correctly. However, no explicit, isolated confirmation was given in this session that
+the **Attachments tab specifically** (as opposed to task 394's inline per-message grid, a
+visually similar but separate surface built on the same shared components) was opened and
+exercised — View/Download/Copy URL kebab actions and the `?attachment=` deep-link auto-open were
+never individually walked through and confirmed for this tab.
+
+**Marked Completed at the user's explicit request** — the Attachments tab's own
+View/Download/Copy URL/deep-link behaviors specifically (as distinct from task 394's inline
+grid) were not isolated and re-confirmed; worth a direct check next time the tab is opened.

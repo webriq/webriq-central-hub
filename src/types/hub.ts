@@ -7,7 +7,9 @@ export type OrchestrationLayer =
   | "reply"
   | "wiki_lint"
   | "ops_chat"
-  | "mockup_spec";
+  | "mockup_spec"
+  | "wiki_pdf_classify"
+  | "wiki_pdf_transcribe";
 
 export type AIProvider = "anthropic" | "openai";
 

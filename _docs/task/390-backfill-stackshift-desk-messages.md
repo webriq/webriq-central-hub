@@ -451,3 +451,24 @@ Neither is in scope for Central Hub. **Do not re-open this as a Hub-side bug** w
 those two external changes landing first — re-deriving `isAgent`/`visibility` differently on
 Central Hub's side cannot fix this, since the distinguishing information doesn't exist in any
 data Central Hub receives.
+
+## Final Verification Summary (task marked Completed)
+
+Confirmed live across multiple rounds of testing in this session:
+- Dry run → live run → re-run (idempotent, all-zero result) cycle confirmed working end-to-end
+  against the Maxton ticket (#21058), both before and after the contentType follow-up fix.
+- The follow-up `DESK_MESSAGE_CONTENT_TYPE` fix confirmed correct: both the Guest thread message
+  and the WebriQ reply comment render as formatted HTML after re-running the backfill post-fix.
+- Total target set confirmed via direct SQL (`select count(*) from inbox where channel = 'api'`)
+  at exactly 4 tickets; a wide sweep call (`?limit=10`, covering all 4) was run by the user
+  (confirmed via server access log: `POST /api/admin/desk/backfill-stackshift-messages?limit=10
+  200`) — the full JSON summary of that specific run wasn't pasted back for review, so the
+  per-ticket breakdown across all 4 isn't independently confirmed here, only the ticket-scoped
+  runs (#21058, #21057) that were explicitly reviewed.
+- The comment author-identity limitation (documented above) is confirmed via live diagnostic
+  data, not theoretical — this is now settled, not an open question.
+
+**Marked Completed at the user's explicit request** — the full 4-ticket sweep's detailed
+per-ticket results were not individually re-confirmed in this session beyond the two tickets
+explicitly walked through (#21058, #21057); worth a spot-check if any of the other 2 StackShift
+tickets are later found with lingering issues.

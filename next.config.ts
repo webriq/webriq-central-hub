@@ -17,6 +17,16 @@ const nextConfig: NextConfig = {
   // turbopack: {} silences the webpack-config conflict warning in Next.js 16 dev mode.
   // @ducanh2912/next-pwa injects webpack config but PWA is disabled in dev — no conflict at runtime.
   turbopack: {},
+  // Task 396 — `pdf-parse` (v2, wraps `pdfjs-dist`) resolves its worker script relative to its
+  // own module at runtime. Bundling it (Next's default for Route Handler deps) rewrites those
+  // module paths into `.next/.../chunks/...`, breaking the worker's own relative import and
+  // producing "Setting up fake worker failed: Cannot find module '.../chunks/pdf.worker.mjs'".
+  // `serverExternalPackages` opts them out of bundling — loaded via native Node `require` from
+  // `node_modules` instead, where their internal paths resolve correctly. `@napi-rs/canvas` is
+  // pdf-parse's other real dependency (a native binary, for getImage/getScreenshot — unused by
+  // this app's text-only getText() call, but native bindings hit the same bundling class of
+  // bug, so it's excluded too rather than waiting for a second bug report).
+  serverExternalPackages: ["pdf-parse", "pdfjs-dist", "@napi-rs/canvas"],
   async redirects() {
     // Task 255 — v2 tree promoted to app root; keep bookmarked/shared /v2/* links
     // (and cached MCP OAuth authorization_endpoint metadata) resolving correctly.

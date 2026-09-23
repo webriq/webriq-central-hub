@@ -274,3 +274,14 @@ stayed `0` (both messages already existed and were already correct from the prio
 Acceptance criterion "attachments appear on `/desk/inbox/.../` matching the 10 files visible in
 StackShift's own UI" — confirmed by count; visual Attachments-tab check and a second re-run
 (to confirm zero-duplicate idempotency) still pending.
+
+## Final Verification Summary (task marked Completed)
+
+`attachmentsAdded: 10` confirmed via live API response, exact match against the real StackShift
+attachment count for ticket #21058. Task 393's later grid UI rewrite gave a visual channel to
+confirm these render correctly (screenshot evidence in this session's later conversation showed
+attachment tiles present on this exact ticket). A dedicated explicit re-run specifically to
+re-confirm zero-duplicate idempotency (separate from the general repeated backfill re-runs
+already done for tasks 390/392 combined) was not isolated and re-verified on its own.
+
+**Marked Completed at the user's explicit request.**
