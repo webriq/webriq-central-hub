@@ -11,6 +11,17 @@ export function deskHeaders(): Record<string, string> {
   return { orgId };
 }
 
+// Zoho Desk's own thread/comment `contentType` field values are "html" / "plainText"
+// (confirmed via webriq-pagebuilder/app's create-ticket-comment.ts posting
+// `{content, contentType:"html"}`) — never the MIME-type string "text/html" the Hub's message
+// renderer checks for (src/app/(hub)/desk/inbox/[ticketId]/page.tsx's `isHtml` derivation).
+// Normalize once at every Desk-sourced write site instead of teaching the renderer multiple
+// formats (task 389 — this mismatch was why every Desk-imported/polled message rendered as
+// literal unescaped HTML instead of formatted text).
+export function normalizeDeskContentType(raw: string | null | undefined): "text/html" | "text/plain" {
+  return String(raw ?? "").toLowerCase() === "html" ? "text/html" : "text/plain";
+}
+
 export async function fetchDeskPage(
   path: string,
   token: string,
@@ -193,9 +204,54 @@ type DeskConversationCallbacks = {
   onProgress: (current: number, total: number, ticketId: string) => void;
 };
 
-// Threads = the actual customer<->agent conversation. The list endpoint sometimes
-// omits `content`, so a per-thread detail fetch fills it in defensively (confirmed
-// necessary against a real export during task 304).
+// Per-thread detail-fill: Desk's List Threads endpoint sometimes omits `content` (confirmed
+// necessary against a real export during task 304), so any thread missing it gets a per-thread
+// GET /tickets/{ticketId}/threads/{threadId} to fill it in. Shared by exportThreadsForTickets()
+// (historical/export path, below) and desk-ticket-poll's live syncTicketMessages() (task 389) —
+// do not duplicate this loop; the live poll originally skipped this fill entirely, which
+// silently dropped any opening/customer message whose list-response content was empty.
+// Per-thread fault isolation: a detail fetch that throttles/fails/throws falls back to the
+// unenriched list row rather than aborting the whole ticket.
+export async function enrichThreadContent(
+  items: Record<string, unknown>[],
+  ticketId: string,
+  token: string,
+  label: string
+): Promise<{ items: Record<string, unknown>[]; token: string }> {
+  let currentToken = token;
+  const enriched: Record<string, unknown>[] = [];
+
+  for (const raw of items) {
+    const threadId = String(raw.id ?? "");
+    if ((raw.content != null && raw.content !== "") || !threadId) {
+      enriched.push(raw);
+      continue;
+    }
+
+    try {
+      const { res, token: detailToken, throttleExhausted } = await fetchDeskPage(
+        `/tickets/${ticketId}/threads/${threadId}`,
+        currentToken,
+        {},
+        `${label}-detail`
+      );
+      currentToken = detailToken;
+      if (throttleExhausted || !res.ok) {
+        enriched.push(raw);
+      } else {
+        const detail = (await res.json()) as Record<string, unknown>;
+        enriched.push({ ...raw, ...detail });
+      }
+    } catch {
+      enriched.push(raw);
+    }
+  }
+
+  return { items: enriched, token: currentToken };
+}
+
+// Threads = the actual customer<->agent conversation. See enrichThreadContent() above for why
+// the per-thread detail fill is needed.
 export async function exportThreadsForTickets(
   ticketIds: string[],
   token: string,
@@ -218,32 +274,14 @@ export async function exportThreadsForTickets(
       );
       currentToken = listToken;
 
-      const enriched: Record<string, unknown>[] = [];
-      for (const raw of items) {
-        const threadId = String(raw.id ?? "");
-        if ((raw.content != null && raw.content !== "") || !threadId) {
-          enriched.push({ ...raw, _zoho_ticket_id: ticketId });
-          continue;
-        }
-
-        try {
-          const { res, token: detailToken, throttleExhausted } = await fetchDeskPage(
-            `/tickets/${ticketId}/threads/${threadId}`,
-            currentToken,
-            {},
-            `${label}-detail`
-          );
-          currentToken = detailToken;
-          if (throttleExhausted || !res.ok) {
-            enriched.push({ ...raw, _zoho_ticket_id: ticketId });
-          } else {
-            const detail = (await res.json()) as Record<string, unknown>;
-            enriched.push({ ...raw, ...detail, _zoho_ticket_id: ticketId });
-          }
-        } catch {
-          enriched.push({ ...raw, _zoho_ticket_id: ticketId });
-        }
-      }
+      const { items: enrichedItems, token: enrichedToken } = await enrichThreadContent(
+        items,
+        ticketId,
+        currentToken,
+        label
+      );
+      currentToken = enrichedToken;
+      const enriched = enrichedItems.map((raw) => ({ ...raw, _zoho_ticket_id: ticketId }));
 
       total += enriched.length;
       cb.onProgress(i + 1, ticketIds.length, ticketId);

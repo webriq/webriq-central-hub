@@ -10,6 +10,7 @@
 // hardcoded to 'staff'. `commenter` is always present; `commentedBy` never appears (checked
 // defensively regardless).
 import { adminClient, ImportResult } from "@/lib/migrate/zoho-import";
+import { normalizeDeskContentType } from "@/lib/zoho/desk";
 
 type DeskCommenterRaw = { name?: string; email?: string; type?: string } | undefined | null;
 
@@ -136,7 +137,7 @@ export async function importDeskComments(comments: DeskTicketCommentRaw[]): Prom
       created_at: c.commentedTime ?? undefined,
       source_meta: {
         commenter: commenter ?? null,
-        contentType: c.contentType ?? null,
+        contentType: normalizeDeskContentType(c.contentType),
         modifiedTime: c.modifiedTime ?? null,
         ...(bodyIsSynthetic ? { syntheticBody: true } : {}),
         attachments: commentAttachments.map((a) => ({

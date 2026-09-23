@@ -12,9 +12,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { getZohoAccessToken } from "@/lib/zoho";
-import { fetchDeskPage, fetchAllDeskPages } from "@/lib/zoho/desk";
+import { fetchDeskPage } from "@/lib/zoho/desk";
 import { mapPriority, mapTicketStatus } from "@/lib/migrate/zoho-import";
 import { CF_TARGETS, resolveCfField } from "@/lib/migrate/desk-cf";
+// Task 390 — sync logic shared with the backfill-stackshift-messages admin route; do not
+// reimplement it here, see src/lib/desk/stackshift-message-sync.ts's header comment for why.
+import { syncTicketMessages } from "@/lib/desk/stackshift-message-sync";
 
 // Reuses the email-poll cursor table (migration 122) with a second row — the column is just a
 // free-text cursor value, not literally email-specific in structure, and `id` is a free-text
@@ -42,30 +45,6 @@ type DeskTicketSearchRow = {
   dueDate?: string | null;
   closedTime?: string | null;
   customerResponseTime?: string | null;
-};
-
-type DeskThread = {
-  id?: string | number;
-  content?: string | null;
-  plainText?: string | null;
-  contentType?: string | null;
-  createdTime?: string | null;
-  commentedTime?: string | null;
-  sendDateTime?: string | null;
-  visibility?: string | null;
-  author?: { type?: string | null; email?: string | null } | null;
-  direction?: string | null;
-};
-
-type DeskComment = {
-  id?: string | number;
-  content?: string | null;
-  plainText?: string | null;
-  contentType?: string | null;
-  commentedTime?: string | null;
-  modifiedTime?: string | null;
-  isPublic?: boolean;
-  commenter?: { type?: string | null; email?: string | null } | null;
 };
 
 export async function POST(req: NextRequest) {
@@ -258,109 +237,8 @@ async function processTicket(ticket: DeskTicketSearchRow, token: string): Promis
   if (upsertError || !upserted) throw new Error(`failed to upsert inbox row: ${upsertError?.message}`);
   const inboxId = upserted.id as string;
 
+  // Task 390 — steady-state cron poll never repairs already-existing rows'
+  // contentType (repairExistingContentType omitted, defaults to false); that repair is the new
+  // backfill-stackshift-messages admin route's job, run manually against dormant tickets.
   await syncTicketMessages(token, externalId, inboxId);
-}
-
-// Pulls both the opening message (the ticket's first thread — Zoho auto-creates this from the
-// `description` passed to POST /tickets, per web/pages/api/support_desk/create-ticket.ts) and
-// every follow-up comment (the ongoing conversation — see
-// web/pages/api/support_desk/create-ticket-comment.ts / list-all-ticket-comments.ts).
-//
-// Idempotent via `inbox_messages.external_id` — the same column + unique constraint
-// src/lib/migrate/desk-threads-import.ts / desk-comments-import.ts already use for the
-// historical import of these same two Desk concepts (raw Desk thread/comment id), not the
-// email-specific `email_message_id` column.
-//
-// Author-type / visibility field names mirror those two import files exactly, since they're
-// already validated against real live Desk data (tasks 296/304): threads use
-// `author.type`/`direction` + a top-level `visibility` string; comments use `commenter.type`
-// (default to staff/agent UNLESS explicitly "END_USER" — most Desk comments are agent-authored)
-// + a boolean `isPublic`.
-async function syncTicketMessages(token: string, ticketExternalId: string, inboxId: string): Promise<void> {
-  let currentToken = token;
-
-  const { items: threads, token: threadsToken } = await fetchAllDeskPages(
-    `/tickets/${ticketExternalId}/threads`,
-    currentToken,
-    `${SEARCH_LABEL}-threads`,
-    { params: { sortBy: "sendDateTime" } }
-  );
-  currentToken = threadsToken;
-
-  const openingThread = [...(threads as DeskThread[])].sort((a, b) => {
-    const at = Date.parse(String(a.sendDateTime ?? a.createdTime ?? a.commentedTime ?? ""));
-    const bt = Date.parse(String(b.sendDateTime ?? b.createdTime ?? b.commentedTime ?? ""));
-    return (Number.isFinite(at) ? at : 0) - (Number.isFinite(bt) ? bt : 0);
-  })[0];
-
-  const { items: comments, token: commentsToken } = await fetchAllDeskPages(
-    `/tickets/${ticketExternalId}/comments`,
-    currentToken,
-    `${SEARCH_LABEL}-comments`
-  );
-  currentToken = commentsToken;
-
-  if (openingThread?.id != null) {
-    const isAgent = openingThread.author?.type === "AGENT" || openingThread.direction === "out";
-    await upsertInboxMessage(inboxId, String(openingThread.id), {
-      author_type: isAgent ? "staff" : "client",
-      visibility: openingThread.visibility === "public" ? "public" : "internal",
-      body: String(openingThread.content ?? openingThread.plainText ?? ""),
-      created_at: toIso(openingThread.sendDateTime ?? openingThread.createdTime ?? openingThread.commentedTime),
-      source_meta: {
-        author: openingThread.author ?? null,
-        direction: openingThread.direction ?? null,
-        contentType: openingThread.contentType ?? null,
-        zohoSource: "thread",
-      },
-    });
-  }
-
-  for (const raw of comments as DeskComment[]) {
-    if (raw.id == null) continue;
-    const isAgent = raw.commenter?.type !== "END_USER";
-    await upsertInboxMessage(inboxId, String(raw.id), {
-      author_type: isAgent ? "staff" : "client",
-      visibility: raw.isPublic ? "public" : "internal",
-      body: String(raw.content ?? raw.plainText ?? ""),
-      created_at: toIso(raw.commentedTime ?? raw.modifiedTime),
-      source_meta: {
-        commenter: raw.commenter ?? null,
-        contentType: raw.contentType ?? null,
-        zohoSource: "comment",
-      },
-    });
-  }
-}
-
-function toIso(value: string | null | undefined): string | undefined {
-  if (!value) return undefined;
-  const ms = Date.parse(value);
-  return Number.isFinite(ms) ? new Date(ms).toISOString() : undefined;
-}
-
-async function upsertInboxMessage(
-  inboxId: string,
-  externalId: string,
-  fields: { author_type: "client" | "staff"; visibility: "public" | "internal"; body: string; created_at: string | undefined; source_meta: Record<string, unknown> }
-): Promise<void> {
-  if (!fields.body) return; // matches the historical import's own skip-empty-body behavior
-
-  const { data: existing } = await adminClient
-    .from("inbox_messages")
-    .select("id")
-    .eq("external_id", externalId)
-    .maybeSingle();
-  if (existing) return; // idempotent — nothing to update, Desk threads/comments are immutable once posted
-
-  const { error } = await adminClient.from("inbox_messages").insert({
-    inbox_id: inboxId,
-    author_type: fields.author_type,
-    visibility: fields.visibility,
-    body: fields.body,
-    external_id: externalId,
-    ...(fields.created_at ? { created_at: fields.created_at } : {}),
-    source_meta: fields.source_meta,
-  });
-  if (error) console.error(`[cron/desk-ticket-poll] failed to insert message ${externalId}`, error.message);
 }
