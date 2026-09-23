@@ -326,3 +326,44 @@ PASS
 - Per this repo's durable no-git-commands instruction (including read-only `git diff`/`git
   status`), changed files were identified from the task document's own `Implementation Notes`
   rather than `git diff --name-only`, same adaptation used for task 389's quality gate.
+
+## Live Testing Fix (post-quality-gate)
+
+Live testing against a real ticket (Maxton, Hub `ticket_number` 21058, Zoho externalId
+`300063000091410001`) surfaced a real bug in task 389's `contentType` fix, found via this
+route's dry-run/live sequence:
+
+- **What was observed**: the backfill's live run reported `messagesInserted: 1` and correctly
+  inserted the previously-missing opening thread (author now shows "Guest", not "WebriQ" —
+  confirming that part of 389's fix works). But the message still rendered as literal
+  `<p>...</p><br><b>...</b>` text instead of formatted HTML.
+- **Root cause**: task 389's `normalizeDeskContentType()` derived `"text/html"` only when
+  Zoho's own `contentType` field equaled `"html"` — an assumption based on reading
+  `webriq-pagebuilder/app`'s `create-ticket-comment.ts`, which only proves what StackShift's app
+  *sends* when posting a comment, not what Zoho *returns* for an auto-created thread (a ticket's
+  `description`, never posted through that code path). That assumption was flagged as
+  unverified in task 388's own doc and turned out wrong for this case — the live thread's
+  `contentType` field evidently isn't `"html"`, so the derived value fell through to
+  `"text/plain"` and the renderer never treated the body as HTML.
+- **Fix**: replaced `normalizeDeskContentType()` (in `src/lib/zoho/desk.ts`) with a constant,
+  `DESK_MESSAGE_CONTENT_TYPE = "text/html"`, applied unconditionally at all 4 Desk-sourced write
+  sites (`stackshift-message-sync.ts`'s thread + comment branches, `desk-threads-import.ts`,
+  `desk-comments-import.ts`) — stops depending on Zoho's own `contentType` field entirely,
+  rather than adding another guess about its values. Justification: every Desk thread/comment
+  body observed so far (this Guest message, and the WebriQ reply from the original bug report)
+  contains genuine HTML markup, and `desk-threads-import.ts`'s own long-standing comment already
+  established threads never carry a `plainText` fallback either way — body is always HTML.
+- **Retroactive effect**: task 390's `repairExistingContentType` patch mechanism (already built)
+  handles re-correcting any row this backfill route already touched with the wrong value — no
+  new backfill mechanism needed, just re-running the existing route against affected tickets
+  after this fix deploys.
+- **Files changed this round**: `src/lib/zoho/desk.ts` (function → constant),
+  `src/lib/desk/stackshift-message-sync.ts`, `src/lib/migrate/desk-threads-import.ts`,
+  `src/lib/migrate/desk-comments-import.ts`.
+- **Verification**: `npx tsc --noEmit` PASS (0 errors), `pnpm lint` PASS (2 pre-existing
+  unrelated warnings), confirmed zero remaining references to the removed
+  `normalizeDeskContentType`.
+- **Not yet verified**: live re-run against the Maxton ticket after this fix (needs redeploy).
+  Also not yet confirmed whether the WebriQ reply/comment on the same ticket has the identical
+  raw-HTML symptom — the screenshot only showed the newly-inserted Guest thread message: worth
+  checking on the next live pass.

@@ -459,6 +459,7 @@
     "src/app/_hub_(OLD)/orchestration/page.tsx": "34ab541b1e2228dd94cb8c9f6a38c2266e69a772cc3e0a725e483caa0d5836d0",
     "src/app/_hub_(OLD)/orchestration/simulate/page.tsx": "cefcfd075b6ae79ed374212cada9820926f70117f60172e07167302caa73b79f",
     "src/app/_hub_(OLD)/pm/pipeline/page.tsx": "185ac71fdd2e611acbdb22c21e30962d0886086754458c141f396155ac332351",
+    "src/app/api/classification/classify/route.ts": "9bef14b42b87394746a47b6ad145df549344273996f406912f92fe3bb566f2c8",
     "src/app/api/customers/[customerId]/assets/[assetId]/content/route.ts": "9edd30dd84e2a458db20d413d1b87c564256dd143784421b0fc43867e2134156",
     "src/app/api/customers/[customerId]/assets/[assetId]/file-url/route.ts": "462e97587482c919a22cac044c4ea1406ca904fdceebc4c1026dac4dd2890973",
     "src/app/api/customers/[customerId]/assets/[assetId]/generate-md/route.ts": "afa8c6e92f2a3ef4243e8d225cd6c6729bfaba15ae4002ae6965b07f262777c1",
@@ -477,6 +478,7 @@
     "src/app/api/customers/[customerId]/projects/route.ts": "4e4dd5fc2a7fe0462260881b44937e9141864fceec8b8f1497c796ab8454103f",
     "src/app/api/customers/[customerId]/reopen-onboarding/route.ts": "ff0eb362bef2ae74b007201ce008ede9865a21c62fb9124920512063cd13c075",
     "src/app/api/customers/[customerId]/route.ts": "28fbadf622845277dbe25a12554170d35a23bcf32b7243388a4bb4f255aa8b7d",
+    "src/app/api/customers/check-name/route.ts": "f1c920772436e7c25a21ad6587fb75636dd7de7a08285b0ddf392edd3b29c530",
     "src/app/api/customers/route.ts": "b4fee20ea3e003085475ffa50819816bfdd2874a54d301dd5df7704381033f62",
     "src/app/layout.tsx": "97ddc4e24c130a002f7f5af78b2f279c30dc0e6e3805bf66ba16f16cf966d8a0",
     "src/app/oauth/authorize/actions.ts": "51ede695dcc420d8088bc396263386e31e7f1bdec800de7df7eb3fef8cf770ba",
@@ -636,7 +638,7 @@
     "worker/index.ts": "83350712449db3ec76c4015cedb2bad5dfd0d0ccd91509ee9a6f09ee4f66f9cc"
   },
   "indexed_at_commit": "ea3c30a0e6173d82c6c8ccee3b2321b6a0b83e60",
-  "indexed_at_timestamp": "2026-09-23T03:44:12.492097+00:00",
+  "indexed_at_timestamp": "2026-09-23T03:46:52.710573+00:00",
   "languages": {
     "markdown": {
       "calls": 0,
@@ -648,14 +650,14 @@
     },
     "typescript": {
       "calls": 661,
-      "nodes": 1669
+      "nodes": 1671
     }
   },
   "schema_version": 3,
   "stats": {
     "total_edges": 2059,
-    "total_files": 634,
-    "total_nodes": 1998
+    "total_files": 636,
+    "total_nodes": 2000
   },
   "vexp_version": "3.2.4"
 }

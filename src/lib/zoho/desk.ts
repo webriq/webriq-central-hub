@@ -11,16 +11,19 @@ export function deskHeaders(): Record<string, string> {
   return { orgId };
 }
 
-// Zoho Desk's own thread/comment `contentType` field values are "html" / "plainText"
-// (confirmed via webriq-pagebuilder/app's create-ticket-comment.ts posting
-// `{content, contentType:"html"}`) — never the MIME-type string "text/html" the Hub's message
-// renderer checks for (src/app/(hub)/desk/inbox/[ticketId]/page.tsx's `isHtml` derivation).
-// Normalize once at every Desk-sourced write site instead of teaching the renderer multiple
-// formats (task 389 — this mismatch was why every Desk-imported/polled message rendered as
-// literal unescaped HTML instead of formatted text).
-export function normalizeDeskContentType(raw: string | null | undefined): "text/html" | "text/plain" {
-  return String(raw ?? "").toLowerCase() === "html" ? "text/html" : "text/plain";
-}
+// Every Desk thread/comment body observed against a live account is raw HTML (task 391 live
+// testing: a ticket's opening thread — auto-created by Zoho from the `description` passed to
+// POST /tickets, never posted through StackShift's own {contentType:"html"}-tagged comment
+// path — still rendered as literal <p>/<br> tags). Task 389 originally tried deriving this from
+// Zoho's own per-item `contentType` field (assumed "html"/"plainText" based on reading
+// webriq-pagebuilder/app's create-ticket-comment.ts, which only proves what StackShift's app
+// SENDS when posting a comment, not what Zoho returns for a GET on an arbitrary thread) — that
+// assumption was unverified and turned out wrong for at least the auto-created-thread case.
+// desk-threads-import.ts's own long-standing comment already established threads never carry a
+// `plainText` field either way — body is always HTML. Rather than keep guessing at Zoho's field
+// values, every Desk-sourced message (thread or comment) is unconditionally treated as HTML at
+// every write site — stop trusting the field, not add another guess about its values.
+export const DESK_MESSAGE_CONTENT_TYPE = "text/html" as const;
 
 export async function fetchDeskPage(
   path: string,

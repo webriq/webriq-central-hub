@@ -68,18 +68,19 @@ function cfString(v: unknown): string | null {
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ ticketId: string }>;
+  params: Promise<{ inboxId: string }>;
 }): Promise<Metadata> {
-  const { ticketId } = await params;
+  const { inboxId } = await params;
   const supabase = await createClient();
-  const { data } = await supabase.from("inbox").select("ticket_number").eq("id", ticketId).maybeSingle();
+  const { data } = await supabase.from("inbox").select("ticket_number").eq("id", inboxId).maybeSingle();
   return { title: data ? `Ticket #${data.ticket_number} · Desk` : "Ticket · Desk" };
 }
 
-export default async function TicketDetailPage({ params }: { params: Promise<{ ticketId: string }> }) {
+export default async function TicketDetailPage({ params }: { params: Promise<{ inboxId: string }> }) {
   // Task 382 — routes by inbox.id (UUID), not the "TKT-<n>" display key. See _resolve.ts.
-  const { ticketId } = await params;
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(ticketId)) notFound();
+  // Task 391 — param renamed from ticketId to inboxId to match what it actually identifies.
+  const { inboxId } = await params;
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(inboxId)) notFound();
 
   const supabase = await createClient();
   const { data: claims } = await supabase.auth.getClaims();
@@ -95,7 +96,7 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ t
     .select(
       "id, ticket_number, ticket_id, subject, status, priority, channel, requester_email, external_contact_id, source_meta, created_at, resolved_at, first_response_at, sla_due_at, customer_id, customers(company_name)"
     )
-    .eq("id", ticketId)
+    .eq("id", inboxId)
     .maybeSingle();
 
   if (error || !ticketData) notFound();
@@ -217,8 +218,10 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ t
     id: t.id,
     // Task 386 — must be the UUID: task 382 moved every /api/desk/tickets/[ticketId]/*
     // route (status/notes/reply/file-url) to validate by inbox.id, not the "TKT-<n>"
-    // display key t.ticket_id used to be here.
-    ticketId: t.id,
+    // display key t.ticket_id used to be here. Task 391 renamed this field from ticketId to
+    // inboxId for consistency with the page's own route param — the API route segment above
+    // is still literally named [ticketId] (a separate, out-of-scope route tree).
+    inboxId: t.id,
     displayId: resolveDisplayId(t),
     subject: t.subject,
     status: t.status,

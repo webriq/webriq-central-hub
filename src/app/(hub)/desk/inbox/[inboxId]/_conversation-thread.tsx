@@ -39,11 +39,11 @@ function formatDateTime(iso: string): string {
 }
 
 function AttachmentChip({
-  ticketId,
+  inboxId,
   messageId,
   attachment,
 }: {
-  ticketId: string;
+  inboxId: string;
   messageId: string;
   attachment: MessageAttachment;
 }) {
@@ -55,7 +55,7 @@ function AttachmentChip({
     setFailed(false);
     try {
       const res = await fetch(
-        `/api/desk/tickets/${ticketId}/messages/${messageId}/attachments/${attachment.id}/file-url`
+        `/api/desk/tickets/${inboxId}/messages/${messageId}/attachments/${attachment.id}/file-url`
       );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const { url } = await res.json();
@@ -116,14 +116,14 @@ function Avatar({ name, url }: { name: string; url: string | null }) {
 }
 
 function MessageCard({
-  ticketId,
+  inboxId,
   ticketDbId,
   subject,
   message,
   open,
   onToggle,
 }: {
-  ticketId: string;
+  inboxId: string;
   ticketDbId: string;
   subject: string;
   message: MessageItem;
@@ -186,7 +186,7 @@ function MessageCard({
           {m.attachments.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mt-2.5">
               {m.attachments.map((a) => (
-                <AttachmentChip key={a.id} ticketId={ticketId} messageId={m.id} attachment={a} />
+                <AttachmentChip key={a.id} inboxId={inboxId} messageId={m.id} attachment={a} />
               ))}
             </div>
           )}
@@ -197,12 +197,12 @@ function MessageCard({
 }
 
 export default function ConversationThread({
-  ticketId,
+  inboxId,
   ticketDbId,
   subject,
   messages,
 }: {
-  ticketId: string;
+  inboxId: string;
   ticketDbId: string;
   subject: string;
   messages: MessageItem[];
@@ -246,7 +246,7 @@ export default function ConversationThread({
         {messages.map((m) => (
           <MessageCard
             key={m.id}
-            ticketId={ticketId}
+            inboxId={inboxId}
             ticketDbId={ticketDbId}
             subject={subject}
             message={m}

@@ -41,7 +41,7 @@ const CHANNEL_LABELS: Record<string, string> = {
 
 export type TicketDetailData = {
   id: string;
-  ticketId: string;
+  inboxId: string;
   displayId: string;
   subject: string;
   status: "open" | "on_hold" | "escalated" | "closed";
@@ -263,7 +263,7 @@ export default function TicketDetail({
     setStatusSaving(true);
     setStatusError(null);
     try {
-      const res = await fetch(`/api/desk/tickets/${ticket.ticketId}/status`, {
+      const res = await fetch(`/api/desk/tickets/${ticket.inboxId}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: next }),
@@ -286,7 +286,7 @@ export default function TicketDetail({
     setNoteSaving(true);
     setNoteError(null);
     try {
-      const res = await fetch(`/api/desk/tickets/${ticket.ticketId}/notes`, {
+      const res = await fetch(`/api/desk/tickets/${ticket.inboxId}/notes`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ body: noteBody }),
@@ -313,7 +313,7 @@ export default function TicketDetail({
     setReplySaving(true);
     setReplyError(null);
     try {
-      const res = await fetch(`/api/desk/tickets/${ticket.ticketId}/reply`, {
+      const res = await fetch(`/api/desk/tickets/${ticket.inboxId}/reply`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ body: replyBody }),
@@ -527,7 +527,7 @@ export default function TicketDetail({
               </div>
 
               {attachmentsOpen ? (
-                <AttachmentsTab ticketId={ticket.ticketId} messages={messages} />
+                <AttachmentsTab inboxId={ticket.inboxId} messages={messages} />
               ) : composerMode === "reply" ? (
                 <div className="px-5 py-4">
                   <div className="mb-3 text-[13px] font-semibold text-[#0B1533]">
@@ -590,7 +590,7 @@ export default function TicketDetail({
                   )}
                   <ConversationThread
                     key={convView}
-                    ticketId={ticket.ticketId}
+                    inboxId={ticket.inboxId}
                     ticketDbId={ticket.id}
                     subject={ticket.subject}
                     messages={shownMessages}

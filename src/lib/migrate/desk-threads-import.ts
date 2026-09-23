@@ -9,11 +9,12 @@
 // author.type / direction ('staff' for agent-authored, 'client' for customer-authored).
 // Customer-authored rows never resolve author_id — Desk contacts have no Hub auth.users row.
 // Threads never carry a `plainText` field the way Comments do, so `body` ends up as raw
-// `content` (HTML); source_meta.contentType is normalized via normalizeDeskContentType() so
-// the ticket detail renderer's `isHtml` check actually recognizes it (task 389 — Zoho's raw
-// "html"/"plainText" values never matched the renderer's literal "text/html" check).
+// `content` (HTML); source_meta.contentType is DESK_MESSAGE_CONTENT_TYPE unconditionally (task
+// 391 — task 389's attempt to derive this from Zoho's own per-item `contentType` field turned
+// out to be based on an unverified assumption that didn't hold for a live auto-created thread;
+// see DESK_MESSAGE_CONTENT_TYPE's own comment in src/lib/zoho/desk.ts for the full story).
 import { adminClient, ImportResult } from "@/lib/migrate/zoho-import";
-import { normalizeDeskContentType } from "@/lib/zoho/desk";
+import { DESK_MESSAGE_CONTENT_TYPE } from "@/lib/zoho/desk";
 
 type DeskThreadAuthorRaw = { type?: string; name?: string; email?: string } | null | undefined;
 
@@ -149,7 +150,7 @@ export async function importDeskThreads(threads: DeskThreadRaw[]): Promise<Impor
         direction: t.direction ?? null,
         channel: t.channel ?? null,
         channelMapped,
-        contentType: normalizeDeskContentType(t.contentType),
+        contentType: DESK_MESSAGE_CONTENT_TYPE,
         zohoSource: "thread",
         ...(bodyIsSynthetic ? { syntheticBody: true } : {}),
         hasAttach: t.hasAttach ?? null,

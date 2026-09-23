@@ -7,7 +7,7 @@
 // elsewhere; import it instead.
 import { adminClient } from "@/lib/supabase/admin";
 import { fetchZohoWithRetry } from "@/lib/zoho";
-import { fetchAllDeskPages, enrichThreadContent, normalizeDeskContentType, deskHeaders } from "@/lib/zoho/desk";
+import { fetchAllDeskPages, enrichThreadContent, DESK_MESSAGE_CONTENT_TYPE, deskHeaders } from "@/lib/zoho/desk";
 
 // Same bucket/limit the dev-only ticket-attachments importer and email-poll's own attachment
 // ingestion already use (src/app/api/admin/zoho-import/ticket-attachments/route.ts) — kept in
@@ -139,7 +139,7 @@ export async function syncTicketMessages(
         source_meta: {
           author: openingThread.author ?? null,
           direction: openingThread.direction ?? null,
-          contentType: normalizeDeskContentType(openingThread.contentType),
+          contentType: DESK_MESSAGE_CONTENT_TYPE,
           zohoSource: "thread",
         },
       },
@@ -167,7 +167,7 @@ export async function syncTicketMessages(
         created_at: toIso(raw.commentedTime ?? raw.modifiedTime),
         source_meta: {
           commenter: raw.commenter ?? null,
-          contentType: normalizeDeskContentType(raw.contentType),
+          contentType: DESK_MESSAGE_CONTENT_TYPE,
           zohoSource: "comment",
         },
       },
