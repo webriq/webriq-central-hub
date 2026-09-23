@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { X, Loader2 } from "lucide-react";
+import { X, Loader2, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { type Ticket, type TicketSeverity, SEVERITY_STYLE } from "@/app/(hub)/projects-old/_pm-shared";
 import { CollapsibleSection } from "./_collapsible-section";
@@ -10,6 +10,7 @@ import { TaskAttachmentPicker } from "./_task-attachment-picker";
 import { TaskDescriptionEditor } from "./_task-description-editor";
 import { useUploadQueue, UploadQueuePanel, uploadViaSignedUrl } from "./_attachment-dropzone";
 import { extensionInfoFor } from "@/config/attachment-types";
+import { formatFileSize } from "./_attachment-grid-tile";
 import { AssigneeMultiSelect } from "./_assignee-multi-select";
 import { DateTimeFieldPicker } from "./_datetime-field-picker";
 import { dueDefaultValue, splitDateTimeValue } from "./_datetime-helpers";
@@ -40,6 +41,7 @@ export function CreateTicketModal({
   defaultTitle,
   defaultDescription,
   sourceTicketId,
+  copyAttachmentsFrom,
   onClose,
   onCreated,
 }: {
@@ -54,6 +56,10 @@ export function CreateTicketModal({
   // ticket thread message. Stamps `tickets.source_inbox_id` so the ticket surfaces on the Desk >
   // Tickets tab. Omitted for the normal (project-page) New Ticket flow.
   sourceTicketId?: string;
+  // Task 394 — attachments already sitting on the source Desk Inbox message (not new browser
+  // files the user is picking here) — copied server-side onto the new ticket after creation via
+  // a separate, non-blocking call. Omitted for the normal (project-page) New Ticket flow.
+  copyAttachmentsFrom?: { id: string; filename: string; size: number | null }[];
   onClose: () => void;
   onCreated: (i: Ticket) => void;
 }) {
@@ -68,6 +74,12 @@ export function CreateTicketModal({
   const [dueValue, setDueValue] = useState<string>(() => dueDefaultValue());
   const [notes, setNotes] = useState<string>("");
   const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
+  // Task 394 follow-up — surfaces the source Desk message's attachments in the form itself
+  // (rather than only copying them silently after creation) so the user can see, and optionally
+  // exclude, what's coming along before clicking Create. Defaults to all selected.
+  const [copiedAttachmentIds, setCopiedAttachmentIds] = useState<Set<string>>(
+    () => new Set((copyAttachmentsFrom ?? []).map((a) => a.id))
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<TicketFieldErrors>({});
@@ -143,6 +155,31 @@ export function CreateTicketModal({
     const ticket: Ticket = await res.json();
     setSaving(false);
     toast.success("Ticket created", { id: toastId });
+
+    // Task 394 — non-blocking: doesn't gate onCreated()/the upload-queue phase below, mirrors
+    // how attachmentFiles upload failures already don't roll back the ticket itself. Only the
+    // still-selected subset (the user may have removed some in the Attachments section below).
+    const selectedCopyIds = (copyAttachmentsFrom ?? [])
+      .filter((a) => copiedAttachmentIds.has(a.id))
+      .map((a) => a.id);
+    if (selectedCopyIds.length > 0) {
+      fetch(`/api/v2/projects/${projectId}/tickets/${ticket.id}/attachments/copy-from-inbox`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ attachmentIds: selectedCopyIds }),
+      })
+        .then((r) => (r.ok ? r.json() : Promise.reject()))
+        .then((data: { copied: number; errors: string[] }) => {
+          if (data.errors.length > 0) {
+            toast.warning(
+              data.copied > 0
+                ? `${data.copied} of ${selectedCopyIds.length} attachments copied — some couldn't be copied`
+                : "Couldn't copy the message's attachments"
+            );
+          }
+        })
+        .catch(() => toast.warning("Couldn't copy the message's attachments"));
+    }
 
     if (attachmentFiles.length > 0) {
       ticketIdRef.current = ticket.id;
@@ -220,7 +257,49 @@ export function CreateTicketModal({
                 />
               </CollapsibleSection>
 
-              <CollapsibleSection title="Attachments" defaultOpen={false}>
+              <CollapsibleSection title="Attachments" defaultOpen={(copyAttachmentsFrom?.length ?? 0) > 0}>
+                {copyAttachmentsFrom && copyAttachmentsFrom.length > 0 && (
+                  <div className="flex flex-col gap-1.5 mb-3">
+                    <span className="text-[11px] font-semibold text-[#5F6A88]">
+                      From this message ({copiedAttachmentIds.size})
+                    </span>
+                    <div className="rounded-[10px] border border-[#E2E7F2] bg-white divide-y divide-[#EDF0F7]">
+                      {copyAttachmentsFrom.map((a) => {
+                        const selected = copiedAttachmentIds.has(a.id);
+                        return (
+                          <div key={a.id} className="flex items-center gap-3 px-3.5 py-2.5">
+                            <span className="w-7.5 h-7.5 rounded-[7px] shrink-0 flex items-center justify-center bg-[#E5F1FF] text-[#007BFF]">
+                              <FileText size={15} />
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <p className={cn("text-[12px] font-semibold truncate", selected ? "text-[#3A4565]" : "text-[#C7CEDD] line-through")}>
+                                {a.filename}
+                              </p>
+                              <p className="text-[10.5px] text-[#5F6A88]">
+                                {formatFileSize(a.size)} · Will be copied
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setCopiedAttachmentIds((prev) => {
+                                  const next = new Set(prev);
+                                  if (next.has(a.id)) next.delete(a.id);
+                                  else next.add(a.id);
+                                  return next;
+                                })
+                              }
+                              aria-label={selected ? `Don't copy ${a.filename}` : `Copy ${a.filename}`}
+                              className="shrink-0 bg-transparent border-none cursor-pointer text-[#5F6A88] hover:text-[#C0392B] transition-colors"
+                            >
+                              <X size={13} />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
                 <TaskAttachmentPicker files={attachmentFiles} onFilesChange={setAttachmentFiles} />
               </CollapsibleSection>
 

@@ -363,7 +363,91 @@ route's dry-run/live sequence:
 - **Verification**: `npx tsc --noEmit` PASS (0 errors), `pnpm lint` PASS (2 pre-existing
   unrelated warnings), confirmed zero remaining references to the removed
   `normalizeDeskContentType`.
-- **Not yet verified**: live re-run against the Maxton ticket after this fix (needs redeploy).
-  Also not yet confirmed whether the WebriQ reply/comment on the same ticket has the identical
-  raw-HTML symptom — the screenshot only showed the newly-inserted Guest thread message: worth
-  checking on the next live pass.
+- **Verified live** (local dev, real Desk credentials, Maxton ticket #21058): re-running the
+  backfill after this fix correctly re-patched the contentType; browser confirmed both the
+  Guest thread message and the WebriQ reply comment now render as formatted HTML with the
+  correct author on each. Re-running a third time returned all zeros (`messagesInserted: 0,
+  contentTypeRepaired: 0`), confirming idempotency holds.
+
+## Attachments Gap — Confirmed Root Cause, Deferred to a New Task
+
+Live diagnostic logging (added temporarily, then removed — see below) against the same Maxton
+ticket confirmed why `attachmentsAdded` stayed `0` with no warn/error logs at all: it's not a
+download failure, the thread/comment objects genuinely carry no attachment data.
+
+Raw Zoho Desk response for the opening thread: `hasAttach: false, attachmentCount: -1,
+attachments: []`. Same for the reply comment: `attachments: []`. Yet StackShift's own UI (the
+original bug report) shows 10 PDF files attached to this exact ticket.
+
+**Confirmed conclusion**: those files are Zoho Desk **ticket-level** attachments (a separate
+`GET /tickets/{id}/attachments` endpoint), not thread- or comment-level ones. This is exactly
+what task 388's original doc flagged and deliberately deferred: *"StackShift's attachment
+flow... is a distinct API surface from Desk's own `/tickets/{id}/attachments`... confirm they
+resolve to the same underlying Desk attachment objects before wiring this up."* That warning
+is now confirmed correct — the assumption this task's `syncMessageAttachments()` was built on
+(that `thread.attachments`/`comment.attachments` would carry StackShift-uploaded files) does not
+hold for ticket-level uploads.
+
+**Why this isn't a quick patch**: Hub's `attachments` table requires `entity_id` to point at a
+specific `inbox_messages` row (`entity_type: 'inbox_message'`). A ticket-level attachment has no
+natural single-message owner — attaching it to the opening thread message is a plausible
+convention, but it's a real design decision (not an obvious fix) and needs its own scoped task:
+fetch `/tickets/{id}/attachments`, decide the entity linkage, and wire it into
+`stackshift-message-sync.ts` alongside the existing thread/comment attachment logic (which stays
+correct and should be kept — a thread or comment *could* still carry its own attachments in
+other tickets, this ticket's data just happens to have none there).
+
+**Diagnostic logging added/removed this session**: temporary `console.log` calls dumping the raw
+Zoho thread/comment object keys were added to `stackshift-message-sync.ts` to get this evidence,
+then fully removed once the finding was confirmed — `npx tsc --noEmit` and `pnpm lint` both
+re-verified clean after removal. No diagnostic code shipped.
+
+**Follow-up**: scoped as a new task (392) via the `task` skill.
+
+## Confirmed, Permanent Limitation — StackShift Comment Author Identity (Do Not Re-Investigate As a Bug)
+
+Live testing on a second ticket (Hub `ticket_number` 21057, Zoho externalId
+`300063000091410100`-series, "Uploading issues") surfaced what looked like a new bug: a comment
+genuinely typed by the customer ("Guest" on StackShift, Sep 22 2026 10:13 PM: *"Thank you for
+the error and we found that we can upload."*) displayed in the Hub as authored by **"WebriQ"**
+and marked **Private**, instead of the customer and Public.
+
+**Root cause confirmed via temporary diagnostic logging** (added to
+`stackshift-message-sync.ts`, then fully removed — `npx tsc --noEmit`/`pnpm lint` re-verified
+clean after removal, no diagnostic code shipped): every comment on this ticket, regardless of
+who actually typed it in StackShift's UI, carries the **identical** `commenter` object from
+Zoho Desk's API:
+
+```json
+{"name":"WebriQ","email":"helpdesk@webriq.us","type":"AGENT","roleName":"CEO"}
+```
+
+**This is not a bug in `stackshift-message-sync.ts`'s `isAgent`/`visibility` derivation.**
+StackShift's own app posts *every* comment to Zoho Desk — whether typed by the actual customer
+or by WebriQ staff replying through StackShift's interface — under one shared Desk agent
+identity (`helpdesk@webriq.us`, `type: "AGENT"`). Zoho Desk's API exposes no field that
+distinguishes these; the real end-user mapping exists only inside StackShift's own internal
+"datahub" API, which Central Hub has no access to. Hub is correctly displaying exactly what
+Zoho Desk itself records — `isAgent = commenter?.type !== "END_USER"` reads `"AGENT"` and
+correctly returns `staff`; the underlying data source itself cannot distinguish the true author.
+The `Private` label is the same story: that comment's Zoho `isPublic` field genuinely came back
+`false` (StackShift's own choice when posting a guest follow-up as a comment), so Hub is
+faithfully mirroring Zoho's own recorded state, not misreading it.
+
+**This was already anticipated, not a new discovery** — task 388's original planning doc,
+Finding 4, flagged this exact limitation before any of this code was written: *"The true
+end-user identity behind a StackShift-authored comment is NOT always recoverable from Desk
+alone... Central Hub has no access to that datahub... display whatever Desk itself returns."*
+This entry exists to record that the anticipated limitation has now been **confirmed with real
+live data**, not merely theorized.
+
+**There is no fix available on Central Hub's side.** The only paths that would actually resolve
+this both require a change in `webriq-pagebuilder/app` (a separate repo, StackShift's own team):
+1. Post guest-authored comments to Zoho Desk as genuine `END_USER`-type comments instead of
+   through the shared `helpdesk@webriq.us` agent identity, or
+2. Expose StackShift's internal datahub author-mapping to Central Hub via some new API.
+
+Neither is in scope for Central Hub. **Do not re-open this as a Hub-side bug** without one of
+those two external changes landing first — re-deriving `isAgent`/`visibility` differently on
+Central Hub's side cannot fix this, since the distinguishing information doesn't exist in any
+data Central Hub receives.

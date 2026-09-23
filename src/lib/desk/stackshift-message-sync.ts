@@ -91,6 +91,11 @@ export async function syncTicketMessages(
   let messagesInserted = 0;
   let contentTypeRepaired = 0;
   let attachmentsAdded = 0;
+  // Task 392 — Zoho Desk ticket-level attachments (files uploaded via StackShift's own "Upload
+  // File" button) carry no thread/comment linkage in the API response (confirmed via live
+  // testing, ticket #21058 — 10 attachments, none referencing a threadId/commentId). They're
+  // attached to the opening thread's message once it's synced, below.
+  let openingThreadMessageId: string | null = null;
 
   const { items: threadItems, token: threadsToken } = await fetchAllDeskPages(
     `/tickets/${ticketExternalId}/threads`,
@@ -148,6 +153,7 @@ export async function syncTicketMessages(
     if (upserted) {
       if (upserted.inserted) messagesInserted++;
       if (upserted.repaired) contentTypeRepaired++;
+      openingThreadMessageId = upserted.id;
       const attachResult = await syncMessageAttachments(currentToken, upserted.id, openingThread.attachments ?? []);
       currentToken = attachResult.token;
       attachmentsAdded += attachResult.added;
@@ -179,6 +185,35 @@ export async function syncTicketMessages(
       const attachResult = await syncMessageAttachments(currentToken, upserted.id, raw.attachments ?? []);
       currentToken = attachResult.token;
       attachmentsAdded += attachResult.added;
+    }
+  }
+
+  // Task 392 — Zoho Desk ticket-level attachments (GET /tickets/{id}/attachments), a distinct
+  // API surface from thread/comment-embedded attachments (task 388 flagged this exact gap,
+  // confirmed live via ticket #21058: files uploaded through StackShift's "Upload File" button
+  // never appear in thread.attachments/comment.attachments). Response shape confirmed live —
+  // {id, name, size, href, ...} matches the existing DeskAttachment type directly, and carries
+  // no threadId/commentId linkage, so every ticket-level attachment attaches to the opening
+  // thread's message (the closest conceptual owner — the files accompanied the original
+  // request). If there's no opening thread yet (empty thread list — an edge case), skip for
+  // this run; it self-heals on a later run once an opening thread exists.
+  if (openingThreadMessageId) {
+    try {
+      const { items: ticketAttachments, token: attachmentsListToken } = await fetchAllDeskPages(
+        `/tickets/${ticketExternalId}/attachments`,
+        currentToken,
+        "desk-message-sync-ticket-attachments"
+      );
+      currentToken = attachmentsListToken;
+      const attachResult = await syncMessageAttachments(
+        currentToken,
+        openingThreadMessageId,
+        ticketAttachments as DeskAttachment[]
+      );
+      currentToken = attachResult.token;
+      attachmentsAdded += attachResult.added;
+    } catch (e) {
+      console.error(`[desk-message-sync] ticket-level attachments fetch failed for ${ticketExternalId}`, e);
     }
   }
 

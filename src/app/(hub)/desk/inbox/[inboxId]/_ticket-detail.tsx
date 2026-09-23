@@ -10,6 +10,7 @@ import { V2_ROUTES } from "@/config/constants";
 import { cn } from "@/lib/utils";
 import { RichTextEditor } from "./_rich-text-editor";
 import type { MessageItem } from "./_conversation-thread";
+import { useAttachmentDeepLink } from "@/app/(hub)/projects/_shared/_use-attachment-deeplink";
 
 // ConversationThread uses DOMPurify to render inbound HTML message bodies, which requires a
 // DOM — same reason recharts is dynamically imported with ssr:false elsewhere in this codebase
@@ -208,6 +209,14 @@ export default function TicketDetail({
 
   const [convView, setConvView] = useState<ConvView>("conversations");
   const [attachmentsOpen, setAttachmentsOpen] = useState(false);
+  // Task 393 — a `?attachment=<id>` deep link auto-switches to the Attachments tab and opens
+  // that attachment's preview (handled inside AttachmentsTab itself, once its data is ready).
+  const { deepLinkedAttachmentId, copyAttachmentUrl } = useAttachmentDeepLink();
+  useEffect(() => {
+    // Deferred (not called synchronously in the effect body) — same react-hooks/set-state-in-
+    // effect avoidance every fetch-driven effect in this codebase already uses (task 368).
+    if (deepLinkedAttachmentId) Promise.resolve().then(() => setAttachmentsOpen(true));
+  }, [deepLinkedAttachmentId]);
   // Task 324 — the compose surface. "reply" replaces the message list with a full email
   // composer; "comment" shows the internal-note editor above the list. Auto-set to
   // "comment" when the Comments view is opened.
@@ -527,7 +536,12 @@ export default function TicketDetail({
               </div>
 
               {attachmentsOpen ? (
-                <AttachmentsTab inboxId={ticket.inboxId} messages={messages} />
+                <AttachmentsTab
+                  inboxId={ticket.inboxId}
+                  messages={messages}
+                  copyAttachmentUrl={copyAttachmentUrl}
+                  autoOpenAttachmentId={deepLinkedAttachmentId}
+                />
               ) : composerMode === "reply" ? (
                 <div className="px-5 py-4">
                   <div className="mb-3 text-[13px] font-semibold text-[#0B1533]">
@@ -594,6 +608,7 @@ export default function TicketDetail({
                     ticketDbId={ticket.id}
                     subject={ticket.subject}
                     messages={shownMessages}
+                    copyAttachmentUrl={copyAttachmentUrl}
                   />
                 </>
               )}

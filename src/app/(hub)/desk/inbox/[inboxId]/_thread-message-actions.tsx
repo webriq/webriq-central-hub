@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Bug } from "lucide-react";
+import { TicketPlus } from "lucide-react";
 import type { MessageItem } from "./_conversation-thread";
 import { ThreadToProjectModal } from "./_thread-to-project-modal";
 
@@ -32,7 +32,7 @@ export function ThreadMessageActions({
         onClick={() => setModalOpen(true)}
         className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-[#E2E7F2] bg-white text-[12px] font-medium text-[#3A4565] hover:border-[#A8C6F5] hover:text-[#0B1533] transition-colors cursor-pointer"
       >
-        <Bug size={13} className="text-[#5F6A88]" /> File a ticket
+        <TicketPlus size={13} className="text-[#5F6A88]" /> File a ticket
       </button>
 
       {modalOpen && (

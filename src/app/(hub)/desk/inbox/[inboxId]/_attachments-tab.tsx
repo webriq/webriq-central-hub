@@ -1,92 +1,65 @@
 "use client";
 
-import { useState } from "react";
-import { Paperclip, Download } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Paperclip, ExternalLink, Download, Link2 } from "lucide-react";
 import type { MessageItem } from "./_conversation-thread";
+import { AttachmentAction } from "@/app/(hub)/projects/_shared/_attachment-actions-menu";
+import { AttachmentGridTile, AttachmentThumbnail, downloadAttachment } from "@/app/(hub)/projects/_shared/_attachment-grid-tile";
+import { TaskAttachmentViewerModal } from "@/app/(hub)/projects/v2/[projectId]/tasks/[taskId]/_task-attachment-viewer-modal";
 
 // Ticket-wide Attachments tab (task 320) — aggregates attachments across every message on the
 // ticket rather than showing them per-message (that's what the Conversations/Threads/Comments
-// tabs already do inline). View/download only — no upload UI, matching task 306's scope
-// (import + download only; no upload endpoint exists for ticket_message attachments).
-function formatSize(bytes: number | null): string {
-  if (bytes == null) return "";
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function formatDateTime(iso: string): string {
-  return new Intl.DateTimeFormat("en-US", { day: "2-digit", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" }).format(
-    new Date(iso)
-  );
-}
-
+// tabs already do inline). Task 393 — grid-tile presentation reusing the same shared components
+// `_ticket-attachments.tsx` (project Tickets domain) already uses, rather than the old
+// single-column list rows: `AttachmentGridTile`/`AttachmentThumbnail`/`downloadAttachment` from
+// `projects/_shared/_attachment-grid-tile.tsx`, and `TaskAttachmentViewerModal` cross-imported
+// the same way `_ticket-attachments.tsx` already does. View/Download/Copy URL only — no
+// Remove/upload, since Desk Inbox attachments are read-only data synced from Zoho Desk (tasks
+// 390/392), not something Hub users create here.
 type FlatAttachment = {
   id: string;
   filename: string;
   size: number | null;
-  messageId: string;
-  authorName: string;
-  createdAt: string;
+  fetchUrl: string;
 };
 
-function AttachmentRow({ inboxId, attachment }: { inboxId: string; attachment: FlatAttachment }) {
-  const [loading, setLoading] = useState(false);
-  const [failed, setFailed] = useState(false);
+export default function AttachmentsTab({
+  inboxId,
+  messages,
+  copyAttachmentUrl,
+  autoOpenAttachmentId,
+}: {
+  inboxId: string;
+  messages: MessageItem[];
+  copyAttachmentUrl: (attachmentId: string) => void;
+  // Task 393 — a `?attachment=<id>` deep link (see projects/_shared/_use-attachment-deeplink.ts)
+  // lands the panel on this tab and opens this attachment's preview once it's found below.
+  autoOpenAttachmentId?: string | null;
+}) {
+  const [viewing, setViewing] = useState<FlatAttachment | null>(null);
 
-  async function handleDownload() {
-    setLoading(true);
-    setFailed(false);
-    try {
-      const res = await fetch(
-        `/api/desk/tickets/${inboxId}/messages/${attachment.messageId}/attachments/${attachment.id}/file-url`
-      );
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const { url } = await res.json();
-      window.open(url, "_blank", "noopener,noreferrer");
-    } catch {
-      setFailed(true);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  return (
-    <div className="flex items-center gap-3 px-5 py-3 border-b border-[#EDF0F7] last:border-b-0 hover:bg-[#F0F7FF] transition-colors">
-      <div className="w-8 h-8 rounded-[8px] bg-[#EDF0F7] flex items-center justify-center shrink-0">
-        <Paperclip size={14} className="text-[#5F6A88]" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="text-[13px] text-[#0B1533] truncate">{attachment.filename}</div>
-        <div className="text-[11px] text-[#5F6A88]">
-          {attachment.authorName} · {formatDateTime(attachment.createdAt)}
-          {attachment.size != null && ` · ${formatSize(attachment.size)}`}
-        </div>
-      </div>
-      <button
-        onClick={handleDownload}
-        disabled={loading}
-        title={failed ? "Failed to open — try again" : "Download"}
-        aria-label={`Download ${attachment.filename}`}
-        className="w-7 h-7 rounded-full flex items-center justify-center text-[#5F6A88] hover:bg-white hover:text-[#007BFF] disabled:opacity-50 transition-colors shrink-0"
-      >
-        {failed ? <span className="text-[11px] text-[#C0392B]">!</span> : <Download size={14} />}
-      </button>
-    </div>
-  );
-}
-
-export default function AttachmentsTab({ inboxId, messages }: { inboxId: string; messages: MessageItem[] }) {
   const attachments: FlatAttachment[] = messages.flatMap((m) =>
     m.attachments.map((a) => ({
       id: a.id,
       filename: a.filename,
       size: a.size,
-      messageId: m.id,
-      authorName: m.authorName,
-      createdAt: m.createdAt,
+      fetchUrl: `/api/desk/tickets/${inboxId}/messages/${m.id}/attachments/${a.id}/file-url`,
     }))
   );
+
+  // Same ref-guarded deferred-setState pattern as `_ticket-attachments.tsx` — closing the modal
+  // doesn't immediately reopen it while the deep-link param is still present, and the deferred
+  // (`Promise.resolve().then(...)`) update satisfies react-hooks/set-state-in-effect the same
+  // way every fetch-driven effect elsewhere in this codebase already does.
+  const didAutoOpen = useRef(false);
+  useEffect(() => {
+    if (!autoOpenAttachmentId || didAutoOpen.current) return;
+    const match = attachments.find((a) => a.id === autoOpenAttachmentId);
+    if (!match) return;
+    didAutoOpen.current = true;
+    Promise.resolve().then(() => setViewing(match));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- attachments is derived fresh every render from `messages`; only autoOpenAttachmentId should re-trigger this
+  }, [autoOpenAttachmentId]);
 
   if (attachments.length === 0) {
     return (
@@ -101,10 +74,30 @@ export default function AttachmentsTab({ inboxId, messages }: { inboxId: string;
   }
 
   return (
-    <div>
-      {attachments.map((a) => (
-        <AttachmentRow key={a.id} inboxId={inboxId} attachment={a} />
-      ))}
+    <div className="px-5 py-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {attachments.map((file) => {
+          const actions: AttachmentAction[] = [
+            { label: "View", icon: ExternalLink, onClick: () => setViewing(file) },
+            { label: "Download", icon: Download, onClick: () => void downloadAttachment(file.fetchUrl) },
+            { label: "Copy URL", icon: Link2, onClick: () => copyAttachmentUrl(file.id) },
+          ];
+          return (
+            <AttachmentGridTile
+              key={file.id}
+              filename={file.filename}
+              size={file.size}
+              thumbnail={<AttachmentThumbnail filename={file.filename} fetchUrl={file.fetchUrl} />}
+              actions={actions}
+              onClick={() => setViewing(file)}
+            />
+          );
+        })}
+      </div>
+
+      {viewing && (
+        <TaskAttachmentViewerModal attachment={viewing} fetchUrl={viewing.fetchUrl} onClose={() => setViewing(null)} />
+      )}
     </div>
   );
 }

@@ -102,6 +102,10 @@ export function ThreadToProjectModal({
         // Task 363 — stamps the new ticket's `source_inbox_id` (migration 147) so it surfaces on the Desk >
         // Tickets tab (the support→dev handoff board).
         sourceTicketId={ticketDbId}
+        // Task 394 — carries this specific message's attachments (not the whole Desk ticket's)
+        // onto the newly-filed project Ticket, matching how Title/Description are already
+        // scoped to this one message.
+        copyAttachmentsFrom={message.attachments}
         onClose={onClose}
         onCreated={() => {
           toast.success(`Ticket created in ${selectedProjectName}`);

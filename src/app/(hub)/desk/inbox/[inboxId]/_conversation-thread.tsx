@@ -1,12 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, Paperclip } from "lucide-react";
+import { ChevronDown, ExternalLink, Download, Link2 } from "lucide-react";
 import { Chip } from "../../../dashboard/_components/dashboard-shared";
 import { cn } from "@/lib/utils";
 import { initialsFrom, colorForName } from "../_resolve";
 import { sanitizeMessageHtml } from "./_message-html";
 import { ThreadMessageActions } from "./_thread-message-actions";
+import { AttachmentAction } from "@/app/(hub)/projects/_shared/_attachment-actions-menu";
+import {
+  AttachmentGridTile,
+  AttachmentThumbnail,
+  CommentAttachmentGrid,
+  downloadAttachment,
+} from "@/app/(hub)/projects/_shared/_attachment-grid-tile";
+import { TaskAttachmentViewerModal } from "@/app/(hub)/projects/v2/[projectId]/tasks/[taskId]/_task-attachment-viewer-modal";
 
 export type MessageAttachment = { id: string; filename: string; size: number | null };
 
@@ -38,46 +46,57 @@ function formatDateTime(iso: string): string {
   );
 }
 
-function AttachmentChip({
+// Task 394 — inline per-message attachment grid, replacing the old pill-style AttachmentChip.
+// Reuses the exact grid-tile + kebab + viewer-modal combo task 393 already built for the
+// Attachments tab, and the CommentAttachmentGrid layout task 368 already built for Task/Ticket
+// Comments — first Desk Inbox use of that component.
+type FlatAttachment = MessageAttachment & { fetchUrl: string };
+
+function MessageAttachments({
   inboxId,
   messageId,
-  attachment,
+  attachments,
+  copyAttachmentUrl,
 }: {
   inboxId: string;
   messageId: string;
-  attachment: MessageAttachment;
+  attachments: MessageAttachment[];
+  copyAttachmentUrl: (attachmentId: string) => void;
 }) {
-  const [loading, setLoading] = useState(false);
-  const [failed, setFailed] = useState(false);
+  const [viewing, setViewing] = useState<FlatAttachment | null>(null);
+  if (attachments.length === 0) return null;
 
-  async function handleDownload() {
-    setLoading(true);
-    setFailed(false);
-    try {
-      const res = await fetch(
-        `/api/desk/tickets/${inboxId}/messages/${messageId}/attachments/${attachment.id}/file-url`
-      );
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const { url } = await res.json();
-      window.open(url, "_blank", "noopener,noreferrer");
-    } catch {
-      setFailed(true);
-    } finally {
-      setLoading(false);
-    }
-  }
+  const items: FlatAttachment[] = attachments.map((a) => ({
+    ...a,
+    fetchUrl: `/api/desk/tickets/${inboxId}/messages/${messageId}/attachments/${a.id}/file-url`,
+  }));
 
   return (
-    <button
-      onClick={handleDownload}
-      disabled={loading}
-      title={failed ? "Failed to open — try again" : attachment.filename}
-      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-[#E2E7F2] bg-[#FAFBFE] text-[11px] text-[#3A4565] hover:bg-[#F0F7FF] disabled:opacity-50 disabled:cursor-default transition-colors"
-    >
-      <Paperclip size={11} />
-      <span className="truncate max-w-40">{attachment.filename}</span>
-      {failed && <span className="text-[#C0392B]">!</span>}
-    </button>
+    <>
+      <CommentAttachmentGrid
+        items={items}
+        renderItem={(file) => {
+          const actions: AttachmentAction[] = [
+            { label: "View", icon: ExternalLink, onClick: () => setViewing(file) },
+            { label: "Download", icon: Download, onClick: () => void downloadAttachment(file.fetchUrl) },
+            { label: "Copy URL", icon: Link2, onClick: () => copyAttachmentUrl(file.id) },
+          ];
+          return (
+            <AttachmentGridTile
+              key={file.id}
+              filename={file.filename}
+              size={file.size}
+              thumbnail={<AttachmentThumbnail filename={file.filename} fetchUrl={file.fetchUrl} />}
+              actions={actions}
+              onClick={() => setViewing(file)}
+            />
+          );
+        }}
+      />
+      {viewing && (
+        <TaskAttachmentViewerModal attachment={viewing} fetchUrl={viewing.fetchUrl} onClose={() => setViewing(null)} />
+      )}
+    </>
   );
 }
 
@@ -122,6 +141,7 @@ function MessageCard({
   message,
   open,
   onToggle,
+  copyAttachmentUrl,
 }: {
   inboxId: string;
   ticketDbId: string;
@@ -129,6 +149,7 @@ function MessageCard({
   message: MessageItem;
   open: boolean;
   onToggle: () => void;
+  copyAttachmentUrl: (attachmentId: string) => void;
 }) {
   const m = message;
   const tint = isOutboundReply(m)
@@ -184,10 +205,13 @@ function MessageCard({
             <div className="text-[13px] text-[#3A4565] leading-relaxed whitespace-pre-wrap">{m.body}</div>
           )}
           {m.attachments.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mt-2.5">
-              {m.attachments.map((a) => (
-                <AttachmentChip key={a.id} inboxId={inboxId} messageId={m.id} attachment={a} />
-              ))}
+            <div className="mt-2.5">
+              <MessageAttachments
+                inboxId={inboxId}
+                messageId={m.id}
+                attachments={m.attachments}
+                copyAttachmentUrl={copyAttachmentUrl}
+              />
             </div>
           )}
         </div>
@@ -201,11 +225,13 @@ export default function ConversationThread({
   ticketDbId,
   subject,
   messages,
+  copyAttachmentUrl,
 }: {
   inboxId: string;
   ticketDbId: string;
   subject: string;
   messages: MessageItem[];
+  copyAttachmentUrl: (attachmentId: string) => void;
 }) {
   // Collapsed by default like Zoho Desk (task 323) — only the newest message (index 0,
   // since the parent passes newest-first) starts expanded. The parent keys this component
@@ -252,6 +278,7 @@ export default function ConversationThread({
             message={m}
             open={expandedIds.has(m.id)}
             onToggle={() => toggle(m.id)}
+            copyAttachmentUrl={copyAttachmentUrl}
           />
         ))}
       </div>
