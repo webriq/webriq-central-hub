@@ -4,6 +4,8 @@ import { useState } from "react";
 import { X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { WIKI_PRODUCTS, type WikiPageSummary, type WikiProduct } from "@/types/wiki";
+import type { WikiTagCount } from "@/lib/wiki/tags";
+import { WikiTagInput } from "./_wiki-tag-input";
 
 // Task 395 — Create-page modal. Plain controlled form + fetch, matches the Add Asset /
 // Create Task modal convention (no react-hook-form). Overlay/panel classes mirror
@@ -15,18 +17,21 @@ export function WikiNewPageModal({
   defaultProduct,
   defaultParentId,
   pages,
+  tagCatalog,
   onClose,
   onCreated,
 }: {
   defaultProduct: WikiProduct;
   defaultParentId: string | null;
   pages: WikiPageSummary[];
+  tagCatalog: WikiTagCount[];
   onClose: () => void;
   onCreated: (page: WikiPageSummary) => void;
 }) {
   const [title, setTitle] = useState("");
   const [product, setProduct] = useState<WikiProduct>(defaultProduct);
   const [parentId, setParentId] = useState<string>(defaultParentId ?? "");
+  const [tags, setTags] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,7 +46,7 @@ export function WikiNewPageModal({
       const res = await fetch("/api/wiki/pages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ product, title: title.trim(), parentId: parentId || null }),
+        body: JSON.stringify({ product, title: title.trim(), parentId: parentId || null, tags }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => null);
@@ -57,8 +62,10 @@ export function WikiNewPageModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0B1533]/40 p-4" onClick={saving ? undefined : onClose}>
+      {/* No `overflow-hidden` (task 401) — it would clip the tag input's suggestion dropdown;
+          nothing inside paints a background up to the rounded corners. */}
       <div
-        className="w-full max-w-md rounded-[14px] bg-white shadow-xl border border-[#E2E7F2] overflow-hidden"
+        className="w-full max-w-md rounded-[14px] bg-white shadow-xl border border-[#E2E7F2]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-[#E2E7F2]">
@@ -79,6 +86,11 @@ export function WikiNewPageModal({
               placeholder="e.g. Setup & Config"
               autoFocus
             />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className={labelClass} htmlFor="wiki-new-page-tags">Tags (optional)</label>
+            <WikiTagInput id="wiki-new-page-tags" value={tags} onChange={setTags} catalog={tagCatalog} contextTitle={title} />
           </div>
 
           <div className="flex flex-col gap-1.5">

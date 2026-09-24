@@ -23,13 +23,16 @@ export default async function KbPage({
   if (!data?.claims) redirect("/auth/login");
 
   const userId = data.claims.sub as string;
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", userId).single();
+  const { data: profile } = await supabase.from("profiles").select("role, full_name").eq("id", userId).single();
   const role = (profile?.role as string | null) ?? null;
   const canWrite = role !== null && WRITE_ROLES.includes(role);
+  // Task 402 — identity shown to other /kb users on the presence channel ("X is editing now").
+  const email = typeof data.claims.email === "string" ? data.claims.email : null;
+  const currentUser = { id: userId, name: profile?.full_name ?? email ?? "Unknown", email };
 
   const { data: pageRows } = await supabase
     .from("wiki_pages")
-    .select("id, product, parent_id, title, status, sort_order, version, updated_at")
+    .select("id, product, parent_id, title, status, sort_order, version, updated_at, tags")
     .order("product", { ascending: true })
     .order("sort_order", { ascending: true })
     .order("created_at", { ascending: true });
@@ -43,6 +46,7 @@ export default async function KbPage({
     sortOrder: row.sort_order,
     version: row.version,
     updatedAt: row.updated_at,
+    tags: row.tags,
   }));
 
   const { space, page } = await searchParams;
@@ -60,6 +64,7 @@ export default async function KbPage({
       initialProduct={requestedPage?.product ?? initialProduct}
       initialPageId={initialPageId}
       canWrite={canWrite}
+      currentUser={currentUser}
     />
   );
 }

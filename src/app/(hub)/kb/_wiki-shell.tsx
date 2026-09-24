@@ -1,20 +1,28 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { WikiPageDetail, WikiPageSummary, WikiProduct, WikiStatus } from "@/types/wiki";
+import { toast } from "sonner";
+import type { WikiCurrentUser, WikiPageDetail, WikiPageSummary, WikiProduct, WikiStatus } from "@/types/wiki";
 import { WikiTreePanel } from "./_wiki-tree-panel";
 import { WikiDocPanel } from "./_wiki-doc-panel";
 import { WikiInfoPanel, type TocEntry } from "./_wiki-info-panel";
 import { WikiNewPageModal } from "./_wiki-new-page-modal";
 import { WikiImportModal } from "./_wiki-import-modal";
 import { WikiEmptyState } from "./_wiki-empty-state";
+import { WikiHistoryPanel } from "./_wiki-history-panel";
+import { WikiPresenceBar } from "./_wiki-presence-bar";
+import { useWikiEditor } from "./_use-wiki-editor";
+import { useWikiLive } from "./_use-wiki-live";
 import { V2_ROUTES } from "@/config/constants";
+import { collectWikiTags } from "@/lib/wiki/tags";
 
 // Task 395 — client orchestrator for /kb. Owns selection state (synced to the URL via
 // `router.replace`, Files-tab-deep-link precedent, task 359) and fetches page detail through
 // the API routes; the server `page.tsx` only supplies the initial lightweight tree + resolved
-// selection so first paint doesn't need a client round trip for the tree itself.
+// selection so first paint doesn't need a client round trip for the tree itself. Task 402 —
+// edit/save/draft/conflict flow lives in `useWikiEditor`, live presence/updates in
+// `useWikiLive`; this file only wires them to the panels.
 
 // Assigns sequential ids to h2/h3 in the rendered HTML and returns a matching TOC list — done
 // once per content load so the doc panel and info panel stay in lockstep on the same ids.
@@ -35,11 +43,13 @@ export function WikiShell({
   initialProduct,
   initialPageId,
   canWrite,
+  currentUser,
 }: {
   initialPages: WikiPageSummary[];
   initialProduct: WikiProduct;
   initialPageId: string | null;
   canWrite: boolean;
+  currentUser: WikiCurrentUser;
 }) {
   const router = useRouter();
   const [pages, setPages] = useState(initialPages);
@@ -47,19 +57,14 @@ export function WikiShell({
   const [selectedPageId, setSelectedPageId] = useState(initialPageId);
   const [detail, setDetail] = useState<WikiPageDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
-  const [editMode, setEditMode] = useState(false);
-  const [draftTitle, setDraftTitle] = useState("");
-  const [draftContentHtml, setDraftContentHtml] = useState("");
-  const [draftTags, setDraftTags] = useState("");
-  const [saving, setSaving] = useState(false);
   const [deletingPage, setDeletingPage] = useState(false);
   const [activeTocId, setActiveTocId] = useState<string | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [newPageModal, setNewPageModal] = useState<{ product: WikiProduct; parentId: string | null } | null>(null);
   const [importModal, setImportModal] = useState<{ product: WikiProduct; parentId: string | null } | null>(null);
 
   const loadDetail = useCallback(async (pageId: string) => {
     setDetailLoading(true);
-    setEditMode(false);
     setActiveTocId(null);
     try {
       const res = await fetch(`/api/wiki/pages/${pageId}`);
@@ -73,6 +78,31 @@ export function WikiShell({
     const res = await fetch("/api/wiki/pages");
     if (res.ok) setPages(await res.json());
   }, []);
+
+  // The editor's onSaved needs the presence channel's broadcast, but presence needs the
+  // editor's mode — so the editor goes first and reaches broadcast through a ref.
+  const broadcastRef = useRef<(event: { pageId: string; revision: number }) => void>(() => {});
+
+  const editor = useWikiEditor({
+    detail,
+    onSaved: (pageId, revision) => {
+      broadcastRef.current({ pageId, revision });
+      void Promise.all([loadDetail(pageId), refreshPages()]);
+    },
+    onReload: (pageId) => void loadDetail(pageId),
+  });
+
+  const { presence, staleNotice, refreshDraftMeta, editingPages } = useWikiLive({
+    currentUser,
+    selectedPageId,
+    detail,
+    setDetail,
+    editMode: editor.editMode,
+    refreshPages,
+  });
+  useEffect(() => {
+    broadcastRef.current = presence.broadcastSaved;
+  }, [presence.broadcastSaved]);
 
   useEffect(() => {
     // Deferred a microtask, matching this codebase's established fix for
@@ -95,36 +125,13 @@ export function WikiShell({
   }
 
   function selectPage(pageId: string, product: WikiProduct) {
+    if (pageId !== selectedPageId) {
+      editor.leaveForNavigation();
+      setHistoryOpen(false);
+    }
     setSelectedProduct(product);
     setSelectedPageId(pageId);
     updateUrl(product, pageId);
-  }
-
-  function enterEdit() {
-    if (!detail) return;
-    setDraftTitle(detail.title);
-    setDraftContentHtml(detail.contentHtml);
-    setDraftTags(detail.tags.join(", "));
-    setEditMode(true);
-  }
-
-  async function save() {
-    if (!detail || saving) return;
-    setSaving(true);
-    try {
-      const tags = draftTags.split(",").map((t) => t.trim()).filter(Boolean);
-      const res = await fetch(`/api/wiki/pages/${detail.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: draftTitle.trim(), contentHtml: draftContentHtml, tags }),
-      });
-      if (res.ok) {
-        setEditMode(false);
-        await Promise.all([loadDetail(detail.id), refreshPages()]);
-      }
-    } finally {
-      setSaving(false);
-    }
   }
 
   async function deletePage(): Promise<boolean> {
@@ -159,9 +166,20 @@ export function WikiShell({
     const res = await fetch(`/api/wiki/pages/${detail.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
+      body: JSON.stringify({ status, baseRevision: detail.revision }),
     });
-    if (res.ok) await Promise.all([loadDetail(detail.id), refreshPages()]);
+    if (res.status === 409) {
+      toast.error("Someone just saved this page — reloaded the latest version. Try again.");
+      await loadDetail(detail.id);
+      return;
+    }
+    if (!res.ok) {
+      toast.error("Couldn't change the status.");
+      return;
+    }
+    const { revision } = (await res.json()) as { revision: number };
+    presence.broadcastSaved({ pageId: detail.id, revision });
+    await Promise.all([loadDetail(detail.id), refreshPages()]);
   }
 
   // Shared by both the New Page and Import modals — only one is ever open at a time, so
@@ -184,6 +202,10 @@ export function WikiShell({
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
+  // Task 401 — tag catalog for suggestions + the tree filter, derived from the page list so a
+  // tag created on save/create shows up as soon as refreshPages() lands.
+  const tagCatalog = useMemo(() => collectWikiTags(pages), [pages]);
+
   const hasPagesInSpace = pages.some((p) => p.product === selectedProduct);
 
   // `h-full` + `overflow-hidden` on the outer row, rather than each panel scrolling the shared
@@ -194,6 +216,7 @@ export function WikiShell({
     <div className="h-full flex overflow-hidden">
       <WikiTreePanel
         pages={pages}
+        tagCatalog={tagCatalog}
         selectedProduct={selectedProduct}
         selectedPageId={selectedPageId}
         onSelectSpace={selectSpace}
@@ -201,6 +224,7 @@ export function WikiShell({
         onNewPage={() => setNewPageModal({ product: selectedProduct, parentId: null })}
         onImport={() => setImportModal({ product: selectedProduct, parentId: null })}
         canWrite={canWrite}
+        editingPages={editingPages}
       />
 
       {detailLoading ? (
@@ -212,26 +236,54 @@ export function WikiShell({
           <div className="h-3 w-full bg-[#F4F6FB] rounded-[6px]" />
           <div className="h-3 w-5/6 bg-[#F4F6FB] rounded-[6px]" />
         </div>
+      ) : detail && historyOpen ? (
+        <WikiHistoryPanel
+          detail={detail}
+          canWrite={canWrite}
+          onClose={() => setHistoryOpen(false)}
+          onRestored={(result) => {
+            if ("revision" in result) presence.broadcastSaved({ pageId: detail.id, revision: result.revision });
+            void Promise.all([refreshDraftMeta(detail.id), refreshPages()]);
+            // Reload content in place (no skeleton) so the history panel stays open on the new state.
+            void fetch(`/api/wiki/pages/${detail.id}`).then(async (res) => { if (res.ok) setDetail(await res.json()); });
+          }}
+        />
       ) : detail ? (
         <WikiDocPanel
           detail={detail}
           renderedHtml={renderedHtml}
           canWrite={canWrite}
-          editMode={editMode}
-          draftTitle={draftTitle}
-          draftContentHtml={draftContentHtml}
-          draftTags={draftTags}
-          saving={saving}
+          editMode={editor.editMode}
+          draftTitle={editor.draftTitle}
+          draftContentHtml={editor.draftContentHtml}
+          draftTags={editor.draftTags}
+          tagCatalog={tagCatalog}
+          saving={editor.saving}
+          entering={editor.entering}
           deleting={deletingPage}
           childCount={pages.filter((p) => p.parentId === detail.id).length}
-          onDraftTitleChange={setDraftTitle}
-          onDraftContentChange={setDraftContentHtml}
-          onDraftTagsChange={setDraftTags}
-          onEnterEdit={enterEdit}
-          onCancelEdit={() => setEditMode(false)}
-          onSave={save}
+          onDraftTitleChange={editor.setDraftTitle}
+          onDraftContentChange={editor.setDraftContentHtml}
+          onDraftTagsChange={editor.setDraftTags}
+          onEnterEdit={() => void editor.enterEdit()}
+          onCancelEdit={editor.cancelEdit}
+          onSave={() => void editor.save()}
           onStatusChange={changeStatus}
           onDelete={deletePage}
+          onOpenHistory={() => setHistoryOpen(true)}
+          draftStatus={editor.draftStatus}
+          draftSavedAt={editor.draftSavedAt}
+          presenceBar={
+            <WikiPresenceBar
+              editors={presence.editorsOfPage}
+              viewers={presence.viewersOfPage}
+              draftHolders={detail.draftHolders}
+              pageRevision={detail.revision}
+              staleNotice={staleNotice}
+              editMode={editor.editMode}
+              onReload={() => void loadDetail(detail.id)}
+            />
+          }
         />
       ) : (
         <WikiEmptyState
@@ -248,7 +300,7 @@ export function WikiShell({
         />
       )}
 
-      {detail && !detailLoading && (
+      {detail && !detailLoading && !historyOpen && (
         <WikiInfoPanel
           detail={detail}
           toc={toc}
@@ -258,11 +310,14 @@ export function WikiShell({
         />
       )}
 
+      {editor.dialogs}
+
       {newPageModal && (
         <WikiNewPageModal
           defaultProduct={newPageModal.product}
           defaultParentId={newPageModal.parentId}
           pages={pages}
+          tagCatalog={tagCatalog}
           onClose={() => setNewPageModal(null)}
           onCreated={onPageCreated}
         />

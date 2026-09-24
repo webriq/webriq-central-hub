@@ -34,6 +34,7 @@ export type WikiPageSummary = {
   sortOrder: number;
   version: number;
   updatedAt: string;
+  tags: string[];
 };
 
 export type WikiContributor = {
@@ -49,4 +50,87 @@ export type WikiPageDetail = WikiPageSummary & {
   updatedBy: WikiContributor | null;
   contributors: WikiContributor[];
   relatedPages: WikiPageSummary[];
+  // Task 402 — optimistic-concurrency token (bumps on every save; `version` stays publish-only).
+  revision: number;
+  // The caller's own autosaved draft (metadata only — content via GET .../draft).
+  myDraft: WikiMyDraft | null;
+  // Other users holding a draft on this page — identity + timestamps, never content.
+  draftHolders: WikiDraftHolder[];
+};
+
+// Task 402 — page history, drafts, presence.
+
+export type WikiRevisionKind = "save" | "publish" | "restore";
+
+export type WikiRevisionSummary = {
+  id: string;
+  revision: number | null;
+  version: number;
+  kind: WikiRevisionKind;
+  title: string;
+  tags: string[];
+  status: WikiStatus | null;
+  restoredFrom: string | null;
+  // The `revision` number of the snapshot a restore came from, resolved from the list itself.
+  restoredFromRevision: number | null;
+  editor: WikiContributor | null;
+  createdAt: string;
+};
+
+export type WikiRevisionSnapshot = {
+  id: string;
+  revision: number | null;
+  title: string;
+  contentHtml: string;
+  tags: string[];
+  createdAt: string;
+};
+
+export type WikiRevisionDetail = {
+  revision: WikiRevisionSnapshot;
+  // The snapshot right before this one (null for the oldest) — the default diff baseline.
+  previous: WikiRevisionSnapshot | null;
+};
+
+export type WikiMyDraft = {
+  baseRevision: number;
+  updatedAt: string;
+};
+
+export type WikiDraftContent = WikiMyDraft & {
+  title: string;
+  contentHtml: string;
+  tags: string[];
+};
+
+export type WikiDraftHolder = {
+  id: string;
+  name: string;
+  email: string | null;
+  updatedAt: string;
+  baseRevision: number;
+};
+
+export type WikiPresenceMode = "viewing" | "editing";
+
+// One entry per connected /kb tab, tracked on the shared `wiki-presence` Realtime channel.
+export type WikiPresenceState = {
+  userId: string;
+  name: string;
+  email: string | null;
+  pageId: string | null;
+  mode: WikiPresenceMode;
+  since: string;
+};
+
+export type WikiCurrentUser = {
+  id: string;
+  name: string;
+  email: string | null;
+};
+
+export type WikiConflictInfo = {
+  revision: number;
+  updatedBy: WikiContributor | null;
+  updatedAt: string;
 };

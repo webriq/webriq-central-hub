@@ -581,6 +581,7 @@ export interface Database {
           status: "draft" | "published" | "archived";
           sort_order: number;
           version: number;
+          revision: number;
           tags: string[];
           created_by: string | null;
           updated_by: string | null;
@@ -596,6 +597,7 @@ export interface Database {
           status?: "draft" | "published" | "archived";
           sort_order?: number;
           version?: number;
+          revision?: number;
           tags?: string[];
           created_by?: string | null;
           updated_by?: string | null;
@@ -611,6 +613,7 @@ export interface Database {
           status?: "draft" | "published" | "archived";
           sort_order?: number;
           version?: number;
+          revision?: number;
           tags?: string[];
           created_by?: string | null;
           updated_by?: string | null;
@@ -649,6 +652,11 @@ export interface Database {
           content_html: string;
           edited_by: string | null;
           created_at: string;
+          revision: number | null;
+          kind: "save" | "publish" | "restore";
+          tags: string[];
+          status: "draft" | "published" | "archived" | null;
+          restored_from: string | null;
         };
         Insert: {
           id?: string;
@@ -658,6 +666,11 @@ export interface Database {
           content_html: string;
           edited_by?: string | null;
           created_at?: string;
+          revision?: number | null;
+          kind?: "save" | "publish" | "restore";
+          tags?: string[];
+          status?: "draft" | "published" | "archived" | null;
+          restored_from?: string | null;
         };
         Update: {
           id?: string;
@@ -667,6 +680,11 @@ export interface Database {
           content_html?: string;
           edited_by?: string | null;
           created_at?: string;
+          revision?: number | null;
+          kind?: "save" | "publish" | "restore";
+          tags?: string[];
+          status?: "draft" | "published" | "archived" | null;
+          restored_from?: string | null;
         };
         Relationships: [
           {
@@ -677,8 +695,63 @@ export interface Database {
             referencedColumns: ["id"];
           },
           {
+            foreignKeyName: "wiki_page_versions_restored_from_fkey";
+            columns: ["restored_from"];
+            isOneToOne: false;
+            referencedRelation: "wiki_page_versions";
+            referencedColumns: ["id"];
+          },
+          {
             foreignKeyName: "wiki_page_versions_edited_by_fkey";
             columns: ["edited_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      wiki_page_drafts: {
+        Row: {
+          page_id: string;
+          user_id: string;
+          title: string;
+          content_html: string;
+          tags: string[];
+          base_revision: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          page_id: string;
+          user_id: string;
+          title: string;
+          content_html?: string;
+          tags?: string[];
+          base_revision: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          page_id?: string;
+          user_id?: string;
+          title?: string;
+          content_html?: string;
+          tags?: string[];
+          base_revision?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "wiki_page_drafts_page_id_fkey";
+            columns: ["page_id"];
+            isOneToOne: false;
+            referencedRelation: "wiki_pages";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "wiki_page_drafts_user_id_fkey";
+            columns: ["user_id"];
             isOneToOne: false;
             referencedRelation: "profiles";
             referencedColumns: ["id"];
@@ -3818,6 +3891,33 @@ export interface Database {
     };
     Views: Record<string, never>;
     Functions: {
+      wiki_page_draft_holders: {
+        Args: { p_page_id: string };
+        Returns: {
+          user_id: string;
+          full_name: string | null;
+          email: string | null;
+          updated_at: string;
+          base_revision: number;
+        }[];
+      };
+      wiki_save_page: {
+        Args: {
+          p_page_id: string;
+          p_base_revision: number;
+          p_title?: string | null;
+          p_content_html?: string | null;
+          p_tags?: string[] | null;
+          p_status?: string | null;
+          p_kind?: string;
+          p_restored_from?: string | null;
+        };
+        Returns: Database["public"]["Tables"]["wiki_pages"]["Row"];
+      };
+      wiki_restore_revision: {
+        Args: { p_page_id: string; p_revision_id: string; p_base_revision: number };
+        Returns: Database["public"]["Tables"]["wiki_pages"]["Row"];
+      };
       force_logout_all_except: {
         Args: {
           exclude_user_id: string;
@@ -3877,7 +3977,7 @@ export interface Database {
           done: number;
         }[];
       };
-      sync_ticket_number_sequence: {
+      sync_inbox_ticket_number_sequence: {
         Args: Record<string, never>;
         Returns: undefined;
       };

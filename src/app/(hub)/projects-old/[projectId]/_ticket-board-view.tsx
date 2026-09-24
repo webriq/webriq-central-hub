@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import {
   DndContext, DragOverlay, PointerSensor, useSensor, useSensors,
   closestCorners, useDroppable, useDraggable,
@@ -33,6 +33,8 @@ export default function IssueBoardView({
 }) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  // Stable across SSR + hydration — dnd-kit's default a11y ids come from a module counter that doesn't match.
+  const dndId = useId();
 
   const byColumn = useMemo(() => {
     const map = new Map<string, Ticket[]>();
@@ -69,6 +71,7 @@ export default function IssueBoardView({
 
   return (
     <DndContext
+      id={dndId}
       sensors={sensors}
       collisionDetection={closestCorners}
       onDragStart={(e: DragStartEvent) => setActiveId(e.active.id as string)}

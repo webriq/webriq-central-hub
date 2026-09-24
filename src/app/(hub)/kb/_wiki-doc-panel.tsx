@@ -1,17 +1,21 @@
 "use client";
 
-import { useState } from "react";
-import { ChevronDown, Download, FileDown, Loader2, Pencil, Trash2 } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { History, Loader2, Pencil, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import type { WikiPageDetail, WikiStatus } from "@/types/wiki";
 import { WikiRte } from "./_wiki-rte";
 import { WikiAvatar } from "./_wiki-avatar";
+import { WikiExportMenu } from "./_wiki-export-menu";
+import { WikiTagInput } from "./_wiki-tag-input";
+import { WIKI_PROSE_CLASS } from "./_wiki-prose";
+import type { WikiDraftStatus } from "./_use-wiki-draft";
+import type { WikiTagCount } from "@/lib/wiki/tags";
 
 // Task 395 — Panel 2: document canvas. Structure from the mockup's `.panel-doc`, restyled to
-// the real design tokens. Export: HTML is a real client-side Blob download (the mockup's
-// `claude.use("downloads")` call is an Artifact-sandbox-only API and can't ship here); PDF /
-// Word / Markdown stay disabled — no doc-conversion library exists in this codebase.
+// the real design tokens. Export ▾ lives in `_wiki-export-menu.tsx` (task 400 — HTML / PDF /
+// Word / Markdown, all client-side).
 
 const STATUS_STYLE: Record<WikiStatus, string> = {
   draft: "bg-[#FFF3D6] text-[#8A5A00]",
@@ -19,25 +23,31 @@ const STATUS_STYLE: Record<WikiStatus, string> = {
   archived: "bg-[#EDF0F7] text-[#5F6A88]",
 };
 
+// Task 402 — autosave indicator beside Cancel/Save. Text, not just color, carries the state.
+function DraftStatusLabel({ status, savedAt }: { status: WikiDraftStatus; savedAt: string | null }) {
+  if (status === "idle") return null;
+  const text =
+    status === "pending"
+      ? "Unsaved changes"
+      : status === "saving"
+        ? "Saving draft…"
+        : status === "error"
+          ? "Draft not saved"
+          : `Draft saved ${savedAt ? new Date(savedAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : ""}`;
+  return (
+    <span className={cn("text-[11px]", status === "error" ? "text-[#C0392B] font-semibold" : "text-[#94A3B8]")} aria-live="polite">
+      {text}
+    </span>
+  );
+}
+
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
-function downloadHtml(detail: WikiPageDetail) {
-  const page = `<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="UTF-8">\n<title>${detail.title}</title>\n` +
-    `<style>body{font-family:Arial,Helvetica,sans-serif;max-width:720px;margin:40px auto;padding:0 20px;color:#0f172a;line-height:1.6;}` +
-    `h2{font-size:18px;margin-top:28px;}h3{font-size:15px;}` +
-    `blockquote{background:#eef3ff;border:1px solid #d7e3ff;border-radius:8px;padding:12px 14px;margin:0 0 16px;}` +
-    `pre{background:#0f172a;color:#e2e8f0;padding:12px 14px;border-radius:6px;overflow-x:auto;}</style>\n</head>\n<body>\n` +
-    `<h1>${detail.title}</h1>\n${detail.contentHtml}\n</body>\n</html>`;
-  const blob = new Blob([page], { type: "text/html" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `${detail.title.replace(/[^\w\- ]+/g, "").trim().replace(/\s+/g, "-").toLowerCase() || "page"}.html`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
+// Shared pill-button look for Cancel / Edit / Delete / Export (hover accents vary per button).
+const PILL_BUTTON =
+  "flex items-center gap-1.5 text-[12px] font-semibold text-[#5F6A88] border border-[#E2E7F2] bg-white rounded-full px-3.5 py-1.5 cursor-pointer transition-colors";
 
 export function WikiDocPanel({
   detail,
@@ -47,7 +57,9 @@ export function WikiDocPanel({
   draftTitle,
   draftContentHtml,
   draftTags,
+  tagCatalog,
   saving,
+  entering,
   deleting,
   childCount,
   onDraftTitleChange,
@@ -58,6 +70,10 @@ export function WikiDocPanel({
   onSave,
   onStatusChange,
   onDelete,
+  onOpenHistory,
+  presenceBar,
+  draftStatus,
+  draftSavedAt,
 }: {
   detail: WikiPageDetail;
   renderedHtml: string;
@@ -65,20 +81,25 @@ export function WikiDocPanel({
   editMode: boolean;
   draftTitle: string;
   draftContentHtml: string;
-  draftTags: string;
+  draftTags: string[];
+  tagCatalog: WikiTagCount[];
   saving: boolean;
+  entering: boolean;
   deleting: boolean;
   childCount: number;
   onDraftTitleChange: (value: string) => void;
   onDraftContentChange: (value: string) => void;
-  onDraftTagsChange: (value: string) => void;
+  onDraftTagsChange: (value: string[]) => void;
   onEnterEdit: () => void;
   onCancelEdit: () => void;
   onSave: () => void;
   onStatusChange: (status: WikiStatus) => void;
   onDelete: () => Promise<boolean>;
+  onOpenHistory: () => void;
+  presenceBar: ReactNode;
+  draftStatus: WikiDraftStatus;
+  draftSavedAt: string | null;
 }) {
-  const [exportOpen, setExportOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
   async function handleConfirmDelete() {
@@ -115,11 +136,12 @@ export function WikiDocPanel({
           <div className="flex items-center gap-2 shrink-0">
             {editMode ? (
               <>
+                <DraftStatusLabel status={draftStatus} savedAt={draftSavedAt} />
                 <button
                   type="button"
                   onClick={onCancelEdit}
                   disabled={saving}
-                  className="text-[12px] font-semibold text-[#5F6A88] border border-[#E2E7F2] bg-white rounded-full px-3.5 py-1.5 cursor-pointer transition-colors hover:border-[#A8C6F5] disabled:opacity-45"
+                  className={cn(PILL_BUTTON, "hover:border-[#A8C6F5] disabled:opacity-45")}
                 >
                   Cancel
                 </button>
@@ -140,52 +162,34 @@ export function WikiDocPanel({
                     <button
                       type="button"
                       onClick={onEnterEdit}
-                      className="flex items-center gap-1.5 text-[12px] font-semibold text-[#5F6A88] border border-[#E2E7F2] bg-white rounded-full px-3.5 py-1.5 cursor-pointer transition-colors hover:border-[#A8C6F5]"
+                      disabled={entering}
+                      className={cn(PILL_BUTTON, "hover:border-[#A8C6F5] disabled:opacity-45")}
                     >
-                      <Pencil size={12} /> Edit
+                      {entering ? <Loader2 size={12} className="animate-spin" /> : <Pencil size={12} />} Edit
                     </button>
                     <button
                       type="button"
                       onClick={() => setDeleteConfirmOpen(true)}
-                      className="flex items-center gap-1.5 text-[12px] font-semibold text-[#5F6A88] border border-[#E2E7F2] bg-white rounded-full px-3.5 py-1.5 cursor-pointer transition-colors hover:border-[#F5A8A8] hover:bg-[#FDE8E6] hover:text-[#C0392B]"
+                      className={cn(PILL_BUTTON, "hover:border-[#F5A8A8] hover:bg-[#FDE8E6] hover:text-[#C0392B]")}
                     >
                       <Trash2 size={12} /> Delete
                     </button>
                   </>
                 )}
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => setExportOpen((v) => !v)}
-                    className="flex items-center gap-1.5 text-[12px] font-semibold text-[#5F6A88] border border-[#E2E7F2] bg-white rounded-full px-3.5 py-1.5 cursor-pointer transition-colors hover:border-[#A8C6F5]"
-                  >
-                    <Download size={12} /> Export <ChevronDown size={11} />
-                  </button>
-                  {exportOpen && (
-                    <>
-                      <div className="fixed inset-0 z-40" onClick={() => setExportOpen(false)} />
-                      <div className="absolute right-0 top-[calc(100%+6px)] z-50 min-w-[180px] bg-white border border-[#E2E7F2] rounded-[10px] shadow-[0_8px_24px_rgba(7,17,51,.10)] p-1.5">
-                        <button
-                          type="button"
-                          onClick={() => { downloadHtml(detail); setExportOpen(false); }}
-                          className="w-full flex items-center gap-2 text-left text-[12.5px] text-[#3A4565] rounded-[7px] px-2.5 py-2 cursor-pointer transition-colors hover:bg-[#F4F6FB]"
-                        >
-                          <FileDown size={13} /> Export as HTML
-                        </button>
-                        {["PDF", "Word (.docx)", "Markdown"].map((label) => (
-                          <div key={label} className="flex items-center gap-2 text-[12.5px] text-[#94A3B8] rounded-[7px] px-2.5 py-2 cursor-not-allowed">
-                            <FileDown size={13} /> Export as {label}
-                            <span className="ml-auto text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-[#EDF0F7] text-[#5F6A88]">soon</span>
-                          </div>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </div>
+                <button
+                  type="button"
+                  onClick={onOpenHistory}
+                  className={cn(PILL_BUTTON, "hover:border-[#A8C6F5]")}
+                >
+                  <History size={12} /> History
+                </button>
+                <WikiExportMenu detail={detail} triggerClassName={cn(PILL_BUTTON, "hover:border-[#A8C6F5]")} />
               </>
             )}
           </div>
         </div>
+
+        {presenceBar}
 
         {editMode ? (
           <>
@@ -195,11 +199,16 @@ export function WikiDocPanel({
               className="w-full font-heading text-[22px] font-bold tracking-[-0.015em] text-[#0B1533] outline-none border-b border-transparent focus:border-[#E2E7F2] mb-3 pb-1"
               placeholder="Page title"
             />
-            <input
+            <label htmlFor="wiki-doc-tags" className="block text-[11px] font-semibold text-[#0B1533] mb-1.5">
+              Tags
+            </label>
+            <WikiTagInput
+              id="wiki-doc-tags"
               value={draftTags}
-              onChange={(e) => onDraftTagsChange(e.target.value)}
-              className="w-full text-[12.5px] text-[#3A4565] outline-none border border-[#E2E7F2] bg-[#F4F6FB] rounded-[8px] px-3 py-1.5 mb-4 focus:border-[#007BFF] focus:bg-white"
-              placeholder="Tags (comma-separated)"
+              onChange={onDraftTagsChange}
+              catalog={tagCatalog}
+              contextTitle={draftTitle}
+              className="mb-4"
             />
           </>
         ) : (
@@ -221,24 +230,7 @@ export function WikiDocPanel({
           <WikiRte pageId={detail.id} value={draftContentHtml} onChange={onDraftContentChange} />
         ) : detail.contentHtml.trim() ? (
           <div
-            className={cn(
-              "text-[13px] leading-[1.7] text-[#3A4565]",
-              "[&_h2]:font-heading [&_h2]:text-[15px] [&_h2]:font-bold [&_h2]:tracking-[-0.01em] [&_h2]:text-[#0B1533] [&_h2]:mt-7 [&_h2]:mb-2.5",
-              "[&_h3]:font-heading [&_h3]:text-[13px] [&_h3]:font-bold [&_h3]:text-[#0B1533] [&_h3]:mt-5 [&_h3]:mb-2",
-              "[&_p+p]:mt-3.5",
-              "[&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pl-5 [&_ol]:pl-5 [&_li]:my-1",
-              "[&_blockquote]:bg-[#EEF3FF] [&_blockquote]:border [&_blockquote]:border-[#D7E3FF] [&_blockquote]:rounded-[10px] [&_blockquote]:px-3.5 [&_blockquote]:py-3 [&_blockquote]:my-3.5 [&_blockquote]:text-[13px] [&_blockquote]:text-[#243B6B] [&_blockquote]:not-italic",
-              "[&_pre]:bg-[#0F172A] [&_pre]:text-[#D7E0F7] [&_pre]:rounded-[10px] [&_pre]:px-4 [&_pre]:py-3.5 [&_pre]:my-3.5 [&_pre]:text-[12.5px] [&_pre]:leading-[1.6] [&_pre]:overflow-x-auto [&_pre]:font-mono",
-              "[&_code]:font-mono [&_code]:text-[12.5px]",
-              "[&_img]:max-w-full [&_img]:rounded-[10px] [&_img]:my-3",
-              // Task 397 — same Table spec as the RTE's editable view (central-hub-design-
-              // system.md), so imported/edited tables look identical in read and edit mode.
-              "[&_table]:block [&_table]:overflow-x-auto [&_table]:w-full [&_table]:my-3.5 [&_table]:border-collapse",
-              "[&_th]:text-[9.5px] [&_th]:font-bold [&_th]:uppercase [&_th]:tracking-[0.09em] [&_th]:text-[#5F6A88] [&_th]:bg-[#FAFBFE] [&_th]:text-left [&_th]:px-2.5 [&_th]:py-2 [&_th]:border-b [&_th]:border-[#EDF0F7]",
-              "[&_td]:text-[13px] [&_td]:text-[#3A4565] [&_td]:px-2.5 [&_td]:py-2 [&_td]:border-b [&_td]:border-[#EDF0F7]",
-              "[&_th:first-child]:pl-[18px] [&_td:first-child]:pl-[18px]",
-              "[&_tr]:transition-colors [&_tr:hover]:bg-[#F0F7FF]"
-            )}
+            className={WIKI_PROSE_CLASS}
             dangerouslySetInnerHTML={{ __html: renderedHtml }}
           />
         ) : (

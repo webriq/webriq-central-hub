@@ -1,4 +1,4 @@
-import { FileText } from "lucide-react";
+import { FileText, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { WikiPageSummary, WikiProduct } from "@/types/wiki";
 
@@ -7,6 +7,24 @@ import type { WikiPageSummary, WikiProduct } from "@/types/wiki";
 // drag-reorderable space row, task 399).
 
 export type TreeNode = WikiPageSummary & { children: TreeNode[] };
+
+// Task 402 — pageId → names of OTHER users currently editing it (from the presence channel).
+export type EditingPages = Map<string, string[]>;
+
+export function EditingIndicator({ names }: { names: string[] | undefined }) {
+  if (!names || names.length === 0) return null;
+  const label = `${names.join(", ")} ${names.length === 1 ? "is" : "are"} editing`;
+  return (
+    <span
+      role="img"
+      aria-label={label}
+      title={label}
+      className="shrink-0 flex items-center justify-center w-4 h-4 rounded-full bg-[#FFF3D6] text-[#8A5A00]"
+    >
+      <Pencil size={9} />
+    </span>
+  );
+}
 
 export function buildTree(pages: WikiPageSummary[], product: WikiProduct): TreeNode[] {
   const byProduct = pages.filter((p) => p.product === product && p.status !== "archived");
@@ -27,11 +45,13 @@ export function PageRow({
   depth,
   selectedPageId,
   onSelect,
+  editingPages,
 }: {
   node: TreeNode;
   depth: number;
   selectedPageId: string | null;
   onSelect: (pageId: string) => void;
+  editingPages?: EditingPages;
 }) {
   const active = node.id === selectedPageId;
   return (
@@ -47,6 +67,7 @@ export function PageRow({
       >
         <FileText size={12} className="shrink-0 opacity-75" />
         <span className="truncate flex-1">{node.title}</span>
+        <EditingIndicator names={editingPages?.get(node.id)} />
         {/* Task 399 — version badge replaces the old draft-only status pill on every row,
             matching the mockup's own `.badge-count` (the doc canvas's status pill/dropdown and
             the info panel's Status row remain the actual draft/published/archived control). */}
@@ -55,7 +76,7 @@ export function PageRow({
         </span>
       </button>
       {node.children.map((child) => (
-        <PageRow key={child.id} node={child} depth={depth + 1} selectedPageId={selectedPageId} onSelect={onSelect} />
+        <PageRow key={child.id} node={child} depth={depth + 1} selectedPageId={selectedPageId} onSelect={onSelect} editingPages={editingPages} />
       ))}
     </div>
   );

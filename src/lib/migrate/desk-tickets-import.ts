@@ -14,7 +14,7 @@
 // (`open | on_hold | escalated | closed`); Zoho's `ticketNumber` IS written to
 // `tickets.ticket_number` (the number shown as #<n>) and `ticket_id` is set to
 // `TKT-<ticketNumber>` (the readable routing key). After the upsert loop we call
-// `sync_ticket_number_sequence()` (migration 124) so the serial sequence stays ahead of
+// `sync_inbox_ticket_number_sequence()` (migration 124, renamed in 147) so the serial sequence stays ahead of
 // every imported number and the next email-poll ticket doesn't collide. Raw Zoho `status`
 // is stashed in `source_meta.status`.
 import {
@@ -303,10 +303,10 @@ export async function importDeskTickets(
 
   // Keep the ticket_number serial sequence ahead of every imported Zoho number so the next
   // email-poll-created ticket doesn't collide (task 326 / migration 124).
-  const { error: seqError } = await adminClient.rpc("sync_ticket_number_sequence");
+  const { error: seqError } = await adminClient.rpc("sync_inbox_ticket_number_sequence");
   if (seqError) {
-    console.error("[import/desk-tickets] sync_ticket_number_sequence failed:", seqError.message);
-    result.errors.push(`sync_ticket_number_sequence: ${seqError.message}`);
+    console.error("[import/desk-tickets] sync_inbox_ticket_number_sequence failed:", seqError.message);
+    result.errors.push(`sync_inbox_ticket_number_sequence: ${seqError.message}`);
   }
 
   console.log(

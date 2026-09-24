@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -179,6 +179,8 @@ function DeliverableRow({
   const [expanded, setExpanded] = useState(() => deliverable.checklist.some((c) => nameErrors.has(c.id)));
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: deliverable.id });
   const sensors = useDragSensors();
+  // Stable across SSR + hydration — dnd-kit's default a11y ids come from a module counter that doesn't match.
+  const dndId = useId();
 
   function handleChecklistDragEnd(e: DragEndEvent) {
     const { active, over } = e;
@@ -229,7 +231,7 @@ function DeliverableRow({
 
       {showChecklist && expanded && (
         <div className="mt-2 ml-7 flex flex-col gap-1.5">
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleChecklistDragEnd}>
+          <DndContext id={dndId} sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleChecklistDragEnd}>
             <SortableContext items={deliverable.checklist.map((c) => c.id)} strategy={verticalListSortingStrategy}>
               {deliverable.checklist.map((item) => (
                 <ChecklistItemRow
@@ -298,6 +300,8 @@ function PhaseSection({
   onInsertAfter?: () => void;
 }) {
   const sensors = useDragSensors();
+  // Stable across SSR + hydration — dnd-kit's default a11y ids come from a module counter that doesn't match.
+  const dndId = useId();
   // Task 244 follow-up: phases are only draggable in free-form mode — fixed-phases mode's 5
   // phases stay in their StackShift-I-defined sequence (their day ranges are positional, not
   // reorderable, until a future task extends that engine); the drag handle is simply not shown
@@ -464,7 +468,7 @@ function PhaseSection({
             {error && <span className="text-[10.5px] text-[#C0392B]">{error}</span>}
           </div>
           <div className={cn("flex flex-col gap-1.5", mode === "fixed-phases" && !included && "pointer-events-none")}>
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDeliverableDragEnd}>
+            <DndContext id={dndId} sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDeliverableDragEnd}>
               <SortableContext items={phase.deliverables.map((d) => d.id)} strategy={verticalListSortingStrategy}>
                 {phase.deliverables.map((d, i) => (
                   <DeliverableRow
@@ -542,6 +546,8 @@ export default function PhaseBuilder({
   collapseAllButFirst?: boolean;
 }) {
   const sensors = useDragSensors();
+  // Stable across SSR + hydration — dnd-kit's default a11y ids come from a module counter that doesn't match.
+  const dndId = useId();
   // Task 249 (Requirement D), widened by task 252 to free-form mode too — free-form phases now
   // carry a real day range, but (unlike fixed-phases) have no fixed card-level Programme duration
   // to overrun, since the project's total length is simply derived from the plan's own latest
@@ -639,7 +645,7 @@ export default function PhaseBuilder({
 
   return (
     <div className="flex flex-col gap-2.5">
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handlePhaseDragEnd}>
+      <DndContext id={dndId} sensors={sensors} collisionDetection={closestCenter} onDragEnd={handlePhaseDragEnd}>
         <SortableContext items={phasePlan.phases.map((p) => p.id)} strategy={verticalListSortingStrategy}>
           {phasePlan.phases.map((p) => (
             <PhaseSection

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { normalizeWikiTags } from "@/lib/wiki/tags";
 import type { WikiPageSummary, WikiProduct, WikiStatus } from "@/types/wiki";
 
 // Task 395 — Wiki page tree (list) + page creation. Permission is enforced entirely by RLS
@@ -15,6 +16,7 @@ type WikiPageRow = {
   sort_order: number;
   version: number;
   updated_at: string;
+  tags: string[];
 };
 
 function toSummary(row: WikiPageRow): WikiPageSummary {
@@ -27,6 +29,7 @@ function toSummary(row: WikiPageRow): WikiPageSummary {
     sortOrder: row.sort_order,
     version: row.version,
     updatedAt: row.updated_at,
+    tags: row.tags,
   };
 }
 
@@ -38,7 +41,7 @@ export async function GET() {
 
     const { data, error } = await supabase
       .from("wiki_pages")
-      .select("id, product, parent_id, title, status, sort_order, version, updated_at")
+      .select("id, product, parent_id, title, status, sort_order, version, updated_at, tags")
       .order("product", { ascending: true })
       .order("sort_order", { ascending: true })
       .order("created_at", { ascending: true });
@@ -62,11 +65,12 @@ export async function POST(request: NextRequest) {
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await request.json().catch(() => null);
-    const { product, title, parentId, contentHtml } = (body ?? {}) as {
+    const { product, title, parentId, contentHtml, tags } = (body ?? {}) as {
       product?: WikiProduct;
       title?: string;
       parentId?: string | null;
       contentHtml?: string;
+      tags?: unknown;
     };
 
     if (!product || !title?.trim()) {
@@ -85,10 +89,12 @@ export async function POST(request: NextRequest) {
         parent_id: parentId ?? null,
         title: title.trim(),
         content_html: initialContentHtml,
+        // Task 401 — New Page modal sends tags; Import omits them and gets `[]`.
+        tags: normalizeWikiTags(tags),
         created_by: user.id,
         updated_by: user.id,
       })
-      .select("id, product, parent_id, title, status, sort_order, version, updated_at")
+      .select("id, product, parent_id, title, status, sort_order, version, updated_at, tags")
       .single();
 
     if (error || !page) {

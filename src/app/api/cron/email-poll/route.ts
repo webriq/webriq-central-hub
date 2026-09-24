@@ -46,8 +46,8 @@ export async function POST(req: NextRequest) {
   // Keep the ticket_number serial ahead of every imported Zoho number (task 327 / migration
   // 124) so a ticket created below advances from ~21008+, not a stale low serial. Idempotent;
   // non-fatal — a poll that skips this just risks the pre-task-326 numbering.
-  const { error: seqError } = await adminClient.rpc("sync_ticket_number_sequence");
-  if (seqError) console.error("[cron/email-poll] sync_ticket_number_sequence failed:", seqError.message);
+  const { error: seqError } = await adminClient.rpc("sync_inbox_ticket_number_sequence");
+  if (seqError) console.error("[cron/email-poll] sync_inbox_ticket_number_sequence failed:", seqError.message);
 
   const { data: cursorRow } = await adminClient
     .from("email_poll_cursor")

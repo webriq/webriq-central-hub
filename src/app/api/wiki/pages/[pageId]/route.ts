@@ -1,15 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { normalizeWikiTags } from "@/lib/wiki/tags";
 import type { Database } from "@/types/database";
+import { conflictResponse, isRpcError } from "@/lib/wiki/save-errors";
 import type { WikiContributor, WikiPageDetail, WikiProduct, WikiStatus } from "@/types/wiki";
 
 type WikiPageUpdate = Database["public"]["Tables"]["wiki_pages"]["Update"];
 
 // Task 395 — single wiki page: full detail (GET) + content/status/tags update (PATCH).
-// Permission enforced by RLS (migration 149), same as /api/wiki/pages.
+// Permission enforced by RLS (migration 149), same as /api/wiki/pages. Task 402 — content/status
+// writes go through the `wiki_save_page` RPC (migration 151): conflict-checked against the
+// caller's `baseRevision`, snapshot into the revision log, own draft cleared, one transaction.
 
 const DETAIL_SELECT =
-  "id, product, parent_id, title, content_html, status, sort_order, version, tags, created_at, updated_at, " +
+  "id, product, parent_id, title, content_html, status, sort_order, version, revision, tags, created_at, updated_at, " +
   "created_by_profile:profiles!wiki_pages_created_by_fkey(id, full_name), " +
   "updated_by_profile:profiles!wiki_pages_updated_by_fkey(id, full_name)";
 
@@ -22,6 +26,7 @@ type DetailRow = {
   status: WikiStatus;
   sort_order: number;
   version: number;
+  revision: number;
   tags: string[];
   created_at: string;
   updated_at: string;
@@ -59,13 +64,13 @@ export async function GET(
 
     const siblingsQuery = supabase
       .from("wiki_pages")
-      .select("id, product, parent_id, title, status, sort_order, version, updated_at")
+      .select("id, product, parent_id, title, status, sort_order, version, updated_at, tags")
       .eq("product", page.product)
       .neq("id", pageId)
       .order("sort_order", { ascending: true })
       .limit(6);
 
-    const [{ data: versionRows }, { data: siblingRows }] = await Promise.all([
+    const [{ data: versionRows }, { data: siblingRows }, { data: myDraftRow }, { data: holderRows }] = await Promise.all([
       supabase
         .from("wiki_page_versions")
         .select("edited_by, created_at, editor:profiles(id, full_name)")
@@ -74,6 +79,13 @@ export async function GET(
       page.parent_id === null
         ? siblingsQuery.is("parent_id", null)
         : siblingsQuery.eq("parent_id", page.parent_id),
+      supabase
+        .from("wiki_page_drafts")
+        .select("base_revision, updated_at")
+        .eq("page_id", pageId)
+        .eq("user_id", user.id)
+        .maybeSingle(),
+      supabase.rpc("wiki_page_draft_holders", { p_page_id: pageId }),
     ]);
 
     const seen = new Set<string>();
@@ -95,11 +107,20 @@ export async function GET(
       updatedAt: page.updated_at,
       contentHtml: page.content_html,
       version: page.version,
+      revision: page.revision,
       tags: page.tags,
       createdAt: page.created_at,
       createdBy: toContributor(page.created_by_profile),
       updatedBy: toContributor(page.updated_by_profile),
       contributors,
+      myDraft: myDraftRow ? { baseRevision: myDraftRow.base_revision, updatedAt: myDraftRow.updated_at } : null,
+      draftHolders: (holderRows ?? []).map((h) => ({
+        id: h.user_id,
+        name: h.full_name ?? h.email ?? "Unknown",
+        email: h.email,
+        updatedAt: h.updated_at,
+        baseRevision: h.base_revision,
+      })),
       relatedPages: (siblingRows ?? []).map((row) => ({
         id: row.id,
         product: row.product,
@@ -109,6 +130,7 @@ export async function GET(
         sortOrder: row.sort_order,
         version: row.version,
         updatedAt: row.updated_at,
+        tags: row.tags,
       })),
     };
 
@@ -130,72 +152,65 @@ export async function PATCH(
 
     const { pageId } = await params;
     const body = await request.json().catch(() => null);
-    const { title, contentHtml, status, tags, parentId } = (body ?? {}) as {
+    const { title, contentHtml, status, tags, parentId, baseRevision } = (body ?? {}) as {
       title?: string;
       contentHtml?: string;
       status?: WikiStatus;
-      tags?: string[];
+      tags?: unknown;
       parentId?: string | null;
+      baseRevision?: unknown;
     };
 
-    const { data: current, error: currentError } = await supabase
+    const isContentWrite =
+      title !== undefined || contentHtml !== undefined || status !== undefined || tags !== undefined;
+
+    // Structural-only move (no caller today) — not a content change, so no revision/conflict check.
+    if (!isContentWrite) {
+      if (parentId === undefined) return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
+      const update: WikiPageUpdate = { parent_id: parentId, updated_by: user.id };
+      const { error } = await supabase.from("wiki_pages").update(update).eq("id", pageId);
+      if (error) {
+        console.error("PATCH /api/wiki/pages/[pageId] move error:", error);
+        return NextResponse.json({ error: "Failed to update page" }, { status: 500 });
+      }
+      return NextResponse.json({ id: pageId });
+    }
+
+    if (typeof baseRevision !== "number" || !Number.isInteger(baseRevision)) {
+      return NextResponse.json({ error: "baseRevision is required" }, { status: 400 });
+    }
+
+    // Task 399's publish-only version bump now lives in the RPC (old status read inside the
+    // same UPDATE). A transition into "published" is logged as a `publish` revision; anything
+    // else (content save, draft/archive status change) as a `save`.
+    const { data: current } = await supabase
       .from("wiki_pages")
-      .select("id, title, content_html, status, version")
+      .select("status")
       .eq("id", pageId)
       .maybeSingle();
+    const isPublishing = status === "published" && current?.status !== "published";
 
-    if (currentError) {
-      console.error("PATCH /api/wiki/pages/[pageId] lookup error:", currentError);
-      return NextResponse.json({ error: "Failed to load page" }, { status: 500 });
-    }
-    if (!current) return NextResponse.json({ error: "Page not found" }, { status: 404 });
+    // `wiki_save_page` returns a single composite (not `setof`), so PostgREST responds with one
+    // object — no `.single()` needed.
+    const { data: saved, error: saveError } = await supabase.rpc("wiki_save_page", {
+      p_page_id: pageId,
+      p_base_revision: baseRevision,
+      p_title: title !== undefined ? title.trim() : null,
+      p_content_html: contentHtml ?? null,
+      p_tags: tags !== undefined ? normalizeWikiTags(tags) : null,
+      p_status: status ?? null,
+      p_kind: isPublishing ? "publish" : "save",
+    });
 
-    // Task 399 — version now auto-increments on publish only (matches the mockup's own
-    // "Page metadata" wording), not on every content-changing save. A content-only save
-    // (title/body/tags) updates those columns with no version bump and no history row; only
-    // a transition into "published" logs a new version, snapshotting whatever content is on
-    // the row at that moment.
-    const isPublishing = status === "published" && current.status !== "published";
-    const nextVersion = isPublishing ? current.version + 1 : current.version;
-
-    const update: WikiPageUpdate = { updated_by: user.id };
-    if (title !== undefined) update.title = title.trim();
-    if (contentHtml !== undefined) update.content_html = contentHtml;
-    if (status !== undefined) update.status = status;
-    if (tags !== undefined) update.tags = tags;
-    if (parentId !== undefined) update.parent_id = parentId;
-    if (isPublishing) update.version = nextVersion;
-
-    // Minimal select — the only caller (WikiShell) checks `res.ok` and always re-fetches the
-    // full detail via GET afterwards (contributors/related pages need a fresh query anyway
-    // once a new version row exists), so there's no reason to pay for the DETAIL_SELECT
-    // profile joins here.
-    const { data: updated, error: updateError } = await supabase
-      .from("wiki_pages")
-      .update(update)
-      .eq("id", pageId)
-      .select("id, title, content_html, version")
-      .single();
-
-    if (updateError || !updated) {
-      console.error("PATCH /api/wiki/pages/[pageId] update error:", updateError);
+    if (saveError || !saved) {
+      if (isRpcError(saveError, "P0409")) return conflictResponse(supabase, pageId);
+      if (isRpcError(saveError, "P0404")) return NextResponse.json({ error: "Page not found" }, { status: 404 });
+      if (isRpcError(saveError, "42501")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      console.error("PATCH /api/wiki/pages/[pageId] save error:", saveError);
       return NextResponse.json({ error: "Failed to update page" }, { status: 500 });
     }
 
-    if (isPublishing) {
-      const { error: versionError } = await supabase.from("wiki_page_versions").insert({
-        page_id: pageId,
-        version: nextVersion,
-        title: updated.title,
-        content_html: updated.content_html,
-        edited_by: user.id,
-      });
-      if (versionError) {
-        console.error("PATCH /api/wiki/pages/[pageId] version-insert error:", versionError);
-      }
-    }
-
-    return NextResponse.json({ id: updated.id, version: updated.version });
+    return NextResponse.json({ id: saved.id, version: saved.version, revision: saved.revision });
   } catch (err) {
     console.error("PATCH /api/wiki/pages/[pageId] unexpected error:", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

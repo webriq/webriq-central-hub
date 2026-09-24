@@ -483,7 +483,7 @@
     "src/app/layout.tsx": "97ddc4e24c130a002f7f5af78b2f279c30dc0e6e3805bf66ba16f16cf966d8a0",
     "src/app/oauth/authorize/actions.ts": "51ede695dcc420d8088bc396263386e31e7f1bdec800de7df7eb3fef8cf770ba",
     "src/app/oauth/authorize/page.tsx": "6495eeadf2a132dd52c8e83f04f91cb3cb5a2509eb26e8713ab731c4dddc54cc",
-    "src/types/database.ts": "c5891f4da2d5097177c31d4a8c9b59836ce2a1864d108c226d6819183f6bc724",
+    "src/types/database.ts": "ac15ea2d7b496393dbaccf1888d6c82ff474ab43114fe046e00d349c01f72117",
     "src/types/hub.ts": "35cbecef1dc6bec6cedf3679ffe9a20315ce0ab028c9e95b638397366a4f194c",
     "src/types/onboarding.ts": "d043d2e54b77b1f712a4f844c3e74627ec9ead9a4e09a37226172b03cca6b690",
     "supabase/migrations/001_initial_schema.sql": "0bdd38b0ef3c1a41b38ab93ebb944d466e37236d4db38ba8998a2684bda7732e",
@@ -637,8 +637,8 @@
     "supabase/rollbacks/147_desk_inbox_tickets_rename_down.sql": "3ad4753fe8995e26ab7549d4e547a31fb5a8b85f5235e1e8822cccc12494b468",
     "worker/index.ts": "83350712449db3ec76c4015cedb2bad5dfd0d0ccd91509ee9a6f09ee4f66f9cc"
   },
-  "indexed_at_commit": "0a8f58acf57e675a7fa6334d1b9f485d267b766b",
-  "indexed_at_timestamp": "2026-09-23T06:36:57.908175+00:00",
+  "indexed_at_commit": "e4574bcbc1fd3031dd942702e14efb86078157ff",
+  "indexed_at_timestamp": "2026-09-24T02:17:50.733811+00:00",
   "languages": {
     "markdown": {
       "calls": 0,
@@ -655,7 +655,7 @@
   },
   "schema_version": 3,
   "stats": {
-    "total_edges": 2059,
+    "total_edges": 2017,
     "total_files": 636,
     "total_nodes": 2000
   },
