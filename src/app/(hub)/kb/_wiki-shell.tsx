@@ -240,6 +240,7 @@ export function WikiShell({
         <WikiHistoryPanel
           detail={detail}
           canWrite={canWrite}
+          editing={editor.editMode}
           onClose={() => setHistoryOpen(false)}
           onRestored={(result) => {
             if ("revision" in result) presence.broadcastSaved({ pageId: detail.id, revision: result.revision });
@@ -270,7 +271,6 @@ export function WikiShell({
           onSave={() => void editor.save()}
           onStatusChange={changeStatus}
           onDelete={deletePage}
-          onOpenHistory={() => setHistoryOpen(true)}
           draftStatus={editor.draftStatus}
           draftSavedAt={editor.draftSavedAt}
           presenceBar={
@@ -278,6 +278,7 @@ export function WikiShell({
               editors={presence.editorsOfPage}
               viewers={presence.viewersOfPage}
               draftHolders={detail.draftHolders}
+              knownPeople={[detail.createdBy, detail.updatedBy, ...detail.contributors].filter((p) => p !== null)}
               pageRevision={detail.revision}
               staleNotice={staleNotice}
               editMode={editor.editMode}
@@ -307,6 +308,7 @@ export function WikiShell({
           activeTocId={activeTocId}
           onTocClick={scrollToHeading}
           onSelectRelated={selectPage}
+          onOpenHistory={() => setHistoryOpen(true)}
         />
       )}
 

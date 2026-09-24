@@ -5,7 +5,7 @@
     "DESIGN.md": "268328dba39d99448570bca13ae18f8a0f45865ecf449c61f30c10ca126352a7",
     "PRODUCT.md": "f28ece08ad639a34df712d611bbdb6480b9e44b6e12851edeb450e6c125ae9dd",
     "README.md": "516b4567b54983fef95143c2886d6e208838827596bab651a8bdabdfd1abb325",
-    "TASKS.md": "501fcf048ecd3e95490852e4d03df4e176bfeb450efe41b00374158cae62f129",
+    "TASKS.md": "aae1dc32b5e9d0328b799c9f98626ed448fff92e37c985cd8e5849af0000b916",
     "eslint.config.mjs": "9085b0476f705857d5030dcbc58c581cb42097e2820a75832786caf42294d8ff",
     "next.config.ts": "8c361bb521bd850b4174ea76e4303ae8d410486696c65ced2f0f4b83f3224e46",
     "nextjs-file-length-best-practices.md": "9cdf740499813f37564b27bf58263570124e90b8673e9a5edae1ac480e9faffb",
@@ -111,7 +111,7 @@
     "src/app/(hub)/desk/tickets/_status-filter.ts": "cc45f3502fc932578097e2a6f528429a840e478ddf60d43664f327163dac57cd",
     "src/app/(hub)/desk/tickets/loading.tsx": "c3b6f6362522944bf1beb0aaa0fcc687935cb3730d490e05bd2095bcd18fa949",
     "src/app/(hub)/desk/tickets/page.tsx": "b8206bfe30481ceb6569ad527cdccc8846385ee157858a52ab1ab5d38bd6232f",
-    "src/app/(hub)/kb/page.tsx": "7876c82221aae3ed96029bf14124c8ef9923f265137a8adff23316fa00157905",
+    "src/app/(hub)/kb/page.tsx": "bdf3c8475e0a1d79f105291c7c834e1bd58e25a8f8a6b759ce3d03b8a682df7c",
     "src/app/(hub)/layout.tsx": "6fc2c37d9ec7fd0cf3b391ee32d0010bb7d727b462c2f330589877116e57cd8c",
     "src/app/(hub)/orchestration/_content.tsx": "b31eb5721b6593870085b8eb1f77966650a8e7ebd86109592ab58340c74b0a98",
     "src/app/(hub)/orchestration/page.tsx": "ae5a2f584a03670b8dc256ac344bb035fa2d4056236e2968446caf9be78a7b0a",
@@ -483,7 +483,7 @@
     "src/app/layout.tsx": "97ddc4e24c130a002f7f5af78b2f279c30dc0e6e3805bf66ba16f16cf966d8a0",
     "src/app/oauth/authorize/actions.ts": "51ede695dcc420d8088bc396263386e31e7f1bdec800de7df7eb3fef8cf770ba",
     "src/app/oauth/authorize/page.tsx": "6495eeadf2a132dd52c8e83f04f91cb3cb5a2509eb26e8713ab731c4dddc54cc",
-    "src/types/database.ts": "ac15ea2d7b496393dbaccf1888d6c82ff474ab43114fe046e00d349c01f72117",
+    "src/types/database.ts": "e421f13c2577dbb309b0cefc9ffafbe53c856b52c07ee2238e27b8c052c99abb",
     "src/types/hub.ts": "35cbecef1dc6bec6cedf3679ffe9a20315ce0ab028c9e95b638397366a4f194c",
     "src/types/onboarding.ts": "d043d2e54b77b1f712a4f844c3e74627ec9ead9a4e09a37226172b03cca6b690",
     "supabase/migrations/001_initial_schema.sql": "0bdd38b0ef3c1a41b38ab93ebb944d466e37236d4db38ba8998a2684bda7732e",
@@ -638,7 +638,7 @@
     "worker/index.ts": "83350712449db3ec76c4015cedb2bad5dfd0d0ccd91509ee9a6f09ee4f66f9cc"
   },
   "indexed_at_commit": "e4574bcbc1fd3031dd942702e14efb86078157ff",
-  "indexed_at_timestamp": "2026-09-24T02:17:50.733811+00:00",
+  "indexed_at_timestamp": "2026-09-24T08:30:27.088586+00:00",
   "languages": {
     "markdown": {
       "calls": 0,
@@ -649,15 +649,15 @@
       "nodes": 242
     },
     "typescript": {
-      "calls": 661,
-      "nodes": 1671
+      "calls": 662,
+      "nodes": 1672
     }
   },
   "schema_version": 3,
   "stats": {
-    "total_edges": 2017,
+    "total_edges": 2018,
     "total_files": 636,
-    "total_nodes": 2000
+    "total_nodes": 2001
   },
   "vexp_version": "3.2.4"
 }

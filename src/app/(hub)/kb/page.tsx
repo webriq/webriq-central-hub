@@ -23,12 +23,12 @@ export default async function KbPage({
   if (!data?.claims) redirect("/auth/login");
 
   const userId = data.claims.sub as string;
-  const { data: profile } = await supabase.from("profiles").select("role, full_name").eq("id", userId).single();
+  const { data: profile } = await supabase.from("profiles").select("role, full_name, avatar_url").eq("id", userId).single();
   const role = (profile?.role as string | null) ?? null;
   const canWrite = role !== null && WRITE_ROLES.includes(role);
   // Task 402 — identity shown to other /kb users on the presence channel ("X is editing now").
   const email = typeof data.claims.email === "string" ? data.claims.email : null;
-  const currentUser = { id: userId, name: profile?.full_name ?? email ?? "Unknown", email };
+  const currentUser = { id: userId, name: profile?.full_name ?? email ?? "Unknown", email, avatarUrl: profile?.avatar_url ?? null };
 
   const { data: pageRows } = await supabase
     .from("wiki_pages")

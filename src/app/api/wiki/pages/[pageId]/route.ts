@@ -14,8 +14,10 @@ type WikiPageUpdate = Database["public"]["Tables"]["wiki_pages"]["Update"];
 
 const DETAIL_SELECT =
   "id, product, parent_id, title, content_html, status, sort_order, version, revision, tags, created_at, updated_at, " +
-  "created_by_profile:profiles!wiki_pages_created_by_fkey(id, full_name), " +
-  "updated_by_profile:profiles!wiki_pages_updated_by_fkey(id, full_name)";
+  "created_by_profile:profiles!wiki_pages_created_by_fkey(id, full_name, avatar_url), " +
+  "updated_by_profile:profiles!wiki_pages_updated_by_fkey(id, full_name, avatar_url)";
+
+type ProfileRef = { id: string; full_name: string | null; avatar_url: string | null };
 
 type DetailRow = {
   id: string;
@@ -30,13 +32,13 @@ type DetailRow = {
   tags: string[];
   created_at: string;
   updated_at: string;
-  created_by_profile: { id: string; full_name: string | null } | null;
-  updated_by_profile: { id: string; full_name: string | null } | null;
+  created_by_profile: ProfileRef | null;
+  updated_by_profile: ProfileRef | null;
 };
 
-function toContributor(profile: { id: string; full_name: string | null } | null): WikiContributor | null {
+function toContributor(profile: ProfileRef | null): WikiContributor | null {
   if (!profile) return null;
-  return { id: profile.id, name: profile.full_name ?? "Unknown" };
+  return { id: profile.id, name: profile.full_name ?? "Unknown", avatarUrl: profile.avatar_url };
 }
 
 export async function GET(
@@ -73,7 +75,7 @@ export async function GET(
     const [{ data: versionRows }, { data: siblingRows }, { data: myDraftRow }, { data: holderRows }] = await Promise.all([
       supabase
         .from("wiki_page_versions")
-        .select("edited_by, created_at, editor:profiles(id, full_name)")
+        .select("edited_by, created_at, editor:profiles(id, full_name, avatar_url)")
         .eq("page_id", pageId)
         .order("created_at", { ascending: false }),
       page.parent_id === null
@@ -94,7 +96,16 @@ export async function GET(
       const editor = row.editor;
       if (!editor || seen.has(editor.id)) continue;
       seen.add(editor.id);
-      contributors.push({ id: editor.id, name: editor.full_name ?? "Unknown" });
+      contributors.push({ id: editor.id, name: editor.full_name ?? "Unknown", avatarUrl: editor.avatar_url });
+    }
+
+    // Task 403 — `wiki_page_draft_holders()` (security definer) returns no avatar; look the
+    // holders' photos up separately rather than widening the RPC (no migration).
+    const holderIds = (holderRows ?? []).map((h) => h.user_id);
+    const holderAvatars = new Map<string, string | null>();
+    if (holderIds.length > 0) {
+      const { data: holderProfiles } = await supabase.from("profiles").select("id, avatar_url").in("id", holderIds);
+      for (const p of holderProfiles ?? []) holderAvatars.set(p.id, p.avatar_url);
     }
 
     const detail: WikiPageDetail = {
@@ -118,6 +129,7 @@ export async function GET(
         id: h.user_id,
         name: h.full_name ?? h.email ?? "Unknown",
         email: h.email,
+        avatarUrl: holderAvatars.get(h.user_id) ?? null,
         updatedAt: h.updated_at,
         baseRevision: h.base_revision,
       })),

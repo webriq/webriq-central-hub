@@ -17,12 +17,16 @@ export function WikiInfoPanel({
   activeTocId,
   onTocClick,
   onSelectRelated,
+  onOpenHistory,
 }: {
   detail: WikiPageDetail;
   toc: TocEntry[];
   activeTocId: string | null;
   onTocClick: (id: string) => void;
   onSelectRelated: (pageId: string, product: WikiPageDetail["product"]) => void;
+  // Task 403 follow-up — replaces the doc header's History pill. Available in edit mode too:
+  // unsaved edits live in the shell's editor hook and survive the history panel.
+  onOpenHistory: () => void;
 }) {
   return (
     <div className="w-[236px] shrink-0 border-l border-[#E2E7F2] overflow-y-auto px-4 py-5">
@@ -59,7 +63,20 @@ export function WikiInfoPanel({
           )}
         </div>
         <InfoRow label="Status" value={STATUS_LABEL[detail.status]} />
-        <InfoRow label="Version" value={`v${detail.version}`} mono />
+        <div className="flex items-center justify-between py-1 text-[12.5px]">
+          <span className="text-[#5F6A88]">Version</span>
+          <span className="flex items-center gap-1.5">
+            <span className="text-[#0B1533] font-semibold font-mono text-[11px]">v{detail.version}</span>
+            <span aria-hidden className="text-[#94A3B8]">·</span>
+            <button
+              type="button"
+              onClick={onOpenHistory}
+              className="text-[12px] font-medium text-[#0063D6] cursor-pointer underline-offset-2 transition-colors hover:text-[#0B1533] hover:underline"
+            >
+              History
+            </button>
+          </span>
+        </div>
         {detail.tags.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-2">
             {detail.tags.map((tag) => (
@@ -107,11 +124,11 @@ const STATUS_LABEL: Record<WikiPageDetail["status"], string> = {
   archived: "Archived",
 };
 
-function InfoRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between py-1 text-[12.5px]">
       <span className="text-[#5F6A88]">{label}</span>
-      <span className={cn("text-[#0B1533] font-semibold", mono && "font-mono text-[11px]")}>{value}</span>
+      <span className="text-[#0B1533] font-semibold">{value}</span>
     </div>
   );
 }

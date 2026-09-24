@@ -2,7 +2,7 @@
 
 import { Mail, PencilLine, RefreshCw, FileClock } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { WikiDraftHolder, WikiPresenceState } from "@/types/wiki";
+import type { WikiContributor, WikiDraftHolder, WikiPresenceState } from "@/types/wiki";
 import { WikiAvatar } from "./_wiki-avatar";
 
 // Task 402 — the doc header's awareness strip: who is editing this page right now (Realtime
@@ -39,6 +39,7 @@ export function WikiPresenceBar({
   editors,
   viewers,
   draftHolders,
+  knownPeople,
   pageRevision,
   staleNotice,
   editMode,
@@ -47,6 +48,9 @@ export function WikiPresenceBar({
   editors: WikiPresenceState[];
   viewers: WikiPresenceState[];
   draftHolders: WikiDraftHolder[];
+  // Task 403 — server-resolved people on this page (owner, last editor, contributors), used as an
+  // avatar fallback when a presence entry has none (a tab loaded before `avatarUrl` was tracked).
+  knownPeople: WikiContributor[];
   pageRevision: number;
   staleNotice: WikiStaleNotice | null;
   editMode: boolean;
@@ -55,6 +59,12 @@ export function WikiPresenceBar({
   // Someone editing live already shows in the editors row — don't repeat them as a draft holder.
   const liveIds = new Set(editors.map((e) => e.userId));
   const idleDrafts = draftHolders.filter((h) => !liveIds.has(h.id));
+
+  const knownAvatars = new Map<string, string>();
+  for (const person of [...knownPeople, ...draftHolders]) {
+    if (person.avatarUrl) knownAvatars.set(person.id, person.avatarUrl);
+  }
+  const presenceAvatar = (entry: WikiPresenceState) => entry.avatarUrl || knownAvatars.get(entry.userId) || null;
 
   if (editors.length === 0 && idleDrafts.length === 0 && viewers.length === 0 && !staleNotice) return null;
 
@@ -88,7 +98,7 @@ export function WikiPresenceBar({
       {editors.map((editor) => (
         <div key={editor.userId} className="flex items-center gap-2 rounded-[10px] border border-[#F3D48A] bg-[#FFF8E6] px-3 py-1.5 text-[12px] text-[#8A5A00]">
           <PencilLine size={12} className="shrink-0" />
-          <WikiAvatar contributor={{ id: editor.userId, name: editor.name }} size="sm" />
+          <WikiAvatar contributor={{ id: editor.userId, name: editor.name, avatarUrl: presenceAvatar(editor) }} size="sm" />
           <span className="flex-1">
             <span className="font-semibold">{editor.name}</span> is editing now · {relative(editor.since)}
           </span>
@@ -99,7 +109,7 @@ export function WikiPresenceBar({
       {idleDrafts.map((holder) => (
         <div key={holder.id} className="flex items-center gap-2 rounded-[10px] border border-[#E2E7F2] bg-[#FAFBFE] px-3 py-1.5 text-[12px] text-[#5F6A88]">
           <FileClock size={12} className="shrink-0" />
-          <WikiAvatar contributor={{ id: holder.id, name: holder.name }} size="sm" />
+          <WikiAvatar contributor={{ id: holder.id, name: holder.name, avatarUrl: holder.avatarUrl }} size="sm" />
           <span className="flex-1">
             <span className="font-semibold text-[#0B1533]">{holder.name}</span> has unsaved draft changes · {relative(holder.updatedAt)} ago
             {holder.baseRevision < pageRevision && " (based on an older version)"}
@@ -113,7 +123,7 @@ export function WikiPresenceBar({
           <span>Also viewing</span>
           <div className="flex">
             {viewers.slice(0, 6).map((viewer) => (
-              <WikiAvatar key={viewer.userId} contributor={{ id: viewer.userId, name: viewer.name }} size="sm" overlap />
+              <WikiAvatar key={viewer.userId} contributor={{ id: viewer.userId, name: viewer.name, avatarUrl: presenceAvatar(viewer) }} size="sm" overlap />
             ))}
           </div>
           {viewers.length > 6 && <span>+{viewers.length - 6}</span>}

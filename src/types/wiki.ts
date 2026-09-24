@@ -40,6 +40,8 @@ export type WikiPageSummary = {
 export type WikiContributor = {
   id: string;
   name: string;
+  // Task 403 — `profiles.avatar_url`; null/absent → initials fallback in `WikiAvatar`.
+  avatarUrl?: string | null;
 };
 
 export type WikiPageDetail = WikiPageSummary & {
@@ -107,6 +109,7 @@ export type WikiDraftHolder = {
   id: string;
   name: string;
   email: string | null;
+  avatarUrl: string | null;
   updatedAt: string;
   baseRevision: number;
 };
@@ -118,6 +121,7 @@ export type WikiPresenceState = {
   userId: string;
   name: string;
   email: string | null;
+  avatarUrl: string | null;
   pageId: string | null;
   mode: WikiPresenceMode;
   since: string;
@@ -127,6 +131,7 @@ export type WikiCurrentUser = {
   id: string;
   name: string;
   email: string | null;
+  avatarUrl: string | null;
 };
 
 export type WikiConflictInfo = {

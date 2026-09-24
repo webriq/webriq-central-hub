@@ -10,7 +10,7 @@ import type { WikiCurrentUser, WikiPresenceMode, WikiPresenceState } from "@/typ
 // Broadcast carries `page-saved` pings so other viewers/editors learn about a newer revision
 // before they hit Save. Nothing here touches the DB — Presence needs no migration.
 //
-// Public channel: the payload is limited to id/name/email/page/mode (internal staff directory
+// Public channel: the payload is limited to id/name/email/avatarUrl/page/mode (internal staff directory
 // data). Private-channel authorization (realtime.messages RLS) is a documented follow-up.
 
 const CHANNEL = "wiki-presence";
@@ -35,7 +35,7 @@ export function useWikiPresence({
 }) {
   // Primitive deps only: `currentUser` is a fresh object whenever the server page re-renders
   // (every router.replace on page select), and depending on it would resubscribe the channel.
-  const { id: userId, name: userName, email: userEmail } = currentUser;
+  const { id: userId, name: userName, email: userEmail, avatarUrl: userAvatarUrl } = currentUser;
   const [others, setOthers] = useState<WikiPresenceState[]>([]);
   const channelRef = useRef<RealtimeChannel | null>(null);
   const subscribedRef = useRef(false);
@@ -61,12 +61,13 @@ export function useWikiPresence({
       userId,
       name: userName,
       email: userEmail,
+      avatarUrl: userAvatarUrl,
       pageId: p,
       mode: m,
       since: sinceRef.current.since,
     };
     void channel.track(payload);
-  }, [userId, userName, userEmail]);
+  }, [userId, userName, userEmail, userAvatarUrl]);
 
   useEffect(() => {
     const supabase = createClient();

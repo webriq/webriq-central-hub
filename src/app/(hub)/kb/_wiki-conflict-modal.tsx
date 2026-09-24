@@ -21,7 +21,7 @@ export type WikiDialogAction = {
 };
 
 const ACTION_STYLE: Record<NonNullable<WikiDialogAction["variant"]>, string> = {
-  primary: "bg-[#007BFF] text-white hover:bg-[#0063D6]",
+  primary: "bg-[#FB914E] text-[#471F02] hover:bg-[#E2762F] hover:text-white",
   danger: "bg-[#C0392B] text-white hover:bg-[#A5301F]",
   secondary: "border border-[#E2E7F2] bg-white text-[#5F6A88] hover:border-[#A8C6F5] hover:text-[#0B1533]",
 };

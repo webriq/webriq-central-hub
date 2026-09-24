@@ -136,7 +136,7 @@ export function WikiNewPageModal({
             <button
               type="submit"
               disabled={saving || !title.trim()}
-              className="text-[12.5px] font-semibold text-white px-4 py-2 rounded-full bg-[#007BFF] cursor-pointer transition-colors hover:bg-[#0063D6] disabled:opacity-45 flex items-center gap-1.5"
+              className="text-[12.5px] font-semibold text-[#471F02] px-4 py-2 rounded-full bg-[#FB914E] cursor-pointer transition-colors hover:bg-[#E2762F] hover:text-white disabled:opacity-45 flex items-center gap-1.5"
             >
               {saving && <Loader2 size={13} className="animate-spin" />}
               Create page

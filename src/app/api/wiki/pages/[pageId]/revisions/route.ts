@@ -17,7 +17,7 @@ type RevisionRow = {
   status: WikiStatus | null;
   restored_from: string | null;
   created_at: string;
-  editor: { id: string; full_name: string | null } | null;
+  editor: { id: string; full_name: string | null; avatar_url: string | null } | null;
 };
 
 export async function GET(
@@ -36,7 +36,7 @@ export async function GET(
     for (let from = 0; ; from += PAGE) {
       const { data, error } = await supabase
         .from("wiki_page_versions")
-        .select("id, revision, version, kind, title, tags, status, restored_from, created_at, editor:profiles(id, full_name)")
+        .select("id, revision, version, kind, title, tags, status, restored_from, created_at, editor:profiles(id, full_name, avatar_url)")
         .eq("page_id", pageId)
         .order("created_at", { ascending: false })
         .range(from, from + PAGE - 1)
@@ -60,7 +60,7 @@ export async function GET(
       status: r.status,
       restoredFrom: r.restored_from,
       restoredFromRevision: r.restored_from ? revisionById.get(r.restored_from) ?? null : null,
-      editor: r.editor ? { id: r.editor.id, name: r.editor.full_name ?? "Unknown" } : null,
+      editor: r.editor ? { id: r.editor.id, name: r.editor.full_name ?? "Unknown", avatarUrl: r.editor.avatar_url } : null,
       createdAt: r.created_at,
     }));
 

@@ -16,7 +16,7 @@ export function isRpcError(error: { code?: string } | null, code: string): boole
 export async function conflictResponse(supabase: SupabaseClient<Database>, pageId: string) {
   const { data } = await supabase
     .from("wiki_pages")
-    .select("revision, updated_at, updated_by_profile:profiles!wiki_pages_updated_by_fkey(id, full_name)")
+    .select("revision, updated_at, updated_by_profile:profiles!wiki_pages_updated_by_fkey(id, full_name, avatar_url)")
     .eq("id", pageId)
     .maybeSingle();
 
@@ -25,7 +25,7 @@ export async function conflictResponse(supabase: SupabaseClient<Database>, pageI
         revision: data.revision,
         updatedAt: data.updated_at,
         updatedBy: data.updated_by_profile
-          ? { id: data.updated_by_profile.id, name: data.updated_by_profile.full_name ?? "Unknown" }
+          ? { id: data.updated_by_profile.id, name: data.updated_by_profile.full_name ?? "Unknown", avatarUrl: data.updated_by_profile.avatar_url }
           : null,
       }
     : null;

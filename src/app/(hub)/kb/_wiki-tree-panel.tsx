@@ -122,7 +122,7 @@ export function WikiTreePanel({
             <button
               type="button"
               onClick={onNewPage}
-              className="flex items-center gap-1 text-[11px] font-semibold text-white bg-[#FB914E] rounded-[7px] px-2 py-1 cursor-pointer transition-colors hover:bg-[#E2762F]"
+              className="flex items-center gap-1 text-[11px] font-semibold bg-[#FB914E] text-[#471F02] rounded-[7px] px-2 py-1 cursor-pointer transition-colors hover:bg-[#E2762F] hover:text-white"
             >
               <Plus size={11} /> New page
             </button>

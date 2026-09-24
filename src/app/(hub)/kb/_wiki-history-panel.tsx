@@ -41,11 +41,16 @@ const EMPTY_SIDE: WikiDiffSide = { title: "", contentHtml: "", tags: [] };
 export function WikiHistoryPanel({
   detail,
   canWrite,
+  editing,
   onClose,
   onRestored,
 }: {
   detail: WikiPageDetail;
   canWrite: boolean;
+  // Task 403 follow-up — history can be opened mid-edit (edits live in the shell's editor hook
+  // and survive this panel). Restore is blocked meanwhile: it goes through wiki_save_page(),
+  // which deletes the caller's own autosaved draft — the only backup of the unsaved edits.
+  editing: boolean;
   onClose: () => void;
   // Called with the RPC outcome; the shell reloads the page either way (409 = someone saved
   // in the meantime, so the current content shown here was already stale).
@@ -233,9 +238,15 @@ export function WikiHistoryPanel({
                 <button
                   type="button"
                   onClick={() => setConfirmOpen(true)}
-                  disabled={isCurrent || restoring}
-                  title={isCurrent ? "This is already the current version" : undefined}
-                  className="flex items-center gap-1.5 text-[12px] font-semibold text-white bg-[#007BFF] rounded-full px-3.5 py-1.5 cursor-pointer transition-colors hover:bg-[#0063D6] disabled:opacity-45 disabled:cursor-not-allowed"
+                  disabled={isCurrent || restoring || editing}
+                  title={
+                    editing
+                      ? "Save or cancel your edits before restoring a revision"
+                      : isCurrent
+                        ? "This is already the current version"
+                        : undefined
+                  }
+                  className="flex items-center gap-1.5 text-[12px] font-semibold bg-[#FB914E] text-[#471F02] rounded-full px-3.5 py-1.5 cursor-pointer transition-colors hover:bg-[#E2762F] hover:text-white disabled:opacity-45 disabled:cursor-not-allowed"
                 >
                   <RotateCcw size={12} /> Restore this revision
                 </button>

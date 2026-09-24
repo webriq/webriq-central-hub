@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { History, Loader2, Pencil, Trash2 } from "lucide-react";
+import { Loader2, Pencil, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import type { WikiPageDetail, WikiStatus } from "@/types/wiki";
@@ -70,7 +70,6 @@ export function WikiDocPanel({
   onSave,
   onStatusChange,
   onDelete,
-  onOpenHistory,
   presenceBar,
   draftStatus,
   draftSavedAt,
@@ -95,7 +94,6 @@ export function WikiDocPanel({
   onSave: () => void;
   onStatusChange: (status: WikiStatus) => void;
   onDelete: () => Promise<boolean>;
-  onOpenHistory: () => void;
   presenceBar: ReactNode;
   draftStatus: WikiDraftStatus;
   draftSavedAt: string | null;
@@ -149,7 +147,7 @@ export function WikiDocPanel({
                   type="button"
                   onClick={onSave}
                   disabled={saving || !draftTitle.trim()}
-                  className="flex items-center gap-1.5 text-[12px] font-semibold text-white bg-[#007BFF] rounded-full px-3.5 py-1.5 cursor-pointer transition-colors hover:bg-[#0063D6] disabled:opacity-45"
+                  className="flex items-center gap-1.5 text-[12px] font-semibold bg-[#FB914E] text-[#471F02] rounded-full px-3.5 py-1.5 cursor-pointer transition-colors hover:bg-[#E2762F] hover:text-white disabled:opacity-45"
                 >
                   {saving && <Loader2 size={12} className="animate-spin" />}
                   Save
@@ -176,13 +174,6 @@ export function WikiDocPanel({
                     </button>
                   </>
                 )}
-                <button
-                  type="button"
-                  onClick={onOpenHistory}
-                  className={cn(PILL_BUTTON, "hover:border-[#A8C6F5]")}
-                >
-                  <History size={12} /> History
-                </button>
                 <WikiExportMenu detail={detail} triggerClassName={cn(PILL_BUTTON, "hover:border-[#A8C6F5]")} />
               </>
             )}
