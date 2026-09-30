@@ -67,7 +67,7 @@ See Proposed File Changes.
 
 ## Follow-up
 
-- **Production 500 unresolved.** Route wraps parse errors as 400, so a 500 likely originates outside the handler — candidates: function timeout/`maxDuration` vs plan cap (17 image-only pages now = 17 Sonnet calls), or `@napi-rs/canvas` not loading in the Vercel runtime. Needs the Vercel function log for the failing request.
+- **Production 500 — root cause found (user's Vercel log), fix written, not yet deployed/verified.** `Cannot find module '@napi-rs/canvas'` (required from `pdfjs-dist/legacy/build/pdf.mjs`) → `DOMMatrix is not defined` → `Failed to load external module pdf-parse`. `serverExternalPackages` keeps the packages out of the bundle, but `pdfjs-dist` loads the canvas via a dynamic require Next's file tracer can't see, so it was absent from the deployed function. Fix: `@napi-rs/canvas@0.1.80` added as a direct dependency (pinned to pdf-parse's version) + `outputFileTracingIncludes` for `/api/wiki/pages/import-pdf` in `next.config.ts` (includes `@napi-rs/**`, `.pnpm/@napi-rs+canvas*`, `pdfjs-dist@*`, `pdf-parse@*`). Needs a redeploy + a real production import to confirm; if the linux native binary is still missing, check that pnpm installed the `@napi-rs/canvas-linux-x64-gnu` optional dep on Vercel.
 - Streamed real progress → task 405.
 
 ## Final Summary

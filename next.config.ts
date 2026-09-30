@@ -27,6 +27,19 @@ const nextConfig: NextConfig = {
   // this app's text-only getText() call, but native bindings hit the same bundling class of
   // bug, so it's excluded too rather than waiting for a second bug report).
   serverExternalPackages: ["pdf-parse", "pdfjs-dist", "@napi-rs/canvas"],
+  // Task 409 — externalizing isn't enough on Vercel: `pdfjs-dist` loads `@napi-rs/canvas` via a
+  // dynamic require that Next's file tracer can't see, so the package (and its platform-specific
+  // native binary, an optionalDependency) was missing from the deployed function → "Cannot find
+  // module '@napi-rs/canvas'" → "DOMMatrix is not defined" → 500 on /api/wiki/pages/import-pdf.
+  // Force-include them for that one route (pnpm's virtual-store paths + the hoisted top level).
+  outputFileTracingIncludes: {
+    "/api/wiki/pages/import-pdf": [
+      "./node_modules/@napi-rs/**/*",
+      "./node_modules/.pnpm/@napi-rs+canvas*/**/*",
+      "./node_modules/.pnpm/pdfjs-dist@*/**/*",
+      "./node_modules/.pnpm/pdf-parse@*/**/*",
+    ],
+  },
   async redirects() {
     // Task 255 — v2 tree promoted to app root; keep bookmarked/shared /v2/* links
     // (and cached MCP OAuth authorization_endpoint metadata) resolving correctly.
