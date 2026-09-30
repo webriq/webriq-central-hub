@@ -44,12 +44,14 @@ export function WikiShell({
   initialPageId,
   canWrite,
   currentUser,
+  isAdmin,
 }: {
   initialPages: WikiPageSummary[];
   initialProduct: WikiProduct;
   initialPageId: string | null;
   canWrite: boolean;
   currentUser: WikiCurrentUser;
+  isAdmin: boolean;
 }) {
   const router = useRouter();
   const [pages, setPages] = useState(initialPages);
@@ -116,7 +118,7 @@ export function WikiShell({
   function updateUrl(product: WikiProduct, pageId: string | null) {
     const params = new URLSearchParams({ space: product });
     if (pageId) params.set("page", pageId);
-    router.replace(`${V2_ROUTES.KB}?${params.toString()}`, { scroll: false });
+    router.replace(`${V2_ROUTES.WIKI}?${params.toString()}`, { scroll: false });
   }
 
   function selectSpace(product: WikiProduct) {
@@ -254,6 +256,8 @@ export function WikiShell({
           detail={detail}
           renderedHtml={renderedHtml}
           canWrite={canWrite}
+          // Migration 152: only the creator (or an admin) may send a page back to Draft.
+          canSetDraft={isAdmin || detail.createdBy?.id === currentUser.id}
           editMode={editor.editMode}
           draftTitle={editor.draftTitle}
           draftContentHtml={editor.draftContentHtml}

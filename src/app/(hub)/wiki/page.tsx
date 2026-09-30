@@ -65,6 +65,7 @@ export default async function KbPage({
       initialPageId={initialPageId}
       canWrite={canWrite}
       currentUser={currentUser}
+      isAdmin={role === "admin" || role === "super_admin"}
     />
   );
 }

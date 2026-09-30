@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { parseEventLines, type PdfImportEvent } from "@/lib/wiki/pdf-import-events";
 import { X, Loader2, Upload, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { WIKI_PRODUCTS, type WikiPageSummary, type WikiProduct } from "@/types/wiki";
@@ -28,33 +29,101 @@ function titleFromFilename(filename: string): string {
   return (dot === -1 ? filename : filename.slice(0, dot)).trim();
 }
 
-async function convertToHtml(file: File): Promise<string> {
+// Give imported task items the same markup Tiptap's TaskItem serializes (label+disabled checkbox,
+// content in a div), so read mode renders a checkbox before the page is ever opened in the editor.
+function withTaskItemMarkup(html: string): string {
+  const doc = new DOMParser().parseFromString(`<body>${html}</body>`, "text/html");
+  doc.querySelectorAll('li[data-type="taskItem"]').forEach((li) => {
+    if (li.querySelector(":scope > label")) return;
+    const content = doc.createElement("div");
+    while (li.firstChild) content.appendChild(li.firstChild);
+    const label = doc.createElement("label");
+    const input = doc.createElement("input");
+    input.type = "checkbox";
+    input.disabled = true;
+    if (li.getAttribute("data-checked") === "true") input.checked = true;
+    label.appendChild(input);
+    li.append(label, content);
+  });
+  return doc.body.innerHTML;
+}
+
+// Button label per stage. PDF stages after "uploading" are driven by real progress events streamed
+// from the import route (task 405); everything else is a client-side step.
+const STAGE_LABELS = {
+  reading: "Reading file…",
+  uploading: "Uploading PDF…",
+  parsing: "Reading PDF…",
+  rendering: "Rendering pages…",
+  analyzing: "Analyzing pages…",
+  transcribing: "Transcribing content with AI…",
+  converting: "Converting document…",
+  cleaning: "Cleaning up formatting…",
+  creating: "Creating the page…",
+} as const;
+type ImportStage = keyof typeof STAGE_LABELS;
+type StageUpdate = { stage: ImportStage; done?: number; total?: number };
+
+function stageLabel({ stage, done, total }: StageUpdate): string {
+  const base = STAGE_LABELS[stage];
+  if ((stage === "analyzing" || stage === "transcribing") && total) {
+    const verb = stage === "analyzing" ? "Analyzing" : "Transcribing";
+    return `${verb} page ${Math.min((done ?? 0) + 1, total)} of ${total}…`;
+  }
+  return base;
+}
+
+async function convertToHtml(file: File, onStage: (update: StageUpdate) => void): Promise<string> {
   const ext = extensionOf(file.name);
   const { default: DOMPurify } = await import("dompurify");
 
   if (ext === ".pdf") {
     const fd = new FormData();
     fd.append("file", file);
+    onStage({ stage: "uploading" });
     const res = await fetch("/api/wiki/pages/import-pdf", { method: "POST", body: fd });
-    if (!res.ok) {
+    if (!res.ok || !res.body) {
       const body = await res.json().catch(() => null);
       throw new Error(body?.error ?? "Failed to read this PDF");
     }
-    const { contentHtml } = (await res.json()) as { contentHtml: string };
-    // Task 398 — a "complex" page's contentHtml may come back from an LLM vision transcription
-    // call rather than this app's own trusted RTE, so it's sanitized the same as every other
-    // non-authored import type below (a no-op for "simple" pages, which are already self-escaped).
-    return DOMPurify.sanitize(contentHtml, { USE_PROFILES: { html: true } });
+
+    let contentHtml: string | null = null;
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffered = "";
+    const handle = (events: PdfImportEvent[]) => {
+      for (const event of events) {
+        if (event.type === "stage") onStage({ stage: event.stage, done: event.done, total: event.total });
+        else if (event.type === "error") throw new Error(event.error);
+        else contentHtml = event.contentHtml;
+      }
+    };
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffered += decoder.decode(value, { stream: true });
+      const parsed = parseEventLines(buffered);
+      buffered = parsed.rest;
+      handle(parsed.events);
+    }
+    handle(parseEventLines(`${buffered}\n`).events);
+    if (contentHtml === null) throw new Error("The import was interrupted before finishing — please try again.");
+    onStage({ stage: "cleaning" });
+    return withTaskItemMarkup(
+      DOMPurify.sanitize(contentHtml as string, { USE_PROFILES: { html: true }, FORBID_ATTR: ["style", "class"], FORBID_TAGS: ["font", "h1"] }),
+    );
   }
 
   if (ext === ".docx") {
+    onStage({ stage: "converting" });
     const { default: mammoth } = await import("mammoth");
     const arrayBuffer = await file.arrayBuffer();
     const result = await mammoth.convertToHtml({ arrayBuffer });
-    return DOMPurify.sanitize(result.value, { USE_PROFILES: { html: true } });
+    return DOMPurify.sanitize(result.value, { USE_PROFILES: { html: true }, FORBID_ATTR: ["style", "class"], FORBID_TAGS: ["font"] });
   }
 
   if (ext === ".md" || ext === ".markdown") {
+    onStage({ stage: "converting" });
     const { marked } = await import("marked");
     const text = await file.text();
     const html = marked.parse(text, { async: false }) as string;
@@ -84,6 +153,7 @@ export function WikiImportModal({
   const [parentId, setParentId] = useState<string>(defaultParentId ?? "");
   const [dragOver, setDragOver] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [stage, setStage] = useState<StageUpdate>({ stage: "reading" });
   const [error, setError] = useState<string | null>(null);
 
   const parentOptions = pages.filter((p) => p.product === product);
@@ -108,9 +178,11 @@ export function WikiImportModal({
     e.preventDefault();
     if (!file || !title.trim() || saving) return;
     setSaving(true);
+    setStage({ stage: "reading" });
     setError(null);
     try {
-      const contentHtml = await convertToHtml(file);
+      const contentHtml = await convertToHtml(file, setStage);
+      setStage({ stage: "creating" });
       const res = await fetch("/api/wiki/pages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -238,7 +310,7 @@ export function WikiImportModal({
               className="text-[12.5px] font-semibold text-[#471F02] px-4 py-2 rounded-full bg-[#FB914E] cursor-pointer transition-colors hover:bg-[#E2762F] hover:text-white disabled:opacity-45 flex items-center gap-1.5"
             >
               {saving && <Loader2 size={13} className="animate-spin" />}
-              Import & create page
+              {saving ? stageLabel(stage) : "Import & create page"}
             </button>
           </div>
         </form>

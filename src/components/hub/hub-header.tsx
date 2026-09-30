@@ -25,7 +25,7 @@ const PATH_TITLES: Record<string, { title: string; subtitle?: string }> = {
   "/dashboard/settings": { title: "Settings", subtitle: "Preferences and configuration" },
   "/dashboard/customers/onboard": { title: "Onboard Customer", subtitle: "Create a new customer and onboarding link" },
   "/orchestration": { title: "Orchestration", subtitle: "AI pipeline management — classification, assessment, plan, execution" },
-  "/kb": { title: "Knowledge Base", subtitle: "LLM Wiki — playbooks, internal KB, customer context — Sprint 6" },
+  "/wiki": { title: "Wiki", subtitle: "LLM Wiki — playbooks, internal KB, customer context — Sprint 6" },
   "/dashboard/users": { title: "Users", subtitle: "Registered hub members and roles" },
 };
 

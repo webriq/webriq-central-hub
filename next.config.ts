@@ -32,6 +32,17 @@ const nextConfig: NextConfig = {
     // (and cached MCP OAuth authorization_endpoint metadata) resolving correctly.
     return [
       {
+        // Task 406 — the Wiki moved from /kb to /wiki; keep old bookmarks/links (query preserved).
+        source: "/kb",
+        destination: "/wiki",
+        permanent: true,
+      },
+      {
+        source: "/kb/:path*",
+        destination: "/wiki/:path*",
+        permanent: true,
+      },
+      {
         // Final custom domain is hub.webriqs.com — permanently redirect the legacy
         // *.vercel.app URL straight there (was chained through centralhub.webriq.cloud,
         // now also legacy, before that domain was renamed again).

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { PDFParse } from "pdf-parse";
 import { createClient } from "@/lib/supabase/server";
 import { classifyPageComplexity, transcribePage } from "@/lib/ai/wiki-pdf-import";
+import { encodeEvent, type PdfImportEvent } from "@/lib/wiki/pdf-import-events";
 
 // Task 396 — server-side half of Wiki Import: `.pdf` needs Node (`pdf-parse` reads `fs`), so
 // unlike the `.docx`/`.md` paths (client-side mammoth/marked, see `_wiki-import-modal.tsx`),
@@ -38,17 +39,118 @@ function textToParagraphs(text: string): string {
     .join("\n");
 }
 
-async function mapWithConcurrency<T, R>(items: T[], limit: number, fn: (item: T, index: number) => Promise<R>): Promise<R[]> {
+// Lines (or bare page numbers) that recur on most pages are running headers/footers, not content.
+function stripRunningHeadersFooters(pages: string[]): string[] {
+  if (pages.length < 3) return pages;
+  const norm = (l: string) => l.trim().replace(/\d+/g, "#");
+  const counts = new Map<string, number>();
+  for (const text of pages) {
+    const edge = text.split("\n").map(norm).filter(Boolean);
+    for (const l of new Set([...edge.slice(0, 3), ...edge.slice(-3)])) counts.set(l, (counts.get(l) ?? 0) + 1);
+  }
+  const repeated = new Set([...counts].filter(([, n]) => n >= Math.ceil(pages.length * 0.6)).map(([l]) => l));
+  return pages.map((text) => {
+    const lines = text.split("\n");
+    const idx = lines.map((l, i) => [norm(l), i] as const).filter(([l]) => l);
+    const edgeIdx = new Set([...idx.slice(0, 3), ...idx.slice(-3)].map(([, i]) => i));
+    return lines.filter((l, i) => !(edgeIdx.has(i) && repeated.has(norm(l)))).join("\n");
+  });
+}
+
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T, index: number) => Promise<R>,
+  signal: AbortSignal,
+  onSettled?: () => void,
+): Promise<R[]> {
   const results: R[] = new Array(items.length);
   let next = 0;
   async function worker() {
     while (next < items.length) {
+      // Client closed the modal — stop spending LLM calls.
+      signal.throwIfAborted();
       const index = next++;
       results[index] = await fn(items[index], index);
+      onSettled?.();
     }
   }
   await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
   return results;
+}
+
+// Streams progress events, then a final `result`/`error` event. Errors after this point can't
+// change the HTTP status (already 200), so they travel as an `error` event carrying the status.
+async function runImport(parser: PDFParse, emit: (e: PdfImportEvent) => void, signal: AbortSignal) {
+  emit({ type: "stage", stage: "parsing", done: 0, total: 0 });
+  const textResult = await parser.getText();
+
+  if (textResult.total > MAX_PAGES) {
+    emit({
+      type: "error",
+      status: 400,
+      error: `This PDF has ${textResult.total} pages — the Wiki import tool supports up to ${MAX_PAGES} pages. For larger documents, use StackShift's bulk migration service instead.`,
+    });
+    return;
+  }
+
+  emit({ type: "stage", stage: "rendering", done: 0, total: textResult.total });
+  const screenshotResult = await parser.getScreenshot({ scale: 1.5 });
+  const pages = screenshotResult.pages;
+
+  const pageTexts = stripRunningHeadersFooters(
+    pages.map((page) => textResult.pages.find((p) => p.num === page.pageNumber)?.text ?? ""),
+  );
+
+  // A page with no text layer (scanned / image-only / outlined-text export) can't be served by
+  // the free pdf-parse path at all — the classifier only judges layout, so it happily calls
+  // such pages "simple". Skip the classify call and force transcription for them.
+  let analyzed = 0;
+  emit({ type: "stage", stage: "analyzing", done: 0, total: pages.length });
+  const classifications = await mapWithConcurrency(
+    pages,
+    CONCURRENCY,
+    async (page, index): Promise<"simple" | "complex"> =>
+      pageTexts[index].trim() ? classifyPageComplexity(Buffer.from(page.data)) : "complex",
+    signal,
+    () => emit({ type: "stage", stage: "analyzing", done: ++analyzed, total: pages.length }),
+  );
+
+  const complexPageCount = classifications.filter((c) => c === "complex").length;
+
+  let transcribed = 0;
+  emit({ type: "stage", stage: "transcribing", done: 0, total: complexPageCount });
+  const pageHtmls = await mapWithConcurrency(
+    pages,
+    CONCURRENCY,
+    async (page, index) => {
+      const pageText = pageTexts[index];
+      if (classifications[index] !== "complex") return textToParagraphs(pageText);
+      try {
+        return await transcribePage(Buffer.from(page.data));
+      } catch {
+        // transcribePage already logged the error — fall back to the free text path for
+        // this page rather than failing the whole import over one page.
+        return textToParagraphs(pageText);
+      } finally {
+        emit({ type: "stage", stage: "transcribing", done: ++transcribed, total: complexPageCount });
+      }
+    },
+    signal,
+  );
+
+  const contentHtml = pageHtmls.join("\n");
+
+  if (!contentHtml.replace(/<[^>]*>/g, "").trim()) {
+    emit({
+      type: "error",
+      status: 422,
+      error: "No text could be extracted from this PDF — it appears to be image-only and the AI transcription failed. Please try again.",
+    });
+    return;
+  }
+
+  emit({ type: "result", contentHtml, pageCount: textResult.total, complexPageCount });
 }
 
 export async function POST(req: NextRequest) {
@@ -68,52 +170,35 @@ export async function POST(req: NextRequest) {
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
-  const parser = new PDFParse({ data: buffer });
-  try {
-    const textResult = await parser.getText();
+  const encoder = new TextEncoder();
 
-    if (textResult.total > MAX_PAGES) {
-      return NextResponse.json(
-        { error: `This PDF has ${textResult.total} pages — the Wiki import tool supports up to ${MAX_PAGES} pages. For larger documents, use StackShift's bulk migration service instead.` },
-        { status: 400 },
-      );
-    }
-
-    const screenshotResult = await parser.getScreenshot({ scale: 1.5 });
-
-    const classifications = await mapWithConcurrency(
-      screenshotResult.pages,
-      CONCURRENCY,
-      (page) => classifyPageComplexity(Buffer.from(page.data)),
-    );
-
-    const complexPageCount = classifications.filter((c) => c === "complex").length;
-
-    const pageHtmls = await mapWithConcurrency(
-      screenshotResult.pages,
-      CONCURRENCY,
-      async (page, index) => {
-        const pageText = textResult.pages.find((p) => p.num === page.pageNumber)?.text ?? "";
-        if (classifications[index] === "complex") {
-          try {
-            return await transcribePage(Buffer.from(page.data));
-          } catch {
-            // transcribePage already logged the error — fall back to the free text path for
-            // this page rather than failing the whole import over one page.
-            return textToParagraphs(pageText);
-          }
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      let closed = false;
+      const emit = (e: PdfImportEvent) => {
+        if (!closed) controller.enqueue(encoder.encode(encodeEvent(e)));
+      };
+      const parser = new PDFParse({ data: buffer });
+      try {
+        await runImport(parser, emit, req.signal);
+      } catch (err) {
+        if (!req.signal.aborted) {
+          console.error("POST /api/wiki/pages/import-pdf parse error:", err);
+          emit({ type: "error", status: 400, error: "Failed to read this PDF — it may be encrypted, corrupted, or image-only." });
         }
-        return textToParagraphs(pageText);
-      },
-    );
+      } finally {
+        await parser.destroy();
+        closed = true;
+        controller.close();
+      }
+    },
+  });
 
-    const contentHtml = pageHtmls.join("\n");
-
-    return NextResponse.json({ contentHtml, pageCount: textResult.total, complexPageCount });
-  } catch (err) {
-    console.error("POST /api/wiki/pages/import-pdf parse error:", err);
-    return NextResponse.json({ error: "Failed to read this PDF — it may be encrypted, corrupted, or image-only." }, { status: 400 });
-  } finally {
-    await parser.destroy();
-  }
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "application/x-ndjson; charset=utf-8",
+      "Cache-Control": "no-cache, no-transform",
+      "X-Accel-Buffering": "no",
+    },
+  });
 }

@@ -53,6 +53,7 @@ export function WikiDocPanel({
   detail,
   renderedHtml,
   canWrite,
+  canSetDraft,
   editMode,
   draftTitle,
   draftContentHtml,
@@ -77,6 +78,7 @@ export function WikiDocPanel({
   detail: WikiPageDetail;
   renderedHtml: string;
   canWrite: boolean;
+  canSetDraft: boolean;
   editMode: boolean;
   draftTitle: string;
   draftContentHtml: string;
@@ -119,7 +121,7 @@ export function WikiDocPanel({
                   STATUS_STYLE[detail.status]
                 )}
               >
-                <option value="draft">Draft</option>
+                {(canSetDraft || detail.status === "draft") && <option value="draft">Draft</option>}
                 <option value="published">Published</option>
                 <option value="archived">Archived</option>
               </select>

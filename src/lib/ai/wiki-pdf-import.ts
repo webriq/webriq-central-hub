@@ -26,11 +26,59 @@ scramble.
 
 Respond with your classification only.`;
 
-const TRANSCRIBE_SYSTEM_PROMPT = `You are looking at a single page rendered from a PDF document. Transcribe its content in the
-correct visual reading order as clean semantic HTML — headings, paragraphs, lists, and tables
-where appropriate. Follow the page's actual visual flow (e.g. read a left column fully before
-a right column, or follow a numbered sequence in order) rather than any raw underlying text
-order. Output HTML only — no commentary, no markdown code fences, no explanation.`;
+const TRANSCRIBE_SYSTEM_PROMPT = `You convert one rendered PDF page into clean HTML for a wiki editor. The editor only supports
+this tag set: h2, h3, p, strong, em, u, a, ul, ol, li, blockquote, pre, code, hr, table, thead, tbody,
+tr, th, td, img, plus ul[data-type=taskList] / li[data-type=taskItem][data-checked]. Anything else is stripped. Output the HTML fragment only — no commentary, no markdown
+fences, no <html>/<body>, no <h1> (the page title is stored separately), and NEVER style, class, font,
+color or size attributes: the wiki applies one consistent typography, so every heading of the same
+level and every paragraph must look identical across pages.
+
+READING ORDER
+Follow the page's visual flow (finish a column before the next, follow numbered sequences in order).
+
+HEADINGS — the most common mistake is leaving a heading as a plain paragraph. Decide by visual role:
+- Any line that is visibly larger, bolder, in a display/serif face, or set apart as a section title
+  is a heading, even if it is a single short line. That includes numbered/labelled titles such as
+  "3: The Newsletter Checklist", "Step 2: Set up the flow", "1. Reader-first strategy", "Entry template".
+  Keep the exact text, numbering and punctuation as printed.
+- Top-level section titles -> <h2>. Sub-sections beneath them, small step labels and sub-headings -> <h3>.
+- Never make a whole sentence/paragraph a heading, and never bold a paragraph as a fake heading.
+- A thin horizontal rule printed directly under a heading -> emit <hr> right after that heading.
+
+RUNNING HEADERS, FOOTERS AND PAGE FURNITURE — OMIT ENTIRELY
+Do not output the strip repeated at the top or bottom of each page (document/brand name, "Combined"
+titles, section names, dates, page numbers like "12" or "Page 3 of 17", confidentiality lines, and the
+rule under/over them). Only transcribe the page body.
+
+PARAGRAPHS & MUTED TEXT
+- Body text -> <p>. Keep inline emphasis: <strong> for bold, <em> for italic.
+- Small, grey, caption-like, helper or note text (e.g. an intro line under a heading, a "Note:" line,
+  fine print) -> <p><em>…</em></p>. Do not promote it to a heading and do not merge it into
+  the heading line; keep it as its own paragraph directly after the heading, in the printed position.
+
+LISTS
+- Bulleted items -> <ul><li>. Numbered/lettered steps -> <ol><li>. Keep every item, in order, as ONE
+  list per visual group (do not split a list per page-line, do not turn list items into paragraphs).
+- CHECKLISTS: when each item is preceded by an empty square / checkbox (☐, □, [ ]), emit a task list
+  instead of a bullet list, exactly like this and with no ☐/□ character in the text:
+  <ul data-type="taskList"><li data-type="taskItem" data-checked="false"><p>Item text</p></li></ul>
+  Always data-checked="false" unless the box is visibly ticked. Do NOT also add a bullet.
+- For ordinary bullets, reproduce the item text exactly and never type the marker (•, -, *) into it.
+- Nested/indented items -> nested <ul>/<ol> inside the parent <li>.
+
+TABLES
+- Any grid of aligned rows/columns (even with no visible borders) is a real <table>: header row in
+  <thead><tr><th>…, body rows in <tbody>. Preserve every column and row and cell text exactly,
+  including empty cells, in the printed order. Header text keeps its printed casing (do not upper-case it).
+- Never flatten a table into paragraphs or lists, and never use a table for layout of ordinary prose.
+
+CALLOUTS, CODE, IMAGES
+- A shaded/bordered callout box (tip, note, warning, template) -> <blockquote><p>…</p></blockquote>.
+- Monospace or code/template blocks -> <pre><code>…</code></pre>, preserving line breaks.
+- Do not describe images/logos/decorative graphics; omit them.
+
+Transcribe every word of the page body faithfully — do not summarize, reword, translate or invent
+text. If part of the page is unreadable, skip it rather than guessing.`;
 
 function imageMessage(imageBuffer: Buffer): ModelMessage[] {
   return [
@@ -114,7 +162,7 @@ export async function transcribePage(imageBuffer: Buffer): Promise<string> {
       referenceType: "wiki_pdf_page_transcribe",
     });
 
-    return text;
+    return text.replace(/^\s*```(?:html)?\s*/i, "").replace(/\s*```\s*$/, "").trim();
   } catch (err) {
     console.error("[wiki-pdf-import] transcribePage failed:", err instanceof Error ? err.message : err);
     await logLLMInvocation({

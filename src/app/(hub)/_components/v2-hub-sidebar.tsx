@@ -102,7 +102,7 @@ function getNavGroups(role: string | null, departmentName: string | null): NavGr
   ];
 
   const knowledgeItems: NavItem[] = [
-    { label: "Wiki",          icon: <BookOpen size={18} />,        href: V2_ROUTES.KB },
+    { label: "Wiki",          icon: <BookOpen size={18} />,        href: V2_ROUTES.WIKI },
   ];
 
   const adminItems: NavItem[] = isAdmin ? [

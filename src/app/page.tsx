@@ -64,7 +64,7 @@ const modules = [
     size: "sm",
   },
   {
-    href: V2_ROUTES.KB,
+    href: V2_ROUTES.WIKI,
     title: "Knowledge Base",
     description: "Playbooks, internal KB, customer context",
     icon: BookOpen,

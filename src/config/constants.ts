@@ -44,7 +44,7 @@ export const V2_ROUTES = {
   STACKSHIFT_ORDERS: "/stackshift-orders",
   ORCHESTRATION: "/orchestration",
   ORCHESTRATION_SIMULATE: "/orchestration/simulate",
-  KB: "/kb",
+  WIKI: "/wiki",
   AUTH_LOGIN: "/auth/login",
   AUTH_SIGNUP: "/auth/signup",
   AUTH_PENDING: "/auth/pending",

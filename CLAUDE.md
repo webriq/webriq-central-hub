@@ -69,7 +69,7 @@ src/
         new/            PM: create new customer + assign products
       classification/   Sprint 2 — M2
       orchestration/    Sprints 3–5 — M3/M5/M6/M8
-      kb/               Sprint 6 — M10: LLM Wiki
+      wiki/             Sprint 6 — M10: LLM Wiki (was /kb; /kb redirects here, task 406)
     (auth)/             Auth pages — no sidebar, no auth check
       auth/
         login/          Login page (/auth/login)

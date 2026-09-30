@@ -20,7 +20,7 @@ const BREADCRUMB_MAP: Record<string, { section: string; page: string }> = {
   [V2_ROUTES.DASHBOARD_TIMELOGS]:  { section: "Work",      page: "Time Logs" },
   [V2_ROUTES.DASHBOARD_SETTINGS]:  { section: "Admin",     page: "Settings" },
   [V2_ROUTES.DASHBOARD_USERS]:     { section: "Admin",     page: "Users" },
-  [V2_ROUTES.KB]:                  { section: "Knowledge", page: "Wiki" },
+  [V2_ROUTES.WIKI]:                  { section: "Knowledge", page: "Wiki" },
 };
 
 function getBreadcrumb(pathname: string): { section: string; page: string } {
