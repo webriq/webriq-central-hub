@@ -623,8 +623,8 @@
     "supabase/rollbacks/147_desk_inbox_tickets_rename_down.sql": "3ad4753fe8995e26ab7549d4e547a31fb5a8b85f5235e1e8822cccc12494b468",
     "worker/index.ts": "83350712449db3ec76c4015cedb2bad5dfd0d0ccd91509ee9a6f09ee4f66f9cc"
   },
-  "indexed_at_commit": "f135696115b580a3a8066f94d0b1920c6f6f5acc",
-  "indexed_at_timestamp": "2026-09-30T09:45:08.236925+00:00",
+  "indexed_at_commit": "40fed6707e4f8b08e00510f94d7254cbeacc7332",
+  "indexed_at_timestamp": "2026-09-30T09:58:34.782865+00:00",
   "languages": {
     "markdown": {
       "calls": 0,
