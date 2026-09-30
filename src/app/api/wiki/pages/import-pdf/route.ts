@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PDFParse } from "pdf-parse";
+// Task 409 — `pdfjs-dist` loads `@napi-rs/canvas` through a dynamic require that Vercel's file
+// tracer can't see, so without this static import the package (and its native binary) is missing
+// from the deployed function ("Cannot find module '@napi-rs/canvas'" → "DOMMatrix is not defined").
+// Do NOT force it in via `outputFileTracingIncludes`: pnpm's symlinked node_modules make Vercel
+// reject the function ("invalid deployment package … symlinked directories").
+import "@napi-rs/canvas";
 import { createClient } from "@/lib/supabase/server";
 import { classifyPageComplexity, transcribePage } from "@/lib/ai/wiki-pdf-import";
 import { encodeEvent, type PdfImportEvent } from "@/lib/wiki/pdf-import-events";
