@@ -31,13 +31,12 @@ const nextConfig: NextConfig = {
   // dynamic require that Next's file tracer can't see, so the package (and its platform-specific
   // native binary, an optionalDependency) was missing from the deployed function → "Cannot find
   // module '@napi-rs/canvas'" → "DOMMatrix is not defined" → 500 on /api/wiki/pages/import-pdf.
-  // Force-include them for that one route (pnpm's virtual-store paths + the hoisted top level).
+  // Force-include the canvas package for that one route (pnpm's virtual-store path + hoisted top
+  // level); pdf-parse/pdfjs-dist themselves were already traced (the log showed them loading).
   outputFileTracingIncludes: {
     "/api/wiki/pages/import-pdf": [
       "./node_modules/@napi-rs/**/*",
       "./node_modules/.pnpm/@napi-rs+canvas*/**/*",
-      "./node_modules/.pnpm/pdfjs-dist@*/**/*",
-      "./node_modules/.pnpm/pdf-parse@*/**/*",
     ],
   },
   async redirects() {
