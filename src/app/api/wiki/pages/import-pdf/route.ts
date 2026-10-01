@@ -175,6 +175,11 @@ export async function POST(req: NextRequest) {
   // The PDF was uploaded browser-direct to the private `wiki-imports` bucket (see ./sign); this
   // route only receives its storage path. Scoped to the caller's own `<uid>/` folder — the
   // storage policies enforce the same, this check just gives a clean 400.
+  // A tab still running the pre-direct-upload client (stale cache / service worker) posts the
+  // file as multipart — say so instead of a cryptic "invalid reference".
+  if (!req.headers.get("content-type")?.includes("application/json")) {
+    return NextResponse.json({ error: "The Wiki was updated — please hard-refresh this page (Cmd/Ctrl+Shift+R) and try the import again." }, { status: 400 });
+  }
   const body = (await req.json().catch(() => null)) as { path?: unknown } | null;
   const path = typeof body?.path === "string" ? body.path : "";
   if (!path.startsWith(`${user.id}/`) || path.includes("..") || !path.toLowerCase().endsWith(".pdf")) {
