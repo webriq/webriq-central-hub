@@ -59,7 +59,7 @@ export async function GET(
 
   const { data: comments, error } = await supabase
     .from("ticket_comments")
-    .select("id, body, created_at, author_id, author_name, author_email, source_meta")
+    .select("id, body, created_at, updated_at, author_id, author_name, author_email, source_meta")
     .eq("ticket_id", ticket.id)
     .order("created_at", { ascending: true });
 
@@ -96,6 +96,7 @@ export async function GET(
     id: c.id,
     body: c.body,
     created_at: c.created_at,
+    updated_at: c.updated_at,
     author_id: c.author_id,
     author_name: resolveAuthorName(c, profileNames),
     attachments: attachmentsByComment.get(c.id) ?? [],
@@ -135,7 +136,7 @@ export async function POST(
   const { data: comment, error } = await supabase
     .from("ticket_comments")
     .insert({ ticket_id: ticket.id, author_id: user.id, body: text })
-    .select("id, body, created_at")
+    .select("id, body, created_at, updated_at")
     .single();
 
   if (error) {

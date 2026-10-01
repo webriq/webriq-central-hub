@@ -1953,6 +1953,7 @@ export interface Database {
           external_id: string | null;
           body: string;
           created_at: string;
+          updated_at: string | null;
         };
         Insert: {
           id?: string;
@@ -1963,6 +1964,7 @@ export interface Database {
           external_id?: string | null;
           body: string;
           created_at?: string;
+          updated_at?: string | null;
         };
         Update: {
           id?: string;
@@ -1972,6 +1974,7 @@ export interface Database {
           author_email?: string | null;
           external_id?: string | null;
           body?: string;
+          updated_at?: string | null;
         };
         Relationships: [
           {

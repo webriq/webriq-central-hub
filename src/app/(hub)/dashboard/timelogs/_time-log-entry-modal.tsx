@@ -232,6 +232,7 @@ export function TimeLogEntryModal({
         project_id: initial?.project_id ?? selectedProject?.id ?? "",
         project_name: initial?.project_name ?? selectedProject?.name ?? "Unknown project",
         project_public_id: initial?.project_public_id ?? selectedProject?.project_id ?? null,
+        project_is_legacy: initial?.project_is_legacy ?? !!selectedProject?.external_project_id,
         task_title: entryKind === "task" ? pickerValue.label : "—",
         task_display_id: entryKind === "task" ? pickerValue.displayId : null,
         issue_display_id: entryKind === "ticket" ? pickerValue.displayId : null,

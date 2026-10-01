@@ -118,11 +118,13 @@ export async function GET(req: NextRequest) {
   const projectIds = [...new Set(rows.map((r) => r.project_id).filter((id): id is string => !!id))];
   const projectNames = new Map<string, string>();
   const projectPublicIds = new Map<string, string>();
+  const legacyProjectIds = new Set<string>();
   if (projectIds.length > 0) {
-    const { data: projects } = await supabase.from("projects").select("id, name, project_id").in("id", projectIds);
+    const { data: projects } = await supabase.from("projects").select("id, name, project_id, external_project_id").in("id", projectIds);
     for (const p of projects ?? []) {
       projectNames.set(p.id, p.name);
       if (p.project_id) projectPublicIds.set(p.id, p.project_id);
+      if (p.external_project_id) legacyProjectIds.add(p.id);
     }
   }
 
@@ -168,6 +170,8 @@ export async function GET(req: NextRequest) {
       project_id: r.project_id,
       project_name: projectNames.get(r.project_id) ?? "Unknown project",
       project_public_id: projectPublicIds.get(r.project_id) ?? null,
+      // Task 410 — legacy (Zoho-imported) projects route under /projects/legacy, not /projects/v2.
+      project_is_legacy: legacyProjectIds.has(r.project_id),
       task_title: r.task_id ? taskTitles.get(r.task_id) ?? "Untitled task" : "—",
       task_display_id: r.task_id ? taskDisplayIds.get(r.task_id) ?? null : null,
       issue_display_id: r.issue_id ? ticketDisplayIds.get(r.issue_id) ?? null : null,

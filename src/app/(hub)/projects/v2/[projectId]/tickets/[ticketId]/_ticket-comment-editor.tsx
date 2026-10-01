@@ -16,12 +16,15 @@ export function TicketCommentEditor({
   ticketId,
   onChange,
   onEmptyChange,
+  initialHtml,
   disabled = false,
 }: {
   projectId: string;
   ticketId: string;
   onChange: (html: string) => void;
   onEmptyChange: (isEmpty: boolean) => void;
+  // Task 411 — pre-fills the editor when editing an existing comment (and focuses it at the end).
+  initialHtml?: string;
   // Task 301 — locked while the comment is posting; the editor itself stays mounted (only a
   // successful post/Clear remounts it via the parent's resetKey), so `disabled` has to be able
   // to change after creation without recreating the Tiptap instance — handled via
@@ -53,7 +56,8 @@ export function TicketCommentEditor({
       StarterKit.configure({ link: { openOnClick: false } }),
       Image,
     ],
-    content: "",
+    content: initialHtml ?? "",
+    autofocus: initialHtml !== undefined ? "end" : false,
     immediatelyRender: false,
     editable: !disabled,
     editorProps: {

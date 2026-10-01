@@ -1,13 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { MessageSquare, ExternalLink, Download, Link2 } from "lucide-react";
+import { MessageSquare, ExternalLink, Download, Link2, Loader2, Pencil, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { formatRelativeTime, formatDate, cn } from "@/lib/utils";
 import { formatClockTime } from "@/lib/timer/format";
 import { OwnerChip, normalizeZohoDescriptionHtml } from "@/app/(hub)/projects-old/_pm-shared";
 import { CommentEditor } from "./_comment-editor";
 import { CommentComposer } from "@/app/(hub)/projects/_shared/_comment-composer";
+import { CommentEditForm, isCommentEdited } from "@/app/(hub)/projects/_shared/_comment-edit-form";
 import { TaskAttachmentViewerModal } from "./_task-attachment-viewer-modal";
 import { AttachmentAction } from "@/app/(hub)/projects/_shared/_attachment-actions-menu";
 import { AttachmentGridTile, AttachmentThumbnail, CommentAttachmentGrid, downloadAttachment } from "@/app/(hub)/projects/_shared/_attachment-grid-tile";
@@ -15,8 +16,8 @@ import { AttachmentGridTile, AttachmentThumbnail, CommentAttachmentGrid, downloa
 // Comment thread for the task detail page (task 206). Rich-text body + optional file
 // attachments (task 212) — built on the existing `task_comments` table (RLS: staff
 // read/insert/own-delete already shipped, migration 048) and the generic `attachments` table
-// (entity_type: "comment", already a legal value since migration 049). No edit/delete UI yet —
-// see task 206 Decision #6, a deliberate fast-follow boundary, not an oversight.
+// (entity_type: "comment", already a legal value since migration 049). Task 411 added own-comment
+// edit (author only) and delete (author, or admin/super_admin) — the task 206 Decision #6 deferral.
 //
 // Task 368, R1/R2 — comment attachments render as the shared grid tile (same card the
 // Attachments tab uses) instead of a single-column list row, with a trimmed View/Download/Copy
@@ -45,16 +46,20 @@ const COMMENT_ATTACHMENT_MIME_TYPES = [
 ];
 
 type CommentAttachment = { id: string; filename: string; size: number | null };
-type CommentRow = { id: string; body: string; created_at: string; author_name: string; attachments: CommentAttachment[] };
+type CommentRow = { id: string; body: string; created_at: string; updated_at: string | null; author_id: string | null; author_name: string; attachments: CommentAttachment[] };
 
 export function TaskComments({
   taskId,
+  currentUserId,
+  currentUserRole,
   currentUserName,
   currentUserAvatarUrl,
   onCountChange,
   copyAttachmentUrl,
 }: {
   taskId: string;
+  currentUserId: string;
+  currentUserRole: string | null;
   currentUserName: string | null;
   currentUserAvatarUrl: string | null;
   // Task 270 — lifted up to the panel so its tab label can show a live count, mirroring
@@ -73,8 +78,15 @@ export function TaskComments({
   const [attachmentWarning, setAttachmentWarning] = useState<string | null>(null);
   const [resetKey, setResetKey] = useState(0);
   const [viewing, setViewing] = useState<{ commentId: string; attachment: CommentAttachment } | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const commentsRef = useRef<CommentRow[]>([]);
   useEffect(() => { commentsRef.current = comments; }, [comments]);
+
+  // Edit is author-only; delete also allows admin/super_admin (mirrors task_comments_delete RLS).
+  const canEdit = (comment: CommentRow) => comment.author_id === currentUserId;
+  const canDelete = (comment: CommentRow) =>
+    comment.author_id === currentUserId || currentUserRole === "admin" || currentUserRole === "super_admin";
 
   const fetchComments = useCallback((signal?: AbortSignal) => {
     return fetch(`/api/v2/tasks/${taskId}/comments`, { signal })
@@ -153,7 +165,7 @@ export function TaskComments({
       body: JSON.stringify({ body: draftHtml }),
     });
     if (res.ok) {
-      const created: Omit<CommentRow, "attachments"> = await res.json();
+      const created: Omit<CommentRow, "attachments" | "updated_at"> = await res.json();
 
       // Append immediately, before any attachment upload, so the realtime INSERT handler's
       // dedupe guard (commentsRef) already recognizes this id well before its own event can
@@ -161,7 +173,7 @@ export function TaskComments({
       // order) left a race window where the realtime handler's own fetchComments() could land
       // the comment first, and this append would then add a second, duplicate-keyed copy
       // (task 301).
-      setComments((prev) => [...prev, { ...created, attachments: [] }]);
+      setComments((prev) => [...prev, { ...created, updated_at: null, attachments: [] }]);
 
       if (attachmentFiles.length > 0) {
         const results = await Promise.allSettled(attachmentFiles.map((file) => {
@@ -197,6 +209,30 @@ export function TaskComments({
     setResetKey((k) => k + 1);
   }
 
+  async function saveEdit(commentId: string, html: string): Promise<string | null> {
+    const res = await fetch(`/api/v2/tasks/${taskId}/comments/${commentId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ body: html }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      return typeof data.error === "string" ? data.error : "Couldn't save your changes. Try again.";
+    }
+    const updated: { body: string; updated_at: string } = await res.json();
+    setComments((prev) => prev.map((c) => (c.id === commentId ? { ...c, body: updated.body, updated_at: updated.updated_at } : c)));
+    setEditingId(null);
+    return null;
+  }
+
+  async function deleteComment(commentId: string) {
+    if (!confirm("Delete this comment? This cannot be undone.")) return;
+    setDeletingId(commentId);
+    const res = await fetch(`/api/v2/tasks/${taskId}/comments/${commentId}`, { method: "DELETE" });
+    setDeletingId(null);
+    if (res.ok) setComments((prev) => prev.filter((c) => c.id !== commentId));
+  }
+
   return (
     <div className="flex flex-col gap-4">
       {loading ? (
@@ -228,7 +264,46 @@ export function TaskComments({
                       {" · "}{formatDate(c.created_at)} {formatClockTime(c.created_at)}
                     </span>
                   </span>
+                  {isCommentEdited(c.created_at, c.updated_at) && (
+                    <span className="text-[10px] text-[#8A93AC]" title={`Edited ${formatDate(c.updated_at!)} ${formatClockTime(c.updated_at!)}`}>
+                      (edited)
+                    </span>
+                  )}
+                  <div className="ml-auto flex items-center gap-0.5">
+                    {canEdit(c) && editingId !== c.id && (
+                      <button
+                        type="button"
+                        onClick={() => setEditingId(c.id)}
+                        aria-label="Edit comment"
+                        title="Edit comment"
+                        className="p-1 rounded-full text-[#C7CEDD] cursor-pointer transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 max-md:opacity-100 disabled:opacity-45 shrink-0 hover:text-[#007BFF] hover:bg-[#E5F1FF]"
+                      >
+                        <Pencil size={12} />
+                      </button>
+                    )}
+                    {canDelete(c) && (
+                      <button
+                        type="button"
+                        onClick={() => void deleteComment(c.id)}
+                        disabled={deletingId === c.id}
+                        aria-label="Delete comment"
+                        title="Delete comment"
+                        className="p-1 rounded-full text-[#C7CEDD] cursor-pointer transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 max-md:opacity-100 disabled:opacity-45 shrink-0 hover:text-[#C0392B] hover:bg-[#FDE8E6]"
+                      >
+                        {deletingId === c.id ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                      </button>
+                    )}
+                  </div>
                 </div>
+                {editingId === c.id ? (
+                  <CommentEditForm
+                    initialHtml={c.body}
+                    allowEmpty={c.attachments.length > 0}
+                    renderEditor={(ed) => <CommentEditor taskId={taskId} {...ed} />}
+                    onSave={(html) => saveEdit(c.id, html)}
+                    onCancel={() => setEditingId(null)}
+                  />
+                ) : (
                 <div
                   className={cn(
                     "text-[13px] text-[#3A4565] leading-relaxed mt-0.5",
@@ -247,6 +322,7 @@ export function TaskComments({
                   // gets, needed here for the same reason (task 257 follow-up).
                   dangerouslySetInnerHTML={{ __html: normalizeZohoDescriptionHtml(c.body) }}
                 />
+                )}
                 {c.attachments.length > 0 && (
                   <CommentAttachmentGrid
                     items={c.attachments}

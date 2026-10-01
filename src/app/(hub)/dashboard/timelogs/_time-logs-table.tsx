@@ -1,14 +1,16 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ChevronDown, Clock, ExternalLink, MessageSquare, Pencil, Plus, Trash2 } from "lucide-react";
+import { Check, ChevronDown, Clock, ExternalLink, Link2, MessageSquare, Pencil, Plus, Trash2 } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Avatar } from "../_components/dashboard-shared";
 import { decodeHtmlEntities } from "@/app/(hub)/projects-old/_pm-shared";
 import { cn, formatDate } from "@/lib/utils";
+import { V2_ROUTES } from "@/config/constants";
+import { useCopyLink } from "@/app/(hub)/projects/_shared/_copy-link-button";
 import { formatHoursAsHHMM, formatClockTime } from "@/lib/timer/format";
-import { groupByEmployee, sumHours, toISODate, nowHHmm, combineDateTime, isoToHHmm, type TimeLogEntry } from "./_time-logs-shared";
+import { groupByDate, groupByEmployee, sumHours, toISODate, nowHHmm, combineDateTime, isoToHHmm, type TimeLogEntry } from "./_time-logs-shared";
 import { DateFieldPicker } from "./_date-field-picker";
 import { TimePeriodInlineEditor } from "./_time-period-inline-editor";
 import { TaskTicketPicker, type TaskTicketValue } from "./_task-ticket-picker";
@@ -78,13 +80,46 @@ function basePatchBody(entry: TimeLogEntry) {
 
 function detailHref(entry: TimeLogEntry): string | null {
   if (!entry.project_public_id) return null;
-  if (entry.entry_kind === "task" && entry.task_display_id) {
-    return `/projects/${entry.project_public_id}/tasks/${entry.task_display_id}`;
-  }
-  if (entry.entry_kind === "ticket" && entry.issue_display_id) {
-    return `/projects/${entry.project_public_id}/tickets/${entry.issue_display_id}`;
-  }
+  // Task 410 — detail routes live under /projects/v2 or /projects/legacy (Zoho-imported); a bare
+  // /projects/{id}/... path does not exist and 404s.
+  const base = `${entry.project_is_legacy ? V2_ROUTES.PROJECTS_LEGACY : V2_ROUTES.PROJECTS_V2}/${entry.project_public_id}`;
+  if (entry.entry_kind === "task" && entry.task_display_id) return `${base}/tasks/${entry.task_display_id}`;
+  if (entry.entry_kind === "ticket" && entry.issue_display_id) return `${base}/tickets/${entry.issue_display_id}`;
   return null;
+}
+
+const ACTION_BTN = "p-1.5 rounded-full text-[#5F6A88] hover:text-[#007BFF] hover:bg-[#E5F1FF] cursor-pointer transition-colors";
+
+function ActionTooltip({ label, children }: { label: string; children: React.ReactElement }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger render={children} />
+      <TooltipContent side="top">{label}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+function CopyUrlButton({ href }: { href: string }) {
+  const { copied, copy } = useCopyLink(href);
+  return (
+    <ActionTooltip label={copied ? "Copied!" : "Copy URL"}>
+      <button type="button" onClick={() => void copy()} aria-label={copied ? "URL copied" : "Copy URL"} className={ACTION_BTN}>
+        {copied ? <Check size={14} /> : <Link2 size={14} />}
+      </button>
+    </ActionTooltip>
+  );
+}
+
+// Per-day subtotal row (task 410) — shown on multi-day periods after each date's entries.
+function DaySubtotalRow({ date, entries }: { date: string; entries: TimeLogEntry[] }) {
+  return (
+    <tr className="border-b border-[#EDF0F7] bg-[#F0F7FF]">
+      <td className="py-2 pl-[18px] pr-3 text-[12px] font-bold text-[#0063D6]">Total — {formatDate(date)}</td>
+      <td className="py-2 px-3" />
+      <td className="py-2 px-3 font-mono text-[13px] font-bold text-[#0063D6] whitespace-nowrap">{formatHoursAsHHMM(sumHours(entries))}</td>
+      <td colSpan={5} />
+    </tr>
+  );
 }
 
 function TimePeriodCell({ entry }: { entry: TimeLogEntry }) {
@@ -278,15 +313,16 @@ function EntryRow({
               <span className="truncate max-w-[220px] block">{decodeHtmlEntities(entry.log_title)}</span>
             </button>
             {href && (
-              // Sibling to the edit trigger, not nested inside it — a `<button>` cannot contain
+              // Siblings to the edit trigger, not nested inside it — a `<button>` cannot contain
               // interactive content like an `<a>` (invalid HTML / hydration risk).
-              <Link
-                href={href}
-                aria-label="View details"
-                className="opacity-0 group-hover:opacity-100 shrink-0 text-[#5F6A88] hover:text-[#007BFF] transition-opacity"
-              >
-                <ExternalLink size={12} />
-              </Link>
+              <div className="ml-auto flex shrink-0 items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                <ActionTooltip label={entry.entry_kind === "ticket" ? "Open ticket" : "Open task"}>
+                  <Link href={href} aria-label={entry.entry_kind === "ticket" ? "Open ticket" : "Open task"} className={ACTION_BTN}>
+                    <ExternalLink size={14} />
+                  </Link>
+                </ActionTooltip>
+                <CopyUrlButton href={href} />
+              </div>
             )}
           </div>
         )}
@@ -375,12 +411,16 @@ function EntryRow({
       <td className="py-2.5 pl-3 pr-[18px]">
         {entry.can_edit && (
           <div className="flex items-center gap-1 justify-end opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-            <button type="button" onClick={onEdit} aria-label="Edit time log" className="p-1.5 rounded-full text-[#5F6A88] hover:text-[#007BFF] hover:bg-[#E5F1FF] cursor-pointer transition-colors">
-              <Pencil size={13} />
-            </button>
-            <button type="button" onClick={onDelete} aria-label="Delete time log" className="p-1.5 rounded-full text-[#5F6A88] hover:text-[#C0392B] hover:bg-[#FDE8E6] cursor-pointer transition-colors">
-              <Trash2 size={13} />
-            </button>
+            <ActionTooltip label="Edit time log">
+              <button type="button" onClick={onEdit} aria-label="Edit time log" className={ACTION_BTN}>
+                <Pencil size={14} />
+              </button>
+            </ActionTooltip>
+            <ActionTooltip label="Delete time log">
+              <button type="button" onClick={onDelete} aria-label="Delete time log" className="p-1.5 rounded-full text-[#5F6A88] hover:text-[#C0392B] hover:bg-[#FDE8E6] cursor-pointer transition-colors">
+                <Trash2 size={14} />
+              </button>
+            </ActionTooltip>
           </div>
         )}
       </td>
@@ -426,10 +466,11 @@ function EmptyState({ canAdd, onAdd }: { canAdd: boolean; onAdd: () => void }) {
 }
 
 export function TimeLogsTable({
-  entries, grouped, canAdd, currentUserId, onAdd, onEdit, onDelete, onInlineSave,
+  entries, grouped, showDailyTotals = false, canAdd, currentUserId, onAdd, onEdit, onDelete, onInlineSave,
 }: {
   entries: TimeLogEntry[];
   grouped: boolean;
+  showDailyTotals?: boolean;
   canAdd: boolean;
   currentUserId: string;
   onAdd: () => void;
@@ -439,6 +480,17 @@ export function TimeLogsTable({
 }) {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [editingRow, setEditingRow] = useState<{ id: string; field: EditingField } | null>(null);
+
+  // Task 410 — entries (+ a subtotal row after each date) for multi-day periods.
+  function renderEntries(list: TimeLogEntry[]) {
+    if (!showDailyTotals) return list.map((entry) => <EntryRow key={entry.id} entry={entry} {...rowProps(entry)} />);
+    return groupByDate(list).map(([date, dayEntries]) => (
+      <Fragment key={date}>
+        {dayEntries.map((entry) => <EntryRow key={entry.id} entry={entry} {...rowProps(entry)} />)}
+        <DaySubtotalRow date={date} entries={dayEntries} />
+      </Fragment>
+    ));
+  }
 
   function rowProps(entry: TimeLogEntry) {
     return {
@@ -466,9 +518,7 @@ export function TimeLogsTable({
         <table className="w-full border-collapse">
           <TableHead />
           <tbody>
-            {entries.map((entry) => (
-              <EntryRow key={entry.id} entry={entry} {...rowProps(entry)} />
-            ))}
+            {renderEntries(entries)}
           </tbody>
           {/* Task 317 — the flat (ungrouped) table is reached exclusively by the `developer` role
               (client/marketing are redirected off this page in page.tsx; every other role gets
@@ -523,9 +573,7 @@ export function TimeLogsTable({
                   </div>
                 </td>
               </tr>
-              {!isCollapsed && group.entries.map((entry) => (
-                <EntryRow key={entry.id} entry={entry} {...rowProps(entry)} />
-              ))}
+              {!isCollapsed && renderEntries(group.entries)}
             </tbody>
           );
         })}

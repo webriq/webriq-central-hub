@@ -459,6 +459,8 @@ export default function TaskDetailClient({
             <TaskAttachmentsCommentsPanel
               projectId={projectId}
               taskId={task.id}
+              currentUserId={currentUserId}
+              currentUserRole={currentUserRole}
               currentUserName={currentUserName}
               currentUserAvatarUrl={currentUserAvatarUrl}
               timeLogsRefreshKey={timeLogsRefreshKey}

@@ -28,12 +28,16 @@ const TAB_LABEL: Record<PanelTab, string> = {
 export function TaskAttachmentsCommentsPanel({
   projectId,
   taskId,
+  currentUserId,
+  currentUserRole,
   currentUserName,
   currentUserAvatarUrl,
   timeLogsRefreshKey,
 }: {
   projectId: string;
   taskId: string;
+  currentUserId: string;
+  currentUserRole: string | null;
   currentUserName: string | null;
   currentUserAvatarUrl: string | null;
   // Task 218 — bumped by the header's TaskTimerButton on stop, so the Time Logs tab refetches.
@@ -83,6 +87,8 @@ export function TaskAttachmentsCommentsPanel({
         <div className={cn(tab !== "comments" && "hidden")}>
           <TaskComments
             taskId={taskId}
+            currentUserId={currentUserId}
+            currentUserRole={currentUserRole}
             currentUserName={currentUserName}
             currentUserAvatarUrl={currentUserAvatarUrl}
             onCountChange={onCommentsCount}

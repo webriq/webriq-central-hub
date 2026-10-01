@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
 
   let q = supabase
     .from("projects")
-    .select("id,project_id,name,project_type,status,customer_id,description,created_at,updated_at")
+    .select("id,project_id,name,project_type,status,customer_id,description,external_project_id,created_at,updated_at")
     .neq("status", "deleted")
     .order("updated_at", { ascending: false });
   if (customerId) q = q.eq("customer_id", customerId);

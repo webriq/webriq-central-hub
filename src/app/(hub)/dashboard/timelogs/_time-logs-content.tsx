@@ -177,6 +177,7 @@ export function TimeLogsContent({ role, currentUserId }: { role: string | null; 
         <TimeLogsTable
           entries={filteredEntries}
           grouped={grouped}
+          showDailyTotals={period.mode !== "day"}
           canAdd={canAdd}
           currentUserId={currentUserId}
           onAdd={() => setModal("add")}

@@ -12,6 +12,7 @@ export type TimeLogEntry = {
   project_id: string;
   project_name: string;
   project_public_id: string | null;
+  project_is_legacy: boolean;
   task_title: string;
   task_display_id: string | null;
   issue_display_id: string | null;
@@ -29,7 +30,7 @@ export type TimeLogEntry = {
   can_edit: boolean;
 };
 
-export type ProjectOption = { id: string; project_id: string; name: string };
+export type ProjectOption = { id: string; project_id: string; name: string; external_project_id?: string | null };
 
 export type PeriodMode = "day" | "week" | "month" | "range";
 

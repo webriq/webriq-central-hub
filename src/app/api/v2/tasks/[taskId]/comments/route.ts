@@ -32,11 +32,23 @@ export async function GET(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { data: comments, error } = await supabase
+  // Task 411 — `updated_at` (migration 155, written not applied) drives the "(edited)" marker;
+  // fall back to the pre-migration column set so the thread still loads until it lands.
+  const withUpdatedAt = await supabase
     .from("task_comments")
-    .select("id, body, created_at, author_id, author_name, author_email")
+    .select("id, body, created_at, updated_at, author_id, author_name, author_email")
     .eq("task_id", taskId)
     .order("created_at", { ascending: true });
+  const fallback = withUpdatedAt.error
+    ? await supabase
+        .from("task_comments")
+        .select("id, body, created_at, author_id, author_name, author_email")
+        .eq("task_id", taskId)
+        .order("created_at", { ascending: true })
+    : null;
+  const error = fallback ? fallback.error : null;
+  const comments: { id: string; body: string; created_at: string; updated_at?: string | null; author_id: string | null; author_name: string | null; author_email: string | null }[] | null =
+    fallback ? fallback.data : withUpdatedAt.data;
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
@@ -73,6 +85,8 @@ export async function GET(
     id: c.id,
     body: c.body,
     created_at: c.created_at,
+    updated_at: c.updated_at ?? null,
+    author_id: c.author_id,
     author_name: resolveAuthorName(c, profileNames),
     attachments: attachmentsByComment.get(c.id) ?? [],
   }));
@@ -112,7 +126,7 @@ export async function POST(
   const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
 
   return NextResponse.json(
-    { ...comment, author_name: profile?.full_name || user.email || "Unknown" },
+    { ...comment, author_id: user.id, author_name: profile?.full_name || user.email || "Unknown" },
     { status: 201 }
   );
 }

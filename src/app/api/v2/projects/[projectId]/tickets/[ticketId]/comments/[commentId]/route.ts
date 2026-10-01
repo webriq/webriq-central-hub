@@ -7,6 +7,63 @@ import { createClient } from "@/lib/supabase/server";
 // delete route/UI for it — see that file's own "no edit/delete UI yet" comment. This route is
 // new plumbing for the app-layer check that mirrors issue_comments_delete RLS (migration 101):
 // the comment's own author, or admin/super_admin, may delete.
+//
+// Task 411 — PATCH added alongside: edit is author-only (admins may delete others' comments but
+// not rewrite them). `ticket_comments_pm_write` RLS would let a PM update any row, so the author
+// check below is the real gate, not just a courtesy.
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ projectId: string; ticketId: string; commentId: string }> }
+) {
+  const { projectId, ticketId, commentId } = await params;
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { data: project } = await supabase.from("projects").select("id").eq("project_id", projectId).single();
+  if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 });
+
+  const { data: ticket } = await supabase.from("tickets").select("id").eq("id", ticketId).eq("project_id", project.id).maybeSingle();
+  if (!ticket) return NextResponse.json({ error: "Ticket not found" }, { status: 404 });
+
+  const { data: comment } = await supabase
+    .from("ticket_comments")
+    .select("id, author_id")
+    .eq("id", commentId)
+    .eq("ticket_id", ticket.id)
+    .maybeSingle();
+  if (!comment) return NextResponse.json({ error: "Comment not found" }, { status: 404 });
+  if (comment.author_id !== user.id) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const payload = await req.json().catch(() => ({}));
+  const text = typeof payload.body === "string" ? payload.body.trim() : "";
+  if (!text) {
+    // Attachment-only comments are legal (task 301), so an emptied body is only rejected when
+    // there is nothing else left in the comment.
+    const { count } = await supabase
+      .from("attachments")
+      .select("id", { count: "exact", head: true })
+      .eq("entity_type", "comment")
+      .eq("entity_id", commentId);
+    if (!count) return NextResponse.json({ error: "Comment cannot be empty" }, { status: 400 });
+  }
+
+  const { data: updated, error } = await supabase
+    .from("ticket_comments")
+    .update({ body: text, updated_at: new Date().toISOString() })
+    .eq("id", commentId)
+    .select("id, body, updated_at")
+    .maybeSingle();
+  if (error) {
+    console.error("[api/v2/projects/[id]/tickets/[id]/comments/[id]] update failed:", error.message);
+    return NextResponse.json({ error: error.message }, { status: 400 });
+  }
+  // RLS filtering an UPDATE yields zero rows rather than an error.
+  if (!updated) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  return NextResponse.json(updated);
+}
+
 export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ projectId: string; ticketId: string; commentId: string }> }
