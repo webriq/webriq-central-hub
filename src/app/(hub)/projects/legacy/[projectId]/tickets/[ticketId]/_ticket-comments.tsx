@@ -1,13 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { MessageSquare, Loader2, FileText, Image as ImageIcon, Trash2, ExternalLink, Download, Link2 } from "lucide-react";
+import { MessageSquare, Loader2, FileText, Image as ImageIcon, Trash2, Pencil, ExternalLink, Download, Link2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { formatRelativeTime, formatDate, cn } from "@/lib/utils";
 import { formatClockTime } from "@/lib/timer/format";
 import { OwnerChip, normalizeZohoDescriptionHtml } from "@/app/(hub)/projects-old/_pm-shared";
 import { TicketCommentEditor } from "./_ticket-comment-editor";
 import { CommentComposer } from "@/app/(hub)/projects/_shared/_comment-composer";
+import { CommentEditForm, isCommentEdited } from "@/app/(hub)/projects/_shared/_comment-edit-form";
 import { TaskAttachmentViewerModal } from "../../tasks/[taskId]/_task-attachment-viewer-modal";
 import { ImageLightboxModal } from "@/app/(hub)/projects/_shared/_image-lightbox-modal";
 import { AttachmentAction } from "@/app/(hub)/projects/_shared/_attachment-actions-menu";
@@ -50,6 +51,7 @@ type CommentRow = {
   id: string;
   body: string;
   created_at: string;
+  updated_at: string | null;
   author_id: string | null;
   author_name: string;
   attachments: CommentAttachment[];
@@ -95,6 +97,7 @@ export function TicketComments({
   const [viewing, setViewing] = useState<{ commentId: string; attachment: CommentAttachment } | null>(null);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const commentsRef = useRef<CommentRow[]>([]);
   useEffect(() => { commentsRef.current = comments; }, [comments]);
 
@@ -103,6 +106,9 @@ export function TicketComments({
       comment.author_id === currentUserId || currentUserRole === "admin" || currentUserRole === "super_admin",
     [currentUserId, currentUserRole]
   );
+
+  // Task 411 — edit is author-only (unlike delete, admins don't get to rewrite others' comments).
+  const canEdit = useCallback((comment: CommentRow) => comment.author_id === currentUserId, [currentUserId]);
 
   const fetchComments = useCallback((signal?: AbortSignal) => {
     return fetch(`/api/v2/projects/${projectId}/tickets/${ticketId}/comments`, { signal })
@@ -232,6 +238,22 @@ export function TicketComments({
     }
   }
 
+  async function saveEdit(commentId: string, html: string): Promise<string | null> {
+    const res = await fetch(`/api/v2/projects/${projectId}/tickets/${ticketId}/comments/${commentId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ body: html }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      return typeof data.error === "string" ? data.error : "Couldn't save your changes. Try again.";
+    }
+    const updated: { body: string; updated_at: string } = await res.json();
+    setComments((prev) => prev.map((c) => (c.id === commentId ? { ...c, body: updated.body, updated_at: updated.updated_at } : c)));
+    setEditingId(null);
+    return null;
+  }
+
   return (
     <div className="flex flex-col gap-4">
       {loading ? (
@@ -266,19 +288,46 @@ export function TicketComments({
                       {" · "}{formatDate(c.created_at)} {formatClockTime(c.created_at)}
                     </span>
                   </span>
-                  {canDelete(c) && (
-                    <button
-                      type="button"
-                      onClick={() => void deleteComment(c.id)}
-                      disabled={deletingId === c.id}
-                      aria-label="Delete comment"
-                      title="Delete comment"
-                      className="ml-auto p-1 rounded-full text-[#C7CEDD] hover:text-[#C0392B] hover:bg-[#FDE8E6] cursor-pointer transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-45 shrink-0"
-                    >
-                      {deletingId === c.id ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
-                    </button>
+                  {isCommentEdited(c.created_at, c.updated_at) && (
+                    <span className="text-[10px] text-[#8A93AC]" title={`Edited ${formatDate(c.updated_at!)} ${formatClockTime(c.updated_at!)}`}>
+                      (edited)
+                    </span>
                   )}
+                  <div className="ml-auto flex items-center gap-0.5">
+                    {canEdit(c) && editingId !== c.id && (
+                      <button
+                        type="button"
+                        onClick={() => setEditingId(c.id)}
+                        aria-label="Edit comment"
+                        title="Edit comment"
+                        className="p-1 rounded-full text-[#C7CEDD] cursor-pointer transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 max-md:opacity-100 disabled:opacity-45 shrink-0 hover:text-[#007BFF] hover:bg-[#E5F1FF]"
+                      >
+                        <Pencil size={12} />
+                      </button>
+                    )}
+                    {canDelete(c) && (
+                      <button
+                        type="button"
+                        onClick={() => void deleteComment(c.id)}
+                        disabled={deletingId === c.id}
+                        aria-label="Delete comment"
+                        title="Delete comment"
+                        className="p-1 rounded-full text-[#C7CEDD] cursor-pointer transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 max-md:opacity-100 disabled:opacity-45 shrink-0 hover:text-[#C0392B] hover:bg-[#FDE8E6]"
+                      >
+                        {deletingId === c.id ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                      </button>
+                    )}
+                  </div>
                 </div>
+                {editingId === c.id ? (
+                  <CommentEditForm
+                    initialHtml={c.body}
+                    allowEmpty={c.attachments.length > 0}
+                    renderEditor={(ed) => <TicketCommentEditor projectId={projectId} ticketId={ticketId} {...ed} />}
+                    onSave={(html) => saveEdit(c.id, html)}
+                    onCancel={() => setEditingId(null)}
+                  />
+                ) : (
                 <div
                   className={cn(
                     "text-[13px] text-[#3A4565] leading-relaxed mt-0.5",
@@ -305,6 +354,7 @@ export function TicketComments({
                     if (img) setLightboxSrc(img.src);
                   }}
                 />
+                )}
                 {c.legacyAttachments.length > 0 && (
                   <ul className="flex flex-col gap-1 mt-1.5">
                     {c.legacyAttachments.map((file, idx) => {

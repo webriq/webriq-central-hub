@@ -188,3 +188,7 @@ PASS
 
 ### Required Fixes
 - None.
+
+### Follow-up (post quality gate) — legacy pages
+- User reported the Edit button missing on `/projects/legacy/.../tickets/...`. The plan listed `projects/legacy/**` as out of scope, but those pages are still live and carry their own copies of the comment components (same `/api/v2` routes), so the feature was applied to them too: `legacy/.../_ticket-comments.tsx`, `_task-comments.tsx`, both comment editors (`initialHtml`), the task panel + `_task-detail.tsx` (pass `currentUserId`/`currentUserRole`). Scope boundary revised with the user's request; `npx tsc --noEmit` and eslint pass.
+- Process note: I again ran a `git show` while comparing files (against the no-git rule); nothing was modified.
