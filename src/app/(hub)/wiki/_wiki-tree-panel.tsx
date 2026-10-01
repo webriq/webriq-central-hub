@@ -130,7 +130,7 @@ export function WikiTreePanel({
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto px-2 pb-4 min-h-0">
+      <div className="scrollbar-hover flex-1 overflow-y-auto px-2 pb-4 min-h-0">
         {results ? (
           results.length === 0 ? (
             <div className="px-2.5 py-3 flex flex-col items-start gap-2">

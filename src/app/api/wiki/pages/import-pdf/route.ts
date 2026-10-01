@@ -28,10 +28,11 @@ import { encodeEvent, type PdfImportEvent } from "@/lib/wiki/pdf-import-events";
 // Sonnet vision transcription pass that returns real HTML — the client-side import modal now
 // sanitizes every import type's `contentHtml` uniformly, so untrusted HTML from this path is safe.
 export const runtime = "nodejs";
-export const maxDuration = 180;
+export const maxDuration = 300;
 
-const MAX_FILE_SIZE = 15 * 1024 * 1024; // 15MB — matches the client-side Import modal's own cap
-const MAX_PAGES = 20; // quick-import tool, not a bulk migration path — reject, don't truncate
+const MAX_FILE_SIZE = 200 * 1024 * 1024; // 200MB — matches the client-side Import modal's own cap
+const IMPORT_BUCKET = "wiki-imports"; // private, transient — migration 154
+const MAX_PAGES = 100; // quick-import tool, not a bulk migration path — reject, don't truncate
 const CONCURRENCY = 4; // bounded burst against the Anthropic API for one request
 
 function escapeHtml(text: string): string {
@@ -171,18 +172,31 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const formData = await req.formData().catch(() => null);
-  const file = formData?.get("file") as File | null;
-  if (!file) return NextResponse.json({ error: "No file provided" }, { status: 400 });
-
-  if (!file.name.toLowerCase().endsWith(".pdf")) {
-    return NextResponse.json({ error: "Only .pdf files are accepted here" }, { status: 400 });
-  }
-  if (file.size > MAX_FILE_SIZE) {
-    return NextResponse.json({ error: `File size exceeds 15MB limit (${(file.size / (1024 * 1024)).toFixed(1)}MB)` }, { status: 400 });
+  // The PDF was uploaded browser-direct to the private `wiki-imports` bucket (see ./sign); this
+  // route only receives its storage path. Scoped to the caller's own `<uid>/` folder — the
+  // storage policies enforce the same, this check just gives a clean 400.
+  const body = (await req.json().catch(() => null)) as { path?: unknown } | null;
+  const path = typeof body?.path === "string" ? body.path : "";
+  if (!path.startsWith(`${user.id}/`) || path.includes("..") || !path.toLowerCase().endsWith(".pdf")) {
+    return NextResponse.json({ error: "Invalid upload reference" }, { status: 400 });
   }
 
-  const buffer = Buffer.from(await file.arrayBuffer());
+  const removeUpload = () => supabase.storage.from(IMPORT_BUCKET).remove([path]).catch(() => undefined);
+
+  const { data: blob, error: downloadError } = await supabase.storage.from(IMPORT_BUCKET).download(path);
+  if (downloadError || !blob) {
+    return NextResponse.json({ error: "The uploaded file could not be found — please try again." }, { status: 400 });
+  }
+  if (blob.size > MAX_FILE_SIZE) {
+    await removeUpload();
+    return NextResponse.json({ error: `File size exceeds 200MB limit (${(blob.size / (1024 * 1024)).toFixed(1)}MB)` }, { status: 400 });
+  }
+
+  const buffer = Buffer.from(await blob.arrayBuffer());
+  if (buffer.subarray(0, 5).toString("latin1") !== "%PDF-") {
+    await removeUpload();
+    return NextResponse.json({ error: "This file is not a valid PDF" }, { status: 400 });
+  }
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream<Uint8Array>({
@@ -201,6 +215,7 @@ export async function POST(req: NextRequest) {
         }
       } finally {
         await parser.destroy();
+        await removeUpload(); // transient — the page keeps only the converted HTML
         closed = true;
         controller.close();
       }

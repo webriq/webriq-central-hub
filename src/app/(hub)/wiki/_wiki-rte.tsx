@@ -1,6 +1,7 @@
 "use client";
 
 import { useEditor, EditorContent } from "@tiptap/react";
+import { putToSignedUrl } from "@/lib/uploads/put-signed-url";
 import StarterKit from "@tiptap/starter-kit";
 import { TaskList, TaskItem } from "@tiptap/extension-list";
 import Placeholder from "@tiptap/extension-placeholder";
@@ -51,15 +52,21 @@ export function WikiRte({
   onChange: (html: string) => void;
 }) {
   async function uploadAndInsertImage(file: File) {
-    const fd = new FormData();
-    fd.append("file", file);
-    const res = await fetch(`/api/wiki/pages/${pageId}/description-images`, {
-      method: "POST",
-      body: fd,
-    });
-    if (!res.ok) return; // silently drop — a failed inline image paste isn't fatal to the page
-    const { url } = await res.json();
-    editor?.chain().focus().setImage({ src: url }).run();
+    // Browser-direct upload (Vercel 413s Route Handler bodies over ~4.5 MB): the sign route gates
+    // + mints a signed URL, the bytes go straight to Storage, `url` is the stored read URL.
+    try {
+      const res = await fetch(`/api/wiki/pages/${pageId}/description-images/sign`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filename: file.name, size: file.size, type: file.type }),
+      });
+      if (!res.ok) return; // silently drop — a failed inline image paste isn't fatal to the page
+      const { signedUrl, url } = (await res.json()) as { signedUrl: string; url: string };
+      await putToSignedUrl({ signedUrl, file, mime: file.type });
+      editor?.chain().focus().setImage({ src: url }).run();
+    } catch {
+      // network/storage failure — same silent drop as above
+    }
   }
 
   const editor = useEditor({
@@ -79,7 +86,7 @@ export function WikiRte({
     editorProps: {
       attributes: {
         class: cn(
-          "outline-none text-[13px] leading-[1.7] text-[#3A4565] min-h-[300px]",
+          "wiki-prose outline-none text-[13px] leading-[1.7] text-[#3A4565] min-h-[300px]",
           "[&_h2]:font-heading [&_h2]:text-[15px] [&_h2]:font-bold [&_h2]:tracking-[-0.01em] [&_h2]:text-[#0B1533] [&_h2]:mt-7 [&_h2]:mb-2.5",
           "[&_h3]:font-heading [&_h3]:text-[13px] [&_h3]:font-bold [&_h3]:text-[#0B1533] [&_h3]:mt-5 [&_h3]:mb-2",
           "[&_p]:my-0 [&_p+p]:mt-3.5",
@@ -94,10 +101,12 @@ export function WikiRte({
           // Table spec per central-hub-design-system.md's "Table" component — header 9.5px/700
           // caps --muted on #FAFBFE, cells 11-12px padding/13px text with --line-soft dividers,
           // row hover --blue-50, first column padded 18px. `block`+`overflow-x-auto` directly on
-          // the <table> lets a too-wide table scroll horizontally without a wrapper element
-          // (Tiptap's own TableView wrapper div isn't serialized into stored content_html by
-          // default, so read mode — a different container — needs this same self-contained fix).
-          "[&_table]:table [&_table]:w-full [&_table]:my-3.5 [&_table]:border-collapse",
+          // the <table> makes the table itself the scroll container, so a too-wide table scrolls
+          // horizontally with its scrollbar right under the table (not at the page bottom) and no
+          // wrapper element is needed (Tiptap's TableView wrapper isn't serialized into stored
+          // content_html). The bar is always visible via the `.wiki-prose table` scrollbar-color
+          // rule in globals.css.
+          "[&_table]:block [&_table]:w-max [&_table]:min-w-full [&_table]:max-w-full [&_table]:overflow-x-auto [&_table]:my-3.5 [&_table]:border-collapse",
           "[&_th]:text-[9.5px] [&_th]:font-bold [&_th]:uppercase [&_th]:tracking-[0.09em] [&_th]:text-[#5F6A88] [&_th]:bg-[#FAFBFE] [&_th]:text-left [&_th]:px-2.5 [&_th]:py-2 [&_th]:border-b [&_th]:border-[#EDF0F7]",
           "[&_td]:text-[13px] [&_td]:text-[#3A4565] [&_td]:px-2.5 [&_td]:py-2 [&_td]:border-b [&_td]:border-[#EDF0F7]",
           "[&_th:first-child]:pl-[18px] [&_td:first-child]:pl-[18px]",

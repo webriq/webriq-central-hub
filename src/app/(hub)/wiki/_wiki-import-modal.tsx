@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { parseEventLines, type PdfImportEvent } from "@/lib/wiki/pdf-import-events";
 import { X, Loader2, Upload, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { putToSignedUrl } from "@/lib/uploads/put-signed-url";
 import { WIKI_PRODUCTS, type WikiPageSummary, type WikiProduct } from "@/types/wiki";
 
 // Task 396 — Import modal. `.docx`/`.md` are converted + sanitized entirely client-side
@@ -17,7 +18,7 @@ import { WIKI_PRODUCTS, type WikiPageSummary, type WikiProduct } from "@/types/w
 const inputClass = "w-full px-3 py-2 rounded-[10px] border text-[13px] outline-none transition-colors border-[#E2E7F2] bg-[#F4F6FB] text-[#3A4565] focus:border-[#007BFF] focus:bg-white focus:ring-[3px] focus:ring-[#007BFF]/[0.14]";
 const labelClass = "text-[11px] font-semibold text-[#0B1533]";
 const ACCEPTED_EXTENSIONS = [".docx", ".md", ".markdown", ".pdf"];
-const MAX_FILE_SIZE = 15 * 1024 * 1024; // 15MB — matches the server-side PDF route's own cap
+const MAX_FILE_SIZE = 200 * 1024 * 1024; // 200MB — matches the server-side PDF route's own cap
 
 function extensionOf(filename: string): string {
   const dot = filename.lastIndexOf(".");
@@ -66,6 +67,7 @@ type StageUpdate = { stage: ImportStage; done?: number; total?: number };
 
 function stageLabel({ stage, done, total }: StageUpdate): string {
   const base = STAGE_LABELS[stage];
+  if (stage === "uploading" && total) return `Uploading… ${Math.min(done ?? 0, 100)}%`;
   if ((stage === "analyzing" || stage === "transcribing") && total) {
     const verb = stage === "analyzing" ? "Analyzing" : "Transcribing";
     return `${verb} page ${Math.min((done ?? 0) + 1, total)} of ${total}…`;
@@ -78,10 +80,30 @@ async function convertToHtml(file: File, onStage: (update: StageUpdate) => void)
   const { default: DOMPurify } = await import("dompurify");
 
   if (ext === ".pdf") {
-    const fd = new FormData();
-    fd.append("file", file);
-    onStage({ stage: "uploading" });
-    const res = await fetch("/api/wiki/pages/import-pdf", { method: "POST", body: fd });
+    // Browser-direct upload: the PDF goes straight to Storage (Vercel 413s Route Handler bodies
+    // over ~4.5 MB), then the import route is told only the storage path.
+    onStage({ stage: "uploading", done: 0, total: 100 });
+    const signRes = await fetch("/api/wiki/pages/import-pdf/sign", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ filename: file.name, size: file.size }),
+    });
+    if (!signRes.ok) {
+      const body = await signRes.json().catch(() => null);
+      throw new Error(body?.error ?? "Failed to start the upload");
+    }
+    const { path, signedUrl } = (await signRes.json()) as { path: string; signedUrl: string };
+    await putToSignedUrl({
+      signedUrl,
+      file,
+      mime: "application/pdf",
+      onProgress: (pct) => onStage({ stage: "uploading", done: pct, total: 100 }),
+    });
+    const res = await fetch("/api/wiki/pages/import-pdf", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path }),
+    });
     if (!res.ok || !res.body) {
       const body = await res.json().catch(() => null);
       throw new Error(body?.error ?? "Failed to read this PDF");
@@ -167,7 +189,7 @@ export function WikiImportModal({
       return;
     }
     if (picked.size > MAX_FILE_SIZE) {
-      setError(`File size exceeds 15MB limit (${(picked.size / (1024 * 1024)).toFixed(1)}MB).`);
+      setError(`File size exceeds 200MB limit (${(picked.size / (1024 * 1024)).toFixed(1)}MB).`);
       return;
     }
     setFile(picked);

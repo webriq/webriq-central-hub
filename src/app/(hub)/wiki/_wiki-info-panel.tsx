@@ -29,7 +29,7 @@ export function WikiInfoPanel({
   onOpenHistory: () => void;
 }) {
   return (
-    <div className="w-[236px] shrink-0 border-l border-[#E2E7F2] overflow-y-auto px-4 py-5">
+    <div className="w-[236px] shrink-0 border-l border-[#E2E7F2] overflow-y-auto scrollbar-hover px-4 py-5">
       {toc.length > 0 && (
         <div className="mb-6">
           <div className="text-[10.5px] font-bold tracking-[0.03em] text-[#5F6A88] mb-2.5">ON THIS PAGE</div>

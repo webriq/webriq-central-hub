@@ -108,7 +108,7 @@ export function WikiDocPanel({
   }
 
   return (
-    <div className="flex-1 min-w-0 overflow-y-auto">
+    <div className="scrollbar-hover flex-1 min-w-0 overflow-y-auto">
       <div className="max-w-[760px] mx-auto px-10 py-8">
         <div className="flex items-center justify-between gap-3 mb-2.5">
           <div className="flex items-center gap-2 text-[12px] text-[#5F6A88] min-w-0">

@@ -253,6 +253,22 @@
 .scrollbar-light::-webkit-scrollbar-thumb { background: #cbd5e1; border: 2px solid #f1f5f9; }
 .scrollbar-light::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
+/* Wiki content tables scroll horizontally (see _wiki-prose.ts); the global thumb above is
+   translucent white, so give the table's own bar a visible, always-shown track + thumb (macOS
+   would otherwise hide an overlay bar until you scroll). Uses the STANDARD scrollbar-color /
+   scrollbar-width, not ::-webkit-scrollbar-*: Chrome 121+ ignores the pseudo-elements whenever
+   either standard property is non-auto, and scrollbar-color is INHERITED — a table inside a
+   `.scrollbar-hover` scroller would otherwise inherit that transparent thumb. */
+.wiki-prose table { scrollbar-width: thin; scrollbar-color: #b8c2db #edf0f7; }
+
+/* Vertical scrollbar on a light surface that only appears while the pointer is over the
+   element (Wiki document, tree, info and history panels). Standard properties on purpose:
+   Chrome caches ::-webkit-scrollbar-thumb styles and never repaints them on :hover (the old
+   pseudo-element version stayed invisible), while scrollbar-color is ordinary style and
+   updates on hover. Transparent at rest; `thin` keeps the gutter narrow. */
+.scrollbar-hover { scrollbar-width: thin; scrollbar-color: transparent transparent; }
+.scrollbar-hover:hover { scrollbar-color: #9aa7c7 transparent; }
+
 /* Fully hides the scrollbar while the element stays scrollable (by drag, wheel, or JS-set
    `scrollLeft`) — used where a second, JS-synced scroll region shouldn't paint its own visible
    scrollbar alongside the "real" one (e.g. Desk > Tickets' sticky header row, task 383). Same

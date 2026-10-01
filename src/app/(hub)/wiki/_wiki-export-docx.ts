@@ -7,8 +7,9 @@ import { collapseWhitespace } from "./_wiki-export-whitespace";
 import type { DocxImage } from "./_wiki-export-docx-types";
 
 // Task 400 — "Export as Word (.docx)": `docx` (dynamically imported) builds a real .docx in the
-// browser from the page's saved HTML. Images are public Storage URLs (task-content bucket), so
-// they're fetched here up front; one that fails to load becomes a placeholder run instead of
+// browser from the page's saved HTML. Images are either legacy public Storage URLs (task-content
+// bucket) or same-origin `/api/wiki/assets/...` routes (private wiki-assets bucket, which 302 to a
+// signed URL — fetch follows it, and the session cookie rides along), so they're fetched here up front; one that fails to load becomes a placeholder run instead of
 // failing the export. Sizes, colors and spacing follow the Wiki read view; fonts are Arial /
 // Courier New (see DOCX_FONTS in `_wiki-export-docx-styles.ts` for why).
 

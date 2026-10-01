@@ -177,7 +177,7 @@ export function WikiHistoryPanel({
           </div>
         )}
 
-        <div className="flex-1 overflow-y-auto px-2 py-2">
+        <div className="scrollbar-hover flex-1 overflow-y-auto px-2 py-2">
           {revisions === null ? (
             <div className="flex items-center gap-2 px-2 py-3 text-[12px] text-[#94A3B8]">
               <Loader2 size={12} className="animate-spin" /> Loading history…
@@ -214,7 +214,7 @@ export function WikiHistoryPanel({
         </div>
       </div>
 
-      <div className="flex-1 min-w-0 overflow-y-auto">
+      <div className="scrollbar-hover flex-1 min-w-0 overflow-y-auto">
         <div className="max-w-[900px] mx-auto px-8 py-6">
           {selectedSummary && (
             <div className="flex items-center justify-between gap-3 flex-wrap mb-5">
