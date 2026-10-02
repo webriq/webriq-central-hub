@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
 
 const VALID_STATUS = ["planned", "active", "completed"] as const;
+const NAME_MAX = 200;
 type MilestoneUpdate = Database["public"]["Tables"]["milestones"]["Update"];
 
 // PATCH /api/v2/milestones/[milestoneId]  — update (PM/Admin via RLS)
@@ -17,7 +18,14 @@ export async function PATCH(
 
   const body = await req.json().catch(() => ({}));
   const patch: MilestoneUpdate = { updated_at: new Date().toISOString() };
-  if (typeof body.name === "string") patch.name = body.name.trim();
+  if (typeof body.name === "string") {
+    const name = body.name.trim();
+    if (!name) return NextResponse.json({ error: "name is required" }, { status: 400 });
+    if (name.length > NAME_MAX) {
+      return NextResponse.json({ error: `name must be ${NAME_MAX} characters or fewer` }, { status: 400 });
+    }
+    patch.name = name;
+  }
   if (typeof body.description === "string") patch.description = body.description.trim() || null;
   if ("due_date" in body) patch.due_date = body.due_date || null;
   if ("start_date" in body) patch.start_date = body.start_date || null;
@@ -27,6 +35,21 @@ export async function PATCH(
       return NextResponse.json({ error: "invalid status" }, { status: 400 });
     }
     patch.status = body.status as (typeof VALID_STATUS)[number];
+  }
+
+  // Task 412 — date-order check against the merged row when either date is patched.
+  if ("start_date" in patch || "due_date" in patch) {
+    const { data: current } = await supabase
+      .from("milestones")
+      .select("start_date, due_date")
+      .eq("id", milestoneId)
+      .maybeSingle();
+    if (!current) return NextResponse.json({ error: "Milestone not found" }, { status: 404 });
+    const start = "start_date" in patch ? patch.start_date : current.start_date;
+    const due = "due_date" in patch ? patch.due_date : current.due_date;
+    if (start && due && start > due) {
+      return NextResponse.json({ error: "start date must be on or before due date" }, { status: 400 });
+    }
   }
 
   const { data, error } = await supabase

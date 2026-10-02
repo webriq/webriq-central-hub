@@ -70,3 +70,5 @@ mailbox_accountId.json
 curl_result.json
 
 .vexp/start-blocked
+
+.impeccable/config.json

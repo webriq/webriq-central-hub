@@ -708,10 +708,11 @@ export default function ProjectDetail({
             </div>
             {milestoneView === "table" ? (
               <MilestonePanel
-                projectId={project.id}
+                projectId={project.project_id ?? project.id}
                 basePath={basePath}
                 milestones={milestones}
                 tasks={tasks}
+                currentUserRole={currentUserRole}
                 onUpsert={upsertMilestone}
                 onRemove={removeMilestone}
               />

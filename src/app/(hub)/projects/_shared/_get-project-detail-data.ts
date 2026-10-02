@@ -26,17 +26,22 @@ export type ProjectDetailData = {
 export async function getProjectDetailData(projectId: string): Promise<ProjectDetailData | null> {
   const supabase = await createClient();
 
-  const { data: project } = await supabase
+  const { data: project, error: projectError } = await supabase
     .from("projects")
     .select("*")
     .eq("project_id", projectId)
     // Soft-deleted projects (task 231) 404 through this loader — direct/bookmarked links stop
     // resolving once a project is deleted.
     .neq("status", "deleted")
-    .single();
+    .maybeSingle();
 
+  // Log why the page will 404 — a query/RLS error is otherwise indistinguishable from "not found".
+  if (projectError) console.error(`[project-detail] project lookup failed for ${projectId}:`, projectError.message);
   if (!project) return null;
-  if (!(await isProjectVisibleToCurrentUser(project.id))) return null;
+  if (!(await isProjectVisibleToCurrentUser(project.id))) {
+    console.warn(`[project-detail] ${projectId} hidden from current user (developer without membership/assignment)`);
+    return null;
+  }
 
   const { data: claimsData } = await supabase.auth.getClaims();
   const currentUserId = (claimsData?.claims?.sub as string | undefined) ?? "";

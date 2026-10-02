@@ -1,27 +1,44 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 import { Pencil, Trash2, Plus, Check, X, Loader2, Flag } from "lucide-react";
 import { type Milestone, type Task, formatDueDate, decodeHtmlEntities } from "@/app/(hub)/projects-old/_pm-shared";
+import { cn } from "@/lib/utils";
+import MilestoneFormRow, {
+  EMPTY_MILESTONE_DRAFT,
+  draftFromMilestone,
+  draftToPayload,
+  validateMilestoneDraft,
+  type MilestoneDraft,
+} from "./_milestone-row-form";
 
-const M_STATUS_STYLE: Record<string, { text: string; bg: string; border: string }> = {
-  planned:   { text: "#64748B", bg: "#F8FAFC", border: "#E2E8F0" },
-  active:    { text: "#2563EB", bg: "#EFF6FF", border: "#BFDBFE" },
-  completed: { text: "#16A34A", bg: "#F0FDF4", border: "#BBF7D0" },
+const M_STATUS_CLASS: Record<string, string> = {
+  planned:   "text-slate-500 bg-slate-50 border-slate-200",
+  active:    "text-blue-600 bg-blue-50 border-blue-200",
+  completed: "text-green-600 bg-green-50 border-green-200",
 };
 
-const STATUS_OPTS = ["planned", "active", "completed"] as const;
-type MilestoneStatus = (typeof STATUS_OPTS)[number];
+// Mirrors RLS `milestones_pm_write` (migration 048) — developers can read but not write.
+const WRITE_ROLES = ["admin", "super_admin", "pm"];
+
+async function errorMessage(res: Response, fallback: string): Promise<string> {
+  const body = await res.json().catch(() => null);
+  return typeof body?.error === "string" ? body.error : fallback;
+}
 
 export default function MilestonePanel({
   projectId,
   basePath,
   milestones,
   tasks,
+  currentUserRole,
   onUpsert,
   onRemove,
 }: {
+  // Task 412 — the display `project_id` (UUID fallback), which is what
+  // `/api/v2/projects/[projectId]/milestones` resolves by.
   projectId: string;
   // Task 276 — shared between the legacy and v2 project-detail routes (`_project-detail.tsx`),
   // so the milestone-detail link can't hardcode a single base path; caller passes its own
@@ -29,17 +46,23 @@ export default function MilestonePanel({
   basePath: string;
   milestones: Milestone[];
   tasks: Task[];
+  currentUserRole: string | null;
   onUpsert: (m: Milestone) => void;
   onRemove: (id: string) => void;
 }) {
+  const canWrite = WRITE_ROLES.includes(currentUserRole ?? "");
   const [adding, setAdding] = useState(false);
-  const [newName, setNewName] = useState("");
-  const [newDue, setNewDue] = useState("");
+  const [newDraft, setNewDraft] = useState<MilestoneDraft>(EMPTY_MILESTONE_DRAFT);
+  const [createError, setCreateError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editName, setEditName] = useState("");
-  const [editDue, setEditDue] = useState("");
-  const [editStatus, setEditStatus] = useState<MilestoneStatus>("planned");
+  const [editDraft, setEditDraft] = useState<MilestoneDraft>(EMPTY_MILESTONE_DRAFT);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<{ id: string; message: string } | null>(null);
   const [saving, setSaving] = useState(false);
+  // Synchronous guard — Enter + a quick click on ✓ would both pass the `saving` state check
+  // before React re-renders, producing duplicate POSTs.
+  const savingRef = useRef(false);
 
   // O(n) task count — avoids filter-per-milestone O(n*m)
   const countMap = useMemo(() => {
@@ -54,49 +77,90 @@ export default function MilestonePanel({
     return map;
   }, [tasks]);
 
-  async function createMilestone() {
-    if (!newName.trim() || saving) return;
+  async function withSaving(fn: () => Promise<void>) {
+    if (savingRef.current) return;
+    savingRef.current = true;
     setSaving(true);
-    const res = await fetch(`/api/v2/projects/${projectId}/milestones`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: newName.trim(), due_date: newDue || undefined }),
-    });
-    if (res.ok) {
-      onUpsert(await res.json());
-      setNewName("");
-      setNewDue("");
-      setAdding(false);
+    try {
+      await fn();
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
     }
-    setSaving(false);
+  }
+
+  function cancelCreate() {
+    setAdding(false);
+    setNewDraft(EMPTY_MILESTONE_DRAFT);
+    setCreateError(null);
+  }
+
+  function createMilestone() {
+    const invalid = validateMilestoneDraft(newDraft);
+    if (invalid) return setCreateError(invalid);
+    return withSaving(async () => {
+      setCreateError(null);
+      try {
+        const res = await fetch(`/api/v2/projects/${projectId}/milestones`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(draftToPayload(newDraft)),
+        });
+        if (!res.ok) return setCreateError(await errorMessage(res, "Could not create milestone."));
+        onUpsert(await res.json());
+        toast.success("Milestone created");
+        cancelCreate();
+      } catch {
+        setCreateError("Network error — milestone not created.");
+      }
+    });
   }
 
   function startEdit(m: Milestone) {
     setEditingId(m.id);
-    setEditName(m.name);
-    setEditDue(m.due_date ?? "");
-    setEditStatus((m.status as MilestoneStatus) ?? "planned");
+    setEditDraft(draftFromMilestone(m));
+    setEditError(null);
+    setConfirmDeleteId(null);
   }
 
-  async function saveEdit(id: string) {
-    if (!editName.trim() || saving) return;
-    setSaving(true);
-    const res = await fetch(`/api/v2/milestones/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: editName.trim(), due_date: editDue || undefined, status: editStatus }),
+  function saveEdit(id: string) {
+    const invalid = validateMilestoneDraft(editDraft);
+    if (invalid) return setEditError(invalid);
+    return withSaving(async () => {
+      setEditError(null);
+      try {
+        const res = await fetch(`/api/v2/milestones/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(draftToPayload(editDraft)),
+        });
+        if (!res.ok) return setEditError(await errorMessage(res, "Could not save milestone."));
+        onUpsert(await res.json());
+        setEditingId(null);
+      } catch {
+        setEditError("Network error — changes not saved.");
+      }
     });
-    if (res.ok) {
-      onUpsert(await res.json());
-      setEditingId(null);
-    }
-    setSaving(false);
   }
 
-  async function deleteMilestone(id: string) {
-    const res = await fetch(`/api/v2/milestones/${id}`, { method: "DELETE" });
-    if (res.ok) onRemove(id);
+  function deleteMilestone(id: string) {
+    return withSaving(async () => {
+      setDeleteError(null);
+      try {
+        const res = await fetch(`/api/v2/milestones/${id}`, { method: "DELETE" });
+        if (!res.ok) {
+          return setDeleteError({ id, message: await errorMessage(res, "Could not delete milestone.") });
+        }
+        onRemove(id);
+        setConfirmDeleteId(null);
+        toast.success("Milestone deleted");
+      } catch {
+        setDeleteError({ id, message: "Network error — milestone not deleted." });
+      }
+    });
   }
+
+  const iconBtn = "p-1 rounded transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed";
 
   return (
     <div className="mt-4 border border-slate-200 rounded-lg bg-white overflow-hidden">
@@ -108,179 +172,165 @@ export default function MilestonePanel({
             <span className="text-[11px] text-slate-400">({milestones.length})</span>
           )}
         </div>
-        <button
-          onClick={() => { setAdding(true); setEditingId(null); }}
-          className="inline-flex items-center gap-1 text-[12px] text-slate-500 hover:text-slate-800 cursor-pointer"
-        >
-          <Plus size={12} /> Add milestone
-        </button>
+        {canWrite && (
+          <button
+            type="button"
+            onClick={() => { setAdding(true); setEditingId(null); setConfirmDeleteId(null); }}
+            disabled={adding}
+            className="inline-flex items-center gap-1 text-[12px] text-slate-500 transition-colors hover:text-slate-800 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <Plus size={12} /> Add milestone
+          </button>
+        )}
       </div>
 
       {milestones.length === 0 && !adding ? (
         <p className="px-4 py-3 text-[12px] text-slate-400">
-          No milestones yet — click &quot;Add milestone&quot; to create one.
+          {canWrite ? <>No milestones yet — click &quot;Add milestone&quot; to create one.</> : "No milestones yet."}
         </p>
       ) : (
         <table className="w-full text-left">
           <thead>
             <tr className="border-b border-slate-100">
-              <th className="px-4 py-2 text-[11px] font-medium text-slate-400 uppercase tracking-wide w-[38%]">Name</th>
-              <th className="px-4 py-2 text-[11px] font-medium text-slate-400 uppercase tracking-wide w-[18%]">Status</th>
-              <th className="px-4 py-2 text-[11px] font-medium text-slate-400 uppercase tracking-wide w-[20%]">Due</th>
-              <th className="px-4 py-2 text-[11px] font-medium text-slate-400 uppercase tracking-wide w-[14%]">Tasks</th>
-              <th className="px-4 py-2 w-[10%]" />
+              <th className="px-4 py-2 text-[11px] font-medium text-slate-400 uppercase tracking-wide w-[32%]">Name</th>
+              <th className="px-4 py-2 text-[11px] font-medium text-slate-400 uppercase tracking-wide w-[14%]">Status</th>
+              <th className="px-4 py-2 text-[11px] font-medium text-slate-400 uppercase tracking-wide w-[16%]">Start</th>
+              <th className="px-4 py-2 text-[11px] font-medium text-slate-400 uppercase tracking-wide w-[16%]">Due</th>
+              <th className="px-4 py-2 text-[11px] font-medium text-slate-400 uppercase tracking-wide w-[10%]">Tasks</th>
+              <th className="px-4 py-2 w-[12%]" />
             </tr>
           </thead>
           <tbody>
             {milestones.map((m) => {
+              if (editingId === m.id) {
+                return (
+                  <MilestoneFormRow
+                    key={m.id}
+                    variant="edit"
+                    draft={editDraft}
+                    onChange={setEditDraft}
+                    onSubmit={() => saveEdit(m.id)}
+                    onCancel={() => { setEditingId(null); setEditError(null); }}
+                    saving={saving}
+                    error={editError}
+                  />
+                );
+              }
+
               const counts = countMap.get(m.id);
-              const style = M_STATUS_STYLE[m.status ?? "planned"] ?? M_STATUS_STYLE.planned;
-              const isEditing = editingId === m.id;
+              const confirming = confirmDeleteId === m.id;
+              const rowDeleteError = deleteError?.id === m.id ? deleteError.message : null;
 
               return (
-                <tr key={m.id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/60">
-                  {isEditing ? (
-                    <>
-                      <td className="px-4 py-2">
-                        <input
-                          value={editName}
-                          onChange={(e) => setEditName(e.target.value)}
-                          autoFocus
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") saveEdit(m.id);
-                            if (e.key === "Escape") setEditingId(null);
-                          }}
-                          className="w-full px-2 py-1 rounded-md border border-slate-200 text-[12px] text-slate-700 outline-none focus:border-slate-400"
-                        />
-                      </td>
-                      <td className="px-4 py-2">
-                        <select
-                          value={editStatus}
-                          onChange={(e) => setEditStatus(e.target.value as MilestoneStatus)}
-                          className="w-full px-2 py-1 rounded-md border border-slate-200 text-[12px] text-slate-700 outline-none focus:border-slate-400 bg-white capitalize"
+                <tr key={m.id} className="border-b border-slate-50 last:border-0 transition-colors hover:bg-slate-50/60">
+                  <td className="px-4 py-2.5">
+                    <Link
+                      href={`${basePath}/milestones/${m.id}`}
+                      className="text-[13px] text-slate-700 font-medium transition-colors hover:text-slate-900 hover:underline"
+                    >
+                      {decodeHtmlEntities(m.name)}
+                    </Link>
+                    {m.description && (
+                      <p className="mt-0.5 truncate text-[11px] text-slate-400" title={decodeHtmlEntities(m.description)}>
+                        {decodeHtmlEntities(m.description)}
+                      </p>
+                    )}
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <span
+                      className={cn(
+                        "inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border capitalize",
+                        M_STATUS_CLASS[m.status ?? "planned"] ?? M_STATUS_CLASS.planned
+                      )}
+                    >
+                      {m.status ?? "planned"}
+                    </span>
+                  </td>
+                  <td className="px-4 py-2.5 text-[12px] text-slate-500">
+                    {m.start_date ? formatDueDate(m.start_date) : <span className="text-slate-300">—</span>}
+                  </td>
+                  <td className="px-4 py-2.5 text-[12px] text-slate-500">
+                    {m.due_date ? formatDueDate(m.due_date) : <span className="text-slate-300">—</span>}
+                  </td>
+                  <td className="px-4 py-2.5 text-[12px] text-slate-500">
+                    {counts && counts.total > 0 ? (
+                      `${counts.done} / ${counts.total}`
+                    ) : (
+                      <span className="text-slate-300">—</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-2.5">
+                    {canWrite && !confirming && (
+                      <div className="flex items-center gap-1 justify-end">
+                        <button
+                          type="button"
+                          onClick={() => startEdit(m)}
+                          aria-label={`Edit milestone ${decodeHtmlEntities(m.name)}`}
+                          title="Edit"
+                          className={cn(iconBtn, "text-slate-300 hover:text-slate-600 hover:bg-slate-100")}
                         >
-                          {STATUS_OPTS.map((s) => <option key={s} value={s}>{s}</option>)}
-                        </select>
-                      </td>
-                      <td className="px-4 py-2">
-                        <input
-                          type="date"
-                          value={editDue}
-                          onChange={(e) => setEditDue(e.target.value)}
-                          className="w-full px-2 py-1 rounded-md border border-slate-200 text-[12px] text-slate-700 outline-none focus:border-slate-400"
-                        />
-                      </td>
-                      <td className="px-4 py-2" />
-                      <td className="px-4 py-2">
-                        <div className="flex items-center gap-1 justify-end">
+                          <Pencil size={13} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setConfirmDeleteId(m.id); setDeleteError(null); }}
+                          aria-label={`Delete milestone ${decodeHtmlEntities(m.name)}`}
+                          title="Delete"
+                          className={cn(iconBtn, "text-slate-300 hover:text-red-500 hover:bg-red-50")}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    )}
+                    {canWrite && confirming && (
+                      <div className="flex flex-col items-end gap-0.5">
+                        <div className="flex items-center gap-1">
+                          <span className="text-[11px] font-medium text-red-600">Delete?</span>
                           <button
-                            onClick={() => saveEdit(m.id)}
-                            disabled={saving || !editName.trim()}
-                            className="p-1 rounded text-emerald-600 hover:bg-emerald-50 cursor-pointer disabled:opacity-40"
+                            type="button"
+                            onClick={() => deleteMilestone(m.id)}
+                            disabled={saving}
+                            aria-label="Confirm delete"
+                            title="Confirm delete"
+                            className={cn(iconBtn, "text-red-600 hover:bg-red-50")}
                           >
                             {saving ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
                           </button>
                           <button
-                            onClick={() => setEditingId(null)}
-                            className="p-1 rounded text-slate-400 hover:bg-slate-100 cursor-pointer"
+                            type="button"
+                            onClick={() => { setConfirmDeleteId(null); setDeleteError(null); }}
+                            disabled={saving}
+                            aria-label="Cancel delete"
+                            title="Cancel"
+                            className={cn(iconBtn, "text-slate-400 hover:bg-slate-100")}
                           >
                             <X size={13} />
                           </button>
                         </div>
-                      </td>
-                    </>
-                  ) : (
-                    <>
-                      <td className="px-4 py-2.5">
-                        <Link
-                          href={`${basePath}/milestones/${m.id}`}
-                          className="text-[13px] text-slate-700 font-medium hover:text-slate-900 hover:underline"
-                        >
-                          {decodeHtmlEntities(m.name)}
-                        </Link>
-                      </td>
-                      <td className="px-4 py-2.5">
-                        <span
-                          className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border capitalize"
-                          style={{ color: style.text, background: style.bg, borderColor: style.border }}
-                        >
-                          {m.status ?? "planned"}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2.5 text-[12px] text-slate-500">
-                        {m.due_date ? formatDueDate(m.due_date) : <span className="text-slate-300">—</span>}
-                      </td>
-                      <td className="px-4 py-2.5 text-[12px] text-slate-500">
-                        {counts && counts.total > 0 ? (
-                          `${counts.done} / ${counts.total}`
-                        ) : (
-                          <span className="text-slate-300">—</span>
+                        {counts && counts.total > 0 && (
+                          <span className="text-right text-[10px] text-slate-400">
+                            {counts.total} task{counts.total === 1 ? "" : "s"} will be unassigned, not deleted
+                          </span>
                         )}
-                      </td>
-                      <td className="px-4 py-2.5">
-                        <div className="flex items-center gap-1 justify-end">
-                          <button
-                            onClick={() => startEdit(m)}
-                            className="p-1 rounded text-slate-300 hover:text-slate-600 hover:bg-slate-100 cursor-pointer"
-                          >
-                            <Pencil size={13} />
-                          </button>
-                          <button
-                            onClick={() => deleteMilestone(m.id)}
-                            className="p-1 rounded text-slate-300 hover:text-red-500 hover:bg-red-50 cursor-pointer"
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        </div>
-                      </td>
-                    </>
-                  )}
+                        {rowDeleteError && (
+                          <span className="text-right text-[10px] text-red-600" role="alert">{rowDeleteError}</span>
+                        )}
+                      </div>
+                    )}
+                  </td>
                 </tr>
               );
             })}
             {adding && (
-              <tr className="border-t border-dashed border-slate-200 bg-slate-50/40">
-                <td className="px-4 py-2">
-                  <input
-                    value={newName}
-                    onChange={(e) => setNewName(e.target.value)}
-                    autoFocus
-                    placeholder="Milestone name"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") createMilestone();
-                      if (e.key === "Escape") { setAdding(false); setNewName(""); setNewDue(""); }
-                    }}
-                    className="w-full px-2 py-1 rounded-md border border-slate-200 text-[12px] text-slate-700 placeholder-slate-400 outline-none focus:border-slate-400"
-                  />
-                </td>
-                <td className="px-4 py-2 text-[12px] text-slate-400">planned</td>
-                <td className="px-4 py-2">
-                  <input
-                    type="date"
-                    value={newDue}
-                    onChange={(e) => setNewDue(e.target.value)}
-                    className="w-full px-2 py-1 rounded-md border border-slate-200 text-[12px] text-slate-700 outline-none focus:border-slate-400"
-                  />
-                </td>
-                <td className="px-4 py-2" />
-                <td className="px-4 py-2">
-                  <div className="flex items-center gap-1 justify-end">
-                    <button
-                      onClick={createMilestone}
-                      disabled={saving || !newName.trim()}
-                      className="p-1 rounded text-emerald-600 hover:bg-emerald-50 cursor-pointer disabled:opacity-40"
-                    >
-                      {saving ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
-                    </button>
-                    <button
-                      onClick={() => { setAdding(false); setNewName(""); setNewDue(""); }}
-                      className="p-1 rounded text-slate-400 hover:bg-slate-100 cursor-pointer"
-                    >
-                      <X size={13} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
+              <MilestoneFormRow
+                variant="create"
+                draft={newDraft}
+                onChange={setNewDraft}
+                onSubmit={createMilestone}
+                onCancel={cancelCreate}
+                saving={saving}
+                error={createError}
+              />
             )}
           </tbody>
         </table>
