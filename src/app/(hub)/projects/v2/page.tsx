@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { V2_ROUTES } from "@/config/constants";
 import { loadOnboardingProjectsList } from "../_v2-listing/_load-list-data";
+import { RECENT_SORT } from "../_shared/_recent-sort";
 import V2ProjectsListing from "../_v2-listing/_onboarding-list";
 import ListingShell from "../_listing-shell";
 import { classificationForTab, parseClassificationTab } from "../_classification-tabs";
@@ -55,7 +56,7 @@ export default async function ProjectsV2ListingPage({
     search: params.search?.trim() ?? "",
     statusValues,
     classification: classificationForTab(tabId),
-    sort: params.sort ?? "newest",
+    sort: params.sort ?? RECENT_SORT,
     page,
     pageSize,
   });

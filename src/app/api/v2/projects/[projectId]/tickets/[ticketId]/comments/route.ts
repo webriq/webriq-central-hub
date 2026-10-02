@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
+import { touchProject } from "@/lib/projects/touch-project";
 
 // Live comment thread for Ticket Detail (task 236) — mirrors
 // .../tasks/[taskId]/comments/route.ts exactly, adjusted for the ticket-side routing shape
@@ -144,6 +145,7 @@ export async function POST(
     return NextResponse.json({ error: error.message }, { status: 403 });
   }
 
+  touchProject(project.id);
   const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
 
   return NextResponse.json(

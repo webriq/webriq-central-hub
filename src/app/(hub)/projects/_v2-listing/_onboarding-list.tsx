@@ -62,6 +62,8 @@ const STATUS_OPTIONS = [
 // Sort — pill style matching /projects' SortSelect (task 224 follow-up amendment; this page
 // previously had no sort control at all).
 const SORT_OPTIONS = [
+  // Task 416 — the default: the caller's most recently opened projects first (see _load-list-data.ts).
+  { value: "recent", label: "Recently accessed" },
   { value: "newest", label: "Newest first" },
   { value: "oldest", label: "Oldest first" },
   { value: "name_asc", label: "Name (A–Z)" },
@@ -90,7 +92,7 @@ export default function V2ProjectsListing({
   const [searchInput, setSearchInput] = useState(searchParams.get("search") ?? "");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const statusSelected = parseMultiParam(searchParams.get("status"), STATUS_OPTIONS);
-  const sortValue = searchParams.get("sort") ?? "newest";
+  const sortValue = searchParams.get("sort") ?? "recent";
   // Derived from activeTabId rather than taken as a separate prop — the label is fully
   // determined by the tab id, so a second prop would just be state that could drift from it.
   const classificationLabel = labelForTab(activeTabId);
@@ -240,7 +242,7 @@ export default function V2ProjectsListing({
                 this page previously had no sort control). */}
             <SortSelect
               value={sortValue}
-              onChange={(v) => navigate(buildUrl({ sort: v === "newest" ? null : v, page: 1 }))}
+              onChange={(v) => navigate(buildUrl({ sort: v === "recent" ? null : v, page: 1 }))}
               options={SORT_OPTIONS}
             />
 

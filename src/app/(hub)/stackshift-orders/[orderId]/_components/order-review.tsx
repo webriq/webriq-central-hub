@@ -6,6 +6,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { ArrowLeft, Mail } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
+import { splitDeletedName } from "@/lib/projects/deleted-name";
 import { V2_ROUTES } from "@/config/constants";
 import type { CustomerMatch } from "@/lib/stackshift-orders/match-customer";
 import type { Database } from "@/types/database";
@@ -20,14 +21,36 @@ export type OrderDetail = OrderRow & {
   _validCombo: boolean;
   _match: CustomerMatch | null;
   _linkedCustomerName: string | null;
-  _linkedProjectName: string | null;
+  _linkedProject: LinkedProject | null;
 };
+
+export type LinkedProject = {
+  name: string;
+  href: string;
+  status: string;
+  usesEngine: boolean;
+  programmeStarted: boolean;
+  milestoneCount: number;
+  currentPhaseLabel: string | null;
+};
+
+function describeProject(p: LinkedProject): string {
+  if (p.status === "deleted") return "this project was deleted.";
+  if (p.usesEngine) {
+    if (!p.programmeStarted) return "120-day programme not started yet — start it from the project when ready.";
+    return p.currentPhaseLabel ? `120-day programme in progress — ${p.currentPhaseLabel}` : "120-day programme started.";
+  }
+  if (p.milestoneCount === 0) return "Phases/milestones not set up yet — add them from the project's Milestones tab.";
+  return `${p.milestoneCount} phase${p.milestoneCount === 1 ? "" : "s"}/milestone${p.milestoneCount === 1 ? "" : "s"} set up.`;
+}
 
 export default function OrderReview({ order, readOnly = false }: { order: OrderDetail; readOnly?: boolean }) {
   const router = useRouter();
   const [fileError, setFileError] = useState<string | null>(null);
   const [reopening, setReopening] = useState(false);
   const [resending, setResending] = useState(false);
+  const deletedOn =
+    order._linkedProject?.status === "deleted" ? splitDeletedName(order._linkedProject.name).deletedOn : null;
 
   async function openFile(which: "proposal" | "spec") {
     try {
@@ -179,10 +202,35 @@ export default function OrderReview({ order, readOnly = false }: { order: OrderD
                 </>
               )}
             </p>
-            {order._linkedProjectName && (
+            {order.project_id && (
               <p className="col-span-2 text-[13px] text-[#3A4565]">
-                Draft project: <span className="font-medium text-[#0B1533]">{order._linkedProjectName}</span>{" "}
-                (start the 120-day programme from the project when ready)
+                {order._linkedProject ? (
+                  <>
+                    Project:{" "}
+                    <Link className="font-medium text-[#007BFF] hover:underline" href={order._linkedProject.href}>
+                      {order._linkedProject.status === "deleted"
+                        ? splitDeletedName(order._linkedProject.name).baseName
+                        : order._linkedProject.name}
+                    </Link>
+                    {order._linkedProject.status !== "active" && (
+                      <span
+                        className={cn(
+                          "ml-2 px-2 py-0.5 rounded-full text-[11px] font-medium",
+                          order._linkedProject.status === "deleted"
+                            ? "bg-[#FDE8E6] text-[#C0392B]"
+                            : "bg-[#EEF3FF] text-[#2B4C86]"
+                        )}
+                      >
+                        {order._linkedProject.status === "deleted"
+                          ? `deleted${deletedOn ? ` ${formatDate(`${deletedOn}T00:00:00`)}` : ""}`
+                          : order._linkedProject.status.replace("_", " ")}
+                      </span>
+                    )}{" "}
+                    — {describeProject(order._linkedProject)}
+                  </>
+                ) : (
+                  "Linked project no longer exists."
+                )}
               </p>
             )}
           </Section>

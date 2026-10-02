@@ -5,6 +5,7 @@ import { V2_ROUTES } from "@/config/constants";
 import { loadLegacyProjectsList } from "../_legacy-listing/_load-list-data";
 import ProjectsIndex from "../_legacy-listing/_projects-index";
 import ListingShell from "../_listing-shell";
+import { RECENT_SORT } from "../_shared/_recent-sort";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Projects" };
@@ -53,7 +54,7 @@ export default async function ProjectsLegacyListingPage({
     pageSize,
     search: params.search?.trim() ?? "",
     statusValues,
-    sort: params.sort ?? "newest",
+    sort: params.sort ?? RECENT_SORT,
   });
 
   return (

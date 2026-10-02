@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { touchProject } from "@/lib/projects/touch-project";
 
 // GET /api/v2/time-logs?from=&to=&project_id= — cross-project time-log list for the dedicated
 // Time Logs page (task 226). Distinct from `api/v2/tasks/[taskId]/time-logs` (tasks 214/215),
@@ -291,6 +292,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
+  touchProject(projectId);
   const { data: callerProfile } = await supabase.from("profiles").select("full_name, avatar_url").eq("id", user.id).maybeSingle();
 
   return NextResponse.json(

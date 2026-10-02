@@ -83,7 +83,7 @@ export default function ProjectsIndex({
   // URL-driven filter values — server is the source of truth.
   const [searchInput, setSearchInput] = useState(searchParams.get("search") ?? "");
   const statusSelected = parseMultiParam(searchParams.get("status"), STATUS_OPTIONS);
-  const sortValue = searchParams.get("sort") ?? "newest";
+  const sortValue = searchParams.get("sort") ?? "recent";
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [view, setView] = useState<"grid" | "list">(initialView);
@@ -229,7 +229,7 @@ export default function ProjectsIndex({
             />
 
             {/* Sort */}
-            <SortSelect value={sortValue} onChange={(v) => navigate(buildUrl({ sort: v === "newest" ? null : v, page: 1 }))} />
+            <SortSelect value={sortValue} onChange={(v) => navigate(buildUrl({ sort: v === "recent" ? null : v, page: 1 }))} />
 
             {/* View toggle — active state is a filled navy pill + white icon (matches the
                 filter/selection color language elsewhere in this toolbar), real tooltips

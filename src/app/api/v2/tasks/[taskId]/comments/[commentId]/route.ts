@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { touchProjectForTask } from "@/lib/projects/touch-project";
 
 // PATCH/DELETE /api/v2/tasks/[taskId]/comments/[commentId] — task 411. Task Detail's Comments
 // tab previously had neither (task 206 Decision #6). Edit is author-only (admins may delete
@@ -71,6 +72,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
   // RLS filtering an UPDATE yields zero rows rather than an error.
   if (!res.data) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
+  touchProjectForTask(taskId);
   return NextResponse.json({ id: res.data.id, body: res.data.body, updated_at: res.data.updated_at ?? now });
 }
 

@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { canManageProjectMembers, canSetProjectOwner } from "@/lib/programme/membership-rules";
 import { getDeveloperAccessibleProjectIds } from "@/app/(hub)/projects-old/_project-access";
+import { RECENT_SORT, RECENT_FETCH_PAGE, loadViewStats, sortByRecentAccess } from "../_shared/_recent-sort";
 import type { ProjectListItem, CustomerOption, PaginationMeta } from "./_projects-index";
 
 // Task 276 (Phase 1) — server-side loader for the "Legacy Projects" tab (now `/projects/legacy`,
@@ -72,8 +73,7 @@ export async function loadLegacyProjectsList(params: LegacyListParams): Promise<
     .from("projects")
     .select("id,project_id,name,project_type,status,customer_id,end_date,tags,owner_name,updated_at,external_project_id,customer_product_id,created_by,customer_products(classification)", { count: "exact" })
     .neq("status", "deleted")
-    .not("external_project_id", "is", null)
-    .order(sortSpec.column, { ascending: sortSpec.ascending, nullsFirst: sortSpec.nullsFirst });
+    .not("external_project_id", "is", null);
 
   if (params.customer) {
     projectsQuery = projectsQuery.eq("customer_id", params.customer);
@@ -95,10 +95,29 @@ export async function loadLegacyProjectsList(params: LegacyListParams): Promise<
     projectsQuery = projectsQuery.or(orFilter);
   }
 
-  projectsQuery = projectsQuery.range(from, to);
+  // Task 416 — "recent" (Recently accessed, the default) sorts in app code: fetch every matching
+  // row in a stable newest-first base order, order by the caller's last access, slice the page.
+  // Result is reshaped to the same { data, count } the rest of this loader reads.
+  async function runProjectsQuery() {
+    if (params.sort !== RECENT_SORT) {
+      return projectsQuery
+        .order(sortSpec.column, { ascending: sortSpec.ascending, nullsFirst: sortSpec.nullsFirst })
+        .range(from, to);
+    }
+    const ordered = projectsQuery.order("start_date", { ascending: false, nullsFirst: false }).order("id");
+    const all: NonNullable<Awaited<ReturnType<typeof ordered.range>>["data"]> = [];
+    for (let offset = 0; ; offset += RECENT_FETCH_PAGE) {
+      const { data } = await ordered.range(offset, offset + RECENT_FETCH_PAGE - 1);
+      all.push(...(data ?? []));
+      if ((data?.length ?? 0) < RECENT_FETCH_PAGE) break;
+    }
+    const views = user ? await loadViewStats(supabase, user.id) : new Map();
+    sortByRecentAccess(all, views);
+    return { data: all.slice(from, to + 1), count: all.length };
+  }
 
   const [projectsRes, customersRes] = await Promise.all([
-    projectsQuery,
+    runProjectsQuery(),
     supabase.from("customers").select("customer_id,company_name").order("company_name"),
   ]);
 

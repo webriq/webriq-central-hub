@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
 import { getTaskEditPermission } from "@/lib/tasks/permissions";
 import { addProjectMember } from "@/lib/programme/phase-membership";
+import { touchProject } from "@/lib/projects/touch-project";
 
 const VALID_STATUS = ["open", "in_progress", "ready_for_qa", "testing_completed", "for_client_approval", "ready_to_merge", "post_live_qa", "closed"] as const;
 const VALID_PRIORITY = ["low", "normal", "high", "critical"] as const;
@@ -111,6 +112,8 @@ export async function PATCH(
   if (!data) {
     return NextResponse.json({ error: "Task not found or not permitted" }, { status: 403 });
   }
+  // Task 417 — a position-only PATCH is cosmetic board reordering, not work on the project.
+  if (Object.keys(body).some((k) => k !== "position")) touchProject(existingTask.project_id);
   return NextResponse.json(data);
 }
 

@@ -3,6 +3,7 @@ import { adminClient } from "@/lib/supabase/admin";
 import { isRoleGatedByMembership, canManageProjectMembers, canSetProjectOwner } from "@/lib/programme/membership-rules";
 import { getDeveloperAccessibleProjectIds } from "../../projects-old/_project-access";
 import { getCurrentProgrammeDay, resolveEffectivePhase, DEFAULT_PROGRAMME_DAYS, type Classification } from "@/config/customer-phases";
+import { RECENT_SORT, RECENT_FETCH_PAGE, loadViewStats, sortByRecentAccess } from "../_shared/_recent-sort";
 import type { OnboardingProjectListItem } from "./_onboarding-list";
 
 // Server-only paginated/filtered/sorted query for the Portfolio Tracker list page (task 263).
@@ -109,8 +110,7 @@ export async function loadOnboardingProjectsList(
     .or(
       `classification.eq."${params.classification}",classifications.cs.{"${params.classification}"}`,
       { referencedTable: "customer_products" }
-    )
-    .order(sortSpec.column, { ascending: sortSpec.ascending, nullsFirst: sortSpec.nullsFirst });
+    );
 
   if (params.statusValues !== null) {
     const statusFilter = params.statusValues.length > 0 ? params.statusValues : ["__none__"];
@@ -134,8 +134,30 @@ export async function loadOnboardingProjectsList(
       : query.eq("id", ZERO_ROWS_ID);
   }
 
-  const { data: rows, count } = await query.range(from, to);
-  const projectRows = rows ?? [];
+  let projectRows: NonNullable<Awaited<ReturnType<typeof query.range>>["data"]>;
+  let total: number;
+  if (params.sort === RECENT_SORT) {
+    // Task 416 — pull every matching row (the classification tab + filters bound this to the
+    // hundreds), order by the caller's last access, then slice the requested page. created_at/id
+    // is the stable base order so the paged fetch can't skip or repeat rows.
+    const ordered = query.order("created_at", { ascending: false }).order("id");
+    const all: typeof projectRows = [];
+    for (let offset = 0; ; offset += RECENT_FETCH_PAGE) {
+      const { data } = await ordered.range(offset, offset + RECENT_FETCH_PAGE - 1);
+      all.push(...(data ?? []));
+      if ((data?.length ?? 0) < RECENT_FETCH_PAGE) break;
+    }
+    const views = await loadViewStats(supabase, userId);
+    sortByRecentAccess(all, views);
+    projectRows = all.slice(from, to + 1);
+    total = all.length;
+  } else {
+    const { data: rows, count } = await query
+      .order(sortSpec.column, { ascending: sortSpec.ascending, nullsFirst: sortSpec.nullsFirst })
+      .range(from, to);
+    projectRows = rows ?? [];
+    total = count ?? 0;
+  }
   const projectIds = projectRows.map((p) => p.id);
 
   // Active-phase display info — scoped to this page's project IDs only (bounded to pageSize),
@@ -214,7 +236,7 @@ export async function loadOnboardingProjectsList(
 
   return {
     projects,
-    paginationMeta: { page: params.page, pageSize: params.pageSize, total: count ?? 0 },
+    paginationMeta: { page: params.page, pageSize: params.pageSize, total },
     canCreate: !!role && CREATE_ROLES.includes(role),
   };
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { touchProject } from "@/lib/projects/touch-project";
 
 // DELETE /api/v2/projects/[projectId]/tickets/[ticketId]/comments/[commentId] — task 236. No
 // task-side twin exists to copy verbatim: task_comments_delete RLS (migration 048) has shipped
@@ -61,6 +62,7 @@ export async function PATCH(
   // RLS filtering an UPDATE yields zero rows rather than an error.
   if (!updated) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
+  touchProject(project.id);
   return NextResponse.json(updated);
 }
 

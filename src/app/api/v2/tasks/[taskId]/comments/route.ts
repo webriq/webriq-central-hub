@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
+import { touchProjectForTask } from "@/lib/projects/touch-project";
 
 // Comment thread for the task detail page (task 206). `task_comments` already exists (migration
 // 025/035) with RLS already scoping staff read/insert (migration 048) — no migration needed here.
@@ -123,6 +124,7 @@ export async function POST(
     return NextResponse.json({ error: error.message }, { status: 403 });
   }
 
+  touchProjectForTask(taskId);
   const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
 
   return NextResponse.json(

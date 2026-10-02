@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { touchProject } from "@/lib/projects/touch-project";
 
 // Time Logs tab for the task detail page (task 214; task 215 adds start_time/end_time/timeline
 // and role-gated source visibility). `time_logs` already exists (migration 025); migration 094
@@ -141,6 +142,7 @@ export async function POST(
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
+  touchProject(task.project_id);
   const { data: callerProfile } = await supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
 
   return NextResponse.json(

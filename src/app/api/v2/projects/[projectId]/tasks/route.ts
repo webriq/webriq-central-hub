@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { addProjectMember } from "@/lib/programme/phase-membership";
+import { touchProject } from "@/lib/projects/touch-project";
 
 const VALID_STATUS = ["open", "in_progress", "ready_for_qa", "testing_completed", "for_client_approval", "ready_to_merge", "post_live_qa", "closed"] as const;
 const VALID_PRIORITY = ["low", "normal", "high", "critical"] as const;
@@ -97,5 +98,6 @@ export async function POST(
     ).catch((err) => console.error("[api/v2/projects/[id]/tasks] project_members sync failed:", err));
   }
 
+  touchProject(project.id);
   return NextResponse.json(data, { status: 201 });
 }

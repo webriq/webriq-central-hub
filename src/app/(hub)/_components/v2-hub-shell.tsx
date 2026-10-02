@@ -6,6 +6,7 @@ import V2HubHeader from "./v2-hub-header";
 import OpsChat from "./ops-chat";
 import PushPermissionPrompt from "@/components/hub/push-permission-prompt";
 import { TimerProvider } from "./timer-context";
+import { SidebarProjectProvider } from "./sidebar-project-context";
 
 interface V2HubShellProps {
   userRole: string | null;
@@ -68,5 +69,9 @@ export default function V2HubShell({ userRole, departmentName, displayName, avat
   // role — TimerProvider now always mounts (and always polls active_timers) hub-wide. TimerProvider
   // keeps wrapping the whole shell since V2HubHeader (rendered inside `shell`, several levels
   // deep) needs useTimer() for the header-docked timer widget (task 300).
-  return <TimerProvider>{shell}</TimerProvider>;
+  return (
+    <TimerProvider>
+      <SidebarProjectProvider>{shell}</SidebarProjectProvider>
+    </TimerProvider>
+  );
 }

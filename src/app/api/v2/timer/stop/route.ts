@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { attachTaskTitle } from "@/lib/timer/serialize";
 import { appendTimerEvent, type TimerEvent } from "@/lib/timer/timeline";
+import { touchProject } from "@/lib/projects/touch-project";
 
 // POST /api/v2/timer/stop — computes final hours server-side (never trust a client-supplied
 // duration), logs to time_logs (task_id or issue_id, task 234 widens this from task-only), then
@@ -52,6 +53,7 @@ export async function POST() {
       console.error("[api/v2/timer/stop] time_logs insert failed:", logError.message);
       return NextResponse.json({ error: logError.message }, { status: 400 });
     }
+    touchProject(existing.project_id);
   }
 
   if (existing.break_type) {

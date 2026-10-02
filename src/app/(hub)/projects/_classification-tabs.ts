@@ -81,3 +81,9 @@ export function labelForTab(id: ClassificationTabId): string {
 export function classificationTabHref(id: ClassificationTabId): string {
   return `${V2_ROUTES.PROJECTS_V2}?tab=${id}`;
 }
+
+// Task 414 — classification value -> tab id, for callers that hold a project's classification
+// strings (not a `?tab=` slug). Returns null for a value outside CLASSIFICATIONS.
+export function tabIdForClassification(value: string): ClassificationTabId | null {
+  return Object.hasOwn(TAB_ID_BY_CLASSIFICATION, value) ? TAB_ID_BY_CLASSIFICATION[value as Classification] : null;
+}

@@ -14,20 +14,33 @@ import { isPathAllowedForDepartment } from "@/lib/auth/department-map";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { signOut } from "@/app/(auth)/actions";
-import { CLASSIFICATION_TABS, classificationTabHref, parseClassificationTab } from "@/app/(hub)/projects/_classification-tabs";
+import { CLASSIFICATION_TABS, classificationTabHref, parseClassificationTab, type ClassificationTabId } from "@/app/(hub)/projects/_classification-tabs";
+import { useSidebarProjectTabs } from "./sidebar-project-context";
 
 // A child href either has no query (plain path match, same as always) or carries a `?tab=`
 // (the /projects/v2 classification links, task 361 follow-up) — in which case the current URL's
 // tab must resolve, via the same parseClassificationTab() the page itself uses, to the value the
 // href encodes. Without this, every classification child would share the /projects/v2 pathname
 // and all seven would light up as "active" at once.
-function isChildActive(pathname: string, searchParams: URLSearchParams, href: string): boolean {
+// Task 414 — on a project detail route (/projects/v2/<projectId>/...) there is no `?tab=`, so the
+// default-tab fallback would always light up StackShift I. There, the open project's own
+// classification tabs (published by its layout via context) decide instead.
+const NON_PROJECT_V2_SEGMENTS = new Set(["new", "import", "status-report"]);
+
+function isProjectDetailPath(pathname: string): boolean {
+  const segment = pathname.startsWith(V2_ROUTES.PROJECTS_V2 + "/") ? pathname.split("/")[3] : undefined;
+  return !!segment && !NON_PROJECT_V2_SEGMENTS.has(segment);
+}
+
+function isChildActive(pathname: string, searchParams: URLSearchParams, href: string, projectTabs: ClassificationTabId[]): boolean {
   const queryIndex = href.indexOf("?");
   const hrefPath = queryIndex === -1 ? href : href.slice(0, queryIndex);
   if (pathname !== hrefPath && !pathname.startsWith(hrefPath + "/")) return false;
   if (queryIndex === -1) return true;
   const hrefTab = new URLSearchParams(href.slice(queryIndex + 1)).get("tab");
-  return hrefTab === null || parseClassificationTab(searchParams.get("tab")) === hrefTab;
+  if (hrefTab === null) return true;
+  if (isProjectDetailPath(pathname)) return projectTabs.includes(hrefTab as ClassificationTabId);
+  return parseClassificationTab(searchParams.get("tab")) === hrefTab;
 }
 
 type NavItem = {
@@ -167,6 +180,7 @@ interface V2HubSidebarProps {
 export default function V2HubSidebar({ userRole, departmentName, displayName, avatarUrl }: V2HubSidebarProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const projectTabs = useSidebarProjectTabs();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
   // Collapsible nav items ("Projects" — task 279; "Desk" — task 335), keyed by label.
@@ -239,7 +253,7 @@ export default function V2HubSidebar({ userRole, departmentName, displayName, av
             )}
             {group.items.map(item => {
               const hasChildren = !!item.children?.length;
-              const childActive = hasChildren && item.children!.some(c => isChildActive(pathname, searchParams, c.href));
+              const childActive = hasChildren && item.children!.some(c => isChildActive(pathname, searchParams, c.href, projectTabs));
               const active = item.exact
                 ? pathname === item.href
                 : pathname === item.href || pathname.startsWith(item.href + "/") || childActive;
@@ -308,7 +322,7 @@ export default function V2HubSidebar({ userRole, departmentName, displayName, av
                           className="overflow-hidden"
                         >
                           {item.children!.map(child => {
-                            const childIsActive = isChildActive(pathname, searchParams, child.href);
+                            const childIsActive = isChildActive(pathname, searchParams, child.href, projectTabs);
                             return (
                               <button
                                 key={child.label}

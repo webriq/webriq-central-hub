@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { touchProject } from "@/lib/projects/touch-project";
 
 // GET /api/v2/tasks/[taskId]/subtasks  — children of a task
 export async function GET(
@@ -65,5 +66,6 @@ export async function POST(
     console.error("[api/v2/tasks/[id]/subtasks] create failed:", error.message);
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
+  touchProject(parent.project_id);
   return NextResponse.json(data, { status: 201 });
 }

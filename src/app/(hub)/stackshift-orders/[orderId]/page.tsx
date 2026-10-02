@@ -4,7 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { V2_ROUTES } from "@/config/constants";
 import { mapServicesToClassifications } from "@/lib/stackshift-orders/service-map";
 import { matchCustomer } from "@/lib/stackshift-orders/match-customer";
-import OrderReview, { type OrderDetail } from "./_components/order-review";
+import { PROGRAMME_PHASES } from "@/config/customer-phases";
+import OrderReview, { type LinkedProject, type OrderDetail } from "./_components/order-review";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "StackShift Order" };
@@ -57,7 +58,7 @@ export default async function StackShiftOrderDetailPage({
 
   // Resolve linked customer/project names for a converted order.
   let linkedCustomerName: string | null = null;
-  let linkedProjectName: string | null = null;
+  let linkedProject: LinkedProject | null = null;
   if (order.customer_id) {
     const { data: c } = await supabase
       .from("customers")
@@ -69,10 +70,34 @@ export default async function StackShiftOrderDetailPage({
   if (order.project_id) {
     const { data: pr } = await supabase
       .from("projects")
-      .select("name")
+      .select("id, name, project_id, status, uses_customer_phases_engine, programme_started_at")
       .eq("id", order.project_id)
       .maybeSingle();
-    linkedProjectName = pr?.name ?? null;
+    if (pr) {
+      const [{ count: milestoneCount }, { data: phaseRows }] = await Promise.all([
+        supabase.from("milestones").select("id", { count: "exact", head: true }).eq("project_id", pr.id),
+        pr.uses_customer_phases_engine
+          ? supabase
+              .from("customer_phases")
+              .select("phase_number, status, sort_order")
+              .eq("project_id", pr.id)
+              .order("sort_order")
+          : Promise.resolve({ data: [] as { phase_number: number; status: string; sort_order: number }[] }),
+      ]);
+      const phases = phaseRows ?? [];
+      const current = phases.find((p) => p.status === "in_progress") ?? phases.find((p) => p.status === "pending");
+      linkedProject = {
+        name: pr.name,
+        href: `${V2_ROUTES.PROJECTS_V2}/${pr.project_id ?? pr.id}`,
+        status: pr.status,
+        usesEngine: pr.uses_customer_phases_engine,
+        programmeStarted: !!pr.programme_started_at || phases.length > 0,
+        milestoneCount: milestoneCount ?? 0,
+        currentPhaseLabel: current
+          ? `Phase ${current.phase_number}: ${PROGRAMME_PHASES.find((d) => d.number === current.phase_number)?.name ?? "Custom"}`
+          : null,
+      };
+    }
   }
 
   const detail: OrderDetail = {
@@ -82,7 +107,7 @@ export default async function StackShiftOrderDetailPage({
     _validCombo: mapped.validCombo,
     _match: match,
     _linkedCustomerName: linkedCustomerName,
-    _linkedProjectName: linkedProjectName,
+    _linkedProject: linkedProject,
   };
 
   return <OrderReview order={detail} readOnly={readOnly} />;

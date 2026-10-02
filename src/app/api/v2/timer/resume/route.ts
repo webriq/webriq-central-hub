@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { attachTaskTitle } from "@/lib/timer/serialize";
 import { appendTimerEvent } from "@/lib/timer/timeline";
+import { touchProject } from "@/lib/projects/touch-project";
 
 // POST /api/v2/timer/resume — continues a manually paused timer. Blocked while a break is
 // active; the developer must end the break first (breaks never auto-resume the timer).
@@ -12,7 +13,7 @@ export async function POST() {
 
   const { data: existing } = await supabase
     .from("active_timers")
-    .select("id, task_id, issue_id, status, break_type, timeline")
+    .select("id, task_id, issue_id, project_id, status, break_type, timeline")
     .eq("user_id", user.id)
     .maybeSingle();
 
@@ -38,5 +39,6 @@ export async function POST() {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  touchProject(existing.project_id);
   return NextResponse.json({ timer: await attachTaskTitle(supabase, data) });
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { ticketAssigneeIds } from "@/lib/tickets/permissions";
+import { touchProject } from "@/lib/projects/touch-project";
 
 // Time Logs tab for the ticket detail page (task 237) — adapted from
 // `api/v2/tasks/[taskId]/time-logs/route.ts` (task 214/215/226), swapping `task_id` for
@@ -139,6 +140,7 @@ export async function POST(
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
+  touchProject(ticket.project_id);
   const { data: callerProfile } = await supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
 
   return NextResponse.json(

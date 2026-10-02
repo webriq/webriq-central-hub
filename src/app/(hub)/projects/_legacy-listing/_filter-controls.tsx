@@ -131,6 +131,8 @@ export function FilterMultiSelect({
 // ─── Sort select (page-scoped) — matches the existing per-page <select> styling ────
 
 const SORT_OPTIONS = [
+  // Task 416 — the default: the caller's most recently opened projects first.
+  { value: "recent", label: "Recently accessed" },
   { value: "newest", label: "Newest first" },
   { value: "oldest", label: "Oldest first" },
   { value: "name_asc", label: "Name (A–Z)" },

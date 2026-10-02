@@ -4,6 +4,7 @@ import type { Database } from "@/types/database";
 import { getTicketEditPermission } from "@/lib/tickets/permissions";
 import { addProjectMember } from "@/lib/programme/phase-membership";
 import { buildTicketAssigneeSync } from "@/lib/tickets/assignee-sync";
+import { touchProject } from "@/lib/projects/touch-project";
 
 const VALID_STATUS = ["open", "in_progress", "ready_for_qa", "testing_completed", "for_client_approval", "ready_to_merge", "post_live_qa", "closed"] as const;
 const VALID_SEVERITY = ["Show stopper", "Critical", "Major", "Minor", "None"] as const;
@@ -115,6 +116,7 @@ export async function PATCH(
   if (!data) {
     return NextResponse.json({ error: "Ticket not found or not permitted" }, { status: 403 });
   }
+  touchProject(existingTicket.project_id);
   return NextResponse.json(data);
 }
 

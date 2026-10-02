@@ -4,6 +4,7 @@ import { adminClient } from "@/lib/supabase/admin";
 import { addProjectMember } from "@/lib/programme/phase-membership";
 import { buildTicketAssigneeSync } from "@/lib/tickets/assignee-sync";
 import { notifyCustomerTicketCreated } from "@/lib/desk/customer-view-access";
+import { touchProject } from "@/lib/projects/touch-project";
 
 const VALID_STATUS = ["open", "in_progress", "ready_for_qa", "testing_completed", "for_client_approval", "ready_to_merge", "post_live_qa", "closed"] as const;
 const VALID_SEVERITY = ["Show stopper", "Critical", "Major", "Minor", "None"] as const;
@@ -120,5 +121,6 @@ export async function POST(
     }
   }
 
+  touchProject(project.id);
   return NextResponse.json(data, { status: 201 });
 }

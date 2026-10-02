@@ -934,6 +934,35 @@ export interface Database {
           }
         ];
       };
+      project_views: {
+        Row: {
+          user_id: string;
+          project_id: string;
+          last_accessed_at: string;
+          access_count: number;
+        };
+        Insert: {
+          user_id: string;
+          project_id: string;
+          last_accessed_at?: string;
+          access_count?: number;
+        };
+        Update: {
+          user_id?: string;
+          project_id?: string;
+          last_accessed_at?: string;
+          access_count?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "project_views_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
       active_timers: {
         Row: {
           id: string;
@@ -3894,6 +3923,14 @@ export interface Database {
     };
     Views: Record<string, never>;
     Functions: {
+      record_project_view: {
+        Args: { p_project_id: string };
+        Returns: undefined;
+      };
+      touch_project_view: {
+        Args: { p_project_id: string };
+        Returns: undefined;
+      };
       wiki_page_draft_holders: {
         Args: { p_page_id: string };
         Returns: {

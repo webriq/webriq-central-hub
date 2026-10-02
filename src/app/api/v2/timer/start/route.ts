@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { attachTaskTitle } from "@/lib/timer/serialize";
 import type { TimerEvent } from "@/lib/timer/timeline";
 import { ticketAssigneeIds } from "@/lib/tickets/permissions";
+import { touchProject } from "@/lib/projects/touch-project";
 
 // POST /api/v2/timer/start { task_id, project_id } or { issue_id, project_id }
 // Starts a fresh timer for the current user. Exactly one of task_id/issue_id must be given (task
@@ -88,5 +89,6 @@ export async function POST(req: NextRequest) {
     console.error("[api/v2/timer/start] failed:", error.message);
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
+  touchProject(projectId);
   return NextResponse.json({ timer: await attachTaskTitle(supabase, data) }, { status: 201 });
 }
