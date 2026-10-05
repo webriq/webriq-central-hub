@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { POWERPOINT_MIME_TYPES } from "@/config/powerpoint-types";
 
 // Discrete file attachments on a task comment (task 212) — reuses the existing generic
 // `attachments` table (entity_type: "comment", already a legal value per the
@@ -23,6 +24,7 @@ const ALLOWED_MIME_TYPES = [
   "text/markdown",
   "text/plain",
   "video/mp4",
+  ...POWERPOINT_MIME_TYPES,
 ];
 const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
 

@@ -32,6 +32,7 @@ import type { InternalDeliverableConfig } from "@/config/customer-phases";
 import type { CustomerDeliverableRow, OnboardingInternalDeliverableRow, Database } from "@/types/database";
 import type { SaveStatus } from "@/types/onboarding";
 import SaveIndicator from "@/components/onboarding/save-indicator";
+import { POWERPOINT_MIME_TYPES, POWERPOINT_PREVIEWABLE_MIME_TYPES } from "@/config/powerpoint-types";
 
 type AssetRow = Database["public"]["Tables"]["customer_assets"]["Row"];
 type AssetFolder = Database["public"]["Tables"]["customer_asset_folders"]["Row"];
@@ -4994,6 +4995,7 @@ const OFFICE_MIME_TYPES = [
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "application/vnd.ms-excel",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  ...POWERPOINT_PREVIEWABLE_MIME_TYPES,
 ];
 
 // Renders the actual preview content, branching on mime type — everything here uses the
@@ -5070,6 +5072,7 @@ const WORD_MIME_TYPES = ["application/msword", "application/vnd.openxmlformats-o
 const FILE_TYPE_TILES: { test: (mime: string) => boolean; Icon: typeof FileText; bg: string; fg: string; label: string }[] = [
   { test: (m) => WORD_MIME_TYPES.includes(m), Icon: FileText, bg: "bg-[#E5F1FF]", fg: "text-[#007BFF]", label: "DOC" },
   { test: (m) => EXCEL_MIME_TYPES.includes(m), Icon: FileSpreadsheet, bg: "bg-[#E3F6EA]", fg: "text-[#177E48]", label: "XLS" },
+  { test: (m) => POWERPOINT_MIME_TYPES.includes(m), Icon: FileText, bg: "bg-[#FDEEE3]", fg: "text-[#D35400]", label: "PPT" },
   { test: (m) => m === "application/pdf", Icon: FileText, bg: "bg-[#FDE8E6]", fg: "text-[#C0392B]", label: "PDF" },
   { test: (m) => m === "text/html", Icon: FileCode2, bg: "bg-[#FFF3D6]", fg: "text-[#8A5A00]", label: "HTML" },
   { test: (m) => m.startsWith("image/"), Icon: FileImage, bg: "bg-[#F4F6FB]", fg: "text-[#5F6A88]", label: "IMG" },

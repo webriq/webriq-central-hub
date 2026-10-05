@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { X } from "lucide-react";
 import { downloadAttachment } from "@/app/(hub)/projects/_shared/_attachment-grid-tile";
+import { POWERPOINT_PREVIEWABLE_EXTENSIONS } from "@/config/powerpoint-types";
 
 // In-app file viewer, shared by the Attachments grid (task 211) and comment attachments (task
 // 212) — reduced port of ../../../portfolio-tracker/[projectId]/_onboarding-wizard.tsx's
@@ -22,7 +23,7 @@ import { downloadAttachment } from "@/app/(hub)/projects/_shared/_attachment-gri
 type AttachmentRow = { filename: string };
 
 const IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "gif", "webp"];
-const OFFICE_EXTENSIONS = ["doc", "docx", "xls", "xlsx"];
+const OFFICE_EXTENSIONS = ["doc", "docx", "xls", "xlsx", ...POWERPOINT_PREVIEWABLE_EXTENSIONS];
 const VIDEO_EXTENSIONS = ["mp4", "m4v", "mov", "webm"];
 
 type FileKind = "image" | "pdf" | "office" | "video" | "other";

@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { marked } from "marked";
-import { FileText, FileSpreadsheet, FileCode2, Image as ImageIcon, Table, X } from "lucide-react";
+import { FileText, FileSpreadsheet, FileCode2, Presentation, Image as ImageIcon, Table, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { POWERPOINT_MIME_TYPES, POWERPOINT_PREVIEWABLE_MIME_TYPES } from "@/config/powerpoint-types";
 import { cardCls, textPrimary, textMuted } from "./_shared-ui";
 
 const WORD_MIME_TYPES = ["application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"];
@@ -18,6 +19,7 @@ const EXCEL_MIME_TYPES = ["application/vnd.ms-excel", "application/vnd.openxmlfo
 const FILE_TYPE_TILES: { test: (mime: string) => boolean; Icon: typeof FileText; bg: string; fg: string; label: string }[] = [
   { test: (m) => WORD_MIME_TYPES.includes(m), Icon: FileText, bg: "bg-[#E5F1FF]", fg: "text-[#007BFF]", label: "DOC" },
   { test: (m) => EXCEL_MIME_TYPES.includes(m), Icon: FileSpreadsheet, bg: "bg-[#E3F6EA]", fg: "text-[#177E48]", label: "XLS" },
+  { test: (m) => POWERPOINT_MIME_TYPES.includes(m), Icon: Presentation, bg: "bg-[#FDEEE3]", fg: "text-[#D35400]", label: "PPT" },
   { test: (m) => m === "application/pdf", Icon: FileText, bg: "bg-[#FDE8E6]", fg: "text-[#C0392B]", label: "PDF" },
   { test: (m) => m === "text/html", Icon: FileCode2, bg: "bg-[#FDF0E3]", fg: "text-[#E2762F]", label: "HTML" },
   { test: (m) => m === "text/markdown", Icon: FileCode2, bg: "bg-[#F4F6FB]", fg: "text-[#5F6A88]", label: "MD" },
@@ -196,7 +198,7 @@ function PreviewBody({ mime, fileName, url }: { mime: string; fileName: string; 
     );
   }
   if (mime === "application/pdf") return <iframe src={url} title={fileName} className="w-full h-full border-0" />;
-  if (WORD_MIME_TYPES.includes(mime) || EXCEL_MIME_TYPES.includes(mime)) {
+  if (WORD_MIME_TYPES.includes(mime) || EXCEL_MIME_TYPES.includes(mime) || POWERPOINT_PREVIEWABLE_MIME_TYPES.includes(mime)) {
     return <iframe src={officePreviewUrl(url)} title={fileName} className="w-full h-full border-0" />;
   }
   if (mime === "text/html") return <HtmlPreview url={url} interactive />;

@@ -10,6 +10,7 @@ import { IssueCommentEditor } from "./_ticket-comment-editor";
 import { TaskAttachmentPicker } from "../../_task-attachment-picker";
 import { TaskAttachmentViewerModal } from "../../tasks/[taskId]/_task-attachment-viewer-modal";
 import { ImageLightboxModal } from "../../_image-lightbox-modal";
+import { POWERPOINT_MIME_TYPES } from "@/config/powerpoint-types";
 
 // Live comment thread for Issue Detail (task 236) — copy-adapted from
 // ../../tasks/[taskId]/_task-comments.tsx: rich-text body + optional file attachments, built on
@@ -36,6 +37,7 @@ const COMMENT_ATTACHMENT_MIME_TYPES = [
   "text/markdown",
   "text/plain",
   "video/mp4",
+  ...POWERPOINT_MIME_TYPES,
 ];
 
 type CommentAttachment = { id: string; filename: string; size: number | null };

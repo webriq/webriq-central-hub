@@ -12,7 +12,9 @@
 // the authoritative signal for *category*; `file.type` is only used as a fast client-side hint.
 // Byte-level verification (src/lib/uploads/verify-file.ts) is the actual security control.
 
-export type AttachmentCategory = "image" | "pdf" | "word" | "excel" | "zip" | "rar" | "text" | "video";
+import { POWERPOINT_EXTENSION_INFO } from "./powerpoint-types";
+
+export type AttachmentCategory = "image" | "pdf" | "word" | "excel" | "powerpoint" | "zip" | "rar" | "text" | "video";
 
 export interface ExtensionInfo {
   category: AttachmentCategory;
@@ -39,6 +41,8 @@ export const EXTENSION_INFO: Record<string, ExtensionInfo> = {
     mime: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     label: "XLSX",
   },
+  // Presentations (task 418) — shared with the other upload surfaces via powerpoint-types.ts.
+  ...POWERPOINT_EXTENSION_INFO,
   csv: { category: "text", mime: "text/csv", label: "CSV" },
   html: { category: "text", mime: "text/html", label: "HTML" },
   htm: { category: "text", mime: "text/html", label: "HTML" },

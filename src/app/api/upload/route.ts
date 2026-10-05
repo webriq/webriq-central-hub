@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminClient } from "@/lib/supabase/admin";
 import type { ProductName } from "@/types/hub";
+import { POWERPOINT_MIME_TYPES } from "@/config/powerpoint-types";
 
 // Task 377 — widened to match the customer-assets allowlist (task 372), minus
 // image/svg+xml, which stays excluded because this bucket is public.
@@ -31,6 +32,7 @@ const ALLOWED_MIME_TYPES = [
   "video/mp2t",
   "application/xml",
   "text/xml",
+  ...POWERPOINT_MIME_TYPES,
 ];
 
 const VALID_PRODUCTS: ProductName[] = ["StackShift", "PublishForge", "PipelineForge"];
@@ -76,7 +78,7 @@ export async function POST(request: NextRequest) {
     if (!ALLOWED_MIME_TYPES.includes(file.type)) {
       return NextResponse.json(
         {
-          error: `Unsupported file type: ${file.type}. Supported types: images (incl. ICO), PDF, Word docs, Excel spreadsheets, HTML, Markdown, plain text, CSV, XML, JS/TS, ZIP/RAR`,
+          error: `Unsupported file type: ${file.type}. Supported types: images (incl. ICO), PDF, Word docs, Excel spreadsheets, PowerPoint decks, HTML, Markdown, plain text, CSV, XML, JS/TS, ZIP/RAR`,
         },
         { status: 400 }
       );

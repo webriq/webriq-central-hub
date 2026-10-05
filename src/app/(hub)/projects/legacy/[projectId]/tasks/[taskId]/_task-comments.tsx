@@ -12,6 +12,7 @@ import { CommentEditForm, isCommentEdited } from "@/app/(hub)/projects/_shared/_
 import { TaskAttachmentViewerModal } from "./_task-attachment-viewer-modal";
 import { AttachmentAction } from "@/app/(hub)/projects/_shared/_attachment-actions-menu";
 import { AttachmentGridTile, AttachmentThumbnail, CommentAttachmentGrid, downloadAttachment } from "@/app/(hub)/projects/_shared/_attachment-grid-tile";
+import { POWERPOINT_MIME_TYPES } from "@/config/powerpoint-types";
 
 // Comment thread for the task detail page (task 206). Rich-text body + optional file
 // attachments (task 212) — built on the existing `task_comments` table (RLS: staff
@@ -43,6 +44,7 @@ const COMMENT_ATTACHMENT_MIME_TYPES = [
   "text/markdown",
   "text/plain",
   "video/mp4",
+  ...POWERPOINT_MIME_TYPES,
 ];
 
 type CommentAttachment = { id: string; filename: string; size: number | null };

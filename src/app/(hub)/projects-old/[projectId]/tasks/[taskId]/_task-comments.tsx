@@ -9,6 +9,7 @@ import { OwnerChip, normalizeZohoDescriptionHtml } from "../../../_pm-shared";
 import { CommentEditor } from "./_comment-editor";
 import { TaskAttachmentPicker } from "../../_task-attachment-picker";
 import { TaskAttachmentViewerModal } from "./_task-attachment-viewer-modal";
+import { POWERPOINT_MIME_TYPES } from "@/config/powerpoint-types";
 
 // Comment thread for the task detail page (task 206). Rich-text body + optional file
 // attachments (task 212) — built on the existing `task_comments` table (RLS: staff
@@ -36,6 +37,7 @@ const COMMENT_ATTACHMENT_MIME_TYPES = [
   "text/markdown",
   "text/plain",
   "video/mp4",
+  ...POWERPOINT_MIME_TYPES,
 ];
 
 type CommentAttachment = { id: string; filename: string; size: number | null };

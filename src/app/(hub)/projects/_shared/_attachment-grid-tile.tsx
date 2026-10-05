@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { FileText, FileSpreadsheet, Image as ImageIcon, Video } from "lucide-react";
+import { FileText, FileSpreadsheet, Image as ImageIcon, Presentation, Video } from "lucide-react";
+import { POWERPOINT_EXTENSIONS } from "@/config/powerpoint-types";
 import { AttachmentAction, AttachmentActionsMenu } from "./_attachment-actions-menu";
 
 // Task 368 — shared grid-tile card for task/ticket attachments, factored out of the near-
@@ -11,7 +12,7 @@ import { AttachmentAction, AttachmentActionsMenu } from "./_attachment-actions-m
 // components (task/ticket) to render comment-uploaded attachments the same way, replacing their
 // old single-column list row.
 const IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "gif", "webp"];
-const OFFICE_EXTENSIONS = { word: ["doc", "docx"], excel: ["xls", "xlsx"] };
+const OFFICE_EXTENSIONS = { word: ["doc", "docx"], excel: ["xls", "xlsx"], powerpoint: POWERPOINT_EXTENSIONS };
 const VIDEO_EXTENSIONS = ["mp4", "m4v", "mov", "webm"];
 
 export function formatFileSize(bytes: number | null): string {
@@ -45,6 +46,14 @@ function AttachmentFileTypeTile({ ext }: { ext: string }) {
       <div className="w-full h-full flex flex-col items-center justify-center gap-1 bg-[#E3F6EA]">
         <FileSpreadsheet size={22} className="text-[#177E48]" />
         <span className="text-[9px] font-bold tracking-wide text-[#177E48]">XLS</span>
+      </div>
+    );
+  }
+  if (OFFICE_EXTENSIONS.powerpoint.includes(ext)) {
+    return (
+      <div className="w-full h-full flex flex-col items-center justify-center gap-1 bg-[#FDEEE3]">
+        <Presentation size={22} className="text-[#D35400]" />
+        <span className="text-[9px] font-bold tracking-wide text-[#D35400]">PPT</span>
       </div>
     );
   }

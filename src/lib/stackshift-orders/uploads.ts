@@ -1,5 +1,6 @@
 import { adminClient } from "@/lib/supabase/admin";
 import { createAttachmentUploadUrl, verifyUploadedObject } from "@/lib/uploads/attachment-storage";
+import { POWERPOINT_EXTENSIONS } from "@/config/powerpoint-types";
 import type { UploadsManifest } from "./schema";
 
 // Task 347 — the StackShift Order Form's two documents (required Proposal, optional FlowForge
@@ -10,8 +11,8 @@ import type { UploadsManifest } from "./schema";
 const PREFIX = "stackshift-orders/incoming";
 
 const EXT_BY_FIELD: Record<string, string[]> = {
-  proposal: ["pdf", "doc", "docx", "html", "md", "zip", "rar"],
-  flowforge_spec: ["pdf", "doc", "docx", "txt", "md", "xls", "xlsx", "csv", "html", "zip", "rar"],
+  proposal: ["pdf", "doc", "docx", "html", "md", "zip", "rar", ...POWERPOINT_EXTENSIONS],
+  flowforge_spec: ["pdf", "doc", "docx", "txt", "md", "xls", "xlsx", "csv", "html", "zip", "rar", ...POWERPOINT_EXTENSIONS],
 };
 
 function extOf(filename: string): string {

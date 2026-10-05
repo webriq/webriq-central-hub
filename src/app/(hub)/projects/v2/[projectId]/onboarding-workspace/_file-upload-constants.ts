@@ -1,3 +1,5 @@
+import { POWERPOINT_MIME_TYPES, POWERPOINT_MIME_LABELS } from "@/config/powerpoint-types";
+
 // Task 359 — extracted from _files-tab.tsx (537 lines, over the hard limit in
 // nextjs-file-length-best-practices.md). Data, not logic.
 //
@@ -24,6 +26,7 @@ export const ALLOWED_UPLOAD_TYPES = [
   "text/javascript", "application/javascript",
   "video/mp2t",
   "application/xml", "text/xml",
+  ...POWERPOINT_MIME_TYPES,
 ];
 
 // Not exported — only used below to build ALLOWED_TYPES_LABEL; no other file imports it.
@@ -39,6 +42,7 @@ const MIME_LABELS: Record<string, string> = {
   "text/javascript": "JS", "application/javascript": "JS",
   "video/mp2t": "TS",
   "application/xml": "XML", "text/xml": "XML",
+  ...POWERPOINT_MIME_LABELS,
 };
 
 export const ALLOWED_TYPES_LABEL = Array.from(new Set(ALLOWED_UPLOAD_TYPES.map((m) => MIME_LABELS[m] ?? m))).join(", ");

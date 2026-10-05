@@ -17,7 +17,7 @@ export type VerifyFileResult = { ok: true } | { ok: false; reason: string };
 
 // Binary categories with a real, checkable magic-byte signature. Plain "text" category files
 // (TXT/MD/CSV/JSON/HTML/CSS/JS/TS) have no fixed signature — they're checked differently below.
-const BINARY_CATEGORIES: ReadonlySet<AttachmentCategory> = new Set(["image", "pdf", "word", "excel", "zip", "rar", "video"]);
+const BINARY_CATEGORIES: ReadonlySet<AttachmentCategory> = new Set(["image", "pdf", "word", "excel", "powerpoint", "zip", "rar", "video"]);
 
 // file-type's detected mime -> the AttachmentCategory bucket(s) it satisfies. DOCX/XLSX are ZIP
 // containers file-type usually disambiguates by inspecting internal content; legacy DOC/XLS share
@@ -29,12 +29,16 @@ const DETECTED_MIME_CATEGORIES: Record<string, AttachmentCategory[]> = {
   "image/gif": ["image"],
   "image/webp": ["image"],
   "application/pdf": ["pdf"],
-  "application/msword": ["word", "excel"],
+  "application/msword": ["word", "excel", "powerpoint"],
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ["word"],
-  "application/vnd.ms-excel": ["word", "excel"],
+  "application/vnd.ms-excel": ["word", "excel", "powerpoint"],
+  "application/vnd.ms-powerpoint": ["powerpoint"],
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation": ["powerpoint"],
+  "application/vnd.openxmlformats-officedocument.presentationml.slideshow": ["powerpoint"],
+  "application/vnd.oasis.opendocument.presentation": ["powerpoint"],
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": ["excel"],
-  "application/zip": ["zip", "word", "excel"],
-  "application/x-cfb": ["word", "excel"],
+  "application/zip": ["zip", "word", "excel", "powerpoint"],
+  "application/x-cfb": ["word", "excel", "powerpoint"],
   "application/vnd.rar": ["rar"],
   "application/x-rar-compressed": ["rar"],
   "video/mp4": ["video"],
@@ -42,6 +46,8 @@ const DETECTED_MIME_CATEGORIES: Record<string, AttachmentCategory[]> = {
   "video/webm": ["video"],
   "video/x-matroska": ["video"],
 };
+
+const OFFICE_CATEGORIES: ReadonlySet<AttachmentCategory> = new Set(["word", "excel", "powerpoint"]);
 
 const SAMPLE_BYTES = 4096;
 
@@ -70,8 +76,8 @@ export async function verifyFile(buffer: Buffer, filename: string): Promise<Veri
       const known = detectKnownSignature(sample);
       const fallbackOk =
         known &&
-        ((known.category === "zip" && (info.category === "zip" || info.category === "word" || info.category === "excel")) ||
-          (known.category === "ole" && (info.category === "word" || info.category === "excel")) ||
+        ((known.category === "zip" && (info.category === "zip" || OFFICE_CATEGORIES.has(info.category))) ||
+          (known.category === "ole" && OFFICE_CATEGORIES.has(info.category)) ||
           known.category === info.category);
       if (!fallbackOk) {
         return { ok: false, reason: `File appears corrupted — its contents don't match a valid ${info.label} file.` };

@@ -1,4 +1,5 @@
 import { adminClient } from "@/lib/supabase/admin";
+import { POWERPOINT_MIME_TYPES } from "@/config/powerpoint-types";
 
 // Task 350 — server helpers for the browser-direct customer-asset upload path.
 //
@@ -54,6 +55,7 @@ export const ALLOWED_MIME_TYPES = [
   "video/mp2t",
   "application/xml",
   "text/xml",
+  ...POWERPOINT_MIME_TYPES,
 ];
 
 export const MAX_FILE_SIZE = 200 * 1024 * 1024; // 200MB — matches the customer-assets bucket's file_size_limit

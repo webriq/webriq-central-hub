@@ -13,6 +13,7 @@ import { TaskAttachmentViewerModal } from "../../tasks/[taskId]/_task-attachment
 import { ImageLightboxModal } from "@/app/(hub)/projects/_shared/_image-lightbox-modal";
 import { AttachmentAction } from "@/app/(hub)/projects/_shared/_attachment-actions-menu";
 import { AttachmentGridTile, AttachmentThumbnail, CommentAttachmentGrid, downloadAttachment } from "@/app/(hub)/projects/_shared/_attachment-grid-tile";
+import { POWERPOINT_MIME_TYPES } from "@/config/powerpoint-types";
 
 // Live comment thread for Ticket Detail (task 236) — copy-adapted from
 // ../../tasks/[taskId]/_task-comments.tsx: rich-text body + optional file attachments, built on
@@ -39,6 +40,7 @@ const COMMENT_ATTACHMENT_MIME_TYPES = [
   "text/markdown",
   "text/plain",
   "video/mp4",
+  ...POWERPOINT_MIME_TYPES,
 ];
 
 type CommentAttachment = { id: string; filename: string; size: number | null };
