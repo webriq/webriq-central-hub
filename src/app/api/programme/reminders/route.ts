@@ -3,7 +3,9 @@ import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { sendCliqNotification } from "@/lib/zoho";
 import { notifyProjectMembers } from "@/lib/notifications";
-import { PROGRAMME_PHASES, getCurrentProgrammeDay, scaleDay, resolveEffectivePhase } from "@/config/customer-phases";
+import { PROGRAMME_PHASES } from "@/config/customer-phases";
+import { loadProgrammeSummaries } from "@/lib/programme/store";
+import { asReferenceDay, createProgrammeCalendar, currentDisplayDay } from "@/lib/programme/calendar";
 
 const PAGE = 1000; // Supabase/PostgREST default response cap — see CLAUDE.md's pagination convention.
 
@@ -72,71 +74,35 @@ export async function POST(req: NextRequest) {
     }
 
     const projectIds = projects.map((p) => p.id);
-    const [phases, phase1Deliverables] = await Promise.all([
-      fetchAllPaginated<{
-        project_id: string;
-        phase_number: number;
-        status: string;
-        custom_name: string | null;
-        day_start_override: number | null;
-        day_end_override: number | null;
-        sort_order: number;
-      }>(async (from, to) =>
-        adminClient
-          .from("customer_phases")
-          .select("project_id, phase_number, status, custom_name, day_start_override, day_end_override, sort_order")
-          .in("project_id", projectIds)
-          .range(from, to)
-      ),
-      fetchAllPaginated<{ project_id: string; deliverable_key: string; status: string }>(async (from, to) =>
-        adminClient
-          .from("customer_deliverables")
-          .select("project_id, deliverable_key, status")
-          .in("project_id", projectIds)
-          .eq("phase_number", 1)
-          .range(from, to)
-      ),
-    ]);
-
-    const phaseStatusByProject = new Map<string, Map<number, string>>();
-    // Task 246: per-project phase list (defaults + any customs), ordered by sort_order — the
-    // "last phase" and "phase running late" checks below need the project's *actual* phase set,
-    // not PROGRAMME_PHASES' fixed 5, or a custom phase silently never gets a late reminder.
-    const phasesByProject = new Map<string, typeof phases>();
-    for (const p of phases) {
-      const m = phaseStatusByProject.get(p.project_id) ?? new Map<number, string>();
-      m.set(p.phase_number, p.status);
-      phaseStatusByProject.set(p.project_id, m);
-      if (!phasesByProject.has(p.project_id)) phasesByProject.set(p.project_id, []);
-      phasesByProject.get(p.project_id)!.push(p);
-    }
-    for (const rows of phasesByProject.values()) rows!.sort((a, b) => a.sort_order - b.sort_order);
-    const deliverableStatusByProject = new Map<string, Map<string, string>>();
-    for (const d of phase1Deliverables) {
-      const m = deliverableStatusByProject.get(d.project_id) ?? new Map<string, string>();
-      m.set(d.deliverable_key, d.status);
-      deliverableStatusByProject.set(d.project_id, m);
-    }
+    // Task 429 (WP3): unified tables. Phases + deliverable day_end are stored display-scale (skip-compressed), so overdue/late checks
+    // below no longer re-derive them from the static reference table.
+    const summaries = await loadProgrammeSummaries(adminClient, projectIds);
 
     const phase1 = PROGRAMME_PHASES[0];
     let sent = 0;
 
     for (const project of projects) {
       const companyName = project.customers?.company_name ?? "Customer";
-      const phaseStatus = phaseStatusByProject.get(project.id) ?? new Map<number, string>();
-      const projectPhases = phasesByProject.get(project.id) ?? [];
+      const summary = summaries.get(project.id);
+      const projectPhases = summary?.phases ?? [];
+      const phaseStatus = new Map(projectPhases.map((p) => [p.phase_number, p.status]));
       const lastPhase = projectPhases[projectPhases.length - 1];
       if (lastPhase?.status === "completed") continue; // full programme already delivered
 
-      const day = getCurrentProgrammeDay(project.programme_started_at);
-      const deliverableStatus = deliverableStatusByProject.get(project.id) ?? new Map<string, string>();
+      const day = currentDisplayDay(project.programme_started_at);
+      // Reference → display only (this cron has never skip-compressed; same numbers as before).
+      const calendar = createProgrammeCalendar({ durationDays: project.programme_duration_days });
+      const toDisplayDay = (referenceDay: number) => calendar.referenceToDisplay(asReferenceDay(referenceDay));
+      const phase1Id = projectPhases.find((p) => p.phase_number === 1)?.id;
+      const phase1Deliverables = new Map((summary?.deliverables ?? []).filter((d) => d.phase_id === phase1Id).map((d) => [d.deliverable_key, d]));
 
       // Phase-1-only deliverable due/overdue checks — skipped once phase 1 itself is done (an
       // early handover before Day 15 must not keep flagging its own deliverables as overdue).
-      if (phaseStatus.get(1) !== "completed" && phaseStatus.get(1) !== "skipped") {
+      if (phaseStatus.get(1) !== "completed" && phaseStatus.get(1) !== "skipped" && phaseStatus.get(1) !== "bypassed") {
         for (const d of phase1.deliverables) {
-          if (deliverableStatus.get(d.key) === "done") continue;
-          const dEnd = scaleDay(d.dayEnd, project.programme_duration_days);
+          const stored = phase1Deliverables.get(d.key);
+          if (stored?.status === "done") continue;
+          const dEnd = stored?.day_end ?? toDisplayDay(d.dayEnd);
           const diff = dEnd - day;
           if (diff > 0 && diff <= 5) {
             if (await notifyOnce(project.id, project.customer_id, `due-${d.key}`, `${companyName}: due in ${diff} day${diff === 1 ? "" : "s"} — ${d.name}.`, "pm", project.project_id ?? undefined, project.name ?? undefined)) sent++;
@@ -149,11 +115,11 @@ export async function POST(req: NextRequest) {
       // Calendar-only checks, independent of deliverable completion — cover all 5 phases. Reference
       // days (16/21/26/15/30) are scaled the same way phase/deliverable boundaries are above, so
       // these gates still land at the right relative point in a custom-duration programme.
-      const day16 = scaleDay(16, project.programme_duration_days);
-      const day21 = scaleDay(21, project.programme_duration_days);
-      const day26 = scaleDay(26, project.programme_duration_days);
-      const day15 = scaleDay(15, project.programme_duration_days);
-      const day30 = scaleDay(30, project.programme_duration_days);
+      const day16 = toDisplayDay(16);
+      const day21 = toDisplayDay(21);
+      const day26 = toDisplayDay(26);
+      const day15 = toDisplayDay(15);
+      const day30 = toDisplayDay(30);
       if (day === day16) {
         if (await notifyOnce(project.id, project.customer_id, "day16-handover", `${companyName}: Day ${day16} — Phase 2 (Migrate & Rebrand) begins.`, "pm", project.project_id ?? undefined, project.name ?? undefined)) sent++;
       }
@@ -166,12 +132,11 @@ export async function POST(req: NextRequest) {
       if (day === day30) {
         if (await notifyOnce(project.id, project.customer_id, "gate30", `${companyName}: Day ${day30} gate — client approval due.`, "pm", project.project_id ?? undefined, project.name ?? undefined)) sent++;
       }
-      for (const row of projectPhases) {
-        const phase = resolveEffectivePhase(row);
-        const status = phaseStatus.get(phase.number);
-        const phaseEnd = scaleDay(phase.dayEnd, project.programme_duration_days);
-        if (day > phaseEnd && status !== "completed" && status !== "skipped") {
-          if (await notifyOnce(project.id, project.customer_id, `phase-late-${phase.number}`, `${companyName}: Phase ${phase.number} (${phase.name}) is running late — was due by Day ${phaseEnd}.`, "pm", project.project_id ?? undefined, project.name ?? undefined)) sent++;
+      for (const phase of projectPhases) {
+        if (phase.phase_number === null || phase.day_end === null) continue;
+        const phaseEnd = phase.day_end;
+        if (day > phaseEnd && phase.status !== "completed" && phase.status !== "skipped" && phase.status !== "bypassed") {
+          if (await notifyOnce(project.id, project.customer_id, `phase-late-${phase.phase_number}`, `${companyName}: Phase ${phase.phase_number} (${phase.name}) is running late — was due by Day ${phaseEnd}.`, "pm", project.project_id ?? undefined, project.name ?? undefined)) sent++;
         }
       }
     }

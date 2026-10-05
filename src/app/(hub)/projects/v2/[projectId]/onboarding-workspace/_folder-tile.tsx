@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Folder, Trash2, Pencil, Lock, AlertTriangle, Link2 } from "lucide-react";
+import { Folder, Trash2, Pencil, Lock, AlertTriangle, Link2, Download, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AssetFolder, StaffPerson } from "./_wizard-v2-types";
 import { textPrimary, textMuted, IconTip } from "./_shared-ui";
 import { InlinePermissionsPanel } from "./_permission-picker";
-import { ActionsMenu, ItemAction } from "./_file-actions-menu";
+import { ActionsMenu, ItemAction, selectionDownloadAction } from "./_file-actions-menu";
 
 // Task 359 — extracted from _file-tile.tsx (over the hard line limit) and given the optional
 // "Copy Folder URL" action. `onCopyFolderUrl` is optional on purpose: the Onboarding Workspace
@@ -15,7 +15,7 @@ import { ActionsMenu, ItemAction } from "./_file-actions-menu";
 export function FolderTile({
   folder, fileCount, canEdit, onOpen, onPermissionChange, staffDirectory, onRename, onDelete,
   isDropTarget, onDragOverTile, onDragLeaveTile, onDropTile, onContextMenu, duplicateWarning,
-  onCopyFolderUrl,
+  onCopyFolderUrl, selected, anySelected, onToggleSelect, onDownload, selectedCount, onDownloadSelected,
 }: {
   folder: AssetFolder; fileCount: number; canEdit: boolean; onOpen: () => void;
   onPermissionChange: (updates: { allowed_roles?: string[]; allowed_user_ids?: string[] }) => void;
@@ -32,11 +32,22 @@ export function FolderTile({
   duplicateWarning?: boolean;
   // Task 359 — omitted by the Onboarding Workspace; see the note above.
   onCopyFolderUrl?: () => void;
+  // Task 419 — bulk selection + zip download. The checkbox is a sibling of the open-folder button
+  // (never nested: button-in-button, and clicking the tile body must keep opening the folder).
+  selected: boolean;
+  anySelected: boolean;
+  onToggleSelect: () => void;
+  onDownload: () => void;
+  // Set only while this folder is part of a ≥2 selection, so its menu acts on the whole selection.
+  selectedCount: number;
+  onDownloadSelected: () => void;
 }) {
   const [permissionsOpen, setPermissionsOpen] = useState(false);
   // Copy sits first: it's the only entry every role can always use, and grouping it above the
   // permission/edit actions matches the read-then-write order the file kebab already uses.
   const actions: ItemAction[] = [
+    ...selectionDownloadAction(selected, selectedCount, onDownloadSelected),
+    { label: "Download as .zip", icon: Download, onClick: onDownload },
     ...(onCopyFolderUrl ? [{ label: "Copy Folder URL", icon: Link2, onClick: onCopyFolderUrl }] : []),
     { label: "Permissions", icon: Lock, onClick: () => setPermissionsOpen((v) => !v), disabled: !canEdit },
     ...(folder.is_system ? [] : [
@@ -51,7 +62,7 @@ export function FolderTile({
         onDragOver={onDragOverTile}
         onDragLeave={onDragLeaveTile}
         onDrop={onDropTile}
-        className="relative"
+        className="relative group/folder"
       >
         <button
           type="button"
@@ -59,7 +70,7 @@ export function FolderTile({
           onContextMenu={(e) => { e.preventDefault(); onContextMenu(e, actions); }}
           className={cn(
             "w-full flex flex-col items-start gap-3 p-5 text-left rounded-[14px] border cursor-pointer transition-colors duration-150",
-            isDropTarget ? "border-[#007BFF] bg-[#EAF2FF]" : duplicateWarning ? "border-[#8A5A00] bg-white hover:bg-[#F4F8FF]" : "border-[#E2E7F2] bg-white hover:bg-[#F4F8FF] hover:border-[#C7D2E8]"
+            isDropTarget || selected ? "border-[#007BFF] bg-[#EAF2FF]" : duplicateWarning ? "border-[#8A5A00] bg-white hover:bg-[#F4F8FF]" : "border-[#E2E7F2] bg-white hover:bg-[#F4F8FF] hover:border-[#C7D2E8]"
           )}
         >
           <div className="w-12 h-12 rounded-[10px] bg-[#E5F1FF] flex items-center justify-center">
@@ -72,6 +83,19 @@ export function FolderTile({
         </button>
         {/* Task 220 — warning moved from an inline pill (which made duplicate-name tiles taller
             than their siblings) to a tooltip icon beside the kebab, so every tile stays the same height. */}
+        <button
+          type="button"
+          onClick={onToggleSelect}
+          aria-pressed={selected}
+          aria-label={`Select ${folder.name}`}
+          className={cn(
+            "absolute top-2 left-2 w-6 h-6 rounded-md border flex items-center justify-center cursor-pointer transition-opacity focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-[#007BFF]/40",
+            selected ? "bg-[#007BFF] border-[#007BFF] text-white opacity-100" : "bg-white border-[#C7D2E8] text-transparent hover:border-[#007BFF]",
+            !selected && !anySelected && "opacity-0 hover:opacity-100 group-hover/folder:opacity-100"
+          )}
+        >
+          <Check size={13} strokeWidth={3} />
+        </button>
         <div className="absolute top-2 right-2 flex items-center gap-1">
           {duplicateWarning ? (
             <IconTip label="Same name as another folder">

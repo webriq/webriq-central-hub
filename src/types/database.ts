@@ -1972,6 +1972,199 @@ export interface Database {
           }
         ];
       };
+      // Task 427/429 — the unified phase/deliverable tables (milestones/tasklists renamed in place; the old names are now
+      // compat VIEWS whose Row types above stay valid for legacy code). `source` says who owns a row: 'programme' rows are
+      // writable only by admin/super_admin/marketing (RLS), 'manual'/'zoho_import' by admin/super_admin/pm.
+      project_phases: {
+        Row: {
+          id: string;
+          project_id: string;
+          external_id: string | null;
+          name: string;
+          description: string | null;
+          start_date: string | null;
+          due_date: string | null;
+          status: "planned" | "active" | "completed" | "skipped" | "bypassed";
+          position: number | null;
+          day_start: number | null;
+          day_end: number | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+          phase_number: number | null;
+          owner_label: string | null;
+          actual_start_date: string | null;
+          actual_completed_date: string | null;
+          source: "manual" | "programme" | "zoho_import";
+        };
+        Insert: {
+          id?: string;
+          project_id: string;
+          external_id?: string | null;
+          name: string;
+          description?: string | null;
+          start_date?: string | null;
+          due_date?: string | null;
+          status?: "planned" | "active" | "completed" | "skipped" | "bypassed";
+          position?: number | null;
+          day_start?: number | null;
+          day_end?: number | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          phase_number?: number | null;
+          owner_label?: string | null;
+          actual_start_date?: string | null;
+          actual_completed_date?: string | null;
+          source?: "manual" | "programme" | "zoho_import";
+        };
+        Update: {
+          id?: string;
+          project_id?: string;
+          external_id?: string | null;
+          name?: string;
+          description?: string | null;
+          start_date?: string | null;
+          due_date?: string | null;
+          status?: "planned" | "active" | "completed" | "skipped" | "bypassed";
+          position?: number | null;
+          day_start?: number | null;
+          day_end?: number | null;
+          created_by?: string | null;
+          updated_at?: string;
+          phase_number?: number | null;
+          owner_label?: string | null;
+          actual_start_date?: string | null;
+          actual_completed_date?: string | null;
+          source?: "manual" | "programme" | "zoho_import";
+        };
+        Relationships: [
+          {
+            foreignKeyName: "project_phases_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      project_deliverables: {
+        Row: {
+          id: string;
+          project_id: string;
+          external_id: string | null;
+          name: string;
+          position: number | null;
+          is_default: boolean | null;
+          phase_id: string | null;
+          day_start: number | null;
+          day_end: number | null;
+          created_at: string;
+          updated_at: string;
+          deliverable_key: string | null;
+          description: string | null;
+          owner_label: string | null;
+          start_date: string | null;
+          due_date: string | null;
+          status: "pending" | "in_progress" | "done";
+          completed_at: string | null;
+          source: "manual" | "programme" | "zoho_import";
+        };
+        Insert: {
+          id?: string;
+          project_id: string;
+          external_id?: string | null;
+          name: string;
+          position?: number | null;
+          is_default?: boolean | null;
+          phase_id?: string | null;
+          day_start?: number | null;
+          day_end?: number | null;
+          created_at?: string;
+          updated_at?: string;
+          deliverable_key?: string | null;
+          description?: string | null;
+          owner_label?: string | null;
+          start_date?: string | null;
+          due_date?: string | null;
+          status?: "pending" | "in_progress" | "done";
+          completed_at?: string | null;
+          source?: "manual" | "programme" | "zoho_import";
+        };
+        Update: {
+          id?: string;
+          project_id?: string;
+          external_id?: string | null;
+          name?: string;
+          position?: number | null;
+          is_default?: boolean | null;
+          phase_id?: string | null;
+          day_start?: number | null;
+          day_end?: number | null;
+          updated_at?: string;
+          deliverable_key?: string | null;
+          description?: string | null;
+          owner_label?: string | null;
+          start_date?: string | null;
+          due_date?: string | null;
+          status?: "pending" | "in_progress" | "done";
+          completed_at?: string | null;
+          source?: "manual" | "programme" | "zoho_import";
+        };
+        Relationships: [
+          {
+            foreignKeyName: "project_deliverables_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "project_deliverables_phase_id_fkey";
+            columns: ["phase_id"];
+            isOneToOne: false;
+            referencedRelation: "project_phases";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      phase_programme_state: {
+        Row: {
+          phase_id: string;
+          wizard_data: Json;
+          is_manual_override: boolean;
+          override_note: string | null;
+          delay_note: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          phase_id: string;
+          wizard_data?: Json;
+          is_manual_override?: boolean;
+          override_note?: string | null;
+          delay_note?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          phase_id?: string;
+          wizard_data?: Json;
+          is_manual_override?: boolean;
+          override_note?: string | null;
+          delay_note?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "phase_programme_state_phase_id_fkey";
+            columns: ["phase_id"];
+            isOneToOne: true;
+            referencedRelation: "project_phases";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
       task_comments: {
         Row: {
           id: string;
@@ -4046,6 +4239,10 @@ export type CustomerAssetRow = Database["public"]["Tables"]["customer_assets"]["
 export type CustomerPhaseRow = Database["public"]["Tables"]["customer_phases"]["Row"];
 export type CustomerDeliverableRow = Database["public"]["Tables"]["customer_deliverables"]["Row"];
 export type OnboardingInternalDeliverableRow = Database["public"]["Tables"]["onboarding_internal_deliverables"]["Row"];
+// Task 429 — unified programme tables (see the table comments above).
+export type ProjectPhaseRow = Database["public"]["Tables"]["project_phases"]["Row"];
+export type ProjectDeliverableRow = Database["public"]["Tables"]["project_deliverables"]["Row"];
+export type PhaseProgrammeStateRow = Database["public"]["Tables"]["phase_programme_state"]["Row"];
 export type TaskRow = Database["public"]["Tables"]["tasks"]["Row"];
 export type InboxRow = Database["public"]["Tables"]["inbox"]["Row"];
 export type TicketRow = Database["public"]["Tables"]["tickets"]["Row"];

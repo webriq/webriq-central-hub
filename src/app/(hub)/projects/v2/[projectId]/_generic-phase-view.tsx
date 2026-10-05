@@ -1,16 +1,17 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import Link from "next/link";
-import {
-  Flag, ClipboardList, CheckCircle2, ListChecks, CalendarClock, PlayCircle, Clock,
-} from "lucide-react";
-import { formatDate } from "@/lib/utils";
-import { getCurrentProgrammeDay } from "@/config/customer-phases";
+import { useState, useRef, useEffect, useMemo } from "react";
 import type { Database } from "@/types/database";
-import { StatChip, addDays } from "./_onboarding-detail";
+import { buildTimeline, currentPhaseByDate } from "@/lib/programme/generic-timeline";
+import { GenericNotStartedScreen, GenericNoPhasesScreen } from "./_generic-phase-empty-states";
+import { GenericProgressCard } from "./_generic-progress-card";
 import { GenericJumpToPhaseMenu } from "./_generic-jump-to-phase-menu";
 import GenericSwimlane from "./_generic-swimlane";
+import { TimelineToolbar } from "./_timeline-toolbar";
+import { LiveUpdatesNotice } from "./_live-updates";
+import { useGenericRealtime } from "./_use-generic-realtime";
+import { useTimelineFilters } from "./_use-timeline-filters";
+import { buildTaskCounts, countGeneric } from "./_timeline-stats";
 
 type Milestone = Database["public"]["Tables"]["milestones"]["Row"];
 type Tasklist = Database["public"]["Tables"]["tasklists"]["Row"];
@@ -48,9 +49,15 @@ interface GenericPhaseViewProps {
 // chips stay here as their own card (this generic-engine branch never moved that content to
 // Overview the way StackShift did — task 281/282's explicit, still-current scope decision).
 export default function GenericPhaseView({
-  project, projectUrlKey, initialMilestones, tasklists, tasks, canManagePhases,
+  project, projectUrlKey, initialMilestones, tasklists: initialTasklists, tasks: initialTasks, canManagePhases,
 }: GenericPhaseViewProps) {
   const [milestones, setMilestones] = useState<Milestone[]>(initialMilestones);
+  // Task 422: tasklists/tasks are live state (seeded from SSR props) so Realtime edits land without a reload.
+  const [tasklists, setTasklists] = useState<Tasklist[]>(initialTasklists);
+  const [tasks, setTasks] = useState<Task[]>(initialTasks);
+  const liveStatus = useGenericRealtime(project.id, { setMilestones, setTasklists, setTasks });
+  const { filters, update: updateFilters, clear: clearFilters } = useTimelineFilters();
+  const { milestoneCounts, tasklistCounts } = useMemo(() => buildTaskCounts(tasks), [tasks]);
   const [jumpOpen, setJumpOpen] = useState(false);
   const [jumping, setJumping] = useState(false);
   const [jumpError, setJumpError] = useState<string | null>(null);
@@ -102,82 +109,21 @@ export default function GenericPhaseView({
   // Milestones tab." Mirrors StackShift I's not-started screen (_onboarding-detail.tsx), which
   // never conditions on deliverable count either.
   if (!programmeStartedAt) {
-    const hasSchedule = !!project.scheduled_onboarding_start_at;
-    const scheduledDate = project.scheduled_onboarding_start_at ? new Date(project.scheduled_onboarding_start_at) : null;
-
     return (
-        <div className="flex-1 min-h-0 overflow-y-auto bg-[#F4F6FB] px-7 py-8">
-        <div className="mx-auto max-w-[560px] rounded-2xl border border-[#E2E7F2] bg-white p-10 text-center shadow-[0_4px_24px_rgba(15,23,42,0.07)]">
-          <CalendarClock size={32} className="mx-auto mb-4 text-[#5F6A88]" />
-          <div className="text-lg font-bold text-[#0B1533]">{project.name}</div>
-          <div className="mb-3 text-[13px] text-[#5F6A88]">{project.company_name}</div>
-
-          {hasSchedule ? (
-            <div className="mx-auto mb-6 max-w-md rounded-[10px] border border-[#F0D896] bg-[#FFF3D6] px-4 py-3 text-left">
-              <div className="flex items-center gap-1.5 text-[13px] font-semibold text-[#8A5A00]">
-                <CalendarClock size={14} /> Scheduled to auto-start
-              </div>
-              <p className="mt-1 text-[12.5px] leading-relaxed text-[#8A5A00]">
-                Onboarding will start automatically on{" "}
-                {scheduledDate?.toLocaleString("en-US", {
-                  weekday: "long",
-                  month: "long",
-                  day: "numeric",
-                  year: "numeric",
-                  hour: "numeric",
-                  minute: "2-digit",
-                  timeZoneName: "short",
-                })}
-                .
-              </p>
-            </div>
-          ) : (
-            <p className="mx-auto mb-6 max-w-md text-[13px] text-[#5F6A88]">
-              Start onboarding to begin tracking this project&apos;s phases.
-            </p>
-          )}
-
-          {startError && <p className="mb-3 text-xs text-[#C0392B]">{startError}</p>}
-
-          {canManagePhases ? (
-            <button
-              type="button"
-              onClick={handleStart}
-              disabled={starting}
-              className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border-none bg-[#007BFF] px-4 py-2 text-[13px] font-semibold text-white shadow-[0_2px_10px_rgba(0,123,255,0.3)] transition-opacity hover:opacity-90 disabled:opacity-50"
-            >
-              <PlayCircle size={15} /> {starting ? "Starting…" : hasSchedule ? "Start Anyway" : "Start Onboarding"}
-            </button>
-          ) : (
-            <p className="text-[12.5px] text-[#5F6A88]">Not started yet — Marketing manages the programme start date.</p>
-          )}
-        </div>
-        </div>
+      <GenericNotStartedScreen
+        name={project.name}
+        companyName={project.company_name}
+        scheduledStartAt={project.scheduled_onboarding_start_at}
+        canManagePhases={canManagePhases}
+        starting={starting}
+        startError={startError}
+        onStart={handleStart}
+      />
     );
   }
 
   if (milestones.length === 0) {
-    return (
-        <div className="flex-1 min-h-0 overflow-y-auto bg-[#F4F6FB] px-7 py-8">
-        <div className="mx-auto max-w-[560px] rounded-2xl border border-[#E2E7F2] bg-white p-10 text-center shadow-[0_4px_24px_rgba(15,23,42,0.07)]">
-          <Flag size={32} className="mx-auto mb-4 text-[#5F6A88]" />
-          <div className="text-lg font-bold text-[#0B1533]">{project.name}</div>
-          <div className="mb-3 text-[13px] text-[#5F6A88]">{project.company_name}</div>
-          <p className="mx-auto mb-6 max-w-md text-[13px] text-[#5F6A88]">
-            No phases have been set up for this project yet. Add phases and deliverables from the
-            project&apos;s Milestones tab to start tracking progress here.
-          </p>
-          {/* Task 276 (Phase 3) — was `${V2_ROUTES.PROJECTS}/${projectUrlKey}`; the Milestones tab
-              now lives under this same project's unified `/projects/v2` detail page (task 279). */}
-          <Link
-            href={`/projects/v2/${projectUrlKey}/milestones`}
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border-none bg-[#007BFF] px-4 py-2 text-[13px] font-semibold text-white shadow-[0_2px_10px_rgba(0,123,255,0.3)] transition-opacity hover:opacity-90"
-          >
-            Go to Milestones
-          </Link>
-        </div>
-        </div>
-    );
+    return <GenericNoPhasesScreen name={project.name} companyName={project.company_name} projectUrlKey={projectUrlKey} />;
   }
 
   // Task 252: routed through the dedicated generic-phase route (backdates programme_started_at
@@ -207,29 +153,21 @@ export default function GenericPhaseView({
     }
   }
 
-  const activeMilestone = milestones.find((m) => m.status === "active") ?? null;
+  // Task 420: the date window comes from each phase's Start/Due (buildTimeline); `day_start`/
+  // `day_end` are only a fallback for phases with no dates. `programmeStartedAt` is guaranteed
+  // non-null here (the not-started screen above returns first).
+  const timeline = buildTimeline(milestones, programmeStartedAt);
+  const activeMilestone = milestones.find((m) => m.status === "active") ?? currentPhaseByDate(milestones, timeline);
   const milestonesCompleted = milestones.filter((m) => m.status === "completed").length;
   const doneTasks = tasks.filter((t) => t.status === "closed").length;
-  const totalTasks = tasks.length;
-
-  // Task 252: day-based progress, mirroring StackShift I's own programme-progress bar
-  // (_onboarding-detail.tsx) — total length is simply the latest dayEnd across this project's own
-  // milestones (no separate "programme duration" field for the generic engine; see task 252 doc's
-  // scope decision), not a fixed constant. `programmeStartedAt` is guaranteed non-null in this
-  // branch (the not-started screen above returns before this point).
-  const startDate = new Date(programmeStartedAt!);
-  const currentDay = getCurrentProgrammeDay(programmeStartedAt!);
-  const visibleTotalDays = Math.max(1, ...milestones.map((m) => m.day_end ?? 0));
-  const dayProgressPct = Math.min(100, Math.round((currentDay / visibleTotalDays) * 100));
-  const daysRemaining = Math.max(0, visibleTotalDays - currentDay);
+  const filterCount = countGeneric(tasklists, tasklistCounts, timeline.tasklistOffset, timeline.totalDays, timeline.currentDay, filters);
 
   return (
       <div className="flex-1 min-h-0 overflow-y-auto bg-[#F4F6FB] px-7 py-8">
       <div className="flex flex-col gap-4">
-        {/* Task 283 — Header card dissolved: title/badge/Owner-Collaborators/Settings gear now
-            live in the shared `(tabs)/layout.tsx` header (mirrors what task 281 already did for
-            the StackShift branch). Jump to Phase moves to its own row here; the active-milestone
-            pill and Progress bar/stat chips become their own card. */}
+        {/* Task 283 — Header card dissolved: title/badge/Owner-Collaborators/Settings gear live in
+            the shared `(tabs)/layout.tsx` header. Jump to Phase has its own row here; the
+            progress bar/stat chips are their own card. */}
         <div className="flex items-center justify-between gap-3">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-[#E5F1FF] px-2.5 py-0.5 text-[11px] font-semibold text-[#007BFF]">
             {activeMilestone ? activeMilestone.name : "No active phase"}
@@ -239,50 +177,36 @@ export default function GenericPhaseView({
           )}
         </div>
         {jumpError && <p className="text-xs text-[#C0392B]">{jumpError}</p>}
+        <LiveUpdatesNotice status={liveStatus} />
 
-        <div className="rounded-2xl border border-[#E2E7F2] bg-white p-6 shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
-          <div className="flex flex-col gap-4 lg:flex-row lg:gap-6">
-            <div className="min-w-0 lg:flex-1">
-              <div className="mb-2.5 flex flex-wrap items-baseline justify-between gap-3">
-                <span className="text-[11px] font-bold uppercase tracking-wide text-[#0B1533]">{visibleTotalDays}-Day Programme Progress</span>
-                <span className="font-mono text-[11px] text-[#5F6A88]">DAY {currentDay} OF {visibleTotalDays}</span>
-              </div>
-              <div className="relative h-5 rounded-full bg-[#EDF0F7]">
-                <div
-                  className="absolute inset-y-0 left-0 rounded-full bg-[#007BFF] transition-[width] duration-700"
-                  style={{ width: `${dayProgressPct}%` }}
-                />
-                <div
-                  className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-full bg-[#071133] px-1.5 py-0.5 font-mono text-[9px] font-semibold text-white shadow-[0_1px_3px_rgba(7,17,51,.35)]"
-                  style={{ left: `clamp(28px, ${dayProgressPct}%, calc(100% - 28px))` }}
-                >
-                  DAY {currentDay}
-                </div>
-              </div>
-              <div className="mt-1.5 flex justify-between font-mono text-[9px] uppercase text-[#5F6A88]">
-                <span>Day 1 ({formatDate(startDate).toUpperCase()})</span>
-                <span>Day {visibleTotalDays} ({formatDate(addDays(startDate, visibleTotalDays - 1)).toUpperCase()})</span>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 flex-wrap lg:shrink-0 lg:flex-nowrap">
-              <StatChip icon={Clock} label="Days left" value={daysRemaining} />
-              <StatChip icon={CheckCircle2} label="Phases done" value={`${milestonesCompleted}/${milestones.length}`} />
-              <StatChip icon={ClipboardList} label="Deliverables" value={tasklists.length} />
-              <StatChip icon={ListChecks} label="Tasks done" value={`${doneTasks}/${totalTasks}`} />
-            </div>
-          </div>
-        </div>
+        <GenericProgressCard
+          timeline={timeline}
+          phasesDone={milestonesCompleted}
+          phasesTotal={milestones.length}
+          deliverables={tasklists.length}
+          doneTasks={doneTasks}
+          totalTasks={tasks.length}
+          projectUrlKey={projectUrlKey}
+        />
+
+        <TimelineToolbar
+          filters={filters}
+          onChange={updateFilters}
+          onClear={clearFilters}
+          shown={filterCount.shown}
+          total={filterCount.total}
+        />
 
         <GenericSwimlane
           milestones={milestones}
           tasklists={tasklists}
-          tasks={tasks}
+          milestoneCounts={milestoneCounts}
+          tasklistCounts={tasklistCounts}
           projectUrlKey={projectUrlKey}
-          startDate={startDate}
-          currentDay={currentDay}
-          visibleTotalDays={visibleTotalDays}
+          timeline={timeline}
           collapsedMilestones={collapsedMilestones}
           onToggleCollapse={toggleCollapse}
+          filters={filters}
         />
       </div>
       </div>

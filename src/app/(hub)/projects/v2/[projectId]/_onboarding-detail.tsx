@@ -1,30 +1,43 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState, forwardRef, type HTMLAttributes } from "react";
-import { createPortal } from "react-dom";
+import { useEffect, useRef, useState, forwardRef, type HTMLAttributes } from "react";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "motion/react";
+import { motion } from "motion/react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import {
-  CalendarClock, Flag, Bell, CheckCircle2, Check, Clock, ChevronDown, PlayCircle,
-  AlertTriangle, Info, ArrowLeft, ListChecks, Locate, ShieldAlert,
-  ClipboardList, Plus, Minus, type LucideIcon,
+  CalendarClock, PlayCircle, ArrowLeft, Locate, ShieldAlert,
+  ClipboardList, type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import {
-  PROGRAMME_PHASES, getCurrentProgrammeDay, getPhaseForDay,
-  internalDeliverablesForSubPhase, type PhaseConfig, type DeliverableConfig,
-  DEFAULT_PROGRAMME_DAYS, scaleDay, unscaleDay, resolveEffectivePhase,
-  buildOrderedPhasePlan, resolveEffectivePhaseNumber, compressReferenceDay,
+  PROGRAMME_PHASES, DEFAULT_PROGRAMME_DAYS,
+  buildOrderedPhasePlan, resolveEffectivePhaseNumber,
   type CustomPhaseSeed,
 } from "@/config/customer-phases";
-import type { CustomerPhaseRow, CustomerDeliverableRow, OnboardingInternalDeliverableRow, Database } from "@/types/database";
+import type { OnboardingInternalDeliverableRow, Database } from "@/types/database";
+import { buildDisplayPhases, uiPhaseStatus, type ProgrammeDeliverableRow, type ProgrammePhaseRow } from "@/lib/programme/view-model";
+import { isProgrammeComplete } from "@/lib/programme/programme-status";
 import { isRoleGatedByMembership, canManagePhase1Membership } from "@/lib/programme/membership-rules";
 import OnboardingWizard from "./_onboarding-wizard";
 import { DELIVERABLE_WORKSPACE_TARGET, buildWorkspaceQueryString } from "./onboarding-workspace/_workspace-url-params";
 import { StatusSummaryDrawer } from "./_status-summary-drawer";
 import GenericPhaseView from "./_generic-phase-view";
+import Swimlane from "./_swimlane";
+import JumpToPhaseMenu from "./_jump-to-phase-menu";
+import { GridHeader } from "./_date-column-header";
+import { TimelineToolbar } from "./_timeline-toolbar";
+import { ReminderStrip, buildReminders } from "./_timeline-reminders";
+import { LiveUpdatesNotice, toLiveStatus, type LiveStatus } from "./_live-updates";
+import { useGanttZoom } from "./_gantt-zoom-context";
+import { useGanttScroll } from "./_use-gantt-scroll";
+import { useTimelineFilters } from "./_use-timeline-filters";
+import { countStackshift, ownerOptions } from "./_timeline-stats";
+import { LABEL_WIDTH } from "./_gantt-shared";
+import { currentDisplayDay, phaseAtDisplayDay } from "@/lib/programme/calendar";
+
+// Re-exported so existing importers (progress cards) keep importing from here.
+export { TOTAL_DAYS, PHASE_HEX, PHASE_TINT_HEX, addDays } from "./_gantt-shared";
 
 // Shared shape for both project_members and phase_members rows (task 155 gave both an
 // is_owner column, mirroring each other exactly). Exported: task 247's _generic-phase-view.tsx
@@ -91,757 +104,6 @@ interface OnboardingDetailProps {
   genericTasks: Database["public"]["Tables"]["tasks"]["Row"][];
 }
 
-// ─── Gantt grid constants ─────────────────────────────────────────────────────
-
-export const TOTAL_DAYS = 120;
-export const DAY_WIDTH = 80;
-export const ROW_HEIGHT = 56;
-export const ROW_GAP = 6;
-export const LABEL_WIDTH = 200;
-// Extra top space in each swimlane row so track-0 deliverable cards' internal-deliverables badge
-// (which pokes above the card via `-top-1.5`) has room to render without being clipped.
-export const LANE_TOP_PADDING = 8;
-// Vertical breathing room within each track's ROW_HEIGHT slot — shrinks the rendered card height
-// by 2x this amount so it sits centered in its row instead of flush against the top edge.
-export const CARD_INSET = 8;
-
-// ─── Per-phase palette — DESIGN.md's fixed 5-phase-hue vocabulary (task 168), matching the same
-// values already shipped in dashboard-shared.tsx's PHASE_TONE/PHASE_GRADIENT (tasks 166/167):
-// Onboard=orange, Migrate & Rebrand=blue, Publish=violet, AI Visibility=teal, Optimize=green.
-// A phase hue is never reused for a non-phase meaning — this replaces the old, unrelated
-// blue/violet/teal/amber/slate mapping this file used before v2.0.
-
-export type PhaseVisual = { border: string; bg: string; ring: string; text: string; solid: string; iconBg: string; iconText: string };
-
-export const PHASE_VISUALS: Record<number, PhaseVisual> = {
-  1: { border: "border-[#E2762F]", bg: "bg-[#FFEFE3]", ring: "shadow-[0_0_0_3px_rgba(226,118,47,0.12)]", text: "text-[#E2762F]", solid: "bg-[#E2762F]", iconBg: "bg-[#E2762F]/15", iconText: "text-[#E2762F]" },
-  2: { border: "border-[#0063D6]", bg: "bg-[#E5F1FF]", ring: "shadow-[0_0_0_3px_rgba(0,99,214,0.12)]", text: "text-[#0063D6]", solid: "bg-[#0063D6]", iconBg: "bg-[#0063D6]/15", iconText: "text-[#0063D6]" },
-  3: { border: "border-[#6A48E0]", bg: "bg-[#EFEAFD]", ring: "shadow-[0_0_0_3px_rgba(106,72,224,0.12)]", text: "text-[#6A48E0]", solid: "bg-[#6A48E0]", iconBg: "bg-[#6A48E0]/15", iconText: "text-[#6A48E0]" },
-  4: { border: "border-[#0B8A93]", bg: "bg-[#E2F6F7]", ring: "shadow-[0_0_0_3px_rgba(11,138,147,0.12)]", text: "text-[#0B8A93]", solid: "bg-[#0B8A93]", iconBg: "bg-[#0B8A93]/15", iconText: "text-[#0B8A93]" },
-  5: { border: "border-[#177E48]", bg: "bg-[#E3F5EA]", ring: "shadow-[0_0_0_3px_rgba(23,126,72,0.12)]", text: "text-[#177E48]", solid: "bg-[#177E48]", iconBg: "bg-[#177E48]/15", iconText: "text-[#177E48]" },
-};
-
-// Raw hex twins of PHASE_VISUALS' colors — needed for the DeliverableCard progress-fill/stripe
-// gradients, which are computed dynamically (percentage-driven) and can't be static Tailwind classes.
-export const PHASE_HEX: Record<number, string> = {
-  1: "#E2762F",
-  2: "#0063D6",
-  3: "#6A48E0",
-  4: "#0B8A93",
-  5: "#177E48",
-};
-
-// Light-tint twins of PHASE_HEX (same values as PHASE_VISUALS' `bg` classes, as raw hex) — used
-// for the 120-day programme track's gradient fill, matching the light-to-solid gradient shape
-// the Onboarding Workspace's ProgrammeTrack already uses for its own phase-progress bar.
-export const PHASE_TINT_HEX: Record<number, string> = {
-  1: "#FFEFE3",
-  2: "#E5F1FF",
-  3: "#EFEAFD",
-  4: "#E2F6F7",
-  5: "#E3F5EA",
-};
-
-// ─── Reminder chip palette ─────────────────────────────────────────────────────
-
-type ReminderItem = { key: string; type: "warning" | "reminder" | "info" | "success"; title: string; body: string };
-
-const REMINDER_STYLE: Record<ReminderItem["type"], { bg: string; border: string; title: string; icon: React.ReactNode }> = {
-  warning: { bg: "bg-[#FFF3D6]", border: "border-[#F0D896]", title: "text-[#8A5A00]", icon: <AlertTriangle size={13} className="text-[#8A5A00]" /> },
-  reminder: { bg: "bg-[#E5F1FF]", border: "border-[#BBDCFF]", title: "text-[#0063D6]", icon: <Bell size={13} className="text-[#007BFF]" /> },
-  info: { bg: "bg-[#EDF0F7]", border: "border-[#E2E7F2]", title: "text-[#0B1533]", icon: <Info size={13} className="text-[#5F6A88]" /> },
-  success: { bg: "bg-[#E3F5EA]", border: "border-[#BEE7CD]", title: "text-[#177E48]", icon: <CheckCircle2 size={13} className="text-[#177E48]" /> },
-};
-
-// Task 246: takes orderedPhases (this project's actual phase set, defaults + any customs,
-// resolved + ordered by sort_order) instead of calling getPhaseByNumber directly — that call
-// throws for a custom phase's number, which has no PROGRAMME_PHASES entry to look up.
-function buildReminders(
-  day: number,
-  phaseStatus: Map<number, string>,
-  deliverableStatus: Map<string, string>,
-  // Chat follow-up to task 244: expects phases already skip-compressed (see the "already started"
-  // render's compressedPhases) — a skipped phase's own dayStart/dayEnd is irrelevant here since
-  // phaseStatus never marks one "active", so the day-range fallback lookup below never matches it.
-  orderedPhases: (PhaseConfig & { sortOrder: number })[],
-  durationDays: number = DEFAULT_PROGRAMME_DAYS
-): ReminderItem[] {
-  const lastPhase = orderedPhases[orderedPhases.length - 1];
-  if (lastPhase && phaseStatus.get(lastPhase.number) === "completed") {
-    return [{ key: "done", type: "success", title: "Programme complete", body: `All ${orderedPhases.length} phases delivered.` }];
-  }
-  const activePhaseNumber = [...phaseStatus.entries()].find(([, status]) => status === "active")?.[0];
-  const phase =
-    orderedPhases.find((p) => p.number === activePhaseNumber) ??
-    orderedPhases.find((p) => day >= scaleDay(p.dayStart, durationDays) && day <= scaleDay(p.dayEnd, durationDays)) ??
-    orderedPhases[0] ??
-    getPhaseForDay(unscaleDay(day, durationDays));
-  const items: ReminderItem[] = [];
-  const phase1End = scaleDay(15, durationDays);
-  // Phase 1 is a fixed window (15 reference days) — if it's still active well past that, this
-  // project should already be in a later phase (e.g. a CSV-imported Kickoff Date that's more
-  // than 15 days old). One clear phase-level warning here is more useful than 5+ individual
-  // "Overdue: {deliverable}" entries competing for the reminder strip's slots.
-  if (phase.number === 1 && day > phase1End) {
-    items.push({
-      key: "phase1-overdue",
-      type: "warning",
-      title: "Phase 1 Overdue",
-      body: `Day ${day} — past the ${phase1End}-day Onboarding window. This project should already be in a later phase.`,
-    });
-  } else if (phase.number === 1) {
-    for (const d of phase.deliverables) {
-      if (deliverableStatus.get(d.key) === "done") continue;
-      const dEnd = scaleDay(d.dayEnd, durationDays);
-      const diff = dEnd - day;
-      if (diff > 0 && diff <= 5) {
-        items.push({ key: `due-${d.key}`, type: diff <= 2 ? "warning" : "reminder", title: `Due in ${diff} day${diff === 1 ? "" : "s"}: ${d.name}`, body: d.description });
-      } else if (diff <= 0) {
-        items.push({ key: `overdue-${d.key}`, type: "warning", title: `Overdue: ${d.name}`, body: `Was due by Day ${dEnd}.` });
-      }
-    }
-  }
-  if (day === phase1End && phaseStatus.get(1) !== "completed") items.push({ key: "gate15", type: "warning", title: `Gate — Day ${phase1End}`, body: "Client sign-off due before Phase 2 begins." });
-  if (items.length === 0) {
-    const daysLeft = Math.max(0, scaleDay(phase.dayEnd, durationDays) - day);
-    items.push({ key: "ontrack", type: "info", title: `On track — Phase ${phase.number}: ${phase.name}`, body: `${daysLeft} days remaining. Owner: ${phase.owner}.` });
-  }
-  return items.slice(0, 5);
-}
-
-// ─── Owner avatar chips (small, fixed enumerable set — no computed inline colors) ──
-
-// DESIGN.md's fixed 6-color avatar rotation, matching AVATAR_COLORS already used in
-// pm-dashboard.tsx / _onboarding-list.tsx (tasks 166/167) for app-wide consistency.
-const PERSON_COLOR: Record<string, string> = {
-  Bert: "bg-[#0063D6]", PM: "bg-[#6A48E0]", Dev: "bg-[#0B8A93]", Jun: "bg-[#B85512]",
-  Erica: "bg-[#177E48]", April: "bg-[#44508A]", Eri: "bg-[#0063D6]", Strategy: "bg-[#B85512]",
-};
-const DEFAULT_PERSON_COLOR = "bg-[#5F6A88]";
-
-function ownerChips(owner: string): { label: string; colorClass: string }[] {
-  const names = owner.split(/\s*\+\s*/).filter(Boolean);
-  return names.slice(0, 3).map((name) => ({
-    label: name.length <= 2 ? name.toUpperCase() : name.slice(0, 2).toUpperCase(),
-    colorClass: PERSON_COLOR[name] ?? DEFAULT_PERSON_COLOR,
-  }));
-}
-
-// ─── Overlap-stacking (generic, but only Phase 2 Day 16 needs a 2nd track today) ──
-
-export function assignTracks(items: { dayStart: number; dayEnd: number }[]): number[] {
-  const trackEnds: number[] = [];
-  const tracks: number[] = [];
-  for (const item of items) {
-    let track = trackEnds.findIndex((end) => end < item.dayStart);
-    if (track === -1) {
-      track = trackEnds.length;
-      trackEnds.push(item.dayEnd);
-    } else {
-      trackEnds[track] = item.dayEnd;
-    }
-    tracks.push(track);
-  }
-  return tracks;
-}
-
-export function addDays(date: Date, n: number): Date {
-  const d = new Date(date);
-  d.setDate(d.getDate() + n);
-  return d;
-}
-
-function formatDeliverableDateRange(startDate: Date, dayStart: number, dayEnd: number): string {
-  const fmt = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  const from = fmt(addDays(startDate, dayStart - 1));
-  if (dayStart === dayEnd) return from;
-  return `${from} – ${fmt(addDays(startDate, dayEnd - 1))}`;
-}
-
-// ─── Date column header ────────────────────────────────────────────────────────
-
-export function DateColumnHeader({ date, isToday }: { date: Date; isToday: boolean }) {
-  return (
-    <div
-      className={cn("flex h-12 shrink-0 flex-col items-center justify-center border-r border-[#EDF0F7]", isToday && "bg-[#FFEFE3]")}
-      style={{ width: DAY_WIDTH }}
-    >
-      <div className={cn("font-mono text-[9px] tracking-wide", isToday ? "font-bold text-[#FB914E]" : "text-[#5F6A88]")}>
-        {date.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase()}
-      </div>
-      <div className={cn("text-[11px] font-semibold", isToday ? "text-[#FB914E]" : "text-[#3A4565]")}>{date.getDate()}</div>
-    </div>
-  );
-}
-
-// ─── Deliverable card ──────────────────────────────────────────────────────────
-
-// Filled-circle pie progress indicator: an outer ring, a small gap, then a base circle with a
-// solid pie wedge (clockwise from 12 o'clock) filled to `percentage`. At 100% the pie is a full
-// solid disc (same ring+gap+pie structure) with a white checkmark centered on top. `colorClass`
-// is a Tailwind `text-*` class (from PHASE_VISUALS); `fill-current`/`stroke-current` pick it up.
-function ProgressRing({ percentage, colorClass, size = 22 }: { percentage: number; colorClass: string; size?: number }) {
-  const cx = size / 2;
-  const outerR = size / 2 - 1;
-  const gap = 2.5;
-  const pieR = outerR - gap;
-
-  if (percentage >= 100) {
-    return (
-      <div className="relative shrink-0" style={{ width: size, height: size }}>
-        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-          <circle cx={cx} cy={cx} r={outerR} fill="none" strokeWidth={1} className={cn("stroke-current", colorClass, "opacity-40")} />
-          <circle cx={cx} cy={cx} r={pieR} className={cn("fill-current", colorClass)} />
-        </svg>
-        <Check size={size * 0.55} strokeWidth={3} className="absolute inset-0 m-auto text-white" />
-      </div>
-    );
-  }
-
-  const clamped = Math.max(0, Math.min(100, percentage));
-  const angle = (clamped / 100) * 360;
-  const rad = ((angle - 90) * Math.PI) / 180;
-  const endX = cx + pieR * Math.cos(rad);
-  const endY = cx + pieR * Math.sin(rad);
-  const largeArcFlag = angle > 180 ? 1 : 0;
-  const wedgePath = clamped > 0 ? `M ${cx} ${cx} L ${cx} ${cx - pieR} A ${pieR} ${pieR} 0 ${largeArcFlag} 1 ${endX} ${endY} Z` : "";
-  return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="shrink-0">
-      {/* Opaque white backdrop under the ring/gap — without it, the gap is transparent SVG space
-          and the card's own solid-fill background (often the *same* phase color as the ring)
-          shows through, making the ring invisible against itself. */}
-      <circle cx={cx} cy={cx} r={outerR} className="fill-white" />
-      <circle cx={cx} cy={cx} r={outerR} fill="none" strokeWidth={1.25} className={cn("stroke-current", colorClass)} />
-      <circle cx={cx} cy={cx} r={pieR} strokeWidth={1} className="fill-white stroke-[#E2E7F2]" />
-      {wedgePath && <path d={wedgePath} className={cn("fill-current", colorClass, "opacity-50")} />}
-    </svg>
-  );
-}
-
-// Drag-resize/move (task 148) — resize-left/resize-right change one edge only; move shifts both.
-// Custom onPointerDown/pointermove/pointerup (not @dnd-kit, which this file already avoids —
-// see task 148 doc's rationale) with pointer capture so move/up keep firing on the captor even
-// if the cursor leaves it, clamped to the deliverable's own phase day range every frame.
-type DragMode = "resize-left" | "resize-right" | "move";
-type DragState = { mode: DragMode; startClientX: number; startDayStart: number; startDayEnd: number; moved: boolean };
-
-function clampDragToPhase(mode: DragMode, dayStart: number, dayEnd: number, phaseDayStart: number, phaseDayEnd: number): { dayStart: number; dayEnd: number } {
-  if (mode === "move") {
-    const span = dayEnd - dayStart;
-    let s = dayStart;
-    let e = dayEnd;
-    if (s < phaseDayStart) { s = phaseDayStart; e = s + span; }
-    if (e > phaseDayEnd) { e = phaseDayEnd; s = e - span; }
-    return { dayStart: Math.max(phaseDayStart, s), dayEnd: Math.min(phaseDayEnd, e) };
-  }
-  const s = Math.max(phaseDayStart, dayStart);
-  const e = Math.min(phaseDayEnd, dayEnd);
-  if (mode === "resize-left") return { dayStart: Math.min(s, e), dayEnd: e };
-  return { dayStart: s, dayEnd: Math.max(s, e) };
-}
-
-function DeliverableCard({
-  d, track, status, interactive, internalItems, internalByKey, expanded, onToggleExpand,
-  phaseNumber, phaseVisual, startDate, onOpenWizardStep, canEditSchedule, phaseDayStart, phaseDayEnd, onScheduleChange,
-}: {
-  d: DeliverableConfig;
-  track: number;
-  status: string;
-  interactive: boolean;
-  internalItems: { key: string; name: string }[];
-  internalByKey: Map<string, OnboardingInternalDeliverableRow>;
-  expanded: boolean;
-  onToggleExpand: () => void;
-  phaseNumber: number;
-  phaseVisual: PhaseVisual;
-  startDate: Date;
-  onOpenWizardStep?: () => void;
-  canEditSchedule: boolean;
-  phaseDayStart: number;
-  phaseDayEnd: number;
-  onScheduleChange?: (dayStart: number, dayEnd: number) => void;
-}) {
-  const [dragState, setDragState] = useState<DragState | null>(null);
-  const [livePreview, setLivePreview] = useState<{ dayStart: number; dayEnd: number } | null>(null);
-  const suppressClickRef = useRef(false);
-
-  const effectiveDayStart = livePreview?.dayStart ?? d.dayStart;
-  const effectiveDayEnd = livePreview?.dayEnd ?? d.dayEnd;
-  const left = (effectiveDayStart - 1) * DAY_WIDTH;
-  const width = (effectiveDayEnd - effectiveDayStart + 1) * DAY_WIDTH - 4;
-  const top = track * (ROW_HEIGHT + ROW_GAP) + CARD_INSET;
-
-  function beginDrag(mode: DragMode, e: React.PointerEvent) {
-    if (!canEditSchedule) return;
-    e.stopPropagation();
-    (e.currentTarget as Element).setPointerCapture(e.pointerId);
-    setDragState({ mode, startClientX: e.clientX, startDayStart: d.dayStart, startDayEnd: d.dayEnd, moved: false });
-    setLivePreview({ dayStart: d.dayStart, dayEnd: d.dayEnd });
-  }
-
-  function handleDragMove(e: React.PointerEvent) {
-    if (!dragState) return;
-    const deltaPx = e.clientX - dragState.startClientX;
-    const deltaDays = Math.round(deltaPx / DAY_WIDTH);
-    let newStart = dragState.startDayStart;
-    let newEnd = dragState.startDayEnd;
-    if (dragState.mode === "resize-right") newEnd = dragState.startDayEnd + deltaDays;
-    else if (dragState.mode === "resize-left") newStart = dragState.startDayStart + deltaDays;
-    else { newStart = dragState.startDayStart + deltaDays; newEnd = dragState.startDayEnd + deltaDays; }
-    setLivePreview(clampDragToPhase(dragState.mode, newStart, newEnd, phaseDayStart, phaseDayEnd));
-    if (!dragState.moved && Math.abs(deltaPx) > 4) {
-      suppressClickRef.current = true;
-      setDragState((prev) => (prev ? { ...prev, moved: true } : prev));
-    }
-  }
-
-  function endDrag() {
-    if (!dragState) return;
-    const changed = dragState.moved && livePreview && (livePreview.dayStart !== d.dayStart || livePreview.dayEnd !== d.dayEnd);
-    if (changed && livePreview) onScheduleChange?.(livePreview.dayStart, livePreview.dayEnd);
-    setDragState(null);
-    setLivePreview(null);
-  }
-
-  function handleCardClick() {
-    if (suppressClickRef.current) {
-      suppressClickRef.current = false;
-      return;
-    }
-    if (interactive) onOpenWizardStep?.();
-  }
-  const compact = width < 90;
-  const doneInternal = internalItems.filter((item) => (internalByKey.get(item.key)?.status ?? "pending") === "done").length;
-  const percentage = internalItems.length > 0
-    ? Math.round((doneInternal / internalItems.length) * 100)
-    : status === "done" ? 100 : status === "in_progress" ? 50 : 0;
-
-  const badgeRef = useRef<HTMLButtonElement>(null);
-  const popoverRef = useRef<HTMLDivElement>(null);
-  const [popoverPos, setPopoverPos] = useState<{ top: number; left: number } | null>(null);
-
-  const cardRef = useRef<HTMLDivElement>(null);
-  const [hovered, setHovered] = useState(false);
-  const [hoverPos, setHoverPos] = useState<{ top: number; left: number } | null>(null);
-
-  // Where the solid-fill/track boundary crosses the title text itself, in the title span's own
-  // local coordinate space (0–100) — used to split the title's color so it stays readable whether
-  // a given letter sits over the solid-color fill or the light striped track.
-  const titleRef = useRef<HTMLSpanElement>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const [textSplitPct, setTextSplitPct] = useState<number | null>(null);
-
-  useLayoutEffect(() => {
-    if (percentage <= 0 || percentage >= 100 || !titleRef.current || !buttonRef.current) {
-      setTextSplitPct(null);
-      return;
-    }
-    const buttonWidth = buttonRef.current.clientWidth;
-    const fillPx = (percentage / 100) * buttonWidth;
-    const localStart = titleRef.current.offsetLeft;
-    const localWidth = titleRef.current.offsetWidth;
-    const localFillPx = Math.max(0, Math.min(localWidth, fillPx - localStart));
-    setTextSplitPct(localWidth > 0 ? (localFillPx / localWidth) * 100 : 0);
-  }, [percentage, width]);
-
-  useEffect(() => {
-    if (expanded && badgeRef.current) {
-      const rect = badgeRef.current.getBoundingClientRect();
-      setPopoverPos({ top: rect.bottom + 6, left: rect.left });
-    }
-  }, [expanded]);
-
-  useEffect(() => {
-    if (!expanded) return;
-    function handleOutside(e: MouseEvent) {
-      const target = e.target as Node;
-      if (badgeRef.current?.contains(target) || popoverRef.current?.contains(target)) return;
-      onToggleExpand();
-    }
-    document.addEventListener("mousedown", handleOutside);
-    return () => document.removeEventListener("mousedown", handleOutside);
-  }, [expanded, onToggleExpand]);
-
-  useEffect(() => {
-    if (hovered && cardRef.current) {
-      const rect = cardRef.current.getBoundingClientRect();
-      setHoverPos({ top: rect.bottom + 6, left: rect.left });
-    }
-  }, [hovered]);
-
-  const hex = PHASE_HEX[phaseNumber] ?? PHASE_HEX[1];
-  const barStyle: React.CSSProperties | undefined = percentage >= 100
-    ? { backgroundColor: hex }
-    : percentage > 0
-      ? {
-          backgroundImage: `linear-gradient(to right, ${hex} 0%, ${hex} ${percentage}%, transparent ${percentage}%, transparent 100%), repeating-linear-gradient(135deg, ${hex}22 0px, ${hex}22 1.5px, transparent 1.5px, transparent 4px)`,
-          backgroundColor: `${hex}0D`,
-        }
-      : {
-          backgroundImage: `repeating-linear-gradient(135deg, ${hex}1A 0px, ${hex}1A 1.5px, transparent 1.5px, transparent 4px)`,
-          backgroundColor: `${hex}08`,
-        };
-
-  return (
-    <div
-      ref={cardRef}
-      className="absolute"
-      style={{ left, width, top, height: ROW_HEIGHT - CARD_INSET * 2 }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      onPointerMove={handleDragMove}
-      onPointerUp={endDrag}
-      onPointerCancel={endDrag}
-    >
-      <button
-        ref={buttonRef}
-        type="button"
-        onClick={handleCardClick}
-        onPointerDown={(e) => beginDrag("move", e)}
-        title={d.name}
-        style={barStyle}
-        className={cn(
-          "relative flex h-full w-full items-center gap-2 overflow-hidden rounded-[10px] border-[1.5px] px-2.5 text-left transition-colors",
-          percentage >= 100 ? "border-transparent" : "border-[#E2E7F2]",
-          interactive && "hover:border-[#A8C6F5]",
-          canEditSchedule ? (dragState ? "cursor-grabbing" : "cursor-grab") : interactive ? "cursor-pointer" : "cursor-default"
-        )}
-      >
-        {canEditSchedule && (
-          <>
-            <div
-              onPointerDown={(e) => beginDrag("resize-left", e)}
-              className="absolute inset-y-0 left-0 z-10 w-1.5 cursor-ew-resize bg-black/0 transition-colors hover:bg-black/15"
-            />
-            <div
-              onPointerDown={(e) => beginDrag("resize-right", e)}
-              className="absolute inset-y-0 right-0 z-10 w-1.5 cursor-ew-resize bg-black/0 transition-colors hover:bg-black/15"
-            />
-          </>
-        )}
-        <ProgressRing percentage={percentage} colorClass={percentage >= 100 ? "text-white/50" : phaseVisual.text} />
-        <span
-          ref={titleRef}
-          className={cn(
-            "min-w-0 flex-1 truncate text-[11.5px] font-medium",
-            percentage >= 100 ? "text-white" : textSplitPct === null ? "text-[#0B1533]" : undefined
-          )}
-          style={
-            textSplitPct === null
-              ? undefined
-              : {
-                  backgroundImage: `linear-gradient(to right, #ffffff 0%, #ffffff ${textSplitPct}%, #0B1533 ${textSplitPct}%, #0B1533 100%)`,
-                  WebkitBackgroundClip: "text",
-                  backgroundClip: "text",
-                  color: "transparent",
-                }
-          }
-        >
-          {d.name}
-        </span>
-        {!compact && (
-          <span className={cn("font-mono shrink-0 text-[10px] font-bold", percentage >= 100 ? "text-white" : phaseVisual.text)}>{percentage}%</span>
-        )}
-      </button>
-
-      {internalItems.length > 0 && (
-        <button
-          ref={badgeRef}
-          type="button"
-          onClick={onToggleExpand}
-          className="absolute -right-1.5 -top-1.5 z-9 flex h-4.5 cursor-pointer items-center gap-0.5 rounded-full border border-[#E2E7F2] bg-white px-1.5 text-[8px] font-bold text-[#5F6A88] shadow-sm"
-        >
-          <ListChecks size={8} /> {doneInternal}/{internalItems.length}
-        </button>
-      )}
-
-      {expanded && popoverPos && typeof document !== "undefined" &&
-        createPortal(
-          <AnimatePresence>
-            <motion.div
-              ref={popoverRef}
-              initial={{ opacity: 0, y: -4, scale: 0.97 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -4, scale: 0.97 }}
-              transition={{ duration: 0.15 }}
-              className="fixed z-50 w-56 rounded-xl border border-[#E2E7F2] bg-white p-1.5 shadow-lg"
-              style={{ top: popoverPos.top, left: popoverPos.left }}
-            >
-              <div className="px-2 pb-1 pt-1 text-[9px] font-bold uppercase tracking-wide text-[#5F6A88]">Checklist</div>
-              {internalItems.map((item) => {
-                const iStatus = internalByKey.get(item.key)?.status ?? "pending";
-                const iIcon = iStatus === "done"
-                  ? <CheckCircle2 size={11} className="text-[#177E48]" />
-                  : iStatus === "in_progress"
-                    ? <Clock size={11} className="text-[#007BFF]" />
-                    : <span className="inline-block h-2.5 w-2.5 rounded-full border-2 border-[#A8C6F5]" />;
-                return (
-                  <button
-                    key={item.key}
-                    type="button"
-                    title="Go to this deliverable's step in the wizard"
-                    onClick={interactive ? onOpenWizardStep : undefined}
-                    disabled={!interactive}
-                    className={cn(
-                      "flex w-full items-center gap-2 rounded-md border-none bg-transparent px-1.5 py-1 text-left transition-colors hover:bg-[#F4F6FB] disabled:opacity-60",
-                      interactive ? "cursor-pointer" : "cursor-default"
-                    )}
-                  >
-                    {iIcon}
-                    <span className={cn("text-[11px]", iStatus === "done" ? "text-[#5F6A88] line-through" : "text-[#3A4565]")}>{item.name}</span>
-                  </button>
-                );
-              })}
-            </motion.div>
-          </AnimatePresence>,
-          document.body
-        )}
-
-      {hovered && hoverPos && typeof document !== "undefined" &&
-        createPortal(
-          <div
-            className="fixed z-50 w-64 pointer-events-none rounded-xl border border-[#E2E7F2] bg-white p-3 shadow-lg"
-            style={{ top: hoverPos.top, left: hoverPos.left }}
-          >
-            <div className="flex items-center justify-between gap-2">
-              <div className="min-w-0 truncate text-[12.5px] font-bold text-[#0B1533]">{d.name}</div>
-              <span className={cn("font-mono shrink-0 text-[10px] font-bold", phaseVisual.text)}>{percentage}%</span>
-            </div>
-            <p className="mt-1 text-[11px] leading-snug text-[#5F6A88]">{d.description}</p>
-            <div className="mt-2.5 flex items-center gap-1.5">
-              {ownerChips(d.owner).map((c, idx) => (
-                <span key={idx} className={cn("flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[7px] font-bold text-white", c.colorClass)}>
-                  {c.label}
-                </span>
-              ))}
-              <span className="text-[10.5px] text-[#3A4565]">{d.owner}</span>
-            </div>
-            <div className={cn("font-mono mt-2 flex items-center gap-1 text-[10px] text-[#5F6A88]")}>
-              <CalendarClock size={11} /> {formatDeliverableDateRange(startDate, d.dayStart, d.dayEnd)}
-            </div>
-          </div>,
-          document.body
-        )}
-    </div>
-  );
-}
-
-// ─── Swimlane ──────────────────────────────────────────────────────────────────
-
-function Swimlane({
-  phase, dbStatus, deliverableStatusMap, internalByKey, collapsed, onToggleCollapse,
-  onOpenDeliverable, expandedDeliverable, onExpandDeliverable, index, startDate, role, canEditSchedule, onScheduleChange,
-  totalDays = TOTAL_DAYS,
-}: {
-  phase: PhaseConfig;
-  dbStatus: string;
-  deliverableStatusMap: Map<string, string>;
-  internalByKey: Map<string, OnboardingInternalDeliverableRow>;
-  collapsed: boolean;
-  onToggleCollapse: () => void;
-  // Task 241 — phase-aware (was Phase-1-only `(key: string) => void`); Phase 2-5 now open too,
-  // routed to Projects > Tasks instead of the Onboarding Workspace.
-  onOpenDeliverable: (phaseNumber: number, key: string) => void;
-  expandedDeliverable: string | null;
-  onExpandDeliverable: (key: string | null) => void;
-  index: number;
-  startDate: Date;
-  role: string | null;
-  canEditSchedule: boolean;
-  onScheduleChange: (phaseNumber: number, deliverableKey: string, dayStart: number, dayEnd: number) => void;
-  // Chat follow-up to task 244: the shared grid's actual (skip-compressed) column count for this
-  // project — defaults to the static 120-reference-day constant for any caller that hasn't been
-  // updated to pass a compressed value (none currently; kept for a safe/explicit default).
-  totalDays?: number;
-}) {
-  // Task 246: a custom phase (number 6+) has no dedicated PHASE_VISUALS entry — falls back to
-  // phase 1's palette, matching the same ?? PHASE_VISUALS[1]/PHASE_HEX[1] convention already used
-  // elsewhere in this file (line ~1698, ~432) for an unresolvable phase number.
-  const visual = PHASE_VISUALS[phase.number] ?? PHASE_VISUALS[1];
-  // Developer never opens anything (task 146); a skipped phase's deliverables are inert for
-  // everyone (chat follow-up) — they're shown only for reference when a PM expands the row out of
-  // curiosity, never actionable since this phase doesn't apply to the project.
-  const interactive = role !== "developer" && dbStatus !== "skipped";
-  // Task 253: effective span (per-project override ?? the static config default) is now resolved
-  // upstream by resolveEffectiveDeliverable (customer-phases.ts) for every phase.deliverables
-  // entry, so there's no separate override map to merge here anymore — never mutates
-  // PROGRAMME_PHASES, which is shared by every customer.
-  const effectiveDeliverables = phase.deliverables;
-  const tracks = assignTracks(effectiveDeliverables.map((d) => ({ dayStart: d.dayStart, dayEnd: d.dayEnd })));
-  const trackCount = tracks.length > 0 ? Math.max(...tracks) + 1 : 1;
-  const laneHeight = trackCount * ROW_HEIGHT + (trackCount - 1) * ROW_GAP + 8 + LANE_TOP_PADDING;
-  const doneCount = phase.deliverables.filter((d) => (deliverableStatusMap.get(d.key) ?? "pending") === "done").length;
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.05, duration: 0.25 }}
-      className="flex border-b border-[#E2E7F2]"
-    >
-      <div className={cn("sticky left-0  z-2 shrink-0 border-r border-[#E2E7F2] px-3.5 py-3", visual.bg)} style={{ width: LABEL_WIDTH }}>
-        {/* Task 254: a skipped phase's lane is always empty regardless of collapsed state (it's
-            excluded from the shared grid/day range entirely, see the D{}–{} suppression below) —
-            there's nothing to reveal by toggling it, so it renders as an inert <div> instead of
-            the collapse-toggle <button> non-skipped phases still use. */}
-        {dbStatus === "skipped" ? (
-          <div className="flex w-full items-center gap-2 p-0 text-left">
-            <div className={cn("flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[12px] font-bold", visual.iconBg, visual.iconText)}>
-              {phase.number}
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5">
-                <span className="truncate text-[12.5px] font-bold text-[#5F6A88]">{phase.name}</span>
-                {/* Task 244: a StackShift I phase a PM excluded at intake reuses the same "skipped"
-                    status a time-based "jump to phase" produces — labeled here so it reads as "not
-                    part of this project" rather than "already passed". */}
-                <span className="shrink-0 rounded-full bg-slate-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-slate-400">
-                  Skipped
-                </span>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <button type="button" onClick={onToggleCollapse} className="flex w-full cursor-pointer items-center gap-2 border-none bg-transparent p-0 text-left">
-            <div className={cn("flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[12px] font-bold", visual.iconBg, visual.iconText)}>
-              {dbStatus === "completed" ? <CheckCircle2 size={13} /> : phase.number}
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5">
-                <span className="truncate text-[12.5px] font-bold text-[#0B1533]">{phase.name}</span>
-                {dbStatus === "active" && <span className="h-1.5 w-1.5 shrink-0 animate-pulse motion-reduce:animate-none rounded-full bg-[#007BFF]" />}
-              </div>
-              <div className={cn("font-mono truncate text-[10px] text-[#5F6A88]")}>
-                D{phase.dayStart}–{phase.dayEnd} · {doneCount}/{phase.deliverables.length}
-              </div>
-            </div>
-            {/* Chat follow-up: swapped for a directionless +/− toggle — a down/right chevron implied
-                a vertical list would drop below, but the revealed content is a horizontal timeline
-                lane instead, which read as confusing. */}
-            {collapsed ? <Plus size={14} className="shrink-0 text-[#5F6A88]" /> : <Minus size={14} className="shrink-0 text-[#5F6A88]" />}
-          </button>
-        )}
-      </div>
-
-      <div
-        className="relative overflow-visible z-1"
-        style={{ width: totalDays * DAY_WIDTH, height: collapsed ? 0 : laneHeight, paddingTop: collapsed ? 0 : LANE_TOP_PADDING }}
-      >
-        {!collapsed && effectiveDeliverables.map((d, i) => {
-          const subInternal = phase.number === 1 ? internalDeliverablesForSubPhase(d.key) : [];
-          return (
-            <DeliverableCard
-              key={d.key}
-              d={d}
-              track={tracks[i]}
-              status={deliverableStatusMap.get(d.key) ?? "pending"}
-              interactive={interactive}
-              internalItems={subInternal}
-              internalByKey={internalByKey}
-              expanded={expandedDeliverable === d.key}
-              onToggleExpand={() => onExpandDeliverable(expandedDeliverable === d.key ? null : d.key)}
-              phaseNumber={phase.number}
-              phaseVisual={visual}
-              startDate={startDate}
-              onOpenWizardStep={interactive ? () => onOpenDeliverable(phase.number, d.key) : undefined}
-              canEditSchedule={canEditSchedule && dbStatus !== "skipped"}
-              phaseDayStart={phase.dayStart}
-              phaseDayEnd={phase.dayEnd}
-              onScheduleChange={(dayStart, dayEnd) => onScheduleChange(phase.number, d.key, dayStart, dayEnd)}
-            />
-          );
-        })}
-      </div>
-    </motion.div>
-  );
-}
-
-// ─── Jump to phase menu ────────────────────────────────────────────────────────
-
-// Minimal shape this menu actually needs — satisfied by both PhaseConfig (the "already started"
-// call site's orderedPhases) and OrderedPhaseSummary (task 248's pre-seed "not started" call
-// site's buildOrderedPhasePlan output), so either can be passed without a cast.
-type JumpPhaseOption = { number: number; name: string; dayStart: number; dayEnd: number };
-
-function JumpToPhaseMenu({
-  open, setOpen, note, setNote, onJump, jumping, phases = PROGRAMME_PHASES, skipSet, currentPhaseNumber,
-}: {
-  open: boolean; setOpen: (v: boolean) => void; note: string; setNote: (v: string) => void;
-  onJump: (phaseNumber: number) => void; jumping: boolean;
-  // Task 246: defaults to PROGRAMME_PHASES for the pre-seed "not started" call site (no per-project
-  // phase set exists yet); the "already started" call site passes this project's actual
-  // orderedPhases (defaults + any customs) instead.
-  phases?: JumpPhaseOption[];
-  // Task 248: phase numbers this project's PM excluded at intake — shown in the list (not
-  // filtered out, so the full plan stays visible) but disabled with a not-allowed cursor and a
-  // "Skipped" pill, matching the Swimlane's own existing skipped-phase badge treatment. Chat
-  // follow-up: the "already started" call site now passes its own DB-status-derived skip set
-  // (customer_phases.status === "skipped") — the authoritative source once a project has seeded,
-  // rather than leaving it undefined/every phase enabled as before.
-  skipSet?: Set<number>;
-  // Chat follow-up: the phase this project is currently active in — shown disabled with a
-  // "Current" pill instead of "Skipped", since jumping to the phase you're already in is a no-op.
-  // Undefined for the pre-seed "not started" call site, which has no active phase yet.
-  currentPhaseNumber?: number;
-}) {
-  return (
-    <div className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen(!open)}
-        className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-[#E2E7F2] bg-white px-3.5 py-2 text-xs font-medium text-[#3A4565] transition-colors hover:border-[#A8C6F5]"
-      >
-        <Flag size={13} /> Jump to phase <ChevronDown size={12} className={cn("transition-transform", open && "rotate-180")} />
-      </button>
-      {open && (
-        <div className="absolute right-0 top-[calc(100%+6px)] z-30 min-w-64 overflow-hidden rounded-xl border border-[#E2E7F2] bg-white shadow-lg">
-          <div className="px-3.5 pb-1.5 pt-3 text-[10px] font-bold uppercase tracking-wider text-[#5F6A88]">Manually tag starting phase</div>
-          {phases.map((p) => {
-            const skipped = skipSet?.has(p.number) ?? false;
-            const isCurrent = !skipped && p.number === currentPhaseNumber;
-            const disabled = skipped || isCurrent;
-            return (
-              <button
-                key={p.number}
-                type="button"
-                onClick={() => onJump(p.number)}
-                disabled={jumping || disabled}
-                aria-disabled={disabled}
-                className={cn(
-                  "flex w-full items-center gap-1.5 border-none bg-transparent px-3.5 py-2 text-left text-[13px] transition-colors disabled:opacity-50",
-                  disabled ? "cursor-not-allowed text-[#5F6A88]" : "cursor-pointer text-[#0B1533] hover:bg-[#F4F6FB]"
-                )}
-              >
-                {/* Task 253: a skipped phase occupies no calendar days (compressed out of the
-                    shared grid entirely, same as the Swimlane phase-row header) — showing a day
-                    range here would misleadingly imply it still does. */}
-                <span>{p.name}{!skipped && ` (Day ${p.dayStart}–${p.dayEnd})`}</span>
-                {skipped && (
-                  <span className="shrink-0 rounded-full bg-slate-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-slate-400">
-                    Skipped
-                  </span>
-                )}
-                {isCurrent && (
-                  <span className="shrink-0 rounded-full bg-[#E5F1FF] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#007BFF]">
-                    Current
-                  </span>
-                )}
-              </button>
-            );
-          })}
-          <div className="px-3.5 pb-3.5 pt-1">
-            <input
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="Optional note…"
-              className="w-full rounded-lg border border-[#E2E7F2] bg-white px-2.5 py-1.5 text-xs text-[#0B1533] outline-none focus:border-[#007BFF] focus:ring-[3px] focus:ring-[#007BFF]/[0.14]"
-            />
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
 
 // ─── Stat chip ─────────────────────────────────────────────────────────────────
 
@@ -967,13 +229,8 @@ export default function OnboardingDetail({
   // Task 239 — StackShift I's configurable programme length; defaults to 120 until the fetch
   // below resolves, matching every project's DB default.
   const [programmeDurationDays, setProgrammeDurationDays] = useState<number>(DEFAULT_PROGRAMME_DAYS);
-  const [phases, setPhases] = useState<CustomerPhaseRow[]>([]);
-  const [deliverables, setDeliverables] = useState<CustomerDeliverableRow[]>([]);
-  // Task 241 — Phase 2-5's generic-model tasklist ids, keyed by `programme-deliverable-{phase}-{key}`
-  // (their `external_id`), for the Timeline's deliverable cards to resolve a click into a Projects
-  // > Tasks deep link. Empty for a project whose programme started before this shipped — degrades
-  // to a bare /tasks link, not a crash (see handleOpenPhaseDeliverable).
-  const [tasklistIdByExternalId, setTasklistIdByExternalId] = useState<Map<string, string>>(new Map());
+  const [phases, setPhases] = useState<ProgrammePhaseRow[]>([]);
+  const [deliverables, setDeliverables] = useState<ProgrammeDeliverableRow[]>([]);
   const [internalDeliverables, setInternalDeliverables] = useState<OnboardingInternalDeliverableRow[]>([]);
   const [collapsedPhases, setCollapsedPhases] = useState<Set<number>>(new Set());
   // Chat follow-up: default collapse state — only the active phase starts expanded, every other
@@ -1003,8 +260,12 @@ export default function OnboardingDetail({
   // generalized signature takes a plain number.
   const [altPhase, setAltPhase] = useState<number | null>(null);
   const isMountedRef = useRef(true);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const scrolledToTodayRef = useRef(false);
+  const phasesRef = useRef<ProgrammePhaseRow[]>([]);
+  useEffect(() => { phasesRef.current = phases; }, [phases]);
+  const { dayWidth } = useGanttZoom();
+  const gantt = useGanttScroll(dayWidth);
+  const { filters, update: updateFilters, clear: clearFilters } = useTimelineFilters();
+  const [liveStatus, setLiveStatus] = useState<LiveStatus>("live");
 
   // ─── Task 153/155/157: project/phase membership ────────────────────────────
   const [phase1Members, setPhase1Members] = useState<MemberRow[]>(initialPhase1Members);
@@ -1116,9 +377,6 @@ export default function OnboardingDetail({
       setPhases(data.phases ?? []);
       setDeliverables(data.deliverables ?? []);
       setInternalDeliverables(data.internal_deliverables ?? []);
-      setTasklistIdByExternalId(
-        new Map((data.phase_tasklists ?? []).map((t: { id: string; external_id: string }) => [t.external_id, t.id]))
-      );
       setError(null);
     } catch {
       if (isMountedRef.current) setError("Failed to load onboarding programme data.");
@@ -1143,9 +401,6 @@ export default function OnboardingDetail({
         setPhases(data.phases ?? []);
         setDeliverables(data.deliverables ?? []);
         setInternalDeliverables(data.internal_deliverables ?? []);
-        setTasklistIdByExternalId(
-          new Map((data.phase_tasklists ?? []).map((t: { id: string; external_id: string }) => [t.external_id, t.id]))
-        );
         setError(null);
       })
       .catch(() => { if (isMountedRef.current) setError("Failed to load onboarding programme data."); })
@@ -1155,47 +410,43 @@ export default function OnboardingDetail({
 
   useEffect(() => {
     if (!project.uses_customer_phases_engine) return;
+    let cancelled = false;
     const supabase = createClient();
     const channel = supabase
       .channel(`v2_onboarding_${project.id}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "customer_phases", filter: `project_id=eq.${project.id}` }, (payload) => {
-        const row = payload.new as CustomerPhaseRow;
-        if (!row?.id) return;
+      .on("postgres_changes", { event: "*", schema: "public", table: "project_phases", filter: `project_id=eq.${project.id}` }, (payload) => {
+        const row = payload.new as ProgrammePhaseRow;
+        if (!row?.id || row.source !== "programme") return;
+        // The change feed carries the table row only — keep the flattened state columns we already hold.
         setPhases((prev) => {
           const idx = prev.findIndex((p) => p.id === row.id);
-          if (idx === -1) return [...prev, row].sort((a, b) => a.sort_order - b.sort_order);
+          if (idx === -1) return [...prev, { ...row, wizard_data: {}, is_manual_override: false, override_note: null, delay_note: null }].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
           const next = [...prev];
-          next[idx] = row;
-          return next;
+          next[idx] = { ...prev[idx], ...row };
+          return next.sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
         });
       })
-      .on("postgres_changes", { event: "*", schema: "public", table: "customer_deliverables", filter: `project_id=eq.${project.id}` }, (payload) => {
-        const row = payload.new as CustomerDeliverableRow;
-        if (!row?.id) return;
+      .on("postgres_changes", { event: "*", schema: "public", table: "project_deliverables", filter: `project_id=eq.${project.id}` }, (payload) => {
+        const row = payload.new as ProgrammeDeliverableRow;
+        if (!row?.id || row.source !== "programme") return;
+        // The change feed carries no phase_number — derive it from the phase this row belongs to.
         setDeliverables((prev) => {
           const idx = prev.findIndex((d) => d.id === row.id);
-          if (idx === -1) return [...prev, row];
+          if (idx === -1) {
+            const phaseNumber = phasesRef.current.find((p) => p.id === row.phase_id)?.phase_number;
+            return phaseNumber == null ? prev : [...prev, { ...row, phase_number: phaseNumber }];
+          }
           const next = [...prev];
-          next[idx] = row;
+          next[idx] = { ...prev[idx], ...row };
           return next;
         });
       })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
+      .subscribe((status) => {
+        const next = toLiveStatus(status);
+        if (!cancelled && next) setLiveStatus(next);
+      });
+    return () => { cancelled = true; supabase.removeChannel(channel); };
   }, [project.id, project.uses_customer_phases_engine]);
-
-  // Wheel-to-horizontal-scroll: hovering the Gantt grid pans it left/right on wheel/trackpad input
-  // instead of scrolling the page. Native `addEventListener` (not JSX onWheel) is required so
-  // preventDefault() works — React's synthetic wheel listener is passive by default.
-  function handleGridWheel(e: WheelEvent) {
-    const el = scrollRef.current;
-    if (!el) return;
-    if (e.ctrlKey) return; // preserve native pinch-zoom
-    if (el.scrollWidth <= el.clientWidth) return; // nothing to pan
-    const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
-    e.preventDefault();
-    el.scrollLeft += delta;
-  }
 
   const handleStart = async () => {
     setStarting(true);
@@ -1268,7 +519,8 @@ export default function OnboardingDetail({
       handleOpenWizardStep(deliverableKey);
       return;
     }
-    const tasklistId = tasklistIdByExternalId.get(`programme-deliverable-${project.id}-${phaseNumber}-${deliverableKey}`);
+    // Task 429: a programme deliverable row IS the tasklist (same id), so no external_id lookup.
+    const tasklistId = deliverables.find((d) => d.phase_number === phaseNumber && d.deliverable_key === deliverableKey)?.id;
     // Task 276 (Phase 3) — was `${V2_ROUTES.PROJECTS}/...` (legacy `/projects-old` module). This
     // V2 project now has its own Tasks tab under the same basePath, so the deliverable card should
     // stay within the unified `/projects/v2` detail page rather than leaving it.
@@ -1277,20 +529,14 @@ export default function OnboardingDetail({
     );
   };
 
-  // Task 253: the drag-resize UI now operates in display-scaled day coordinates (see
-  // displayPhases below — dayStart/dayEnd on-screen are scaleDay'd to this project's real
-  // programmeDurationDays), but day_start_override/day_end_override are stored on the same
-  // unscaled (skip-)compressed reference scale every other override write uses (seed.ts).
-  // unscaleDay inverts the display scaling before it reaches local state or the API — a no-op
-  // whenever programmeDurationDays is the 120-day default.
-  const handleScheduleChange = async (phaseNumber: number, deliverableKey: string, dayStart: number, dayEnd: number) => {
-    const referenceDayStart = unscaleDay(dayStart, programmeDurationDays);
-    const referenceDayEnd = unscaleDay(dayEnd, programmeDurationDays);
+  // Task 429 (decision D-B): rows store display-scale days, which is exactly what the drag UI works in — no conversion either way.
+  // Task 421: resolves false on failure (after reverting) so the card can show its own inline error.
+  const handleScheduleChange = async (phaseNumber: number, deliverableKey: string, dayStart: number, dayEnd: number): Promise<boolean> => {
     const previous = deliverables;
     setDeliverables((prev) =>
       prev.map((d) =>
         d.phase_number === phaseNumber && d.deliverable_key === deliverableKey
-          ? { ...d, day_start_override: referenceDayStart, day_end_override: referenceDayEnd }
+          ? { ...d, day_start: dayStart, day_end: dayEnd }
           : d
       )
     );
@@ -1298,12 +544,14 @@ export default function OnboardingDetail({
       const res = await fetch(`/api/projects/${project.id}/programme/deliverables/${deliverableKey}/schedule`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phase_number: phaseNumber, day_start: referenceDayStart, day_end: referenceDayEnd }),
+        body: JSON.stringify({ phase_number: phaseNumber, day_start: dayStart, day_end: dayEnd }),
       });
       if (!res.ok) throw new Error();
+      return true;
     } catch {
       setDeliverables(previous);
       setError("Failed to save the schedule change — reverted.");
+      return false;
     }
   };
 
@@ -1369,7 +617,7 @@ export default function OnboardingDetail({
             deliverables={deliverables.filter((d) => d.phase_number === 1)}
             internalDeliverables={internalDeliverables}
             wizardData={(phases.find((p) => p.phase_number === 1)?.wizard_data as Record<string, unknown>) ?? {}}
-            currentDay={programmeStartedAt ? getCurrentProgrammeDay(programmeStartedAt) : 1}
+            currentDay={programmeStartedAt ? currentDisplayDay(programmeStartedAt) : 1}
             role={role}
             isPhaseActive={isPhaseActive}
             initialStepKey={wizardStartStepKey}
@@ -1384,7 +632,7 @@ export default function OnboardingDetail({
               refetchPhase1Members();
               refetchProjectMembers();
             }}
-            onDeliverableChange={(updated) => setDeliverables((prev) => prev.map((d) => (d.id === updated.id ? updated : d)))}
+            onDeliverableChange={(updated) => setDeliverables((prev) => prev.map((d) => (d.id === updated.id ? { ...d, ...updated } : d)))}
             onInternalDeliverableChange={(updated) => setInternalDeliverables((prev) => prev.map((d) => (d.id === updated.id ? updated : d)))}
             canManagePhase1={canManagePhase1}
             phase1Members={phase1Members}
@@ -1548,85 +796,28 @@ export default function OnboardingDetail({
     );
   }
 
-  const currentDay = getCurrentProgrammeDay(programmeStartedAt);
+  const currentDay = currentDisplayDay(programmeStartedAt);
   const startDate = new Date(programmeStartedAt);
-  // Task 246: this project's actual phase set (defaults + any customs) resolved via
-  // resolveEffectivePhase and ordered by sort_order — the Swimlane loop and every phase-count/
-  // "last phase" derivation below reads from this instead of the static PROGRAMME_PHASES array.
-  const sortedPhaseRows = [...phases].sort((a, b) => a.sort_order - b.sort_order);
-  const deliverablesByPhaseNumber = new Map<number, typeof deliverables>();
-  for (const d of deliverables) {
-    if (!deliverablesByPhaseNumber.has(d.phase_number)) deliverablesByPhaseNumber.set(d.phase_number, []);
-    deliverablesByPhaseNumber.get(d.phase_number)!.push(d);
-  }
-  const orderedPhases = sortedPhaseRows.map((p) => resolveEffectivePhase(p, deliverablesByPhaseNumber.get(p.phase_number) ?? []));
-  const activePhaseNumber = phases.find((p) => p.status === "active")?.phase_number ?? getPhaseForDay(unscaleDay(currentDay, programmeDurationDays)).number;
-  const isComplete = sortedPhaseRows.length > 0 && sortedPhaseRows[sortedPhaseRows.length - 1].status === "completed";
-  const phaseStatusMap = new Map(phases.map((p) => [p.phase_number, p.status]));
-  // Chat follow-up to task 244: this project's *permanently* excluded phases — sourced from
-  // project.draft_skip_phase_numbers (the PM's own intake-time configuration), not each phase
-  // row's DB status. A phase's DB status also reads "skipped" for a merely time-bypassed phase
-  // (an unrelated manual Jump-to-phase landing past it — same status value, different meaning,
-  // see the already-started PATCH route's own permanentSkipSet fix) — that kind of "skipped" is
-  // temporary and should keep its calendar days and stay jumpable, unlike a phase the PM opted
-  // this project out of entirely.
+  // Task 429 (WP5): rows already hold display-scale, skip-compressed days (decision D-B), so the phase set is built straight from them —
+  // no reference → compressed → display pipeline. Permanently skipped phases keep status `skipped` and draw no days.
+  const displayPhases = buildDisplayPhases(phases, deliverables);
+  const activePhaseNumber = phases.find((p) => p.status === "active")?.phase_number ?? phaseAtDisplayDay(currentDay, programmeDurationDays).number;
+  const isComplete = isProgrammeComplete(phases);
+  // The Swimlane/toolbar/reminder helpers speak the legacy status vocabulary (a bypassed phase renders as skipped, as before).
+  const phaseStatusMap = new Map(phases.map((p) => [p.phase_number, uiPhaseStatus(p.status)]));
+  // This project's *permanently* excluded phases (intake-time `draft_skip_phase_numbers`) — a merely time-bypassed phase keeps its days
+  // and stays jumpable.
   const startedSkipNumbers = project.draft_skip_phase_numbers;
-  // Chat follow-up to task 244: skipped phases no longer occupy any calendar days on the shared
-  // grid/progress bar/timeline at all — Day 1 now aligns with the first non-skipped phase, not
-  // Onboard's static reference day 1. Every non-skipped phase (and its own deliverables) gets its
-  // dayStart/dayEnd re-expressed on this skip-compressed scale for rendering; a skipped phase's
-  // row keeps its original static range, though it's never actually displayed — task 254 removed
-  // the skipped-row collapse toggle entirely (it starts, and permanently stays, collapsed), so
-  // there's no way to expand it and see this anymore.
-  // Both the Swimlane loop and buildReminders read from this single compressed source, so the
-  // "days remaining" reminder and the Gantt grid always agree.
-  const compressedPhases = orderedPhases.map((p) =>
-    startedSkipNumbers.includes(p.number)
-      ? p
-      : {
-          ...p,
-          dayStart: compressReferenceDay(p.dayStart, orderedPhases, startedSkipNumbers),
-          dayEnd: compressReferenceDay(p.dayEnd, orderedPhases, startedSkipNumbers),
-          deliverables: p.deliverables.map((d) => ({
-            ...d,
-            dayStart: compressReferenceDay(d.dayStart, orderedPhases, startedSkipNumbers),
-            dayEnd: compressReferenceDay(d.dayEnd, orderedPhases, startedSkipNumbers),
-          })),
-        }
-  );
-  // Chat follow-up: the grid's own visible column count (reference scale), compressed the same
-  // way — Optimize's static dayEnd (120) minus every skipped phase's day-span before it.
-  const visibleTotalDays = compressReferenceDay(TOTAL_DAYS, orderedPhases, startedSkipNumbers);
-  // The same compressed total, converted to this project's real calendar-day scale — what the
-  // progress bar/header actually display as "the programme length" now that skipped phases'
-  // days are excluded from it. `programmeDurationDays` itself keeps its original (PM-configured)
-  // value everywhere else — it's still the correct scale ratio for scaleDay/unscaleDay, since that
-  // never changed; only the *displayed* total shrinks.
-  const visibleDurationDays = scaleDay(visibleTotalDays, programmeDurationDays);
-  // Task 253: compressedPhases is the storage-compatible (skip-)compressed reference scale used
-  // by buildReminders and by the drag-resize round-trip (handleScheduleChange unscales back onto
-  // it). Everything actually rendered to the user — Swimlane bars, the Jump-to-phase dropdown,
-  // deliverable date badges — needs the *further* scaleDay conversion to this project's real
-  // programmeDurationDays, same as visibleDurationDays above, so a phase's own displayed day range
-  // can never exceed the header's own displayed total. Identity (no-op) at the 120-day default.
-  const displayPhases = compressedPhases.map((p) => ({
-    ...p,
-    dayStart: scaleDay(p.dayStart, programmeDurationDays),
-    dayEnd: scaleDay(p.dayEnd, programmeDurationDays),
-    deliverables: p.deliverables.map((d) => ({
-      ...d,
-      dayStart: scaleDay(d.dayStart, programmeDurationDays),
-      dayEnd: scaleDay(d.dayEnd, programmeDurationDays),
-    })),
-  }));
+  // Grid columns: the last planned display day, never shorter than the programme's own displayed length.
+  const permanentlySkipped = new Set(phases.filter((p) => p.status === "skipped").map((p) => p.phase_number));
+  const visibleDurationDays = Math.max(1, ...displayPhases.filter((p) => !permanentlySkipped.has(p.number)).map((p) => p.dayEnd));
   // Task 281 — progress-bar/stat-chip stats (progressPct, programmeOverdue, daysOverdue120,
   // totalDeliverables, doneDeliverables, phasesCompleted, daysRemaining) moved to the Overview
   // tab (`_use-programme-progress.ts` computes the identical values via the same
   // `@/config/customer-phases` functions) — Timeline no longer renders that card, so they're no
   // longer computed here.
   const deliverableStatusMap = new Map(deliverables.map((d) => [d.deliverable_key, d.status]));
-  const remindersDeliverableMap = new Map(deliverables.filter((d) => d.phase_number === 1).map((d) => [d.deliverable_key, d.status]));
-  const reminders = buildReminders(currentDay, phaseStatusMap, remindersDeliverableMap, compressedPhases, programmeDurationDays);
+  const { items: reminders, more: remindersMore } = buildReminders(currentDay, phaseStatusMap, deliverableStatusMap, displayPhases, programmeDurationDays);
   const internalByKey = new Map(internalDeliverables.map((d) => [d.deliverable_key, d]));
 
   // Task 253: the grid's own axis is now visibleDurationDays (real, scaled days — see the `days`
@@ -1635,18 +826,9 @@ export default function OnboardingDetail({
   // used to render on before this task moved the grid itself onto the display-scaled axis.
   const gridMarkerDay = currentDay;
 
-  function scrollToToday(behavior: ScrollBehavior = "auto") {
-    if (!scrollRef.current) return;
-    const target = Math.max(0, LABEL_WIDTH + (gridMarkerDay - 1) * DAY_WIDTH - (scrollRef.current.clientWidth - LABEL_WIDTH) / 2);
-    scrollRef.current.scrollTo({ left: target, behavior });
-  }
-
-  // Task 253: the grid's column axis is the display-scaled total (visibleDurationDays), not the
-  // raw (skip-)compressed reference total (visibleTotalDays) — see displayPhases above. 1 column
-  // now always represents 1 real calendar day of this project's actual programme_duration_days,
-  // so DateColumnHeader's addDays(startDate, day - 1) below is finally accurate for a non-default
-  // duration. Identity (no-op) at the 120-day default, where the two totals are equal.
-  const days = Array.from({ length: visibleDurationDays }, (_, i) => i + 1);
+  // Task 422: filter toolbar inputs — phases whose DB status is "skipped" show no cards.
+  const skippedPhaseNumbers = new Set(phases.filter((p) => p.status === "skipped").map((p) => p.phase_number));
+  const filterCount = countStackshift(displayPhases, skippedPhaseNumbers, deliverableStatusMap, internalByKey, currentDay, filters);
 
   return (
     <>
@@ -1658,19 +840,9 @@ export default function OnboardingDetail({
             Summary, one row above the swimlane, vertically centered together. Previously the
             Reminders strip was its own row and the buttons lived in the now-removed Header card. */}
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap gap-2">
-            {reminders.map((r) => {
-              const s = REMINDER_STYLE[r.type];
-              return (
-                <div key={r.key} className={cn("flex max-w-[320px] items-start gap-2 rounded-lg border px-3 py-2", s.bg, s.border)}>
-                  <div className="mt-0.5 shrink-0">{s.icon}</div>
-                  <div className="min-w-0">
-                    <div className={cn("text-[11.5px] font-semibold", s.title)}>{r.title}</div>
-                    <div className="text-[11px] text-[#5F6A88]">{r.body}</div>
-                  </div>
-                </div>
-              );
-            })}
+          <div className="flex flex-wrap items-start gap-2">
+            <ReminderStrip items={reminders} more={remindersMore} />
+            <LiveUpdatesNotice status={liveStatus} />
           </div>
           <div className="flex items-center gap-2 shrink-0">
             {canManagePhases && (
@@ -1712,39 +884,28 @@ export default function OnboardingDetail({
           </div>
         </div>
 
+        <TimelineToolbar
+          filters={filters}
+          onChange={updateFilters}
+          onClear={clearFilters}
+          shown={filterCount.shown}
+          total={filterCount.total}
+          owners={ownerOptions(displayPhases)}
+        />
+
         {/* Gantt grid */}
         <div className="relative rounded-2xl border border-[#E2E7F2] bg-white pt-3 shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
           <div
-            ref={(node) => {
-              // Runs on every render where this callback ref's identity changes (i.e. every
-              // render, since it's inline) — attach/detach directly here instead of a separate
-              // effect keyed off unrelated state, so the listener can never end up permanently
-              // unattached due to a dependency array missing the render where the node mounts
-              // (e.g. after a Jump-to-Phase update, or any other state change that doesn't touch
-              // `loading`/`programmeStartedAt`).
-              if (scrollRef.current) scrollRef.current.removeEventListener("wheel", handleGridWheel);
-              scrollRef.current = node;
-              if (!node) return;
-              node.addEventListener("wheel", handleGridWheel, { passive: false });
-              if (!scrolledToTodayRef.current) {
-                scrolledToTodayRef.current = true;
-                requestAnimationFrame(() => scrollToToday("auto"));
-              }
-            }}
+            ref={gantt.bindGrid(gridMarkerDay)}
             className="overflow-x-auto rounded-2xl"
           >
-            <div className="relative" style={{ width: LABEL_WIDTH + visibleDurationDays * DAY_WIDTH }}>
-              <div className="flex border-b border-[#E2E7F2]">
-                <div className="sticky left-0 shrink-0 border-r z-3 border-[#E2E7F2] bg-white" style={{ width: LABEL_WIDTH }} />
-                {days.map((day) => (
-                  <DateColumnHeader key={day} date={addDays(startDate, day - 1)} isToday={day === gridMarkerDay} />
-                ))}
-              </div>
+            <div className="relative" style={{ width: LABEL_WIDTH + visibleDurationDays * dayWidth }}>
+              <GridHeader startDate={startDate} totalDays={visibleDurationDays} todayDay={gridMarkerDay} />
 
               {gridMarkerDay <= visibleDurationDays && (
                 <div
                   className="pointer-events-none absolute bottom-0 top-0 z-2 w-0 border-l-2 border-dashed border-[#FB914E]"
-                  style={{ left: LABEL_WIDTH + (gridMarkerDay - 1) * DAY_WIDTH + DAY_WIDTH / 2 }}
+                  style={{ left: LABEL_WIDTH + (gridMarkerDay - 1) * dayWidth + dayWidth / 2 }}
                 >
                   <div className="absolute -top-0.5 left-1/2 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded border border-[#F9C9A0] bg-[#FFEFE3] px-1.5 py-0.5 text-[9px] font-bold text-[#FB914E]">
                     Day {gridMarkerDay}
@@ -1777,6 +938,8 @@ export default function OnboardingDetail({
                   startDate={startDate}
                   role={role}
                   totalDays={visibleDurationDays}
+                  currentDay={currentDay}
+                  filters={filters}
                 />
               ))}
             </div>
@@ -1787,7 +950,7 @@ export default function OnboardingDetail({
 
       <button
         type="button"
-        onClick={() => scrollToToday("smooth")}
+        onClick={() => gantt.scrollToToday(gridMarkerDay)}
         aria-label="Jump to today"
         className="fixed bottom-8 right-8 z-40 flex h-12 w-12 cursor-pointer items-center justify-center rounded-full border-none bg-[#FB914E] text-white shadow-[0_4px_16px_rgba(251,145,78,0.4)] transition-transform hover:scale-105"
       >

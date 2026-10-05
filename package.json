@@ -8,7 +8,8 @@
     "start": "NODE_OPTIONS='--max-http-header-size=32768' next start",
     "lint": "eslint . --ext .ts,.tsx",
     "type-check": "tsc",
-    "type-check:watch": "tsc --watch"
+    "type-check:watch": "tsc --watch",
+    "check:logic": "tsx src/lib/programme/__checks__/run.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.71",
@@ -43,6 +44,7 @@
     "@upstash/qstash": "^2.11.2",
     "ai": "6.0.168",
     "class-variance-authority": "^0.7.1",
+    "client-zip": "^2.5.1",
     "clsx": "^2.1.1",
     "diff": "^9.0.0",
     "docx": "^9.7.2",
@@ -94,6 +96,7 @@
     "eslint-config-next": "16.2.4",
     "supabase": "^2.98.2",
     "tailwindcss": "^4",
+    "tsx": "^4.23.15",
     "typescript": "^5"
   }
 }

@@ -149,6 +149,11 @@ const IMPORT_LEVELS = [
   { key: "issue-attachments", label: "Issue Attachments", desc: "Select the files you manually downloaded from each issue attachment's download_url — matches by filename+size and uploads to Supabase Storage" },
 ] as const;
 
+// Task 426 — import levels frozen with the Zoho decommission (they write into tables the unified
+// phase/deliverable migration is about to reshape). Their routes return 410; the handlers/branches
+// below stay until task 431 removes them.
+const RETIRED_IMPORT_KEYS: ReadonlySet<string> = new Set(["milestones", "tasklists", "tasks"]);
+
 export default function ZohoProjectsTab() {
   const [exportStates, setExportStates] = useState<Record<string, CardState>>({});
   const [importStates, setImportStates] = useState<Record<string, CardStatus>>({});
@@ -2145,6 +2150,22 @@ export default function ZohoProjectsTab() {
       >
         <div className="space-y-3">
           {IMPORT_LEVELS.map(({ key, label, desc }) => {
+            if (RETIRED_IMPORT_KEYS.has(key)) {
+              return (
+                <div key={key} className="py-2 border-b border-slate-100 last:border-0">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[13px] font-medium text-slate-500 flex items-center gap-2">
+                        {label}
+                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-500">Retired</span>
+                      </div>
+                      <div className="text-[11px] text-slate-400 mt-0.5">Zoho import frozen (task 426) — data already imported; this level no longer writes.</div>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
             if (key === "tasks") {
               const isRunning = importStates.tasks?.state === "running";
               const prog = tasksImport.progress;

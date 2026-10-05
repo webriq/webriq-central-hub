@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getInternalDeliverable, internalDeliverablesForSubPhase, getDeliverable } from "@/config/customer-phases";
 import { notifyProjectMembers } from "@/lib/notifications";
+import { getProgrammeDeliverable } from "@/lib/programme/store";
 
 const WRITE_ROLES = ["admin", "super_admin", "marketing"];
 const STATUSES = ["pending", "in_progress", "done"];
@@ -66,17 +67,11 @@ export async function PATCH(
     const anyStarted = statuses.some((s) => s !== "pending");
     const computedStatus = allDone ? "done" : anyStarted ? "in_progress" : "pending";
 
-    const { data: currentDeliverable } = await supabase
-      .from("customer_deliverables")
-      .select("*")
-      .eq("project_id", projectId)
-      .eq("phase_number", 1)
-      .eq("deliverable_key", internalConfig.subPhaseKey)
-      .maybeSingle();
+    const currentDeliverable = await getProgrammeDeliverable(supabase, projectId, 1, internalConfig.subPhaseKey);
 
     if (currentDeliverable && currentDeliverable.status !== computedStatus) {
       const { data: newDeliverable, error: deliverableError } = await supabase
-        .from("customer_deliverables")
+        .from("project_deliverables")
         .update({ status: computedStatus, completed_at: computedStatus === "done" ? new Date().toISOString() : null })
         .eq("id", currentDeliverable.id)
         .select()

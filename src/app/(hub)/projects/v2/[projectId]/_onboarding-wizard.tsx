@@ -29,7 +29,8 @@ import { stepKeyToWizardParams } from "./_wizard-step-params";
 const CodeMirror = dynamic(() => import("@uiw/react-codemirror"), { ssr: false });
 import { getPhaseByNumber, internalDeliverablesForSubPhase } from "@/config/customer-phases";
 import type { InternalDeliverableConfig } from "@/config/customer-phases";
-import type { CustomerDeliverableRow, OnboardingInternalDeliverableRow, Database } from "@/types/database";
+import type { OnboardingInternalDeliverableRow, Database } from "@/types/database";
+import type { ProgrammeDeliverableRow } from "@/lib/programme/view-model";
 import type { SaveStatus } from "@/types/onboarding";
 import SaveIndicator from "@/components/onboarding/save-indicator";
 import { POWERPOINT_MIME_TYPES, POWERPOINT_PREVIEWABLE_MIME_TYPES } from "@/config/powerpoint-types";
@@ -137,7 +138,7 @@ interface OnboardingWizardProps {
     contact_email: string | null;
     primary_contact_phone: string | null;
   };
-  deliverables: CustomerDeliverableRow[];
+  deliverables: ProgrammeDeliverableRow[];
   internalDeliverables: OnboardingInternalDeliverableRow[];
   wizardData: Record<string, unknown>;
   currentDay: number;
@@ -150,7 +151,8 @@ interface OnboardingWizardProps {
   isPhaseActive: boolean;
   initialStepKey?: string;
   onBack: () => void;
-  onDeliverableChange: (updated: CustomerDeliverableRow) => void;
+  // The API returns the bare row (no phase_number) — callers merge it over the row they hold.
+  onDeliverableChange: (updated: Partial<ProgrammeDeliverableRow> & { id: string }) => void;
   onInternalDeliverableChange: (updated: OnboardingInternalDeliverableRow) => void;
   // Task 156 — Phase 1 access management moved here from the Timeline page (_onboarding-detail
   // .tsx), which still owns the actual phase1Members state/handlers and the Wizard-entry
@@ -980,7 +982,7 @@ export default function OnboardingWizard({
         body: JSON.stringify({ status }),
       });
       if (!res.ok) return;
-      const { internalDeliverable, deliverable }: { internalDeliverable: OnboardingInternalDeliverableRow; deliverable: CustomerDeliverableRow | null } = await res.json();
+      const { internalDeliverable, deliverable }: { internalDeliverable: OnboardingInternalDeliverableRow; deliverable: ProgrammeDeliverableRow | null } = await res.json();
       // Match by deliverable_key, not id: the PATCH route now upserts (task 135 follow-up), so
       // a project whose row didn't exist yet gets one created on first toggle with a brand-new
       // id that was never in localInternal — an id-keyed .map would silently no-op (0 matches),

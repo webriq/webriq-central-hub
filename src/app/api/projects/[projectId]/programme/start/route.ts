@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { seedAndStartProgramme } from "@/lib/programme/seed";
+import { loadProgramme } from "@/lib/programme/store";
+import { toWire } from "@/lib/programme/view-model";
 import { cancelProjectAutostart } from "@/lib/qstash";
 import type { CustomPhaseSeed, DefaultPhaseOverride } from "@/config/customer-phases";
 
@@ -86,12 +88,8 @@ export async function POST(
       await supabase.from("projects").update({ qstash_message_id: null }).eq("id", projectId);
     }
 
-    const [phasesRes, deliverablesRes] = await Promise.all([
-      supabase.from("customer_phases").select("*").eq("project_id", projectId).order("phase_number"),
-      supabase.from("customer_deliverables").select("*").eq("project_id", projectId).order("phase_number"),
-    ]);
-
-    return NextResponse.json({ phases: phasesRes.data ?? [], deliverables: deliverablesRes.data ?? [] }, { status: 201 });
+    const programme = await loadProgramme(supabase, projectId);
+    return NextResponse.json(toWire(programme), { status: 201 });
   } catch (err) {
     console.error("POST /api/projects/[projectId]/programme/start unexpected error:", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

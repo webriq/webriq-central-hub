@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
+import { getProgrammePhase, upsertPhaseState } from "@/lib/programme/store";
 import { upsertPrimaryContact } from "@/lib/customers/primary-contact";
 
 const WRITE_ROLES = ["admin", "super_admin", "marketing"];
@@ -34,29 +35,20 @@ export async function PATCH(
 
     const { projectId } = await params;
 
-    const { data: existing, error: fetchError } = await supabase
-      .from("customer_phases")
-      .select("wizard_data")
-      .eq("project_id", projectId)
-      .eq("phase_number", 1)
-      .single();
-    if (fetchError || !existing) {
+    const phase1 = await getProgrammePhase(supabase, projectId, 1);
+    if (!phase1) {
       return NextResponse.json({ error: "Programme not started for this project" }, { status: 404 });
     }
+    const { data: existing } = await supabase.from("phase_programme_state").select("wizard_data").eq("phase_id", phase1.id).maybeSingle();
 
-    const existingData = (existing.wizard_data as Record<string, unknown>) ?? {};
+    const existingData = (existing?.wizard_data as Record<string, unknown> | null) ?? {};
     const mergedSubPhase = { ...((existingData[subPhaseKey] as Record<string, unknown>) ?? {}), ...body.data };
     const mergedData = { ...existingData, [subPhaseKey]: mergedSubPhase };
 
-    const { data, error } = await supabase
-      .from("customer_phases")
-      .update({ wizard_data: mergedData })
-      .eq("project_id", projectId)
-      .eq("phase_number", 1)
-      .select("wizard_data")
-      .single();
-
-    if (error) {
+    let data: { wizard_data: unknown };
+    try {
+      data = await upsertPhaseState(supabase, phase1.id, { wizard_data: mergedData as never });
+    } catch (error) {
       console.error("PATCH /api/projects/[projectId]/programme/wizard-data error:", error);
       return NextResponse.json({ error: "Failed to save wizard data" }, { status: 500 });
     }

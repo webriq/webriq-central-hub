@@ -18,6 +18,11 @@ export type DeliverableConfig = {
   dayStart: number; // absolute programme day, 1-120 — NOT phase-relative
   dayEnd: number;
   owner: string; // display label only, not a Hub user FK
+  // Task 432: set by resolveEffectiveDeliverable when the day came from a stored override. Stored
+  // overrides are already on the skip-COMPRESSED scale (seed-time plan values and the Timeline's own
+  // writes); only the static defaults above are on the reference scale and still need compressing.
+  dayStartOverridden?: boolean;
+  dayEndOverridden?: boolean;
 };
 
 export type PhaseConfig = {
@@ -33,6 +38,9 @@ export type PhaseConfig = {
   dayEnd: number;
   owner: string;
   deliverables: DeliverableConfig[];
+  // Task 432: see DeliverableConfig — true when the value came from a (skip-compressed) stored override.
+  dayStartOverridden?: boolean;
+  dayEndOverridden?: boolean;
 };
 
 export const PROGRAMME_PHASES: PhaseConfig[] = [
@@ -258,6 +266,8 @@ export function resolveEffectiveDeliverable(phaseNumber: number, row: Deliverabl
     dayStart: row.day_start_override ?? staticDeliverable?.dayStart ?? 1,
     dayEnd: row.day_end_override ?? staticDeliverable?.dayEnd ?? 1,
     owner: row.custom_owner ?? staticDeliverable?.owner ?? "",
+    dayStartOverridden: row.day_start_override != null,
+    dayEndOverridden: row.day_end_override != null,
   };
 }
 
@@ -274,6 +284,8 @@ export function resolveEffectivePhase(row: PhaseOverrideRow, deliverableRows: De
     dayStart: row.day_start_override ?? staticPhase?.dayStart ?? 1,
     dayEnd: row.day_end_override ?? staticPhase?.dayEnd ?? 1,
     owner: staticPhase?.owner ?? "",
+    dayStartOverridden: row.day_start_override != null,
+    dayEndOverridden: row.day_end_override != null,
     sortOrder: row.sort_order,
     deliverables:
       deliverableRows.length > 0

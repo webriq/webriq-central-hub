@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import OnboardingDetail from "../../_onboarding-detail";
+import { GanttZoomProvider } from "../../_gantt-zoom-context";
 import { loadOnboardingDetailData } from "../../_load-detail-data";
 import { getProjectNameForMetadata } from "../../../../_shared/_get-metadata-titles";
 import { wizardParamsToStepKey } from "../../_wizard-step-params";
@@ -35,6 +36,7 @@ export default async function ProjectTimelinePage({ params, searchParams }: Page
   );
 
   return (
+    <GanttZoomProvider>
     <OnboardingDetail
       project={project}
       initialWizardStepKey={initialWizardStepKey}
@@ -46,5 +48,6 @@ export default async function ProjectTimelinePage({ params, searchParams }: Page
       tasklists={tasklists}
       genericTasks={genericTasks}
     />
+    </GanttZoomProvider>
   );
 }

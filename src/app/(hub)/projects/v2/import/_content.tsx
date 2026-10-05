@@ -24,7 +24,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { V2_ROUTES } from "@/config/constants";
-import { CLASSIFICATIONS, type Classification, STACKSHIFT_VARIANTS, PROGRAMME_PHASES, getCurrentProgrammeDay } from "@/config/customer-phases";
+import { CLASSIFICATIONS, type Classification, STACKSHIFT_VARIANTS, PROGRAMME_PHASES } from "@/config/customer-phases";
+import { currentDisplayDay } from "@/lib/programme/calendar";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
 type Step = 1 | 2;
@@ -186,7 +187,7 @@ function isOverdue(kickoffDate: string, currentPhase: string): boolean {
   if (!kickoffDate) return false;
   const phaseNumber = currentPhase ? PROGRAMME_PHASES.find((p) => p.name === currentPhase)?.number ?? 1 : 1;
   if (phaseNumber !== 1) return false;
-  return getCurrentProgrammeDay(kickoffDate) > 15;
+  return currentDisplayDay(kickoffDate) > 15;
 }
 
 function needsAttention(row: ImportRow): string | null {
@@ -649,7 +650,7 @@ function ReviewTableRow({
         </select>
         {isOverdue(row.kickoffDate, row.currentPhase) && (
           <div className="mt-1 pl-2.5 text-[10.5px] leading-snug text-[#C0392B]">
-            Overdue — Day {getCurrentProgrammeDay(row.kickoffDate)}, past the 15-day Onboarding window
+            Overdue — Day {currentDisplayDay(row.kickoffDate)}, past the 15-day Onboarding window
           </div>
         )}
       </td>

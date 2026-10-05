@@ -78,14 +78,15 @@ export default async function StackShiftOrderDetailPage({
         supabase.from("milestones").select("id", { count: "exact", head: true }).eq("project_id", pr.id),
         pr.uses_customer_phases_engine
           ? supabase
-              .from("customer_phases")
-              .select("phase_number, status, sort_order")
+              .from("project_phases")
+              .select("phase_number, status, position")
               .eq("project_id", pr.id)
-              .order("sort_order")
-          : Promise.resolve({ data: [] as { phase_number: number; status: string; sort_order: number }[] }),
+              .eq("source", "programme")
+              .order("position")
+          : Promise.resolve({ data: [] as { phase_number: number | null; status: string; position: number | null }[] }),
       ]);
       const phases = phaseRows ?? [];
-      const current = phases.find((p) => p.status === "in_progress") ?? phases.find((p) => p.status === "pending");
+      const current = phases.find((p) => p.status === "active") ?? phases.find((p) => p.status === "planned");
       linkedProject = {
         name: pr.name,
         href: `${V2_ROUTES.PROJECTS_V2}/${pr.project_id ?? pr.id}`,

@@ -1,18 +1,23 @@
+import { randomUUID } from "node:crypto";
 import { adminClient } from "@/lib/supabase/admin";
 import { sendCliqNotification } from "@/lib/zoho";
 import {
   PROGRAMME_PHASES,
   INTERNAL_DELIVERABLES,
-  getCurrentProgrammeDay,
-  scaleDay,
   DEFAULT_PROGRAMME_DAYS,
   resolveEffectivePhaseNumber,
-  resolveEffectiveStartDay,
   slugifyDeliverableKey,
   buildOrderedPhasePlan,
   type CustomPhaseSeed,
   type DefaultPhaseOverride,
 } from "@/config/customer-phases";
+import { asReferenceDay, createProgrammeCalendar, currentDisplayDay } from "@/lib/programme/calendar";
+import { planBackfill, type CustomerDeliverableIn, type CustomerPhaseIn } from "@/lib/programme/backfill-plan";
+import type { Database } from "@/types/database";
+
+type ProjectPhaseInsert = Database["public"]["Tables"]["project_phases"]["Insert"];
+type ProjectDeliverableInsert = Database["public"]["Tables"]["project_deliverables"]["Insert"];
+type PhaseStateInsert = Database["public"]["Tables"]["phase_programme_state"]["Insert"];
 
 // Task 246: unifies PROGRAMME_PHASES' 5 defaults with any PM-added custom phases into one ordered
 // list both seed functions below build their customer_phases/customer_deliverables rows from —
@@ -113,6 +118,55 @@ function deliverableDayOverride(phaseNumber: number, d: { key: string; dayStart:
   return { dayStartOverride: differs ? d.dayStart : null, dayEndOverride: differs ? d.dayEnd : null };
 }
 
+// Task 429 (WP2) — ONE seed. The two seed entry points below still build the rows the old code inserted into
+// `customer_phases` / `customer_deliverables` (statuses, plan overrides — the cascade logic is unchanged), but they no longer
+// insert them there: those rows are fed through the same planner the task-428 backfill uses (`planBackfill`, with no existing
+// rows), which resolves names / owners / statuses / DISPLAY-scale `day_start`/`day_end` / derived dates exactly as the backfill
+// does, and the result is written to `project_phases` + `project_deliverables` + `phase_programme_state`. So a freshly seeded
+// project and a backfilled one are identical by construction, and the duplicate `milestones`/`tasklists` rows that
+// `seedPhase2to5Links` used to create are gone — a Phase 2-5 deliverable IS the tasklist.
+type SeedPhaseRow = Omit<CustomerPhaseIn, "actual_completed_date" | "delay_note" | "wizard_data" | "override_note"> & { override_note?: string | null };
+type SeedDeliverableRow = Omit<CustomerDeliverableIn, "completed_at" | "custom_description" | "custom_owner">;
+async function insertUnifiedProgramme(
+  project: { id: string },
+  startedAt: Date,
+  durationDays: number,
+  skipPhaseNumbers: number[],
+  phaseRows: SeedPhaseRow[],
+  deliverableRows: SeedDeliverableRow[],
+  label: string
+): Promise<{ error?: string }> {
+  const plan = planBackfill({
+    projects: [{ id: project.id, project_id: null, programme_started_at: startedAt.toISOString(), programme_duration_days: durationDays, draft_skip_phase_numbers: skipPhaseNumbers }],
+    phases: phaseRows.map((r) => ({ ...r, actual_completed_date: null, delay_note: null, override_note: r.override_note ?? null, wizard_data: {} })),
+    deliverables: deliverableRows.map((r) => ({ ...r, completed_at: null, custom_description: null, custom_owner: null })),
+    existingPhases: [],
+    existingDeliverables: [],
+    newId: randomUUID,
+  });
+  if (plan.ambiguities.length) {
+    console.error(`${label}: unexpected planner ambiguity:`, plan.ambiguities);
+    return { error: "Failed to seed programme phases" };
+  }
+  const phases = plan.phases.map((op) => ({ id: op.id, ...op.row }) as ProjectPhaseInsert);
+  const { error: phasesError } = await adminClient.from("project_phases").insert(phases);
+  if (phasesError) {
+    console.error(`${label}: project_phases insert error:`, phasesError);
+    return { error: "Failed to seed programme phases" };
+  }
+  // Deliverables reference phase ids, so they go after the phases; state + the internal checklist are independent.
+  const [stateRes, deliverablesRes, internalRes] = await Promise.all([
+    adminClient.from("phase_programme_state").insert(plan.phases.map((op) => op.state as PhaseStateInsert)),
+    adminClient.from("project_deliverables").insert(plan.deliverables.map((op) => ({ id: op.id, ...op.row }) as ProjectDeliverableInsert)),
+    adminClient.from("onboarding_internal_deliverables").insert(INTERNAL_DELIVERABLES.map((d) => ({ project_id: project.id, deliverable_key: d.key }))),
+  ]);
+  if (stateRes.error || deliverablesRes.error || internalRes.error) {
+    console.error(`${label}: seed error:`, stateRes.error ?? deliverablesRes.error ?? internalRes.error);
+    return { error: "Failed to seed programme phases" };
+  }
+  return {};
+}
+
 // Task 241, fixed by task 243: seeds one `milestones` row per Phase 2-5 plus a `tasklists` row
 // per deliverable in that phase, so the Timeline's Phase 2-5 deliverable cards can link into
 // Projects > Tasks. `external_id` is scoped by `project.id` — both `milestones.external_id` and
@@ -184,7 +238,7 @@ export async function seedPhase2to5Links(project: { id: string }): Promise<void>
 // this codebase — phases 2-5 have no Wizard/membership-gated entry concept to assign.
 //
 // durationDays (task 239): StackShift I's configurable programme length. PROGRAMME_PHASES' own
-// dayStart/dayEnd stay the fixed 1-120 reference scale; scaleDay() converts each reference day
+// dayStart/dayEnd stay the fixed 1-120 reference scale; the calendar converts each reference day
 // into the real calendar day for this project before it's used to backdate `startedAt`. Default
 // 120 behaves byte-identical to before this param existed.
 //
@@ -231,9 +285,9 @@ export async function seedAndStartProgramme(
   // project, so they shouldn't count as already-elapsed time either (see resolveEffectiveStartDay's
   // own doc comment). Identical to the old `targetPhase.dayStart` whenever nothing earlier is
   // skipped.
-  const effectiveStartDay = resolveEffectiveStartDay(entries, effectivePhaseNumber, skipPhaseNumbers);
+  const calendar = createProgrammeCalendar({ durationDays, skipPhaseNumbers, phases: entries });
   const startedAt = new Date();
-  startedAt.setDate(startedAt.getDate() - (scaleDay(effectiveStartDay, durationDays) - 1));
+  startedAt.setDate(startedAt.getDate() - calendar.backdateOffsetDays(effectivePhaseNumber));
 
   const { error: updateError } = await adminClient
     .from("projects")
@@ -289,30 +343,8 @@ export async function seedAndStartProgramme(
         };
       })
     );
-  const internalDeliverableRows = INTERNAL_DELIVERABLES.map((d) => ({
-    project_id: project.id,
-    deliverable_key: d.key,
-  }));
-
-  const [phasesRes, deliverablesRes, internalRes] = await Promise.all([
-    adminClient.from("customer_phases").insert(phaseRows),
-    adminClient.from("customer_deliverables").insert(deliverableRows),
-    adminClient.from("onboarding_internal_deliverables").insert(internalDeliverableRows),
-  ]);
-  if (phasesRes.error || deliverablesRes.error || internalRes.error) {
-    console.error(
-      "seedAndStartProgramme: seed error:",
-      phasesRes.error ?? deliverablesRes.error ?? internalRes.error
-    );
-    return { error: "Failed to seed programme phases" };
-  }
-
-  // Task 241 (bug fix: task 243): parallel generic-model rows for Phase 2-5 (Phase 1 has no
-  // generic-model presence — task 222's Onboarding Workspace is its equivalent surface) so the
-  // Timeline's Phase 2-5 deliverable cards can link into Projects > Tasks. Non-fatal: losing
-  // these rows shouldn't block the actual programme start (the function's primary job) — the
-  // swimlane redirect degrades to a bare /tasks link when a mapping is missing.
-  await seedPhase2to5Links(project);
+  const seeded = await insertUnifiedProgramme(project, startedAt, durationDays, skipPhaseNumbers, phaseRows, deliverableRows, "seedAndStartProgramme");
+  if (seeded.error) return seeded;
 
   if (startedByUserId) {
     // Task 244: only grant Phase 1 ownership when Phase 1 is actually the active phase. In the
@@ -424,7 +456,10 @@ export async function seedProgrammeAtPhase(
   // in_progress on Day 1" convention to work for any starting day, not just Day 1. Task 249: a
   // custom phase's deliverables now carry a computed day range too (previously always undefined,
   // so this could never fire for them) — this now applies uniformly to every deliverable.
-  const currentDay = getCurrentProgrammeDay(startedAt);
+  const currentDay = currentDisplayDay(startedAt);
+  // Reference → display only: this in-progress check has never skip-compressed (same numbers as before).
+  const plainCalendar = createProgrammeCalendar({ durationDays });
+  const toDisplayDay = (referenceDay: number) => plainCalendar.referenceToDisplay(asReferenceDay(referenceDay));
   const deliverableRows = entries
     .filter((p) => !skipSet.has(p.number))
     .flatMap((p) =>
@@ -439,27 +474,10 @@ export async function seedProgrammeAtPhase(
           day_start_override: dayStartOverride,
           day_end_override: dayEndOverride,
           status:
-            currentDay >= scaleDay(d.dayStart, durationDays) && currentDay <= scaleDay(d.dayEnd, durationDays) ? "in_progress" : "pending",
+            currentDay >= toDisplayDay(d.dayStart) && currentDay <= toDisplayDay(d.dayEnd) ? "in_progress" : "pending",
         };
       })
     );
-  const internalDeliverableRows = INTERNAL_DELIVERABLES.map((d) => ({
-    project_id: project.id,
-    deliverable_key: d.key,
-  }));
-
-  const [phasesRes, deliverablesRes, internalRes] = await Promise.all([
-    adminClient.from("customer_phases").insert(phaseRows),
-    adminClient.from("customer_deliverables").insert(deliverableRows),
-    adminClient.from("onboarding_internal_deliverables").insert(internalDeliverableRows),
-  ]);
-  if (phasesRes.error || deliverablesRes.error || internalRes.error) {
-    console.error(
-      "seedProgrammeAtPhase: seed error:",
-      phasesRes.error ?? deliverablesRes.error ?? internalRes.error
-    );
-    return { error: "Failed to seed programme phases" };
-  }
-
-  return {};
+  return insertUnifiedProgramme(project, startedAt, durationDays, skipPhaseNumbers, phaseRows, deliverableRows, "seedProgrammeAtPhase");
 }
+

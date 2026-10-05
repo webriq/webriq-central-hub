@@ -3,15 +3,17 @@ import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { sendCliqNotification } from "@/lib/zoho";
 import {
-  scaleDay,
   resolveEffectivePhaseNumber,
-  resolveEffectiveStartDay,
   PROGRAMME_PHASES,
   type CustomPhaseSeed,
   type DefaultPhaseOverride,
 } from "@/config/customer-phases";
+import { createProgrammeCalendar } from "@/lib/programme/calendar";
 import { cancelProjectAutostart } from "@/lib/qstash";
 import { seedProgrammeAtPhase } from "@/lib/programme/seed";
+import { loadProgramme, rematerialiseProgrammeDates } from "@/lib/programme/store";
+import { toWire } from "@/lib/programme/view-model";
+import { inProgrammeOrder, isPermanentlySkipped } from "@/lib/programme/programme-status";
 
 const WRITE_ROLES = ["admin", "super_admin", "marketing"];
 
@@ -125,11 +127,11 @@ export async function PATCH(
     // already-elapsed time) instead of targetPhase's own static dayStart — mirrors
     // seedAndStartProgramme's identical fix. Byte-identical to the old dayStart-based backdate
     // whenever nothing earlier is skipped.
-    const effectiveStartDay = resolveEffectiveStartDay(entries, effectivePhaseNumber, skipPhaseNumbers);
+    const backdateOffsetDays = createProgrammeCalendar({ durationDays: project.programme_duration_days, skipPhaseNumbers, phases: entries }).backdateOffsetDays(effectivePhaseNumber);
 
     if (!wasStarted) {
       const backdated = new Date();
-      backdated.setDate(backdated.getDate() - (scaleDay(effectiveStartDay, project.programme_duration_days) - 1));
+      backdated.setDate(backdated.getDate() - backdateOffsetDays);
 
       const seedResult = await seedProgrammeAtPhase(
         { id: projectId, customer_id: project.customer_id },
@@ -158,14 +160,14 @@ export async function PATCH(
         "pm"
       );
 
-      const { data: seededPhases } = await supabase.from("customer_phases").select("*").eq("project_id", projectId).order("phase_number");
-      return NextResponse.json({ phases: seededPhases ?? [] });
+      const seeded = await loadProgramme(supabase, projectId);
+      return NextResponse.json({ phases: toWire(seeded).phases });
     }
 
     // Already started — backdate programme_started_at so "today" lands inside the target phase's
     // day range (mirrors the not-started branch's own calculation), then re-status the phase rows.
     const backdated = new Date();
-    backdated.setDate(backdated.getDate() - (scaleDay(effectiveStartDay, project.programme_duration_days) - 1));
+    backdated.setDate(backdated.getDate() - backdateOffsetDays);
     const { error: dateUpdateError } = await adminClient
       .from("projects")
       .update({ programme_started_at: backdated.toISOString() })
@@ -175,65 +177,67 @@ export async function PATCH(
       return NextResponse.json({ error: "Failed to update programme start date" }, { status: 500 });
     }
 
-    // Task 246: re-status by sort_order, not phase_number — a project can have custom phases
-    // inserted anywhere, so phase_number order no longer matches display/adjacency order. Reads
-    // the project's actual seeded phases (defaults + any customs) rather than assuming
-    // PROGRAMME_PHASES' fixed 5, since a custom phase must participate in this cascade too.
-    const { data: existingPhases, error: existingPhasesError } = await supabase
-      .from("customer_phases")
-      .select("phase_number, sort_order")
-      .eq("project_id", projectId);
-    if (existingPhasesError || !existingPhases) {
+    // Re-status by programme order (`position`), not phase_number — a project can have custom phases inserted anywhere. Reads the
+    // project's actual seeded phases (defaults + customs) so a custom phase participates in this cascade too.
+    const { data: phaseRows, error: existingPhasesError } = await supabase
+      .from("project_phases")
+      .select("id, phase_number, position, status")
+      .eq("project_id", projectId)
+      .eq("source", "programme");
+    if (existingPhasesError || !phaseRows) {
       console.error("PATCH /api/projects/[projectId]/programme/phase existing-phases fetch error:", existingPhasesError);
       return NextResponse.json({ error: "Failed to load existing programme phases" }, { status: 500 });
     }
-    const targetSortOrder = existingPhases.find((p) => p.phase_number === phaseNumber)?.sort_order ?? -Infinity;
+    const existingPhases = inProgrammeOrder(phaseRows);
+    const target = existingPhases.find((p) => p.phase_number === phaseNumber);
+    if (!target) {
+      return NextResponse.json({ error: "phase_number does not match any phase of this project" }, { status: 400 });
+    }
+    const targetPosition = target.position ?? 0;
+    // A phase permanently excluded (this call's skip set, or already `skipped` on the row) stays `skipped` wherever it sits relative
+    // to the jump's target; an earlier-by-time phase is `bypassed` (passed over, keeps its days); a later one goes back to `planned`.
     const permanentSkipSet = new Set(skipPhaseNumbers);
+    const nextStatus = (p: (typeof existingPhases)[number]): "skipped" | "bypassed" | "planned" =>
+      (p.phase_number !== null && permanentSkipSet.has(p.phase_number)) || isPermanentlySkipped(p.status)
+        ? "skipped"
+        : (p.position ?? 0) < targetPosition
+          ? "bypassed"
+          : "planned";
 
-    const updates = existingPhases.map(async (p) => {
-      if (p.phase_number === phaseNumber) {
-        return supabase
-          .from("customer_phases")
-          .update({ status: "active", actual_start_date: today, is_manual_override: true, override_note: note })
-          .eq("project_id", projectId)
-          .eq("phase_number", p.phase_number);
-      }
-      // Chat follow-up to task 244: a phase the PM permanently excluded at intake (skipPhaseNumbers)
-      // stays "skipped" regardless of where it sits relative to this jump's target — previously,
-      // jumping to a phase that sorts *after* an intentionally-skipped one silently reset it to
-      // "not_started" (this cascade used to key off sort_order alone), un-skipping something the PM
-      // never asked to bring back. Every other earlier-by-time phase keeps the existing "jumped past
-      // it" skip behavior.
-      if (permanentSkipSet.has(p.phase_number) || p.sort_order < targetSortOrder) {
-        return supabase
-          .from("customer_phases")
-          .update({ status: "skipped" })
-          .eq("project_id", projectId)
-          .eq("phase_number", p.phase_number)
-          .neq("status", "completed");
-      }
-      return supabase
-        .from("customer_phases")
-        .update({ status: "not_started", actual_start_date: null, is_manual_override: false, override_note: null })
-        .eq("project_id", projectId)
-        .eq("phase_number", p.phase_number)
-        .neq("status", "completed");
-    });
-
-    const results = await Promise.all(updates);
-    const failed = results.find((r) => r.error);
+    // Others first, target last: a partial unique index allows only one `active` programme phase per project.
+    const others = existingPhases.filter((p) => p.id !== target.id && p.status !== "completed");
+    const otherResults = await Promise.all(
+      others.map((p) => {
+        const status = nextStatus(p);
+        return supabase.from("project_phases").update(status === "planned" ? { status, actual_start_date: null } : { status }).eq("id", p.id);
+      })
+    );
+    const targetResult = otherResults.find((r) => r.error) ? null : await supabase.from("project_phases").update({ status: "active", actual_start_date: today }).eq("id", target.id);
+    const failed = otherResults.find((r) => r.error) ?? targetResult;
     if (failed?.error) {
       console.error("PATCH /api/projects/[projectId]/programme/phase update error:", failed.error);
       return NextResponse.json({ error: "Failed to update programme phase" }, { status: 500 });
     }
+    const stateRows = [
+      { phase_id: target.id, is_manual_override: true, override_note: note },
+      ...others.filter((p) => nextStatus(p) === "planned").map((p) => ({ phase_id: p.id, is_manual_override: false, override_note: null })),
+    ];
+    const { error: stateError } = await supabase.from("phase_programme_state").upsert(stateRows, { onConflict: "phase_id" });
+    if (stateError) {
+      console.error("PATCH /api/projects/[projectId]/programme/phase state error:", stateError);
+      return NextResponse.json({ error: "Failed to update programme phase" }, { status: 500 });
+    }
+
+    // programme_started_at moved (backdated above) → every programme row's derived dates must follow (decision D-B).
+    await rematerialiseProgrammeDates(supabase, projectId, backdated.toISOString());
 
     await sendCliqNotification(
       `${companyName}: manually jumped to Phase ${phaseNumber} (${targetPhase.name}).${note ? ` Note: ${note}` : ""}`,
       "pm"
     );
 
-    const { data: phases } = await supabase.from("customer_phases").select("*").eq("project_id", projectId).order("phase_number");
-    return NextResponse.json({ phases: phases ?? [] });
+    const programme = await loadProgramme(supabase, projectId);
+    return NextResponse.json({ phases: toWire(programme).phases });
   } catch (err) {
     console.error("PATCH /api/projects/[projectId]/programme/phase unexpected error:", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

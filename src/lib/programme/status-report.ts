@@ -10,7 +10,10 @@
 // phase can finish in fewer days than its allotment (e.g. Onboard done in 10 of its 15 days) or
 // more (used > allotted), which is the whole point of the Used/Allotted + Overdue columns.
 
-import { PROGRAMME_PHASES, getCurrentProgrammeDay, resolveEffectivePhase } from "@/config/customer-phases";
+import { PROGRAMME_PHASES } from "@/config/customer-phases";
+import type { PhaseSummary } from "@/lib/programme/store";
+import { inProgrammeOrder } from "@/lib/programme/programme-status";
+import { currentDisplayDay } from "@/lib/programme/calendar";
 
 export type PhaseStatus = "pending" | "in_progress" | "completed" | "overdue" | "skipped";
 export type HealthTone = "on_track" | "at_risk" | "needs_attention" | "ahead_of_schedule" | null;
@@ -43,20 +46,12 @@ export function programmeDaysLeft(currentProgrammeDay: number, totalProgrammeDay
   return Math.max(0, totalProgrammeDays - currentProgrammeDay);
 }
 
-export type CustomerPhaseRow = {
-  phase_number: number;
-  status: string; // not_started | active | completed | skipped
-  actual_start_date: string | null;
-  actual_completed_date: string | null;
-  delay_note: string | null;
-  // Task 246 — override columns read via resolveEffectivePhase; null on every pre-migration row
-  // and any of the 5 defaults a PM never edited (falls back to PROGRAMME_PHASES, byte-identical
-  // to pre-task-246 behavior).
-  custom_name: string | null;
-  day_start_override: number | null;
-  day_end_override: number | null;
-  sort_order: number;
-};
+// Task 429 (WP3): rows come from the unified `project_phases` (+ state delay note) via store.loadProgrammeSummaries. Day values are
+// already display-scale and skip-compressed, so no per-row override resolution happens here any more.
+export type StatusPhaseRow = Pick<
+  PhaseSummary,
+  "phase_number" | "name" | "status" | "position" | "day_start" | "day_end" | "actual_start_date" | "actual_completed_date" | "owner_label" | "delay_note"
+>;
 
 export type PhaseAssigneeMember = { id: string; fullName: string; roleLabel: string; avatarUrl: string | null };
 
@@ -96,10 +91,11 @@ export function computeUsedDays(actualStartDate: string | null, actualCompletedD
   return daysBetweenInclusive(actualStartDate, actualCompletedDate ?? new Date().toISOString());
 }
 
-export function derivePhaseStatus(row: CustomerPhaseRow | undefined, allotedDays: number, usedDays: number | null): PhaseStatus {
-  const dbStatus = row?.status ?? "not_started";
+export function derivePhaseStatus(row: StatusPhaseRow | undefined, allotedDays: number, usedDays: number | null): PhaseStatus {
+  const dbStatus = row?.status ?? "planned";
   if (dbStatus === "completed") return "completed";
-  if (dbStatus === "skipped") return "skipped";
+  // A time-bypassed phase (Jump to phase) reports the same as a permanently skipped one, as it did before the unification.
+  if (dbStatus === "skipped" || dbStatus === "bypassed") return "skipped";
   if (dbStatus === "active") {
     return usedDays !== null && usedDays > allotedDays ? "overdue" : "in_progress";
   }
@@ -146,7 +142,7 @@ export function rollupHealth(healths: HealthTone[]): HealthTone {
 
 export type ProjectPhaseInputs = {
   programmeStartedAt: string;
-  phaseRows: CustomerPhaseRow[]; // 0-5 rows, one per started/touched phase
+  phaseRows: StatusPhaseRow[]; // 0-N rows, one per started/touched phase
   deliverableRatioByPhase: Record<number, number | null>; // phase_number -> done/total, null if no deliverables tracked yet
   assigneesByPhase: Record<number, PhaseAssigneeMember[]>;
 };
@@ -157,16 +153,23 @@ export type ProjectPhaseBreakdown = {
   phases: PhaseDerived[];
 };
 
-// Task 246: iterates the project's own phaseRows (defaults + any customs, resolved via
-// resolveEffectivePhase) instead of the static PROGRAMME_PHASES array — a custom phase now gets a
-// report row too, and totalProgrammeDays reflects this project's actual last phase, not a fixed
-// 120. Falls back to PROGRAMME_PHASES directly when phaseRows is empty (e.g. not yet seeded),
-// preserving the pre-task-246 default shape.
+// Iterates the project's own phaseRows (defaults + any customs) — a custom phase gets a report row too, and totalProgrammeDays is this
+// project's actual last display day. Falls back to PROGRAMME_PHASES when phaseRows is empty (not yet seeded).
+type ResolvedPhase = { number: number; name: string; dayStart: number; dayEnd: number; owner: string };
 export function buildPhaseBreakdown(inputs: ProjectPhaseInputs): ProjectPhaseBreakdown {
-  const orderedRows = [...inputs.phaseRows].sort((a, b) => a.sort_order - b.sort_order);
-  const resolvedPhases = orderedRows.length > 0 ? orderedRows.map((row) => resolveEffectivePhase(row)) : PROGRAMME_PHASES;
-  const totalProgrammeDays = resolvedPhases.reduce((max, p) => Math.max(max, p.dayEnd), TOTAL_PROGRAMME_DAYS);
-  const currentProgrammeDay = Math.min(totalProgrammeDays, getCurrentProgrammeDay(inputs.programmeStartedAt));
+  const orderedRows = inProgrammeOrder(inputs.phaseRows);
+  const resolvedPhases: ResolvedPhase[] =
+    orderedRows.length > 0
+      ? orderedRows.map((r) => ({
+          number: r.phase_number ?? 0,
+          name: r.name,
+          dayStart: r.day_start ?? 0,
+          dayEnd: r.day_end ?? 0,
+          owner: r.owner_label ?? "Team",
+        }))
+      : PROGRAMME_PHASES;
+  const totalProgrammeDays = orderedRows.length > 0 ? resolvedPhases.reduce((max, p) => Math.max(max, p.dayEnd), 0) || TOTAL_PROGRAMME_DAYS : TOTAL_PROGRAMME_DAYS;
+  const currentProgrammeDay = currentDisplayDay(inputs.programmeStartedAt, totalProgrammeDays);
   const rowByPhaseNumber = new Map(inputs.phaseRows.map((r) => [r.phase_number, r]));
 
   const phases = resolvedPhases.map((phase): PhaseDerived => {

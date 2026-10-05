@@ -6,9 +6,9 @@ import {
   currentPhaseOf,
   rollupHealth,
   programmeDaysLeft,
-  type CustomerPhaseRow,
   type PhaseAssigneeMember,
 } from "@/lib/programme/status-report";
+import { loadProgrammeSummaries } from "@/lib/programme/store";
 import { isRoleGatedByMembership } from "@/lib/programme/phase-membership";
 
 // Task 221 — Portfolio Tracker status report. Same read-role set and marketing/pm
@@ -84,19 +84,13 @@ export async function GET(request: Request) {
       return NextResponse.json({ projects: [], canEditNotes: WRITE_ROLES.includes(profile.role) });
     }
 
-    const [phasesRes, deliverablesRes, membersRes] = await Promise.all([
-      supabase
-        .from("customer_phases")
-        .select(
-          "project_id, phase_number, status, actual_start_date, actual_completed_date, delay_note, custom_name, day_start_override, day_end_override, sort_order"
-        )
-        .in("project_id", projectIds),
-      supabase.from("customer_deliverables").select("project_id, phase_number, status").in("project_id", projectIds),
+    const [summaries, membersRes] = await Promise.all([
+      loadProgrammeSummaries(supabase, projectIds).catch((err: Error) => err),
       supabase.from("phase_members").select("id, project_id, phase_number, user_id, is_owner").in("project_id", projectIds),
     ]);
 
-    if (phasesRes.error || deliverablesRes.error || membersRes.error) {
-      console.error("GET /api/onboarding/projects/status-report error:", phasesRes.error ?? deliverablesRes.error ?? membersRes.error);
+    if (summaries instanceof Error || membersRes.error) {
+      console.error("GET /api/onboarding/projects/status-report error:", summaries instanceof Error ? summaries : membersRes.error);
       return NextResponse.json({ error: "Failed to fetch status report" }, { status: 500 });
     }
 
@@ -108,18 +102,6 @@ export async function GET(request: Request) {
     if (memberUserIds.length > 0) {
       const { data: memberProfiles } = await adminClient.from("profiles").select("id, full_name, role, avatar_url").in("id", memberUserIds);
       for (const row of memberProfiles ?? []) memberProfileById.set(row.id, { full_name: row.full_name, role: row.role, avatar_url: row.avatar_url });
-    }
-
-    const phasesByProject = new Map<string, CustomerPhaseRow[]>();
-    for (const row of phasesRes.data ?? []) {
-      if (!phasesByProject.has(row.project_id)) phasesByProject.set(row.project_id, []);
-      phasesByProject.get(row.project_id)!.push(row);
-    }
-
-    const deliverablesByProject = new Map<string, { phase_number: number; status: string }[]>();
-    for (const row of deliverablesRes.data ?? []) {
-      if (!deliverablesByProject.has(row.project_id)) deliverablesByProject.set(row.project_id, []);
-      deliverablesByProject.get(row.project_id)!.push(row);
     }
 
     // Owner first within each phase (matches .../phases/[phaseNumber]/members GET's own
@@ -149,15 +131,16 @@ export async function GET(request: Request) {
         // Task 246: derive the phase-number set from this project's own rows (defaults + any
         // customs) instead of a hardcoded 1-5 loop — a custom phase's deliverables/assignees would
         // otherwise never make it into the report.
-        const projectPhaseRows = phasesByProject.get(p.id) ?? [];
-        const projectPhaseNumbers = projectPhaseRows.map((r) => r.phase_number);
+        const summary = summaries.get(p.id);
+        const projectPhaseRows = summary?.phases ?? [];
+        const projectPhaseNumbers = projectPhaseRows.flatMap((r) => (r.phase_number === null ? [] : [r.phase_number]));
 
-        const deliverableRows = deliverablesByProject.get(p.id) ?? [];
         const deliverableRatioByPhase: Record<number, number | null> = {};
-        for (const phaseNumber of projectPhaseNumbers) {
-          const rowsForPhase = deliverableRows.filter((r) => r.phase_number === phaseNumber);
-          deliverableRatioByPhase[phaseNumber] =
-            rowsForPhase.length === 0 ? null : rowsForPhase.filter((r) => r.status === "done").length / rowsForPhase.length;
+        for (const phase of projectPhaseRows) {
+          if (phase.phase_number === null) continue;
+          const rowsForPhase = (summary?.deliverables ?? []).filter((d) => d.phase_id === phase.id);
+          deliverableRatioByPhase[phase.phase_number] =
+            rowsForPhase.length === 0 ? null : rowsForPhase.filter((d) => d.status === "done").length / rowsForPhase.length;
         }
 
         const assigneesByPhase: Record<number, PhaseAssigneeMember[]> = {};

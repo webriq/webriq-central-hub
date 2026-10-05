@@ -3,7 +3,9 @@ import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { sendCliqNotification } from "@/lib/zoho";
 import { notifyProjectMembers } from "@/lib/notifications";
-import { resolveEffectivePhase } from "@/config/customer-phases";
+import { loadProgramme } from "@/lib/programme/store";
+import { toWire } from "@/lib/programme/view-model";
+import { inProgrammeOrder, isPermanentlySkipped } from "@/lib/programme/programme-status";
 
 const WRITE_ROLES = ["admin", "super_admin", "marketing"];
 
@@ -44,33 +46,32 @@ export async function POST(
     }
     const companyName = (project.customers as unknown as { company_name: string } | null)?.company_name ?? "Customer";
 
-    // Task 246: "next phase" is derived from this project's actual seeded phase order
-    // (sort_order), not a hardcoded phaseNumber+1/phaseNumber===5 — a custom phase can sit
-    // anywhere in that order.
-    const { data: allPhaseRows, error: allPhasesError } = await supabase
-      .from("customer_phases")
-      .select("phase_number, sort_order, custom_name, day_start_override, day_end_override")
+    // "Next phase" is derived from this project's own phase order (`position`), skipping permanently-excluded phases — a custom
+    // phase can sit anywhere in that order, and a permanently skipped phase must never be activated.
+    const { data: phaseRows, error: allPhasesError } = await supabase
+      .from("project_phases")
+      .select("id, phase_number, position, name, owner_label, status")
       .eq("project_id", projectId)
-      .order("sort_order");
-    if (allPhasesError || !allPhaseRows) {
+      .eq("source", "programme");
+    if (allPhasesError || !phaseRows) {
       console.error("POST .../complete-phase phase list fetch error:", allPhasesError);
       return NextResponse.json({ error: "Failed to load programme phases" }, { status: 500 });
     }
+    const allPhaseRows = inProgrammeOrder(phaseRows);
     const currentIndex = allPhaseRows.findIndex((p) => p.phase_number === phaseNumber);
     if (currentIndex === -1) {
       return NextResponse.json({ error: "phase_number does not match any configured phase" }, { status: 400 });
     }
-    const currentPhase = resolveEffectivePhase(allPhaseRows[currentIndex]);
-    const nextPhaseRow = allPhaseRows[currentIndex + 1] ?? null;
+    const currentPhase = allPhaseRows[currentIndex];
+    const nextPhaseRow = allPhaseRows.slice(currentIndex + 1).find((p) => !isPermanentlySkipped(p.status)) ?? null;
     const nextPhaseNumber = nextPhaseRow?.phase_number ?? null;
 
     const today = new Date().toISOString().slice(0, 10);
 
     const { error: completeError } = await supabase
-      .from("customer_phases")
+      .from("project_phases")
       .update({ status: "completed", actual_completed_date: today })
-      .eq("project_id", projectId)
-      .eq("phase_number", phaseNumber);
+      .eq("id", currentPhase.id);
     if (completeError) {
       console.error("POST .../complete-phase complete error:", completeError);
       return NextResponse.json({ error: "Failed to complete phase" }, { status: 500 });
@@ -90,12 +91,10 @@ export async function POST(
       // (task 129). Non-fatal — must not block the phase-completion response. Uses adminClient:
       // contacts_pm_write RLS covers admin|super_admin|pm, not marketing (Bert's role).
       try {
-        const { data: phaseRow } = await adminClient
-          .from("customer_phases")
-          .select("wizard_data")
-          .eq("project_id", projectId)
-          .eq("phase_number", 1)
-          .maybeSingle();
+        const phase1 = allPhaseRows.find((p) => p.phase_number === 1);
+        const { data: phaseRow } = phase1
+          ? await adminClient.from("phase_programme_state").select("wizard_data").eq("phase_id", phase1.id).maybeSingle()
+          : { data: null };
         const kickoffContacts = (
           (phaseRow?.wizard_data as Record<string, unknown> | null)?.kickoff as { contacts?: unknown } | undefined
         )?.contacts as { fullName?: string; position?: string; email?: string; phone?: string; socialMedia?: string }[] | undefined;
@@ -141,15 +140,14 @@ export async function POST(
 
     if (nextPhaseNumber) {
       const { error: advanceError } = await supabase
-        .from("customer_phases")
+        .from("project_phases")
         .update({ status: "active", actual_start_date: today })
-        .eq("project_id", projectId)
-        .eq("phase_number", nextPhaseNumber);
+        .eq("id", nextPhaseRow!.id);
       if (advanceError) {
         console.error("POST .../complete-phase advance error:", advanceError);
         return NextResponse.json({ error: "Failed to advance to next phase" }, { status: 500 });
       }
-      const nextPhase = resolveEffectivePhase(nextPhaseRow!);
+      const nextPhase = { name: nextPhaseRow!.name, owner: nextPhaseRow!.owner_label };
       const handoffMessage = `${companyName}: Phase ${phaseNumber} (${currentPhase.name}) complete — handed over to Phase ${nextPhaseNumber}: ${nextPhase.name}${nextPhase.owner ? ` (owner: ${nextPhase.owner})` : ""}.`;
       await sendCliqNotification(handoffMessage, "pm");
       await notifyProjectMembers(projectId, {
@@ -171,8 +169,7 @@ export async function POST(
       });
     }
 
-    const { data: phases } = await supabase.from("customer_phases").select("*").eq("project_id", projectId).order("phase_number");
-    return NextResponse.json({ phases: phases ?? [] });
+    return NextResponse.json({ phases: toWire(await loadProgramme(supabase, projectId)).phases });
   } catch (err) {
     console.error("POST /api/projects/[projectId]/programme/complete-phase unexpected error:", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

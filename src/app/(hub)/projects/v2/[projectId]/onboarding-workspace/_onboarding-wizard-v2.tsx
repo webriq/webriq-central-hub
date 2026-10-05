@@ -6,7 +6,8 @@ import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { Sparkles, CheckCircle2, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getCurrentProgrammeDay, getPhaseByNumber } from "@/config/customer-phases";
+import { getPhaseByNumber } from "@/config/customer-phases";
+import { currentDisplayDay } from "@/lib/programme/calendar";
 import { AssetRow, AssetFolder, DeliverableRow, InternalDeliverableRow, StaffPerson, WizardV2Project, WizardTabKey } from "./_wizard-v2-types";
 import { textPrimary, textMuted, cardCls } from "./_shared-ui";
 import { WorkspaceHeader } from "./_workspace-header";
@@ -76,7 +77,7 @@ export default function OnboardingWizardV2({
         setDeliverables((data.deliverables ?? []).filter((d: DeliverableRow) => d.phase_number === 1));
         setInternalDeliverables(data.internal_deliverables ?? []);
         if (data.programme_started_at) {
-          setCurrentDay(getCurrentProgrammeDay(data.programme_started_at));
+          setCurrentDay(currentDisplayDay(data.programme_started_at));
           setProgrammeStartedAt(data.programme_started_at);
         }
       }

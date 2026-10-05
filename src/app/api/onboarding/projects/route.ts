@@ -10,14 +10,15 @@ import {
   isValidClassificationCombo,
   deriveProductNamesMulti,
   deriveProjectTypeMulti,
-  getCurrentProgrammeDay,
-  resolveEffectivePhase,
   DEFAULT_PROGRAMME_DAYS,
   type PhasePlanInput,
   type CustomPhaseSeed,
   type DefaultPhaseOverride,
 } from "@/config/customer-phases";
+import { currentDisplayDay } from "@/lib/programme/calendar";
 import { seedAndStartProgramme } from "@/lib/programme/seed";
+import { loadProgrammeSummaries } from "@/lib/programme/store";
+import { isProgrammeComplete } from "@/lib/programme/programme-status";
 import { seedCustomPhases } from "@/lib/programme/seed-custom-phases";
 import { addProjectMember, isRoleGatedByMembership } from "@/lib/programme/phase-membership";
 import { scheduleProjectAutostart } from "@/lib/qstash";
@@ -103,22 +104,15 @@ export async function GET() {
     // active/completed) since determining "last by sort_order" needs the full per-project set.
     const completedProjectIds = new Set<string>();
     if (projectIds.length > 0) {
-      const { data: phases } = await supabase
-        .from("customer_phases")
-        .select("project_id, phase_number, status, custom_name, day_start_override, day_end_override, sort_order")
-        .in("project_id", projectIds);
-      const phasesByProject = new Map<string, typeof phases>();
-      for (const row of phases ?? []) {
-        if (row.status === "active") {
-          activePhaseByProject.set(row.project_id, row.phase_number);
-          activePhaseNameByProject.set(row.project_id, resolveEffectivePhase(row).name);
+      const summaries = await loadProgrammeSummaries(supabase, projectIds);
+      for (const [projectId, { phases }] of summaries) {
+        for (const row of phases) {
+          if (row.status === "active" && row.phase_number !== null) {
+            activePhaseByProject.set(projectId, row.phase_number);
+            activePhaseNameByProject.set(projectId, row.name);
+          }
         }
-        if (!phasesByProject.has(row.project_id)) phasesByProject.set(row.project_id, []);
-        phasesByProject.get(row.project_id)!.push(row);
-      }
-      for (const [projectId, rows] of phasesByProject) {
-        const last = rows!.reduce((max, r) => (r.sort_order > max.sort_order ? r : max), rows![0]);
-        if (last.status === "completed") completedProjectIds.add(projectId);
+        if (isProgrammeComplete(phases)) completedProjectIds.add(projectId);
       }
     }
 
@@ -150,7 +144,7 @@ export async function GET() {
       const classification = (p.customer_products as unknown as { classification: string | null } | null)?.classification ?? null;
       const activePhaseNumber = activePhaseByProject.get(p.id) ?? null;
       const durationDays = p.programme_duration_days ?? DEFAULT_PROGRAMME_DAYS;
-      const currentDay = p.programme_started_at ? Math.min(durationDays, getCurrentProgrammeDay(p.programme_started_at)) : null;
+      const currentDay = p.programme_started_at ? currentDisplayDay(p.programme_started_at, durationDays) : null;
       const targetHandoverDate = p.programme_started_at
         ? new Date(new Date(p.programme_started_at).getTime() + 14 * 86_400_000).toISOString()
         : p.scheduled_onboarding_start_at

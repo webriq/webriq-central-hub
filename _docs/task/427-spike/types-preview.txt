@@ -1,0 +1,82 @@
+// `supabase gen types typescript --db-url <local>` on the spike DB after 03-expand-draft.sql (excerpt: Row shapes)
+// NOTE: src/types/database.ts is the app's own file; this is only a preview of the shapes it will need.
+
+// project_phases Row
+actual_completed_date: string | null
+actual_start_date: string | null
+created_at: string
+created_by: string | null
+day_end: number | null
+day_start: number | null
+description: string | null
+due_date: string | null
+external_id: string | null
+id: string
+name: string
+owner_label: string | null
+phase_number: number | null
+position: number | null
+project_id: string
+source: string
+start_date: string | null
+status: string
+updated_at: string
+
+// project_deliverables Row
+completed_at: string | null
+created_at: string
+day_end: number | null
+day_start: number | null
+deliverable_key: string | null
+description: string | null
+due_date: string | null
+external_id: string | null
+id: string
+is_default: boolean | null
+name: string
+owner_label: string | null
+phase_id: string | null
+position: number | null
+project_id: string
+source: string
+start_date: string | null
+status: string
+updated_at: string
+
+// phase_programme_state Row
+created_at: string
+delay_note: string | null
+is_manual_override: boolean
+override_note: string | null
+phase_id: string
+updated_at: string
+wizard_data: Json
+
+// milestones Row
+created_at: string | null
+created_by: string | null
+day_end: number | null
+day_start: number | null
+description: string | null
+due_date: string | null
+external_id: string | null
+id: string | null
+name: string | null
+position: number | null
+project_id: string | null
+start_date: string | null
+status: string | null
+updated_at: string | null
+
+// tasklists Row
+created_at: string | null
+day_end: number | null
+day_start: number | null
+external_id: string | null
+id: string | null
+is_default: boolean | null
+milestone_id: string | null
+name: string | null
+position: number | null
+project_id: string | null
+updated_at: string | null

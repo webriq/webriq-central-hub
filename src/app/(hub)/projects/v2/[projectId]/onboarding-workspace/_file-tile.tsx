@@ -7,7 +7,7 @@ import { AssetRow, StaffPerson } from "./_wizard-v2-types";
 import { textPrimary, textMuted, formatFileSize } from "./_shared-ui";
 import { InlinePermissionsPanel, permissionSummary } from "./_permission-picker";
 import { FileTypeTile, HtmlPreview, MarkdownPreview, CsvPreview, FilePreviewModal } from "./_file-previews";
-import { ActionsMenu, ItemAction } from "./_file-actions-menu";
+import { ActionsMenu, ItemAction, selectionDownloadAction } from "./_file-actions-menu";
 
 // Lazy-loaded real preview — image gets an actual <img>; html/markdown/csv get a real rendered
 // preview (task 198 parity) in grid view only; everything else (PDF, Office formats), and
@@ -88,7 +88,7 @@ function VersionBadge({ versionCount, olderVersions }: { versionCount: number; o
 
 export function FileTile({
   asset, customerId, canEdit, onDelete, onPermissionChange, onRename, onMove, staffDirectory, viewMode,
-  selected, onToggleSelect, onContextMenu, versionCount, olderVersions, onCopyFileUrl, autoPreview,
+  selected, onToggleSelect, onContextMenu, versionCount, olderVersions, onCopyFileUrl, autoPreview, selectedCount, onDownloadSelected,
 }: {
   asset: AssetRow; customerId: string; canEdit: boolean; onDelete: () => void;
   onPermissionChange: (updates: { allowed_roles?: string[]; allowed_user_ids?: string[] }) => void;
@@ -104,6 +104,9 @@ export function FileTile({
   // so neither the menu entry nor the deep-link auto-preview appears there.
   onCopyFileUrl?: () => void;
   autoPreview?: boolean;
+  // Task 419 — set by _files-tab.tsx only while this tile is part of a ≥2 selection.
+  selectedCount?: number;
+  onDownloadSelected?: () => void;
 }) {
   const [permissionsOpen, setPermissionsOpen] = useState(false);
   const hasVersions = !!versionCount && versionCount > 1;
@@ -166,6 +169,7 @@ export function FileTile({
   // permission/edit block. Deliberately NOT gated on canEdit.
   const actions: ItemAction[] = [
     { label: "View", icon: ExternalLink, onClick: handleView },
+    ...(onDownloadSelected ? selectionDownloadAction(selected, selectedCount ?? 0, onDownloadSelected) : []),
     { label: "Download", icon: Download, onClick: handleDownload },
     ...(onCopyFileUrl ? [{ label: "Copy File URL", icon: Link2, onClick: onCopyFileUrl }] : []),
     { label: "Permissions", icon: Lock, onClick: () => setPermissionsOpen((v) => !v), disabled: !canEdit },

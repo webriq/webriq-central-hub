@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { MoreVertical, Pencil } from "lucide-react";
+import { MoreVertical, Pencil, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { textPrimary, IconTip } from "./_shared-ui";
 
@@ -9,6 +9,13 @@ import { textPrimary, IconTip } from "./_shared-ui";
 // nextjs-file-length-best-practices.md). One action list per item feeds BOTH the kebab dropdown
 // here and the right-click context menu in _files-tab.tsx, so the two can never drift apart.
 export type ItemAction = { label: string; icon: typeof Pencil; onClick: () => void; danger?: boolean; disabled?: boolean };
+
+// Task 419 — "Download N selected (.zip)" entry shared by file and folder tiles: present only when
+// the tile is itself selected and the selection holds ≥2 items, so right-clicking an unselected
+// tile still acts on that tile alone.
+export function selectionDownloadAction(selected: boolean, count: number, onClick: () => void): ItemAction[] {
+  return selected && count > 1 ? [{ label: `Download ${count} selected (.zip)`, icon: Download, onClick }] : [];
+}
 
 // Menu width must match the `w-44` class on both floating-menu containers below and in
 // _files-tab.tsx's right-click context menu. Before this was a shared constant the two menus

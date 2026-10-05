@@ -1,5 +1,7 @@
+// RETIRED (task 426): returns 410 after auth — handler below is dead until task 431 removes it.
 // dev-only import endpoint — reads _from_zoho/milestones.json, upserts to milestones table.
 import { NextResponse } from "next/server";
+import { retiredGuard } from "@/lib/migrate/retired-routes";
 import { createClient } from "@/lib/supabase/server";
 import { readFromZoho, resolveProjectId, adminClient, ImportResult } from "@/lib/migrate/zoho-import";
 
@@ -42,6 +44,10 @@ export async function POST() {
 
   const { data: profile } = await adminClient.from("profiles").select("role").eq("id", user.id).maybeSingle();
   if (profile?.role !== "admin" && profile?.role !== "super_admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  // Task 426: frozen — see src/lib/migrate/retired-routes.ts.
+  const retired = retiredGuard("milestones import");
+  if (retired) return retired;
+
 
   let milestones: ZohoMilestoneRaw[];
   try {

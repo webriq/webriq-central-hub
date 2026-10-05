@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { getProgrammePhase, upsertPhaseState } from "@/lib/programme/store";
 
-// Task 221 — persists customer_phases.delay_note from the Portfolio Tracker status report page.
+// Task 221 — persists phase_programme_state.delay_note from the Portfolio Tracker status report page.
 // Mirrors the WRITE_ROLES convention used by every other phase-write route (phase/route.ts,
 // deliverables/[key]/route.ts, complete-phase/route.ts): admin/super_admin/marketing only.
 // pm/developer/hr see the note read-only (it's already included in the status-report GET payload).
@@ -12,9 +13,8 @@ function parsePhaseNumber(raw: string): number | null {
   return Number.isInteger(n) && n > 0 ? n : null;
 }
 
-// Every project with programme_started_at set already has a customer_phases row for every phase
-// in its plan (seedAndStartProgramme/seedProgrammeAtPhase insert them up front, defaults + any
-// customs — task 246) — a plain update is enough, no upsert needed.
+// Every started project already has a programme phase row for every phase in its plan (the seed
+// inserts them up front); its state row is upserted so a phase without one still saves.
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ projectId: string; phaseNumber: string }> }
@@ -36,13 +36,11 @@ export async function PATCH(
     const body = await request.json();
     const note: string | null = typeof body?.note === "string" && body.note.trim() ? body.note.trim() : null;
 
-    const { error } = await supabase
-      .from("customer_phases")
-      .update({ delay_note: note })
-      .eq("project_id", projectId)
-      .eq("phase_number", phaseNumber);
-
-    if (error) {
+    const phase = await getProgrammePhase(supabase, projectId, phaseNumber);
+    if (!phase) return NextResponse.json({ error: "Unknown phase for that project" }, { status: 404 });
+    try {
+      await upsertPhaseState(supabase, phase.id, { delay_note: note });
+    } catch (error) {
       console.error("PATCH .../phases/[phaseNumber]/note error:", error);
       return NextResponse.json({ error: "Failed to save delay note" }, { status: 500 });
     }

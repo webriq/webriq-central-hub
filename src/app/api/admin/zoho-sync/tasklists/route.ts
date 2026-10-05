@@ -1,9 +1,11 @@
+// RETIRED (task 426): returns 410 after auth — handler below is dead until task 431 removes it.
 // Zoho → Hub tasklists sync.
 // Callable by admin session or pg_cron via x-cron-secret header.
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { getZohoAccessToken } from "@/lib/zoho";
+import { retiredGuard } from "@/lib/migrate/retired-routes";
 
 const BASE = `https://projectsapi.zoho.com/api/v3/portal/${process.env.ZOHO_PORTAL_ID}`;
 const CHUNK_SIZE = 50;
@@ -52,6 +54,10 @@ export async function POST(req: Request) {
     const { data: profile } = await adminClient.from("profiles").select("role").eq("id", user.id).maybeSingle();
     if (profile?.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
+
+  // Task 426: frozen (applies to the cron call too) — see src/lib/migrate/retired-routes.ts.
+  const retired = retiredGuard("tasklists sync");
+  if (retired) return retired;
 
   const token = await getZohoAccessToken();
   if (!token) return NextResponse.json({ error: "No Zoho access token" }, { status: 502 });

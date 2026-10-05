@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
+import { canAccessAsset } from "@/lib/uploads/asset-access";
 
 export async function GET(
   request: NextRequest,
@@ -29,13 +30,7 @@ export async function GET(
 
     const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
     const myRole = profile?.role ?? null;
-    const isPrivileged = myRole === "admin" || myRole === "super_admin";
-    // allowed_user_ids is an additive, OR-combined grant on top of allowed_roles — see task 138.
-    const noRoleRestriction = !asset.allowed_roles || asset.allowed_roles.length === 0;
-    const noUserRestriction = !asset.allowed_user_ids || asset.allowed_user_ids.length === 0;
-    const roleMatches = !noRoleRestriction && !!myRole && asset.allowed_roles!.includes(myRole);
-    const userMatches = !noUserRestriction && asset.allowed_user_ids!.includes(user.id);
-    const permitted = isPrivileged || (noRoleRestriction && noUserRestriction) || roleMatches || userMatches;
+    const permitted = canAccessAsset(myRole, user.id, asset.allowed_roles, asset.allowed_user_ids);
 
     if (!permitted) {
       return NextResponse.json({ error: "Not permitted to access this file" }, { status: 403 });

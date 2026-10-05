@@ -3,8 +3,10 @@
 import { useEffect, useState } from "react";
 import { CalendarClock, CheckCircle2, Clock, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getCurrentProgrammeDay, resolveEffectivePhase } from "@/config/customer-phases";
-import type { CustomerPhaseRow, CustomerDeliverableRow, ProjectRow } from "@/types/database";
+import { currentDisplayDay } from "@/lib/programme/calendar";
+import { isProgrammeComplete } from "@/lib/programme/programme-status";
+import { buildDisplayPhases, uiPhaseStatus, type ProgrammeDeliverableRow, type ProgrammePhaseRow } from "@/lib/programme/view-model";
+import type { ProjectRow } from "@/types/database";
 
 interface ProgrammeTabProps {
   customerId: string;
@@ -20,7 +22,7 @@ const PHASE_STYLES: Record<number, PhaseStyle> = {
   5: { text: "text-slate-700", textDark: "text-slate-300", bg: "bg-slate-100", bgDark: "bg-slate-500/10" },
 };
 
-type ProgrammeState = { phases: CustomerPhaseRow[]; deliverables: CustomerDeliverableRow[] };
+type ProgrammeState = { phases: ProgrammePhaseRow[]; deliverables: ProgrammeDeliverableRow[] };
 
 // Read-only history view — only ever shows a project once it's been handed over
 // (onboarding_visible_at set). Phase-1 editing (Start/Jump-to-phase/wizard) now lives
@@ -99,19 +101,10 @@ export default function ProgrammeTab({ customerId, isDark }: ProgrammeTabProps) 
         const started = state.phases.find((p) => p.phase_number === 1)?.actual_start_date;
         const startedAt = started ? new Date(started).toISOString() : null;
         const durationDays = project.programme_duration_days ?? 120;
-        const currentDay = startedAt ? Math.min(durationDays, getCurrentProgrammeDay(startedAt)) : null;
-        // Task 246: this project's actual phase set (defaults + any customs), ordered by
-        // sort_order — "last phase" and the render loop below both derive from it instead of a
-        // hardcoded phase_number === 5 / PROGRAMME_PHASES.map.
-        const sortedPhases = [...state.phases].sort((a, b) => a.sort_order - b.sort_order);
-        const deliverablesByPhaseNumber = new Map<number, typeof state.deliverables>();
-        for (const d of state.deliverables) {
-          if (!deliverablesByPhaseNumber.has(d.phase_number)) deliverablesByPhaseNumber.set(d.phase_number, []);
-          deliverablesByPhaseNumber.get(d.phase_number)!.push(d);
-        }
-        const orderedPhases = sortedPhases.map((p) => resolveEffectivePhase(p, deliverablesByPhaseNumber.get(p.phase_number) ?? []));
-        const isComplete = sortedPhases.length > 0 && sortedPhases[sortedPhases.length - 1].status === "completed";
-        const phaseStatusMap = new Map(state.phases.map((p) => [p.phase_number, p.status]));
+        const currentDay = startedAt ? currentDisplayDay(startedAt, durationDays) : null;
+        const orderedPhases = buildDisplayPhases(state.phases, state.deliverables);
+        const isComplete = isProgrammeComplete(state.phases);
+        const phaseStatusMap = new Map(state.phases.map((p) => [p.phase_number, uiPhaseStatus(p.status)]));
 
         return (
           <div key={project.id} className={cn(cardCls, "p-5")}>

@@ -1,6 +1,7 @@
 // dev-only import endpoint — SSE stream with per-chunk progress.
 // Two-pass: pass 1 upserts all tasks, pass 2 resolves self-referential parent links.
 import { NextResponse } from "next/server";
+import { retiredGuard } from "@/lib/migrate/retired-routes";
 import path from "path";
 import fs from "fs";
 import { createClient } from "@/lib/supabase/server";
@@ -81,6 +82,10 @@ export async function POST() {
 
   const { data: profile } = await adminClient.from("profiles").select("role").eq("id", user.id).maybeSingle();
   if (profile?.role !== "admin" && profile?.role !== "super_admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  // Task 426: frozen — see src/lib/migrate/retired-routes.ts.
+  const retired = retiredGuard("tasks import");
+  if (retired) return retired;
+
 
   // Multi-file scan: pick up all tasks-*.json batch files, sorted for deterministic order
   const dir = path.join(process.cwd(), "_from_zoho");

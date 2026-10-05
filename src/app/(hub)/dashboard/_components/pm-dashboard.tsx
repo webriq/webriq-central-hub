@@ -36,6 +36,24 @@ type DeliverableRow = {
   status: "pending" | "in_progress" | "done";
 };
 
+// Task 429 (WP3): programme deliverables now live in `project_deliverables`, keyed to a phase row rather than carrying a phase_number.
+async function fetchProgrammeDeliverables(
+  supabase: ReturnType<typeof createClient>,
+  phaseNumber: number,
+  projectIds: string[]
+): Promise<{ data: DeliverableRow[] }> {
+  const { data } = await supabase
+    .from("project_deliverables")
+    .select("id, project_id, deliverable_key, status, project_phases!inner(phase_number)")
+    .eq("source", "programme")
+    .eq("project_phases.phase_number", phaseNumber)
+    .eq("project_phases.source", "programme")
+    .in("project_id", projectIds);
+  return {
+    data: (data ?? []).flatMap((r) => (r.deliverable_key ? [{ id: r.id, project_id: r.project_id, phase_number: phaseNumber, deliverable_key: r.deliverable_key, status: r.status }] : [])),
+  };
+}
+
 type InternalDeliverableRow = {
   id: string;
   project_id: string;
@@ -427,10 +445,10 @@ export default function PMDashboard({ displayName = null, role = null }: Props) 
 
     Promise.all([
       phase2Ids.length > 0
-        ? supabase.from("customer_deliverables").select("id, project_id, phase_number, deliverable_key, status").eq("phase_number", 2).in("project_id", phase2Ids)
+        ? fetchProgrammeDeliverables(supabase, 2, phase2Ids)
         : Promise.resolve({ data: [] as DeliverableRow[] }),
       phase3Id
-        ? supabase.from("customer_deliverables").select("id, project_id, phase_number, deliverable_key, status").eq("phase_number", 3).eq("project_id", phase3Id)
+        ? fetchProgrammeDeliverables(supabase, 3, [phase3Id])
         : Promise.resolve({ data: [] as DeliverableRow[] }),
       intakeId
         ? supabase.from("onboarding_internal_deliverables").select("id, project_id, deliverable_key, status").eq("project_id", intakeId)

@@ -1,13 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  getCurrentProgrammeDay, getPhaseForDay, resolveEffectivePhase, compressReferenceDay,
-  scaleDay, unscaleDay,
-} from "@/config/customer-phases";
-import type { CustomerPhaseRow, CustomerDeliverableRow } from "@/types/database";
+import { currentDisplayDay, phaseAtDisplayDay } from "@/lib/programme/calendar";
+import { isProgrammeComplete } from "@/lib/programme/programme-status";
+import { buildDisplayPhases, uiPhaseStatus, type ProgrammeDeliverableRow, type ProgrammePhaseRow } from "@/lib/programme/view-model";
 import type { Project } from "@/app/(hub)/projects-old/_pm-shared";
-import { TOTAL_DAYS } from "./_onboarding-detail";
 
 // Task 281 — Overview tab's "N-Day Programme Progress" card (moved here from Timeline) needs the
 // exact same day-compression-aware stats Timeline computes inline from `phases`/`deliverables`
@@ -19,8 +16,8 @@ import { TOTAL_DAYS } from "./_onboarding-detail";
 // read the same source functions, just gated behind their own fetch instead of sharing state
 // across route boundaries (Overview and Timeline are separate pages/requests).
 export function useProgrammeProgress(project: Project) {
-  const [phases, setPhases] = useState<CustomerPhaseRow[]>([]);
-  const [deliverables, setDeliverables] = useState<CustomerDeliverableRow[]>([]);
+  const [phases, setPhases] = useState<ProgrammePhaseRow[]>([]);
+  const [deliverables, setDeliverables] = useState<ProgrammeDeliverableRow[]>([]);
   const [settled, setSettled] = useState(false);
 
   const applicable = project.uses_customer_phases_engine && !!project.programme_started_at;
@@ -49,22 +46,16 @@ export function useProgrammeProgress(project: Project) {
   }
 
   const programmeDurationDays = project.programme_duration_days ?? 120;
-  const currentDay = getCurrentProgrammeDay(project.programme_started_at);
+  const currentDay = currentDisplayDay(project.programme_started_at);
   const startDate = new Date(project.programme_started_at);
-  const sortedPhaseRows = [...phases].sort((a, b) => a.sort_order - b.sort_order);
-  const deliverablesByPhaseNumber = new Map<number, CustomerDeliverableRow[]>();
-  for (const d of deliverables) {
-    if (!deliverablesByPhaseNumber.has(d.phase_number)) deliverablesByPhaseNumber.set(d.phase_number, []);
-    deliverablesByPhaseNumber.get(d.phase_number)!.push(d);
-  }
-  const orderedPhases = sortedPhaseRows.map((p) => resolveEffectivePhase(p, deliverablesByPhaseNumber.get(p.phase_number) ?? []));
+  const orderedPhases = buildDisplayPhases(phases, deliverables);
   const activePhaseNumber = phases.find((p) => p.status === "active")?.phase_number
-    ?? getPhaseForDay(unscaleDay(currentDay, programmeDurationDays)).number;
-  const isComplete = sortedPhaseRows.length > 0 && sortedPhaseRows[sortedPhaseRows.length - 1].status === "completed";
-  const phaseStatusMap = new Map(phases.map((p) => [p.phase_number, p.status]));
-  const startedSkipNumbers = project.draft_skip_phase_numbers ?? [];
-  const visibleTotalDays = compressReferenceDay(TOTAL_DAYS, orderedPhases, startedSkipNumbers);
-  const visibleDurationDays = scaleDay(visibleTotalDays, programmeDurationDays);
+    ?? phaseAtDisplayDay(currentDay, programmeDurationDays).number;
+  const isComplete = isProgrammeComplete(phases);
+  const phaseStatusMap = new Map(phases.map((p) => [p.phase_number, uiPhaseStatus(p.status)]));
+  // Stored days are already display-scale and skip-compressed: the grid length is the last planned display day (permanently skipped phases excluded).
+  const permanentlySkipped = new Set(phases.filter((p) => p.status === "skipped").map((p) => p.phase_number));
+  const visibleDurationDays = Math.max(1, ...orderedPhases.filter((p) => !permanentlySkipped.has(p.number)).map((p) => p.dayEnd));
   const progressPct = Math.min(100, Math.round((currentDay / visibleDurationDays) * 100));
   const programmeOverdue = !isComplete && currentDay > visibleDurationDays;
   const daysOverdue120 = currentDay - visibleDurationDays;

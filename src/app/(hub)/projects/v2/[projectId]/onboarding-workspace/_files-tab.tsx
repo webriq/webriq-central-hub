@@ -3,7 +3,6 @@
 import { useRef, useState } from "react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { AssetRow, AssetFolder, StaffPerson } from "./_wizard-v2-types";
 import { textMuted, cardCls } from "./_shared-ui";
 import { FileTile } from "./_file-tile";
@@ -18,11 +17,9 @@ import { FilesToolbar } from "./_files-toolbar";
 import { EmptyPanel, NewFolderTile, describeFolderContents } from "./_files-tab-parts";
 import { hasDirectoryEntry, readDataTransferEntries, buildTreeFromRelativePaths } from "./_folder-upload-tree";
 import { useFolderUpload } from "./_use-folder-upload";
-
-type PendingDelete =
-  | { kind: "folder"; id: string; name: string }
-  | { kind: "file"; id: string; name: string }
-  | { kind: "bulk"; ids: string[] };
+import { useFilesSelection } from "./_use-files-selection";
+import { useBulkDownload } from "./_use-bulk-download";
+import { FilesDeleteDialog, type PendingDelete } from "./_files-delete-dialog";
 
 export function FilesTab({
   customerId, assets, folders, staffDirectory, canEdit, openFolderId, onOpenFolder,
@@ -60,7 +57,6 @@ export function FilesTab({
   const [sortBy, setSortBy] = useState<"newest" | "name">("newest");
   const [renameTarget, setRenameTarget] = useState<{ kind: "file" | "folder"; id: string; name: string } | null>(null);
   const [moveTargetAssetIds, setMoveTargetAssetIds] = useState<string[] | null>(null);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; actions: ItemAction[] } | null>(null);
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -75,19 +71,14 @@ export function FilesTab({
     fileCountByFolder, duplicateFolderNames, visibleFolders, visibleFiles,
   } = useFilesTabDerived({ assets, folders, openFolderId, searchQuery, sortBy });
 
+  const { selectedIds, selectedFolderIds, hasSelection, toggleFile, toggleFolder, clear: clearSelection, selectAll } = useFilesSelection(openFolderId);
+  const { downloading, download } = useBulkDownload(customerId);
+  const selectedCount = selectedIds.size + selectedFolderIds.size;
+  const downloadSelection = () => download({ assetIds: Array.from(selectedIds), folderIds: Array.from(selectedFolderIds) });
+
   const openContextMenu = (e: React.MouseEvent, actions: ItemAction[]) => {
     setContextMenu({ ...clampMenuPosition({ x: e.clientX, y: e.clientY }, actions.length), actions });
   };
-
-  const toggleSelect = (id: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
-  const clearSelection = () => setSelectedIds(new Set());
 
   const handleFiles = (files: FileList | File[], targetFolderId: string) => {
     if (!canEdit) return;
@@ -180,6 +171,12 @@ export function FilesTab({
       onPermissionChange={(u) => onFolderPermissionChange(folder.id, u)}
       onRename={() => setRenameTarget({ kind: "folder", id: folder.id, name: folder.name })}
       onDelete={() => setPendingDelete({ kind: "folder", id: folder.id, name: folder.name })}
+      selected={selectedFolderIds.has(folder.id)}
+      anySelected={hasSelection}
+      onToggleSelect={() => toggleFolder(folder.id)}
+      onDownload={() => download({ assetIds: [], folderIds: [folder.id], label: folder.name })}
+      selectedCount={selectedCount}
+      onDownloadSelected={downloadSelection}
       onCopyFolderUrl={onCopyFolderUrl ? () => onCopyFolderUrl(folder.id) : undefined}
       staffDirectory={staffDirectory}
       isDropTarget={dragOverFolderId === folder.id}
@@ -220,7 +217,9 @@ export function FilesTab({
       versionCount={versionCount}
       olderVersions={olderVersions}
       autoPreview={autoPreviewAssetId === asset.id}
-      onToggleSelect={() => toggleSelect(asset.id)}
+      onToggleSelect={() => toggleFile(asset.id)}
+      selectedCount={selectedCount}
+      onDownloadSelected={downloadSelection}
       onContextMenu={openContextMenu}
       onDelete={() => setPendingDelete({ kind: "file", id: asset.id, name: asset.file_name ?? asset.label })}
       onPermissionChange={(u) => onAssetPermissionChange(asset.id, u)}
@@ -247,23 +246,6 @@ export function FilesTab({
     }
   };
 
-  const deleteDialogCopy = (() => {
-    if (!pendingDelete) return { title: "", body: "" };
-    if (pendingDelete.kind === "folder") {
-      const { folderCount, fileCount } = describeFolderContents(folders, assets, pendingDelete.id);
-      const parts: string[] = [];
-      if (folderCount > 0) parts.push(`${folderCount} sub-folder${folderCount === 1 ? "" : "s"}`);
-      if (fileCount > 0) parts.push(`${fileCount} file${fileCount === 1 ? "" : "s"}`);
-      const body = parts.length > 0
-        ? `This will permanently delete "${pendingDelete.name}" and everything inside it — ${parts.join(" and ")}.`
-        : `This will permanently delete "${pendingDelete.name}".`;
-      return { title: "Delete folder?", body };
-    }
-    if (pendingDelete.kind === "file") {
-      return { title: "Delete file?", body: `This will permanently delete "${pendingDelete.name}".` };
-    }
-    return { title: "Delete files?", body: `This will permanently delete ${pendingDelete.ids.length} selected file${pendingDelete.ids.length === 1 ? "" : "s"}.` };
-  })();
 
   return (
     <div className={cn(cardCls, "p-4")} onClick={() => setContextMenu(null)}>
@@ -307,11 +289,16 @@ export function FilesTab({
         </div>
       ) : null}
 
-      {openFolder && selectedIds.size > 0 ? (
+      {hasSelection ? (
         <BulkToolbar
-          count={selectedIds.size}
+          fileCount={selectedIds.size}
+          folderCount={selectedFolderIds.size}
           staffDirectory={staffDirectory}
+          downloading={downloading}
+          canSelectAll={selectedCount < (openFolder ? visibleFiles.length : visibleFolders.length)}
           onClear={clearSelection}
+          onSelectAll={() => (openFolder ? selectAll(visibleFiles.map((g) => g.asset.id), []) : selectAll([], visibleFolders.map((f) => f.id)))}
+          onDownload={downloadSelection}
           onBulkPermissionChange={async (updates) => { await Promise.all(Array.from(selectedIds).map((id) => onAssetPermissionChange(id, updates))); }}
           onMove={() => setMoveTargetAssetIds(Array.from(selectedIds))}
           onDelete={() => setPendingDelete({ kind: "bulk", ids: Array.from(selectedIds) })}
@@ -410,15 +397,7 @@ export function FilesTab({
           onConfirm={() => submitCreateFolder(duplicatePrompt.suggested)}
         />
       ) : null}
-      <ConfirmDialog
-        open={pendingDelete !== null}
-        title={deleteDialogCopy.title}
-        body={deleteDialogCopy.body}
-        confirmLabel={deleting ? "Deleting…" : "Delete"}
-        confirmDisabled={deleting}
-        onConfirm={confirmDelete}
-        onCancel={() => setPendingDelete(null)}
-      />
+      <FilesDeleteDialog pending={pendingDelete} deleting={deleting} folders={folders} assets={assets} onConfirm={confirmDelete} onCancel={() => setPendingDelete(null)} />
     </div>
   );
 }

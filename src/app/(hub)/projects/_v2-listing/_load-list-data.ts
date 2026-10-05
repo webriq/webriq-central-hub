@@ -2,7 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { isRoleGatedByMembership, canManageProjectMembers, canSetProjectOwner } from "@/lib/programme/membership-rules";
 import { getDeveloperAccessibleProjectIds } from "../../projects-old/_project-access";
-import { getCurrentProgrammeDay, resolveEffectivePhase, DEFAULT_PROGRAMME_DAYS, type Classification } from "@/config/customer-phases";
+import { DEFAULT_PROGRAMME_DAYS, type Classification } from "@/config/customer-phases";
+import { currentDisplayDay } from "@/lib/programme/calendar";
 import { RECENT_SORT, RECENT_FETCH_PAGE, loadViewStats, sortByRecentAccess } from "../_shared/_recent-sort";
 import type { OnboardingProjectListItem } from "./_onboarding-list";
 
@@ -166,13 +167,15 @@ export async function loadOnboardingProjectsList(
   const activePhaseNameByProject = new Map<string, string>();
   if (projectIds.length > 0) {
     const { data: phases } = await supabase
-      .from("customer_phases")
-      .select("project_id, phase_number, status, custom_name, day_start_override, day_end_override, sort_order")
+      .from("project_phases")
+      .select("project_id, phase_number, name")
       .in("project_id", projectIds)
+      .eq("source", "programme")
       .eq("status", "active");
     for (const row of phases ?? []) {
+      if (row.phase_number === null) continue;
       activePhaseByProject.set(row.project_id, row.phase_number);
-      activePhaseNameByProject.set(row.project_id, resolveEffectivePhase(row).name);
+      activePhaseNameByProject.set(row.project_id, row.name);
     }
   }
 
@@ -208,7 +211,7 @@ export async function loadOnboardingProjectsList(
     const classification = (p.customer_products as unknown as { classification: string | null } | null)?.classification ?? null;
     const activePhaseNumber = activePhaseByProject.get(p.id) ?? null;
     const durationDays = p.programme_duration_days ?? DEFAULT_PROGRAMME_DAYS;
-    const currentDay = p.programme_started_at ? Math.min(durationDays, getCurrentProgrammeDay(p.programme_started_at)) : null;
+    const currentDay = p.programme_started_at ? currentDisplayDay(p.programme_started_at, durationDays) : null;
 
     return {
       id: p.id,

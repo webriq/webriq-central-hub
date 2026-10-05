@@ -6,7 +6,7 @@ import { Building2, Search, FolderKanban, Mail, Plus, ChevronLeft, ChevronRight,
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { V2_ROUTES } from "@/config/constants";
-import { getCurrentProgrammeDay, getPhaseForDay, unscaleDay } from "@/config/customer-phases";
+import { currentDisplayDay, phaseAtDisplayDay } from "@/lib/programme/calendar";
 import { Chip } from "../dashboard/_components/dashboard-shared";
 
 export type CustomerProductProgress = {
@@ -75,8 +75,8 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 function ProgrammeBadge({ programmeStartedAt, durationDays }: { programmeStartedAt: string; durationDays: number }) {
-  const day = Math.min(durationDays, getCurrentProgrammeDay(programmeStartedAt));
-  const phase = getPhaseForDay(unscaleDay(day, durationDays));
+  const day = currentDisplayDay(programmeStartedAt, durationDays);
+  const phase = phaseAtDisplayDay(day, durationDays);
   return (
     <div className="inline-flex items-center gap-1 text-[10.5px] font-mono text-[#5F6A88] mt-0.5">
       <CalendarClock size={10} />

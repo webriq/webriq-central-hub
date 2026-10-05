@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { resolveEffectivePhase } from "@/config/customer-phases";
+import { asDisplayDay, displayDayToYmd } from "@/lib/programme/calendar";
+import { getProgrammeDeliverable, getProgrammePhase } from "@/lib/programme/store";
 
 const WRITE_ROLES = ["admin", "super_admin", "marketing"];
 
@@ -34,42 +35,38 @@ export async function PATCH(
     }
 
     const { projectId, deliverableKey } = await params;
-    // Task 246: existence check + phase day-range bound now come from this project's own rows,
-    // not a static getDeliverable/getPhaseByNumber lookup — both throw/return undefined for a
-    // custom phase's phase_number, which has no PROGRAMME_PHASES entry.
-    const { count: deliverableExists } = await supabase
-      .from("customer_deliverables")
-      .select("id", { count: "exact", head: true })
-      .eq("project_id", projectId)
-      .eq("phase_number", phaseNumber)
-      .eq("deliverable_key", deliverableKey);
-    if (!deliverableExists) {
-      return NextResponse.json({ error: "Unknown deliverable for that phase" }, { status: 400 });
-    }
-
-    const { data: phaseRow } = await supabase
-      .from("customer_phases")
-      .select("phase_number, custom_name, day_start_override, day_end_override, sort_order")
-      .eq("project_id", projectId)
-      .eq("phase_number", phaseNumber)
-      .maybeSingle();
-    if (!phaseRow) {
+    // Task 429 (WP4, decision D-B): body days are DISPLAY-scale — exactly what the Timeline shows — and are stored as-is. The bound is
+    // the owning phase's own stored display window (already skip-compressed and duration-scaled), so no calendar maths is needed.
+    const phase = await getProgrammePhase(supabase, projectId, phaseNumber);
+    if (!phase) {
       return NextResponse.json({ error: "Unknown phase for that project" }, { status: 400 });
     }
-    const phase = resolveEffectivePhase(phaseRow);
-    if (dayStart < phase.dayStart || dayEnd > phase.dayEnd) {
+    const deliverable = await getProgrammeDeliverable(supabase, projectId, phaseNumber, deliverableKey);
+    if (!deliverable) {
+      return NextResponse.json({ error: "Unknown deliverable for that phase" }, { status: 400 });
+    }
+    if (phase.day_start === null || phase.day_end === null) {
+      return NextResponse.json({ error: `Phase ${phaseNumber} has no scheduled day range` }, { status: 400 });
+    }
+    if (dayStart < phase.day_start || dayEnd > phase.day_end) {
       return NextResponse.json(
-        { error: `day_start/day_end must fall within phase ${phaseNumber}'s range (${phase.dayStart}-${phase.dayEnd})` },
+        { error: `day_start/day_end must fall within phase ${phaseNumber}'s range (${phase.day_start}-${phase.day_end})` },
         { status: 400 }
       );
     }
 
+    // The derived calendar dates move with the days (null while the programme has no start date).
+    const { data: project } = await supabase.from("projects").select("programme_started_at").eq("id", projectId).maybeSingle();
+    const startedAt = project?.programme_started_at ?? null;
     const { data, error } = await supabase
-      .from("customer_deliverables")
-      .update({ day_start_override: dayStart, day_end_override: dayEnd })
-      .eq("project_id", projectId)
-      .eq("phase_number", phaseNumber)
-      .eq("deliverable_key", deliverableKey)
+      .from("project_deliverables")
+      .update({
+        day_start: dayStart,
+        day_end: dayEnd,
+        start_date: startedAt ? displayDayToYmd(startedAt, asDisplayDay(dayStart)) : null,
+        due_date: startedAt ? displayDayToYmd(startedAt, asDisplayDay(dayEnd)) : null,
+      })
+      .eq("id", deliverable.id)
       .select()
       .single();
 

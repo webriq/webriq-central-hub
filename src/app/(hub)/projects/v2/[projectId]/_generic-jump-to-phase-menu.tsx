@@ -3,6 +3,7 @@
 import { Flag, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Database } from "@/types/database";
+import { useDismissibleMenu } from "./_use-dismissible-menu";
 
 type Milestone = Database["public"]["Tables"]["milestones"]["Row"];
 
@@ -21,17 +22,22 @@ export function GenericJumpToPhaseMenu({
   onJump: (milestoneId: string) => void;
   jumping: boolean;
 }) {
+  const { rootRef, triggerRef, onTriggerKeyDown, onMenuKeyDown } = useDismissibleMenu(open, setOpen);
   return (
-    <div className="relative">
+    <div ref={rootRef} className="relative">
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setOpen(!open)}
+        onKeyDown={onTriggerKeyDown}
+        aria-expanded={open}
+        aria-haspopup="menu"
         className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-[#E2E7F2] bg-white px-3.5 py-2 text-xs font-medium text-[#3A4565] transition-colors hover:border-[#A8C6F5]"
       >
         <Flag size={13} /> Jump to phase <ChevronDown size={12} className={cn("transition-transform", open && "rotate-180")} />
       </button>
       {open && (
-        <div className="absolute right-0 top-[calc(100%+6px)] z-30 min-w-64 overflow-hidden rounded-xl border border-[#E2E7F2] bg-white shadow-lg">
+        <div role="menu" onKeyDown={onMenuKeyDown} className="absolute right-0 top-[calc(100%+6px)] z-30 min-w-64 overflow-hidden rounded-xl border border-[#E2E7F2] bg-white shadow-lg">
           <div className="px-3.5 pb-1.5 pt-3 text-[10px] font-bold uppercase tracking-wider text-[#5F6A88]">Set active phase</div>
           {milestones.length === 0 ? (
             <div className="px-3.5 pb-3.5 text-[12.5px] text-[#5F6A88]">No phases yet.</div>
@@ -40,6 +46,7 @@ export function GenericJumpToPhaseMenu({
               <button
                 key={m.id}
                 type="button"
+                role="menuitem"
                 onClick={() => onJump(m.id)}
                 disabled={jumping || m.status === "active"}
                 className="flex w-full items-center gap-1.5 cursor-pointer border-none bg-transparent px-3.5 py-2 text-left text-[13px] text-[#0B1533] transition-colors hover:bg-[#F4F6FB] disabled:opacity-50"
