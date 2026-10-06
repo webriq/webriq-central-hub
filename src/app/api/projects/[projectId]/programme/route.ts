@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { loadProgramme } from "@/lib/programme/store";
+import { loadInternalDeliverables } from "@/lib/programme/checklist-store";
 import { toWire } from "@/lib/programme/view-model";
 
 // Read-only route — pm/developer can view the Timeline (task 146); every write route under
@@ -29,7 +30,8 @@ export async function GET(
         .select("id, customer_id, name, programme_started_at, programme_duration_days, onboarding_visible_at, scheduled_onboarding_start_at, customers(company_name)")
         .eq("id", projectId)
         .single(),
-      supabase.from("onboarding_internal_deliverables").select("*").eq("project_id", projectId),
+      // Task 434: checklist statuses come from `tasks` (kind = 'checklist') when the project has them, else the legacy table.
+      loadInternalDeliverables(supabase, projectId),
       // Task 429 (WP3): unified tables via the store, in programme order. Each phase carries its programme state; deliverable rows
       // carry their own id, so the old read-side Phase 2-5 tasklist self-heal and `phase_tasklists` lookup are gone.
       loadProgramme(supabase, projectId).catch((err: Error) => err),

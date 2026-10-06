@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { excludingChecklist } from "@/lib/tasks/exclude-checklist";
 import type { Database } from "@/types/database";
 
 const VALID_STATUS = ["active", "on_hold", "completed", "archived"] as const;
@@ -27,12 +28,15 @@ export async function GET(
 
   const [milestonesRes, tasksRes] = await Promise.all([
     supabase.from("milestones").select("*").eq("project_id", projectRes.data.id).order("position", { ascending: true, nullsFirst: false }),
-    supabase
-      .from("tasks")
-      .select("*")
-      .eq("project_id", projectRes.data.id)
-      .is("parent_task_id", null)
-      .order("position", { ascending: true, nullsFirst: false }),
+    excludingChecklist((exclude) => {
+      const q = supabase
+        .from("tasks")
+        .select("*")
+        .eq("project_id", projectRes.data.id)
+        .is("parent_task_id", null)
+        .order("position", { ascending: true, nullsFirst: false });
+      return exclude ? q.eq("kind", "task") : q;
+    }),
   ]);
 
   return NextResponse.json({

@@ -1813,6 +1813,8 @@ export interface Database {
           completed_on: string | null;
           source_meta: Record<string, unknown>;
           display_id: string | null;
+          kind: "task" | "checklist";
+          checklist_key: string | null;
         };
         Insert: {
           id?: string;
@@ -1848,6 +1850,8 @@ export interface Database {
           completed_on?: string | null;
           source_meta?: Record<string, unknown>;
           display_id?: string | null;
+          kind?: "task" | "checklist";
+          checklist_key?: string | null;
         };
         Update: {
           id?: string;
@@ -1882,6 +1886,8 @@ export interface Database {
           completed_on?: string | null;
           source_meta?: Record<string, unknown>;
           display_id?: string | null;
+          kind?: "task" | "checklist";
+          checklist_key?: string | null;
         };
         Relationships: [
           {

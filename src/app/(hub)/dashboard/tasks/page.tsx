@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { V2_ROUTES } from "@/config/constants";
 import { buildProjectHref, buildItemHref } from "@/lib/projects/deep-links";
 import AllTasksIndex, { type AllTasksPaginationMeta, type AllTaskListItem } from "./_all-tasks-index";
+import { excludingChecklist } from "@/lib/tasks/exclude-checklist";
 
 // Task 385 — cross-project Tasks table (all tasks from all projects, sorted by created_at DESC).
 // Replaces the Sprint 1A stub. Mirrors `src/app/(hub)/desk/tickets/page.tsx`'s exact shape
@@ -50,18 +51,20 @@ export default async function TasksPage({
 
   const searchQ = params.search?.trim() ?? "";
 
-  let query = supabase
-    .from("tasks")
-    .select(
-      "id, title, display_id, status, priority, assignees, due_date, created_at, projects(project_id, external_project_id, name)",
-      { count: "exact" }
-    );
-  if (searchQ) {
-    const esc = searchQ.replace(/[%,()]/g, "");
-    query = query.or(`title.ilike.%${esc}%,display_id.ilike.%${esc}%`);
-  }
-
-  const { data, count } = await query.order("created_at", { ascending: false }).range(from, to);
+  const { data, count } = await excludingChecklist((exclude) => {
+    let query = supabase
+      .from("tasks")
+      .select(
+        "id, title, display_id, status, priority, assignees, due_date, created_at, projects(project_id, external_project_id, name)",
+        { count: "exact" }
+      );
+    if (exclude) query = query.eq("kind", "task");
+    if (searchQ) {
+      const esc = searchQ.replace(/[%,()]/g, "");
+      query = query.or(`title.ilike.%${esc}%,display_id.ilike.%${esc}%`);
+    }
+    return query.order("created_at", { ascending: false }).range(from, to);
+  });
   const rows = (data ?? []) as unknown as TaskRow[];
 
   const tasks: AllTaskListItem[] = rows.map((t) => {

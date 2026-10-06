@@ -12,12 +12,12 @@ type Task = Database["public"]["Tables"]["tasks"]["Row"];
 type Payload = RealtimePostgresChangesPayload<Record<string, unknown>>;
 
 // Insert/update upserts by id; delete removes by `old.id` (a DELETE payload only carries the key).
-function merge<T extends { id: string }>(prev: T[], payload: Payload): T[] {
+function merge<T extends { id: string }>(prev: T[], payload: Payload, toRow: (raw: Record<string, unknown>) => T = (raw) => raw as unknown as T): T[] {
   if (payload.eventType === "DELETE") {
     const id = (payload.old as { id?: string } | undefined)?.id;
     return id ? prev.filter((r) => r.id !== id) : prev;
   }
-  const row = payload.new as unknown as T;
+  const row = toRow(payload.new);
   if (!row?.id) return prev;
   const idx = prev.findIndex((r) => r.id === row.id);
   if (idx === -1) return [...prev, row];
@@ -25,6 +25,10 @@ function merge<T extends { id: string }>(prev: T[], payload: Payload): T[] {
   next[idx] = row;
   return next;
 }
+
+// The change feed carries raw `project_deliverables` rows (`phase_id`); the Timeline state holds the `tasklists` view shape, which names
+// that column `milestone_id` — without the mapping a live-updated row would lose its lane.
+const tasklistFromDeliverable = (raw: Record<string, unknown>): Tasklist => ({ ...raw, milestone_id: raw.phase_id ?? null }) as unknown as Tasklist;
 
 // Task 422 — live milestones/tasklists/tasks for the generic Timeline, mirroring the StackShift
 // view's customer_phases channel. Task 427: milestones/tasklists are now `project_phases` /
@@ -45,7 +49,7 @@ export function useGenericRealtime(
     const channel = supabase
       .channel(`v2_generic_${projectId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "project_phases", filter }, (p) => setMilestones((prev) => merge(prev, p)))
-      .on("postgres_changes", { event: "*", schema: "public", table: "project_deliverables", filter }, (p) => setTasklists((prev) => merge(prev, p)))
+      .on("postgres_changes", { event: "*", schema: "public", table: "project_deliverables", filter }, (p) => setTasklists((prev) => merge(prev, p, tasklistFromDeliverable)))
       .on("postgres_changes", { event: "*", schema: "public", table: "tasks", filter }, (p) => setTasks((prev) => merge(prev, p)))
       .subscribe((s) => {
         const next = toLiveStatus(s);

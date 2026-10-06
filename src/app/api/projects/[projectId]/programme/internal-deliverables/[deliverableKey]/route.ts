@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getInternalDeliverable, internalDeliverablesForSubPhase, getDeliverable } from "@/config/customer-phases";
 import { notifyProjectMembers } from "@/lib/notifications";
 import { getProgrammeDeliverable } from "@/lib/programme/store";
+import { deriveSubPhaseStatus, type ChecklistStatus } from "@/lib/programme/checklist-tasks";
+import { syncChecklistTask } from "@/lib/programme/checklist-store";
 
 const WRITE_ROLES = ["admin", "super_admin", "marketing"];
 const STATUSES = ["pending", "in_progress", "done"];
@@ -52,6 +54,9 @@ export async function PATCH(
       return NextResponse.json({ error: "Failed to update internal deliverable" }, { status: 500 });
     }
 
+    // Task 434: mirror onto the checklist `tasks` row (dual-write; a no-op for a project that has none yet).
+    await syncChecklistTask(supabase, projectId, deliverableKey, status);
+
     // Auto-derive the parent deliverable's status from all sibling internal checklist items —
     // status is no longer manually toggled for sub-phases that have a checklist (task 127).
     let updatedDeliverable = null;
@@ -62,10 +67,7 @@ export async function PATCH(
       .eq("project_id", projectId)
       .in("deliverable_key", siblingKeys);
 
-    const statuses = siblings?.map((s) => s.status) ?? [];
-    const allDone = statuses.length > 0 && statuses.every((s) => s === "done");
-    const anyStarted = statuses.some((s) => s !== "pending");
-    const computedStatus = allDone ? "done" : anyStarted ? "in_progress" : "pending";
+    const computedStatus = deriveSubPhaseStatus((siblings ?? []).map((s) => s.status as ChecklistStatus));
 
     const currentDeliverable = await getProgrammeDeliverable(supabase, projectId, 1, internalConfig.subPhaseKey);
 

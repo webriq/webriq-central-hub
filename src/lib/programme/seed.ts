@@ -13,6 +13,8 @@ import {
 } from "@/config/customer-phases";
 import { asReferenceDay, createProgrammeCalendar, currentDisplayDay } from "@/lib/programme/calendar";
 import { planBackfill, type CustomerDeliverableIn, type CustomerPhaseIn } from "@/lib/programme/backfill-plan";
+import { buildChecklistRows } from "@/lib/programme/checklist-tasks";
+import { insertChecklistTasks } from "@/lib/programme/checklist-store";
 import type { Database } from "@/types/database";
 
 type ProjectPhaseInsert = Database["public"]["Tables"]["project_phases"]["Insert"];
@@ -164,6 +166,19 @@ async function insertUnifiedProgramme(
     console.error(`${label}: seed error:`, stateRes.error ?? deliverablesRes.error ?? internalRes.error);
     return { error: "Failed to seed programme phases" };
   }
+  // Task 434: dual-write the checklist as `tasks` rows (kind = 'checklist') under Phase 1 — after the deliverables they reference.
+  // A project whose Phase 1 was excluded has no Phase 1 deliverables, so this yields no rows for it.
+  await insertChecklistTasks(
+    adminClient,
+    buildChecklistRows(
+      project.id,
+      plan.phases.map((op) => ({ id: op.id, phase_number: op.row.phase_number ?? null })),
+      plan.deliverables.map((op) => ({ id: op.id, phase_id: op.row.phase_id ?? null, deliverable_key: op.row.deliverable_key ?? null })),
+      new Map(),
+      new Date().toISOString()
+    ),
+    label
+  );
   return {};
 }
 

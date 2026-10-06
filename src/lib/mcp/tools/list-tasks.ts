@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import { runScopedTool } from "@/lib/mcp/run-tool";
+import { excludingChecklist } from "@/lib/tasks/exclude-checklist";
 
 const TASK_STATUS = [
   "open",
@@ -26,15 +27,17 @@ export async function listTasks(
   authInfo: AuthInfo | undefined
 ) {
   return runScopedTool("list_tasks", "tasks:manage", authInfo, async (client) => {
-    let q = client
-      .from("tasks")
-      .select("id,title,status,priority,due_date,assignees,project_id,description")
-      .order("updated_at", { ascending: false })
-      .limit(limit);
-    if (status) q = q.eq("status", status);
-    if (priority) q = q.eq("priority", priority);
-
-    const { data, error } = await q;
+    const { data, error } = await excludingChecklist((exclude) => {
+      let q = client
+        .from("tasks")
+        .select("id,title,status,priority,due_date,assignees,project_id,description")
+        .order("updated_at", { ascending: false })
+        .limit(limit);
+      if (exclude) q = q.eq("kind", "task");
+      if (status) q = q.eq("status", status);
+      if (priority) q = q.eq("priority", priority);
+      return q;
+    });
     if (error) throw new Error(error.message);
 
     return {

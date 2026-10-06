@@ -53,6 +53,8 @@ export default function GenericSwimlane({
   collapsedMilestones,
   onToggleCollapse,
   filters,
+  projectId,
+  onDeliverableAdded,
 }: {
   milestones: Milestone[];
   tasklists: Tasklist[];
@@ -63,6 +65,9 @@ export default function GenericSwimlane({
   collapsedMilestones: Set<string>;
   onToggleCollapse: (milestoneId: string) => void;
   filters: TimelineFilters;
+  // Task 433: undefined hides each lane's "Add deliverable" control.
+  projectId: string;
+  onDeliverableAdded?: (tasklist: Tasklist) => void;
 }) {
   const router = useRouter();
   const { origin: startDate, currentDay, totalDays: visibleTotalDays } = timeline;
@@ -142,6 +147,8 @@ export default function GenericSwimlane({
                 onOpenTasklist={openTasklist}
                 currentDay={currentDay}
                 filters={filters}
+                projectId={projectId}
+                onDeliverableAdded={onDeliverableAdded}
               />
             ))}
           </div>

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { addProjectMember } from "@/lib/programme/phase-membership";
 import { touchProject } from "@/lib/projects/touch-project";
+import { excludingChecklist } from "@/lib/tasks/exclude-checklist";
 
 const VALID_STATUS = ["open", "in_progress", "ready_for_qa", "testing_completed", "for_client_approval", "ready_to_merge", "post_live_qa", "closed"] as const;
 const VALID_PRIORITY = ["low", "normal", "high", "critical"] as const;
@@ -19,12 +20,15 @@ export async function GET(
   const { data: project } = await supabase.from("projects").select("id").eq("project_id", projectId).single();
   if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 });
 
-  const { data, error } = await supabase
-    .from("tasks")
-    .select("*")
-    .eq("project_id", project.id)
-    .is("parent_task_id", null)
-    .order("position", { ascending: true, nullsFirst: false });
+  const { data, error } = await excludingChecklist((exclude) => {
+    const q = supabase
+      .from("tasks")
+      .select("*")
+      .eq("project_id", project.id)
+      .is("parent_task_id", null)
+      .order("position", { ascending: true, nullsFirst: false });
+    return exclude ? q.eq("kind", "task") : q;
+  });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
   return NextResponse.json(data ?? []);

@@ -35,6 +35,8 @@ interface GenericPhaseViewProps {
   tasklists: Tasklist[];
   tasks: Task[];
   canManagePhases: boolean;
+  // Task 433: roles that may add a deliverable to a phase from the Timeline (admin/super_admin/marketing/pm).
+  canAddDeliverable: boolean;
 }
 
 // ─── Generic-model detail view (task 247) — every project not on the specialized customer_phases
@@ -49,12 +51,14 @@ interface GenericPhaseViewProps {
 // chips stay here as their own card (this generic-engine branch never moved that content to
 // Overview the way StackShift did — task 281/282's explicit, still-current scope decision).
 export default function GenericPhaseView({
-  project, projectUrlKey, initialMilestones, tasklists: initialTasklists, tasks: initialTasks, canManagePhases,
+  project, projectUrlKey, initialMilestones, tasklists: initialTasklists, tasks: initialTasks, canManagePhases, canAddDeliverable,
 }: GenericPhaseViewProps) {
   const [milestones, setMilestones] = useState<Milestone[]>(initialMilestones);
   // Task 422: tasklists/tasks are live state (seeded from SSR props) so Realtime edits land without a reload.
   const [tasklists, setTasklists] = useState<Tasklist[]>(initialTasklists);
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
+  // Task 433: merge a freshly-added deliverable; the realtime INSERT may deliver the same row, so dedupe by id.
+  const handleDeliverableAdded = (tl: Tasklist) => setTasklists((prev) => (prev.some((t) => t.id === tl.id) ? prev : [...prev, tl]));
   const liveStatus = useGenericRealtime(project.id, { setMilestones, setTasklists, setTasks });
   const { filters, update: updateFilters, clear: clearFilters } = useTimelineFilters();
   const { milestoneCounts, tasklistCounts } = useMemo(() => buildTaskCounts(tasks), [tasks]);
@@ -207,6 +211,8 @@ export default function GenericPhaseView({
           collapsedMilestones={collapsedMilestones}
           onToggleCollapse={toggleCollapse}
           filters={filters}
+          projectId={project.id}
+          onDeliverableAdded={canAddDeliverable ? handleDeliverableAdded : undefined}
         />
       </div>
       </div>

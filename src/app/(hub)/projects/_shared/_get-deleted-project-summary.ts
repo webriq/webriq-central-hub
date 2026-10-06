@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { isProjectVisibleToCurrentUser } from "@/app/(hub)/projects-old/_project-access";
 import { splitDeletedName } from "@/lib/projects/deleted-name";
+import { excludingChecklist } from "@/lib/tasks/exclude-checklist";
 
 // Task 415 — what the deleted-project landing view shows. Built only for a soft-deleted project
 // (status = 'deleted') the current user could previously have viewed; anything else is null so the
@@ -35,7 +36,10 @@ export async function getDeletedProjectSummary(project: DeletedProjectRow): Prom
     project.customer_id
       ? supabase.from("customers").select("company_name").eq("customer_id", project.customer_id).maybeSingle()
       : Promise.resolve({ data: null }),
-    supabase.from("tasks").select("id", head).eq("project_id", project.id),
+    excludingChecklist((exclude) => {
+      const q = supabase.from("tasks").select("id", head).eq("project_id", project.id);
+      return exclude ? q.eq("kind", "task") : q;
+    }),
     supabase.from("tickets").select("id", head).eq("project_id", project.id),
     supabase.from("milestones").select("id", head).eq("project_id", project.id),
   ]);

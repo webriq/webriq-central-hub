@@ -222,6 +222,8 @@ export default function OnboardingDetail({
   // Task 148: schedule drag-resize/move follows customer_deliverables' own write RLS
   // (migration 070/071) — admin/super_admin/marketing only, independent of canManagePhases.
   const canEditSchedule = role === "admin" || role === "super_admin" || role === "marketing";
+  // Task 433: adding a programme deliverable also allows pm (the API inserts with adminClient — see its route comment).
+  const canAddDeliverable = canEditSchedule || role === "pm";
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -529,6 +531,10 @@ export default function OnboardingDetail({
     );
   };
 
+  // Task 433: merge a freshly-added deliverable; the realtime INSERT event may deliver the same row, so dedupe by id.
+  const handleDeliverableAdded = (row: ProgrammeDeliverableRow) =>
+    setDeliverables((prev) => (prev.some((d) => d.id === row.id) ? prev : [...prev, row]));
+
   // Task 429 (decision D-B): rows store display-scale days, which is exactly what the drag UI works in — no conversion either way.
   // Task 421: resolves false on failure (after reverting) so the card can show its own inline error.
   const handleScheduleChange = async (phaseNumber: number, deliverableKey: string, dayStart: number, dayEnd: number): Promise<boolean> => {
@@ -583,6 +589,7 @@ export default function OnboardingDetail({
         tasklists={initialTasklists}
         tasks={initialGenericTasks}
         canManagePhases={canManagePhases}
+        canAddDeliverable={canAddDeliverable}
       />
     );
   }
@@ -940,6 +947,8 @@ export default function OnboardingDetail({
                   totalDays={visibleDurationDays}
                   currentDay={currentDay}
                   filters={filters}
+                  projectId={project.id}
+                  onDeliverableAdded={canAddDeliverable ? handleDeliverableAdded : undefined}
                 />
               ))}
             </div>

@@ -3,6 +3,7 @@ import { adminClient } from "@/lib/supabase/admin";
 import { isProjectVisibleToCurrentUser } from "@/app/(hub)/projects-old/_project-access";
 import { getAssignableMembers } from "@/lib/members/assignable";
 import type { Project, Milestone, Tasklist, Task, Ticket } from "@/app/(hub)/projects-old/_pm-shared";
+import { excludingChecklist } from "@/lib/tasks/exclude-checklist";
 
 export type ProjectDetailData = {
   project: Project;
@@ -70,11 +71,10 @@ export async function getProjectDetailData(projectId: string): Promise<ProjectDe
       .select("*")
       .eq("project_id", project.id)
       .order("created_at", { ascending: true }),
-    supabase
-      .from("tasks")
-      .select("*")
-      .eq("project_id", project.id)
-      .order("position", { ascending: true, nullsFirst: false }),
+    excludingChecklist((exclude) => {
+      const q = supabase.from("tasks").select("*").eq("project_id", project.id).order("position", { ascending: true, nullsFirst: false });
+      return exclude ? q.eq("kind", "task") : q;
+    }),
     supabase
       .from("tickets")
       .select("*")

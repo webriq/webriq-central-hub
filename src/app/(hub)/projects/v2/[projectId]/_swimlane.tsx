@@ -7,6 +7,8 @@ import { internalDeliverablesForSubPhase, type PhaseConfig } from "@/config/cust
 import type { OnboardingInternalDeliverableRow } from "@/types/database";
 import { TOTAL_DAYS, ROW_HEIGHT, ROW_GAP, LABEL_WIDTH, LANE_TOP_PADDING, PHASE_VISUALS, assignTracks } from "./_gantt-shared";
 import { useGanttZoom } from "./_gantt-zoom-context";
+import type { ProgrammeDeliverableRow } from "@/lib/programme/view-model";
+import AddDeliverableButton from "./_add-deliverable-button";
 import DeliverableCard from "./_deliverable-card";
 import { stackshiftFacts } from "./_timeline-stats";
 import { matchesFilters, type TimelineFilters } from "./_use-timeline-filters";
@@ -16,8 +18,11 @@ import { matchesFilters, type TimelineFilters } from "./_use-timeline-filters";
 export default function Swimlane({
   phase, dbStatus, deliverableStatusMap, internalByKey, collapsed, onToggleCollapse,
   onOpenDeliverable, expandedDeliverable, onExpandDeliverable, index, startDate, role, canEditSchedule, onScheduleChange,
-  totalDays = TOTAL_DAYS, currentDay, filters,
+  totalDays = TOTAL_DAYS, currentDay, filters, projectId, onDeliverableAdded,
 }: {
+  // Task 433: `onDeliverableAdded` is undefined for roles that may not add deliverables, which hides the control.
+  projectId: string;
+  onDeliverableAdded?: (row: ProgrammeDeliverableRow) => void;
   phase: PhaseConfig;
   dbStatus: string;
   deliverableStatusMap: Map<string, string>;
@@ -116,6 +121,18 @@ export default function Swimlane({
                 lane instead, which read as confusing. */}
             {collapsed ? <Plus size={14} className="shrink-0 text-[#5F6A88]" /> : <Minus size={14} className="shrink-0 text-[#5F6A88]" />}
           </button>
+        )}
+        {/* Task 433: mid-programme "Add deliverable" — only on a live (non-skipped) phase, only for roles the API permits. */}
+        {onDeliverableAdded && dbStatus !== "skipped" && (
+          <AddDeliverableButton<ProgrammeDeliverableRow>
+            endpoint={`/api/projects/${projectId}/programme/deliverables`}
+            target={{ phase_number: phase.number }}
+            phaseName={phase.name}
+            phaseChipClass={cn(visual.bg, visual.text)}
+            phaseDayStart={phase.dayStart}
+            phaseDayEnd={phase.dayEnd}
+            onAdded={onDeliverableAdded}
+          />
         )}
       </div>
 

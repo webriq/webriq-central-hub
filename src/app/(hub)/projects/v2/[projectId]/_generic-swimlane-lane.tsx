@@ -6,6 +6,7 @@ import type { Database } from "@/types/database";
 import { formatWindowRange, windowLength, type PhaseWindow } from "@/lib/programme/generic-timeline";
 import { LABEL_WIDTH, ROW_HEIGHT, ROW_GAP, LANE_TOP_PADDING, PHASE_VISUALS, assignTracks } from "./_gantt-shared";
 import { useGanttZoom } from "./_gantt-zoom-context";
+import AddDeliverableButton from "./_add-deliverable-button";
 import { genericFacts, placeTasklist } from "./_timeline-stats";
 import { matchesFilters, type TimelineFilters } from "./_use-timeline-filters";
 
@@ -26,8 +27,11 @@ const UNSCHEDULED_ROW = 36;
 // in an "Unscheduled" row (task 421) rather than placed on the grid.
 export default function GenericSwimlaneLane({
   milestone, index, window: phaseWindow, totalDays, tasklistOffset, collapsed, counts, tasklists, tasklistCounts,
-  onToggleCollapse, onOpenTasklist, currentDay, filters,
+  onToggleCollapse, onOpenTasklist, currentDay, filters, projectId, onDeliverableAdded,
 }: {
+  // Task 433: `onDeliverableAdded` is undefined for roles that may not add deliverables, which hides the control.
+  projectId: string;
+  onDeliverableAdded?: (tasklist: Tasklist) => void;
   milestone: Milestone;
   index: number;
   window: PhaseWindow | undefined;
@@ -91,6 +95,17 @@ export default function GenericSwimlaneLane({
           </div>
           {collapsed ? <Plus size={14} className="shrink-0 text-[#5F6A88]" /> : <Minus size={14} className="shrink-0 text-[#5F6A88]" />}
         </button>
+        {onDeliverableAdded && (
+          <AddDeliverableButton<Tasklist>
+            endpoint={`/api/projects/${projectId}/programme/generic-deliverables`}
+            target={{ milestone_id: milestone.id }}
+            phaseName={milestone.name}
+            phaseChipClass={cn(visual.bg, visual.text)}
+            phaseDayStart={milestone.day_start}
+            phaseDayEnd={milestone.day_end}
+            onAdded={onDeliverableAdded}
+          />
+        )}
       </div>
 
       <div className="relative overflow-visible z-1" style={{ width: laneWidth, height: SPAN_STRIP + (collapsed ? 0 : bodyHeight) }}>

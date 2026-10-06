@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database";
 import { adminClient } from "@/lib/supabase/admin";
+import { excludingChecklist } from "@/lib/tasks/exclude-checklist";
 import { runOrchestration, type OrchestrationProject } from "@/lib/pipeline/orchestrate";
 
 type Supabase = SupabaseClient<Database>;
@@ -39,16 +40,19 @@ export function buildOpsChatTools(ctx: {
         limit: z.number().min(1).max(50).default(20).describe("Max results to return"),
       }),
       execute: async ({ status, priority, limit }) => {
-        let q = supabase
-          .from("tasks")
-          .select("id,title,status,priority,due_date,assignees,project_id,description")
-          .order("updated_at", { ascending: false })
-          .limit(limit);
-        if (status) q = q.eq("status", status);
-        if (priority) q = q.eq("priority", priority);
-        // Developers only see tasks they are assigned to
-        if (role === "developer") q = q.contains("assignees", [userId]);
-        const { data, error } = await q;
+        const { data, error } = await excludingChecklist((exclude) => {
+          let q = supabase
+            .from("tasks")
+            .select("id,title,status,priority,due_date,assignees,project_id,description")
+            .order("updated_at", { ascending: false })
+            .limit(limit);
+          if (exclude) q = q.eq("kind", "task");
+          if (status) q = q.eq("status", status);
+          if (priority) q = q.eq("priority", priority);
+          // Developers only see tasks they are assigned to
+          if (role === "developer") q = q.contains("assignees", [userId]);
+          return q;
+        });
         if (error) return { error: error.message };
         return { tasks: data ?? [], count: (data ?? []).length };
       },
