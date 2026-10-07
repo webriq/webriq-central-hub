@@ -5,17 +5,18 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   LayoutDashboard, LayoutGrid, Inbox, Cpu, Users,
-  Megaphone, BookOpen, Settings, ChevronLeft, ChevronDown,
+  Megaphone, BookOpen, HardDrive, Settings, ChevronLeft, ChevronDown,
   Circle, LogOut, Building2,
   Clock, ClipboardList, ListChecks,
 } from "lucide-react";
-import { V2_ROUTES } from "@/config/constants";
+import { DRIVE_LABEL, V2_ROUTES } from "@/config/constants";
 import { isPathAllowedForDepartment } from "@/lib/auth/department-map";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { signOut } from "@/app/(auth)/actions";
 import { CLASSIFICATION_TABS, classificationTabHref, parseClassificationTab, type ClassificationTabId } from "@/app/(hub)/projects/_classification-tabs";
 import { useSidebarProjectTabs } from "./sidebar-project-context";
+import { hrNavChildren } from "./hr-nav";
 
 // A child href either has no query (plain path match, same as always) or carries a `?tab=`
 // (the /projects/v2 classification links, task 361 follow-up) — in which case the current URL's
@@ -33,6 +34,8 @@ function isProjectDetailPath(pathname: string): boolean {
 }
 
 function isChildActive(pathname: string, searchParams: URLSearchParams, href: string, projectTabs: ClassificationTabId[]): boolean {
+  // "/hr" is the HR overview — it must not light up for every /hr/* sibling (task 435).
+  if (href === V2_ROUTES.HR) return pathname === href;
   const queryIndex = href.indexOf("?");
   const hrefPath = queryIndex === -1 ? href : href.slice(0, queryIndex);
   if (pathname !== hrefPath && !pathname.startsWith(hrefPath + "/")) return false;
@@ -57,7 +60,7 @@ type NavGroup = {
   items: NavItem[];
 };
 
-function getNavGroups(role: string | null, departmentName: string | null): NavGroup[] {
+function getNavGroups(role: string | null, departmentName: string | null, hasDirectReports: boolean): NavGroup[] {
   const isAdmin = role === "admin" || role === "super_admin";
   const isDev   = role === "developer";
 
@@ -110,12 +113,21 @@ function getNavGroups(role: string | null, departmentName: string | null): NavGr
   ];
 
   const peopleItems: NavItem[] = [
-    { label: "HR",            icon: <Users size={18} />,           href: V2_ROUTES.DASHBOARD_USERS, stub: !isAdmin },
+    // Task 435 — HR is a collapsible group (Overview, Leave requests, Calendar, Holidays, …, Users),
+    // role-filtered by hrNavChildren(); clients get no HR entry at all.
+    ...(role !== "client" ? [
+      { label: "HR", icon: <Users size={18} />, href: V2_ROUTES.HR, children: hrNavChildren(role, hasDirectReports) },
+    ] : []),
     { label: "Announcements", icon: <Megaphone size={18} />,       href: V2_ROUTES.DASHBOARD, stub: true },
   ];
 
   const knowledgeItems: NavItem[] = [
     { label: "Wiki",          icon: <BookOpen size={18} />,        href: V2_ROUTES.WIKI },
+    // Task 436 — personal Drive (My Files + Shared with me live inside the page). Staff only:
+    // the page, every /api/drive route and RLS all exclude `client`.
+    ...(role !== "client" ? [
+      { label: DRIVE_LABEL,    icon: <HardDrive size={18} />,       href: V2_ROUTES.DRIVE },
+    ] : []),
   ];
 
   const adminItems: NavItem[] = isAdmin ? [
@@ -175,9 +187,10 @@ interface V2HubSidebarProps {
   departmentName: string | null;
   displayName: string | null;
   avatarUrl: string | null;
+  hasDirectReports?: boolean;
 }
 
-export default function V2HubSidebar({ userRole, departmentName, displayName, avatarUrl }: V2HubSidebarProps) {
+export default function V2HubSidebar({ userRole, departmentName, displayName, avatarUrl, hasDirectReports = false }: V2HubSidebarProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const projectTabs = useSidebarProjectTabs();
@@ -187,7 +200,7 @@ export default function V2HubSidebar({ userRole, departmentName, displayName, av
   // Absent = not yet manually toggled this session, so expand state follows the current route.
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const shouldReduceMotion = useReducedMotion();
-  const navGroups = getNavGroups(userRole, departmentName);
+  const navGroups = getNavGroups(userRole, departmentName, hasDirectReports);
   const initials = getInitials(displayName);
 
   return (

@@ -240,6 +240,7 @@ export interface Database {
           approver_id: string | null;
           decided_at: string | null;
           decision_note: string | null;
+          team_emails: string[];
           created_at: string;
         };
         Insert: {
@@ -255,6 +256,7 @@ export interface Database {
           approver_id?: string | null;
           decided_at?: string | null;
           decision_note?: string | null;
+          team_emails?: string[];
           created_at?: string;
         };
         Update: {
@@ -270,6 +272,7 @@ export interface Database {
           approver_id?: string | null;
           decided_at?: string | null;
           decision_note?: string | null;
+          team_emails?: string[];
         };
         Relationships: [
           {
@@ -398,6 +401,333 @@ export interface Database {
   };
   public: {
     Tables: {
+      hr_employees: {
+        Row: {
+          id: string;
+          profile_id: string;
+          employee_number: string | null;
+          full_name: string;
+          department: string | null;
+          position: string | null;
+          employment_type: "full_time" | "part_time" | "contract";
+          manager_id: string | null;
+          date_hired: string | null;
+          date_separated: string | null;
+          status: "active" | "on_leave" | "separated";
+          emergency_contact: Json | null;
+          meta: Json | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          profile_id: string;
+          employee_number?: string | null;
+          full_name: string;
+          department?: string | null;
+          position?: string | null;
+          employment_type: "full_time" | "part_time" | "contract";
+          manager_id?: string | null;
+          date_hired?: string | null;
+          date_separated?: string | null;
+          status?: "active" | "on_leave" | "separated";
+          emergency_contact?: Json | null;
+          meta?: Json | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          profile_id?: string;
+          employee_number?: string | null;
+          full_name?: string;
+          department?: string | null;
+          position?: string | null;
+          employment_type?: "full_time" | "part_time" | "contract";
+          manager_id?: string | null;
+          date_hired?: string | null;
+          date_separated?: string | null;
+          status?: "active" | "on_leave" | "separated";
+          emergency_contact?: Json | null;
+          meta?: Json | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "hr_employees_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: true;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "hr_employees_manager_id_fkey";
+            columns: ["manager_id"];
+            isOneToOne: false;
+            referencedRelation: "hr_employees";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      hr_leave_types: {
+        Row: {
+          id: string;
+          name: string;
+          code: string;
+          paid: boolean;
+          accrual_rule: Json | null;
+          carry_over_cap: number | null;
+          active: boolean;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          code: string;
+          paid?: boolean;
+          accrual_rule?: Json | null;
+          carry_over_cap?: number | null;
+          active?: boolean;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          code?: string;
+          paid?: boolean;
+          accrual_rule?: Json | null;
+          carry_over_cap?: number | null;
+          active?: boolean;
+        };
+        Relationships: [];
+      };
+      hr_leave_requests: {
+        Row: {
+          id: string;
+          employee_id: string;
+          leave_type_id: string;
+          start_date: string;
+          end_date: string;
+          half_day: boolean;
+          reason: string | null;
+          attachment_path: string | null;
+          status: "pending" | "approved" | "rejected" | "cancelled";
+          approver_id: string | null;
+          decided_at: string | null;
+          decision_note: string | null;
+          team_emails: string[];
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          employee_id: string;
+          leave_type_id: string;
+          start_date: string;
+          end_date: string;
+          half_day?: boolean;
+          reason?: string | null;
+          attachment_path?: string | null;
+          status?: "pending" | "approved" | "rejected" | "cancelled";
+          approver_id?: string | null;
+          decided_at?: string | null;
+          decision_note?: string | null;
+          team_emails?: string[];
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          employee_id?: string;
+          leave_type_id?: string;
+          start_date?: string;
+          end_date?: string;
+          half_day?: boolean;
+          reason?: string | null;
+          attachment_path?: string | null;
+          status?: "pending" | "approved" | "rejected" | "cancelled";
+          approver_id?: string | null;
+          decided_at?: string | null;
+          decision_note?: string | null;
+          team_emails?: string[];
+        };
+        Relationships: [
+          {
+            foreignKeyName: "hr_leave_requests_employee_id_fkey";
+            columns: ["employee_id"];
+            isOneToOne: false;
+            referencedRelation: "hr_employees";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "hr_leave_requests_leave_type_id_fkey";
+            columns: ["leave_type_id"];
+            isOneToOne: false;
+            referencedRelation: "hr_leave_types";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      hr_holidays: {
+        Row: {
+          id: string;
+          name: string;
+          holiday_date: string;
+          kind: "regular" | "special" | "company";
+          note: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          holiday_date: string;
+          kind?: "regular" | "special" | "company";
+          note?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          holiday_date?: string;
+          kind?: "regular" | "special" | "company";
+          note?: string | null;
+        };
+        Relationships: [];
+      };
+      hr_leave_allotment_periods: {
+        Row: {
+          id: string;
+          leave_type_id: string;
+          period_start: string;
+          period_end: string;
+          days_allotted: number | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          leave_type_id: string;
+          period_start: string;
+          period_end: string;
+          days_allotted?: number | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          leave_type_id?: string;
+          period_start?: string;
+          period_end?: string;
+          days_allotted?: number | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "hr_leave_allotment_periods_leave_type_id_fkey";
+            columns: ["leave_type_id"];
+            isOneToOne: false;
+            referencedRelation: "hr_leave_types";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      hr_leave_request_notes: {
+        Row: {
+          id: string;
+          leave_request_id: string;
+          author_id: string;
+          body: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          leave_request_id: string;
+          author_id: string;
+          body: string;
+          created_at?: string;
+        };
+        Update: {
+          body?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "hr_leave_request_notes_leave_request_id_fkey";
+            columns: ["leave_request_id"];
+            isOneToOne: false;
+            referencedRelation: "hr_leave_requests";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      hr_leave_adjustments: {
+        Row: {
+          id: string;
+          employee_id: string;
+          leave_type_id: string;
+          period_id: string;
+          days_used_before: number;
+          note: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          employee_id: string;
+          leave_type_id: string;
+          period_id: string;
+          days_used_before?: number;
+          note?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          days_used_before?: number;
+          note?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "hr_leave_adjustments_employee_id_fkey";
+            columns: ["employee_id"];
+            isOneToOne: false;
+            referencedRelation: "hr_employees";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "hr_leave_adjustments_leave_type_id_fkey";
+            columns: ["leave_type_id"];
+            isOneToOne: false;
+            referencedRelation: "hr_leave_types";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "hr_leave_adjustments_period_id_fkey";
+            columns: ["period_id"];
+            isOneToOne: false;
+            referencedRelation: "hr_leave_allotment_periods";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      hr_holiday_reminders_sent: {
+        Row: {
+          holiday_id: string;
+          days_before: number;
+          sent_at: string;
+        };
+        Insert: {
+          holiday_id: string;
+          days_before: number;
+          sent_at?: string;
+        };
+        Update: {
+          sent_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "hr_holiday_reminders_sent_holiday_id_fkey";
+            columns: ["holiday_id"];
+            isOneToOne: false;
+            referencedRelation: "hr_holidays";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
       customers: {
         Row: {
           id: string;
@@ -4119,9 +4449,142 @@ export interface Database {
         };
         Relationships: [];
       };
+      drive_folders: {
+        Row: {
+          id: string;
+          owner_id: string;
+          parent_folder_id: string | null;
+          name: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_id: string;
+          parent_folder_id?: string | null;
+          name: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          owner_id?: string;
+          parent_folder_id?: string | null;
+          name?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "drive_folders_parent_folder_id_fkey";
+            columns: ["parent_folder_id"];
+            isOneToOne: false;
+            referencedRelation: "drive_folders";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      drive_files: {
+        Row: {
+          id: string;
+          owner_id: string;
+          uploaded_by: string | null;
+          folder_id: string | null;
+          file_name: string;
+          file_path: string;
+          file_size: number | null;
+          file_mime_type: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_id: string;
+          uploaded_by?: string | null;
+          folder_id?: string | null;
+          file_name: string;
+          file_path: string;
+          file_size?: number | null;
+          file_mime_type?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          owner_id?: string;
+          uploaded_by?: string | null;
+          folder_id?: string | null;
+          file_name?: string;
+          file_path?: string;
+          file_size?: number | null;
+          file_mime_type?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "drive_files_folder_id_fkey";
+            columns: ["folder_id"];
+            isOneToOne: false;
+            referencedRelation: "drive_folders";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      drive_shares: {
+        Row: {
+          id: string;
+          folder_id: string | null;
+          file_id: string | null;
+          user_id: string | null;
+          role: string | null;
+          permission: "view" | "edit";
+          added_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          folder_id?: string | null;
+          file_id?: string | null;
+          user_id?: string | null;
+          role?: string | null;
+          permission: "view" | "edit";
+          added_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          permission?: "view" | "edit";
+        };
+        Relationships: [
+          {
+            foreignKeyName: "drive_shares_folder_id_fkey";
+            columns: ["folder_id"];
+            isOneToOne: false;
+            referencedRelation: "drive_folders";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "drive_shares_file_id_fkey";
+            columns: ["file_id"];
+            isOneToOne: false;
+            referencedRelation: "drive_files";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: {
+      drive_folder_level: {
+        Args: { p_folder_id: string };
+        Returns: number;
+      };
+      drive_file_level: {
+        Args: { p_file_id: string };
+        Returns: number;
+      };
+      hr_has_direct_reports: {
+        Args: Record<string, never>;
+        Returns: boolean;
+      };
       record_project_view: {
         Args: { p_project_id: string };
         Returns: undefined;

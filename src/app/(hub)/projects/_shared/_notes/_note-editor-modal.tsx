@@ -261,7 +261,6 @@ export function NoteEditorModal({
                 collaborators={activeNote?.collaborators ?? []}
                 allMembers={allMembers}
                 authorId={activeNote?.created_by ?? currentUserId}
-                currentUserId={currentUserId}
                 onShareMany={handleShareMany}
                 onChangePermission={(userId, perm) => activeNote && onChangePermission(activeNote.id, userId, perm)}
                 onUnshare={(userId) => activeNote && onUnshare(activeNote.id, userId)}

@@ -47,6 +47,14 @@ export default async function HubLayout({ children }: { children: React.ReactNod
     }
   }
 
+  // Task 435 — drives the sidebar's "Team requests" link. SECURITY DEFINER RPC in `public`, so it
+  // works without exposing the hr schema; an error (e.g. migration 164 not applied yet) = false.
+  let hasDirectReports = false;
+  if (userRole && userRole !== "client") {
+    const { data } = await supabase.rpc("hr_has_direct_reports");
+    hasDirectReports = data === true;
+  }
+
   if (!isPathAllowedForDepartment(pathname, departmentName)) {
     redirect(getDepartmentHome(departmentName));
   }
@@ -58,6 +66,7 @@ export default async function HubLayout({ children }: { children: React.ReactNod
         departmentName={departmentName}
         displayName={userDisplayName}
         avatarUrl={userAvatarUrl}
+        hasDirectReports={hasDirectReports}
       >
         {children}
       </V2HubShell>

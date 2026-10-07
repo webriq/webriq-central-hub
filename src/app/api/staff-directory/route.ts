@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { getInactiveHubUserIds } from "@/lib/users/status";
 
 // Lightweight, narrow-scoped directory for asset-sharing pickers — deliberately not
 // GET /api/v2/users (admin/super_admin-only, returns email/invite-status/etc. that a
@@ -16,11 +17,12 @@ export async function GET() {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("id, full_name, role")
-    .neq("role", "client")
-    .order("full_name", { ascending: true });
+  const [{ data, error }, inactiveIds] = await Promise.all([
+    supabase.from("profiles").select("id, full_name, role, avatar_url").neq("role", "client").order("full_name", { ascending: true }),
+    getInactiveHubUserIds(),
+  ]);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data);
+  // Task 438 — deactivated users are flagged (the share picker hides them) rather than dropped, so
+  // existing allowed_user_ids chips still resolve to a name.
+  return NextResponse.json((data ?? []).map((p) => ({ ...p, inactive: inactiveIds.has(p.id) })));
 }

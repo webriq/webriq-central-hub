@@ -57,7 +57,7 @@ export type InternalDeliverableRow = {
   status: string;
 };
 
-export type StaffPerson = { id: string; full_name: string | null; role: string };
+export type StaffPerson = { id: string; full_name: string | null; role: string; avatar_url?: string | null; inactive?: boolean };
 
 export const ASSET_ROLE_OPTIONS = [
   { value: "super_admin", label: "Super Admin" },

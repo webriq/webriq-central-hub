@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Globe, Lock, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { EMPTY_SELECTION, SharePicker, selectionCount, type ShareSelection } from "@/components/share-picker";
 import { IconTip } from "./_icon-tip";
 import type { NoteFolder, NoteFolderShare, NoteFolderShareRole, NoteVisibility } from "./_notes-types";
 
@@ -44,9 +45,7 @@ export function NoteFolderShareDialog({
   onUnshare: (folderId: string, shareId: string) => void;
 }) {
   const shares = useMemo(() => folder.shares ?? [], [folder.shares]);
-  const [search, setSearch] = useState("");
-  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
-  const [selectedRoles, setSelectedRoles] = useState<Set<NoteFolderShareRole>>(new Set());
+  const [selection, setSelection] = useState<ShareSelection>(EMPTY_SELECTION);
   const [batchPermission, setBatchPermission] = useState<"view" | "edit">("view");
   // Making a folder public exposes every author's public notes in it to all staff — confirm
   // first (parallel to the note-level confirm-to-public in `_note-editor-modal.tsx`). Switching
@@ -56,40 +55,20 @@ export function NoteFolderShareDialog({
   const sharedUserIds = useMemo(() => new Set(shares.filter((s) => s.user_id).map((s) => s.user_id!)), [shares]);
   const sharedRoles = useMemo(() => new Set(shares.filter((s) => s.role).map((s) => s.role!)), [shares]);
 
-  const candidates = allMembers
-    .filter((m) => m.id !== currentUserId && !sharedUserIds.has(m.id))
-    .filter((m) => (m.full_name ?? "").toLowerCase().includes(search.toLowerCase()));
-
-  const hasSelection = selectedUserIds.size > 0 || selectedRoles.size > 0;
-
-  function toggleUser(id: string) {
-    setSelectedUserIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
-
-  function toggleRole(role: NoteFolderShareRole) {
-    setSelectedRoles((prev) => {
-      const next = new Set(prev);
-      if (next.has(role)) next.delete(role);
-      else next.add(role);
-      return next;
-    });
-  }
+  // Task 438 — recipients are picked with the shared SharePicker (search, multi-select, role chips;
+  // a selected role hides its members). The people exclude the viewer and anyone already shared.
+  const pickerPeople = useMemo(
+    () => allMembers.map((m) => ({ id: m.id, name: m.full_name ?? "Unnamed", role: m.role, roleLabel: ROLE_LABEL[m.role], avatarUrl: m.avatar_url })),
+    [allMembers],
+  );
+  const excludeUserIds = useMemo(() => [currentUserId, ...sharedUserIds], [currentUserId, sharedUserIds]);
+  const excludeRoles = useMemo(() => Array.from(sharedRoles), [sharedRoles]);
+  const count = selectionCount(selection);
 
   function handleShare() {
-    if (!hasSelection) return;
-    onShare(
-      folder.id,
-      { userIds: Array.from(selectedUserIds), roles: Array.from(selectedRoles) },
-      batchPermission
-    );
-    setSelectedUserIds(new Set());
-    setSelectedRoles(new Set());
-    setSearch("");
+    if (count === 0) return;
+    onShare(folder.id, { userIds: selection.userIds, roles: selection.roles as NoteFolderShareRole[] }, batchPermission);
+    setSelection(EMPTY_SELECTION);
   }
 
   function shareTargetLabel(share: NoteFolderShare) {
@@ -182,65 +161,18 @@ export function NoteFolderShareDialog({
                 </div>
               )}
 
-              <p className="text-[11px] font-semibold text-[#0B1533] mb-1.5">Add roles</p>
-              <div className="grid grid-cols-2 gap-1 mb-3">
-                {ROLE_OPTIONS.map((role) => {
-                  const already = sharedRoles.has(role.value);
-                  return (
-                    <label
-                      key={role.value}
-                      className={cn(
-                        "flex items-center gap-2 px-2 py-1.5 rounded-[10px] text-[12px] text-[#3A4565] cursor-pointer transition-colors hover:bg-[#F0F7FF]",
-                        already && "opacity-40 cursor-not-allowed"
-                      )}
-                    >
-                      <input
-                        type="checkbox"
-                        disabled={already}
-                        checked={already || selectedRoles.has(role.value)}
-                        onChange={() => toggleRole(role.value)}
-                        className="cursor-pointer accent-[#007BFF] shrink-0"
-                      />
-                      <span className="truncate">{role.label}</span>
-                    </label>
-                  );
-                })}
-              </div>
-
-              <p className="text-[11px] font-semibold text-[#0B1533] mb-1.5">Add people</p>
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search people…"
-                className="w-full px-2.5 py-1.5 rounded-[10px] border border-[#E2E7F2] bg-[#F4F6FB] text-[13px] outline-none transition-colors text-[#3A4565] focus:border-[#007BFF] focus:bg-white focus:ring-[3px] focus:ring-[#007BFF]/[0.14] placeholder:text-[#5F6A88] mb-1.5"
+              <p className="text-[11px] font-semibold text-[#0B1533] mb-1.5">Add people or roles</p>
+              <SharePicker
+                aria-label="People and roles to share with" roles={ROLE_OPTIONS} people={pickerPeople} value={selection} onChange={setSelection}
+                excludeRoles={excludeRoles} excludeUserIds={excludeUserIds}
               />
-              <div className="flex flex-col max-h-40 overflow-y-auto mb-2">
-                {candidates.length === 0 && (
-                  <p className="text-[11px] text-[#5F6A88] px-1 py-1">No matching people</p>
-                )}
-                {candidates.map((person) => (
-                  <label
-                    key={person.id}
-                    className="flex items-center gap-2 px-2 py-1.5 rounded-[10px] cursor-pointer transition-colors hover:bg-[#F0F7FF]"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedUserIds.has(person.id)}
-                      onChange={() => toggleUser(person.id)}
-                      className="cursor-pointer accent-[#007BFF] shrink-0"
-                    />
-                    <span className="flex-1 min-w-0 text-[13px] text-[#3A4565] truncate">{person.full_name ?? "Unnamed"}</span>
-                    <span className="text-[10px] font-semibold text-[#5F6A88] uppercase shrink-0">{person.role}</span>
-                  </label>
-                ))}
-              </div>
 
-              {hasSelection && (
-                <div className="flex items-center gap-1.5 pt-2 border-t border-[#E2E7F2]">
+              {count > 0 && (
+                <div className="flex items-center gap-1.5 mt-2.5 pt-2.5 border-t border-[#E2E7F2]">
                   <select
                     value={batchPermission}
                     onChange={(e) => setBatchPermission(e.target.value as "view" | "edit")}
+                    aria-label="Access level for new people"
                     className="flex-1 min-w-0 text-[11px] font-medium text-[#3A4565] bg-white border border-[#E2E7F2] rounded-full px-2 py-1 outline-none cursor-pointer"
                   >
                     <option value="view">Can view</option>
@@ -251,7 +183,7 @@ export function NoteFolderShareDialog({
                     onClick={handleShare}
                     className="text-[11px] font-semibold text-white bg-[#007BFF] hover:bg-[#0063D6] rounded-full px-3 py-1 cursor-pointer transition-colors shrink-0"
                   >
-                    Share ({selectedUserIds.size + selectedRoles.size})
+                    Share ({count})
                   </button>
                 </div>
               )}

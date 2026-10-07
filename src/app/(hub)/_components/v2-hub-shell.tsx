@@ -13,10 +13,11 @@ interface V2HubShellProps {
   departmentName: string | null;
   displayName: string | null;
   avatarUrl: string | null;
+  hasDirectReports?: boolean;
   children: React.ReactNode;
 }
 
-export default function V2HubShell({ userRole, departmentName, displayName, avatarUrl, children }: V2HubShellProps) {
+export default function V2HubShell({ userRole, departmentName, displayName, avatarUrl, hasDirectReports, children }: V2HubShellProps) {
   const [opsChatOpen, setOpsChatOpen] = useState(false);
   const [chatTrigger, setChatTrigger] = useState<{ message: string; ts: number } | null>(null);
 
@@ -44,7 +45,7 @@ export default function V2HubShell({ userRole, departmentName, displayName, avat
     <div className="flex h-screen overflow-hidden bg-slate-50">
       <PushPermissionPrompt />
       {/* Sidebar */}
-      <V2HubSidebar userRole={userRole} departmentName={departmentName} displayName={displayName} avatarUrl={avatarUrl} />
+      <V2HubSidebar userRole={userRole} departmentName={departmentName} displayName={displayName} avatarUrl={avatarUrl} hasDirectReports={hasDirectReports} />
 
       {/* Main content column */}
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">

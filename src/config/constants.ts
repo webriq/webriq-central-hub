@@ -45,6 +45,14 @@ export const V2_ROUTES = {
   ORCHESTRATION: "/orchestration",
   ORCHESTRATION_SIMULATE: "/orchestration/simulate",
   WIKI: "/wiki",
+  DRIVE: "/drive",
+  HR: "/hr",
+  HR_LEAVE_REQUESTS: "/hr/leave-requests",
+  HR_CALENDAR: "/hr/calendar",
+  HR_HOLIDAYS: "/hr/holidays",
+  HR_LEAVE_CREDITS: "/hr/leave-credits",
+  HR_PEOPLE: "/hr/people",
+  HR_MY_LEAVE: "/hr/my-leave",
   AUTH_LOGIN: "/auth/login",
   AUTH_SIGNUP: "/auth/signup",
   AUTH_PENDING: "/auth/pending",
@@ -53,3 +61,10 @@ export const V2_ROUTES = {
 
 export const APP_NAME = "WebriQ Central Hub";
 export const APP_VERSION = "0.1.0";
+
+// Task 436 — personal Drive. One sidebar entry; sections live inside the page (?view=).
+export const DRIVE_LABEL = "Drive";
+export const DRIVE_SECTIONS = [
+  { id: "mine", label: "My Files" },
+  { id: "shared", label: "Shared with me" },
+] as const;

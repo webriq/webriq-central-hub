@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { Bell, CheckCircle2, XCircle, Clock, X, type LucideIcon } from "lucide-react";
+import { Bell, CheckCircle2, XCircle, Clock, HardDrive, X, type LucideIcon } from "lucide-react";
 import { formatRelativeTime, cn } from "@/lib/utils";
 
 type Actor = { full_name: string | null; avatar_url: string | null };
@@ -27,6 +27,7 @@ const SCROLL_THRESHOLD_PX = 120;
 
 function getNotificationVisual(type: string): { Icon: LucideIcon; iconBg: string; iconColor: string } {
   if (type === "plan_rejected") return { Icon: XCircle, iconBg: "bg-red-50", iconColor: "text-red-600" };
+  if (type === "drive_share") return { Icon: HardDrive, iconBg: "bg-blue-50", iconColor: "text-blue-600" };
   if (type.startsWith("programme_reminder_")) return { Icon: Clock, iconBg: "bg-amber-50", iconColor: "text-amber-600" };
   if (
     type === "plan_approved" ||

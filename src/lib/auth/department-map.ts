@@ -46,7 +46,8 @@ export const DEPARTMENT_INVITE_ROLES: Record<DepartmentName, ValidRole[]> = {
 // "/dashboard" as a prefix would also match every other /dashboard/* route and
 // defeat the restriction).
 export const DEPARTMENT_NAV_RESTRICTION: Partial<Record<DepartmentName, string[]>> = {
-  HR: [V2_ROUTES.DASHBOARD_USERS, V2_ROUTES.WIKI],
+  // Task 436 — the personal Drive is for every staff member, HR department included.
+  HR: [V2_ROUTES.DASHBOARD_USERS, V2_ROUTES.HR, V2_ROUTES.WIKI, V2_ROUTES.DRIVE],
   Finance: [V2_ROUTES.STACKSHIFT_ORDERS],
 };
 
