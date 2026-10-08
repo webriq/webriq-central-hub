@@ -243,3 +243,7 @@ PASS
 
 ### Verification Run
 - `npx tsc --noEmit` - PASS; eslint on changed files - PASS; `npx tsx _docs/task/441-poll-cursor.check.ts` - PASS; live run - SKIPPED
+
+### Live verification (created-pass) + cleanup
+- First live run: `createdPass { listed: 43, checked: 41, ingested: 1, cursorBefore: 1790841934147, cursorAfter: 1791410923000 }`, 20.8 s — `sortBy=-createdTime` confirmed, and one StackShift ticket the search had never returned was ingested.
+- Both temporary debug modes (`?debug=sort`, `?debug=ticket`) and `probeListSort` removed; `CLAUDE.md` StackShift-poll bullet updated.
