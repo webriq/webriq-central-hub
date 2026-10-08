@@ -222,3 +222,24 @@ PASS
 
 ### Verification Run
 - `npx tsc --noEmit` - PASS; eslint on changed files - PASS; live run - SKIPPED
+
+## Implementation Notes — root cause found + list-based pass + duplicate flag
+
+### Confirmed findings (live evidence)
+- **Mail thread (#21086):** not an incomplete sync. #21037 (Mail poll) holds the full 7-message thread; #21086 is the Zoho **Desk** copy of the same email (Desk # 21079, `channel=api`, source `stackshift-desk-poll`) and only has the opening message because staff replied via Mail/Hub. helpdesk@ evidently also feeds Zoho Desk (email-to-ticket), so the same email exists in both systems. Sent-folder ingestion (E1) was **not** the cause here (all 19 matched Sent messages were already stored); it stays as a safety net.
+- **StackShift lag:** poll running since Sep 22; 7 of 12 `api` tickets took >1 day to arrive. Desk debug for #21083 (Desk ticket 21466): created Oct 2 15:58:11 with `cf_stack_shift_site` set at creation, modified 15:58:37, history = `TicketCreated` only, ingested Oct 6 22:30. **Cause: Desk's `/tickets/search` index lags hours to days**, while a direct fetch works immediately. Cursor logic + overlap can't fix lag of that size.
+- Listing note: Zoho Mail `messages/view` returns newest-first only when `start` is passed (without it the Sent listing returned a June-2025 slice); `sortBy` accepts only `date`.
+
+### What changed (this round)
+- `desk-ticket-poll/route.ts`: **created-pass** (`runCreatedPass`) — lists newest-created tickets via real-time `/tickets?sortBy=-createdTime`, fetches each unseen one once to read `cf`, ingests StackShift ones through `processTicket()`. Own cursor row `stackshift-desk-created` (missing → 7-day seed, created on first advance), max 60 Get Ticket calls/run, shares the run budget, failure is non-fatal and reported as `createdPass` in the run summary. `?debug=ticket&id=` diagnostic still present (remove once verified).
+- **Duplicate flag:** `findMailDuplicate()` sets `source_meta.duplicateOf = { inboxId, ticketNumber }` when a Desk ticket matches a Mail ticket (same requester, subject match, created within ±1 h). Detail page shows a link banner. No merge, nothing hidden.
+- `poll-cursor.ts` + check: `selectUncheckedByCreated`.
+
+### Not done / unverified
+- `sortBy=-createdTime` on List Tickets is unverified (order guard keeps paging if wrong); check `createdPass.listed/checked/ingested` in the first run.
+- No list-row pill for duplicates (detail banner only).
+- Existing #21086 isn't flagged until re-processed; one-off SQL in the hand-off message.
+- Probes (`?debug=sort` on email-poll, `?debug=ticket` on desk-ticket-poll) and the `CLAUDE.md` update remain to be cleaned/done.
+
+### Verification Run
+- `npx tsc --noEmit` - PASS; eslint on changed files - PASS; `npx tsx _docs/task/441-poll-cursor.check.ts` - PASS; live run - SKIPPED

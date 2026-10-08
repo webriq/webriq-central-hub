@@ -19,7 +19,8 @@ import { CF_TARGETS, resolveCfField } from "@/lib/migrate/desk-cf";
 // reimplement it here, see src/lib/desk/stackshift-message-sync.ts's header comment for why.
 import { syncTicketMessages } from "@/lib/desk/stackshift-message-sync";
 // Task 441 — overlap window, incremental cursor and time budget (pure helpers).
-import { POLL_OVERLAP_MS, selectCandidates, advanceCursor, budgetExhausted } from "@/lib/desk/poll-cursor";
+import { POLL_OVERLAP_MS, selectCandidates, selectUncheckedByCreated, advanceCursor, budgetExhausted } from "@/lib/desk/poll-cursor";
+import { subjectsMatch } from "@/lib/email/subject";
 
 // Without this the platform default applies and a long run dies before the cursor moves.
 export const maxDuration = 300;
@@ -32,6 +33,11 @@ const RUN_BUDGET_MS = 240_000;
 // modifiedTime (epoch ms, as text) instead of a Zoho Mail message's receivedTime.
 const CURSOR_ID = "stackshift-desk";
 const SEARCH_LABEL = "stackshift-desk-poll";
+// Task 441 — created-pass: its own cursor row (created on first advance; a missing row seeds a
+// bounded 7-day lookback), and a cap on per-run Get Ticket calls to stay inside Desk's rate limits.
+const CREATED_CURSOR_ID = "stackshift-desk-created";
+const CREATED_SEED_LOOKBACK_MS = 7 * 86_400_000;
+const MAX_CREATED_CHECKS = 60;
 const MAX_PAGES = 20; // 100/page — bounds a runaway loop if Desk's sort order is unreliable
 
 type DeskTicketSearchRow = {
@@ -156,7 +162,16 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  let createdPass: Awaited<ReturnType<typeof runCreatedPass>> | { error: string };
+  try {
+    createdPass = await runCreatedPass(token, startedAt);
+  } catch (e) {
+    console.error("[cron/desk-ticket-poll] created-pass failed", e);
+    createdPass = { error: e instanceof Error ? e.message : "created-pass failed" };
+  }
+
   const summary = {
+    createdPass,
     found: candidates.length,
     processed,
     failed,
@@ -249,6 +264,8 @@ async function processTicket(ticket: DeskTicketSearchRow, token: string): Promis
     customerId = contactMatches?.[0]?.customer_id ?? null;
   }
 
+  const duplicateOf = await findMailDuplicate(ticket, requesterEmail);
+
   const { data: upserted, error: upsertError } = await adminClient
     .from("inbox")
     .upsert(
@@ -279,6 +296,7 @@ async function processTicket(ticket: DeskTicketSearchRow, token: string): Promis
           stackShiftSite: resolveCfField(ticket.cf, CF_TARGETS.stackShiftSite),
           whiteLabel: resolveCfField(ticket.cf, CF_TARGETS.whiteLabel),
           source: "stackshift-desk-poll",
+          ...(duplicateOf ? { duplicateOf } : {}),
         },
       },
       { onConflict: "external_id" }
@@ -341,4 +359,118 @@ async function debugDeskTicket(token: string, id: string) {
   }
   out.search = { foundOnPage, scanned };
   return out;
+}
+
+
+// Task 441 — a Desk ticket for an email that also reached the Hub through the Zoho Mail poll is
+// the same conversation twice (helpdesk@ also feeds Desk). Flag it, never merge: the Desk copy
+// keeps its own fields (Site, Business Name) and the Inbox shows a link to the Mail ticket.
+async function findMailDuplicate(
+  ticket: DeskTicketSearchRow,
+  requesterEmail: string | null
+): Promise<{ inboxId: string; ticketNumber: number } | null> {
+  const createdMs = Date.parse(String(ticket.createdTime ?? ""));
+  if (!requesterEmail || !ticket.subject || !Number.isFinite(createdMs)) return null;
+  const HOUR = 3_600_000;
+  const { data } = await adminClient
+    .from("inbox")
+    .select("id, ticket_number, subject, requester_email")
+    .eq("channel", "email")
+    .ilike("requester_email", requesterEmail)
+    .gte("created_at", new Date(createdMs - HOUR).toISOString())
+    .lte("created_at", new Date(createdMs + HOUR).toISOString())
+    .limit(10);
+  const match = (data ?? []).find(
+    (t) => (t.requester_email ?? "").toLowerCase() === requesterEmail.toLowerCase() && subjectsMatch(t.subject, ticket.subject!)
+  );
+  return match ? { inboxId: match.id, ticketNumber: match.ticket_number } : null;
+}
+
+// Task 441 — discovery that doesn't depend on Desk's search index. Verified lag: a ticket created
+// with the StackShift Site already set (#21083, Desk 21466) wasn't returned by /tickets/search for
+// 4 days though a direct fetch worked at once. This pass lists the newest-created tickets
+// (`/tickets` is real-time), fetches each unseen one once to read its custom fields (List
+// Tickets never returns `cf`), and ingests the StackShift ones through the same processTicket().
+// UNVERIFIED at authoring time: `sortBy=-createdTime` on List Tickets — the order check below
+// keeps paging if the order proves unreliable, same posture as the search pass.
+async function runCreatedPass(token: string, startedAt: number) {
+  const { data: cursorRow } = await adminClient
+    .from("email_poll_cursor")
+    .select("last_received_time")
+    .eq("id", CREATED_CURSOR_ID)
+    .maybeSingle();
+  const cursorBefore = cursorRow?.last_received_time
+    ? Number(cursorRow.last_received_time)
+    : Date.now() - CREATED_SEED_LOOKBACK_MS;
+
+  const listed: { id: string; createdMs: number }[] = [];
+  let currentToken = token;
+  let lastSeen = Infinity;
+  let orderUnreliable = false;
+  for (let page = 0, from = 1; page < 5; page++, from += 100) {
+    const { res, token: nextToken, throttleExhausted } = await fetchDeskPage(
+      "/tickets",
+      currentToken,
+      { sortBy: "-createdTime", from: String(from), limit: "100" },
+      SEARCH_LABEL
+    );
+    currentToken = nextToken;
+    if (throttleExhausted) throw new Error("Zoho rolling throttle exhausted");
+    if (res.status === 204) break;
+    if (!res.ok) throw new Error(`Desk ticket list failed: HTTP ${res.status} ${await res.text().catch(() => "")}`);
+    const rows = ((await res.json()) as { data?: DeskTicketSearchRow[] }).data ?? [];
+    if (rows.length === 0) break;
+    let allStale = true;
+    for (const t of rows) {
+      const createdMs = Date.parse(String(t.createdTime ?? ""));
+      if (!Number.isFinite(createdMs) || t.id == null) continue;
+      if (createdMs > lastSeen) orderUnreliable = true;
+      lastSeen = createdMs;
+      if (createdMs > cursorBefore) {
+        listed.push({ id: String(t.id), createdMs });
+        allStale = false;
+      }
+    }
+    if (!orderUnreliable && allStale) break;
+    if (rows.length < 100) break;
+  }
+
+  const knownIds = new Set<string>();
+  for (let i = 0; i < listed.length; i += 200) {
+    const { data } = await adminClient
+      .from("inbox")
+      .select("external_id")
+      .in("external_id", listed.slice(i, i + 200).map((r) => r.id));
+    for (const r of data ?? []) if (r.external_id) knownIds.add(String(r.external_id));
+  }
+
+  let cursor = cursorBefore;
+  let checked = 0;
+  let ingested = 0;
+  for (const c of selectUncheckedByCreated(listed, cursorBefore, knownIds)) {
+    if (checked >= MAX_CREATED_CHECKS || budgetExhausted(startedAt, Date.now(), RUN_BUDGET_MS)) break;
+    const r = await fetchDeskPage(`/tickets/${c.id}`, currentToken, {}, SEARCH_LABEL);
+    currentToken = r.token;
+    // A failed fetch stops the pass without advancing, so the ticket is retried next run.
+    if (!r.res.ok) break;
+    const full = (await r.res.json()) as DeskTicketSearchRow;
+    checked++;
+    if (resolveCfField(full.cf, CF_TARGETS.stackShiftSite)) {
+      try {
+        await processTicket(full, currentToken);
+        ingested++;
+      } catch (e) {
+        // Skip, don't block the pass on one bad ticket (same stance as the search pass).
+        console.error(`[cron/desk-ticket-poll] created-pass failed to process ticket ${c.id}`, e);
+      }
+    }
+    cursor = advanceCursor(cursor, c.createdMs);
+    await adminClient
+      .from("email_poll_cursor")
+      .upsert(
+        { id: CREATED_CURSOR_ID, last_received_time: String(cursor), updated_at: new Date().toISOString() },
+        { onConflict: "id" }
+      );
+  }
+  return { listed: listed.length, checked, ingested, cursorBefore, cursorAfter: cursor };
 }

@@ -60,6 +60,7 @@ export type TicketDetailData = {
   zohoTicketNumber: string | null;
   whiteLabel: string | null; // Zoho cf_white_label — shown in the UI as "Business Name"
   stackShiftSite: string | null;
+  duplicateOf: { inboxId: string; ticketNumber: number } | null; // task 441
 };
 
 const STATUS_OPTIONS: TicketDetailData["status"][] = ["open", "on_hold", "escalated", "closed"];
@@ -454,6 +455,18 @@ export default function TicketDetail({
                 <Chip tone={STATUS_TONE[status]}>{STATUS_LABELS[status]}</Chip>
               </div>
               <h1 className="font-heading text-[20px] font-bold tracking-[-0.02em] text-[#0B1533]">{ticket.subject}</h1>
+              {ticket.duplicateOf && (
+                <p className="mt-1 text-[12px] text-amber-700">
+                  Duplicate of the email ticket{" "}
+                  <a
+                    href={`/desk/inbox/${ticket.duplicateOf.inboxId}`}
+                    className="font-semibold underline transition-colors hover:text-amber-900"
+                  >
+                    #{ticket.duplicateOf.ticketNumber}
+                  </a>{" "}
+                  — same conversation, which holds the full email thread.
+                </p>
+              )}
               <p className="text-[13px] text-[#5F6A88] mt-0.5">
                 {ticket.contactName} · {formatDateTime(ticket.createdAt)}
               </p>

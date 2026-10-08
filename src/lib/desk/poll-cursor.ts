@@ -25,3 +25,12 @@ export function advanceCursor(cursorMs: number, handledModifiedMs: number): numb
 export function budgetExhausted(startedAtMs: number, nowMs: number, budgetMs: number): boolean {
   return nowMs - startedAtMs >= budgetMs;
 }
+
+export type CreatedCandidate = { id: string; createdMs: number };
+
+// Created-pass candidates (task 441): tickets created after the cursor that the Hub has never
+// ingested, oldest-first. Unlike the modified-time search pass this lists by createdTime, which
+// is real-time (Desk's search index lags hours to days), and each ticket is only ever checked once.
+export function selectUncheckedByCreated(rows: CreatedCandidate[], cursorMs: number, knownIds: Set<string>): CreatedCandidate[] {
+  return rows.filter((r) => r.createdMs > cursorMs && !knownIds.has(r.id)).sort((a, b) => a.createdMs - b.createdMs);
+}

@@ -212,6 +212,13 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
   const stackShiftSite =
     stackShiftRaw && stackShiftRaw.toLowerCase() === STACKSHIFT_PLACEHOLDER ? null : stackShiftRaw;
 
+  // Task 441 — set by the StackShift Desk poll when this Desk ticket duplicates a Mail ticket.
+  const dup = t.source_meta?.duplicateOf as { inboxId?: unknown; ticketNumber?: unknown } | undefined;
+  const duplicateOf =
+    dup && typeof dup.inboxId === "string" && typeof dup.ticketNumber === "number"
+      ? { inboxId: dup.inboxId, ticketNumber: dup.ticketNumber }
+      : null;
+
   const contactName = resolveContactName(t, contactRow ?? undefined);
 
   const ticket: TicketDetailData = {
@@ -239,6 +246,7 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
     zohoTicketNumber,
     whiteLabel,
     stackShiftSite,
+    duplicateOf,
   };
 
   const messages: MessageItem[] = messageRows.map((m, idx) => {
