@@ -60,3 +60,12 @@ export function formatFullTimestamp(iso: string): string {
   const day = date.getDate().toString().padStart(2, "0");
   return `${hh}:${mm} ${meridiem}, ${month}-${day}-${date.getFullYear()}`;
 }
+
+// Activity stream segment lengths — "1h 44m", "12m", "45s".
+export function formatDurationShort(totalSeconds: number): string {
+  const s = Math.max(0, Math.round(totalSeconds));
+  if (s < 60) return `${s}s`;
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  return h > 0 ? (m > 0 ? `${h}h ${m}m` : `${h}h`) : `${m}m`;
+}

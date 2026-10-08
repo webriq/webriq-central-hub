@@ -2,6 +2,9 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { BreakType } from "@/lib/timer/constants";
+import type { TimerEvent } from "@/lib/timer/timeline";
+import { useBreakChime } from "./use-break-chime";
+import { unlockChime } from "@/lib/timer/chime";
 
 export type ActiveTimerRow = {
   id: string;
@@ -20,6 +23,8 @@ export type ActiveTimerRow = {
   break_type: BreakType | null;
   break_started_at: string | null;
   break_duration_minutes: number | null;
+  // Task 439 — the session's start/pause/resume/break log, shown as the live Activity stream.
+  timeline: TimerEvent[];
 };
 
 // Task 234 — widened from task-only to accept either a task or an issue.
@@ -29,6 +34,7 @@ type TimerContextValue = {
   timer: ActiveTimerRow | null;
   elapsedSeconds: number;
   breakRemainingSeconds: number | null;
+  nowMs: number;
   startTimer: (entity: TimerEntityRef, projectId: string) => Promise<boolean>;
   pauseTimer: () => Promise<void>;
   resumeTimer: () => Promise<void>;
@@ -49,19 +55,22 @@ async function postJson(url: string, body?: unknown): Promise<{ timer?: ActiveTi
   return res.json();
 }
 
+// undefined = the request failed (leave state alone); null = the user has no timer row.
+async function fetchTimer(): Promise<ActiveTimerRow | null | undefined> {
+  const res = await fetch("/api/v2/timer").catch(() => null);
+  if (!res?.ok) return undefined;
+  return (await res.json()).timer ?? null;
+}
+
 export function TimerProvider({ children }: { children: React.ReactNode }) {
   const [timer, setTimer] = useState<ActiveTimerRow | null>(null);
   // Captured once per second in an effect (not read live via Date.now() during render, which
   // React's purity rule flags) — elapsed/remaining below are pure functions of this + `timer`.
   const [now, setNow] = useState(() => Date.now());
-  const cancelingBreakRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/v2/timer")
-      .then((res) => (res.ok ? res.json() : { timer: null }))
-      .then((data) => { if (!cancelled) setTimer(data.timer ?? null); })
-      .catch(() => {});
+    fetchTimer().then((fetched) => { if (!cancelled && fetched !== undefined) setTimer(fetched); });
     return () => { cancelled = true; };
   }, []);
 
@@ -88,59 +97,65 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
     return Math.max(0, total - elapsed);
   }, [timer, now]);
 
-  const cancelBreak = useCallback(async () => {
-    if (cancelingBreakRef.current) return;
-    cancelingBreakRef.current = true;
-    try {
-      const data = await postJson("/api/v2/timer/break/cancel");
-      if (data) setTimer(data.timer ?? null);
-    } finally {
-      cancelingBreakRef.current = false;
-    }
+  // Every user action bumps the sequence before AND after its request, so a background sync
+  // that started earlier (and so reflects older state) can never overwrite the newer result.
+  const seqRef = useRef(0);
+
+  const refresh = useCallback(async () => {
+    const fetched = await fetchTimer();
+    if (fetched !== undefined) setTimer(fetched);
   }, []);
 
-  // Auto-end the break once the countdown hits zero — the timer stays paused, no auto-resume.
+  const act = useCallback(async (url: string, body?: unknown) => {
+    seqRef.current++;
+    const data = await postJson(url, body);
+    seqRef.current++;
+    if (data) setTimer(data.timer ?? null);
+    else await refresh(); // rejected (e.g. the server already moved on) — resync instead of going stale
+    return data;
+  }, [refresh]);
+
+  // Server-authoritative (task 439): GET /api/v2/timer reconciles an expired break with timestamps
+  // backdated to its real expiry. The client countdown reaching zero only asks for that sooner; it
+  // no longer decides anything (a closed or throttled tab can't stretch a break any more).
+  const syncFromServer = useCallback(async () => {
+    const seq = seqRef.current;
+    const fetched = await fetchTimer();
+    if (fetched !== undefined && seq === seqRef.current) setTimer(fetched);
+  }, []);
+
+  const breakExpired = breakRemainingSeconds === 0;
   useEffect(() => {
-    if (breakRemainingSeconds === 0) void cancelBreak();
-  }, [breakRemainingSeconds, cancelBreak]);
+    if (!breakExpired) return;
+    const first = setTimeout(() => void syncFromServer(), 0);
+    const id = setInterval(() => void syncFromServer(), 5000); // retry if the server clock is a hair behind
+    return () => { clearTimeout(first); clearInterval(id); };
+  }, [breakExpired, syncFromServer]);
 
   const startTimer = useCallback(async (entity: TimerEntityRef, projectId: string) => {
-    const data = await postJson("/api/v2/timer/start", {
+    const data = await act("/api/v2/timer/start", {
       task_id: "taskId" in entity ? entity.taskId : undefined,
       issue_id: "issueId" in entity ? entity.issueId : undefined,
       project_id: projectId,
     });
-    if (!data) return false;
-    setTimer(data.timer ?? null);
-    return true;
-  }, []);
+    return !!data;
+  }, [act]);
 
-  const pauseTimer = useCallback(async () => {
-    const data = await postJson("/api/v2/timer/pause");
-    if (data) setTimer(data.timer ?? null);
-  }, []);
-
-  const resumeTimer = useCallback(async () => {
-    const data = await postJson("/api/v2/timer/resume");
-    if (data) setTimer(data.timer ?? null);
-  }, []);
-
-  const stopTimer = useCallback(async () => {
-    const data = await postJson("/api/v2/timer/stop");
-    if (!data) return null;
-    setTimer(data.timer ?? null);
-    return data.hours ?? null;
-  }, []);
-
+  const pauseTimer = useCallback(async () => { await act("/api/v2/timer/pause"); }, [act]);
+  const resumeTimer = useCallback(async () => { await act("/api/v2/timer/resume"); }, [act]);
+  const stopTimer = useCallback(async () => (await act("/api/v2/timer/stop"))?.hours ?? null, [act]);
   const startBreak = useCallback(async (type: BreakType) => {
-    const data = await postJson("/api/v2/timer/break/start", { break_type: type });
-    if (data) setTimer(data.timer ?? null);
-  }, []);
+    unlockChime(); // still inside the click gesture — lets the chimes play later
+    await act("/api/v2/timer/break/start", { break_type: type });
+  }, [act]);
+  const cancelBreak = useCallback(async () => { await act("/api/v2/timer/break/cancel"); }, [act]);
+
+  useBreakChime(timer, breakRemainingSeconds, now);
 
   const value = useMemo<TimerContextValue>(() => ({
-    timer, elapsedSeconds, breakRemainingSeconds,
+    timer, elapsedSeconds, breakRemainingSeconds, nowMs: now,
     startTimer, pauseTimer, resumeTimer, stopTimer, startBreak, cancelBreak,
-  }), [timer, elapsedSeconds, breakRemainingSeconds, startTimer, pauseTimer, resumeTimer, stopTimer, startBreak, cancelBreak]);
+  }), [timer, elapsedSeconds, breakRemainingSeconds, now, startTimer, pauseTimer, resumeTimer, stopTimer, startBreak, cancelBreak]);
 
   return <TimerContext.Provider value={value}>{children}</TimerContext.Provider>;
 }

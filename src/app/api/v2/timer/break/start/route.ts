@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { BREAK_DURATIONS_MIN, type BreakType } from "@/lib/timer/constants";
 import { attachTaskTitle } from "@/lib/timer/serialize";
+import { loadReconciledTimer } from "@/lib/timer/reconcile-apply";
+import { openBreakRecord } from "@/lib/timer/breaks";
 import { appendTimerEvent } from "@/lib/timer/timeline";
 
 // POST /api/v2/timer/break/start { break_type }
@@ -19,11 +21,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid break_type" }, { status: 400 });
   }
 
-  const { data: existing } = await supabase
-    .from("active_timers")
-    .select("id, status, accumulated_seconds, segment_started_at, break_type, timeline")
-    .eq("user_id", user.id)
-    .maybeSingle();
+  // Task 439 — reconcile first: a previous break that already expired must not read as "active".
+  const existing = await loadReconciledTimer(supabase, user.id);
 
   if (existing?.break_type) {
     return NextResponse.json({ error: "A break is already active" }, { status: 409 });
@@ -63,5 +62,13 @@ export async function POST(req: NextRequest) {
     console.error("[api/v2/timer/break/start] failed:", error.message);
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
+  await openBreakRecord(supabase, {
+    userId: user.id,
+    breakType,
+    startedAt: now,
+    taskId: data.task_id,
+    issueId: data.issue_id,
+    projectId: data.project_id,
+  });
   return NextResponse.json({ timer: await attachTaskTitle(supabase, data) });
 }

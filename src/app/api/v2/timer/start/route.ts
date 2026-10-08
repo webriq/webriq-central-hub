@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { attachTaskTitle } from "@/lib/timer/serialize";
+import { loadReconciledTimer } from "@/lib/timer/reconcile-apply";
 import type { TimerEvent } from "@/lib/timer/timeline";
 import { ticketAssigneeIds } from "@/lib/tickets/permissions";
 import { touchProject } from "@/lib/projects/touch-project";
@@ -47,11 +48,8 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const { data: existing } = await supabase
-    .from("active_timers")
-    .select("id, task_id, issue_id, break_type")
-    .eq("user_id", user.id)
-    .maybeSingle();
+  // Task 439 — reconcile first so a break that already expired no longer blocks a new timer.
+  const existing = await loadReconciledTimer(supabase, user.id);
   if (existing?.task_id || existing?.issue_id) {
     return NextResponse.json({ error: "A timer is already active — stop it first" }, { status: 409 });
   }

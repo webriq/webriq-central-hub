@@ -21,3 +21,10 @@ export const BREAK_ICONS: Record<BreakType, LucideIcon> = {
   coffee: Coffee,
   few_minutes: Clock,
 };
+
+// Task 439 follow-up — a chime + toast this many minutes before a break ends. Only the long
+// breaks get a warning; the 5-minute "few minutes" break just rings when it ends.
+export const BREAK_WARNING_MINUTES: Partial<Record<BreakType, number>> = {
+  meal: 10,
+  coffee: 5,
+};

@@ -2,6 +2,9 @@
 // content/table/picker components so each of those stays under the file-length guideline and
 // none of them re-derives the same date math independently.
 
+import type { TimerEvent } from "@/lib/timer/timeline";
+import { workedHoursForPeriod } from "@/lib/timer/period-hours";
+
 export type EntryKind = "task" | "ticket" | "general";
 
 export type TimeLogEntry = {
@@ -23,6 +26,7 @@ export type TimeLogEntry = {
   source: "timer" | "manual";
   start_time: string | null;
   end_time: string | null;
+  timeline: TimerEvent[] | null;
   created_at: string;
   display_name: string;
   avatar_url: string | null;
@@ -69,6 +73,20 @@ export function nowHHmm(): string {
 
 export function combineDateTime(date: string, time: string): string {
   return new Date(`${date}T${time}:00`).toISOString();
+}
+
+// Task 440 — live hours preview for the inline period editor on a timer-sourced entry: same rule
+// as the PATCH routes (recorded pauses/breaks inside the new range are subtracted). Null = invalid.
+export function periodPreviewHours(entry: TimeLogEntry, startHHmm: string, endHHmm: string): number | null {
+  if (!entry.start_time || !entry.end_time || !startHHmm || !endHHmm) return null;
+  const { hours } = workedHoursForPeriod({
+    startIso: combineDateTime(entry.date_logged, startHHmm),
+    endIso: combineDateTime(entry.date_logged, endHHmm),
+    source: entry.source,
+    timeline: entry.timeline,
+    stored: { startIso: entry.start_time, endIso: entry.end_time, hours: entry.hours },
+  });
+  return hours > 0 ? hours : null;
 }
 
 export function isoToHHmm(iso: string | null): string {

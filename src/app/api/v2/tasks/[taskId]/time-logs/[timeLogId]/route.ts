@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { ONLY_NON_WORKING_ERROR, workedHoursForPeriod } from "@/lib/timer/period-hours";
 
 // PATCH/DELETE a single time_logs entry (task 214; task 215 moves editing from a raw hours
 // number to a start_time/end_time period, hours always recomputed server-side). Ownership is
@@ -16,7 +17,7 @@ async function requireOwnRow(
 ) {
   const { data: row } = await supabase
     .from("time_logs")
-    .select("id, employee_id")
+    .select("id, employee_id, source, start_time, end_time, hours, timeline")
     .eq("id", timeLogId)
     .eq("task_id", taskId)
     .maybeSingle();
@@ -24,7 +25,7 @@ async function requireOwnRow(
   if (row.employee_id !== userId) {
     return { error: NextResponse.json({ error: "You can only edit your own time logs" }, { status: 403 }) };
   }
-  return { error: null };
+  return { error: null, row };
 }
 
 // PATCH /api/v2/tasks/[taskId]/time-logs/[timeLogId] — owner-only edit
@@ -37,8 +38,8 @@ export async function PATCH(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { error: ownError } = await requireOwnRow(supabase, taskId, timeLogId, user.id);
-  if (ownError) return ownError;
+  const { error: ownError, row } = await requireOwnRow(supabase, taskId, timeLogId, user.id);
+  if (ownError || !row) return ownError;
 
   const body = await req.json().catch(() => ({}));
   const dateLogged = typeof body.date_logged === "string" ? body.date_logged : "";
@@ -48,7 +49,16 @@ export async function PATCH(
     return NextResponse.json({ error: "date_logged, start_time, and end_time are required" }, { status: 400 });
   }
 
-  const hours = (new Date(endTime).getTime() - new Date(startTime).getTime()) / 3_600_000;
+  // Task 440 — timer logs: subtract recorded pauses/breaks inside the new period.
+  const period = workedHoursForPeriod({
+    startIso: startTime,
+    endIso: endTime,
+    source: row.source,
+    timeline: row.timeline,
+    stored: { startIso: row.start_time, endIso: row.end_time, hours: Number(row.hours) },
+  });
+  if (period.onlyNonWorking) return NextResponse.json({ error: ONLY_NON_WORKING_ERROR }, { status: 400 });
+  const hours = period.hours;
   if (!(hours > 0) || hours > 24) {
     return NextResponse.json({ error: "End time must be after start time, and no more than 24 hours later" }, { status: 400 });
   }

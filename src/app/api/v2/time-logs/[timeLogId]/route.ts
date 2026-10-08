@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { ONLY_NON_WORKING_ERROR, workedHoursForPeriod } from "@/lib/timer/period-hours";
 
 // PATCH/DELETE a single time_logs entry via its own id (task 230) — unified counterpart to
 // `/api/v2/tasks/[taskId]/time-logs/[timeLogId]` (tasks 214/215, still used unmodified by the
@@ -18,14 +19,14 @@ async function requireOwnRow(
 ) {
   const { data: row } = await supabase
     .from("time_logs")
-    .select("id, employee_id")
+    .select("id, employee_id, source, start_time, end_time, hours, timeline")
     .eq("id", timeLogId)
     .maybeSingle();
   if (!row) return { error: NextResponse.json({ error: "Time log not found" }, { status: 404 }) };
   if (row.employee_id !== userId) {
     return { error: NextResponse.json({ error: "You can only edit your own time logs" }, { status: 403 }) };
   }
-  return { error: null };
+  return { error: null, row };
 }
 
 // PATCH /api/v2/time-logs/[timeLogId] — owner-only edit, including reassigning the entry between
@@ -40,8 +41,8 @@ export async function PATCH(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { error: ownError } = await requireOwnRow(supabase, timeLogId, user.id);
-  if (ownError) return ownError;
+  const { error: ownError, row } = await requireOwnRow(supabase, timeLogId, user.id);
+  if (ownError || !row) return ownError;
 
   const body = await req.json().catch(() => ({}));
   const taskId = typeof body.task_id === "string" && body.task_id ? body.task_id : null;
@@ -81,7 +82,17 @@ export async function PATCH(
     if (!issue) return NextResponse.json({ error: "Issue not found" }, { status: 404 });
   }
 
-  const hours = durationHours !== null ? durationHours : (new Date(endTime).getTime() - new Date(startTime).getTime()) / 3_600_000;
+  // Task 440 — a timer log's period edit subtracts the recorded pauses/breaks inside the new range;
+  // manual entries and Duration-mode saves keep the plain span / typed duration.
+  const period = durationHours === null ? workedHoursForPeriod({
+    startIso: startTime,
+    endIso: endTime,
+    source: row.source,
+    timeline: row.timeline,
+    stored: { startIso: row.start_time, endIso: row.end_time, hours: Number(row.hours) },
+  }) : null;
+  if (period?.onlyNonWorking) return NextResponse.json({ error: ONLY_NON_WORKING_ERROR }, { status: 400 });
+  const hours = durationHours ?? period?.hours ?? 0;
   if (!(hours > 0) || hours > 24) {
     return NextResponse.json(
       { error: durationHours !== null ? "Duration must be more than 0 and no more than 24 hours" : "End time must be after start time, and no more than 24 hours later" },

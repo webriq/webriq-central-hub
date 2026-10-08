@@ -1,21 +1,18 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { attachTaskTitle } from "@/lib/timer/serialize";
+import { loadReconciledTimer } from "@/lib/timer/reconcile-apply";
 import { appendTimerEvent } from "@/lib/timer/timeline";
 import { touchProject } from "@/lib/projects/touch-project";
 
 // POST /api/v2/timer/resume — continues a manually paused timer. Blocked while a break is
-// active; the developer must end the break first (breaks never auto-resume the timer).
+// active; the developer must end the break first.
 export async function POST() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { data: existing } = await supabase
-    .from("active_timers")
-    .select("id, task_id, issue_id, project_id, status, break_type, timeline")
-    .eq("user_id", user.id)
-    .maybeSingle();
+  const existing = await loadReconciledTimer(supabase, user.id);
 
   // Task 345 — an entity timer is a task OR an issue; task_id alone left issue timers un-resumable.
   if (!existing || (!existing.task_id && !existing.issue_id) || existing.status !== "paused") {

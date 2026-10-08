@@ -37,6 +37,7 @@ type TimeLogRow = {
   owner_email: string | null;
   start_time: string | null;
   end_time: string | null;
+  timeline: unknown;
   created_at: string;
 };
 
@@ -89,7 +90,7 @@ export async function GET(req: NextRequest) {
   for (;;) {
     let q = supabase
       .from("time_logs")
-      .select("id, task_id, issue_id, project_id, employee_id, date_logged, hours, note, log_title, source, owner_name, owner_email, start_time, end_time, created_at")
+      .select("id, task_id, issue_id, project_id, employee_id, date_logged, hours, note, log_title, source, owner_name, owner_email, start_time, end_time, timeline, created_at")
       .gte("date_logged", from)
       .lte("date_logged", to)
       .order("date_logged", { ascending: false })
@@ -183,6 +184,8 @@ export async function GET(req: NextRequest) {
       source: r.source,
       start_time: r.start_time,
       end_time: r.end_time,
+      // Task 439 — only timer-sourced rows carry a recorded timeline (Activity stream).
+      timeline: r.source === "timer" && Array.isArray(r.timeline) ? r.timeline : null,
       created_at: r.created_at,
       display_name: resolveOwnerName(r, profileNames),
       avatar_url: resolveOwnerAvatarUrl(r, profileAvatarUrls),

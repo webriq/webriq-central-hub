@@ -243,6 +243,7 @@ export function TimeLogEntryModal({
         source: saved.source ?? initial?.source ?? "manual",
         start_time: saved.start_time ?? startIso,
         end_time: saved.end_time ?? endIso,
+        timeline: initial?.timeline ?? null,
         created_at: saved.created_at ?? initial?.created_at ?? new Date().toISOString(),
         display_name: saved.display_name ?? initial?.display_name ?? "You",
         avatar_url: saved.avatar_url ?? initial?.avatar_url ?? null,

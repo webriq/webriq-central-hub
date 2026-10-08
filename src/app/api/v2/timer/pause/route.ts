@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { attachTaskTitle } from "@/lib/timer/serialize";
+import { loadReconciledTimer } from "@/lib/timer/reconcile-apply";
 import { appendTimerEvent } from "@/lib/timer/timeline";
 
 // POST /api/v2/timer/pause — banks elapsed seconds from the current run segment, no time_logs
@@ -10,11 +11,7 @@ export async function POST() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { data: existing } = await supabase
-    .from("active_timers")
-    .select("id, task_id, issue_id, status, accumulated_seconds, segment_started_at, timeline")
-    .eq("user_id", user.id)
-    .maybeSingle();
+  const existing = await loadReconciledTimer(supabase, user.id);
 
   // Task 345 — an entity timer is a task OR an issue (task 234 / migration 100); guarding on
   // task_id alone made every issue timer un-pausable ("No running timer to pause" → 400).

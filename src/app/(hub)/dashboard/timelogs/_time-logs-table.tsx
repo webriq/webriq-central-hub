@@ -2,7 +2,7 @@
 
 import { Fragment, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Check, ChevronDown, Clock, ExternalLink, Link2, MessageSquare, Pencil, Plus, Trash2 } from "lucide-react";
+import { Check, ChevronDown, Clock, ExternalLink, History, Link2, MessageSquare, Pencil, Plus, Trash2 } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Avatar } from "../_components/dashboard-shared";
 import { decodeHtmlEntities } from "@/app/(hub)/projects-old/_pm-shared";
@@ -10,10 +10,11 @@ import { cn, formatDate } from "@/lib/utils";
 import { V2_ROUTES } from "@/config/constants";
 import { useCopyLink } from "@/app/(hub)/projects/_shared/_copy-link-button";
 import { formatHoursAsHHMM, formatClockTime } from "@/lib/timer/format";
-import { groupByDate, groupByEmployee, sumHours, toISODate, nowHHmm, combineDateTime, isoToHHmm, type TimeLogEntry } from "./_time-logs-shared";
+import { groupByDate, groupByEmployee, sumHours, toISODate, nowHHmm, combineDateTime, isoToHHmm, periodPreviewHours, type TimeLogEntry } from "./_time-logs-shared";
 import { DateFieldPicker } from "./_date-field-picker";
 import { TimePeriodInlineEditor } from "./_time-period-inline-editor";
 import { TaskTicketPicker, type TaskTicketValue } from "./_task-ticket-picker";
+import { TimerActivityTrigger } from "@/app/(hub)/projects/_shared/_timer-activity-trigger";
 import { POPOVER_ROOT_ATTR } from "./_use-popover-position";
 
 // Table body for the dedicated Time Logs page (task 226). View-all roles (admin/super_admin/pm/
@@ -336,6 +337,7 @@ function EntryRow({
             startTime={isoToHHmm(entry.start_time)}
             endTime={isoToHHmm(entry.end_time)}
             maxTime={maxTimeFor(entry.date_logged)}
+            hoursFor={entry.source === "timer" && entry.timeline?.length ? (s, e) => periodPreviewHours(entry, s, e) : undefined}
             onSave={(next) => void savePeriod(next)}
             onClose={onStopEdit}
           />
@@ -368,7 +370,7 @@ function EntryRow({
           </button>
         )}
       </td>
-      <td className="py-2.5 px-3">
+      <td className="py-2.5 px-3 whitespace-nowrap">
         <span
           className={cn(
             "text-[10px] font-semibold px-1.5 py-0.5 rounded-full border shrink-0 leading-none",
@@ -379,6 +381,13 @@ function EntryRow({
         >
           {entry.source === "manual" ? "Manual" : "Timer"}
         </span>
+        {entry.timeline && entry.timeline.length > 0 && entry.start_time && entry.end_time && (
+          <TimerActivityTrigger hours={entry.hours} startTime={entry.start_time} endTime={entry.end_time} timeline={entry.timeline}>
+            <button type="button" aria-label="View timer activity" className={cn(ACTION_BTN, "ml-1")}>
+              <History size={14} />
+            </button>
+          </TimerActivityTrigger>
+        )}
       </td>
       <td className="py-2.5 px-3">
         {entry.note ? (

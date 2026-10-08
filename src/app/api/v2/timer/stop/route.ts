@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { attachTaskTitle } from "@/lib/timer/serialize";
+import { loadReconciledTimer } from "@/lib/timer/reconcile-apply";
+import { linkBreaksToLog } from "@/lib/timer/breaks";
 import { appendTimerEvent, type TimerEvent } from "@/lib/timer/timeline";
 import { touchProject } from "@/lib/projects/touch-project";
 
@@ -14,11 +16,8 @@ export async function POST() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { data: existing } = await supabase
-    .from("active_timers")
-    .select("id, task_id, issue_id, project_id, status, accumulated_seconds, segment_started_at, break_type, timeline")
-    .eq("user_id", user.id)
-    .maybeSingle();
+  // Task 439 — reconcile first so a break that already expired is closed at its real expiry.
+  const existing = await loadReconciledTimer(supabase, user.id);
 
   if (!existing || (!existing.task_id && !existing.issue_id) || !existing.project_id) {
     return NextResponse.json({ error: "No active timer to stop" }, { status: 400 });
@@ -36,7 +35,7 @@ export async function POST() {
   const startTime = (existing.timeline as TimerEvent[] | null)?.[0]?.at ?? null;
 
   if (hours > 0) {
-    const { error: logError } = await supabase.from("time_logs").insert({
+    const { data: log, error: logError } = await supabase.from("time_logs").insert({
       task_id: existing.task_id,
       issue_id: existing.issue_id,
       project_id: existing.project_id,
@@ -48,11 +47,12 @@ export async function POST() {
       start_time: startTime,
       end_time: now,
       timeline,
-    });
+    }).select("id").single();
     if (logError) {
       console.error("[api/v2/timer/stop] time_logs insert failed:", logError.message);
       return NextResponse.json({ error: logError.message }, { status: 400 });
     }
+    if (startTime && log) await linkBreaksToLog(supabase, user.id, log.id, startTime);
     touchProject(existing.project_id);
   }
 

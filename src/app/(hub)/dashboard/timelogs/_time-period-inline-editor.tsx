@@ -21,12 +21,14 @@ function computeHours(date: string, startTime: string, endTime: string): number 
 }
 
 export function TimePeriodInlineEditor({
-  date, startTime, endTime, maxTime, onSave, onClose,
+  date, startTime, endTime, maxTime, hoursFor, onSave, onClose,
 }: {
   date: string;
   startTime: string;
   endTime: string;
   maxTime?: string;
+  /** Task 440 — overrides the plain end − start preview (timer logs subtract recorded pauses/breaks). */
+  hoursFor?: (startTime: string, endTime: string) => number | null;
   onSave: (next: { startTime: string; endTime: string }) => void;
   onClose: () => void;
 }) {
@@ -57,7 +59,7 @@ export function TimePeriodInlineEditor({
 
   const nextStart = draftTo24(draftStart);
   const nextEnd = draftTo24(draftEnd);
-  const previewHours = computeHours(date, nextStart, nextEnd);
+  const previewHours = hoursFor ? hoursFor(nextStart, nextEnd) : computeHours(date, nextStart, nextEnd);
 
   function handleSave() {
     if (previewHours === null) return;

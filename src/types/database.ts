@@ -2585,6 +2585,87 @@ export interface Database {
         };
         Relationships: [];
       };
+      timer_breaks: {
+        Row: {
+          id: string;
+          user_id: string;
+          break_type: string;
+          planned_minutes: number;
+          started_at: string;
+          ended_at: string | null;
+          end_reason: string | null;
+          task_id: string | null;
+          issue_id: string | null;
+          project_id: string | null;
+          time_log_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          break_type: string;
+          planned_minutes: number;
+          started_at: string;
+          ended_at?: string | null;
+          end_reason?: string | null;
+          task_id?: string | null;
+          issue_id?: string | null;
+          project_id?: string | null;
+          time_log_id?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          break_type?: string;
+          planned_minutes?: number;
+          started_at?: string;
+          ended_at?: string | null;
+          end_reason?: string | null;
+          task_id?: string | null;
+          issue_id?: string | null;
+          project_id?: string | null;
+          time_log_id?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "timer_breaks_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "timer_breaks_task_id_fkey";
+            columns: ["task_id"];
+            isOneToOne: false;
+            referencedRelation: "tasks";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "timer_breaks_issue_id_fkey";
+            columns: ["issue_id"];
+            isOneToOne: false;
+            referencedRelation: "tickets";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "timer_breaks_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "timer_breaks_time_log_id_fkey";
+            columns: ["time_log_id"];
+            isOneToOne: false;
+            referencedRelation: "time_logs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       time_logs: {
         Row: {
           id: string;

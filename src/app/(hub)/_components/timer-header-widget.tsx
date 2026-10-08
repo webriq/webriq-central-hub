@@ -3,20 +3,14 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Timer, Minus, Play, Pause, Square } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { useTimer } from "./timer-context";
 import { formatMMSS, formatHHMMSS } from "@/lib/timer/format";
-import { BREAK_LABELS, BREAK_ICONS, BREAK_DURATIONS_MIN, type BreakType } from "@/lib/timer/constants";
+import { BREAK_LABELS, BREAK_ICONS, BREAK_DURATIONS_MIN } from "@/lib/timer/constants";
+import { TimerBreakPanel } from "./_timer-break-panel";
+import { TimerLiveActivity } from "./_timer-live-activity";
 import { decodeHtmlEntities } from "@/app/(hub)/projects-old/_pm-shared";
 import { V2_ROUTES } from "@/config/constants";
-
-const BREAK_META: Record<BreakType, { icon: LucideIcon; label: string; tooltip: string }> = {
-  meal: { icon: BREAK_ICONS.meal, label: "60 mins", tooltip: "Meal Break for 60 mins" },
-  coffee: { icon: BREAK_ICONS.coffee, label: "15 mins", tooltip: "Coffee Break for 15 mins" },
-  few_minutes: { icon: BREAK_ICONS.few_minutes, label: "Few Minutes Break", tooltip: "Few Minutes Break for 5 mins" },
-};
-const BREAK_ORDER: BreakType[] = ["meal", "coffee", "few_minutes"];
 
 // Task 209 — hub-wide timer widget (developer role only, widened to every role by task 293) so a
 // running timer can be seen and paused from anywhere. Task 300 moved this from a fixed
@@ -26,12 +20,11 @@ const BREAK_ORDER: BreakType[] = ["meal", "coffee", "few_minutes"];
 export default function TimerHeaderWidget() {
   const [open, setOpen] = useState(false);
   const widgetRef = useRef<HTMLDivElement>(null);
-  const { timer, elapsedSeconds, breakRemainingSeconds, pauseTimer, resumeTimer, stopTimer, startBreak, cancelBreak } = useTimer();
+  const { timer, elapsedSeconds, breakRemainingSeconds, nowMs, pauseTimer, resumeTimer, stopTimer, startBreak, cancelBreak } = useTimer();
 
   // Task 234 — "entity" covers either a task or an issue; the widget doesn't care which.
   const hasEntity = !!timer?.task_id || !!timer?.issue_id;
   const onBreak = !!timer?.break_type;
-  const breakMeta = timer?.break_type ? BREAK_META[timer.break_type] : null;
   const breakLabel = timer?.break_type ? BREAK_LABELS[timer.break_type] : null;
   const isRunning = timer?.status === "running";
 
@@ -190,42 +183,14 @@ export default function TimerHeaderWidget() {
             {(hasEntity) && <div className="h-px bg-[#EDF0F7]" />}
 
             {/* ── Break controls ── */}
-            {onBreak && breakMeta ? (
-              <div className="flex flex-col items-center gap-2 py-1">
-                <breakMeta.icon size={18} className="text-[#8A5A00]" />
-                <span className="text-[11px] font-semibold text-[#5F6A88]">{breakLabel}</span>
-                <span className="text-[20px] font-mono font-semibold text-[#0B1533] tabular-nums">
-                  {formatMMSS(breakRemainingSeconds ?? 0)}
-                </span>
-                <button
-                  onClick={() => void cancelBreak()}
-                  className="text-[11px] font-semibold text-[#0063D6] hover:text-[#007BFF] transition-colors cursor-pointer"
-                >
-                  End break
-                </button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-3 gap-2">
-                {BREAK_ORDER.map((type) => {
-                  const meta = BREAK_META[type];
-                  const Icon = meta.icon;
-                  return (
-                    <Tooltip key={type}>
-                      <TooltipTrigger render={
-                        <button
-                          onClick={() => void startBreak(type)}
-                          className="flex flex-col items-center justify-center gap-1 px-1.5 py-2 min-h-[58px] rounded-[10px] border border-[#E2E7F2] bg-white hover:border-[#A8C6F5] hover:bg-[#F0F7FF] transition-colors cursor-pointer"
-                        >
-                          <Icon size={16} className="text-[#5F6A88]" />
-                          <span className="text-[9.5px] font-semibold text-[#5F6A88] text-center leading-tight">{meta.label}</span>
-                        </button>
-                      } />
-                      <TooltipContent side="top">{meta.tooltip}</TooltipContent>
-                    </Tooltip>
-                  );
-                })}
-              </div>
-            )}
+            <TimerBreakPanel
+              breakType={timer?.break_type ?? null}
+              remainingSeconds={breakRemainingSeconds}
+              onStart={(type) => void startBreak(type)}
+              onEnd={() => void cancelBreak()}
+            />
+
+            {hasEntity && timer && <TimerLiveActivity timeline={timer.timeline ?? []} nowMs={nowMs} />}
           </div>
         </div>
       )}
