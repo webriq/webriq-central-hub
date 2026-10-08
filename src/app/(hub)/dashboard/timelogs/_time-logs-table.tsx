@@ -371,23 +371,25 @@ function EntryRow({
         )}
       </td>
       <td className="py-2.5 px-3 whitespace-nowrap">
-        <span
-          className={cn(
-            "text-[10px] font-semibold px-1.5 py-0.5 rounded-full border shrink-0 leading-none",
-            entry.source === "manual"
-              ? "bg-[#F4F6FB] text-[#5F6A88] border-[#E2E7F2]"
-              : "bg-[#E5F1FF] text-[#0063D6] border-[#CFE4FF]"
+        <div className="flex items-center gap-1.5">
+          <span
+            className={cn(
+              "text-[10px] font-semibold px-1.5 py-0.5 rounded-full border shrink-0 leading-none",
+              entry.source === "manual"
+                ? "bg-[#F4F6FB] text-[#5F6A88] border-[#E2E7F2]"
+                : "bg-[#E5F1FF] text-[#0063D6] border-[#CFE4FF]"
+            )}
+          >
+            {entry.source === "manual" ? "Manual" : "Timer"}
+          </span>
+          {entry.timeline && entry.timeline.length > 0 && entry.start_time && entry.end_time && (
+            <TimerActivityTrigger hours={entry.hours} startTime={entry.start_time} endTime={entry.end_time} timeline={entry.timeline}>
+              <button type="button" aria-label="View timer activity" className={cn(ACTION_BTN, "-my-1.5")}>
+                <History size={14} />
+              </button>
+            </TimerActivityTrigger>
           )}
-        >
-          {entry.source === "manual" ? "Manual" : "Timer"}
-        </span>
-        {entry.timeline && entry.timeline.length > 0 && entry.start_time && entry.end_time && (
-          <TimerActivityTrigger hours={entry.hours} startTime={entry.start_time} endTime={entry.end_time} timeline={entry.timeline}>
-            <button type="button" aria-label="View timer activity" className={cn(ACTION_BTN, "ml-1")}>
-              <History size={14} />
-            </button>
-          </TimerActivityTrigger>
-        )}
+        </div>
       </td>
       <td className="py-2.5 px-3">
         {entry.note ? (
