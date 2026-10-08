@@ -20,6 +20,7 @@ export type SentPollResult = {
   ingested: number;
   skipped: number;
   failed: number;
+  cursorBefore: string | null;
   skipReasons: Record<SentSkipReason, number>;
   // First few skipped rows (task 441 diagnostics) — shows what Zoho's Sent listing really returns.
   sample: { subject: string; threadId: string; toAddress?: string; receivedTime: string; reason: SentSkipReason }[];
@@ -31,6 +32,7 @@ export async function pollSentFolder(): Promise<SentPollResult> {
     ingested: 0,
     skipped: 0,
     failed: 0,
+    cursorBefore: null,
     skipReasons: { duplicate: 0, no_ticket: 0, empty_body: 0 },
     sample: [],
   };
@@ -46,7 +48,8 @@ export async function pollSentFolder(): Promise<SentPollResult> {
     .eq("id", CURSOR_ID)
     .maybeSingle();
 
-  const messages = await listNewMessages({ folderId, sinceReceivedTime: cursorRow?.last_received_time ?? null });
+  result.cursorBefore = cursorRow?.last_received_time ?? null;
+  const messages = await listNewMessages({ folderId, sinceReceivedTime: result.cursorBefore });
   result.polled = messages.length;
 
   for (const summary of messages) {
