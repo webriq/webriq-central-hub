@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { Mail, Loader2 } from "lucide-react";
+import { Mail, Loader2, Copy } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import type { TicketListItem } from "./_inbox-index";
+import { duplicateQualifier } from "./_duplicate";
 
 // Task 363 (follow-up) — Ticket ID/Owner/Responded/Due Date moved to the Tickets tab
 // (`desk/tickets/_filed-issues-table.tsx`); this table keeps what's still Inbox-specific
@@ -71,9 +72,22 @@ export function InboxTable({
           <Link href={`/desk/inbox/${t.ticketId}`} className="min-w-0">
             <span className="text-[13px] text-[#3A4565] truncate block">{t.contactName}</span>
           </Link>
-          <Link href={`/desk/inbox/${t.ticketId}`} className="min-w-0">
-            <span className="text-[13px] text-[#0B1533] truncate block" title={t.subject}>{t.subject}</span>
-          </Link>
+          <div className="flex min-w-0 items-center gap-2">
+            <Link href={`/desk/inbox/${t.ticketId}`} className="min-w-0">
+              <span className="text-[13px] text-[#0B1533] truncate block" title={t.subject}>{t.subject}</span>
+            </Link>
+            {t.duplicateOf && (
+              <Link
+                href={`/desk/inbox/${t.duplicateOf.inboxId}`}
+                aria-label={`Duplicate of ticket #${t.duplicateOf.ticketNumber} (${duplicateQualifier(t.duplicateOf.via)})`}
+                title={`${duplicateQualifier(t.duplicateOf.via)} — open #${t.duplicateOf.ticketNumber}`}
+                className="inline-flex shrink-0 items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10.5px] font-semibold text-amber-800 transition-colors hover:bg-amber-100 focus-visible:outline-2 focus-visible:outline-amber-500"
+              >
+                <Copy className="h-3 w-3" aria-hidden="true" />
+                Duplicate · #{t.duplicateOf.ticketNumber}
+              </Link>
+            )}
+          </div>
           <Link href={`/desk/inbox/${t.ticketId}`} className="min-w-0">
             <span className="text-[13px] text-[#3A4565] truncate block">{t.accountName ?? "-"}</span>
           </Link>

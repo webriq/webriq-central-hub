@@ -6,6 +6,7 @@ import { buildProjectHref, buildItemHref } from "@/lib/projects/deep-links";
 import InboxIndex, { type PaginationMeta, type TicketListItem } from "./_inbox-index";
 import { parseStatusFilterParam, STATUS_FILTER_OPTIONS, ARCHIVED_FILTER_VALUE } from "./_status-filter";
 import { resolveContactName, type ContactRow } from "./_resolve";
+import { parseDuplicateOf } from "./_duplicate";
 
 // Desk > Inbox (task 309, renamed from "Tickets" then "Mailbox" by task 363) — activates the
 // sidebar's "Desk" nav item. Mirrors `customers/page.tsx`'s exact searchParams-driven
@@ -48,6 +49,7 @@ type TicketRow = {
   status: "open" | "on_hold" | "escalated" | "closed";
   created_at: string;
   customers: { company_name: string } | null;
+  duplicate_of: unknown; // task 443 — aliased `source_meta->duplicateOf` JSON path, not the whole source_meta
 };
 
 type LinkedIssueRow = {
@@ -109,7 +111,7 @@ export default async function DeskInboxPage({
   let ticketsQuery = supabase
     .from("inbox")
     .select(
-      "id, subject, requester_email, external_contact_id, status, created_at, customers(company_name)",
+      "id, subject, requester_email, external_contact_id, status, created_at, duplicate_of:source_meta->duplicateOf, customers(company_name)",
       { count: "exact" }
     )
     .order("created_at", { ascending: false });
@@ -141,6 +143,8 @@ export default async function DeskInboxPage({
   }
 
   const ticketsRes = await ticketsQuery.range(from, to);
+  // Task 443 — this page used to swallow query errors (a bad select showed an empty list with no trace).
+  if (ticketsRes.error) console.error("[desk/inbox] ticket list query failed:", ticketsRes.error.message);
   const ticketRows = (ticketsRes.data ?? []) as TicketRow[];
 
   // Contact Name has no declared FK to `tickets` (migration 114 added a plain text column, not
@@ -196,6 +200,7 @@ export default async function DeskInboxPage({
     status: t.status,
     linkedIssue: linkedIssueByTicketId.get(t.id) ?? null,
     hasRequesterEmail: !!t.requester_email,
+    duplicateOf: parseDuplicateOf(t.duplicate_of, t.id),
   }));
 
   const paginationMeta: PaginationMeta = {

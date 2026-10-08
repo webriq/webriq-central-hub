@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { V2_ROUTES } from "@/config/constants";
 import TicketDetail, { type TicketDetailData } from "./_ticket-detail";
 import type { MessageItem } from "./_conversation-thread";
+import { parseDuplicateOf } from "../_duplicate";
 import {
   resolveContactName,
   resolveOwnerName,
@@ -212,12 +213,8 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
   const stackShiftSite =
     stackShiftRaw && stackShiftRaw.toLowerCase() === STACKSHIFT_PLACEHOLDER ? null : stackShiftRaw;
 
-  // Task 441 — set by the StackShift Desk poll when this Desk ticket duplicates a Mail ticket.
-  const dup = t.source_meta?.duplicateOf as { inboxId?: unknown; ticketNumber?: unknown } | undefined;
-  const duplicateOf =
-    dup && typeof dup.inboxId === "string" && typeof dup.ticketNumber === "number"
-      ? { inboxId: dup.inboxId, ticketNumber: dup.ticketNumber }
-      : null;
+  // Task 441/443 — set when this ticket is the same conversation as another Hub ticket.
+  const duplicateOf = parseDuplicateOf(t.source_meta?.duplicateOf, t.id);
 
   const contactName = resolveContactName(t, contactRow ?? undefined);
 

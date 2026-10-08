@@ -661,8 +661,8 @@
     "supabase/rollbacks/167_user_drive_select_returning_fix_down.sql": "3c86aac6dbef9dfd4b7ce7b8ae6ec9f1499c0c8e66f6212391cd5ee6b74a1673",
     "worker/index.ts": "83350712449db3ec76c4015cedb2bad5dfd0d0ccd91509ee9a6f09ee4f66f9cc"
   },
-  "indexed_at_commit": "14c9515302dd28b364c3533d46128435310a3161",
-  "indexed_at_timestamp": "2026-10-08T07:55:40.051100+00:00",
+  "indexed_at_commit": "017fd59d612c6d895e42720361704b8eda5cad0b",
+  "indexed_at_timestamp": "2026-10-08T08:19:36.162318+00:00",
   "languages": {
     "markdown": {
       "calls": 0,

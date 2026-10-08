@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { V2_ROUTES } from "@/config/constants";
 import { InboxTable } from "./_inbox-table";
+import type { DuplicateOf } from "./_duplicate";
 import { FilterMultiSelect } from "./_filter-multi-select";
 import { parseStatusFilterParam, STATUS_FILTER_OPTIONS, ARCHIVED_FILTER_VALUE, ALL_STATUS_VALUES } from "./_status-filter";
 
@@ -25,6 +26,8 @@ export type TicketListItem = {
   linkedIssue: { issueDisplayId: string; href: string } | null;
   // Task 380 — gates the "Send Notification" icon button; there's no address to send to.
   hasRequesterEmail: boolean;
+  // Task 443 — set when this row is the same conversation as another Hub ticket.
+  duplicateOf: DuplicateOf | null;
 };
 
 export type PaginationMeta = { page: number; pageSize: number; total: number };
