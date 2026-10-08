@@ -14,10 +14,26 @@ import { subjectsMatch } from "@/lib/email/subject";
 const CURSOR_ID = "helpdesk-sent";
 const THREAD_MATCH_LOOKBACK_DAYS = 180;
 
-export type SentPollResult = { polled: number; ingested: number; skipped: number; failed: number };
+export type SentSkipReason = "duplicate" | "no_ticket" | "empty_body";
+export type SentPollResult = {
+  polled: number;
+  ingested: number;
+  skipped: number;
+  failed: number;
+  skipReasons: Record<SentSkipReason, number>;
+  // First few skipped rows (task 441 diagnostics) — shows what Zoho's Sent listing really returns.
+  sample: { subject: string; threadId: string; toAddress?: string; receivedTime: string; reason: SentSkipReason }[];
+};
 
 export async function pollSentFolder(): Promise<SentPollResult> {
-  const result: SentPollResult = { polled: 0, ingested: 0, skipped: 0, failed: 0 };
+  const result: SentPollResult = {
+    polled: 0,
+    ingested: 0,
+    skipped: 0,
+    failed: 0,
+    skipReasons: { duplicate: 0, no_ticket: 0, empty_body: 0 },
+    sample: [],
+  };
   const folderId = process.env.ZOHO_MAIL_SENT_FOLDER_ID;
   if (!folderId) {
     console.warn("[cron/email-poll] ZOHO_MAIL_SENT_FOLDER_ID is not set — staff replies sent outside the Hub won't sync");
@@ -35,9 +51,21 @@ export async function pollSentFolder(): Promise<SentPollResult> {
 
   for (const summary of messages) {
     try {
-      const ingested = await processSentMessage(summary);
-      if (ingested) result.ingested++;
-      else result.skipped++;
+      const outcome = await processSentMessage(summary);
+      if (outcome === "ingested") result.ingested++;
+      else {
+        result.skipped++;
+        result.skipReasons[outcome]++;
+        if (result.sample.length < 5) {
+          result.sample.push({
+            subject: summary.subject,
+            threadId: summary.threadId,
+            toAddress: summary.toAddress,
+            receivedTime: summary.receivedTime,
+            reason: outcome,
+          });
+        }
+      }
       if (Number.isFinite(Number(summary.receivedTime))) {
         await adminClient
           .from("email_poll_cursor")
@@ -96,22 +124,21 @@ async function findTicketId(summary: ZohoMailMessageSummary): Promise<string | n
   return match.id;
 }
 
-// Returns true when a message row was inserted.
-async function processSentMessage(summary: ZohoMailMessageSummary): Promise<boolean> {
+async function processSentMessage(summary: ZohoMailMessageSummary): Promise<"ingested" | SentSkipReason> {
   const { data: existing } = await adminClient
     .from("inbox_messages")
     .select("id")
     .eq("email_message_id", summary.messageId)
     .maybeSingle();
-  if (existing) return false;
+  if (existing) return "duplicate";
 
   const ticketId = await findTicketId(summary);
-  if (!ticketId) return false;
+  if (!ticketId) return "no_ticket";
 
   const detail = await getMessageDetail(summary.messageId, summary.folderId);
   const html = detail.htmlContent;
   const body = html ?? detail.textContent ?? "";
-  if (!body) return false;
+  if (!body) return "empty_body";
 
   const receivedMs = Number(summary.receivedTime);
   const { error } = await adminClient.from("inbox_messages").insert({
@@ -124,5 +151,5 @@ async function processSentMessage(summary: ZohoMailMessageSummary): Promise<bool
     source_meta: { contentType: html ? "text/html" : "text/plain", source: "zoho-mail-sent" },
   });
   if (error) throw new Error(`failed to insert sent message: ${error.message}`);
-  return true;
+  return "ingested";
 }
