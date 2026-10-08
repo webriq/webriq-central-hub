@@ -158,56 +158,74 @@ export function extractDisplayName(raw: string): string {
 
 // Lists messages in a folder, optionally filtered to those received after `sinceReceivedTime`
 // (epoch ms as a string — the poll cursor). Zoho's List Emails endpoint has no server-side
-// "since" filter, so this fetches the most recent `limit` messages and filters client-side —
-// a backlog larger than `limit` between polls would be missed; acceptable for a helpdesk
-// mailbox's expected volume, revisit if that assumption breaks (task 318 Open Decision 1).
+// "since" filter, so this pages newest-first and filters client-side (see the paging note below).
 export async function listNewMessages(params: {
   folderId: string;
   sinceReceivedTime?: string | null;
   limit?: number;
 }): Promise<ZohoMailMessageSummary[]> {
   const accountId = requireAccountId();
-  const qs = new URLSearchParams({
-    folderId: params.folderId,
-    limit: String(params.limit ?? 50),
-    status: "all",
-  });
+  const pageSize = params.limit ?? 100;
+  const since = params.sinceReceivedTime ? Number(params.sinceReceivedTime) : null;
 
-  const res = await zohoMailFetch(`/api/accounts/${accountId}/messages/view?${qs.toString()}`, { method: "GET" });
-  if (!res.ok) {
-    throw new Error(`Zoho Mail list messages failed: HTTP ${res.status} ${await res.text().catch(() => "")}`);
+  const messages: ZohoMailMessageSummary[] = [];
+  // Task 441 — with no sort params Zoho returned the OLDEST messages first (a live Sent listing
+  // came back from June 2025), so a fixed window never reached new mail. Ask for newest-first
+  // explicitly (UNVERIFIED param names: sortBy=date, sortorder=false = descending; check that
+  // the first row's receivedTime is recent) and page back with `start` (1-based offset) until a
+  // page reaches the cursor. The page cap bounds a runaway; no cursor = a single page.
+  const MAX_PAGES = since == null ? 1 : 10;
+  for (let page = 0; page < MAX_PAGES; page++) {
+    const qs = new URLSearchParams({
+      folderId: params.folderId,
+      limit: String(pageSize),
+      start: String(page * pageSize + 1),
+      status: "all",
+      sortBy: "date",
+      sortorder: "false",
+    });
+    const res = await zohoMailFetch(`/api/accounts/${accountId}/messages/view?${qs.toString()}`, { method: "GET" });
+    if (!res.ok) {
+      throw new Error(`Zoho Mail list messages failed: HTTP ${res.status} ${await res.text().catch(() => "")}`);
+    }
+
+    const json = await res.json();
+    const rows = (json.data ?? []) as Record<string, string>[];
+    if (rows.length === 0) break;
+
+    let reachedCursor = false;
+    for (const r of rows) {
+      // Sent-folder rows may carry only sentDateInGMT (UNVERIFIED against a live Sent listing).
+      const receivedTime = r.receivedTime ?? r.sentDateInGMT;
+      if (since != null && Number(receivedTime) <= since) {
+        reachedCursor = true;
+        continue;
+      }
+      messages.push({
+        messageId: r.messageId,
+        // Zoho only assigns a threadId once a reply actually exists on a message — a brand-new,
+        // never-replied-to message has no threadId field at all. But once a thread does form,
+        // Zoho sets it to the root message's own messageId (observed: a reply's threadId equals
+        // the original message's messageId, and the original's own threadId becomes identical to
+        // its messageId once it has a reply). Defaulting to our own messageId here means every
+        // ticket's stored zoho_mail_thread_id already equals whatever a future reply's real
+        // threadId will be — no need to wait for Zoho to backfill it.
+        threadId: r.threadId || r.messageId,
+        folderId: r.folderId ?? params.folderId,
+        subject: r.subject || "(no subject)",
+        fromAddress: extractEmailAddress(decodeHtmlEntities(r.fromAddress ?? "")),
+        fromName: extractDisplayName(decodeHtmlEntities(r.fromAddress ?? "")),
+        fromRaw: decodeHtmlEntities(r.fromAddress ?? ""),
+        toAddress: r.toAddress ? extractEmailAddress(decodeHtmlEntities(r.toAddress).split(/[,;]/)[0]) : undefined,
+        receivedTime,
+        hasAttachment: r.hasAttachment === "1" || r.hasAttachment === "true",
+      });
+    }
+    if (reachedCursor || rows.length < pageSize) break;
   }
 
-  const json = await res.json();
-  const rows = (json.data ?? []) as Record<string, string>[];
-
-  const messages: ZohoMailMessageSummary[] = rows.map((r) => ({
-    messageId: r.messageId,
-    // Zoho only assigns a threadId once a reply actually exists on a message — a brand-new,
-    // never-replied-to message has no threadId field at all. But once a thread does form,
-    // Zoho sets it to the root message's own messageId (observed: a reply's threadId equals
-    // the original message's messageId, and the original's own threadId becomes identical to
-    // its messageId once it has a reply). Defaulting to our own messageId here means every
-    // ticket's stored zoho_mail_thread_id already equals whatever a future reply's real
-    // threadId will be — no need to wait for Zoho to backfill it.
-    threadId: r.threadId || r.messageId,
-    folderId: r.folderId ?? params.folderId,
-    subject: r.subject || "(no subject)",
-    fromAddress: extractEmailAddress(decodeHtmlEntities(r.fromAddress ?? "")),
-    fromName: extractDisplayName(decodeHtmlEntities(r.fromAddress ?? "")),
-    fromRaw: decodeHtmlEntities(r.fromAddress ?? ""),
-    toAddress: r.toAddress ? extractEmailAddress(decodeHtmlEntities(r.toAddress).split(/[,;]/)[0]) : undefined,
-    // Sent-folder rows may carry only sentDateInGMT (task 441, UNVERIFIED against a live Sent listing).
-    receivedTime: r.receivedTime ?? r.sentDateInGMT,
-    hasAttachment: r.hasAttachment === "1" || r.hasAttachment === "true",
-  }));
-
-  const filtered = params.sinceReceivedTime
-    ? messages.filter((m) => Number(m.receivedTime) > Number(params.sinceReceivedTime))
-    : messages;
-
   // Oldest first, so the poll route can advance its cursor incrementally as it processes each.
-  return filtered.sort((a, b) => Number(a.receivedTime) - Number(b.receivedTime));
+  return messages.sort((a, b) => Number(a.receivedTime) - Number(b.receivedTime));
 }
 
 export type ZohoMailMessageDetail = {
