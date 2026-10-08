@@ -73,6 +73,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Zoho OAuth is not configured" }, { status: 500 });
   }
 
+  // Task 441 temporary diagnostic: ?debug=ticket&id=<deskTicketId> — read-only. Shows the Desk
+  // ticket's created/modified times + custom fields, its history events, and whether the live
+  // search filter returns it (and on which page). Remove once the ingest lag is explained.
+  const debugId = req.nextUrl.searchParams.get("id");
+  if (req.nextUrl.searchParams.get("debug") === "ticket" && debugId) {
+    return NextResponse.json(await debugDeskTicket(token, debugId));
+  }
+
   const { data: cursorRow } = await adminClient
     .from("email_poll_cursor")
     .select("last_received_time")
@@ -285,4 +293,52 @@ async function processTicket(ticket: DeskTicketSearchRow, token: string): Promis
   // contentType (repairExistingContentType omitted, defaults to false); that repair is the new
   // backfill-stackshift-messages admin route's job, run manually against dormant tickets.
   await syncTicketMessages(token, externalId, inboxId);
+}
+
+
+async function debugDeskTicket(token: string, id: string) {
+  const out: Record<string, unknown> = {};
+  const t = await fetchDeskPage(`/tickets/${id}`, token, {}, SEARCH_LABEL);
+  if (t.res.ok) {
+    const j = (await t.res.json()) as Record<string, unknown>;
+    out.ticket = {
+      ticketNumber: j.ticketNumber,
+      status: j.status,
+      createdTime: j.createdTime,
+      modifiedTime: j.modifiedTime,
+      cf: j.cf,
+      departmentId: j.departmentId,
+    };
+  } else out.ticket = { status: t.res.status };
+
+  const h = await fetchDeskPage(`/tickets/${id}/History`, t.token, { limit: "50" }, SEARCH_LABEL);
+  if (h.res.ok) {
+    const rows = ((await h.res.json()) as { data?: Record<string, unknown>[] }).data ?? [];
+    out.history = rows.map((r) => ({
+      eventTime: r.eventTime,
+      eventName: r.eventName,
+      actor: (r.actor as { name?: string } | undefined)?.name,
+      events: r.events,
+    }));
+  } else out.history = { status: h.res.status };
+
+  let currentToken = h.token;
+  let foundOnPage: number | null = null;
+  let scanned = 0;
+  for (let page = 0; page < 10 && foundOnPage === null; page++) {
+    const r = await fetchDeskPage(
+      "/tickets/search",
+      currentToken,
+      { customField1: "cf_stack_shift_site:${notempty}", sortBy: "-modifiedTime", from: String(page * 100 + 1), limit: "100" },
+      SEARCH_LABEL
+    );
+    currentToken = r.token;
+    if (r.res.status === 204 || !r.res.ok) break;
+    const rows = ((await r.res.json()) as { data?: DeskTicketSearchRow[] }).data ?? [];
+    scanned += rows.length;
+    if (rows.some((x) => String(x.id) === id)) foundOnPage = page + 1;
+    if (rows.length < 100) break;
+  }
+  out.search = { foundOnPage, scanned };
+  return out;
 }
