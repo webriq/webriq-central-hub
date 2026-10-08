@@ -354,3 +354,30 @@ export async function sendReply(input: {
   const messageId = data?.messageId ? String(data.messageId) : null;
   return { messageId };
 }
+
+// Task 441 diagnostic — shows what each List Emails sort variant really returns (first/last
+// receivedTime of the first page) so the right params can be confirmed against a live account.
+// Remove once the sort params are verified.
+export async function probeListSort(folderId: string): Promise<Record<string, unknown>[]> {
+  const accountId = requireAccountId();
+  const variants: Record<string, string>[] = [
+    {},
+    { sortBy: "date", sortorder: "false" },
+    { sortBy: "receivedTime", sortorder: "false" },
+    { sortorder: "false" },
+    { sortBy: "date", sortorder: "true" },
+  ];
+  const out: Record<string, unknown>[] = [];
+  for (const v of variants) {
+    const qs = new URLSearchParams({ folderId, limit: "10", start: "1", status: "all", ...v });
+    const res = await zohoMailFetch(`/api/accounts/${accountId}/messages/view?${qs.toString()}`, { method: "GET" });
+    if (!res.ok) {
+      out.push({ params: v, status: res.status, body: (await res.text().catch(() => "")).slice(0, 200) });
+      continue;
+    }
+    const rows = ((await res.json()).data ?? []) as Record<string, string>[];
+    const t = (r?: Record<string, string>) => (r ? { receivedTime: r.receivedTime, sentDateInGMT: r.sentDateInGMT, subject: r.subject } : null);
+    out.push({ params: v, count: rows.length, first: t(rows[0]), last: t(rows[rows.length - 1]) });
+  }
+  return out;
+}

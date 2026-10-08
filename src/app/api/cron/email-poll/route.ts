@@ -8,7 +8,7 @@ import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
-import { listNewMessages, downloadAttachment, type ZohoMailMessageSummary } from "@/lib/zoho/mail";
+import { listNewMessages, probeListSort, downloadAttachment, type ZohoMailMessageSummary } from "@/lib/zoho/mail";
 import { toParsedInboundEmail } from "@/lib/email/inbound";
 import { applyInlineImages, INLINE_IMAGE_BUCKET as BUCKET } from "@/lib/email/inline-images";
 import { shouldIngestEmail } from "@/lib/email/intake-filter";
@@ -42,6 +42,15 @@ export async function POST(req: NextRequest) {
   if (!folderId) {
     console.error("[cron/email-poll] ZOHO_MAIL_INBOX_FOLDER_ID is not configured — rejecting");
     return NextResponse.json({ error: "ZOHO_MAIL_INBOX_FOLDER_ID is not configured" }, { status: 500 });
+  }
+
+  // Task 441 temporary diagnostic: ?debug=sort returns raw sort-variant results, then exits.
+  if (req.nextUrl.searchParams.get("debug") === "sort") {
+    const sentFolderId = process.env.ZOHO_MAIL_SENT_FOLDER_ID;
+    return NextResponse.json({
+      inbox: await probeListSort(folderId),
+      sent: sentFolderId ? await probeListSort(sentFolderId) : null,
+    });
   }
 
   // Keep the ticket_number serial ahead of every imported Zoho number (task 327 / migration
