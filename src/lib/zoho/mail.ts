@@ -131,6 +131,7 @@ export type ZohoMailMessageSummary = {
   fromAddress: string;
   fromName: string; // sender display name ("" when the From is a bare address) — task 327 intake filter
   fromRaw: string; // decoded "Name <addr>" form, kept for logging/debugging
+  toAddress?: string; // first bare recipient address — used to match Sent-folder messages to a ticket (task 441)
   receivedTime: string; // epoch ms, as a string per Zoho's List Emails response
   hasAttachment: boolean;
 };
@@ -195,7 +196,9 @@ export async function listNewMessages(params: {
     fromAddress: extractEmailAddress(decodeHtmlEntities(r.fromAddress ?? "")),
     fromName: extractDisplayName(decodeHtmlEntities(r.fromAddress ?? "")),
     fromRaw: decodeHtmlEntities(r.fromAddress ?? ""),
-    receivedTime: r.receivedTime,
+    toAddress: r.toAddress ? extractEmailAddress(decodeHtmlEntities(r.toAddress).split(/[,;]/)[0]) : undefined,
+    // Sent-folder rows may carry only sentDateInGMT (task 441, UNVERIFIED against a live Sent listing).
+    receivedTime: r.receivedTime ?? r.sentDateInGMT,
     hasAttachment: r.hasAttachment === "1" || r.hasAttachment === "true",
   }));
 

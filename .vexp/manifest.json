@@ -75,7 +75,7 @@
     "src/app/(hub)/dashboard/timelogs/_time-log-notes-editor.tsx": "5d8f34be9be53e712527d6d92f613c9945e83bcd80d39a169532c03752f2500f",
     "src/app/(hub)/dashboard/timelogs/_time-logs-content.tsx": "1c86af6f7d46218b5fea3361be904046ab4c86751c4f4ab53309ccf6f31bb2f6",
     "src/app/(hub)/dashboard/timelogs/_time-logs-shared.ts": "0cca59b2151546874e6d6c0860c364b72da3ab1c4dbd267e780e2eac37467861",
-    "src/app/(hub)/dashboard/timelogs/_time-logs-table.tsx": "3c3dadad39007aa7cd517cf756d81d35f6b26170b7d343d0b15aa408190ddc83",
+    "src/app/(hub)/dashboard/timelogs/_time-logs-table.tsx": "f73510c08473a7b05629b816141367fef24c9ba08255b8ffd5d915caaa20ff40",
     "src/app/(hub)/dashboard/timelogs/_time-period-inline-editor.tsx": "0c22d61a921b8c3b70c6768fdc3e59f7bc76db7b95850020c365b31a6118dff7",
     "src/app/(hub)/dashboard/timelogs/_time-period-panels.tsx": "814790e67d66235fc99bb13d354188834ecb84304330fcbbef2a39aa90c245ec",
     "src/app/(hub)/dashboard/timelogs/_time-period-picker.tsx": "219135fded5359a5cfec308f65be338ec4f545995ebed8e75020515c27b57aba",
@@ -661,8 +661,8 @@
     "supabase/rollbacks/167_user_drive_select_returning_fix_down.sql": "3c86aac6dbef9dfd4b7ce7b8ae6ec9f1499c0c8e66f6212391cd5ee6b74a1673",
     "worker/index.ts": "83350712449db3ec76c4015cedb2bad5dfd0d0ccd91509ee9a6f09ee4f66f9cc"
   },
-  "indexed_at_commit": "cab54f778be1f48f86c34c90103e12a88b2c0e58",
-  "indexed_at_timestamp": "2026-10-08T04:09:27.440400+00:00",
+  "indexed_at_commit": "0b5742d22d23ca222e589dcbb22c48e5a91215a2",
+  "indexed_at_timestamp": "2026-10-08T04:24:33.648266+00:00",
   "languages": {
     "markdown": {
       "calls": 0,
@@ -680,7 +680,7 @@
   "parser_version": "3.3.2",
   "schema_version": 3,
   "stats": {
-    "total_edges": 2008,
+    "total_edges": 2006,
     "total_files": 660,
     "total_nodes": 2004
   },

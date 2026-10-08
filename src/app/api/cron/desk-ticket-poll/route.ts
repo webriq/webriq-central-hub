@@ -18,6 +18,13 @@ import { CF_TARGETS, resolveCfField } from "@/lib/migrate/desk-cf";
 // Task 390 — sync logic shared with the backfill-stackshift-messages admin route; do not
 // reimplement it here, see src/lib/desk/stackshift-message-sync.ts's header comment for why.
 import { syncTicketMessages } from "@/lib/desk/stackshift-message-sync";
+// Task 441 — overlap window, incremental cursor and time budget (pure helpers).
+import { POLL_OVERLAP_MS, selectCandidates, advanceCursor, budgetExhausted } from "@/lib/desk/poll-cursor";
+
+// Without this the platform default applies and a long run dies before the cursor moves.
+export const maxDuration = 300;
+// Stop starting new tickets well before maxDuration so the run exits cleanly.
+const RUN_BUDGET_MS = 240_000;
 
 // Reuses the email-poll cursor table (migration 122) with a second row — the column is just a
 // free-text cursor value, not literally email-specific in structure, and `id` is a free-text
@@ -78,41 +85,80 @@ export async function POST(req: NextRequest) {
   // same caveat migration 122 documents for the email cursor's null-start backfill behavior.
   const cursorMs = cursorRow?.last_received_time ? Number(cursorRow.last_received_time) : Date.now();
 
-  let tickets: DeskTicketSearchRow[];
-  let latestSeenMs = cursorMs;
+  const startedAt = Date.now();
+  let scanned: DeskTicketSearchRow[];
   try {
-    const result = await fetchTicketsSinceCursor(token, cursorMs);
-    tickets = result.tickets;
-    latestSeenMs = result.latestSeenMs;
+    // Scan from cursor − overlap so late-indexed tickets are not stranded (task 441).
+    scanned = await fetchTicketsSinceCursor(token, cursorMs - POLL_OVERLAP_MS);
   } catch (e) {
     console.error("[cron/desk-ticket-poll] failed to search Desk tickets", e);
     return NextResponse.json({ error: "Failed to search Desk tickets" }, { status: 502 });
   }
 
+  const modifiedOf = (t: DeskTicketSearchRow) => Date.parse(String(t.modifiedTime ?? t.createdTime ?? ""));
+  const byId = new Map(scanned.map((t) => [String(t.id), t]));
+
+  // Overlap-zone rows are only worth processing if the Hub has never ingested them.
+  const overlapIds = scanned.filter((t) => modifiedOf(t) <= cursorMs).map((t) => String(t.id));
+  const knownIds = new Set<string>();
+  for (let i = 0; i < overlapIds.length; i += 200) {
+    const { data } = await adminClient
+      .from("inbox")
+      .select("external_id")
+      .in("external_id", overlapIds.slice(i, i + 200));
+    for (const r of data ?? []) if (r.external_id) knownIds.add(String(r.external_id));
+  }
+
+  const candidates = selectCandidates(
+    scanned.map((t) => ({ id: String(t.id), modifiedMs: modifiedOf(t) })),
+    cursorMs,
+    knownIds
+  );
+
   let processed = 0;
-  for (const ticket of tickets) {
+  let failed = 0;
+  let cursor = cursorMs;
+  let budgetHit = false;
+  for (const c of candidates) {
+    if (budgetExhausted(startedAt, Date.now(), RUN_BUDGET_MS)) {
+      budgetHit = true;
+      break;
+    }
+    const ticket = byId.get(c.id);
+    if (!ticket) continue;
     try {
       await processTicket(ticket, token);
       processed++;
     } catch (e) {
+      failed++;
       console.error(`[cron/desk-ticket-poll] failed to process ticket ${ticket.id}`, e);
+    }
+    // Oldest-first, so advancing per ticket is safe: anything not yet handled stays above the
+    // cursor. A failed ticket is skipped (its upsert is idempotent and the overlap window
+    // re-offers it while it is still unknown to the Hub), not retried forever.
+    const next = advanceCursor(cursor, c.modifiedMs);
+    if (next > cursor) {
+      cursor = next;
+      await adminClient
+        .from("email_poll_cursor")
+        .upsert(
+          { id: CURSOR_ID, last_received_time: String(cursor), updated_at: new Date().toISOString() },
+          { onConflict: "id" }
+        );
     }
   }
 
-  // Cursor advances to the latest modifiedTime actually observed in this run, even if some
-  // tickets failed to process (same as email-poll's per-message cursor advance) — a ticket
-  // whose processing throws is skipped, not retried forever, since its own upsert is
-  // idempotent on external_id and will simply be corrected on its next natural modification.
-  if (latestSeenMs > cursorMs) {
-    await adminClient
-      .from("email_poll_cursor")
-      .upsert(
-        { id: CURSOR_ID, last_received_time: String(latestSeenMs), updated_at: new Date().toISOString() },
-        { onConflict: "id" }
-      );
-  }
-
-  return NextResponse.json({ found: tickets.length, processed });
+  const summary = {
+    found: candidates.length,
+    processed,
+    failed,
+    budgetHit,
+    cursorBefore: cursorMs,
+    cursorAfter: cursor,
+    ms: Date.now() - startedAt,
+  };
+  console.log("[cron/desk-ticket-poll] run", JSON.stringify(summary));
+  return NextResponse.json(summary);
 }
 
 // Paginates Desk's /tickets/search filtered to cf_stack_shift_site being non-empty (the exact
@@ -126,13 +172,12 @@ export async function POST(req: NextRequest) {
 // (see src/lib/zoho/mail.ts's header comment).
 async function fetchTicketsSinceCursor(
   token: string,
-  cursorMs: number
-): Promise<{ tickets: DeskTicketSearchRow[]; latestSeenMs: number }> {
+  sinceMs: number
+): Promise<DeskTicketSearchRow[]> {
   const perPage = 100;
   let from = 1; // Desk's `from` is 1-indexed, same as fetchAllDeskPages()
   let currentToken = token;
   const collected: DeskTicketSearchRow[] = [];
-  let latestSeenMs = cursorMs;
   let lastSeen = Infinity; // descending-order sanity check, mirrors fetchAllArchivedTicketsForDept()
   let orderUnreliable = false;
 
@@ -160,10 +205,9 @@ async function fetchTicketsSinceCursor(
       if (modifiedMs > lastSeen) orderUnreliable = true;
       lastSeen = modifiedMs;
 
-      if (modifiedMs > cursorMs) {
+      if (modifiedMs > sinceMs) {
         collected.push(t);
         allStale = false;
-        if (modifiedMs > latestSeenMs) latestSeenMs = modifiedMs;
       }
     }
 
@@ -175,7 +219,7 @@ async function fetchTicketsSinceCursor(
     from += perPage;
   }
 
-  return { tickets: collected, latestSeenMs };
+  return collected;
 }
 
 async function processTicket(ticket: DeskTicketSearchRow, token: string): Promise<void> {

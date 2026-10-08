@@ -14,6 +14,7 @@ import { applyInlineImages, INLINE_IMAGE_BUCKET as BUCKET } from "@/lib/email/in
 import { shouldIngestEmail } from "@/lib/email/intake-filter";
 import { parseSupportFormEmail, buildSupportFormBody } from "@/lib/email/support-form";
 import { subjectsMatch } from "@/lib/email/subject";
+import { pollSentFolder, type SentPollResult } from "@/lib/email/sent-ingest";
 import { notifyCustomerTicketCreated } from "@/lib/desk/customer-view-access";
 
 const MAX_SIZE = 52428800; // 50MB — matches the bucket's file_size_limit (migration 117)
@@ -65,6 +66,7 @@ export async function POST(req: NextRequest) {
 
   let processed = 0;
   let skipped = 0;
+  let failed = 0;
   for (const summary of messages) {
     try {
       const outcome = await processMessage(summary);
@@ -80,10 +82,25 @@ export async function POST(req: NextRequest) {
       else if (outcome === "skipped") skipped++;
     } catch (e) {
       console.error(`[cron/email-poll] failed to process message ${summary.messageId}`, e);
+      // Task 441 — stop here. Messages are oldest-first and the cursor is a single watermark,
+      // so continuing would let a later success advance it past this failed message and drop
+      // it permanently. The next poll retries from here (email_message_id dedupe keeps that safe).
+      failed++;
+      break;
     }
   }
 
-  return NextResponse.json({ polled: messages.length, processed, skipped });
+  // Task 441 — staff replies live in the Sent folder, which the inbound loop never reads.
+  // Non-fatal: a Sent-side failure must not fail the inbound poll's response.
+  let sent: SentPollResult | null = null;
+  try {
+    sent = await pollSentFolder();
+  } catch (e) {
+    console.error("[cron/email-poll] sent-folder poll failed", e);
+  }
+  console.log("[cron/email-poll] run", JSON.stringify({ polled: messages.length, processed, skipped, failed, sent }));
+
+  return NextResponse.json({ polled: messages.length, processed, skipped, failed, sent });
 }
 
 async function processMessage(summary: ZohoMailMessageSummary): Promise<ProcessOutcome> {
@@ -292,6 +309,10 @@ async function processMessage(summary: ZohoMailMessageSummary): Promise<ProcessO
       visibility: "public",
       body,
       email_message_id: summary.messageId,
+      // Task 441 — keep the real arrival time so ordering/lag are accurate for late ingests.
+      ...(Number.isFinite(Number(summary.receivedTime)) && Number(summary.receivedTime) > 0
+        ? { created_at: new Date(Number(summary.receivedTime)).toISOString() }
+        : {}),
       source_meta: {
         contentType: bodyIsHtml ? "text/html" : "text/plain",
         ...(inlineImagesUnresolved ? { inlineImagesUnresolved: true } : {}),

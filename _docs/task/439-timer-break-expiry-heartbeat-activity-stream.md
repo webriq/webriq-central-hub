@@ -1,10 +1,10 @@
-# 439: Timers — server-authoritative break expiry, interruption recovery (heartbeat) and per-log Activity stream
+# 439: Timers — server-authoritative break expiry, break records, break chimes and per-log Activity stream (heartbeat/idle detection removed)
 
 **Created:** 2026-10-08
 **Priority:** HIGH
 **Type:** bugfix + feature (data model change, migration written-not-applied)
 **Recommended Tier:** deep
-**Status:** Testing
+**Status:** Completed
 
 > **SCOPE CHANGE (user request, after implementation):** the heartbeat / interruption-recovery part (piece B) was **removed**. People close the Hub and keep working, so "app went quiet" is not a signal that work stopped. Sections below that mention heartbeat, `auto_paused`, `gap_counted`, `interrupted_at`, the recovery banner/toast, Count the gap, and the heartbeat route/hook are historical — see "Scope change: heartbeat removed" at the end for what actually ships. The break-expiry fix (A), `timer_breaks` (C) and the Activity stream (D, start/pause/resume/break/stop only) remain.
 
@@ -281,3 +281,18 @@ PASS
 - **Kept:** server-side break-expiry backdating (reconcile on every route), `timer_breaks`, break chimes, the Activity stream (Started / Paused / Resumed / Break / Break ended / Stopped, durations, Worked / Paused / On break totals) and the live "Session activity" section.
 - **How an open tab ends a break now:** when its countdown reaches zero the client re-fetches `GET /api/v2/timer` (retrying every 5 s), which reconciles server-side; a closed tab is handled by the next request of any kind.
 - **Verified:** `tsc`, `eslint`, `439-timer-logic.check.ts`, `439-reconcile-apply.check.ts` pass; no heartbeat/interrupt references remain in `src/`.
+
+## Final Changes & Fixes (completion summary)
+
+What shipped, in the order it happened after the original plan:
+1. **Server-authoritative break expiry** — `reconcileTimer()` / `loadReconciledTimer()` run first in every `/api/v2/timer/*` route; an expired break ends and the task/ticket timer resumes at the real expiry time, with an `updated_at` optimistic token so two tabs never double-append. Fixes the reported 60-min break that lasted 1 h 44 m.
+2. **`timer_breaks`** (migration `168_timer_breaks.sql`, written-not-applied) — one durable row per break, linked to the time log on Stop; writes are best-effort so the app works before the migration is applied.
+3. **Break chimes** (user request) — Web Audio warning at 10 min (meal) / 5 min (coffee) left, ring + "Break over" toast at expiry, mute toggle; the end cue also fires when the server cleared the break in a hidden tab.
+4. **Heartbeat cost reduction** (user request) — `getClaims()`, slim `{unchanged, updated_at}` response, 5 s ping de-duplication. **Superseded by item 5.**
+5. **Heartbeat / idle detection removed** (user request) — the Hub being open or closed must not affect a timer, so the heartbeat route/hook, auto-pause, "Count the gap", recovery banner/toast and the `last_heartbeat_at`/`interrupted_at` columns were removed. An open tab now just re-fetches `GET /api/v2/timer` when its break countdown reaches zero.
+6. **Activity stream** — per-log Activity panel (click/keyboard/touch) on task + ticket Time Logs, Dashboard → Time logs, and a collapsible "Session activity" in the header timer panel; only Started / Paused / Resumed / Break / Break ended / Stopped, with durations and Worked / Paused / On break totals.
+7. **Alignment fix (user report)** — on Dashboard → Time logs the "Timer" source chip and the Activity (history) button were vertically misaligned because they sat inline beside each other; they are now in a `flex items-center gap-1.5` row in `_time-logs-table.tsx`.
+8. **Follow-up** — editing a timer log's period now subtracts recorded pauses/breaks: see task 440.
+
+Verification at completion: `tsc`, `eslint`, `439-timer-logic.check.ts` and `439-reconcile-apply.check.ts` pass; `pnpm build` passed before the heartbeat removal. Browser acceptance was run by the user on their own session (no automated browser pass was recorded by the agent).
+Deployment note: apply `supabase/migrations/168_timer_breaks.sql`; if an earlier version of 168 (with the heartbeat columns) was already applied, `last_heartbeat_at` / `interrupted_at` on `active_timers` are unused and can be dropped.

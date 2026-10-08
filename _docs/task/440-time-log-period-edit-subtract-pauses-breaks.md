@@ -4,7 +4,7 @@
 **Priority:** MEDIUM
 **Type:** bugfix + enhancement (follow-up to 439)
 **Recommended Tier:** balanced
-**Status:** Testing
+**Status:** Completed
 
 ---
 
@@ -209,3 +209,10 @@ PASS
 
 ### Required Fixes
 - None.
+
+## Final Changes & Fixes (completion summary)
+
+- Shipped as implemented (see Implementation Notes): `workedHoursForPeriod()` in `src/lib/timer/period-hours.ts` used by all three time-log PATCH routes; inline period editor preview matches the server; "Period edited after recording" line in the Activity panel; `time_logs.timeline` never rewritten. Defaults kept for the two open questions (extension beyond the recorded session counts fully; whole-day translation heuristic kept).
+- Quality-gate cleanup: removed a non-null assertion in the general PATCH route.
+- **Alignment fix (user report, Dashboard → Time logs):** the Type column's "Timer" chip and the Activity (history) button were misaligned; wrapped in a `flex items-center gap-1.5` row with a `-my-1.5` on the button so the row height is unchanged (`_time-logs-table.tsx`, the same cell this task's inline-editor wiring touches).
+- Verification at completion: `tsc`, `eslint`, `440-period-hours.check.ts`, `439-timer-logic.check.ts` pass; browser checks run by the user on their own session.
