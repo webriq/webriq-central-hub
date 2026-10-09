@@ -167,6 +167,20 @@ export default function InboxIndex({
               exclusiveValue={ARCHIVED_FILTER_VALUE}
             />
 
+            {/* Task 450 — Desk copies retired by the duplicate cleanup are hidden by default; this reveals them. */}
+            <button
+              type="button"
+              aria-pressed={searchParams.get("retired") === "1"}
+              onClick={() => router.push(buildUrl({ retired: searchParams.get("retired") === "1" ? null : "1", page: 1 }))}
+              className={`h-8 px-3 rounded-[10px] border text-[12px] transition-colors ${
+                searchParams.get("retired") === "1"
+                  ? "border-[#007BFF] bg-[#E5F1FF] text-[#0063D6]"
+                  : "border-[#E2E7F2] bg-white text-[#3A4565] hover:bg-[#F0F7FF]"
+              }`}
+            >
+              {searchParams.get("retired") === "1" ? "Retired copies shown" : "Show retired copies"}
+            </button>
+
             {/* Spacer */}
             <div className="flex-1 min-w-0" />
 

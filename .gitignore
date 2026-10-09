@@ -56,6 +56,9 @@ appstore-images/
 
 supabase/.temp/
 
+# generated, reviewable-but-never-committed task output (dry-run plans carry real customer/ticket data)
+_docs/task/*/out/
+
 .claude/worktrees/
 
 .claude/hooks/
@@ -72,3 +75,5 @@ curl_result.json
 .vexp/start-blocked
 
 .impeccable/config.json
+
+envOLD

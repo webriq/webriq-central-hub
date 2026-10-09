@@ -66,3 +66,30 @@ npx tsx _docs/task/448-read-model.check.ts
 ## Compatibility Touchpoints
 
 Depends on 444/445 (and 447 for attachment URLs). Contract §5 is the source of truth.
+
+
+## Implementation Notes
+
+### Decisions (user, 2026-10-09)
+- Statuses: raw four (`open|on_hold|escalated|closed`) in reads and events (customers will see internal wording such as `escalated`). List stats via a migration 172 SQL function. Cross-site reads return 404 for both unknown and other-site tickets. Customer-initiated status changes are logged in `source_meta` for the activity list.
+
+### What Changed
+- `read-model.ts` (pure: keyset cursor, filters, allowlist serialisers, activity, status log) + `read-queries.ts` (DB: `listTickets`, `getTicket`).
+- Routes: `GET .../v1/tickets` (added to the existing file) and new `GET .../v1/tickets/[ticketRef]`, both via `handleSignedGet`.
+- Migration 172 (written, not applied): `stackshift_ticket_message_stats()` + a partial index for the list query. `database.ts` updated.
+- `setCustomerStatus` appends a capped `customerStatusLog` to `inbox.source_meta`.
+- Harness `--suite reads`; contract §5, hand-off and CLAUDE.md updated; `_docs/task/448-read-model.check.ts`.
+
+### Deviations From Plan
+- Cross-site reads return 404 (not the contract's 403 rule 7) so existence does not leak; documented in the contract.
+- `status` filter accepts the raw Hub statuses in addition to the contract's `open|closed|all`.
+- Activity has no due-date entries (no editing surface exists) and customer status changes depend on the new `source_meta` log, so closes/reopens made before this change have no activity entry.
+- Messages are read with a 1000-row paging loop and all public messages are returned (no message pagination in v1).
+
+### Verification Run
+- `npx tsx _docs/task/448-read-model.check.ts` (cursor round-trip + tamper/injection rejection, keyset paging, filters, leak-proof fixture, activity ordering, status-log cap) - PASS; 444-447 checks still pass
+- `npx tsc --noEmit`, eslint (stackshift-support, webhooks), harness type-check - PASS
+- Harness `--suite reads` against a running server - NOT RUN (needs migrations 169-172 applied and a throwaway secret)
+
+### Live harness run (2026-10-09)
+- `--suite reads`: all 20 cases PASS against the hosted project with migration 172 applied (keyset paging with cursor and a null nextCursor at the end, userRef/status filters, bad status/limit/cursor/site 400, tampered GET signature 401, detail redaction, activity incl. the customer's close, empty list for another site, other site's ticket 404 identical to an unknown ref).

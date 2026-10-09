@@ -11,7 +11,7 @@
 
 ## Overview
 
-**Do not start until the parity gate (task 449) has passed and the user has given written sign-off** — a recorded `stackshift_parity_signoff` row plus explicit approval in conversation. Only this task may demote or disable the Zoho Desk flow. It makes the Desk poll reconcile-only (ingest a Desk ticket only if no row has `external_id = id` and none has `desk_ticket_id = id`, and **alert** on a miss), lowers cron cadence, then disables the Desk email channel for helpdesk@ and the Desk crons, and runs the one-time duplicate cleanup (D6). Customer emails switch to the Hub (D4) in this task.
+**Do not start until the parity gate (task 449) has passed and the user has given written sign-off** — a recorded, non-revoked `stackshift_parity_signoff` row (task 449 — read it with `latestSignoff(site)` from `src/lib/stackshift-support/parity.ts`) plus explicit approval in conversation. Only this task may demote or disable the Zoho Desk flow. It makes the Desk poll reconcile-only (ingest a Desk ticket only if no row has `external_id = id` and none has `desk_ticket_id = id`, and **alert** on a miss), lowers cron cadence, then disables the Desk email channel for helpdesk@ and the Desk crons, and runs the one-time duplicate cleanup (D6). Customer emails switch to the Hub (D4) in this task.
 
 Part of the StackShift Support → Hub direct rollout: design `_docs/plan/stackshift-hub-direct-support-design.md`, contract `_docs/plan/stackshift-hub-support-api-contract.md`, hand-off `_docs/plan/stackshift-hub-support-handoff.md` (parent task 442).
 
@@ -34,7 +34,7 @@ Part of the StackShift Support → Hub direct rollout: design `_docs/plan/stacks
 | File | Action | Purpose |
 |------|--------|---------|
 | `src/app/api/cron/desk-ticket-poll/route.ts` | Modify | Reconcile-only mode + miss alert |
-| `supabase/migrations/172_stackshift_desk_poll_stepdown.sql` | Create | Cadence change then unschedule (written, not applied) |
+| `supabase/manual/stackshift-stepdown/step-3_lower-desk-poll-cadence.sql` + `step-6_unschedule-desk-poll.sql` (manual scripts, NOT migrations) and `supabase/migrations/174_stackshift_reconcile_misses.sql` | Create | Cadence change then unschedule (written, not applied) |
 | `_docs/task/450-duplicate-cleanup/` | Create | Dry-run + reviewable plan for retiring Desk copies |
 | `CLAUDE.md` | Modify | Document the new steady state |
 
@@ -69,3 +69,25 @@ pnpm lint
 ## Compatibility Touchpoints
 
 Blocked on 449 + sign-off. External: Zoho Desk channel/workflow settings (operator).
+
+
+## Implementation Notes
+
+### Decisions (user, 2026-10-09)
+- Build it DARK now (no sign-off exists yet). Misses: recorded + alerted + deliberate Import/Dismiss on a step-down page. Retire = flag the Desk copy and hide it from the Inbox by default (nothing closed or deleted). Reconcile mode needs the env switch AND an active sign-off for the ticket's site.
+
+### What Changed
+- `stepdown-logic.ts` (pure: `reconcileDecision`, customer-email gate, miss cooldown, cleanup planner + apply/rollback SQL), `reconcile.ts` (context + `recordMiss`), `stepdown.ts` (status for the page), `parity.ts` (+ `activeSignedOffSites`, `isSiteSignedOff`).
+- `desk-ticket-poll`: reconcile branch in `processTicket()` (default OFF), admin-only `{importDeskTicketId}` branch (`importMiss()`).
+- Migration 174 `stackshift_reconcile_misses` (written, not applied). Two MANUAL scripts in `supabase/manual/stackshift-stepdown/` (not migrations — see the folder README): `step-3_lower-desk-poll-cadence.sql` (*/10 -> hourly) and `step-6_unschedule-desk-poll.sql`. Both abort without an active sign-off; step 6 also aborts while open Desk-only tickets remain.
+- `/desk/stackshift-stepdown` page + dismiss route; Inbox hides retired copies unless `?retired=1` (toggle added); Hub customer emails now gated per site (`STACKSHIFT_SUPPORT_NOTIFY_SITES`) and by sign-off, for both ticket-created and staff-reply emails; `env.example`, CLAUDE.md, runbook `_docs/plan/stackshift-desk-stepdown-runbook.md`, cleanup dry-run `_docs/task/450-duplicate-cleanup/dry-run.ts`.
+
+### Deviations From Plan
+- Migration numbering: 174 is the misses table. The cadence change and the unschedule were first written as migrations 175/176, then moved to manual scripts (2026-10-09): a guarded script that aborts by design fails `supabase db push` and blocks every later migration (it did, when applied before any sign-off existed).
+- The old `shouldNotifyCustomer` (task 445) was replaced by the stricter sign-off-aware gate; its 445 check cases moved to `450-stepdown.check.ts`. Behaviour change: the global `STACKSHIFT_SUPPORT_NOTIFY_CUSTOMER=true` alone no longer sends emails without a sign-off.
+- A Desk ticket whose Site custom field is missing keeps normal ingestion (the site, hence the sign-off, can't be determined).
+
+### Verification Run
+- `npx tsx _docs/task/450-stepdown.check.ts` (decision matrix incl. dormant-by-default, email gate, miss cooldown, planner/SQL) - PASS; 444-449 checks still pass
+- `npx tsc --noEmit`, eslint (stackshift-support, api, desk pages, sidebar) - PASS
+- NOT RUN / operator-only: applying migration 174, running the two manual step scripts, flipping the env switches, the live reconcile run, Desk channel changes, the cleanup dry-run against real data, and rehearsing each rollback (acceptance criterion "each step rehearsed" stays open until the operator does it).

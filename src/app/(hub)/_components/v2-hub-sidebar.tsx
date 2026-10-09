@@ -96,6 +96,12 @@ function getNavGroups(role: string | null, departmentName: string | null, hasDir
           { label: "Inbox",    href: V2_ROUTES.DESK_INBOX },
           { label: "Tickets",  href: V2_ROUTES.DESK_TICKETS },
           { label: "Contacts", href: V2_ROUTES.DESK_CONTACTS },
+          // Task 446 — StackShift event delivery + replay; admin / super_admin only (matches the page + replay API).
+          ...(isAdmin ? [{ label: "StackShift outbox", href: V2_ROUTES.DESK_STACKSHIFT_OUTBOX }] : []),
+          // Task 449 — parity gate evidence + sign-off for the Desk step-down; admin / super_admin only.
+          ...(isAdmin ? [{ label: "StackShift parity", href: V2_ROUTES.DESK_STACKSHIFT_PARITY }] : []),
+          // Task 450 — Desk step-down status + reconcile misses (inert until a site is signed off); admin only.
+          ...(isAdmin ? [{ label: "StackShift step-down", href: V2_ROUTES.DESK_STACKSHIFT_STEPDOWN }] : []),
         ],
       },
     ] : []),

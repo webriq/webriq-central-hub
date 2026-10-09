@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { sendReply } from "@/lib/zoho/mail";
+import { replyOnDirectTicket } from "@/lib/stackshift-support/direct-reply";
 
 // Customer-facing reply (task 316, migrated from Resend to the Zoho Mail API by task 318) —
 // sends a real email via Zoho Mail's native reply endpoint and, only on send success, records
@@ -35,10 +36,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   const { data: ticket } = await adminClient
     .from("inbox")
-    .select("id, subject, requester_email, external_contact_id")
+    .select("id, subject, requester_email, external_contact_id, channel")
     .eq("id", ticketId)
     .maybeSingle();
   if (!ticket) return NextResponse.json({ error: "Ticket not found" }, { status: 404 });
+
+  // Task 446 — direct StackShift tickets have no Zoho Mail thread; the reply goes out through the outbox.
+  // Every other channel falls through to the unchanged Zoho Mail path below.
+  if (ticket.channel === "stackshift") {
+    const direct = await replyOnDirectTicket({ ticket, staffUserId: user.id, bodyHtml: replyBody });
+    return direct.ok ? NextResponse.json({ ok: true, id: direct.id }) : NextResponse.json({ error: direct.error }, { status: 500 });
+  }
 
   let contactEmail: string | null = null;
   if (ticket.external_contact_id) {

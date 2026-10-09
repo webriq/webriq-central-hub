@@ -78,3 +78,30 @@ npx tsx _docs/task/446-mock-receiver.ts   # then trigger replies from the Hub
 ## Compatibility Touchpoints
 
 Depends on 444/445. New cron (`CLAUDE.md` cron list, migration, Vault secrets already present). `env.example`.
+
+
+## Implementation Notes
+
+### Decisions (user, 2026-10-09)
+- `ticket.assigned` / `ticket.due_changed`: types + builders only, no emitter (no assignee column / due-date UI exists). Replay keeps the original `sequence`; the receiver applies by sequence. Replies enqueued by a SQL trigger. Customer reply email included, gated by `STACKSHIFT_SUPPORT_NOTIFY_CUSTOMER`. Retries: initial + 5 (assumed; the question was dropped by the 4-question tool limit) — dead after the 6th failure.
+
+### What Changed
+- Migration 171 (written, not applied; renumbered from 170): delivery-tracking columns, unique reply guard, `stackshift_enqueue_staff_reply` trigger, pg_cron job `stackshift-outbox-dispatch` (every minute).
+- `src/lib/stackshift-support/`: `outbox-logic.ts` (backoff, ordering gate, redaction allowlists, paging), `outbox.ts` (`enqueueStatusChanged`), `dispatch.ts` (lease claim, signed POST, retry/dead), `direct-reply.ts`, `signed-get.ts` (reusable signed-GET pipeline).
+- Routes: `POST /api/cron/stackshift-outbox`; `GET /api/webhooks/stackshift-support/v1/events`; `POST /api/desk/stackshift-outbox/[eventId]/replay`; reply + status routes branched for `channel='stackshift'` only.
+- UI: `/desk/stackshift-outbox` (admin/super_admin) + admin-only Desk nav child; `V2_ROUTES.DESK_STACKSHIFT_OUTBOX`.
+- `database.ts` outbox columns; contract, hand-off and CLAUDE.md updated; `_docs/task/446-outbox.check.ts` and `446-mock-receiver.ts`.
+
+### Deviations From Plan
+- `GET /events` requires a `site` query param (contract read convention) — needed to enforce "right site only".
+- Status events are enqueued from app code (not a trigger) so customer-initiated changes arriving via the inbound API are not echoed back.
+- `sequence` is the global identity from migration 169; per-ticket ordering uses (ticket_id, sequence).
+- `sendCliqNotification` is globally disabled in code (`CLIQ_NOTIFICATIONS_ENABLED = false`), so the dead-event alert is currently a console error only.
+- Replay can deliver out of order by design (see decisions); the "Replay keeps ordering" criterion is met as "keeps original sequence".
+
+### Verification Run
+- `npx tsx _docs/task/446-outbox.check.ts` (retry schedule, ordering gate, redaction, paging) - PASS
+- Mock receiver smoke test with signed requests (valid, duplicate, bad signature, injected 503, out-of-order) - PASS
+- `npx tsc --noEmit`, eslint on touched areas - PASS
+- End-to-end (Hub -> receiver, retry timing, replay, trigger) - NOT RUN (needs migrations 169-171 applied, STACKSHIFT_EVENTS_URL/SECRET set)
+- Browser check of /desk/stackshift-outbox - NOT RUN

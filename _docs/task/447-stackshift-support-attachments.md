@@ -68,3 +68,33 @@ npx tsx _docs/task/445-support-harness.ts --base http://localhost:3000 --suite a
 ## Compatibility Touchpoints
 
 Depends on 445/446. Existing `ticket-attachments` bucket and `attachments` table; `CLAUDE.md` note.
+
+
+## Implementation Notes
+
+### Decisions (user, 2026-10-09)
+- Bucket: `ticket-attachments` (the Inbox viewer's bucket) via an optional `bucket` arg on the storage helpers. Outbound scope: download-URL machinery only, no staff upload UI.
+
+### What Changed
+- `attachments-logic.ts` (pure: manifest rules, path scheme + ownership guard, download shape), `attachments.ts` (mint upload URLs, verify + register, mint download URLs), `schema.ts` (strict attachment manifest + sign schema), `POST /v1/uploads/sign`.
+- `create-ticket.ts` / `comment-status.ts`: attachments verified BEFORE any write; rolled back with the ticket if the attachment insert fails.
+- `dispatch.ts` + `GET /events`: fresh 15-min download URLs injected into `ticket.reply` envelopes (never stored); `buildEnvelope` takes an allow-listed `attachments` arg.
+- `inbound.ts`: `idempotencyKey` optional (sign mints no write). `attachment-storage.ts`: optional `bucket` (default unchanged).
+- Harness `--suite attachments`; contract §4, CLAUDE.md updated; `_docs/task/447-attachments.check.ts`.
+
+### Deviations From Plan
+- Bucket `ticket-attachments`, not `project-assets` (the Inbox viewer only signs from the former).
+- Paths include the site: `stackshift-support/<site>/<ticketRef>/…`, and register-time rejects paths not minted for that site + ticketRef or already registered (the doc's scheme let one site register another's upload).
+- Oversize files at sign time return 413 `payload_too_large` (contract table), disallowed types 422.
+- No staff-side attachment source exists in the Hub, so the outbound half can only be exercised with test attachment rows.
+
+### Verification Run
+- `npx tsx _docs/task/447-attachments.check.ts` (+ 444/445/446 checks still pass) - PASS
+- `npx tsc --noEmit`, eslint (stackshift-support, webhooks, uploads), harness type-check - PASS
+- Harness `--suite attachments` against a running server (sign -> PUT -> register, 422/413/400, spoof, cross-site) - NOT RUN (needs migrations 169-170 applied, ticket-attachments bucket from migration 117, throwaway secret)
+- Real download-URL check in a `ticket.reply` event - NOT RUN
+
+### Live harness run (2026-10-09)
+- `--suite attachments`: all 10 cases PASS against the hosted project (sign, PUT straight to Storage, register on create, cross-site and cross-ticket path rejected, .exe 422, 26 MB 413, 11 files 400, spoofed .png rejected at register and no ticket created).
+- **Bug found by the first live run and fixed:** `checkRegistered([])` ran the "at least one file" manifest rule on an empty list and crashed on `files[0]`, so EVERY create/comment without attachments returned 500. The pure checks only used non-empty lists. Fixed with an early return for an empty list plus a regression assertion in `447-attachments.check.ts`.
+- Still not exercised live: outbound download URLs inside a `ticket.reply` event (needs a staff reply carrying attachment rows).

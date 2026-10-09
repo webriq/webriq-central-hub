@@ -39,6 +39,8 @@ const CHANNEL_LABELS: Record<string, string> = {
   portal: "Portal",
   manual: "Manual",
   api: "StackShift",
+  // Task 445 — tickets created straight through the StackShift support API (not via the Desk poll's "api").
+  stackshift: "StackShift",
 };
 
 export type TicketDetailData = {

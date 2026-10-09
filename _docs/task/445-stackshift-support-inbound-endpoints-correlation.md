@@ -79,3 +79,30 @@ npx tsx _docs/task/445-support-harness.ts --base http://localhost:3000
 ## Compatibility Touchpoints
 
 Depends on task 444 (migration applied by the operator first). `CLAUDE.md`, `env.example`. Touches the Desk poll only additively.
+
+
+## Implementation Notes
+
+### What Changed
+- Migration 170 (written, not applied): `stackshift_idempotency` (key, route, body_hash, stored response).
+- `src/lib/stackshift-support/`: `schema.ts` (strict zod), `inbound-logic.ts` (pure: priority map, idempotency decision, createdAt clamp, duplicate resolver, notify gate, status patch), `inbound.ts` (shared pipeline + `loadTicketForSite`), `create-ticket.ts`, `comment-status.ts`.
+- Routes under `src/app/api/webhooks/stackshift-support/v1/tickets/` (create, comments, status).
+- `desk-ticket-poll` `processTicket()`: additive reverse correlation via `findDirectTwin()` (exact `desk_ticket_id` beats the Mail heuristic; flags both rows).
+- `database.ts`: the `inbox`/`inbox_messages` column types promised by task 444 had not actually landed (only the channel union, tables and RPC had) — added now, plus `stackshift_idempotency`.
+- Harness `_docs/task/445-support-harness.ts`, checks `_docs/task/445-support-inbound.check.ts`, CLAUDE.md bullet, contract note on `urgent` → `critical`.
+
+### Deviations From Plan
+- Added migration 170 (user-approved) for idempotency storage.
+- Non-empty `attachments` rejected with `invalid_payload` until task 447.
+- Comment/status handlers live in `comment-status.ts` rather than `create-ticket.ts`.
+- The first message's `external_ref` is `<ticketRef>#body`.
+
+### Verification Run
+- `npx tsx _docs/task/445-support-inbound.check.ts` and `444-...auth.check.ts` - PASS
+- `npx tsc --noEmit` - PASS; eslint on the touched dirs - PASS; harness type-checks
+- Harness against a running server - NOT RUN (needs migrations 169 + 170 applied and a throwaway secret in `.env.local`)
+- Browser check of the duplicate badge on /desk/inbox - NOT RUN
+
+### Live harness run (2026-10-09)
+- `npx tsx _docs/task/445-support-harness.ts --base http://localhost:3000` against the dev server and the hosted Supabase project (migrations 169-174 applied): all 20 core cases PASS (create, replay, key conflict, lost-response retry, comment, status, wrong site 403, bad/stale/unknown-key auth 401, strict payload, oversize 413, rate limit 429).
+- The first run FAILED every create with a 500 — see the bug recorded in task 447's notes. Fixed and re-run green.

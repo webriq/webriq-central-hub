@@ -2761,7 +2761,7 @@ export interface Database {
           customer_id: string | null;
           customer_product_id: string | null;
           subject: string;
-          channel: "portal" | "email" | "manual" | "api";
+          channel: "portal" | "email" | "manual" | "api" | "stackshift";
           priority: "low" | "normal" | "high" | "critical";
           status: "open" | "on_hold" | "escalated" | "closed";
           requester_email: string | null;
@@ -2771,6 +2771,10 @@ export interface Database {
           resolved_at: string | null;
           classification_id: string | null;
           external_id: string | null;
+          external_ref: string | null;
+          stackshift_site: string | null;
+          stackshift_actor_ref: string | null;
+          desk_ticket_id: string | null;
           external_contact_id: string | null;
           external_account_id: string | null;
           match_method: "contact" | "account_name" | null;
@@ -2791,7 +2795,7 @@ export interface Database {
           customer_id?: string | null;
           customer_product_id?: string | null;
           subject: string;
-          channel: "portal" | "email" | "manual" | "api";
+          channel: "portal" | "email" | "manual" | "api" | "stackshift";
           priority?: "low" | "normal" | "high" | "critical";
           status?: "open" | "on_hold" | "escalated" | "closed";
           requester_email?: string | null;
@@ -2801,6 +2805,10 @@ export interface Database {
           resolved_at?: string | null;
           classification_id?: string | null;
           external_id?: string | null;
+          external_ref?: string | null;
+          stackshift_site?: string | null;
+          stackshift_actor_ref?: string | null;
+          desk_ticket_id?: string | null;
           external_contact_id?: string | null;
           external_account_id?: string | null;
           match_method?: "contact" | "account_name" | null;
@@ -2821,7 +2829,7 @@ export interface Database {
           customer_id?: string | null;
           customer_product_id?: string | null;
           subject?: string;
-          channel?: "portal" | "email" | "manual" | "api";
+          channel?: "portal" | "email" | "manual" | "api" | "stackshift";
           priority?: "low" | "normal" | "high" | "critical";
           status?: "open" | "on_hold" | "escalated" | "closed";
           requester_email?: string | null;
@@ -2831,6 +2839,10 @@ export interface Database {
           resolved_at?: string | null;
           classification_id?: string | null;
           external_id?: string | null;
+          external_ref?: string | null;
+          stackshift_site?: string | null;
+          stackshift_actor_ref?: string | null;
+          desk_ticket_id?: string | null;
           external_contact_id?: string | null;
           external_account_id?: string | null;
           match_method?: "contact" | "account_name" | null;
@@ -2881,6 +2893,7 @@ export interface Database {
           email_message_id: string | null;
           visibility: "public" | "internal";
           external_id: string | null;
+          external_ref: string | null;
           source_meta: Record<string, unknown>;
           created_at: string;
         };
@@ -2893,6 +2906,7 @@ export interface Database {
           email_message_id?: string | null;
           visibility?: "public" | "internal";
           external_id?: string | null;
+          external_ref?: string | null;
           source_meta?: Record<string, unknown>;
           created_at?: string;
         };
@@ -2905,6 +2919,7 @@ export interface Database {
           email_message_id?: string | null;
           visibility?: "public" | "internal";
           external_id?: string | null;
+          external_ref?: string | null;
           source_meta?: Record<string, unknown>;
         };
         Relationships: [
@@ -4203,6 +4218,198 @@ export interface Database {
         };
         Relationships: [];
       };
+      stackshift_outbox: {
+        Row: {
+          id: string;
+          ticket_id: string;
+          event_type: string;
+          payload: Json;
+          sequence: number;
+          status: "pending" | "sent" | "dead";
+          attempts: number;
+          next_attempt_at: string;
+          last_error: string | null;
+          sent_at: string | null;
+          last_attempt_at: string | null;
+          last_status_code: number | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          ticket_id: string;
+          event_type: string;
+          payload?: Json;
+          sequence?: number;
+          status?: "pending" | "sent" | "dead";
+          attempts?: number;
+          next_attempt_at?: string;
+          last_error?: string | null;
+          sent_at?: string | null;
+          last_attempt_at?: string | null;
+          last_status_code?: number | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          ticket_id?: string;
+          event_type?: string;
+          payload?: Json;
+          sequence?: number;
+          status?: "pending" | "sent" | "dead";
+          attempts?: number;
+          next_attempt_at?: string;
+          last_error?: string | null;
+          sent_at?: string | null;
+          last_attempt_at?: string | null;
+          last_status_code?: number | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "stackshift_outbox_ticket_id_fkey";
+            columns: ["ticket_id"];
+            isOneToOne: false;
+            referencedRelation: "inbox";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      stackshift_support_audit: {
+        Row: {
+          id: string;
+          at: string;
+          route: string;
+          key_id: string | null;
+          site: string | null;
+          ticket_ref: string | null;
+          outcome: string;
+          status_code: number | null;
+          latency_ms: number | null;
+          ip: string | null;
+        };
+        Insert: {
+          id?: string;
+          at?: string;
+          route: string;
+          key_id?: string | null;
+          site?: string | null;
+          ticket_ref?: string | null;
+          outcome: string;
+          status_code?: number | null;
+          latency_ms?: number | null;
+          ip?: string | null;
+        };
+        Update: {
+          id?: string;
+          at?: string;
+          route?: string;
+          key_id?: string | null;
+          site?: string | null;
+          ticket_ref?: string | null;
+          outcome?: string;
+          status_code?: number | null;
+          latency_ms?: number | null;
+          ip?: string | null;
+        };
+        Relationships: [];
+      };
+      stackshift_reconcile_misses: {
+        Row: {
+          desk_ticket_id: string;
+          ticket_number: string | null;
+          subject: string;
+          site: string | null;
+          requester_email: string | null;
+          first_seen_at: string;
+          last_seen_at: string;
+          last_alerted_at: string | null;
+          status: "open" | "imported" | "dismissed";
+          resolved_by: string | null;
+          resolved_at: string | null;
+        };
+        Insert: {
+          desk_ticket_id: string;
+          ticket_number?: string | null;
+          subject: string;
+          site?: string | null;
+          requester_email?: string | null;
+          first_seen_at?: string;
+          last_seen_at?: string;
+          last_alerted_at?: string | null;
+          status?: "open" | "imported" | "dismissed";
+          resolved_by?: string | null;
+          resolved_at?: string | null;
+        };
+        Update: {
+          ticket_number?: string | null;
+          subject?: string;
+          site?: string | null;
+          requester_email?: string | null;
+          last_seen_at?: string;
+          last_alerted_at?: string | null;
+          status?: "open" | "imported" | "dismissed";
+          resolved_by?: string | null;
+          resolved_at?: string | null;
+        };
+        Relationships: [];
+      };
+      stackshift_parity_signoff: {
+        Row: {
+          id: string;
+          site: string;
+          window_from: string;
+          window_to: string;
+          ticket_count: number;
+          report: Json;
+          acknowledgements: Json;
+          attestations: Json;
+          note: string | null;
+          signed_by: string;
+          signed_at: string;
+          revoked_at: string | null;
+          revoked_by: string | null;
+          revoke_reason: string | null;
+        };
+        Insert: {
+          id?: string;
+          site: string;
+          window_from: string;
+          window_to: string;
+          ticket_count: number;
+          report: Json;
+          acknowledgements?: Json;
+          attestations?: Json;
+          note?: string | null;
+          signed_by: string;
+          signed_at?: string;
+          revoked_at?: string | null;
+          revoked_by?: string | null;
+          revoke_reason?: string | null;
+        };
+        Update: {
+          revoked_at?: string | null;
+          revoked_by?: string | null;
+          revoke_reason?: string | null;
+        };
+        Relationships: [];
+      };
+      stackshift_idempotency: {
+        Row: { key: string; route: string; body_hash: string; response: Json; created_at: string };
+        Insert: { key: string; route: string; body_hash: string; response?: Json; created_at?: string };
+        Update: { key?: string; route?: string; body_hash?: string; response?: Json; created_at?: string };
+        Relationships: [];
+      };
+      stackshift_rate_limit: {
+        Row: { site: string; window_start: string; count: number };
+        Insert: { site: string; window_start: string; count?: number };
+        Update: { site?: string; window_start?: string; count?: number };
+        Relationships: [];
+      };
+      support_sla_config: {
+        Row: { priority: "low" | "normal" | "high" | "critical"; hours: number; updated_at: string };
+        Insert: { priority: "low" | "normal" | "high" | "critical"; hours: number; updated_at?: string };
+        Update: { priority?: "low" | "normal" | "high" | "critical"; hours?: number; updated_at?: string };
+        Relationships: [];
+      };
       validation_logs: {
         Row: {
           id: string;
@@ -4654,6 +4861,14 @@ export interface Database {
     };
     Views: Record<string, never>;
     Functions: {
+      stackshift_rate_limit_hit: {
+        Args: { p_site: string; p_window?: string };
+        Returns: number;
+      };
+      stackshift_ticket_message_stats: {
+        Args: { p_ticket_ids: string[] };
+        Returns: { ticket_id: string; message_count: number; last_message_at: string | null }[];
+      };
       drive_folder_level: {
         Args: { p_folder_id: string };
         Returns: number;
