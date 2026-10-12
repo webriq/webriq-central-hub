@@ -4,12 +4,12 @@ import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { AssetFolder } from "./_wizard-v2-types";
 import { FolderNode, countFiles } from "./_folder-upload-tree";
-import { ALLOWED_UPLOAD_TYPES, MAX_FILE_SIZE } from "./_file-upload-constants";
+import { isAllowedUpload, MAX_FILE_SIZE } from "./_file-upload-constants";
 
 const MAX_TREE_FILES = 200;
 
 function isValidUpload(file: File): boolean {
-  return ALLOWED_UPLOAD_TYPES.includes(file.type) && file.size <= MAX_FILE_SIZE;
+  return isAllowedUpload(file) && file.size <= MAX_FILE_SIZE;
 }
 
 // Shared by the loose-files case and `walk`'s per-node case below: split out files that fail the

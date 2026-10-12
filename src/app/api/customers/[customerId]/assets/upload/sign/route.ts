@@ -40,7 +40,7 @@ export async function POST(
     }
     if (!ALLOWED_MIME_TYPES.includes(mimeType)) {
       return NextResponse.json(
-        { error: `Unsupported file type: ${mimeType}. Supported types: images (incl. ICO), PDF, Word docs, Excel spreadsheets, HTML, Markdown, plain text, CSV, XML, JS/TS, ZIP/RAR` },
+        { error: `Unsupported file type: ${mimeType}. Supported types: images (incl. ICO), PDF, Word docs, Excel spreadsheets, HTML, Markdown, plain text, CSV, XML, JS/TS, ZIP/RAR, fonts (TTF/OTF/WOFF/WOFF2/EOT/TTC/OTC)` },
         { status: 400 }
       );
     }

@@ -3,9 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { marked } from "marked";
-import { FileText, FileSpreadsheet, FileCode2, Presentation, Image as ImageIcon, Table, X } from "lucide-react";
+import { FileText, FileSpreadsheet, FileCode2, Presentation, Image as ImageIcon, Table, Type, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { POWERPOINT_MIME_TYPES, POWERPOINT_PREVIEWABLE_MIME_TYPES } from "@/config/powerpoint-types";
+import { FONT_MIME_TYPES } from "@/config/font-types";
 import { cardCls, textPrimary, textMuted } from "./_shared-ui";
 
 const WORD_MIME_TYPES = ["application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"];
@@ -24,6 +25,7 @@ const FILE_TYPE_TILES: { test: (mime: string) => boolean; Icon: typeof FileText;
   { test: (m) => m === "text/html", Icon: FileCode2, bg: "bg-[#FDF0E3]", fg: "text-[#E2762F]", label: "HTML" },
   { test: (m) => m === "text/markdown", Icon: FileCode2, bg: "bg-[#F4F6FB]", fg: "text-[#5F6A88]", label: "MD" },
   { test: (m) => m === "text/csv", Icon: Table, bg: "bg-[#E3F6EA]", fg: "text-[#177E48]", label: "CSV" },
+  { test: (m) => FONT_MIME_TYPES.includes(m), Icon: Type, bg: "bg-[#EAF0FB]", fg: "text-[#3B5BA9]", label: "FONT" },
   { test: (m) => m.startsWith("image/"), Icon: ImageIcon, bg: "bg-[#F0E9FB]", fg: "text-[#6A48E0]", label: "IMG" },
 ];
 

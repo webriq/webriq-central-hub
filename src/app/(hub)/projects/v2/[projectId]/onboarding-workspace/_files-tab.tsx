@@ -11,7 +11,7 @@ import { ActionsMenuItems, ItemAction, clampMenuPosition } from "./_file-actions
 import { RenameModal, MoveModal, DuplicateFolderModal } from "./_rename-move-modals";
 import { BulkToolbar } from "./_bulk-toolbar";
 import { useUploadQueue, UploadQueuePanel, UploadDropzone } from "./_upload-queue";
-import { ALLOWED_UPLOAD_TYPES, ALLOWED_TYPES_LABEL, MAX_FILE_SIZE, MAX_SIZE_LABEL } from "./_file-upload-constants";
+import { isAllowedUpload, ALLOWED_TYPES_LABEL, MAX_FILE_SIZE, MAX_SIZE_LABEL } from "./_file-upload-constants";
 import { useFilesTabDerived, type VersionGroup } from "./_use-files-tab-derived";
 import { FilesToolbar } from "./_files-toolbar";
 import { EmptyPanel, NewFolderTile, describeFolderContents } from "./_files-tab-parts";
@@ -84,7 +84,7 @@ export function FilesTab({
     if (!canEdit) return;
     const valid: File[] = [];
     for (const file of Array.from(files)) {
-      if (!ALLOWED_UPLOAD_TYPES.includes(file.type)) {
+      if (!isAllowedUpload(file)) {
         setRejectedFile({ name: file.name, reason: `${file.type || "This file type"} isn't supported — allowed: ${ALLOWED_TYPES_LABEL}.` });
         continue;
       }
