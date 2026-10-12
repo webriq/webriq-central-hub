@@ -85,7 +85,7 @@ const IS_ARCHIVED = "source_meta->>isArchived.eq.true";
 export default async function DeskInboxPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; pageSize?: string; search?: string; status?: string }>;
+  searchParams: Promise<{ page?: string; pageSize?: string; search?: string; status?: string; retired?: string }>;
 }) {
   const supabase = await createClient();
   const { data: claims } = await supabase.auth.getClaims();
@@ -134,6 +134,9 @@ export default async function DeskInboxPage({
     if (statusClause) ticketsQuery = ticketsQuery.or(statusClause);
     ticketsQuery = ticketsQuery.or(NOT_ARCHIVED_OR);
   }
+  // Task 450 — hide Desk copies the duplicate cleanup retired (source_meta.retiredInto set); `?retired=1` shows
+  // them. A row without the key has a NULL json path, so this is a no-op until the cleanup has run.
+  if (params.retired !== "1") ticketsQuery = ticketsQuery.is("source_meta->retiredInto", null);
   if (searchQ) {
     // Strip characters that would break PostgREST's `.or()` filter-list syntax.
     const esc = searchQ.replace(/[%,()]/g, "");

@@ -22,9 +22,12 @@ const VERIFY_BYTES = 64 * 1024;
 
 export async function createAttachmentUploadUrl(
   supabase: SupabaseClient,
-  storagePath: string
+  storagePath: string,
+  // Task 447 — defaults to project-assets (every pre-existing caller); the StackShift support API
+  // passes "ticket-attachments" so files open from the Inbox attachment viewer.
+  bucket: string = BUCKET
 ): Promise<{ path: string; token: string; signedUrl: string }> {
-  const { data, error } = await supabase.storage.from(BUCKET).createSignedUploadUrl(storagePath);
+  const { data, error } = await supabase.storage.from(bucket).createSignedUploadUrl(storagePath);
   if (error || !data) throw error ?? new Error("No signed upload URL returned");
   return { path: data.path, token: data.token, signedUrl: data.signedUrl };
 }
@@ -35,14 +38,15 @@ export async function createAttachmentUploadUrl(
 export async function verifyUploadedObject(
   supabase: SupabaseClient,
   storagePath: string,
-  filename: string
+  filename: string,
+  bucket: string = BUCKET
 ): Promise<VerifyFileResult> {
   const { data: signed, error: signErr } = await supabase.storage
-    .from(BUCKET)
+    .from(bucket)
     .createSignedUrl(storagePath, 60);
 
   if (signErr || !signed?.signedUrl) {
-    await supabase.storage.from(BUCKET).remove([storagePath]);
+    await supabase.storage.from(bucket).remove([storagePath]);
     return { ok: false, reason: "Uploaded file could not be read back for verification." };
   }
 
@@ -52,13 +56,13 @@ export async function verifyUploadedObject(
     if (!res.ok && res.status !== 206) throw new Error(`read status ${res.status}`);
     head = Buffer.from(await res.arrayBuffer());
   } catch {
-    await supabase.storage.from(BUCKET).remove([storagePath]);
+    await supabase.storage.from(bucket).remove([storagePath]);
     return { ok: false, reason: "Uploaded file could not be read back for verification." };
   }
 
   const result = await verifyFile(head, filename);
   if (!result.ok) {
-    await supabase.storage.from(BUCKET).remove([storagePath]);
+    await supabase.storage.from(bucket).remove([storagePath]);
   }
   return result;
 }

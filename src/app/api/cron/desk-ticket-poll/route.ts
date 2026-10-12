@@ -11,6 +11,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
+import { pickDuplicateOf } from "@/lib/stackshift-support/inbound-logic";
+// Task 450 — Desk step-down. DORMANT unless STACKSHIFT_DESK_RECONCILE_ENABLED=true AND the ticket's site has a
+// non-revoked parity sign-off; otherwise every ticket takes the unchanged ingest path below.
+import { loadReconcileContext, recordMiss, type ReconcileContext } from "@/lib/stackshift-support/reconcile";
+import { isRetired, reconcileDecision } from "@/lib/stackshift-support/stepdown-logic";
+import { normSite } from "@/lib/stackshift-support/parity-logic";
+import { escapeLike } from "@/lib/stackshift-support/like";
+import { authorizeCronOrStaff } from "@/lib/stackshift-support/cron-auth";
 import { getZohoAccessToken } from "@/lib/zoho";
 import { fetchDeskPage } from "@/lib/zoho/desk";
 import { mapPriority, mapTicketStatus } from "@/lib/migrate/zoho-import";
@@ -61,23 +69,26 @@ type DeskTicketSearchRow = {
 };
 
 export async function POST(req: NextRequest) {
-  const cronSecret = process.env.CRONJOB_SECRET_KEY;
-  const incomingSecret = req.headers.get("x-cron-secret");
-  const isCronCall = !!cronSecret && incomingSecret === cronSecret;
-
-  if (!isCronCall) {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  // pg_cron secret, or a signed-in STAFF user — a client-role session must not be able to burn Zoho Desk API
+  // quota by triggering polls (task 450 review; the pre-existing check accepted any session).
+  const auth = await authorizeCronOrStaff(req);
+  if ("denied" in auth) return auth.denied;
+  const isCronCall = auth.isCron;
 
   const token = await getZohoAccessToken();
   if (!token) {
     console.error("[cron/desk-ticket-poll] Zoho OAuth is not configured — rejecting");
     return NextResponse.json({ error: "Zoho OAuth is not configured" }, { status: 500 });
   }
+
+  // Task 450 — explicit, admin-only import of ONE reconcile miss (Desk -> StackShift step-down page). The only way
+  // a miss ever becomes a Hub row; the regular poll never imports it. Cron calls cannot reach this branch.
+  const body = (await req.json().catch(() => ({}))) as { importDeskTicketId?: unknown };
+  if (typeof body.importDeskTicketId === "string") {
+    return importMiss(body.importDeskTicketId, token, isCronCall);
+  }
+
+  const reconcile = await loadReconcileContext();
 
   const { data: cursorRow } = await adminClient
     .from("email_poll_cursor")
@@ -133,7 +144,7 @@ export async function POST(req: NextRequest) {
     const ticket = byId.get(c.id);
     if (!ticket) continue;
     try {
-      await processTicket(ticket, token);
+      await processTicket(ticket, token, reconcile);
       processed++;
     } catch (e) {
       failed++;
@@ -156,13 +167,14 @@ export async function POST(req: NextRequest) {
 
   let createdPass: Awaited<ReturnType<typeof runCreatedPass>> | { error: string };
   try {
-    createdPass = await runCreatedPass(token, startedAt);
+    createdPass = await runCreatedPass(token, startedAt, reconcile);
   } catch (e) {
     console.error("[cron/desk-ticket-poll] created-pass failed", e);
     createdPass = { error: e instanceof Error ? e.message : "created-pass failed" };
   }
 
   const summary = {
+    reconcile: { enabled: reconcile.enabled, signedOffSites: reconcile.signedOffSites.size },
     createdPass,
     found: candidates.length,
     processed,
@@ -237,9 +249,48 @@ async function fetchTicketsSinceCursor(
   return collected;
 }
 
-async function processTicket(ticket: DeskTicketSearchRow, token: string): Promise<void> {
+// `reconcile` defaults to "off" so any caller that does not pass it (and the forced import) keeps the
+// pre-step-down behaviour byte for byte.
+const RECONCILE_OFF: ReconcileContext = { enabled: false, signedOffSites: new Set() };
+
+async function processTicket(
+  ticket: DeskTicketSearchRow,
+  token: string,
+  reconcile: ReconcileContext = RECONCILE_OFF
+): Promise<void> {
   const externalId = ticket.id != null ? String(ticket.id) : "";
   if (!externalId || !ticket.subject) return;
+
+  // Task 450 — reconcile mode (design §7 fallback rule). Decided per ticket from its site: only a signed-off
+  // site is ever reconciled, so revoking a sign-off returns that site to normal ingestion on the next run.
+  if (reconcile.enabled) {
+    const siteRaw = resolveCfField(ticket.cf, CF_TARGETS.stackShiftSite);
+    const site = siteRaw != null ? String(siteRaw) : null;
+    if (!site) {
+      console.warn(`[cron/desk-ticket-poll] ticket ${externalId} has no site custom field; ingesting as usual`);
+    } else if (reconcile.signedOffSites.has(normSite(site))) {
+      const { data: deskRow } = await adminClient.from("inbox").select("id, source_meta").eq("external_id", externalId).maybeSingle();
+      const decision = reconcileDecision({
+        enabled: true,
+        siteSignedOff: true,
+        hasDeskRow: !!deskRow,
+        deskRowRetired: isRetired(deskRow?.source_meta),
+        hasDirectTwin: deskRow ? false : !!(await findDirectTwin(externalId)),
+      });
+      if (decision === "miss") {
+        await recordMiss({
+          deskTicketId: externalId,
+          ticketNumber: ticket.ticketNumber ?? null,
+          subject: ticket.subject,
+          site,
+          requesterEmail: ticket.email ?? null,
+        });
+        return;
+      }
+      if (decision === "skip_retired" || decision === "skip_direct") return;
+      // "refresh": the Hub already holds this Desk row (design D5) — fall through to the normal upsert.
+    }
+  }
 
   const requesterEmail = ticket.email ?? null;
 
@@ -250,13 +301,18 @@ async function processTicket(ticket: DeskTicketSearchRow, token: string): Promis
     const { data: contactMatches } = await adminClient
       .from("contacts")
       .select("customer_id")
-      .ilike("email", requesterEmail)
+      .ilike("email", escapeLike(requesterEmail))
       .not("customer_id", "is", null)
       .limit(1);
     customerId = contactMatches?.[0]?.customer_id ?? null;
   }
 
-  const duplicateOf = await findMailDuplicate(ticket, requesterEmail);
+  // Task 445 — exact correlation first: a StackShift-direct row (inbox.desk_ticket_id = this Desk id)
+  // is the same ticket, so it wins over the task-441 Mail heuristic. Flag only — never merge or skip.
+  const directRow = await findDirectTwin(externalId);
+  const duplicateOf = directRow
+    ? pickDuplicateOf({ id: directRow.id, ticket_number: directRow.ticket_number }, null)
+    : await findMailDuplicate(ticket, requesterEmail);
 
   const { data: upserted, error: upsertError } = await adminClient
     .from("inbox")
@@ -293,11 +349,26 @@ async function processTicket(ticket: DeskTicketSearchRow, token: string): Promis
       },
       { onConflict: "external_id" }
     )
-    .select("id")
+    .select("id, ticket_number")
     .single();
 
   if (upsertError || !upserted) throw new Error(`failed to upsert inbox row: ${upsertError?.message}`);
   const inboxId = upserted.id as string;
+
+  // Task 445 — the other half of the pair: point the direct row back at this Desk copy. Best-effort;
+  // the direct-create endpoint flags the Desk row itself when it arrives second, so either order converges.
+  if (directRow) {
+    const { error: flagError } = await adminClient
+      .from("inbox")
+      .update({
+        source_meta: {
+          ...directRow.source_meta,
+          duplicateOf: { inboxId, ticketNumber: upserted.ticket_number, via: "desk_ticket_id" },
+        },
+      })
+      .eq("id", directRow.id);
+    if (flagError) console.warn("[desk-ticket-poll] could not flag direct twin:", flagError.message);
+  }
 
   // Task 390 — steady-state cron poll never repairs already-existing rows'
   // contentType (repairExistingContentType omitted, defaults to false); that repair is the new
@@ -305,6 +376,23 @@ async function processTicket(ticket: DeskTicketSearchRow, token: string): Promis
   await syncTicketMessages(token, externalId, inboxId);
 }
 
+
+// Task 445 — the StackShift-direct twin of a Desk ticket, matched exactly by the Desk ticket id the
+// StackShift app sends during dual-write (inbox.desk_ticket_id, migration 169). Null before the
+// migration lands (the query errors) or when StackShift never posted this ticket directly.
+async function findDirectTwin(
+  deskTicketId: string
+): Promise<{ id: string; ticket_number: number; source_meta: Record<string, unknown> } | null> {
+  const { data, error } = await adminClient
+    .from("inbox")
+    .select("id, ticket_number, source_meta")
+    .eq("desk_ticket_id", deskTicketId)
+    .eq("channel", "stackshift")
+    .limit(1)
+    .maybeSingle();
+  if (error) return null;
+  return data;
+}
 
 // Task 441 — a Desk ticket for an email that also reached the Hub through the Zoho Mail poll is
 // the same conversation twice (helpdesk@ also feeds Desk). Flag it, never merge: the Desk copy
@@ -337,7 +425,7 @@ async function findMailDuplicate(
 // Tickets never returns `cf`), and ingests the StackShift ones through the same processTicket().
 // UNVERIFIED at authoring time: `sortBy=-createdTime` on List Tickets — the order check below
 // keeps paging if the order proves unreliable, same posture as the search pass.
-async function runCreatedPass(token: string, startedAt: number) {
+async function runCreatedPass(token: string, startedAt: number, reconcile: ReconcileContext) {
   const { data: cursorRow } = await adminClient
     .from("email_poll_cursor")
     .select("last_received_time")
@@ -401,7 +489,7 @@ async function runCreatedPass(token: string, startedAt: number) {
     checked++;
     if (resolveCfField(full.cf, CF_TARGETS.stackShiftSite)) {
       try {
-        await processTicket(full, currentToken);
+        await processTicket(full, currentToken, reconcile);
         ingested++;
       } catch (e) {
         // Skip, don't block the pass on one bad ticket (same stance as the search pass).
@@ -417,4 +505,41 @@ async function runCreatedPass(token: string, startedAt: number) {
       );
   }
   return { listed: listed.length, checked, ingested, cursorBefore, cursorAfter: cursor };
+}
+
+// Task 450 — the deliberate import of a single reconcile miss. Admin session only (never the cron secret). It
+// runs the normal ingest path with reconcile OFF, so the ticket becomes a Desk row exactly as it would have
+// before the step-down, then marks the miss imported.
+async function importMiss(deskTicketId: string, token: string, isCronCall: boolean): Promise<NextResponse> {
+  if (isCronCall) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const { data: profile } = await adminClient.from("profiles").select("role").eq("id", user.id).maybeSingle();
+  if (!["admin", "super_admin"].includes(profile?.role ?? "")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const { data: miss } = await adminClient
+    .from("stackshift_reconcile_misses")
+    .select("desk_ticket_id, status")
+    .eq("desk_ticket_id", deskTicketId)
+    .maybeSingle();
+  if (!miss) return NextResponse.json({ error: "No such miss" }, { status: 404 });
+  if (miss.status !== "open") return NextResponse.json({ error: `Miss is already ${miss.status}` }, { status: 409 });
+
+  const r = await fetchDeskPage(`/tickets/${encodeURIComponent(deskTicketId)}`, token, {}, SEARCH_LABEL);
+  if (!r.res.ok) return NextResponse.json({ error: `Desk returned HTTP ${r.res.status}` }, { status: 502 });
+  try {
+    await processTicket((await r.res.json()) as DeskTicketSearchRow, r.token);
+  } catch (e) {
+    console.error(`[cron/desk-ticket-poll] import of miss ${deskTicketId} failed`, e);
+    return NextResponse.json({ error: "Import failed" }, { status: 500 });
+  }
+  await adminClient
+    .from("stackshift_reconcile_misses")
+    .update({ status: "imported", resolved_by: user.id, resolved_at: new Date().toISOString() })
+    .eq("desk_ticket_id", deskTicketId);
+  return NextResponse.json({ ok: true });
 }

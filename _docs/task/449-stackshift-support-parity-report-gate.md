@@ -70,3 +70,27 @@ npx tsx _docs/task/449-parity.check.ts
 ## Compatibility Touchpoints
 
 Depends on 444–448. Feeds task 450.
+
+
+## Implementation Notes
+
+### Decisions (user, 2026-10-09)
+- Check (d) blocks unless each differing ticket is acknowledged with a written reason at sign-off. Check (f): any 5xx on the site blocks; auth failures block only above 2% of API requests. Alerts go in-app + push to admins (Cliq stays wired but is disabled in code). The three hand-off steps the report cannot verify are required attestations on the sign-off form.
+
+### What Changed
+- `parity-logic.ts` (pure: HTML normalisation, pairing, six checks, thresholds, acknowledgements, verdict, window clamp, alert helpers) + `parity.ts` (paged loader, `buildReport`, `listDirectSites`, `latestSignoff`).
+- Migration 173 (written, not applied; renumbered from 171): `stackshift_parity_signoff` (admin read RLS, no write policies) + the `stackshift-alerts` pg_cron job.
+- `/desk/stackshift-parity` page + client view (check cards with drill-down, accept-with-reason for (d), attestations, typed site confirmation, revoke); `POST /api/desk/stackshift-parity/signoff` (recomputes server-side, refuses unless PASS) and `.../[signoffId]/revoke`.
+- `alerts.ts` + `POST /api/cron/stackshift-alerts`; admin-only Desk nav entry; `DESK_STACKSHIFT_PARITY` route; CLAUDE.md, hand-off and task 450 (migration number `174`, precondition pointer) updated.
+
+### Deviations From Plan
+- Migration is 173, not 171. Task 450's planned migration is renumbered to 174.
+- (b) compares customer-authored messages only (staff replies/status legitimately live on one copy); (c) compares ticket-level attachment totals (Desk files all hang off the opening message).
+- Auth failures are counted API-wide because they are logged before the site is known.
+- The Desk copy's `created_at` is the poll's ingestion time, so window membership for Desk-only tickets is approximate.
+- The sign-off also notifies the other admins, and refuses a clamped (>90 days) or truncated (>2,000 tickets) report.
+
+### Verification Run
+- `npx tsx _docs/task/449-parity.check.ts` (HTML normalisation, message/status comparison, pairing, all six checks, thresholds, acknowledgement rules, verdict, window clamp, alert dedupe) - PASS; 444-448 checks still pass
+- `npx tsc --noEmit`, eslint (stackshift-support, parity page, parity + alerts routes) - PASS
+- Report against real or harness data, sign-off/revoke flow, alerts cron - NOT RUN (needs migrations 169-173 applied, a pilot site with dual-write, and a browser session)

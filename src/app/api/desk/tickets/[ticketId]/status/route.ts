@@ -1,6 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { after, NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
+import { enqueueStatusChanged } from "@/lib/stackshift-support/outbox";
+import { dispatchTicketSoon } from "@/lib/stackshift-support/dispatch";
 
 // Staff-only ticket status update (task 303 detail page). Follows the established pattern
 // (see PATCH /api/customers/[customerId]) — session auth + explicit adminClient role check as
@@ -33,10 +35,14 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     return NextResponse.json({ error: "Invalid status" }, { status: 400 });
   }
 
+  // Task 446 — previous status, for the StackShift `ticket.status_changed` event's from/to.
+  const { data: before } = await adminClient.from("inbox").select("status").eq("id", ticketId).maybeSingle();
+
   const isClosed = status === "closed";
+  const resolvedAt = isClosed ? new Date().toISOString() : null;
   const { data, error } = await adminClient
     .from("inbox")
-    .update({ status, resolved_at: isClosed ? new Date().toISOString() : null })
+    .update({ status, resolved_at: resolvedAt })
     .eq("id", ticketId)
     .select("id")
     .maybeSingle();
@@ -47,6 +53,19 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   }
   if (!data) {
     return NextResponse.json({ error: "Ticket not found" }, { status: 404 });
+  }
+
+  // Task 446 — direct StackShift tickets only (no-op for Mail/Desk tickets). The event carries state, so
+  // if this fails staff can safely re-apply the status and the next event corrects StackShift.
+  if (before && before.status !== status) {
+    try {
+      if (await enqueueStatusChanged(ticketId, { from: before.status, to: status, resolvedAt })) {
+        after(() => dispatchTicketSoon(ticketId));
+      }
+    } catch (err) {
+      console.error("[api/desk/tickets/[ticketId]/status] outbox enqueue failed:", err);
+      return NextResponse.json({ error: "Status saved, but notifying StackShift failed — re-apply the status to retry." }, { status: 500 });
+    }
   }
 
   return NextResponse.json({ ok: true });

@@ -46,7 +46,7 @@ Rotation: provision `next`, switch the StackShift signer to `x-ss-key-id: next`,
 | 401 | `bad_signature` / `stale_timestamp` / `unknown_key` | auth |
 | 403 | `site_forbidden` | ticket belongs to another site |
 | 404 | `ticket_not_found` | unknown `ticketRef` |
-| 409 | `idempotency_conflict` | same key, different body |
+| 409 | `idempotency_conflict` | same key, different body — or a create whose `ticketRef` already exists for a *different* request (different site or subject). A create retried with a new key but the same site + `ticketRef` + subject is **not** a conflict: it returns `200` with `deduped: true` and the existing ticket (covers a lost response) |
 | 413 | `payload_too_large` | > 256 KB body or file over limit |
 | 422 | `unsupported_file_type` | MIME not in the attachment allowlist |
 | 429 | `rate_limited` | per-site limit |
@@ -64,7 +64,7 @@ Rotation: provision `next`, switch the StackShift signer to `x-ss-key-id: next`,
   "actor": { "site": "...", "userRef": "...", "email": "...", "name": "..." },
   "subject": "Website Orders – Populate overcredit_release …",   // 1..500
   "bodyHtml": "<p>…</p>",                        // 1..100000
-  "priority": "low|normal|high|urgent",          // default normal
+  "priority": "low|normal|high|urgent",          // default normal; `urgent` is stored as inbox.priority `critical`
   "createdAt": "2026-10-02T15:58:11Z",           // optional; clamped to now if in the future
   "suppressCustomerNotifications": true,         // default true during overlap
   "attachments": []                              // optional; see §4 (register after upload)
@@ -83,15 +83,16 @@ Replay of the same key/body: `200` same payload + `"deduped": true`. Behaviour: 
 `{ "idempotencyKey": "…", "actor": {…}, "status": "closed|open" }` → `200 { "ok": true, "status": "closed" }`. A customer may only move `open ⇄ closed`.
 
 ## 4. Attachments (browser/server-direct to Storage; never through the handler)
-1. `POST /uploads/sign` — `{ "actor": {…}, "ticketRef": "…", "files": [{ "filename": "a.png", "contentType": "image/png", "size": 123456 }] }` (≤10 files, ≤25 MB each, MIME allowlist = the Hub's task attachment types) → `200 { "uploads": [{ "uploadUrl": "<signed PUT>", "path": "stackshift-support/<ticket>/<ts>_<rand>_a.png", "expiresInSeconds": 900 }] }`. Mirrors `/api/webhooks/stackshift-order/uploads`.
+1. `POST /uploads/sign` — `{ "actor": {…}, "ticketRef": "…", "files": [{ "filename": "a.png", "contentType": "image/png", "size": 123456 }] }` (≤10 files, ≤25 MB each, MIME allowlist = the Hub's task attachment types) → `200 { "uploads": [{ "uploadUrl": "<signed PUT>", "path": "stackshift-support/<site>-<hash>/<ticketRef>-<hash>/<ts>_<rand>_a.png" /* opaque: echo it back exactly as returned */, "expiresInSeconds": 900 }] }`. Mirrors `/api/webhooks/stackshift-order/uploads`.
 2. StackShift `PUT`s bytes to `uploadUrl`.
-3. Register by listing `{ "path", "filename", "contentType", "size" }` in the `attachments` array of create/comment. The Hub verifies each object exists and its leading bytes match the MIME (`verifyUploadedObject`) before inserting the `attachments` row; failure → `400 invalid_payload` with the offending path.
+3. Register by listing `{ "path", "filename", "contentType", "size" }` in the `attachments` array of create/comment. The Hub verifies each object exists and its leading bytes match the MIME (`verifyUploadedObject`) before inserting the `attachments` row; failure → `400 invalid_payload` with the offending path in `details.path`, and **no ticket/comment is created**. Files live in the Hub's `ticket-attachments` bucket (the one the Inbox viewer reads). A path is only registrable by the site and `ticketRef` it was minted for, and only once; sign errors: `422 unsupported_file_type` (disallowed/mismatched type), `413 payload_too_large` (> 25 MB), `400 invalid_payload` (> 10 files). Outbound `downloadUrl`s (15 min) are minted fresh at send/read time and never stored.
 
 ## 5. Reads (StackShift → Hub), for the Support Center UI
 Signed GETs. Identity travels in the query string — `site` (required) and optional `userRef` — which is part of `path_with_sorted_query` and therefore covered by the signature; there is no body.
 
 - `GET /tickets?site=<site>&status=open|closed|all&cursor=<opaque>&limit=1..50` → `{ "tickets": [{ "ticketRef", "hubTicketId", "ticketNumber", "subject", "status", "priority", "dueAt", "createdAt", "updatedAt", "lastMessageAt", "messageCount" }], "nextCursor": "…" | null }`. Scoped to `stackshift_site = site`; an optional `userRef` narrows to one requester.
 - `GET /tickets/{ticketRef}` → ticket fields above + `messages: [{ "messageId", "ref", "authorType": "client|staff", "authorName", "bodyHtml", "createdAt", "attachments": [{ "filename", "size", "contentType", "downloadUrl", "expiresInSeconds" }] }]` + `activity: [{ "at", "type", "summary" }]`.
+- **Details (task 448):** list is newest first, `limit` 1..50 (default 25), `status` = `open | on_hold | escalated | closed | all` (the raw Hub statuses, an additive extension of the `open|closed|all` above — `status` in responses is the raw value too), `cursor` is opaque keyset state (a bad one → `400 invalid_payload`) and `nextCursor` is `null` on the last page. Both reads cover **direct tickets only** (`channel='stackshift'`); Desk-polled copies are not served until cutover. **A ticket that does not exist for this `site` — including one that belongs to another site — is a `404 ticket_not_found`** (reads never confirm that a ref exists elsewhere; the write endpoints keep `403 site_forbidden`). `priority` uses the inbound vocabulary (`low|normal|high|urgent`). `activity[].type` is one of `created | customer_comment | staff_reply | status_changed`; due-date changes appear only once the Hub can edit them. Staff are identified by display name only.
 - **Never returned:** `visibility='internal'` messages/notes, staff emails/ids, `source_meta`, customer view password data, other sites' tickets. `downloadUrl` = Storage signed URL, TTL 15 min.
 
 ## 6. Outbound (Hub → StackShift) events
@@ -113,7 +114,7 @@ POST {STACKSHIFT_EVENTS_URL}
 | `ticket.assigned` | `{ "assigneeName" }` (display name only) |
 | `ticket.due_changed` | `{ "dueAt" }` |
 
-Receiver contract: respond `2xx` within 10 s to acknowledge; any other status/timeout retries. Retry schedule: 1 m, 5 m, 30 m, 2 h, 12 h (≈ 14 h, 5 attempts), then `dead` + Cliq alert; admin can **replay** dead events. Internal notes and non-public messages are never emitted. The Hub also exposes `GET /events?ticketRef=…&afterSequence=…` so StackShift can re-sync a ticket after downtime.
+Receiver contract: respond `2xx` within 10 s to acknowledge; any other status/timeout retries. Retry schedule: the initial send, then retries after 1 m, 5 m, 30 m, 2 h, 12 h (≈ 14.5 h; the 6th failed delivery marks the event `dead`) + Cliq alert; admin can **replay** dead events. A replay keeps its original `sequence` and may arrive after later events, so the receiver applies events by `sequence`. Internal notes and non-public messages are never emitted. `ticket.assigned` / `ticket.due_changed` are defined here but not emitted until the Hub has an assignee / due-date editing surface. The Hub also exposes a signed `GET /events?site=…&afterSequence=…[&ticketRef=…][&limit=1..100]` (response `{ events: [envelope…], nextSequence }`, scoped to `site`, same redacted envelope as the push) so StackShift can re-sync after downtime.
 
 ## 7. Audit & observability
 Every call writes `stackshift_support_audit` (time, route, key id, site, ticketRef, outcome, status code, latency, IP). Cliq alert when auth failures from one key exceed a threshold or an outbox event goes `dead`. The parity report (design §9) reads this table and `stackshift_outbox`.

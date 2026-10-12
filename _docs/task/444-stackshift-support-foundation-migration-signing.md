@@ -74,3 +74,23 @@ npx tsx _docs/task/444-stackshift-support-auth.check.ts
 ## Compatibility Touchpoints
 
 `database.ts`, `env.example`, a new migration (operator applies). CLAUDE.md note added with task 445.
+
+
+## Implementation Notes
+
+### What Changed
+- Migration 169 written (not applied): inbox/inbox_messages columns, `stackshift` channel, `stackshift_outbox`, `stackshift_support_audit`, `stackshift_rate_limit` + atomic `stackshift_rate_limit_hit()` RPC, `support_sla_config` (seeded), RLS via `get_my_role()`.
+- `src/lib/stackshift-support/`: pure `auth-logic.ts` / `rate-limit-logic.ts` / `sla-logic.ts` (testable under plain tsx) plus thin wrappers `auth.ts` (`verifySignedRequest`), `rate-limit.ts` (fail-open), `audit.ts` (never throws), `sla.ts` (default fallback).
+- `database.ts` and `env.example` updated.
+
+### Deviations From Plan
+- SLA/inbox priority key is `critical` (matches `inbox.priority`), not `urgent` as the task text said.
+- `stackshift_outbox.sequence` is a global identity (monotonic, so ordered per ticket) rather than a per-ticket counter; task 446 can order by (ticket_id, sequence).
+- `inbox.external_ref` / `inbox_messages.external_ref` use partial unique indexes (non-null only) instead of a column-level `unique`.
+- Pure logic split into `*-logic.ts` files so checks don't import the service-role client.
+
+### Verification Run
+- `npx tsx _docs/task/444-stackshift-support-auth.check.ts` - PASS
+- `npx tsc --noEmit` - PASS
+- eslint on `src/lib/stackshift-support` - PASS
+- Migration 169 - NOT APPLIED (operator).

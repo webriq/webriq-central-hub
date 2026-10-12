@@ -26,7 +26,7 @@ Sign the **exact bytes** you send. Query params sorted by key, URL-encoded.
 | Screen / action | Today (Desk) — assumption | Hub endpoint |
 |-----------------|---------------------------|--------------|
 | Create ticket | Desk `POST /tickets` (cf site set) | `POST /tickets` |
-| Ticket list for site | `list-all-tickets-v2.ts` (search by site cf) | `GET /tickets?site=` |
+| Ticket list for site | `list-all-tickets-v2.ts` (search by site cf) | `GET /tickets?site=` (**direct tickets only** — during the overlap keep reading Desk for tickets that were not created through the direct path; page with `cursor`/`nextCursor`) |
 | Ticket detail + thread | Desk ticket + threads + comments | `GET /tickets/{ticketRef}` |
 | Add comment | `create-ticket-comment.ts` | `POST /tickets/{ticketRef}/comments` |
 | Upload file | Desk ticket attachment | `POST /uploads/sign` + `attachments[]` |
@@ -39,11 +39,12 @@ Sign the **exact bytes** you send. Query params sorted by key, URL-encoded.
 `HUB_SUPPORT_BASE_URL`, `HUB_SUPPORT_SECRET` (= Hub `STACKSHIFT_SUPPORT_SECRET`), `HUB_SUPPORT_KEY_ID` (`current`), `HUB_EVENTS_SECRET` (= Hub `STACKSHIFT_EVENTS_SECRET`), `HUB_DIRECT_ENABLED_SITES` (comma list or flag service). Never expose any to the browser.
 
 ## 4. Behavioural rules
-- **Idempotency:** generate one key per logical action and persist it with the retry job; retries reuse it. `200 deduped` is success. `409` means a bug (same key, different body) — do not retry, alert.
+- **Idempotency:** generate one key per logical action and persist it with the retry job; retries reuse it. `200 deduped` (also returned when a create is retried with a new key for the same site + `ticketRef` + subject, e.g. after a lost response) is success. `409` means a bug (same key, different body) — do not retry, alert.
 - **Timeouts/retries:** 10 s timeout; retry `429/5xx/network` with exponential backoff (honor `Retry-After`); never retry `4xx` other than 429.
 - **Clock:** server clock within ±5 min (NTP) or requests are rejected `stale_timestamp`.
 - **Identity:** `actor` must be the authenticated user the Support Center already trusts; the Hub does not re-verify end users.
 - **Customer notifications:** keep sending whatever StackShift/Desk sends today; the Hub suppresses its own during the overlap (`suppressCustomerNotifications: true`).
+- **Receiving Hub events (task 446):** acknowledge with `2xx` within 10 s; anything else retries (1 m, 5 m, 30 m, 2 h, 12 h, then the event goes `dead` until a Hub admin replays it). Delivery is at-least-once: **dedupe by `eventId`**. Ordering is per ticket by `sequence`, but a **replayed dead event keeps its original `sequence` and can arrive after later events** — apply events by `sequence` and ignore a `ticket.status_changed` older than what you already hold; replies are additive (insert by `messageId`, order by `createdAt`). After downtime, re-sync with `GET /events?site=…&afterSequence=…` (optionally `&ticketRef=…`, `&limit=1..100`; follow `nextSequence`). Mock receiver for testing your signature check: `_docs/task/446-mock-receiver.ts`.
 - **Duplicates are expected** during the overlap (the Hub holds a Desk-polled copy and a direct copy); the Hub badges them — StackShift does nothing special.
 
 ## 5. Verifying your side without touching production data
@@ -63,7 +64,7 @@ Replay the identical command ⇒ `200` with `"deduped": true`; change `subject` 
 
 ## 6. Parity-gate checklist (run together with the Hub owner)
 - [ ] Dual-write enabled on a pilot site for ≥14 days / ≥50 tickets with **zero** Hub-side creates failing permanently.
-- [ ] Hub parity report: every ticket has a direct row (matched by `deskTicketId`); message counts and bodies/timestamps match the Desk copy; attachment counts match; status/resolved match.
+- [ ] Hub parity report (**Desk → StackShift parity**, `/desk/stackshift-parity`; it also records the sign-off): every ticket has a direct row (matched by `deskTicketId`); message counts and bodies/timestamps match the Desk copy; attachment counts match; status/resolved match.
 - [ ] No `dead` outbox events outstanding; receiver verified in production traffic.
 - [ ] Support Center reads from the Hub match what Desk shows for the pilot site (screenshot comparison of list + 5 random threads).
 - [ ] Rollback rehearsed: flag off ⇒ Support Center returns to Desk reads/writes with no data loss.
