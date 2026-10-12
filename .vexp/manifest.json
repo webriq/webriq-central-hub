@@ -5,7 +5,7 @@
     "DESIGN.md": "268328dba39d99448570bca13ae18f8a0f45865ecf449c61f30c10ca126352a7",
     "PRODUCT.md": "f28ece08ad639a34df712d611bbdb6480b9e44b6e12851edeb450e6c125ae9dd",
     "README.md": "516b4567b54983fef95143c2886d6e208838827596bab651a8bdabdfd1abb325",
-    "TASKS.md": "d89d9ffda5e793dc17e47e8c1f60ba5669ec3ef3f401a344a6b1556949aef0bd",
+    "TASKS.md": "69aaaf2451bd8850f53637e530f6cea8a75e31ea8f70eea6e16dfda9a88a889e",
     "eslint.config.mjs": "9085b0476f705857d5030dcbc58c581cb42097e2820a75832786caf42294d8ff",
     "next.config.ts": "24320d4b945c13636722759ac8e14b82ee6f58ce07bb386abeb195c7d5f304c3",
     "nextjs-file-length-best-practices.md": "9cdf740499813f37564b27bf58263570124e90b8673e9a5edae1ac480e9faffb",
@@ -101,7 +101,7 @@
     "src/app/(hub)/desk/inbox/[inboxId]/_thread-message-actions.tsx": "677e2b208b90dbe8cb0f520c0c11bce50065f3f42f1f9633f58a13cb00ca7aac",
     "src/app/(hub)/desk/inbox/[inboxId]/_thread-to-project-modal.tsx": "9338e4369b5ca43c7d530741f76361567968fe3d55f6fbe11e9edff77b2dc806",
     "src/app/(hub)/desk/inbox/[inboxId]/_ticket-detail.tsx": "4aee04bdcc09cae31bc5d5c88ca27bbfb99a0ec643fae5c78c6a0edbff0b905f",
-    "src/app/(hub)/desk/inbox/[inboxId]/page.tsx": "6df9129e86169c65429dc6a0db92691cda7589378af6d803d11edb31baf37bab",
+    "src/app/(hub)/desk/inbox/[inboxId]/page.tsx": "353d4f383163a7fc135b93e24fa8db40c89238ac837b49c7f122a6567bf49dee",
     "src/app/(hub)/desk/inbox/_filter-multi-select.tsx": "6179e9675c1a54b333181c1676cca95b19171a797e441fe3b367610d1f724462",
     "src/app/(hub)/desk/inbox/_inbox-index.tsx": "8cd77947d3e63bdeeed2c93ee8eb0bde514d6763f188e2ea01c8eeac03dc6ddd",
     "src/app/(hub)/desk/inbox/_inbox-table.tsx": "665e30ff80f2236cb7695e131b59ddc3ec3c2f2da08eb20d7f2c00cad51c5bfb",
@@ -661,8 +661,8 @@
     "supabase/rollbacks/167_user_drive_select_returning_fix_down.sql": "3c86aac6dbef9dfd4b7ce7b8ae6ec9f1499c0c8e66f6212391cd5ee6b74a1673",
     "worker/index.ts": "83350712449db3ec76c4015cedb2bad5dfd0d0ccd91509ee9a6f09ee4f66f9cc"
   },
-  "indexed_at_commit": "017fd59d612c6d895e42720361704b8eda5cad0b",
-  "indexed_at_timestamp": "2026-10-08T08:19:36.162318+00:00",
+  "indexed_at_commit": "b55eac4bccfde57cbd665d787b860749b7ddeec7",
+  "indexed_at_timestamp": "2026-10-12T03:43:34.143918+00:00",
   "languages": {
     "markdown": {
       "calls": 0,
