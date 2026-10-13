@@ -99,7 +99,7 @@ const assetTypeCls = (type: AssetRow["type"], isDark: boolean) =>
 // (src/lib/uploads/customer-asset-storage.ts).
 const ASSET_TYPE_HELP: Record<AssetRow["type"], string> = {
   link: "e.g. staging URL, admin dashboard, documentation page.",
-  file: "Accepted: images, PDF, Word docs, Excel spreadsheets, HTML, Markdown, plain text, fonts — up to 200MB.",
+  file: "Accepted: images, PDF, Word docs, Excel spreadsheets, HTML, Markdown, plain text, fonts, design files (EPS/PSD/AI/FIG) — up to 200MB.",
   credential: "e.g. payment API keys, DNS registrar access, CMS admin login. Store references only (e.g. LastPass item name, vault path) — not actual passwords or API keys.",
 };
 

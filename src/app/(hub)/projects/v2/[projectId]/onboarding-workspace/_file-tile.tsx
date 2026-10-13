@@ -7,6 +7,7 @@ import { AssetRow, StaffPerson } from "./_wizard-v2-types";
 import { textPrimary, textMuted, formatFileSize } from "./_shared-ui";
 import { InlinePermissionsPanel, permissionSummary } from "./_permission-picker";
 import { FileTypeTile, HtmlPreview, MarkdownPreview, CsvPreview, FilePreviewModal } from "./_file-previews";
+import { isBrowserImage } from "@/config/design-file-types";
 import { ActionsMenu, ItemAction, selectionDownloadAction } from "./_file-actions-menu";
 
 // Lazy-loaded real preview — image gets an actual <img>; html/markdown/csv get a real rendered
@@ -19,7 +20,7 @@ function FileThumbnail({ asset, customerId, simple }: { asset: AssetRow; custome
   const mime = asset.file_mime_type ?? "";
   const [url, setUrl] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
-  const isImage = mime.startsWith("image/");
+  const isImage = isBrowserImage(mime);
   const needsUrl = isImage || (!simple && (mime === "text/html" || mime === "text/markdown" || mime === "text/csv"));
 
   useEffect(() => {

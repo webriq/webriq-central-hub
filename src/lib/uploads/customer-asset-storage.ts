@@ -1,6 +1,7 @@
 import { adminClient } from "@/lib/supabase/admin";
 import { POWERPOINT_MIME_TYPES } from "@/config/powerpoint-types";
 import { FONT_MIME_TYPES } from "@/config/font-types";
+import { DESIGN_MIME_TYPES } from "@/config/design-file-types";
 
 // Task 350 — server helpers for the browser-direct customer-asset upload path.
 //
@@ -58,6 +59,7 @@ export const ALLOWED_MIME_TYPES = [
   "text/xml",
   ...POWERPOINT_MIME_TYPES,
   ...FONT_MIME_TYPES, // task 451 — canonical + legacy font MIMEs
+  ...DESIGN_MIME_TYPES, // task 451 addendum — eps/psd/ai/fig
 ];
 
 export const MAX_FILE_SIZE = 200 * 1024 * 1024; // 200MB — matches the customer-assets bucket's file_size_limit

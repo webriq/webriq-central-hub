@@ -28,6 +28,7 @@ import { stepKeyToWizardParams } from "./_wizard-step-params";
 // pattern this codebase already uses for recharts.
 const CodeMirror = dynamic(() => import("@uiw/react-codemirror"), { ssr: false });
 import { getPhaseByNumber, internalDeliverablesForSubPhase } from "@/config/customer-phases";
+import { isBrowserImage } from "@/config/design-file-types";
 import type { InternalDeliverableConfig } from "@/config/customer-phases";
 import type { OnboardingInternalDeliverableRow, Database } from "@/types/database";
 import type { ProgrammeDeliverableRow } from "@/lib/programme/view-model";
@@ -5008,7 +5009,7 @@ function FilePreview({ file, url, previewSize }: { file: AssetRow; url: string; 
   const mime = file.file_mime_type ?? "";
   const fileName = file.file_name ?? "file";
 
-  if (mime.startsWith("image/")) {
+  if (isBrowserImage(mime)) {
     return (
       <div className="w-full h-full flex items-center justify-center overflow-auto p-4">
         {/* eslint-disable-next-line @next/next/no-img-element -- signed, short-lived, per-request Supabase Storage URL; not a static/optimizable src next/image can allowlist */}
@@ -5111,7 +5112,7 @@ function FileTypeTile({ mime }: { mime: string }) {
 function FileThumbnail({ asset, customerId }: { asset: AssetRow; customerId: string }) {
   const mime = asset.file_mime_type ?? "";
   const isLazyPreviewable =
-    mime.startsWith("image/") ||
+    isBrowserImage(mime) ||
     mime === "text/csv" ||
     mime === "text/markdown" ||
     mime === "text/html" ||
@@ -5172,7 +5173,7 @@ function FileThumbnail({ asset, customerId }: { asset: AssetRow; customerId: str
     <div ref={containerRef} className="w-full h-full pointer-events-none overflow-hidden">
       {!url ? (
         <FileTypeTile mime={mime} />
-      ) : mime.startsWith("image/") ? (
+      ) : isBrowserImage(mime) ? (
         // eslint-disable-next-line @next/next/no-img-element -- signed, short-lived, per-request Supabase Storage URL; not a static/optimizable src next/image can allowlist
         <img src={url} alt={asset.file_name ?? "file"} className="w-full h-full object-cover object-top" />
       ) : mime === "text/csv" ? (

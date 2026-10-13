@@ -32,19 +32,3 @@ export const FONT_MIME_LABELS: Record<string, string> = {
   "application/x-font-otf": "OTF", "application/x-font-opentype": "OTF", "application/font-sfnt": "TTF",
   "application/font-woff": "WOFF", "application/x-font-woff": "WOFF", "application/font-woff2": "WOFF2",
 };
-
-// Canonical font MIME for a file name, or null if it isn't a font extension.
-export function fontMimeForName(name: string): string | null {
-  const dot = name.lastIndexOf(".");
-  if (dot < 0) return null;
-  const ext = name.slice(dot + 1).toLowerCase();
-  return Object.prototype.hasOwnProperty.call(FONT_EXTENSION_MIME, ext)
-    ? FONT_EXTENSION_MIME[ext as keyof typeof FONT_EXTENSION_MIME]
-    : null;
-}
-
-// The MIME to validate and upload under: the canonical font MIME when the extension says font
-// (whatever file.type claims, including empty), otherwise file.type unchanged.
-export function resolveUploadMime(file: { name: string; type: string }): string {
-  return fontMimeForName(file.name) ?? file.type;
-}

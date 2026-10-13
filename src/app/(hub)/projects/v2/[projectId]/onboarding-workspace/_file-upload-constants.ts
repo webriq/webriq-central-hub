@@ -1,5 +1,7 @@
 import { POWERPOINT_MIME_TYPES, POWERPOINT_MIME_LABELS } from "@/config/powerpoint-types";
-import { FONT_MIME_TYPES, FONT_MIME_LABELS, resolveUploadMime } from "@/config/font-types";
+import { FONT_MIME_TYPES, FONT_MIME_LABELS } from "@/config/font-types";
+import { DESIGN_MIME_TYPES, DESIGN_MIME_LABELS } from "@/config/design-file-types";
+import { resolveUploadMime } from "@/config/upload-mime";
 
 // Task 359 — extracted from _files-tab.tsx (537 lines, over the hard limit in
 // nextjs-file-length-best-practices.md). Data, not logic.
@@ -29,6 +31,7 @@ export const ALLOWED_UPLOAD_TYPES = [
   "application/xml", "text/xml",
   ...POWERPOINT_MIME_TYPES,
   ...FONT_MIME_TYPES, // task 451
+  ...DESIGN_MIME_TYPES, // task 451 addendum — eps/psd/ai/fig
 ];
 
 // Not exported — only used below to build ALLOWED_TYPES_LABEL; no other file imports it.
@@ -46,10 +49,11 @@ const MIME_LABELS: Record<string, string> = {
   "application/xml": "XML", "text/xml": "XML",
   ...POWERPOINT_MIME_LABELS,
   ...FONT_MIME_LABELS,
+  ...DESIGN_MIME_LABELS,
 };
 
 export const ALLOWED_TYPES_LABEL = Array.from(new Set(ALLOWED_UPLOAD_TYPES.map((m) => MIME_LABELS[m] ?? m))).join(", ");
-// Task 451 — validate on the resolved MIME so a font with an empty/odd browser-reported type still
+// Task 451 — validate on the resolved MIME so a font/design file with an empty/odd browser-reported type still
 // passes; non-fonts resolve to file.type unchanged, so their gate is as strict as before.
 export const isAllowedUpload = (file: { name: string; type: string }) => ALLOWED_UPLOAD_TYPES.includes(resolveUploadMime(file));
 export const MAX_FILE_SIZE = 200 * 1024 * 1024; // matches the customer-assets bucket's file_size_limit (upload/route.ts)

@@ -194,3 +194,43 @@ PASS
 
 ### Required Fixes
 - None.
+
+## Addendum (2026-10-13) — design source files: EPS, Photoshop, Illustrator, Figma
+
+**Requested by the user after the quality gate; explicit scope extension.** Same Files-tab surfaces and the same extension-resolved approach as fonts.
+
+| Extension | Format | Canonical MIME |
+|-----------|--------|----------------|
+| `.eps` | Encapsulated PostScript | `application/postscript` |
+| `.psd` | Photoshop | `image/vnd.adobe.photoshop` |
+| `.ai` | Adobe Illustrator | `application/illustrator` |
+| `.fig` | Figma | `application/x-figma` |
+
+Why extension-based: `.fig` has no registered MIME (arrives empty/octet-stream), `.ai` is frequently reported as `application/postscript`, `.psd` varies with whether Photoshop is installed. Legacy variants are also allowlisted server-side (`application/eps`, `image/x-eps`, `application/x-photoshop`, `image/psd`, `application/vnd.adobe.illustrator`, …).
+
+**Photoshop gotcha handled:** `image/vnd.adobe.photoshop` starts with `image/`, so the existing `mime.startsWith("image/")` checks would feed a `.psd` to an `<img>` (broken thumbnail/preview). New `isBrowserImage(mime)` excludes the Photoshop/EPS image MIMEs; used in `_file-tile.tsx`, `_file-previews.tsx` (modal body) and the legacy `_onboarding-wizard.tsx` (three spots). Tiles: PSD / AI / EPS / FIG.
+
+Code: `src/config/design-file-types.ts` (new), `src/config/upload-mime.ts` (new — single `resolveUploadMime` over fonts + design; removed from `font-types.ts`), constants/allowlists/tiles wired like fonts, migration `176_customer_assets_design_mime_types.sql` (separate from 175 so it works whether or not 175 is applied; **written, not applied**), `_docs/task/451-font-types.check.ts` extended (resolver for the four types, `isBrowserImage`). Not added: Sketch, XD, INDD, Affinity, CorelDRAW (say if wanted).
+
+Verification: `npx tsx _docs/task/451-font-types.check.ts` PASS · `npx tsc --noEmit` PASS · eslint on changed dirs 0 errors. Browser acceptance still pending (needs migrations 175 and 176 applied). Note: `.eps` is PostScript (executable-capable format); stored and downloaded only, never rendered or run by the Hub, and content scanning remains the deferred task 373.
+
+**The earlier Quality Gate result predates this addendum — re-run `simplify 451` before `test 451`.**
+
+## Quality Gate Notes (re-run after the design-files addendum)
+
+### Result
+PASS
+
+### Standards Review
+- One fix applied during the gate: `fontMimeForName` and `designMimeForName` were two copies of the same extension lookup. Collapsed into a single `extensionMimeForName()` in `src/config/upload-mime.ts` over the merged font + design extension maps (own-property lookup retained); the two config files now hold data only. Check file updated; re-run PASS.
+- Each type list still has one source (`font-types.ts`, `design-file-types.ts`); the client list, server list, tiles and labels derive from them. Migrations 175/176 repeat the lists by necessity and carry keep-in-sync comments.
+- `isBrowserImage()` replaces the bare `startsWith("image/")` in the three Files-tab/wizard sites that would otherwise render a `.psd` as a broken `<img>`; real images and SVG still render (asserted in the check). Other `startsWith("image/")` uses reviewed and left alone: they are paste/drop handlers for pasted screenshots, not asset previews.
+- Non-extension types keep the strict `file.type` gate (empty-MIME `.ts`/`.ico` still rejected). Unused icon imports: none (`tsc` + eslint 0 errors; the 3 warnings are pre-existing).
+- No dead code, no `any`, no debug logging.
+
+### Deviations
+- Medium (visible to the user): design-file support was added after the approved plan at the user's explicit request; recorded in the Addendum, same files/approach as fonts, no schema change. Migration 176 is written, not applied.
+- Minor: `.eps` is PostScript; stored/downloaded only, never rendered or executed by the Hub. Server still validates the claimed MIME only (not extension match), same trust level as every existing type. Scanning remains deferred task 373.
+
+### Required Fixes
+- None.

@@ -3,7 +3,7 @@
 import { useCallback, useRef, useState } from "react";
 import { CloudUpload, AlertCircle, Check, RotateCw, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { resolveUploadMime } from "@/config/font-types";
+import { resolveUploadMime } from "@/config/upload-mime";
 import { textPrimary, textMuted, formatFileSize } from "./_shared-ui";
 
 export type QueueItem = { id: string; file: File; folderId: string; status: "uploading" | "done" | "error"; progress: number; error?: string };
@@ -61,7 +61,7 @@ export async function uploadViaSignedUrl(
   projectId?: string | null,
   onProgress?: (pct: number) => void
 ): Promise<{ path: string; filename: string; size: number; mimeType: string }> {
-  const mimeType = resolveUploadMime(file) || "application/octet-stream"; // task 451: fonts resolve by extension
+  const mimeType = resolveUploadMime(file) || "application/octet-stream"; // task 451: fonts/design files resolve by extension
 
   const signRes = await fetch(signUrl, {
     method: "POST",

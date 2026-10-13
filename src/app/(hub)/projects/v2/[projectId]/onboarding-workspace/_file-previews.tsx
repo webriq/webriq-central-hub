@@ -3,10 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { marked } from "marked";
-import { FileText, FileSpreadsheet, FileCode2, Presentation, Image as ImageIcon, Table, Type, X } from "lucide-react";
+import { FileText, FileSpreadsheet, FileCode2, Presentation, Image as ImageIcon, Table, Type, Layers, PenTool, Frame, Shapes, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { POWERPOINT_MIME_TYPES, POWERPOINT_PREVIEWABLE_MIME_TYPES } from "@/config/powerpoint-types";
 import { FONT_MIME_TYPES } from "@/config/font-types";
+import { DESIGN_MIME_LABELS, isBrowserImage } from "@/config/design-file-types";
 import { cardCls, textPrimary, textMuted } from "./_shared-ui";
 
 const WORD_MIME_TYPES = ["application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"];
@@ -26,6 +27,10 @@ const FILE_TYPE_TILES: { test: (mime: string) => boolean; Icon: typeof FileText;
   { test: (m) => m === "text/markdown", Icon: FileCode2, bg: "bg-[#F4F6FB]", fg: "text-[#5F6A88]", label: "MD" },
   { test: (m) => m === "text/csv", Icon: Table, bg: "bg-[#E3F6EA]", fg: "text-[#177E48]", label: "CSV" },
   { test: (m) => FONT_MIME_TYPES.includes(m), Icon: Type, bg: "bg-[#EAF0FB]", fg: "text-[#3B5BA9]", label: "FONT" },
+  { test: (m) => DESIGN_MIME_LABELS[m] === "PSD", Icon: Layers, bg: "bg-[#E6F0FB]", fg: "text-[#1B5FA8]", label: "PSD" },
+  { test: (m) => DESIGN_MIME_LABELS[m] === "AI", Icon: PenTool, bg: "bg-[#FDEEE3]", fg: "text-[#C25A00]", label: "AI" },
+  { test: (m) => DESIGN_MIME_LABELS[m] === "EPS", Icon: Shapes, bg: "bg-[#FDF0E3]", fg: "text-[#B5651D]", label: "EPS" },
+  { test: (m) => DESIGN_MIME_LABELS[m] === "FIG", Icon: Frame, bg: "bg-[#F0E9FB]", fg: "text-[#6A48E0]", label: "FIG" },
   { test: (m) => m.startsWith("image/"), Icon: ImageIcon, bg: "bg-[#F0E9FB]", fg: "text-[#6A48E0]", label: "IMG" },
 ];
 
@@ -191,7 +196,7 @@ function officePreviewUrl(url: string): string {
 }
 
 function PreviewBody({ mime, fileName, url }: { mime: string; fileName: string; url: string }) {
-  if (mime.startsWith("image/")) {
+  if (isBrowserImage(mime)) {
     return (
       <div className="w-full h-full flex items-center justify-center overflow-auto p-4">
         {/* eslint-disable-next-line @next/next/no-img-element -- signed, short-lived Supabase Storage URL, same precedent as FileThumbnail in _file-tile.tsx */}
