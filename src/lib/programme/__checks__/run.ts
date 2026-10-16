@@ -9,10 +9,11 @@ import { checks as viewModel } from "./view-model.check";
 import { checks as addDeliverable } from "./add-deliverable.check";
 import { checks as checklistTasks } from "./checklist-tasks.check";
 import { checks as checklistBackfill } from "./checklist-backfill.check";
+import { checks as noteRules } from "./note-rules.check";
 
 // `pnpm check:logic` — pure-logic checks for the Timeline/programme math (task 425). Exits non-zero on any failure.
 const suites: [string, Check[]][] = [
-  ["calendar", calendar], ["layout", layout], ["health", health], ["generic-timeline", genericTimeline], ["backfill", backfill], ["programme", programme], ["view-model", viewModel], ["add-deliverable", addDeliverable], ["checklist-tasks", checklistTasks], ["checklist-backfill", checklistBackfill],
+  ["calendar", calendar], ["layout", layout], ["health", health], ["generic-timeline", genericTimeline], ["backfill", backfill], ["programme", programme], ["view-model", viewModel], ["add-deliverable", addDeliverable], ["checklist-tasks", checklistTasks], ["checklist-backfill", checklistBackfill], ["note-rules", noteRules],
 ];
 
 let failed = 0;

@@ -88,7 +88,7 @@ const chunk = <T,>(items: T[]): T[][] => Array.from({ length: Math.ceil(items.le
 export type PhaseSummary = Pick<
   ProjectPhaseRow,
   "id" | "project_id" | "phase_number" | "name" | "status" | "position" | "day_start" | "day_end" | "actual_start_date" | "actual_completed_date" | "owner_label"
-> & { delay_note: string | null };
+> & { delay_note: string | null; delay_note_updated_at: string | null; delay_note_updated_by: string | null };
 export type DeliverableSummary = Pick<ProjectDeliverableRow, "project_id" | "phase_id" | "deliverable_key" | "status" | "day_end">;
 export type ProgrammeSummary = { phases: PhaseSummary[]; deliverables: DeliverableSummary[] };
 
@@ -103,22 +103,29 @@ export async function loadProgrammeSummaries(client: ProgrammeClient, projectIds
   const phases = (
     await Promise.all(
       chunks.map((ids) =>
-        fetchAllPages<Omit<PhaseSummary, "delay_note">>((from, to) =>
+        fetchAllPages<Omit<PhaseSummary, "delay_note" | "delay_note_updated_at" | "delay_note_updated_by">>((from, to) =>
           client.from("project_phases").select(phaseCols).eq("source", "programme").in("project_id", ids).order("id").range(from, to)
         )
       )
     )
   ).flat();
-  const states = (
-    await Promise.all(
-      chunk(phases.map((p) => p.id)).map((ids) =>
-        fetchAllPages<Pick<PhaseProgrammeStateRow, "phase_id" | "delay_note">>((from, to) =>
-          client.from("phase_programme_state").select("phase_id, delay_note").in("phase_id", ids).order("phase_id").range(from, to)
+  type StateNote = Pick<PhaseProgrammeStateRow, "phase_id" | "delay_note"> & Partial<Pick<PhaseProgrammeStateRow, "delay_note_updated_at" | "delay_note_updated_by">>;
+  const loadStates = async (cols: string) =>
+    (
+      await Promise.all(
+        chunk(phases.map((p) => p.id)).map((ids) =>
+          fetchAllPages<StateNote>((from, to) =>
+            client.from("phase_programme_state").select(cols).in("phase_id", ids).order("phase_id").range(from, to) as unknown as PromiseLike<{ data: StateNote[] | null; error: { message: string } | null }>
+          )
         )
       )
-    )
-  ).flat();
-  const delayByPhase = new Map(states.map((s) => [s.phase_id, s.delay_note]));
+    ).flat();
+  // Task 455: the audit columns arrive with migration 177 — fall back to the bare note until it's applied.
+  const states = await loadStates("phase_id, delay_note, delay_note_updated_at, delay_note_updated_by").catch((err: Error) => {
+    if (/delay_note_updated/.test(err.message)) return loadStates("phase_id, delay_note");
+    throw err;
+  });
+  const stateByPhase = new Map(states.map((s) => [s.phase_id, s]));
   const deliverables = (
     await Promise.all(
       chunks.map((ids) =>
@@ -128,7 +135,15 @@ export async function loadProgrammeSummaries(client: ProgrammeClient, projectIds
       )
     )
   ).flat();
-  for (const p of phases) result.get(p.project_id)?.phases.push({ ...p, delay_note: delayByPhase.get(p.id) ?? null });
+  for (const p of phases) {
+    const state = stateByPhase.get(p.id);
+    result.get(p.project_id)?.phases.push({
+      ...p,
+      delay_note: state?.delay_note ?? null,
+      delay_note_updated_at: state?.delay_note_updated_at ?? null,
+      delay_note_updated_by: state?.delay_note_updated_by ?? null,
+    });
+  }
   for (const entry of result.values()) entry.phases = inProgrammeOrder(entry.phases);
   for (const d of deliverables) result.get(d.project_id)?.deliverables.push(d);
   return result;

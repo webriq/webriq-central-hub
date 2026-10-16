@@ -19,11 +19,16 @@ export type ProjectStatusReportItem = {
   health: HealthTone; // worst health across all phases
   phases: PhaseDerived[]; // all 5, in order
   isFullyCompleted: boolean; // Phase 5 (Optimize) status === "completed"
+  projectNote: DelayNoteValue | null; // task 455 — project-level "why delayed" note
 };
+
+// Task 455 — a saved delay note plus who set it and when (phase notes carry the same three on PhaseDerived).
+export type DelayNoteValue = { note: string; updatedAt: string | null; updatedBy: string | null };
 
 export type StatusReportResponse = {
   projects: ProjectStatusReportItem[];
   canEditNotes: boolean;
+  canEditKickoff: boolean;
 };
 
 export const HEALTH_LABEL: Record<Exclude<HealthTone, null>, string> = {

@@ -3,7 +3,8 @@
 import { useEffect, useState, useTransition } from "react";
 import { ClipboardList } from "lucide-react";
 import StatusReportTable from "@/app/(hub)/projects/v2/status-report/_status-report-table";
-import type { ProjectStatusReportItem, StatusReportResponse } from "@/app/(hub)/projects/v2/status-report/_status-report-types";
+import type { DelayNoteValue, ProjectStatusReportItem, StatusReportResponse } from "@/app/(hub)/projects/v2/status-report/_status-report-types";
+import { withPhaseNote } from "@/app/(hub)/projects/v2/status-report/_status-report-note-cell";
 
 // Task 276 — Status Report tab, shared by both the legacy and v2 project-detail routes. Reuses
 // the existing `_status-report-table.tsx` (imported directly, not duplicated — it's a clean,
@@ -41,18 +42,12 @@ export function StatusReportTab({ projectId, currentUserRole }: { projectId: str
     return () => ctrl.abort();
   }, [projectId, retryKey]);
 
-  function handleNoteSaved(pid: string, phaseNumber: number, note: string | null) {
-    setProjects((prev) =>
-      prev.map((p) => {
-        if (p.id !== pid) return p;
-        const phases = p.phases.map((ph) => (ph.phaseNumber === phaseNumber ? { ...ph, delayNote: note } : ph));
-        return {
-          ...p,
-          phases,
-          currentPhase: p.currentPhase.phaseNumber === phaseNumber ? { ...p.currentPhase, delayNote: note } : p.currentPhase,
-        };
-      })
-    );
+  function handleNoteSaved(pid: string, phaseNumber: number, value: DelayNoteValue | null) {
+    setProjects((prev) => prev.map((p) => (p.id === pid ? withPhaseNote(p, phaseNumber, value) : p)));
+  }
+
+  function handleProjectNoteSaved(projectId: string, value: DelayNoteValue | null) {
+    setProjects((prev) => prev.map((p) => (p.id === projectId ? { ...p, projectNote: value } : p)));
   }
 
   return (
@@ -84,6 +79,7 @@ export function StatusReportTab({ projectId, currentUserRole }: { projectId: str
           loading={loading}
           canEditNotes={canEditNotes}
           onNoteSaved={handleNoteSaved}
+          onProjectNoteSaved={handleProjectNoteSaved}
           hasAnyProjects={projects.length > 0}
           roleForEmptyState={currentUserRole}
         />

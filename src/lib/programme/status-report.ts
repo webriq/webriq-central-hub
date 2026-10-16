@@ -51,7 +51,7 @@ export function programmeDaysLeft(currentProgrammeDay: number, totalProgrammeDay
 export type StatusPhaseRow = Pick<
   PhaseSummary,
   "phase_number" | "name" | "status" | "position" | "day_start" | "day_end" | "actual_start_date" | "actual_completed_date" | "owner_label" | "delay_note"
->;
+> & Partial<Pick<PhaseSummary, "delay_note_updated_at" | "delay_note_updated_by">>;
 
 export type PhaseAssigneeMember = { id: string; fullName: string; roleLabel: string; avatarUrl: string | null };
 
@@ -71,6 +71,8 @@ export type PhaseDerived = {
   daysRemaining: number | null; // only set when status === "in_progress"
   health: HealthTone;
   delayNote: string | null;
+  delayNoteUpdatedAt: string | null; // task 455 — when the note was last set (null before migration 177)
+  delayNoteUpdatedBy: string | null; // display name of whoever set it
 };
 
 // Local-midnight date diffing (matches getCurrentProgrammeDay's own approach in
@@ -145,6 +147,7 @@ export type ProjectPhaseInputs = {
   phaseRows: StatusPhaseRow[]; // 0-N rows, one per started/touched phase
   deliverableRatioByPhase: Record<number, number | null>; // phase_number -> done/total, null if no deliverables tracked yet
   assigneesByPhase: Record<number, PhaseAssigneeMember[]>;
+  noteAuthorNames?: Map<string, string>; // user id -> display name, for delayNoteUpdatedBy
 };
 
 export type ProjectPhaseBreakdown = {
@@ -199,6 +202,8 @@ export function buildPhaseBreakdown(inputs: ProjectPhaseInputs): ProjectPhaseBre
       daysRemaining,
       health,
       delayNote: row?.delay_note ?? null,
+      delayNoteUpdatedAt: row?.delay_note ? row.delay_note_updated_at ?? null : null,
+      delayNoteUpdatedBy: row?.delay_note && row.delay_note_updated_by ? inputs.noteAuthorNames?.get(row.delay_note_updated_by) ?? null : null,
     };
   });
 

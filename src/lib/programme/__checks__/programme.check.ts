@@ -70,7 +70,7 @@ export const checks: Check[] = [
     assert.deepEqual(out, { phases: [], deliverables: [] });
   }],
   ["store.assembleProgramme: orders phases, orders deliverables by position, attaches state, ignores orphans without a phase", () => {
-    const state: PhaseProgrammeStateRow = { phase_id: "a", wizard_data: { s: 1 }, is_manual_override: false, override_note: null, delay_note: null, created_at: "", updated_at: "" };
+    const state: PhaseProgrammeStateRow = { phase_id: "a", wizard_data: { s: 1 }, is_manual_override: false, override_note: null, delay_note: null, delay_note_updated_at: null, delay_note_updated_by: null, created_at: "", updated_at: "" };
     const out = assembleProgramme(
       [ph("b", 2, "active"), ph("a", 1, "bypassed")],
       [dl("d2", "a", 1), dl("d1", "a", 0), dl("x", "b", 0), dl("orphan", null, 0)],

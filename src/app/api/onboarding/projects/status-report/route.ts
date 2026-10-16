@@ -10,6 +10,8 @@ import {
 } from "@/lib/programme/status-report";
 import { loadProgrammeSummaries } from "@/lib/programme/store";
 import { isRoleGatedByMembership } from "@/lib/programme/phase-membership";
+import { canEditKickoff, canWriteDelayNotes } from "@/lib/programme/note-rules";
+import { loadProjectDelayNotes, resolveUserNames } from "@/lib/programme/delay-notes";
 
 // Task 221 — Portfolio Tracker status report. Same read-role set and marketing/pm
 // membership-gating as /api/onboarding/projects (that route's GET), extended to pull *all 5*
@@ -17,7 +19,6 @@ import { isRoleGatedByMembership } from "@/lib/programme/phase-membership";
 // at-risk health heuristic) and every phase's real assignees (phase_members, all members not just
 // the owner), not just Phase 1's.
 const STAFF_ROLES = ["admin", "super_admin", "marketing", "pm", "developer", "hr"];
-const WRITE_ROLES = ["admin", "super_admin", "marketing"];
 
 const ROLE_LABEL: Record<string, string> = {
   admin: "Admin", pm: "PM", developer: "Developer", hr: "HR",
@@ -81,18 +82,25 @@ export async function GET(request: Request) {
 
     const projectIds = projects.map((p) => p.id);
     if (projectIds.length === 0) {
-      return NextResponse.json({ projects: [], canEditNotes: WRITE_ROLES.includes(profile.role) });
+      return NextResponse.json({ projects: [], canEditNotes: canWriteDelayNotes(profile.role), canEditKickoff: canEditKickoff(profile.role) });
     }
 
-    const [summaries, membersRes] = await Promise.all([
+    const [summaries, membersRes, projectNotes] = await Promise.all([
       loadProgrammeSummaries(supabase, projectIds).catch((err: Error) => err),
       supabase.from("phase_members").select("id, project_id, phase_number, user_id, is_owner").in("project_id", projectIds),
+      loadProjectDelayNotes(supabase, projectIds).catch((err: Error) => err),
     ]);
 
-    if (summaries instanceof Error || membersRes.error) {
-      console.error("GET /api/onboarding/projects/status-report error:", summaries instanceof Error ? summaries : membersRes.error);
+    if (summaries instanceof Error || membersRes.error || projectNotes instanceof Error) {
+      console.error("GET /api/onboarding/projects/status-report error:", summaries instanceof Error ? summaries : projectNotes instanceof Error ? projectNotes : membersRes.error);
       return NextResponse.json({ error: "Failed to fetch status report" }, { status: 500 });
     }
+
+    // Task 455 — names for "who set this note" (phase + project notes).
+    const noteAuthorNames = await resolveUserNames([
+      ...[...summaries.values()].flatMap((s) => s.phases.map((ph) => ph.delay_note_updated_by)),
+      ...[...projectNotes.values()].map((n) => n.updatedById),
+    ]);
 
     // adminClient: profiles_read_own RLS (migration 048) only lets a caller read their own row
     // (or all rows if admin/super_admin) — same workaround as /api/onboarding/projects for
@@ -154,7 +162,9 @@ export async function GET(request: Request) {
           phaseRows: projectPhaseRows,
           deliverableRatioByPhase,
           assigneesByPhase,
+          noteAuthorNames,
         });
+        const projectNote = projectNotes.get(p.id);
 
         return {
           id: p.id,
@@ -172,10 +182,13 @@ export async function GET(request: Request) {
           // Last phase by sort_order (buildPhaseBreakdown already returns `phases` in that order)
           // — was hardcoded phases[4] (phase 5) before task 246.
           isFullyCompleted: phases[phases.length - 1]?.status === "completed",
+          projectNote: projectNote
+            ? { note: projectNote.note, updatedAt: projectNote.updatedAt, updatedBy: projectNote.updatedById ? noteAuthorNames.get(projectNote.updatedById) ?? null : null }
+            : null,
         };
       });
 
-    return NextResponse.json({ projects: items, canEditNotes: WRITE_ROLES.includes(profile.role) });
+    return NextResponse.json({ projects: items, canEditNotes: canWriteDelayNotes(profile.role), canEditKickoff: canEditKickoff(profile.role) });
   } catch (err) {
     console.error("GET /api/onboarding/projects/status-report unexpected error:", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

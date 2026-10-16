@@ -1114,6 +1114,9 @@ export interface Database {
           tags: string[] | null;
           owner_name: string | null;
           programme_started_at: string | null;
+          delay_note: string | null;
+          delay_note_updated_at: string | null;
+          delay_note_updated_by: string | null;
           onboarding_visible_at: string | null;
           scheduled_onboarding_start_at: string | null;
           scheduled_start_phase: number | null;
@@ -1153,6 +1156,9 @@ export interface Database {
           tags?: string[] | null;
           owner_name?: string | null;
           programme_started_at?: string | null;
+          delay_note?: string | null;
+          delay_note_updated_at?: string | null;
+          delay_note_updated_by?: string | null;
           onboarding_visible_at?: string | null;
           scheduled_onboarding_start_at?: string | null;
           scheduled_start_phase?: number | null;
@@ -1192,6 +1198,9 @@ export interface Database {
           tags?: string[] | null;
           owner_name?: string | null;
           programme_started_at?: string | null;
+          delay_note?: string | null;
+          delay_note_updated_at?: string | null;
+          delay_note_updated_by?: string | null;
           onboarding_visible_at?: string | null;
           scheduled_onboarding_start_at?: string | null;
           scheduled_start_phase?: number | null;
@@ -2471,6 +2480,8 @@ export interface Database {
           is_manual_override: boolean;
           override_note: string | null;
           delay_note: string | null;
+          delay_note_updated_at: string | null;
+          delay_note_updated_by: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -2480,6 +2491,8 @@ export interface Database {
           is_manual_override?: boolean;
           override_note?: string | null;
           delay_note?: string | null;
+          delay_note_updated_at?: string | null;
+          delay_note_updated_by?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -2489,6 +2502,8 @@ export interface Database {
           is_manual_override?: boolean;
           override_note?: string | null;
           delay_note?: string | null;
+          delay_note_updated_at?: string | null;
+          delay_note_updated_by?: string | null;
           updated_at?: string;
         };
         Relationships: [

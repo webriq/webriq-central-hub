@@ -96,12 +96,14 @@ export default async function CustomersPage({
   const visibleProjectCount = new Map<string, number>();
   const programmeStartedAtByCustomer = new Map<string, string>();
   const programmeDurationDaysByCustomer = new Map<string, number>();
+  const programmeProjectIdByCustomer = new Map<string, string>();
+  const activePhaseByCustomer = new Map<string, number>();
   const productsByCustomer = new Map<string, CustomerListItem["customer_products"]>();
   const contactCountByCustomer = new Map<string, number>();
 
   if (pageCustomerIds.length > 0) {
     const [projectsRes, productsRes, contactsRes] = await Promise.all([
-      supabase.from("projects").select("customer_id, onboarding_visible_at, programme_started_at, programme_duration_days").in("customer_id", pageCustomerIds),
+      supabase.from("projects").select("id, customer_id, onboarding_visible_at, programme_started_at, programme_duration_days").in("customer_id", pageCustomerIds),
       supabase.from("customer_products").select("id,customer_id,product_name,completed_percentage").in("customer_id", pageCustomerIds),
       supabase.from("contacts").select("customer_id").in("customer_id", pageCustomerIds).not("customer_id", "is", null),
     ]);
@@ -118,7 +120,24 @@ export default async function CustomersPage({
         if (!existing || p.programme_started_at > existing) {
           programmeStartedAtByCustomer.set(p.customer_id, p.programme_started_at);
           programmeDurationDaysByCustomer.set(p.customer_id, p.programme_duration_days);
+          programmeProjectIdByCustomer.set(p.customer_id, p.id);
         }
+      }
+    }
+    // Task 455: the badge's "Phase N" comes from the programme's active phase row, not the calendar
+    // window — phase tagging no longer backdates the kickoff, so Day N and the active phase can differ.
+    const programmeProjectIds = [...programmeProjectIdByCustomer.values()];
+    if (programmeProjectIds.length > 0) {
+      const { data: activePhases } = await supabase
+        .from("project_phases")
+        .select("project_id, phase_number")
+        .eq("source", "programme")
+        .eq("status", "active")
+        .in("project_id", programmeProjectIds);
+      const customerByProject = new Map([...programmeProjectIdByCustomer].map(([customerId, projectId]) => [projectId, customerId]));
+      for (const row of activePhases ?? []) {
+        const customerId = customerByProject.get(row.project_id);
+        if (customerId && row.phase_number !== null) activePhaseByCustomer.set(customerId, row.phase_number);
       }
     }
     for (const p of productsRes.data ?? []) {
@@ -143,6 +162,7 @@ export default async function CustomersPage({
     desk_contact_count: contactCountByCustomer.get(c.customer_id) ?? 0,
     programme_started_at: programmeStartedAtByCustomer.get(c.customer_id) ?? null,
     programme_duration_days: programmeDurationDaysByCustomer.get(c.customer_id) ?? 120,
+    programme_active_phase_number: activePhaseByCustomer.get(c.customer_id) ?? null,
   }));
 
   const paginationMeta: PaginationMeta = {

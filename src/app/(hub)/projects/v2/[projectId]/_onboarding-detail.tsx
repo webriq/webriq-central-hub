@@ -22,6 +22,7 @@ import { isRoleGatedByMembership, canManagePhase1Membership } from "@/lib/progra
 import OnboardingWizard from "./_onboarding-wizard";
 import { DELIVERABLE_WORKSPACE_TARGET, buildWorkspaceQueryString } from "./onboarding-workspace/_workspace-url-params";
 import { StatusSummaryDrawer } from "./_status-summary-drawer";
+import { ProgrammeNotesBar } from "./_programme-notes-bar";
 import GenericPhaseView from "./_generic-phase-view";
 import Swimlane from "./_swimlane";
 import JumpToPhaseMenu from "./_jump-to-phase-menu";
@@ -890,6 +891,15 @@ export default function OnboardingDetail({
             )}
           </div>
         </div>
+
+        <ProgrammeNotesBar
+          projectId={project.id}
+          programmeStartedAt={programmeStartedAt}
+          durationDays={programmeDurationDays}
+          activePhaseNumber={phases.find((p) => p.status === "active")?.phase_number ?? null}
+          role={role}
+          onKickoffSaved={fetchProgramme}
+        />
 
         <TimelineToolbar
           filters={filters}

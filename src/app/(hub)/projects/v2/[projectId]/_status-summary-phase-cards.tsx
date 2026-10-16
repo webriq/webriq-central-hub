@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { Chip, PhaseChip } from "@/app/(hub)/dashboard/_components/dashboard-shared";
-import type { HealthTone, PhaseStatus, ProjectStatusReportItem } from "@/app/(hub)/projects/v2/status-report/_status-report-types";
+import type { DelayNoteValue, HealthTone, PhaseStatus, ProjectStatusReportItem } from "@/app/(hub)/projects/v2/status-report/_status-report-types";
 import { HEALTH_LABEL, STATUS_LABEL, formatUsedAlloted } from "@/app/(hub)/projects/v2/status-report/_status-report-types";
 import { AssigneeCell } from "@/app/(hub)/projects/v2/status-report/_status-report-assignee-cell";
 import { NoteCell } from "@/app/(hub)/projects/v2/status-report/_status-report-note-cell";
@@ -62,7 +62,7 @@ export function StatusSummaryPhaseCards({
 }: {
   project: ProjectStatusReportItem;
   canEditNotes: boolean;
-  onNoteSaved: (projectId: string, phaseNumber: number, note: string | null) => void;
+  onNoteSaved: (projectId: string, phaseNumber: number, value: DelayNoteValue | null) => void;
 }) {
   return (
     <div className="flex flex-col gap-3">

@@ -5,7 +5,8 @@ import { createPortal } from "react-dom";
 import { X, ClipboardList } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Chip, PhaseChip } from "@/app/(hub)/dashboard/_components/dashboard-shared";
-import type { HealthTone, ProjectStatusReportItem } from "@/app/(hub)/projects/v2/status-report/_status-report-types";
+import type { DelayNoteValue, HealthTone, ProjectStatusReportItem } from "@/app/(hub)/projects/v2/status-report/_status-report-types";
+import { ProjectNoteCell, withPhaseNote } from "@/app/(hub)/projects/v2/status-report/_status-report-note-cell";
 import { HEALTH_LABEL } from "@/app/(hub)/projects/v2/status-report/_status-report-types";
 import { StatusSummaryPhaseCards } from "./_status-summary-phase-cards";
 
@@ -72,12 +73,12 @@ export function StatusSummaryDrawer({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [open, onClose]);
 
-  function handleNoteSaved(_projectId: string, phaseNumber: number, note: string | null) {
-    setProject((prev) =>
-      prev
-        ? { ...prev, phases: prev.phases.map((ph) => (ph.phaseNumber === phaseNumber ? { ...ph, delayNote: note } : ph)) }
-        : prev
-    );
+  function handleNoteSaved(_projectId: string, phaseNumber: number, value: DelayNoteValue | null) {
+    setProject((prev) => (prev ? withPhaseNote(prev, phaseNumber, value) : prev));
+  }
+
+  function handleProjectNoteSaved(_projectId: string, value: DelayNoteValue | null) {
+    setProject((prev) => (prev ? { ...prev, projectNote: value } : prev));
   }
 
   // Task 282 (item I) — was `if (typeof document === "undefined") return null`, which renders
@@ -150,6 +151,17 @@ export function StatusSummaryDrawer({
                   <span className="text-[11px] text-[#5F6A88]">Day {project.currentProgrammeDay} / 120</span>
                   <span className="text-[11px] text-[#5F6A88]">{project.programmeDaysLeft} days left</span>
                 </div>
+              </div>
+
+              <div className="rounded-[12px] border border-[#EDF0F7] bg-white p-4 mb-4">
+                <div className="text-[9.5px] font-bold uppercase tracking-[0.09em] text-[#5F6A88] mb-1.5">Project note</div>
+                <ProjectNoteCell
+                  projectId={project.id}
+                  value={project.projectNote}
+                  isOverdue={project.phases.some((ph) => ph.status === "overdue")}
+                  canEdit={canEditNotes}
+                  onSaved={handleProjectNoteSaved}
+                />
               </div>
 
               <StatusSummaryPhaseCards project={project} canEditNotes={canEditNotes} onNoteSaved={handleNoteSaved} />

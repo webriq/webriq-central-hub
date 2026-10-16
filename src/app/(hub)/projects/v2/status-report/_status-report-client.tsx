@@ -5,7 +5,8 @@ import Link from "next/link";
 import { ClipboardList, Search, X, ArrowLeft } from "lucide-react";
 import { V2_ROUTES } from "@/config/constants";
 import { PROGRAMME_PHASES, CLASSIFICATIONS } from "@/config/customer-phases";
-import type { ProjectStatusReportItem, StatusReportResponse } from "./_status-report-types";
+import type { DelayNoteValue, ProjectStatusReportItem, StatusReportResponse } from "./_status-report-types";
+import { withPhaseNote } from "./_status-report-note-cell";
 import { HEALTH_LABEL } from "./_status-report-types";
 import StatusReportTable from "./_status-report-table";
 import { FilterMultiSelect } from "@/app/(hub)/projects/_v2-listing/_filter-multi-select";
@@ -72,18 +73,12 @@ export default function StatusReportClient({ role }: { role: string | null }) {
     return () => { ignore = true; };
   }, [retryKey]);
 
-  function handleNoteSaved(projectId: string, phaseNumber: number, note: string | null) {
-    setProjects((prev) =>
-      prev.map((p) => {
-        if (p.id !== projectId) return p;
-        const phases = p.phases.map((ph) => (ph.phaseNumber === phaseNumber ? { ...ph, delayNote: note } : ph));
-        return {
-          ...p,
-          phases,
-          currentPhase: p.currentPhase.phaseNumber === phaseNumber ? { ...p.currentPhase, delayNote: note } : p.currentPhase,
-        };
-      })
-    );
+  function handleNoteSaved(projectId: string, phaseNumber: number, value: DelayNoteValue | null) {
+    setProjects((prev) => prev.map((p) => (p.id === projectId ? withPhaseNote(p, phaseNumber, value) : p)));
+  }
+
+  function handleProjectNoteSaved(projectId: string, value: DelayNoteValue | null) {
+    setProjects((prev) => prev.map((p) => (p.id === projectId ? { ...p, projectNote: value } : p)));
   }
 
   const filtered = useMemo(() => {
@@ -243,6 +238,7 @@ export default function StatusReportClient({ role }: { role: string | null }) {
           loading={loading}
           canEditNotes={canEditNotes}
           onNoteSaved={handleNoteSaved}
+          onProjectNoteSaved={handleProjectNoteSaved}
           hasAnyProjects={projects.length > 0}
           roleForEmptyState={role}
         />

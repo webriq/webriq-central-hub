@@ -31,6 +31,8 @@ export type CustomerListItem = {
   // above (its most-recently-started visible project); defaults to 120 when there's no started
   // project to pull it from.
   programme_duration_days: number;
+  // Task 455 — that same project's active programme phase (null = none active); preferred over the calendar window.
+  programme_active_phase_number: number | null;
 };
 
 export type PaginationMeta = { page: number; pageSize: number; total: number };
@@ -74,13 +76,13 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-function ProgrammeBadge({ programmeStartedAt, durationDays }: { programmeStartedAt: string; durationDays: number }) {
+function ProgrammeBadge({ programmeStartedAt, durationDays, activePhaseNumber }: { programmeStartedAt: string; durationDays: number; activePhaseNumber: number | null }) {
   const day = currentDisplayDay(programmeStartedAt, durationDays);
-  const phase = phaseAtDisplayDay(day, durationDays);
+  const phaseNumber = activePhaseNumber ?? phaseAtDisplayDay(day, durationDays).number;
   return (
     <div className="inline-flex items-center gap-1 text-[10.5px] font-mono text-[#5F6A88] mt-0.5">
       <CalendarClock size={10} />
-      Day {day}/{durationDays} · Phase {phase.number}
+      Day {day}/{durationDays} · Phase {phaseNumber}
     </div>
   );
 }
@@ -332,7 +334,7 @@ export default function CustomersIndex({
                   <div className="text-[13px] font-medium text-[#0B1533] truncate group-hover:text-[#007BFF]">{c.company_name}</div>
                   <div className="text-[11px] font-mono text-[#5F6A88] truncate">{c.customer_id}</div>
                   {c.programme_started_at && (
-                    <ProgrammeBadge programmeStartedAt={c.programme_started_at} durationDays={c.programme_duration_days} />
+                    <ProgrammeBadge programmeStartedAt={c.programme_started_at} durationDays={c.programme_duration_days} activePhaseNumber={c.programme_active_phase_number} />
                   )}
                 </button>
                 <div className="min-w-0">

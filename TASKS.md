@@ -286,6 +286,12 @@
 | 029 | Zoho API V3 Migration (/restapi → /api/v3) | HIGH | chore | _docs/task/029-zoho-api-v3-migration.md | 2026-05-28 |
 | 030 | Classification Review: Code Quality + Audit Trail | NORMAL | patch | _docs/task/030-classification-review-code-quality.md | 2026-05-29 |
 
+## Approved
+
+| ID | Title | Priority | Type | Doc | Date |
+|----|-------|----------|------|-----|------|
+| 455 | StackShift I programmes — re-baseline `programme_started_at` to the PM tracker's kickoff dates (dry-run → plan/apply/rollback SQL, operator-applied), stop already-started phase tagging from backdating the kickoff, and PM-editable delay notes per phase (open existing `delay_note` to pm via note-only route + audit) and per project (migration 177, written not applied) on Status Report, Status Summary drawer and programme view | HIGH | enhancement (data correction + feature) | _docs/task/455-programme-kickoff-rebaseline-and-delay-notes.md | 2026-10-16 |
+
 ## Completed
 
 - [451] Projects > Files — allow font uploads (`.ttf .otf .woff .woff2 .eot .ttc .otc`) and design files (`.eps .psd .ai .fig`): extension-resolved canonical MIME (`src/config/{font-types,design-file-types,upload-mime}.ts`), client + `/upload/sign` allowlists, FONT/PSD/AI/EPS/FIG tiles, `isBrowserImage()` so `.psd` never renders as a broken `<img>`; migrations 175 + 176 on `customer-assets` **written, not applied**; browser acceptance pending. Folder upload already existed (task 372); zip stored as one file, no extraction → `_docs/task/451-project-files-allow-font-uploads.md` (completed: 2026-10-13)

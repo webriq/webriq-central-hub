@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { adminClient } from "@/lib/supabase/admin";
 import { sendCliqNotification } from "@/lib/zoho";
 import {
   resolveEffectivePhaseNumber,
@@ -11,7 +10,7 @@ import {
 import { createProgrammeCalendar } from "@/lib/programme/calendar";
 import { cancelProjectAutostart } from "@/lib/qstash";
 import { seedProgrammeAtPhase } from "@/lib/programme/seed";
-import { loadProgramme, rematerialiseProgrammeDates } from "@/lib/programme/store";
+import { loadProgramme } from "@/lib/programme/store";
 import { toWire } from "@/lib/programme/view-model";
 import { inProgrammeOrder, isPermanentlySkipped } from "@/lib/programme/programme-status";
 
@@ -21,8 +20,9 @@ const WRITE_ROLES = ["admin", "super_admin", "marketing"];
 // phases instead of always Day 1. Works whether or not the programme has been started yet:
 //   - Not started: this call also starts it, back-dating programme_started_at so "today" lands
 //     on the target phase's first day.
-//   - Already started: programme_started_at is also backdated the same way, so the calendar-day
-//     -driven "Day N" marker moves into the newly-active phase's range instead of staying frozen.
+//   - Already started: only the phase rows are re-statused. Task 455: programme_started_at is the
+//     PM-confirmed kickoff and is no longer backdated here (it used to be, which silently rewrote
+//     kickoffs on every phase move). Views take the current phase from the `active` row.
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ projectId: string }> }
@@ -164,19 +164,7 @@ export async function PATCH(
       return NextResponse.json({ phases: toWire(seeded).phases });
     }
 
-    // Already started — backdate programme_started_at so "today" lands inside the target phase's
-    // day range (mirrors the not-started branch's own calculation), then re-status the phase rows.
-    const backdated = new Date();
-    backdated.setDate(backdated.getDate() - backdateOffsetDays);
-    const { error: dateUpdateError } = await adminClient
-      .from("projects")
-      .update({ programme_started_at: backdated.toISOString() })
-      .eq("id", projectId);
-    if (dateUpdateError) {
-      console.error("PATCH /api/projects/[projectId]/programme/phase already-started date backdate error:", dateUpdateError);
-      return NextResponse.json({ error: "Failed to update programme start date" }, { status: 500 });
-    }
-
+    // Already started — keep the kickoff (task 455) and only re-status the phase rows.
     // Re-status by programme order (`position`), not phase_number — a project can have custom phases inserted anywhere. Reads the
     // project's actual seeded phases (defaults + customs) so a custom phase participates in this cascade too.
     const { data: phaseRows, error: existingPhasesError } = await supabase
@@ -227,9 +215,6 @@ export async function PATCH(
       console.error("PATCH /api/projects/[projectId]/programme/phase state error:", stateError);
       return NextResponse.json({ error: "Failed to update programme phase" }, { status: 500 });
     }
-
-    // programme_started_at moved (backdated above) → every programme row's derived dates must follow (decision D-B).
-    await rematerialiseProgrammeDates(supabase, projectId, backdated.toISOString());
 
     await sendCliqNotification(
       `${companyName}: manually jumped to Phase ${phaseNumber} (${targetPhase.name}).${note ? ` Note: ${note}` : ""}`,

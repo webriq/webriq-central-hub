@@ -12,7 +12,7 @@ const dl = (id: string, phase_id: string, position: number, over: Partial<Projec
   deliverable_key: id, description: "desc", owner_label: "Dev", start_date: null, due_date: null, status: "pending", completed_at: null, source: "programme", ...over,
 });
 const state = (phase_id: string, over: Partial<PhaseProgrammeStateRow> = {}): PhaseProgrammeStateRow => ({
-  phase_id, wizard_data: { kickoff: { a: 1 } }, is_manual_override: true, override_note: "n", delay_note: "late", created_at: "", updated_at: "", ...over,
+  phase_id, wizard_data: { kickoff: { a: 1 } }, is_manual_override: true, override_note: "n", delay_note: "late", delay_note_updated_at: null, delay_note_updated_by: null, created_at: "", updated_at: "", ...over,
 });
 
 export const checks: Check[] = [

@@ -2,11 +2,11 @@
 
 import { Fragment, useState } from "react";
 import Link from "next/link";
-import { ChevronDown, ChevronRight, ClipboardList, Building2 } from "lucide-react";
+import { ChevronDown, ChevronRight, ClipboardList, Building2, StickyNote } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { V2_ROUTES } from "@/config/constants";
 import { Chip, PhaseChip } from "@/app/(hub)/dashboard/_components/dashboard-shared";
-import type { HealthTone, PhaseStatus, ProjectStatusReportItem } from "./_status-report-types";
+import type { DelayNoteValue, HealthTone, PhaseStatus, ProjectStatusReportItem } from "./_status-report-types";
 import { HEALTH_LABEL, STATUS_LABEL, formatUsedAlloted } from "./_status-report-types";
 import { AssigneeCell } from "./_status-report-assignee-cell";
 import StatusReportRowDetail from "./_status-report-row-detail";
@@ -46,16 +46,31 @@ function PhaseMiniStrip({ project }: { project: ProjectStatusReportItem }) {
   );
 }
 
+// Task 455 — first line of the project note (else the current phase's note) in the collapsed row, full text on hover.
+function CollapsedNoteHint({ project }: { project: ProjectStatusReportItem }) {
+  const text = project.projectNote?.note ?? project.currentPhase.delayNote;
+  if (!text) return null;
+  const label = project.projectNote ? "Project note" : `${project.currentPhase.name} note`;
+  return (
+    <div title={`${label}: ${text}`} className="flex items-center gap-1 text-[11px] text-[#3A4565] mt-1 max-w-70">
+      <StickyNote size={11} className="text-[#B7791F] shrink-0" aria-hidden="true" />
+      <span className="sr-only">{label}:</span>
+      <span className="truncate">{text}</span>
+    </div>
+  );
+}
+
 type Props = {
   projects: ProjectStatusReportItem[];
   loading: boolean;
   canEditNotes: boolean;
-  onNoteSaved: (projectId: string, phaseNumber: number, note: string | null) => void;
+  onNoteSaved: (projectId: string, phaseNumber: number, value: DelayNoteValue | null) => void;
+  onProjectNoteSaved: (projectId: string, value: DelayNoteValue | null) => void;
   hasAnyProjects: boolean;
   roleForEmptyState: string | null;
 };
 
-export default function StatusReportTable({ projects, loading, canEditNotes, onNoteSaved, hasAnyProjects, roleForEmptyState }: Props) {
+export default function StatusReportTable({ projects, loading, canEditNotes, onNoteSaved, onProjectNoteSaved, hasAnyProjects, roleForEmptyState }: Props) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   function toggle(id: string) {
@@ -147,6 +162,7 @@ export default function StatusReportTable({ projects, loading, canEditNotes, onN
                     <div className="flex items-center gap-1 text-[11px] text-[#5F6A88] mt-0.5">
                       <Building2 size={11} /> {project.companyName}
                     </div>
+                    <CollapsedNoteHint project={project} />
                   </td>
                   <td className="px-3 py-3"><PhaseMiniStrip project={project} /></td>
                   <td className="px-3 py-3">
@@ -175,7 +191,7 @@ export default function StatusReportTable({ projects, loading, canEditNotes, onN
                 {isOpen && (
                   <tr key={`${project.id}-detail`} className="border-b border-[#EDF0F7] last:border-b-0">
                     <td colSpan={8} className="bg-[#FAFBFE] px-[18px] py-4">
-                      <StatusReportRowDetail project={project} canEditNotes={canEditNotes} onNoteSaved={onNoteSaved} />
+                      <StatusReportRowDetail project={project} canEditNotes={canEditNotes} onNoteSaved={onNoteSaved} onProjectNoteSaved={onProjectNoteSaved} />
                     </td>
                   </tr>
                 )}

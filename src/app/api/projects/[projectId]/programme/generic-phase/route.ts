@@ -6,8 +6,8 @@ const WRITE_ROLES = ["admin", "super_admin", "marketing", "pm"];
 
 // Task 252 — generic-engine (Access/Access Plus/Discrete Development/StackShift II without the
 // customer_phases opt-in) counterpart to StackShift I's PATCH .../programme/phase: "Jump to
-// phase" for a project whose plan lives in milestones/tasklists instead of customer_phases. Mirrors
-// that route's backdate math (mirrors seedAndStartProgramme's own "land today on the target's
+// phase" for a project whose plan lives in milestones/tasklists instead of customer_phases. On a
+// not-yet-started programme it mirrors that route's backdate math (mirrors seedAndStartProgramme's own "land today on the target's
 // day_start" convention), but simpler — no skip-phase concept exists for milestones (task 252
 // scope decision), so there's no compression step, just `backdated = now - (dayStart - 1)`.
 // Every earlier-by-position milestone is marked "completed" (there's no "skipped" status value in
@@ -62,7 +62,8 @@ export async function PATCH(
 
     // A milestone with no day range (legacy row seeded before task 252, or a manually-added one
     // with the range left blank) can still be jumped to — it just doesn't move `programme_started_at`.
-    if (target.day_start != null) {
+    // Task 455: an already-started programme keeps its kickoff — only a first start is backdated.
+    if (target.day_start != null && !project.programme_started_at) {
       const backdated = new Date();
       backdated.setDate(backdated.getDate() - (target.day_start - 1));
       const { error: dateError } = await adminClient
