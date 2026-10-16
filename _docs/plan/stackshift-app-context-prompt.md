@@ -2,7 +2,7 @@
 
 **Purpose:** paste everything below the line into a Claude Code session opened in the StackShift repo (`webriq-pagebuilder/app`). It is self-contained: that repo has no access to the Hub's docs.
 **Source of truth:** `stackshift-hub-support-api-contract.md` (v1). If the contract changes, regenerate this prompt.
-**Hub status when written (2026-10-12):** contract and design are drafted (task 442). The Hub endpoints (tasks 444–448) are **not built yet**. Run Phase 1 now. Run Phase 2 only once the Hub owner provides a preview URL and a throwaway secret.
+**Hub status (updated 2026-10-13, task 452):** all Hub endpoints (tasks 444–448: create/comment/status, uploads/sign, signed reads, `/events` re-sync, outbound event push) are built. The fuller, security-hardened instructions are in `stackshift-app-hub-integration-instructions.md` — prefer it. Run Phase 1 now. Run Phase 2 only once the Hub owner provides a preview URL and throwaway secrets.
 
 ---
 
@@ -130,12 +130,14 @@ export function signHubRequest(secret: string, keyId: string, method: string, pa
 - `HUB_SUPPORT_BASE_URL`
 - `HUB_SUPPORT_SECRET`: equals the Hub's `STACKSHIFT_SUPPORT_SECRET`.
 - `HUB_SUPPORT_KEY_ID`: `current`.
-- `HUB_EVENTS_SECRET`: equals the Hub's `STACKSHIFT_EVENTS_SECRET`.
+- `HUB_EVENTS_SECRET`: equals the Hub's `STACKSHIFT_EVENTS_SECRET` (a different value from `HUB_SUPPORT_SECRET`).
+- `HUB_EVENTS_SECRET_NEXT`: optional, equals the Hub's `STACKSHIFT_EVENTS_SECRET_NEXT`; only during an events-secret rotation. The receiver accepts `x-ss-key-id: current` (verified with `HUB_EVENTS_SECRET`) and, only when this is set, `next`.
+- The events URL the Hub is given must be a plain `https` URL: no credentials, no query string.
 - `HUB_DIRECT_ENABLED_SITES`: a comma list, or use the existing flag service.
 
 ## Your task
 
-### Phase 1: Discovery and plan (do now; the Hub endpoints are not live yet)
+### Phase 1: Discovery and plan (do now)
 Read the code. Do not change behaviour. Produce `docs/hub-support-integration-plan.md` (or this repo's equivalent location) with:
 
 1. **Desk call inventory.** List every Zoho Desk API call in the app: file, route, Desk endpoint, payload fields, and the UI screen that triggers it.

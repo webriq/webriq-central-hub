@@ -65,6 +65,7 @@ type ProjectRow = {
   project_id: string | null;
   external_project_id: string | null;
   customer_id: string;
+  status: string;
 };
 
 type TimeLogRow = {
@@ -160,19 +161,19 @@ export async function loadDevDashboard(userId: string, fullName: string | null):
       ),
     ]);
 
-  const taskRows = tasksRes.data ?? [];
+  const allTaskRows = tasksRes.data ?? [];
 
   // De-duplicate the three issue result sets by id — a row can match more than one predicate.
   const issueById = new Map<string, NonNullable<typeof issuesByArrayRes.data>[number]>();
   for (const res of [issuesByArrayRes, issuesByIdRes, issuesByNameRes]) {
     for (const row of res.data ?? []) issueById.set(row.id, row);
   }
-  const issueRows = [...issueById.values()];
+  const allIssueRows = [...issueById.values()];
 
   // ─── Project + customer lookup maps (js-index-maps: build once, then O(1)) ───
   const projectIds = new Set<string>();
-  for (const t of taskRows) projectIds.add(t.project_id);
-  for (const i of issueRows) projectIds.add(i.project_id);
+  for (const t of allTaskRows) projectIds.add(t.project_id);
+  for (const i of allIssueRows) projectIds.add(i.project_id);
   for (const l of activityLogs) projectIds.add(l.project_id);
 
   const projectIdList = [...projectIds];
@@ -180,11 +181,19 @@ export async function loadDevDashboard(userId: string, fullName: string | null):
     ? await fetchAllPages<ProjectRow>((from, to) =>
         supabase
           .from("projects")
-          .select("id, name, project_id, external_project_id, customer_id")
+          .select("id, name, project_id, external_project_id, customer_id, status")
           .in("id", projectIdList)
           .range(from, to)
       )
     : [];
+
+  // Task 454 — soft delete (tasks 231/247) leaves a project's tasks/tickets assigned, so drop
+  // that work here. Filtered in JS rather than with `.neq("status", "deleted")` on the lookup:
+  // a missing project row would only turn its items into "Unknown project", not remove them.
+  // Deleted projects stay in `projectRows` so today's logged hours (below) still resolve names.
+  const deletedProjectIds = new Set(projectRows.filter((p) => p.status === "deleted").map((p) => p.id));
+  const taskRows = allTaskRows.filter((t) => !deletedProjectIds.has(t.project_id));
+  const issueRows = allIssueRows.filter((i) => !deletedProjectIds.has(i.project_id));
 
   const customerIds = [...new Set(projectRows.map((p) => p.customer_id))];
   const customerRows = customerIds.length
@@ -253,7 +262,9 @@ export async function loadDevDashboard(userId: string, fullName: string | null):
 
   // ─── Today's logged time (one pass — js-combine-iterations) ─────────────────
   // `activityLogs` already spans today (it covers the last `ACTIVITY_WINDOW_DAYS`), so today's
-  // totals are filtered out of the same result set instead of a second query.
+  // totals are filtered out of the same result set instead of a second query. Deliberately not
+  // filtered by `deletedProjectIds` (task 454): logged time is real work and must keep matching
+  // the Time Logs page.
   let hoursToday = 0;
   const todayItemKeys = new Set<string>();
   const hoursTodayByProjectId = new Map<string, number>();
@@ -279,7 +290,7 @@ export async function loadDevDashboard(userId: string, fullName: string | null):
     if (!seen || item.updatedAt > seen) lastActivityByProject.set(item.projectId, item.updatedAt);
   }
 
-  const projects: DevProjectSummary[] = projectRows.map((p) => ({
+  const projects: DevProjectSummary[] = projectRows.filter((p) => !deletedProjectIds.has(p.id)).map((p) => ({
     projectId: p.id,
     name: p.name,
     companyName: companyByCustomerId.get(p.customer_id) ?? null,

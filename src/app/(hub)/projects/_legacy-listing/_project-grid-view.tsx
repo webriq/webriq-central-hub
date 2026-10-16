@@ -56,9 +56,9 @@ export function GridView({
 // can intercept it. The only real fix is to not nest them at all.
 //
 // Structure now: an absolutely-positioned, empty <Link> spans the whole card (`inset-0`, behind
-// everything, z-0) and is the only thing that actually navigates on click — it has zero children,
+// everything) and is the only thing that actually navigates on click — it has zero children,
 // so there is nothing for the "no nested interactive content" rule to violate. The real, visible
-// content renders as a normal sibling on top (z-10) with `pointer-events-none`, so clicks on
+// content renders as a normal sibling on top with `pointer-events-none`, so clicks on
 // non-interactive areas (padding, gaps, plain text) fall through to the Link underneath exactly
 // like before; each genuinely interactive piece (the rename input, the kebab menu, the tasks/
 // tickets buttons, tag-remove buttons, avatar tooltips) opts back in with `pointer-events-auto` so
@@ -66,6 +66,10 @@ export function GridView({
 // that has its own competing default action. The card's hover-border styling moves from the
 // (now invisible) Link to `group-hover` on the outer wrapper, since CSS `:hover` still reaches
 // every ancestor of whatever element is actually under the cursor regardless of pointer-events.
+//
+// Task 453: neither layer sets a z-index — the content paints above the Link purely by DOM order
+// (both positioned, `z-index: auto`). A z-index here makes every card its own stacking context,
+// which traps the kebab menu's `fixed` overlays inside the card so later cards paint over them.
 function ProjectGridCard({
   project: p, canManageTags, canDeleteProjects, tags, removeTag, onSearchName,
 }: {
@@ -86,9 +90,9 @@ function ProjectGridCard({
       <Link
         href={p.project_id ? `${V2_ROUTES.PROJECTS_LEGACY}/${p.project_id}` : V2_ROUTES.PROJECTS_LEGACY}
         aria-label={`View ${p.name}`}
-        className="absolute inset-0 z-0 rounded-[14px]"
+        className="absolute inset-0 rounded-[14px]"
       />
-      <div className="pointer-events-none relative z-10 h-full flex flex-col gap-3 p-4 rounded-[14px] border border-[#E2E7F2] bg-white transition-colors group-hover:border-[#A8C6F5]">
+      <div className="pointer-events-none relative h-full flex flex-col gap-3 p-4 rounded-[14px] border border-[#E2E7F2] bg-white transition-colors group-hover:border-[#A8C6F5]">
         {/* Title + status */}
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">

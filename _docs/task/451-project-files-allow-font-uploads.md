@@ -1,16 +1,16 @@
-# 451: Projects > Files — allow font file uploads (.ttf .otf .woff .woff2 .eot .ttc .otc)
+# 451: Projects > Files — allow font and design-file uploads (.ttf .otf .woff .woff2 .eot .ttc .otc, plus .eps .psd .ai .fig)
 
 **Created:** 2026-10-12
 **Priority:** MEDIUM
 **Type:** enhancement
 **Recommended Tier:** balanced
-**Status:** Planned
+**Status:** Completed (2026-10-13) — code done and statically verified; browser acceptance + migrations 175/176 are operator follow-ups, see Completion Notes
 
 ---
 
 ## Overview
 
-The project **Files** tab (`/projects/v2/[projectId]/files`, shared with the Onboarding Workspace Files tab and Customers → Assets) rejects font files. The user's example is a PP Eiko Medium webfont kit: `.eot`, `.otf`, `.ttf`, `.woff`, `.woff2`. Fonts must be uploadable (single files, multi-select, drag-drop and folder upload). `.ttc`/`.otc` (TrueType/OpenType collections, several fonts in one file) are included beyond the screenshot's five.
+The project **Files** tab (`/projects/v2/[projectId]/files`, shared with the Onboarding Workspace Files tab and Customers → Assets) rejects font files. The user's example is a PP Eiko Medium webfont kit: `.eot`, `.otf`, `.ttf`, `.woff`, `.woff2`. Fonts must be uploadable (single files, multi-select, drag-drop and folder upload). `.ttc`/`.otc` (TrueType/OpenType collections, several fonts in one file) are included beyond the screenshot's five. **Addendum (2026-10-13):** design source files `.eps`, `.psd`, `.ai`, `.fig` were added at the user's request, using the same mechanism (see Addendum below).
 
 ### Answer to "is there an existing folder or zip upload?"
 
@@ -26,13 +26,14 @@ Two independent gates both reject fonts:
 
 ## Requirements
 
-- [ ] Fonts `.ttf`, `.otf`, `.woff`, `.woff2`, `.eot`, `.ttc`, `.otc` upload successfully on the project Files tab, the Onboarding Workspace Files tab and Customers → Assets, via file picker, drag-drop and folder upload.
-- [ ] Font detection is **extension-based with a MIME fallback**: a font file whose browser-reported `file.type` is empty, `application/octet-stream`, or any known font variant is accepted and uploaded with one **canonical** MIME (`font/ttf`, `font/otf`, `font/woff`, `font/woff2`, `application/vnd.ms-fontobject`, `font/collection` for both `.ttc` and `.otc`). The same canonical MIME is sent to `/upload/sign`, used as the Storage PUT `content-type`, and stored in `customer_assets.file_mime_type`.
+- [x] Fonts `.ttf`, `.otf`, `.woff`, `.woff2`, `.eot`, `.ttc`, `.otc` upload successfully on the project Files tab, the Onboarding Workspace Files tab and Customers → Assets, via file picker, drag-drop and folder upload.
+- [x] Font detection is **extension-based with a MIME fallback**: a font file whose browser-reported `file.type` is empty, `application/octet-stream`, or any known font variant is accepted and uploaded with one **canonical** MIME (`font/ttf`, `font/otf`, `font/woff`, `font/woff2`, `application/vnd.ms-fontobject`, `font/collection` for both `.ttc` and `.otc`). The same canonical MIME is sent to `/upload/sign`, used as the Storage PUT `content-type`, and stored in `customer_assets.file_mime_type`.
 - [ ] The extension fallback applies **only** to the font extensions. Every other type keeps today's strict `file.type` whitelist (empty MIME still rejected for `.ico`/`.ts` etc.). No weakening of the existing gate.
-- [ ] Server allowlist and the `customer-assets` bucket accept the canonical font MIMEs plus the common legacy variants (so a stale client or the legacy multipart route does not 400).
-- [ ] Font tiles render a labelled type tile ("FONT") in the grid instead of the generic blank document icon.
-- [ ] "Allowed types" copy (dropzone caption, rejection message, sign-route error, Customers → Assets help text) mentions fonts.
-- [ ] A pure check covers the extension → canonical MIME resolver and the unchanged strictness for non-fonts.
+- [x] Server allowlist and the `customer-assets` bucket accept the canonical font MIMEs plus the common legacy variants (so a stale client or the legacy multipart route does not 400).
+- [x] Font tiles render a labelled type tile ("FONT") in the grid instead of the generic blank document icon.
+- [x] "Allowed types" copy (dropzone caption, rejection message, sign-route error, Customers → Assets help text) mentions fonts.
+- [x] Design files `.eps` `.psd` `.ai` `.fig` upload the same way, with a `.psd` never rendered as an `<img>` (Addendum).
+- [x] A pure check covers the extension → canonical MIME resolver and the unchanged strictness for non-fonts.
 
 ## Out of Scope / Must-Not-Change
 
@@ -47,7 +48,7 @@ Two independent gates both reject fonts:
 
 | File | Action | Purpose |
 |------|--------|---------|
-| `src/config/font-types.ts` | Create | Single source: `FONT_MIME_TYPES` (canonical + legacy variants), `FONT_MIME_LABELS`, `FONT_EXTENSION_MIME` (ext → canonical), `resolveUploadMime(file)` / `fontMimeForName(name)`. Data + one tiny pure function, mirrors `powerpoint-types.ts`. |
+| `src/config/font-types.ts` | Create | Single source: `FONT_MIME_TYPES` (canonical + legacy variants), `FONT_MIME_LABELS`, `FONT_EXTENSION_MIME` (ext → canonical), data only; the resolver (`resolveUploadMime`) ended up in `upload-mime.ts` so fonts and design files share one lookup. Mirrors `powerpoint-types.ts`. |
 | `src/app/(hub)/projects/v2/[projectId]/onboarding-workspace/_file-upload-constants.ts` | Modify | Spread `FONT_MIME_TYPES` into `ALLOWED_UPLOAD_TYPES`, `FONT_MIME_LABELS` into `MIME_LABELS` so `ALLOWED_TYPES_LABEL` lists "TTF, OTF, WOFF, WOFF2, EOT, TTC, OTC". Add an `isAllowedUpload(file)` helper (resolved MIME ∈ list) used by both client checks. |
 | `.../onboarding-workspace/_files-tab.tsx` | Modify | `handleFiles` (line ~87): replace `ALLOWED_UPLOAD_TYPES.includes(file.type)` with `isAllowedUpload(file)`; rejection text keeps `file.type \|\| "This file type"`. |
 | `.../onboarding-workspace/_use-folder-upload.ts` | Modify | `isValidUpload` (line 12): same helper. |
@@ -57,7 +58,11 @@ Two independent gates both reject fonts:
 | `src/app/api/customers/[customerId]/assets/upload/sign/route.ts` | Modify | Add "fonts" to the unsupported-type error message. |
 | `src/app/(hub)/customers/[customerId]/client.tsx` | Modify | `ASSET_TYPE_HELP.file` copy (line ~99): mention fonts. Also check whether its add-asset file picker validates `file.type` itself; if so apply `resolveUploadMime`/`isAllowedUpload`. |
 | `supabase/migrations/175_customer_assets_font_mime_types.sql` | Create | Append the font MIMEs to `storage.buckets.allowed_mime_types` for `customer-assets` only; idempotent (`array_agg(distinct …)`), same shape as migration 158. **Written, not applied.** |
-| `_docs/task/451-font-types.check.ts` | Create | Pure `npx tsx` checks for the resolver. |
+| `_docs/task/451-font-types.check.ts` | Create | Pure `npx tsx` checks for the resolver (fonts, design files, `isBrowserImage`). |
+| `src/config/design-file-types.ts` | Create (addendum) | `.eps/.psd/.ai/.fig` canonical + legacy MIMEs, labels, `isBrowserImage()`. |
+| `src/config/upload-mime.ts` | Create (addendum) | Single `extensionMimeForName()` / `resolveUploadMime()` over font + design maps (replaces the resolver originally planned inside `font-types.ts`). |
+| `supabase/migrations/176_customer_assets_design_mime_types.sql` | Create (addendum) | Design MIMEs on the `customer-assets` bucket. Written, not applied. |
+| `_file-tile.tsx`, `_file-previews.tsx`, `_onboarding-wizard.tsx` | Modify (addendum) | `isBrowserImage()` instead of bare `startsWith("image/")`; PSD/AI/EPS/FIG tiles. |
 
 ## Code Context
 
@@ -234,3 +239,16 @@ PASS
 
 ### Required Fixes
 - None.
+
+## Completion Notes
+
+**Final scope shipped:** fonts (`.ttf .otf .woff .woff2 .eot .ttc .otc`) and design files (`.eps .psd .ai .fig`) on the project Files tab, Onboarding Workspace Files tab and Customers → Assets (picker, drag-drop, folder upload). Extension-resolved canonical MIME; every other type keeps the strict `file.type` whitelist. Final structure: `src/config/font-types.ts` + `design-file-types.ts` (data), `upload-mime.ts` (single resolver), wired into `_file-upload-constants.ts`, `customer-asset-storage.ts`, `_upload-queue.tsx`, `_files-tab.tsx`, `_use-folder-upload.ts`, tiles/previews. Answer to the original question: folder upload exists (task 372, 200-file cap); zip is stored as a single file and not extracted (unchanged).
+
+**Final verification (static):** `npx tsx _docs/task/451-font-types.check.ts` PASS · `npx tsc --noEmit` PASS · eslint on changed dirs 0 errors (3 pre-existing warnings). Quality gate re-run after the addendum: PASS.
+
+**Outstanding for the operator (not done by the agent):**
+1. Apply `supabase/migrations/175_customer_assets_font_mime_types.sql` and `176_customer_assets_design_mime_types.sql`. Until applied, uploads pass the app gate and then fail at Storage.
+2. Browser acceptance was **not run** (needs the migrations and a running app): upload the five PP Eiko files + a `.ttc`/`.otc` + `.eps/.psd/.ai/.fig`; folder drop; `.exe` rejection; confirm PSD shows a tile, not a broken image. The unchecked Acceptance Criteria above are exactly these browser checks.
+3. Add a one-line note to `CLAUDE.md` beside the "Presentation uploads (task 418)" bullet (fonts/design types in `src/config/font-types.ts` / `design-file-types.ts`, extension-resolved via `upload-mime.ts`, `customer-assets` bucket only, migrations 175/176) — the `document` stage was not run.
+
+**Known limits:** server validates the claimed MIME only (not extension match), same as all existing types; no content scanning (task 373, deferred; `.eps` is PostScript, stored/downloaded only); legacy multipart route's client still sends raw `file.type`; Sketch/XD/INDD/Affinity/CorelDRAW not included.

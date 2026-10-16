@@ -123,7 +123,7 @@ export default function OutboxIndex({
 
       {!deliveryConfigured && !setupNeeded && (
         <div className="mb-4 rounded-[10px] border border-[#F3D9A4] bg-[#FFF8E6] px-4 py-3 text-[13px] text-[#8A5A00]">
-          Delivery is off: <code>STACKSHIFT_EVENTS_URL</code> and <code>STACKSHIFT_EVENTS_SECRET</code> are not both set, so events stay pending.
+          Delivery is off: <code>STACKSHIFT_EVENTS_URL</code> and <code>STACKSHIFT_EVENTS_SECRET</code> are not both set, or the URL is not a plain https URL (no credentials or query), or the key selection is invalid, so events stay pending.
         </div>
       )}
 

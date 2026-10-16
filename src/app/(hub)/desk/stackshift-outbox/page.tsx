@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { V2_ROUTES } from "@/config/constants";
+import { eventsConfigFromEnv } from "@/lib/stackshift-support/events-config";
 import OutboxIndex, { type OutboxEvent, type OutboxStatusFilter } from "./_outbox-index";
 
 // Desk > StackShift outbox (task 446) — Hub → StackShift events with delivery state and a Replay action
@@ -79,7 +80,7 @@ export default async function StackShiftOutboxPage({
       status={status}
       pagination={{ page, pageSize, total: count ?? 0 }}
       setupNeeded={setupNeeded}
-      deliveryConfigured={!!process.env.STACKSHIFT_EVENTS_URL && !!process.env.STACKSHIFT_EVENTS_SECRET}
+      deliveryConfigured={eventsConfigFromEnv().ok}
     />
   );
 }

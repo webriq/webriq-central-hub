@@ -36,7 +36,7 @@ Sign the **exact bytes** you send. Query params sorted by key, URL-encoded.
 | Customer number (#21079) | Desk number | `ticketNumber` (Hub serial) — decision D4/numbering to confirm |
 
 ## 3. Secrets / env to provision in StackShift
-`HUB_SUPPORT_BASE_URL`, `HUB_SUPPORT_SECRET` (= Hub `STACKSHIFT_SUPPORT_SECRET`), `HUB_SUPPORT_KEY_ID` (`current`), `HUB_EVENTS_SECRET` (= Hub `STACKSHIFT_EVENTS_SECRET`), `HUB_DIRECT_ENABLED_SITES` (comma list or flag service). Never expose any to the browser.
+`HUB_SUPPORT_BASE_URL` (https), `HUB_SUPPORT_SECRET` (= Hub `STACKSHIFT_SUPPORT_SECRET`), `HUB_SUPPORT_SECRET_NEXT` (optional, rotation), `HUB_SUPPORT_KEY_ID` (`current`), `HUB_EVENTS_SECRET` (= Hub `STACKSHIFT_EVENTS_SECRET`, a different value), `HUB_EVENTS_SECRET_NEXT` (optional, rotation), `HUB_DIRECT_ENABLED_SITES` and `HUB_READS_ENABLED_SITES` (comma lists, default empty). Never expose any to the browser. Full table, security rules S1–S14 and acceptance criteria: `stackshift-app-hub-integration-instructions.md` (task 452). The Hub refuses to deliver events to a non-https `STACKSHIFT_EVENTS_URL` (or one with credentials/query).
 
 ## 4. Behavioural rules
 - **Idempotency:** generate one key per logical action and persist it with the retry job; retries reuse it. `200 deduped` (also returned when a create is retried with a new key for the same site + `ticketRef` + subject, e.g. after a lost response) is success. `409` means a bug (same key, different body) — do not retry, alert.

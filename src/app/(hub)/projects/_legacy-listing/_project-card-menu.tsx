@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { MoreVertical, Trash2, Users, Eye, Pencil, Crown, Tag } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -17,9 +18,10 @@ const MENU_HEIGHT = 280;
 // Grid-card kebab menu (task 232; extended by task 264 with Manage Collaborators, and task 268
 // with View Project / Rename Project / Set Project Owner / Update Classification) — soft-deletes
 // a project from the listing without opening it, reusing task 231's DELETE endpoint/hook/dialog
-// verbatim. Fixed-position dropdown anchored to the trigger's own rect, not `absolute`-anchored to
-// the card, so adjacent grid cards (plain z-index:auto, later in DOM order) can't paint over it —
-// same technique and reasoning as onboarding-workspace/_file-tile.tsx's ActionsMenu. Every handler
+// verbatim. Fixed-position dropdown anchored to the trigger's own rect, and — like the dropdown's
+// click-catcher and the ConfirmDialog — portaled to `document.body` (task 453): `position: fixed`
+// does not escape an ancestor stacking context, so rendered in place, any z-index/transform on the
+// card would let later grid cards and the sticky toolbar paint over them. Every handler
 // here calls `preventDefault` (the whole card is a Next.js `<Link>` — matching this file's own
 // `onClick={(e) => e.preventDefault()}` tags-row pattern) and `stopPropagation`.
 export function ProjectCardMenu({
@@ -129,7 +131,7 @@ export function ProjectCardMenu({
         <MoreVertical size={14} />
       </button>
 
-      {menuPos && (
+      {menuPos && createPortal(
         <>
           <div className="fixed inset-0 z-40" onClick={closeMenu} />
           <div
@@ -201,18 +203,23 @@ export function ProjectCardMenu({
               </>
             )}
           </div>
-        </>
+        </>,
+        document.body,
       )}
 
-      <ConfirmDialog
-        open={confirmOpen}
-        title={`Delete "${projectName}"?`}
-        body="This will remove the project from all views. This action is irreversible."
-        confirmLabel={deleting ? "Deleting…" : "Delete Project"}
-        confirmDisabled={deleting}
-        onConfirm={handleConfirm}
-        onCancel={() => setConfirmOpen(false)}
-      />
+      {/* Portaled only while open — keeps `document` out of the server render. */}
+      {confirmOpen && createPortal(
+        <ConfirmDialog
+          open
+          title={`Delete "${projectName}"?`}
+          body="This will remove the project from all views. This action is irreversible."
+          confirmLabel={deleting ? "Deleting…" : "Delete Project"}
+          confirmDisabled={deleting}
+          onConfirm={handleConfirm}
+          onCancel={() => setConfirmOpen(false)}
+        />,
+        document.body,
+      )}
       <ManageCollaboratorsModal
         open={collaboratorsOpen}
         onClose={() => setCollaboratorsOpen(false)}

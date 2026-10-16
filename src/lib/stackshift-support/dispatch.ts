@@ -1,6 +1,7 @@
 import { adminClient } from "@/lib/supabase/admin";
 import { sendCliqNotification } from "@/lib/zoho";
 import { signRequest } from "./auth-logic";
+import { eventsConfigFromEnv } from "./events-config";
 import { mintDownloadUrls } from "./attachments";
 import {
   LEASE_MS,
@@ -24,24 +25,27 @@ export type DispatchSummary = {
   claimedElsewhere: number;
 };
 
-function eventsConfig(): { url: URL; secret: string } | null {
-  const raw = process.env.STACKSHIFT_EVENTS_URL;
-  const secret = process.env.STACKSHIFT_EVENTS_SECRET;
-  if (!raw || !secret) return null;
-  try {
-    return { url: new URL(raw), secret };
-  } catch {
-    console.error("[stackshift-outbox] STACKSHIFT_EVENTS_URL is not a valid URL");
-    return null;
+type EventsTransport = { url: URL; secret: string; keyId: "current" | "next" };
+
+// Task 452 (H1/H2): an insecure/invalid URL or a missing rotation secret is "not configured" — events stay
+// pending and nothing leaves the Hub. Logged once per process so the cron doesn't spam.
+let warnedReason: string | null = null;
+function eventsConfig(): EventsTransport | null {
+  const cfg = eventsConfigFromEnv();
+  if (cfg.ok) return cfg;
+  if (cfg.reason !== "not_configured" && warnedReason !== cfg.reason) {
+    warnedReason = cfg.reason;
+    console.error(`[stackshift-outbox] events delivery disabled: ${cfg.reason}${cfg.detail ? ` (${cfg.detail})` : ""}`);
   }
+  return null;
 }
 
-async function postEvent(cfg: { url: URL; secret: string }, envelope: unknown) {
+async function postEvent(cfg: EventsTransport, envelope: unknown) {
   const body = JSON.stringify(envelope);
   const timestamp = Math.floor(Date.now() / 1000);
   const signature = signRequest({
     secret: cfg.secret,
-    keyId: "current",
+    keyId: cfg.keyId,
     timestamp,
     method: "POST",
     path: cfg.url.pathname + cfg.url.search,
@@ -53,7 +57,7 @@ async function postEvent(cfg: { url: URL; secret: string }, envelope: unknown) {
       redirect: "manual", // a 3xx is a failed delivery, never silently followed
       headers: {
         "content-type": "application/json",
-        "x-ss-key-id": "current",
+        "x-ss-key-id": cfg.keyId,
         "x-ss-timestamp": String(timestamp),
         "x-ss-signature": signature,
       },
@@ -130,7 +134,7 @@ export async function dispatchDue(opts: { budgetMs: number; ticketId?: string })
   return summary;
 }
 
-async function deliver(cfg: { url: URL; secret: string }, row: PendingRow): Promise<"sent" | "failed" | "dead"> {
+async function deliver(cfg: EventsTransport, row: PendingRow): Promise<"sent" | "failed" | "dead"> {
   const now = new Date().toISOString();
   const { data: ticket } = await adminClient
     .from("inbox")
