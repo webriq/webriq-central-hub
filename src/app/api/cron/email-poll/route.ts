@@ -8,16 +8,16 @@ import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
-import { listNewMessages, downloadAttachment, type ZohoMailMessageSummary } from "@/lib/zoho/mail";
+import { listNewMessages, type ZohoMailMessageSummary } from "@/lib/zoho/mail";
 import { toParsedInboundEmail } from "@/lib/email/inbound";
-import { applyInlineImages, INLINE_IMAGE_BUCKET as BUCKET } from "@/lib/email/inline-images";
+import { applyInlineImages } from "@/lib/email/inline-images";
+import { storeEmailAttachments } from "@/lib/email/attachments";
 import { shouldIngestEmail } from "@/lib/email/intake-filter";
 import { parseSupportFormEmail, buildSupportFormBody } from "@/lib/email/support-form";
 import { subjectsMatch } from "@/lib/email/subject";
 import { pollSentFolder, type SentPollResult } from "@/lib/email/sent-ingest";
 import { notifyCustomerTicketCreated } from "@/lib/desk/customer-view-access";
 
-const MAX_SIZE = 52428800; // 50MB — matches the bucket's file_size_limit (migration 117)
 const CURSOR_ID = "helpdesk";
 // Fallback thread match (task 327): how far back to look for a same-sender/same-subject ticket
 // when no id-match exists (imported tickets can't be id-matched — see processMessage).
@@ -323,40 +323,12 @@ async function processMessage(summary: ZohoMailMessageSummary): Promise<ProcessO
 
   if (messageError || !newMessage) throw new Error(`failed to create ticket_message: ${messageError?.message}`);
 
-  // Attachments — stored in the existing ticket-attachments bucket + attachments table
-  // (entity_type: 'inbox_message'), same shape the ticket-attachments import route already
-  // writes (task 306). external_id doubles as an idempotency key for a retried upload.
-  for (const att of email.attachments) {
-    try {
-      if (att.size > MAX_SIZE) {
-        console.warn(`[cron/email-poll] attachment ${att.attachmentId} exceeds ${MAX_SIZE} bytes, skipping`);
-        continue;
-      }
-      const buffer = await downloadAttachment(summary.messageId, summary.folderId, att.attachmentId);
-      const safeFilename = att.fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
-      const storagePath = `${newMessage.id}/${att.attachmentId}_${safeFilename}`;
-
-      const { error: uploadError } = await adminClient.storage.from(BUCKET).upload(storagePath, buffer, { upsert: true });
-      if (uploadError) {
-        console.warn(`[cron/email-poll] attachment ${att.attachmentId} storage upload failed`, uploadError.message);
-        continue;
-      }
-
-      await adminClient.from("attachments").upsert(
-        {
-          external_id: att.attachmentId,
-          entity_type: "inbox_message",
-          entity_id: newMessage.id,
-          storage_path: storagePath,
-          filename: att.fileName,
-          size: att.size,
-        },
-        { onConflict: "external_id" }
-      );
-    } catch (e) {
-      console.error(`[cron/email-poll] attachment ${att.attachmentId} processing failed`, e);
-    }
-  }
+  await storeEmailAttachments({
+    messageRowId: newMessage.id,
+    zohoMessageId: summary.messageId,
+    folderId: summary.folderId,
+    attachments: email.attachments,
+  });
 
   return "ingested";
 }

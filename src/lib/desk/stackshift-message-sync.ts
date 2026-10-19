@@ -8,6 +8,7 @@
 import { adminClient } from "@/lib/supabase/admin";
 import { fetchZohoWithRetry } from "@/lib/zoho";
 import { fetchAllDeskPages, enrichThreadContent, DESK_MESSAGE_CONTENT_TYPE, deskHeaders } from "@/lib/zoho/desk";
+import { correctedContentType } from "@/config/attachment-types";
 
 // Same bucket/limit the dev-only ticket-attachments importer and email-poll's own attachment
 // ingestion already use (src/app/api/admin/zoho-import/ticket-attachments/route.ts) — kept in
@@ -54,6 +55,8 @@ export type SyncTicketMessagesResult = {
   messagesInserted: number;
   contentTypeRepaired: number;
   attachmentsAdded: number;
+  // Task 457 (D2) — downloads/uploads that failed this run; the poll stamps the ticket for retry.
+  attachmentsFailed: number;
 };
 
 export type SyncTicketMessagesOptions = {
@@ -91,6 +94,7 @@ export async function syncTicketMessages(
   let messagesInserted = 0;
   let contentTypeRepaired = 0;
   let attachmentsAdded = 0;
+  let attachmentsFailed = 0;
   // Task 392 — Zoho Desk ticket-level attachments (files uploaded via StackShift's own "Upload
   // File" button) carry no thread/comment linkage in the API response (confirmed via live
   // testing, ticket #21058 — 10 attachments, none referencing a threadId/commentId). They're
@@ -157,19 +161,21 @@ export async function syncTicketMessages(
       const attachResult = await syncMessageAttachments(currentToken, upserted.id, openingThread.attachments ?? []);
       currentToken = attachResult.token;
       attachmentsAdded += attachResult.added;
+      attachmentsFailed += attachResult.failed;
     }
   }
 
   for (const raw of comments as DeskComment[]) {
     if (raw.id == null) continue;
     const isAgent = raw.commenter?.type !== "END_USER";
+    const body = String(raw.content ?? raw.plainText ?? "");
     const upserted = await upsertInboxMessage(
       inboxId,
       String(raw.id),
       {
         author_type: isAgent ? "staff" : "client",
         visibility: raw.isPublic ? "public" : "internal",
-        body: String(raw.content ?? raw.plainText ?? ""),
+        body,
         created_at: toIso(raw.commentedTime ?? raw.modifiedTime),
         source_meta: {
           commenter: raw.commenter ?? null,
@@ -179,12 +185,24 @@ export async function syncTicketMessages(
       },
       opts
     );
+    // Task 457 (D1) — an attachment-only comment has no body, so upsertInboxMessage() returns null.
+    // Its files go to the opening message (same owner as ticket-level attachments below) rather
+    // than an empty message row: the direct API rejects empty bodies, so an extra empty Desk
+    // message would be a permanent parity `count` mismatch (parity-logic.ts compareMessages).
+    // Only for a genuinely empty body: a failed insert of a real comment must not re-home its
+    // files for good (external_id is the idempotency key), so count them failed and retry.
+    const ownerId = upserted?.id ?? (body ? null : openingThreadMessageId);
     if (upserted) {
       if (upserted.inserted) messagesInserted++;
       if (upserted.repaired) contentTypeRepaired++;
-      const attachResult = await syncMessageAttachments(currentToken, upserted.id, raw.attachments ?? []);
+    } else if (body) {
+      attachmentsFailed += raw.attachments?.length ?? 0;
+    }
+    if (ownerId) {
+      const attachResult = await syncMessageAttachments(currentToken, ownerId, raw.attachments ?? []);
       currentToken = attachResult.token;
       attachmentsAdded += attachResult.added;
+      attachmentsFailed += attachResult.failed;
     }
   }
 
@@ -212,12 +230,14 @@ export async function syncTicketMessages(
       );
       currentToken = attachResult.token;
       attachmentsAdded += attachResult.added;
+      attachmentsFailed += attachResult.failed;
     } catch (e) {
       console.error(`[desk-message-sync] ticket-level attachments fetch failed for ${ticketExternalId}`, e);
+      attachmentsFailed++;
     }
   }
 
-  return { token: currentToken, messagesInserted, contentTypeRepaired, attachmentsAdded };
+  return { token: currentToken, messagesInserted, contentTypeRepaired, attachmentsAdded, attachmentsFailed };
 }
 
 function toIso(value: string | null | undefined): string | undefined {
@@ -306,16 +326,17 @@ async function syncMessageAttachments(
   token: string,
   messageId: string,
   attachments: DeskAttachment[]
-): Promise<{ token: string; added: number }> {
-  if (attachments.length === 0) return { token, added: 0 };
+): Promise<{ token: string; added: number; failed: number }> {
+  if (attachments.length === 0) return { token, added: 0, failed: 0 };
 
   let currentToken = token;
   let added = 0;
+  let failed = 0;
   let headers: Record<string, string>;
   try {
     headers = deskHeaders();
   } catch {
-    return { token: currentToken, added }; // ZOHO_DESK_ORG_ID not configured — already guarded at request entry, defensive only
+    return { token: currentToken, added, failed }; // ZOHO_DESK_ORG_ID not configured — already guarded at request entry, defensive only
   }
 
   for (const att of attachments) {
@@ -340,6 +361,7 @@ async function syncMessageAttachments(
 
       if (throttleExhausted || !res.ok) {
         console.warn(`[desk-message-sync] attachment ${externalId} fetch failed (throttled=${throttleExhausted}, status=${res.status})`);
+        failed++;
         continue;
       }
 
@@ -352,9 +374,10 @@ async function syncMessageAttachments(
       const safeName = `${messageId}/${externalId}_${filename.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
       const { error: uploadError } = await adminClient.storage
         .from(ATTACHMENTS_BUCKET)
-        .upload(safeName, buffer, { upsert: true, contentType: res.headers.get("content-type") ?? undefined });
+        .upload(safeName, buffer, { upsert: true, contentType: uploadContentType(res.headers.get("content-type"), filename) });
       if (uploadError) {
         console.warn(`[desk-message-sync] attachment ${externalId} storage upload failed`, uploadError.message);
+        failed++;
         continue;
       }
 
@@ -373,13 +396,21 @@ async function syncMessageAttachments(
       );
       if (dbError) {
         console.warn(`[desk-message-sync] attachment ${externalId} db upsert failed`, dbError.message);
+        failed++;
       } else {
         added++;
       }
     } catch (e) {
       console.error(`[desk-message-sync] attachment ${externalId} processing failed`, e);
+      failed++;
     }
   }
 
-  return { token: currentToken, added };
+  return { token: currentToken, added, failed };
+}
+
+// Task 457 (D3) — Zoho's download header unless it is untrusted (missing/generic, or text/html on a
+// non-HTML file — Zoho's label for types it doesn't know); see correctedContentType().
+function uploadContentType(header: string | null, filename: string): string {
+  return correctedContentType(header, filename) ?? header ?? "application/octet-stream";
 }

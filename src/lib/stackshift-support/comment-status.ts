@@ -55,7 +55,7 @@ export async function addCustomerComment(ticketRef: string, input: CreateComment
     messageId = data.id;
   }
 
-  await insertAttachmentRows(messageId, attachments);
+  await insertAttachmentRows(messageId, attachments, verified.sizes);
 
   // A customer reply reopens a closed ticket (same rule as the email poll, task 327).
   if (ticket.status === "closed") {

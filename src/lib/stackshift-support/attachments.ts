@@ -1,5 +1,6 @@
 import { adminClient } from "@/lib/supabase/admin";
 import { createAttachmentUploadUrl, verifyUploadedObject } from "@/lib/uploads/attachment-storage";
+import { correctedContentType } from "@/config/attachment-types";
 import {
   ATTACHMENT_BUCKET,
   UPLOAD_URL_TTL_SECONDS,
@@ -31,7 +32,8 @@ export async function mintUploads(site: string, ticketRef: string, files: Manife
   );
 }
 
-export type VerifyOutcome = { ok: true } | { ok: false; path: string; message: string };
+// `sizes` holds the real stored byte size per newly verified path (task 457, S3).
+export type VerifyOutcome = { ok: true; sizes: Map<string, number> } | { ok: false; path: string; message: string };
 
 // Runs BEFORE any ticket/message row is written, so a bad attachment fails the whole request with
 // `invalid_payload` and leaves nothing behind. `forMessageId` lets a retried comment re-register the paths
@@ -44,7 +46,8 @@ export async function verifyRegistered(
 ): Promise<VerifyOutcome> {
   const shape = checkRegistered(files, site, ticketRef);
   if (!shape.ok) return shape;
-  if (files.length === 0) return { ok: true };
+  const sizes = new Map<string, number>();
+  if (files.length === 0) return { ok: true, sizes };
 
   const { data: taken } = await adminClient
     .from("attachments")
@@ -64,11 +67,43 @@ export async function verifyRegistered(
     if (alreadyOwned.has(f.path)) continue;
     const res = await verifyUploadedObject(adminClient, f.path, f.filename, ATTACHMENT_BUCKET);
     if (!res.ok) return { ok: false, path: f.path, message: res.reason };
+    const size = await fixStoredType(f.path, f.filename, site);
+    if (size != null) sizes.set(f.path, size);
   }
-  return { ok: true };
+  return { ok: true, sizes };
 }
 
-export async function insertAttachmentRows(messageId: string, files: RegisteredFile[]): Promise<void> {
+// Task 457 (S1) — the stored type is whatever StackShift sent on its PUT; a missing header leaves
+// text/plain or octet-stream and breaks Hub previews. Re-upload with correctedContentType()'s type
+// when the stored one is untrusted. Never fails the request: the file already passed the magic-byte check. Returns the real
+// stored size (S3), or null when info() is unavailable.
+async function fixStoredType(path: string, filename: string, site: string): Promise<number | null> {
+  const bucket = adminClient.storage.from(ATTACHMENT_BUCKET);
+  const { data: info, error } = await bucket.info(path);
+  if (error || !info) {
+    console.warn(`[stackshift-support] could not read stored info for ${path}:`, error?.message);
+    return null;
+  }
+  const expected = correctedContentType(info.contentType, filename);
+  if (expected) {
+    console.warn(`[stackshift-support] site "${site}" uploaded ${path} as "${info.contentType || "(none)"}", re-storing as ${expected}`);
+    const { data: blob, error: dlError } = await bucket.download(path);
+    if (dlError || !blob) {
+      console.warn(`[stackshift-support] content-type repair download failed for ${path}:`, dlError?.message);
+    } else {
+      // ArrayBuffer, not the Blob: storage-js sends a Blob as FormData and ignores `contentType`.
+      const { error: upError } = await bucket.upload(path, await blob.arrayBuffer(), { upsert: true, contentType: expected });
+      if (upError) console.warn(`[stackshift-support] content-type repair upload failed for ${path}:`, upError.message);
+    }
+  }
+  return info.size ?? null;
+}
+
+export async function insertAttachmentRows(
+  messageId: string,
+  files: RegisteredFile[],
+  sizes: Map<string, number> = new Map(),
+): Promise<void> {
   if (files.length === 0) return;
   const { error } = await adminClient.from("attachments").upsert(
     files.map((f) => ({
@@ -77,7 +112,7 @@ export async function insertAttachmentRows(messageId: string, files: RegisteredF
       entity_id: messageId,
       storage_path: f.path,
       filename: f.filename,
-      size: f.size,
+      size: sizes.get(f.path) ?? f.size, // real stored size when known (task 457, S3)
     })),
     { onConflict: "external_id" },
   );

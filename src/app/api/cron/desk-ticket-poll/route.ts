@@ -173,9 +173,18 @@ export async function POST(req: NextRequest) {
     createdPass = { error: e instanceof Error ? e.message : "created-pass failed" };
   }
 
+  let attachmentRetry: Awaited<ReturnType<typeof runAttachmentRetries>> | { error: string };
+  try {
+    attachmentRetry = await runAttachmentRetries(token, startedAt);
+  } catch (e) {
+    console.error("[cron/desk-ticket-poll] attachment retry pass failed", e);
+    attachmentRetry = { error: e instanceof Error ? e.message : "attachment retry pass failed" };
+  }
+
   const summary = {
     reconcile: { enabled: reconcile.enabled, signedOffSites: reconcile.signedOffSites.size },
     createdPass,
+    attachmentRetry,
     found: candidates.length,
     processed,
     failed,
@@ -373,7 +382,73 @@ async function processTicket(
   // Task 390 — steady-state cron poll never repairs already-existing rows'
   // contentType (repairExistingContentType omitted, defaults to false); that repair is the new
   // backfill-stackshift-messages admin route's job, run manually against dormant tickets.
-  await syncTicketMessages(token, externalId, inboxId);
+  const sync = await syncTicketMessages(token, externalId, inboxId);
+  // Task 457 (D2) — the upsert above rewrote source_meta without the stamp, so a clean sync has
+  // already cleared it; re-stamp only when files still failed, for runAttachmentRetries().
+  if (sync.attachmentsFailed > 0) await setAttachmentFailStamp(inboxId, externalId, true);
+}
+
+// Task 457 (D2) — merge-sets or removes source_meta.attachmentSyncFailedAt + attachmentSyncAttempts.
+// Gives up after MAX_ATTACHMENT_ATTEMPTS so a permanently unservable file (deleted / 403 on Desk)
+// can't keep its ticket in the retry rotation forever. The counter resets whenever processTicket()
+// re-upserts source_meta (Desk ticket modified) — a changed ticket deserves a fresh try. Best-effort.
+const MAX_ATTACHMENT_ATTEMPTS = 5;
+async function setAttachmentFailStamp(inboxId: string, deskTicketId: string, failed: boolean): Promise<void> {
+  const { data } = await adminClient.from("inbox").select("source_meta").eq("id", inboxId).maybeSingle();
+  const meta = { ...((data?.source_meta ?? {}) as Record<string, unknown>) };
+  const attempts = (Number(meta.attachmentSyncAttempts) || 0) + 1;
+  if (failed && attempts < MAX_ATTACHMENT_ATTEMPTS) {
+    meta.attachmentSyncFailedAt = new Date().toISOString();
+    meta.attachmentSyncAttempts = attempts;
+  } else {
+    if (failed) {
+      console.warn(
+        `[cron/desk-ticket-poll] Desk ticket ${deskTicketId}: attachments still failing after ${attempts} attempts; giving up — run backfill-stackshift-messages after fixing`
+      );
+    }
+    delete meta.attachmentSyncFailedAt;
+    delete meta.attachmentSyncAttempts;
+  }
+  const { error } = await adminClient.from("inbox").update({ source_meta: meta }).eq("id", inboxId);
+  if (error) console.warn(`[cron/desk-ticket-poll] could not update attachment stamp on ${inboxId}:`, error.message);
+}
+
+// Task 457 (D2) — a failed Desk attachment download used to stay missing until the ticket changed
+// again. Re-sync up to MAX_ATTACHMENT_RETRIES stamped tickets per run, oldest stamp first (a
+// still-failing ticket gets a fresh stamp, so it rotates to the back). syncTicketMessages() skips
+// already-stored files before any network call, so only the failed files are re-downloaded.
+const MAX_ATTACHMENT_RETRIES = 10;
+async function runAttachmentRetries(token: string, startedAt: number) {
+  const { data, error } = await adminClient
+    .from("inbox")
+    .select("id, external_id, source_meta")
+    .eq("source_meta->>source", "stackshift-desk-poll")
+    .not("source_meta->>attachmentSyncFailedAt", "is", null)
+    .order("source_meta->>attachmentSyncFailedAt", { ascending: true })
+    .limit(MAX_ATTACHMENT_RETRIES);
+  if (error) throw new Error(`retry lookup failed: ${error.message}`);
+
+  let retried = 0;
+  let stillFailing = 0;
+  for (const row of data ?? []) {
+    if (budgetExhausted(startedAt, Date.now(), RUN_BUDGET_MS)) break;
+    if (!row.external_id) continue;
+    // A retired Desk copy (task 450 D6) is no longer the ticket of record — drop its stamp, don't retry.
+    if (isRetired(row.source_meta)) {
+      await setAttachmentFailStamp(row.id, String(row.external_id), false);
+      continue;
+    }
+    try {
+      const sync = await syncTicketMessages(token, String(row.external_id), row.id);
+      retried++;
+      if (sync.attachmentsFailed > 0) stillFailing++;
+      await setAttachmentFailStamp(row.id, String(row.external_id), sync.attachmentsFailed > 0);
+    } catch (e) {
+      stillFailing++;
+      console.error(`[cron/desk-ticket-poll] attachment retry failed for ${row.external_id}`, e);
+    }
+  }
+  return { attachmentRetries: retried, attachmentsStillFailing: stillFailing };
 }
 
 

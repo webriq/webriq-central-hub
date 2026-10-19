@@ -13,13 +13,10 @@
 //
 // UNVERIFIED AT IMPLEMENTATION TIME — confirm against a live account before relying on this in
 // production (task 318 Open Decisions 1-2 called this out explicitly):
-//   - Exact response field names for Get Email Content (getMessageDetail) — endpoint URL is
-//     confirmed (zoho.com/mail/help/api/get-email-content.html) but exact JSON field names for
-//     body/attachments were not available from public docs during implementation; parsed
-//     defensively below with multiple fallback field names.
-//   - Attachment download endpoint (downloadAttachment) — no public doc page found; modeled on
-//     the nested-resource pattern every other confirmed Zoho Mail endpoint uses. Treat as a
-//     best-effort guess, not a confirmed contract.
+//   - Body field names for Get Email Content (getMessageDetail) — docs show `data.content`;
+//     the other fallbacks are kept defensively. Task 456 confirmed this endpoint never returns
+//     attachments; those come from Get Attachment Info (getAttachmentInfo) and are downloaded via
+//     Get Attachment Content (downloadAttachment) — both confirmed against Zoho's docs.
 //   - Reply response's own messageId field name.
 //   - Published rate/credit limits — not found; the poll cron interval should be revisited
 //     once real limits are confirmed.
@@ -245,21 +242,35 @@ export async function getMessageDetail(messageId: string, folderId: string): Pro
 
   const json = await res.json();
   const data = json.data ?? {};
-  // Field names not confirmed against live docs (see file header) — accept the most plausible
-  // variants rather than assuming one exact shape.
+  // Docs show `data.content`; the other variants are kept defensively (see file header).
   const htmlContent = (data.content ?? data.htmlContent ?? null) as string | null;
   const textContent = (data.textContent ?? data.plainContent ?? null) as string | null;
-  const rawAttachments = (data.attachments ?? []) as Record<string, unknown>[];
 
-  return {
-    htmlContent,
-    textContent,
-    attachments: rawAttachments.map((a) => ({
-      attachmentId: String(a.attachmentId ?? a.storeName ?? ""),
-      fileName: String(a.attachmentName ?? a.fileName ?? "attachment"),
-      size: Number(a.attachmentSize ?? a.size ?? 0),
-    })),
-  };
+  return { htmlContent, textContent, attachments: await getAttachmentInfo(messageId, folderId) };
+}
+
+// The /content endpoint returns only { messageId, content } — never attachments, so every
+// polled email used to land with zero. Attachment ids come from Get Email Attachment Info
+// (zoho.com/mail/help/api/get-attach-info.html). `inline` (cid images) is ignored here; those
+// are still resolved via IMAP (task 321).
+export async function getAttachmentInfo(
+  messageId: string,
+  folderId: string
+): Promise<ZohoMailMessageDetail["attachments"]> {
+  const accountId = requireAccountId();
+  const res = await zohoMailFetch(`/api/accounts/${accountId}/folders/${folderId}/messages/${messageId}/attachmentinfo`, {
+    method: "GET",
+  });
+  if (!res.ok) {
+    throw new Error(`Zoho Mail get attachment info failed: HTTP ${res.status} ${await res.text().catch(() => "")}`);
+  }
+  const json = await res.json();
+  const rows = (json.data?.attachments ?? []) as { attachmentId: string; attachmentName: string; attachmentSize: number }[];
+  return rows.map((a) => ({
+    attachmentId: String(a.attachmentId),
+    fileName: a.attachmentName || "attachment",
+    size: Number(a.attachmentSize ?? 0),
+  }));
 }
 
 export type ZohoMailMessageMetadata = {
@@ -306,10 +317,9 @@ export async function getMessageMetadata(messageId: string, folderId: string): P
   return { receivedTime, fromAddress, rfc822MessageId };
 }
 
-// Best-effort — no public doc page found for this endpoint during implementation. Modeled on
-// the nested-resource pattern every other confirmed Zoho Mail endpoint follows. Callers must
-// treat a failure here as non-fatal (skip the attachment, keep the message) per the poll
-// route's existing per-attachment try/catch.
+// Get Email Attachment Content (zoho.com/mail/help/api/get-attachment-content.html). Callers
+// treat a failure as non-fatal (skip the attachment, keep the message) — see
+// storeEmailAttachments() in src/lib/email/attachments.ts.
 export async function downloadAttachment(
   messageId: string,
   folderId: string,
@@ -318,7 +328,8 @@ export async function downloadAttachment(
   const accountId = requireAccountId();
   const res = await zohoMailFetch(
     `/api/accounts/${accountId}/folders/${folderId}/messages/${messageId}/attachments/${attachmentId}`,
-    { method: "GET" }
+    // Documented Accept for this endpoint; zohoMailFetch defaults to application/json.
+    { method: "GET", headers: { Accept: "application/octet-stream" } }
   );
   if (!res.ok) {
     throw new Error(`Zoho Mail attachment download failed: HTTP ${res.status}`);

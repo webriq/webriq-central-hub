@@ -97,6 +97,21 @@ export function extensionInfoFor(filename: string): ExtensionInfo | null {
   return EXTENSION_INFO[extensionOf(filename)] ?? null;
 }
 
+// Task 457 — the type to store/serve a file with, or null to keep `stored`. A missing,
+// octet-stream or text/plain type is untrusted, and so is text/html on a non-.htm(l) file:
+// Zoho Desk labels types it doesn't know (heic, webp, mp4, ai, …) as text/html, which breaks
+// previews and makes browsers render binaries as pages. Untrusted → the extension's type, or
+// application/octet-stream when the extension is unmapped (download instead of render).
+export function correctedContentType(stored: string | null | undefined, filename: string): string | null {
+  const base = (stored ?? "").split(";")[0].trim().toLowerCase();
+  const expected = extensionInfoFor(filename)?.mime ?? null;
+  const untrusted =
+    !base || base === "application/octet-stream" || base === "text/plain" || (base === "text/html" && expected !== "text/html");
+  if (!untrusted) return null;
+  const target = expected ?? "application/octet-stream";
+  return target === base ? null : target;
+}
+
 export function isHardBlockedFilename(filename: string): boolean {
   return HARD_BLOCKED_EXTENSIONS.includes(extensionOf(filename));
 }

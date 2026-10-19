@@ -132,7 +132,7 @@ export async function createStackShiftTicket(input: CreateTicketInput, afterConf
   }
 
   try {
-    await insertAttachmentRows(firstMessage.id, attachments);
+    await insertAttachmentRows(firstMessage.id, attachments, verified.sizes);
   } catch (err) {
     await adminClient.from("inbox").delete().eq("id", ticket.id); // cascades the message
     throw err;
