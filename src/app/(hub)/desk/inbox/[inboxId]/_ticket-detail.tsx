@@ -10,6 +10,7 @@ import { V2_ROUTES } from "@/config/constants";
 import { cn } from "@/lib/utils";
 import { RichTextEditor } from "./_rich-text-editor";
 import type { MessageItem } from "./_conversation-thread";
+import type { ReplyRecipients } from "./_reply-composer";
 import { useAttachmentDeepLink } from "@/app/(hub)/projects/_shared/_use-attachment-deeplink";
 import { duplicateQualifier, type DuplicateOf } from "../_duplicate";
 
@@ -237,6 +238,14 @@ export default function TicketDetail({
   const [replySaving, setReplySaving] = useState(false);
   const [replyError, setReplyError] = useState<string | null>(null);
   const [replyEditorKey, setReplyEditorKey] = useState(0);
+  const defaultRecipients = (): ReplyRecipients => ({
+    to: ticket.contactEmail ? [ticket.contactEmail] : [],
+    cc: [],
+    bcc: [],
+  });
+  const [replyRecipients, setReplyRecipients] = useState<ReplyRecipients>(defaultRecipients);
+  // Direct StackShift tickets reply through the outbox, not email — recipients don't apply.
+  const recipientsEditable = ticket.channel !== "stackshift";
 
   const threads = messages.filter((m) => m.kind === "thread");
   const comments = messages.filter((m) => m.kind === "comment");
@@ -323,13 +332,19 @@ export default function TicketDetail({
 
   async function handleSendReply() {
     if (replyEmpty) return;
+    if (recipientsEditable && replyRecipients.to.length === 0) {
+      setReplyError("Add at least one To recipient");
+      return;
+    }
     setReplySaving(true);
     setReplyError(null);
     try {
       const res = await fetch(`/api/desk/tickets/${ticket.inboxId}/reply`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body: replyBody }),
+        body: JSON.stringify(
+          recipientsEditable ? { body: replyBody, ...replyRecipients } : { body: replyBody }
+        ),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -338,6 +353,7 @@ export default function TicketDetail({
       setReplyBody("");
       setReplyEmpty(true);
       setReplyEditorKey((k) => k + 1);
+      setReplyRecipients(defaultRecipients());
       setComposerMode("none");
       router.refresh();
     } catch (e) {
@@ -352,6 +368,7 @@ export default function TicketDetail({
     setReplyEmpty(true);
     setReplyError(null);
     setReplyEditorKey((k) => k + 1);
+    setReplyRecipients(defaultRecipients());
   }
 
   return (
@@ -565,13 +582,15 @@ export default function TicketDetail({
                   </div>
                   <ReplyComposer
                     fromAddress={fromAddress}
-                    toEmail={ticket.contactEmail}
+                    recipients={replyRecipients}
+                    onRecipientsChange={setReplyRecipients}
+                    recipientsEditable={recipientsEditable}
                     editorKey={replyEditorKey}
                     onChange={setReplyBody}
                     onEmptyChange={setReplyEmpty}
                     saving={replySaving}
                     error={replyError}
-                    sendDisabled={replySaving || replyEmpty || !ticket.contactEmail}
+                    sendDisabled={replySaving || replyEmpty || (!recipientsEditable && !ticket.contactEmail)}
                     onSend={handleSendReply}
                     onCancel={() => {
                       handleCancelReply();

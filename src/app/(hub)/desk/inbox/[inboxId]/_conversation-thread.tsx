@@ -38,7 +38,30 @@ export type MessageItem = {
   // Which email this message threads off (task 320) — used to find the message that
   // POST /reply actually replies to, so the reply composer's quoted preview matches it.
   emailMessageId: string | null;
+  // Who an outbound Hub reply was sent to (source_meta.recipients); null for every other row.
+  recipients: { to: string[]; cc: string[]; bcc: string[] } | null;
 };
+
+function RecipientLines({ recipients }: { recipients: NonNullable<MessageItem["recipients"]> }) {
+  const rows = (
+    [
+      ["To", recipients.to],
+      ["Cc", recipients.cc],
+      ["Bcc", recipients.bcc],
+    ] as const
+  ).filter(([, list]) => list.length > 0);
+  if (rows.length === 0) return null;
+  return (
+    <div className="mb-2 space-y-0.5 text-[11px] text-[#5F6A88]">
+      {rows.map(([label, list]) => (
+        <div key={label} className="flex gap-1.5">
+          <span className="w-7 shrink-0 font-medium">{label}</span>
+          <span className="min-w-0 break-all text-[#3A4565]">{list.join(", ")}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 function formatDateTime(iso: string): string {
   return new Intl.DateTimeFormat("en-US", { day: "2-digit", month: "short", hour: "numeric", minute: "2-digit" }).format(
@@ -196,6 +219,7 @@ function MessageCard({
 
       {open && (
         <div className="mt-2 pl-9">
+          {m.recipients && <RecipientLines recipients={m.recipients} />}
           {m.isHtml ? (
             <div
               className="text-[13px] text-[#3A4565] leading-relaxed [&_a]:text-[#007BFF] [&_a]:underline"

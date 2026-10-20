@@ -4,6 +4,7 @@
 
 | ID | Title | Priority | Type | Doc | Date |
 |----|-------|----------|------|-----|------|
+| 458 | Desk Inbox reply — fix "No prior email message to reply to on this ticket" on Desk-imported/polled tickets (fresh Zoho Mail `Re:` email quoting the last message, stored as a normal Hub reply) + editable To/Cc/Bcc chips (removable contact, server validation/dedupe, max 20, `source_meta.recipients` shown in thread). Code already in working tree; live Zoho test outstanding | HIGH | bugfix + enhancement | _docs/task/458-desk-reply-fresh-email-fallback-and-recipients.md | 2026-10-20 |
 | 452 | StackShift App ↔ Hub ticket flow — audit of the shipped Hub implementation + StackShift-side instructions (env vars, deliverables D1–D10, acceptance criteria, security rules S1–S14 for the endpoint/sender/receiver), signature test vectors, Hub hardening H1–H4 (HTTPS-only events URL, events-secret rotation, site-only authz gap, stale docs) | HIGH | docs / hand-off + small hardening | _docs/task/452-stackshift-app-hub-ticket-flow-instructions.md | 2026-10-13 |
 | 431 | Contract: drop customer_* tables, compat views, seedPhase2to5Links and Zoho import libs; update CLAUDE.md/docs — task 423 F7 | LOW | cleanup migration (written-not-applied) | _docs/task/431-contract-drop-customer-phase-tables.md | 2026-10-05 |
 | 430 | Work-breakdown rename: tasks.milestone_id/tasklist_id → phase_id/deliverable_id, MCP/API aliases, legacy UIs, `_docs/mcp-tools.md` — task 423 F6 | MEDIUM | refactor | _docs/task/430-work-breakdown-rename-tasks-mcp.md | 2026-10-05 |

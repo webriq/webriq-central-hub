@@ -337,19 +337,31 @@ export async function downloadAttachment(
   return res.arrayBuffer();
 }
 
-export async function sendReply(input: {
-  replyToMessageId: string;
-  from: string;
-  to: string;
-  subject: string;
-  content: string;
-}): Promise<{ messageId: string | null }> {
+// Zoho Mail takes To/CC/BCC as comma-separated strings; empty CC/BCC are omitted entirely.
+type MailRecipients = { to: string[]; cc?: string[]; bcc?: string[] };
+
+function recipientFields(r: MailRecipients): Record<string, string> {
+  return {
+    toAddress: r.to.join(","),
+    ...(r.cc?.length ? { ccAddress: r.cc.join(",") } : {}),
+    ...(r.bcc?.length ? { bccAddress: r.bcc.join(",") } : {}),
+  };
+}
+
+export async function sendReply(
+  input: {
+    replyToMessageId: string;
+    from: string;
+    subject: string;
+    content: string;
+  } & MailRecipients
+): Promise<{ messageId: string | null }> {
   const accountId = requireAccountId();
   const res = await zohoMailFetch(`/api/accounts/${accountId}/messages/${input.replyToMessageId}`, {
     method: "POST",
     body: JSON.stringify({
       fromAddress: input.from,
-      toAddress: input.to,
+      ...recipientFields(input),
       subject: input.subject,
       content: input.content,
       action: "reply",
@@ -359,9 +371,40 @@ export async function sendReply(input: {
   if (!res.ok) {
     throw new Error(`Zoho Mail send reply failed: HTTP ${res.status} ${await res.text().catch(() => "")}`);
   }
+  return parseSendResponse(res);
+}
 
+// Shared by sendReply() / sendNewEmail(): `data` may be an object or a one-element array.
+async function parseSendResponse(res: Response): Promise<{ messageId: string | null }> {
   const json = await res.json();
   const data = Array.isArray(json.data) ? json.data[0] : json.data;
-  const messageId = data?.messageId ? String(data.messageId) : null;
-  return { messageId };
+  return { messageId: data?.messageId ? String(data.messageId) : null };
+}
+
+// Fresh (non-reply) send — for tickets with no Zoho Mail message to thread off (Desk-imported /
+// Desk-polled tickets). Same response shape as sendReply(); the returned messageId becomes the
+// ticket's first email_message_id, so later customer replies thread on via email-poll match 2.
+export async function sendNewEmail(
+  input: {
+    from: string;
+    subject: string;
+    content: string;
+  } & MailRecipients
+): Promise<{ messageId: string | null }> {
+  const accountId = requireAccountId();
+  const res = await zohoMailFetch(`/api/accounts/${accountId}/messages`, {
+    method: "POST",
+    body: JSON.stringify({
+      fromAddress: input.from,
+      ...recipientFields(input),
+      subject: input.subject,
+      content: input.content,
+      mailFormat: "html",
+    }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Zoho Mail send failed: HTTP ${res.status} ${await res.text().catch(() => "")}`);
+  }
+  return parseSendResponse(res);
 }

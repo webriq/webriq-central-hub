@@ -66,6 +66,14 @@ function cfString(v: unknown): string | null {
   return typeof v === "string" && v.trim() !== "" ? v.trim() : null;
 }
 
+// source_meta.recipients is stamped by POST /reply on outbound replies; older rows have none.
+function recipientsOf(v: unknown): MessageItem["recipients"] {
+  if (!v || typeof v !== "object") return null;
+  const list = (x: unknown) => (Array.isArray(x) ? x.filter((e): e is string => typeof e === "string") : []);
+  const r = v as Record<string, unknown>;
+  return { to: list(r.to), cc: list(r.cc), bcc: list(r.bcc) };
+}
+
 export async function generateMetadata({
   params,
 }: {
@@ -297,6 +305,7 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
         size: a.size,
       })),
       emailMessageId: m.email_message_id,
+      recipients: recipientsOf(m.source_meta?.recipients),
     };
   });
 
