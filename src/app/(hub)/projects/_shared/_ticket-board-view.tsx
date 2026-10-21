@@ -12,6 +12,7 @@ import {
   type Ticket, BOARD_COLUMNS, SEVERITY_STYLE, formatDueDate, normalizeStatus, normalizeSeverity, decodeHtmlEntities,
 } from "@/app/(hub)/projects-old/_pm-shared";
 import { ticketAssigneeIds } from "@/lib/tickets/permissions";
+import { AttachmentIndicator } from "./_attachment-indicator";
 
 // Tickets have no `position` column (unlike tasks) — board drag only changes status
 // (cross-column). Within a column, cards sort by due date (soonest first, nulls
@@ -27,10 +28,12 @@ export default function TicketBoardView({
   tickets,
   onMove,
   onOpen,
+  attachmentCountById,
 }: {
   tickets: Ticket[];
   onMove: (id: string, status: string) => Promise<void>;
   onOpen: (ticket: Ticket) => void;
+  attachmentCountById: Record<string, number>;
 }) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
@@ -87,7 +90,7 @@ export default function TicketBoardView({
               <Column key={col.id} id={col.id} label={col.label} accent={col.accent} count={items.length}>
                 <div className="flex flex-col gap-2.5 px-0.5 min-h-[40px]">
                   {items.map((i) => (
-                    <DraggableCard key={i.id} ticket={i} onOpen={() => onOpen(i)} />
+                    <DraggableCard key={i.id} ticket={i} onOpen={() => onOpen(i)} attachmentCount={attachmentCountById[i.id]} />
                   ))}
                 </div>
               </Column>
@@ -97,7 +100,7 @@ export default function TicketBoardView({
       </div>
 
       <DragOverlay>
-        {activeTicket ? <CardBody ticket={activeTicket} dragging /> : null}
+        {activeTicket ? <CardBody ticket={activeTicket} attachmentCount={attachmentCountById[activeTicket.id]} dragging /> : null}
       </DragOverlay>
     </DndContext>
   );
@@ -132,7 +135,7 @@ function Column({
 
 // Plain draggable (no in-column sortable reorder — see sortColumn note above,
 // tickets have no `position` column so there's nothing to persist an order into).
-function DraggableCard({ ticket, onOpen }: { ticket: Ticket; onOpen: () => void }) {
+function DraggableCard({ ticket, onOpen, attachmentCount }: { ticket: Ticket; onOpen: () => void; attachmentCount?: number }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: ticket.id });
   const style = {
     transform: CSS.Translate.toString(transform),
@@ -140,12 +143,12 @@ function DraggableCard({ ticket, onOpen }: { ticket: Ticket; onOpen: () => void 
   };
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners} onClick={onOpen}>
-      <CardBody ticket={ticket} />
+      <CardBody ticket={ticket} attachmentCount={attachmentCount} />
     </div>
   );
 }
 
-function CardBody({ ticket, dragging }: { ticket: Ticket; dragging?: boolean }) {
+function CardBody({ ticket, dragging, attachmentCount }: { ticket: Ticket; dragging?: boolean; attachmentCount?: number }) {
   const sev = normalizeSeverity(ticket.severity);
   const sv = SEVERITY_STYLE[sev] ?? SEVERITY_STYLE["None"];
   const due = formatDueDate(ticket.due_date);
@@ -166,6 +169,7 @@ function CardBody({ ticket, dragging }: { ticket: Ticket; dragging?: boolean }) 
             <Calendar size={11} /> {due}
           </span>
         )}
+        <AttachmentIndicator count={attachmentCount} variant="card" />
         {ticket.assignee_name && (
           <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#EDF0F7] text-[#5F6A88]">
             {ticket.assignee_name}

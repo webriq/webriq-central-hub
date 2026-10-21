@@ -15,6 +15,7 @@ import {
   type Task, type TaskStatus, BOARD_COLUMNS, PRIORITY_STYLE, midpoint, formatDueDate, decodeHtmlEntities,
 } from "@/app/(hub)/projects-old/_pm-shared";
 import { getTaskEditPermission } from "@/lib/tasks/permissions";
+import { AttachmentIndicator } from "./_attachment-indicator";
 
 export default function BoardView({
   tasks,
@@ -23,6 +24,7 @@ export default function BoardView({
   onAddInColumn,
   currentUserId,
   currentUserRole,
+  attachmentCountById,
 }: {
   tasks: Task[];
   onMove: (id: string, status: TaskStatus, position: number) => Promise<void>;
@@ -30,6 +32,7 @@ export default function BoardView({
   onAddInColumn: (status: TaskStatus) => void;
   currentUserId: string;
   currentUserRole: string | null;
+  attachmentCountById: Record<string, number>;
 }) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
@@ -129,6 +132,7 @@ export default function BoardView({
                         key={t.id}
                         task={t}
                         onOpen={() => onOpen(t)}
+                        attachmentCount={attachmentCountById[t.id]}
                         canDrag={getTaskEditPermission(currentUserRole, currentUserId, t).canChangeStatus}
                       />
                     ))}
@@ -141,7 +145,7 @@ export default function BoardView({
       </div>
 
       <DragOverlay>
-        {activeTask ? <CardBody task={activeTask} dragging /> : null}
+        {activeTask ? <CardBody task={activeTask} attachmentCount={attachmentCountById[activeTask.id]} dragging /> : null}
       </DragOverlay>
     </DndContext>
   );
@@ -180,7 +184,7 @@ function Column({
   );
 }
 
-function SortableCard({ task, onOpen, canDrag }: { task: Task; onOpen: () => void; canDrag: boolean }) {
+function SortableCard({ task, onOpen, canDrag, attachmentCount }: { task: Task; onOpen: () => void; canDrag: boolean; attachmentCount?: number }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id, disabled: !canDrag });
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -189,12 +193,12 @@ function SortableCard({ task, onOpen, canDrag }: { task: Task; onOpen: () => voi
   };
   return (
     <div ref={setNodeRef} style={style} {...(canDrag ? { ...attributes, ...listeners } : {})} onClick={onOpen}>
-      <CardBody task={task} />
+      <CardBody task={task} attachmentCount={attachmentCount} />
     </div>
   );
 }
 
-function CardBody({ task, dragging }: { task: Task; dragging?: boolean }) {
+function CardBody({ task, dragging, attachmentCount }: { task: Task; dragging?: boolean; attachmentCount?: number }) {
   const p = PRIORITY_STYLE[task.priority];
   const due = formatDueDate(task.due_date);
   return (
@@ -207,13 +211,14 @@ function CardBody({ task, dragging }: { task: Task; dragging?: boolean }) {
         <span className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0" style={{ background: p.dot }} />
         <p className="text-[13px] font-medium text-[#0B1533] leading-snug flex-1">{decodeHtmlEntities(task.title)}</p>
       </div>
-      {(due || task.github_pr_url || (task.labels && task.labels.length > 0)) && (
+      {(due || attachmentCount || task.github_pr_url || (task.labels && task.labels.length > 0)) && (
         <div className="flex items-center gap-2 mt-2.5 pl-3.5 flex-wrap">
           {due && (
             <span className="inline-flex items-center gap-1 text-[11px] text-[#5F6A88]">
               <Calendar size={11} /> {due}
             </span>
           )}
+          <AttachmentIndicator count={attachmentCount} variant="card" />
           {task.github_pr_url && (
             <span className="inline-flex items-center gap-1 text-[11px] text-[#5F6A88]">
               <GitPullRequest size={11} /> PR

@@ -22,6 +22,8 @@ export type ProjectDetailData = {
   profilesById: Record<string, { full_name: string; avatar_url: string | null }>;
   allMembers: { id: string; full_name: string | null; avatar_url: string | null; role: string }[];
   initialHoursById: Record<string, number>;
+  // Task 459 — own + comment attachment count per task/ticket id; only ids with files are present.
+  attachmentCountById: Record<string, number>;
 };
 
 export async function getProjectDetailData(projectId: string): Promise<ProjectDetailData | null> {
@@ -60,7 +62,7 @@ export async function getProjectDetailData(projectId: string): Promise<ProjectDe
     classification = product?.classification ?? null;
   }
 
-  const [milestonesRes, tasklistsRes, tasksRes, issuesRes, customerRes, profilesRes, timeLogsRes, assignableMembers] = await Promise.all([
+  const [milestonesRes, tasklistsRes, tasksRes, issuesRes, customerRes, profilesRes, timeLogsRes, assignableMembers, attachmentCountsRes] = await Promise.all([
     supabase
       .from("milestones")
       .select("*")
@@ -90,6 +92,9 @@ export async function getProjectDetailData(projectId: string): Promise<ProjectDe
     adminClient.from("profiles").select("id, full_name, avatar_url, role").in("role", ["developer", "pm", "admin", "super_admin", "hr", "marketing"]).order("full_name", { ascending: true }),
     supabase.from("time_logs").select("task_id, hours").eq("project_id", project.id),
     getAssignableMembers(),
+    // Session client on purpose: attachments_staff_read RLS decides what the caller may count.
+    // shortcut: one row per item with files, unpaged — page with .range() past 1000 such items.
+    supabase.rpc("project_attachment_counts", { p_project_id: project.id }),
   ]);
 
   const profilesById: Record<string, { full_name: string; avatar_url: string | null }> = {};
@@ -101,6 +106,11 @@ export async function getProjectDetailData(projectId: string): Promise<ProjectDe
   for (const row of (timeLogsRes.data ?? [])) {
     if (row.task_id) hoursById[row.task_id] = (hoursById[row.task_id] ?? 0) + row.hours;
   }
+
+  // Degrades to no indicators until migration 178 is applied.
+  if (attachmentCountsRes.error) console.warn("[project-detail] attachment counts unavailable:", attachmentCountsRes.error.message);
+  const attachmentCountById: Record<string, number> = {};
+  for (const r of attachmentCountsRes.data ?? []) attachmentCountById[r.entity_id] = Number(r.attachment_count);
 
   // Task 209 — derived from allMembers (already fetched above), no extra query.
   const currentUserRole = (profilesRes.data ?? []).find((p) => p.id === currentUserId)?.role ?? null;
@@ -118,5 +128,6 @@ export async function getProjectDetailData(projectId: string): Promise<ProjectDe
     profilesById,
     allMembers: assignableMembers,
     initialHoursById: hoursById,
+    attachmentCountById,
   };
 }

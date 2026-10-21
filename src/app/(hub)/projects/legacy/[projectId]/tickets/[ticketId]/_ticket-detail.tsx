@@ -16,6 +16,7 @@ import { getTicketEditPermission, ticketAssigneeIds } from "@/lib/tickets/permis
 import { AssigneeMultiSelect } from "@/app/(hub)/projects/_shared/_assignee-multi-select";
 import { TaskTimerButton } from "@/app/(hub)/projects/_shared/_task-timer-button";
 import { CopyLinkButton } from "@/app/(hub)/projects/_shared/_copy-link-button";
+import { AttachmentIndicator } from "@/app/(hub)/projects/_shared/_attachment-indicator";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
@@ -103,6 +104,8 @@ export default function TicketDetailClient({
   // Mirrors `_task-detail.tsx`'s identical `timeLogsRefreshKey` wiring; task 234 left this as a
   // no-op placeholder since the Time Logs tab didn't exist yet.
   const [timeLogsRefreshKey, setTimeLogsRefreshKey] = useState(0);
+  // Task 459 — reported by the panel's Attachments tab fetch; null until it loads.
+  const [attachmentCount, setAttachmentCount] = useState<number | null>(null);
   const handleHoursLogged = useCallback(() => {
     setTimeLogsRefreshKey((k) => k + 1);
   }, []);
@@ -174,6 +177,7 @@ export default function TicketDetailClient({
                   formerly {ticket.prefix}
                 </span>
               )}
+              <AttachmentIndicator count={attachmentCount} variant="chip" />
               <StatusBadge status={status as TaskStatus} />
               <SeverityBadge severity={severity} />
               {perm.canStartTimer && (
@@ -359,6 +363,7 @@ export default function TicketDetailClient({
               currentUserName={currentUserName}
               currentUserAvatarUrl={currentUserAvatarUrl}
               timeLogsRefreshKey={timeLogsRefreshKey}
+              onAttachmentsCountChange={setAttachmentCount}
             />
           </div>
 

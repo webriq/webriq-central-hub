@@ -11,6 +11,7 @@ import {
   formatDueDate, normalizeStatus, normalizeSeverity, decodeHtmlEntities,
 } from "@/app/(hub)/projects-old/_pm-shared";
 import { getTicketEditPermission, ticketAssigneeIds } from "@/lib/tickets/permissions";
+import { AttachmentIndicator } from "./_attachment-indicator";
 import { CopyLinkButton } from "./_copy-link-button";
 import { TaskTimerButton } from "./_task-timer-button";
 import { AssigneeMultiSelect } from "./_assignee-multi-select";
@@ -50,6 +51,7 @@ export default function TicketListView({
   currentUserRole,
   allMembers,
   profilesById,
+  attachmentCountById,
   sortKey,
   sortDir,
   onToggleSort,
@@ -68,6 +70,7 @@ export default function TicketListView({
   allMembers: MemberProfile[];
   // Task 351 — display-name/avatar fallback for an assignee no longer in the member pool.
   profilesById: Record<string, { full_name: string; avatar_url: string | null }>;
+  attachmentCountById: Record<string, number>;
   sortKey: TicketSortKey;
   sortDir: TicketSortDir;
   onToggleSort: (key: TicketSortKey) => void;
@@ -310,6 +313,7 @@ export default function TicketListView({
                       {decodeHtmlEntities(ticket.title)}
                     </span>
                   </Link>
+                  <AttachmentIndicator count={attachmentCountById[ticket.id]} variant="row" />
                   <CopyLinkButton
                     url={getHref(ticket)}
                     size={13}

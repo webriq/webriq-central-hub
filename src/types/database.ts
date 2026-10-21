@@ -4884,6 +4884,10 @@ export interface Database {
         Args: { p_ticket_ids: string[] };
         Returns: { ticket_id: string; message_count: number; last_message_at: string | null }[];
       };
+      project_attachment_counts: {
+        Args: { p_project_id: string };
+        Returns: { entity_id: string; attachment_count: number }[];
+      };
       drive_folder_level: {
         Args: { p_folder_id: string };
         Returns: number;

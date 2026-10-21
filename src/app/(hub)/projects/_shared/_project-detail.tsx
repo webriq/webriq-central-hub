@@ -124,6 +124,7 @@ export default function ProjectDetail({
   profilesById,
   allMembers,
   initialHoursById,
+  attachmentCountById,
   activeTab,
   initialScrollTasklistId,
   basePath,
@@ -138,6 +139,7 @@ export default function ProjectDetail({
   profilesById: Record<string, { full_name: string; avatar_url: string | null }>;
   allMembers: { id: string; full_name: string | null; avatar_url: string | null; role: string }[];
   initialHoursById: Record<string, number>;
+  attachmentCountById: Record<string, number>;
   activeTab: PrimaryTab;
   // Task 241 — `?tasklist=<id>` deep-link from the StackShift Timeline's Phase 2-5 swimlane cards.
   initialScrollTasklistId?: string;
@@ -553,6 +555,7 @@ export default function ProjectDetail({
                   onAddInColumn={(status) => setCreateDefaults({ status })}
                   currentUserId={currentUserId}
                   currentUserRole={currentUserRole}
+                  attachmentCountById={attachmentCountById}
                 />
               )}
               {view === "list" && (
@@ -567,6 +570,7 @@ export default function ProjectDetail({
                   profilesById={profilesById}
                   allMembers={allMembers}
                   hoursById={hoursById}
+                  attachmentCountById={attachmentCountById}
                   onHoursLogged={handleHoursLogged}
                   sortKey={sortKey}
                   sortDir={sortDir}
@@ -656,6 +660,7 @@ export default function ProjectDetail({
                   tickets={filteredTickets}
                   onMove={async (id, status) => { await updateTicket(id, { status }); }}
                   onOpen={(ticket) => router.push(`${basePath}/tickets/${ticket.display_id}`)}
+                  attachmentCountById={attachmentCountById}
                 />
               )}
               {ticketView === "list" && (
@@ -668,6 +673,7 @@ export default function ProjectDetail({
                   currentUserRole={currentUserRole}
                   allMembers={allMembers}
                   profilesById={profilesById}
+                  attachmentCountById={attachmentCountById}
                   sortKey={ticketSortKey}
                   sortDir={ticketSortDir}
                   onToggleSort={toggleTicketSort}

@@ -14,6 +14,7 @@ import { TaskAttachmentsCommentsPanel } from "./_task-attachments-comments-panel
 import { getTaskEditPermission } from "@/lib/tasks/permissions";
 import { TaskTimerButton } from "@/app/(hub)/projects/_shared/_task-timer-button";
 import { CopyLinkButton } from "@/app/(hub)/projects/_shared/_copy-link-button";
+import { AttachmentIndicator } from "@/app/(hub)/projects/_shared/_attachment-indicator";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
@@ -125,6 +126,8 @@ export default function TaskDetailClient({
   // Task 218 — bumped whenever the header timer button logs an entry, so the Time Logs tab
   // (which fetches its own data on mount and has no other refresh hook) picks it up live.
   const [timeLogsRefreshKey, setTimeLogsRefreshKey] = useState(0);
+  // Task 459 — reported by the panel's Attachments tab fetch; null until it loads.
+  const [attachmentCount, setAttachmentCount] = useState<number | null>(null);
   const handleHoursLogged = useCallback((_hours: number) => {
     setTimeLogsRefreshKey((k) => k + 1);
   }, []);
@@ -184,6 +187,7 @@ export default function TaskDetailClient({
               <span className="text-[11px] font-mono text-[#5F6A88] bg-[#EDF0F7] px-2 py-0.5 rounded-[5px]">
                 TASK · {task.display_id}
               </span>
+              <AttachmentIndicator count={attachmentCount} variant="chip" />
               <StatusBadge status={status} />
               <PriorityBadge priority={priority} />
               {isAssignedToMe && (
@@ -464,6 +468,7 @@ export default function TaskDetailClient({
               currentUserName={currentUserName}
               currentUserAvatarUrl={currentUserAvatarUrl}
               timeLogsRefreshKey={timeLogsRefreshKey}
+              onAttachmentsCountChange={setAttachmentCount}
             />
           </div>
 

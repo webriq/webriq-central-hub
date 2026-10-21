@@ -35,6 +35,7 @@ export function TicketAttachmentsCommentsPanel({
   currentUserName,
   currentUserAvatarUrl,
   timeLogsRefreshKey,
+  onAttachmentsCountChange,
 }: {
   projectId: string;
   ticketId: string;
@@ -44,6 +45,8 @@ export function TicketAttachmentsCommentsPanel({
   currentUserName: string | null;
   currentUserAvatarUrl: string | null;
   timeLogsRefreshKey?: number;
+  // Task 459 — lets the detail header show the same count as this panel's Attachments tab.
+  onAttachmentsCountChange?: (n: number) => void;
 }) {
   // Task 368, R8 — a `?attachment=<id>` deep link lands directly on the Attachments tab; the
   // `useState` initializer only reads it once, matching the Files tab's `?file=` one-shot pattern
@@ -55,7 +58,10 @@ export function TicketAttachmentsCommentsPanel({
     attachments: null,
   });
   const onCommentsCount = useCallback((n: number) => setCounts((c) => ({ ...c, comments: n })), []);
-  const onAttachmentsCount = useCallback((n: number) => setCounts((c) => ({ ...c, attachments: n })), []);
+  const onAttachmentsCount = useCallback((n: number) => {
+    setCounts((c) => ({ ...c, attachments: n }));
+    onAttachmentsCountChange?.(n);
+  }, [onAttachmentsCountChange]);
 
   return (
     <div className="rounded-[14px] border border-[#E2E7F2] bg-white shadow-[0_1px_2px_rgba(7,17,51,0.05)] overflow-hidden">

@@ -1,11 +1,11 @@
 {
   "file_hashes": {
     "AGENTS.md": "b9e9f3795eea5edee69c60bf0df2a258d1e7938f47ae9a378e835170f05bdbb7",
-    "CLAUDE.md": "e81248b3aa330046ec155a3e6e95bea131abc84afcf5a1d6f337873a94f47de1",
+    "CLAUDE.md": "730b9c8ff7847412ffdf1351d76b754b6611beec4e302bb78b74abf70f0f5f7e",
     "DESIGN.md": "268328dba39d99448570bca13ae18f8a0f45865ecf449c61f30c10ca126352a7",
     "PRODUCT.md": "f28ece08ad639a34df712d611bbdb6480b9e44b6e12851edeb450e6c125ae9dd",
     "README.md": "516b4567b54983fef95143c2886d6e208838827596bab651a8bdabdfd1abb325",
-    "TASKS.md": "ad3dd99a4ed1335da6016614c30e4348bba07de773dee9028a9f872324b51b49",
+    "TASKS.md": "0fc162592898daf525651105687988672e43291e27266e26c55db2f073f03389",
     "eslint.config.mjs": "9085b0476f705857d5030dcbc58c581cb42097e2820a75832786caf42294d8ff",
     "next.config.ts": "24320d4b945c13636722759ac8e14b82ee6f58ce07bb386abeb195c7d5f304c3",
     "nextjs-file-length-best-practices.md": "9cdf740499813f37564b27bf58263570124e90b8673e9a5edae1ac480e9faffb",
@@ -129,13 +129,16 @@
     "src/app/(hub)/hr/_components/date-field.tsx": "4ed56d38029370806478e6b7be8fdf534c7bf942c10e64e767d10027a9edca9d",
     "src/app/(hub)/hr/_components/empty-state.tsx": "b8723317754901eb01aca4d1d6d8305232e97341a5e46b639c405385af76d711",
     "src/app/(hub)/hr/_components/field.tsx": "e54ac34bfcb11a83e3c5f1b5f2a7f605eff7ea55ae0b4106becc59f100032e0e",
+    "src/app/(hub)/hr/_components/modal.tsx": "0f7d716d97f22d646a52810ea9fdc3e1c1a91b4531648a38a3dd55cfd49a6a9b",
     "src/app/(hub)/hr/_components/page-shell.tsx": "73aa24d8279c43bcc65931122a0dc77ee7ffc933f09463913c94cd22f761038d",
     "src/app/(hub)/hr/_components/person-avatar.tsx": "d5ee585113d6b3205c32c90af5343ed04ff4aafefa30f8d2f01facef89e7e9bb",
     "src/app/(hub)/hr/_components/setup-needed.tsx": "7bb8850b05a60de5bd90a23820009e7fabff924807ca499e1877cfe42f0237e0",
+    "src/app/(hub)/hr/_components/skeleton.tsx": "eddd3c4db6567bdb792c9b2b643df03abd242ac0bf8c972fcec553cef9ad0b53",
     "src/app/(hub)/hr/_components/stat-strip.tsx": "41a3614c09a3dc8d5f654e7b8b778009b44c929d60122069bcc52030162cbe88",
     "src/app/(hub)/hr/_components/ui.ts": "280782e9cbdbe92d2899290af9e763ff3dbc47b2cbdbb66f15bb132ffa5d1813",
     "src/app/(hub)/hr/_components/upcoming-holidays.tsx": "ca2339706651136ee6c8581b8fa1777d867b76c339b8191d90f4c885963082c2",
     "src/app/(hub)/hr/_components/use-hr-mutation.ts": "6bc135f95a51dab263766e7719cb3b0b0f978d20c7d943745d291d1ae1e236d7",
+    "src/app/(hub)/hr/_components/whos-out-list.tsx": "7dfb7c4b2e6e0c0c0364997285a71a0db978ff648d891d1ada031e20696a1b34",
     "src/app/(hub)/hr/calendar/_calendar-range.ts": "bc2e65ea2d440567c85f84e71ea542f1e6bc0c496baf8a232f95b86dbf4d18ba",
     "src/app/(hub)/hr/calendar/_calendar-toolbar.tsx": "a96f1a8d11b504e75759353fb4f51fc3835d43cd5eedafc8bb10e545f423dfb4",
     "src/app/(hub)/hr/calendar/_leave-calendar.tsx": "39a94cebde9d3e03ceb4189ee58b91366409ffb64956a3553a1ab1404b5caa27",
@@ -651,8 +654,8 @@
     "supabase/rollbacks/167_user_drive_select_returning_fix_down.sql": "3c86aac6dbef9dfd4b7ce7b8ae6ec9f1499c0c8e66f6212391cd5ee6b74a1673",
     "worker/index.ts": "83350712449db3ec76c4015cedb2bad5dfd0d0ccd91509ee9a6f09ee4f66f9cc"
   },
-  "indexed_at_commit": "5d99788be7674f1f3e8678bb6542c22d9d25cae2",
-  "indexed_at_timestamp": "2026-10-19T04:06:39.568268+00:00",
+  "indexed_at_commit": "139522714d65571c2c0e51776e8e4e163f4b7eef",
+  "indexed_at_timestamp": "2026-10-21T05:42:39.344296+00:00",
   "languages": {
     "markdown": {
       "calls": 0,
@@ -664,15 +667,15 @@
     },
     "typescript": {
       "calls": 647,
-      "nodes": 1549
+      "nodes": 1553
     }
   },
   "parser_version": "3.3.2",
   "schema_version": 3,
   "stats": {
-    "total_edges": 1984,
-    "total_files": 650,
-    "total_nodes": 1996
+    "total_edges": 1987,
+    "total_files": 653,
+    "total_nodes": 2000
   },
   "vexp_version": "3.3.4"
 }

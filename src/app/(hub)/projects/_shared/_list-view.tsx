@@ -12,6 +12,7 @@ import {
 } from "@/app/(hub)/projects-old/_pm-shared";
 import { getTaskEditPermission } from "@/lib/tasks/permissions";
 import { TaskTimerButton } from "./_task-timer-button";
+import { AttachmentIndicator } from "./_attachment-indicator";
 import { CopyLinkButton } from "./_copy-link-button";
 import { AssigneeMultiSelect } from "./_assignee-multi-select";
 import { formatHoursAsHHMM, formatHoursInWords } from "@/lib/timer/format";
@@ -55,6 +56,7 @@ export default function ListView({
   profilesById,
   allMembers,
   hoursById,
+  attachmentCountById,
   onHoursLogged,
   sortKey,
   sortDir,
@@ -78,6 +80,7 @@ export default function ListView({
   profilesById: Record<string, { full_name: string; avatar_url: string | null }>;
   allMembers: MemberProfile[];
   hoursById: Record<string, number>;
+  attachmentCountById: Record<string, number>;
   onHoursLogged: (taskId: string, hours: number) => void;
   sortKey: SortKey;
   sortDir: SortDir;
@@ -304,6 +307,7 @@ export default function ListView({
             profilesById={profilesById}
             allMembers={allMembers}
             hoursById={hoursById}
+            attachmentCount={attachmentCountById[t.id]}
             onHoursLogged={onHoursLogged}
             gridClass={GRID}
           />
@@ -457,7 +461,7 @@ function SortHeader({
 
 function Row({
   task, selected, onToggle, href, onUpdate,
-  currentUserId, currentUserRole, profilesById, allMembers, hoursById, onHoursLogged, gridClass,
+  currentUserId, currentUserRole, profilesById, allMembers, hoursById, attachmentCount, onHoursLogged, gridClass,
   depth, childrenCount, isExpanded, onToggleExpand,
 }: {
   task: Task;
@@ -470,6 +474,7 @@ function Row({
   profilesById: Record<string, { full_name: string; avatar_url: string | null }>;
   allMembers: MemberProfile[];
   hoursById: Record<string, number>;
+  attachmentCount: number | undefined;
   onHoursLogged: (taskId: string, hours: number) => void;
   gridClass: string;
   depth: number;
@@ -539,6 +544,7 @@ function Row({
             {decodeHtmlEntities(task.title)}
           </span>
         </Link>
+        <AttachmentIndicator count={attachmentCount} variant="row" />
         <CopyLinkButton
           url={href}
           size={13}
