@@ -38,6 +38,8 @@ export type ProjectListItem = {
   // `classification` above, which means something unrelated ("legacy" vs "version2" for the
   // existing type filter) — do not conflate the two.
   productClassification: string | null;
+  // Raw multi-select array — the classification modal edits this.
+  productClassifications: string[];
   hasProduct: boolean;
   members: { id: string; full_name: string | null }[];
   canManageCollaborators: boolean;

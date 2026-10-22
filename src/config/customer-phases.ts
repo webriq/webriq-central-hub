@@ -407,19 +407,25 @@ export function isValidClassificationCombo(selected: Classification[]): boolean 
   return selected.filter((c) => STACKSHIFT_VARIANTS.includes(c)).length <= 1;
 }
 
-// Task 361 — the inverse of the intake-time primary-derivation rule above
-// (`classifications.find(c => STACKSHIFT_VARIANTS.includes(c)) ?? classifications[0]`, duplicated
-// inline at several call sites): given a project's existing multi-select array and a new primary
-// classification (e.g. from the "Update classification" modal), returns the array the primary
-// change implies, so a single-column update never leaves `classifications` stale relative to
-// `classification`.
+// The intake-time primary-derivation rule (`find(c => STACKSHIFT_VARIANTS.includes(c)) ?? [0]`,
+// duplicated inline at several call sites) as a function — used by the multi-select classification
+// PATCH route to keep `classification` in step with `classifications`.
+export function derivePrimaryClassification(selected: Classification[]): Classification | null {
+  return selected.find((c) => STACKSHIFT_VARIANTS.includes(c)) ?? selected[0] ?? null;
+}
+
+// Task 361 — the inverse of the primary-derivation rule above: given a project's existing
+// multi-select array and a new primary classification (legacy single-select callers only — the
+// modal now writes the whole array), returns the array the primary change implies, so a
+// single-column update never leaves `classifications` stale relative to `classification`.
 //   - new primary IS a StackShift variant  -> it replaces whichever variant was there, non-variant
 //     entries (PipelineForge, Discrete Development) survive
-//   - new primary is NOT a variant -> by the intake rule above, that means the set has no variant
-//     at all, so dropping every variant here is correct, not lossy
+//   - new primary is NOT a variant -> it is added; every existing entry, variant included, survives
+//     (a single-select call can't express removal, so dropping entries there silently lost them)
 // Duplicate-safe: the new primary never appears twice even if it was already present.
 export function mergeClassificationUpdate(existing: Classification[], newPrimary: Classification): Classification[] {
-  return [newPrimary, ...existing.filter((c) => !STACKSHIFT_VARIANTS.includes(c) && c !== newPrimary)];
+  const isVariant = STACKSHIFT_VARIANTS.includes(newPrimary);
+  return [newPrimary, ...existing.filter((c) => c !== newPrimary && !(isVariant && STACKSHIFT_VARIANTS.includes(c)))];
 }
 
 // Preserves today's single-value fallback (a Discrete-Development-only selection resolves to

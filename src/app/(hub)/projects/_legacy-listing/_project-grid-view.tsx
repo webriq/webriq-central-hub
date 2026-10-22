@@ -120,7 +120,7 @@ function ProjectGridCard({
                 canManageCollaborators={p.canManageCollaborators}
                 canSetOwner={p.canSetOwner}
                 hasProduct={p.hasProduct}
-                currentClassification={p.productClassification}
+                currentClassifications={p.productClassifications}
                 onRename={() => titleRef.current?.startEditing()}
               />
             )}

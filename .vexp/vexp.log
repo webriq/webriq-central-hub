@@ -1,0 +1,194 @@
+
+--- vexp daemon start at 2026-10-22T08:32:47.959Z ---
+[2m2026-10-22T08:32:48.017695Z[0m [32m INFO[0m license: home_dir=/Users/brandondwite (source=os)
+[2m2026-10-22T08:32:48.017729Z[0m [33m WARN[0m license: no valid JWT found, falling back to FREE plan (2000 nodes / 1 repo / 20 daily calls)
+[2m2026-10-22T08:32:48.019998Z[0m [32m INFO[0m Updated vexp section in existing pre-commit hook
+[2m2026-10-22T08:32:48.020452Z[0m [32m INFO[0m Updated vexp section in existing post-merge hook
+[2m2026-10-22T08:32:48.020799Z[0m [32m INFO[0m Updated vexp section in existing post-checkout hook
+[2m2026-10-22T08:32:48.020998Z[0m [32m INFO[0m Created .vexp/.gitattributes
+[2m2026-10-22T08:32:48.021025Z[0m [32m INFO[0m vexp git hooks installed in /Users/brandondwite/Desktop/Projects/Internal/WebriQ-Central-Hub
+[2m2026-10-22T08:32:48.021357Z[0m [32m INFO[0m Opening database at /Users/brandondwite/Desktop/Projects/Internal/WebriQ-Central-Hub/.vexp/index.db
+[2m2026-10-22T08:32:48.029851Z[0m [32m INFO[0m SecurityFilter active — skipping built-in secret paths
+[2m2026-10-22T08:32:48.030094Z[0m [32m INFO[0m Socket server listening on /Users/brandondwite/Desktop/Projects/Internal/WebriQ-Central-Hub/.vexp/daemon.sock
+[2m2026-10-22T08:32:48.031161Z[0m [32m INFO[0m license check-in (daemon): skipped (no paid license key on this machine)
+[2m2026-10-22T08:32:48.031540Z[0m [32m INFO[0m Manifest found, running incremental sync
+[2m2026-10-22T08:32:48.031858Z[0m [32m INFO[0m Running checkout sync
+[mcp] singleton already running (pidfile match)
+[2m2026-10-22T08:32:48.976846Z[0m [32m INFO[0m File watcher: monitorando /Users/brandondwite/Desktop/Projects/Internal/WebriQ-Central-Hub (617 directories)
+[2m2026-10-22T08:32:48.977267Z[0m [32m INFO[0m LLM compression not configured — rule compressor active
+[2m2026-10-22T08:32:48.977271Z[0m [32m INFO[0m vexp-core daemon started (v3.3.7), watching for changes
+[2m2026-10-22T08:34:19.098635Z[0m [32m INFO[0m index skip (3876 KB > max_file_size_kb 512): /Users/brandondwite/Desktop/Projects/Internal/WebriQ-Central-Hub/_WebriQ_Central_Hub_SCRUM_Tracker/resources/sheet.css
+[2m2026-10-22T08:34:19.105606Z[0m [32m INFO[0m Reconciliation: 749 files out of sync with the index (0 deleted) — syncing
+[2m2026-10-22T08:34:19.122014Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 747 files. Upgrade your plan for more capacity.
+[2m2026-10-22T08:34:19.135024Z[0m [32m INFO[0m CallResolver: scanning 1165 callable nodes (0 LSP edges pre-integrated; the VS Code bridge adds type-resolved edges incrementally as files are opened)
+[2m2026-10-22T08:34:19.226497Z[0m [32m INFO[0m CallResolver: created 659 CALLS edges
+[2m2026-10-22T08:34:20.215205Z[0m [32m INFO[0m TF-IDF corpus: 2000 documents, 5625 unique terms
+[2m2026-10-22T08:34:20.312460Z[0m [32m INFO[0m Reconciliation (WebriQ-Central-Hub): 749 files brought back in sync
+[2m2026-10-22T08:39:19.106017Z[0m [32m INFO[0m index skip (3876 KB > max_file_size_kb 512): /Users/brandondwite/Desktop/Projects/Internal/WebriQ-Central-Hub/_WebriQ_Central_Hub_SCRUM_Tracker/resources/sheet.css
+[2m2026-10-22T08:39:19.108496Z[0m [32m INFO[0m Reconciliation: 747 files out of sync with the index (0 deleted) — syncing
+[2m2026-10-22T08:39:19.109246Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 747 files. Upgrade your plan for more capacity.
+[2m2026-10-22T08:39:19.111451Z[0m [32m INFO[0m Reconciliation (WebriQ-Central-Hub): 747 files brought back in sync
+[2m2026-10-22T08:44:19.096961Z[0m [32m INFO[0m index skip (3876 KB > max_file_size_kb 512): /Users/brandondwite/Desktop/Projects/Internal/WebriQ-Central-Hub/_WebriQ_Central_Hub_SCRUM_Tracker/resources/sheet.css
+[2m2026-10-22T08:44:19.099522Z[0m [32m INFO[0m Reconciliation: 747 files out of sync with the index (0 deleted) — syncing
+[2m2026-10-22T08:44:19.100364Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 747 files. Upgrade your plan for more capacity.
+[2m2026-10-22T08:44:19.105311Z[0m [32m INFO[0m Reconciliation (WebriQ-Central-Hub): 747 files brought back in sync
+[2m2026-10-22T08:49:19.100531Z[0m [32m INFO[0m index skip (3876 KB > max_file_size_kb 512): /Users/brandondwite/Desktop/Projects/Internal/WebriQ-Central-Hub/_WebriQ_Central_Hub_SCRUM_Tracker/resources/sheet.css
+[2m2026-10-22T08:49:19.103772Z[0m [32m INFO[0m Reconciliation: 747 files out of sync with the index (0 deleted) — syncing
+[2m2026-10-22T08:49:19.104589Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 747 files. Upgrade your plan for more capacity.
+[2m2026-10-22T08:49:19.106949Z[0m [32m INFO[0m Reconciliation (WebriQ-Central-Hub): 747 files brought back in sync
+[2m2026-10-22T08:54:19.093707Z[0m [32m INFO[0m index skip (3876 KB > max_file_size_kb 512): /Users/brandondwite/Desktop/Projects/Internal/WebriQ-Central-Hub/_WebriQ_Central_Hub_SCRUM_Tracker/resources/sheet.css
+[2m2026-10-22T08:54:19.096725Z[0m [32m INFO[0m Reconciliation: 747 files out of sync with the index (0 deleted) — syncing
+[2m2026-10-22T08:54:19.097571Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 747 files. Upgrade your plan for more capacity.
+[2m2026-10-22T08:54:19.103055Z[0m [32m INFO[0m Reconciliation (WebriQ-Central-Hub): 747 files brought back in sync
+[2m2026-10-22T08:59:19.104027Z[0m [32m INFO[0m index skip (3876 KB > max_file_size_kb 512): /Users/brandondwite/Desktop/Projects/Internal/WebriQ-Central-Hub/_WebriQ_Central_Hub_SCRUM_Tracker/resources/sheet.css
+[2m2026-10-22T08:59:19.106707Z[0m [32m INFO[0m Reconciliation: 747 files out of sync with the index (0 deleted) — syncing
+[2m2026-10-22T08:59:19.107530Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 747 files. Upgrade your plan for more capacity.
+[2m2026-10-22T08:59:19.110447Z[0m [32m INFO[0m Reconciliation (WebriQ-Central-Hub): 747 files brought back in sync
+[2m2026-10-22T09:04:19.122573Z[0m [32m INFO[0m index skip (3876 KB > max_file_size_kb 512): /Users/brandondwite/Desktop/Projects/Internal/WebriQ-Central-Hub/_WebriQ_Central_Hub_SCRUM_Tracker/resources/sheet.css
+[2m2026-10-22T09:04:19.125349Z[0m [32m INFO[0m Reconciliation: 747 files out of sync with the index (0 deleted) — syncing
+[2m2026-10-22T09:04:19.126102Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 747 files. Upgrade your plan for more capacity.
+[2m2026-10-22T09:04:19.128937Z[0m [32m INFO[0m Reconciliation (WebriQ-Central-Hub): 747 files brought back in sync
+[2m2026-10-22T09:09:19.135368Z[0m [32m INFO[0m index skip (3876 KB > max_file_size_kb 512): /Users/brandondwite/Desktop/Projects/Internal/WebriQ-Central-Hub/_WebriQ_Central_Hub_SCRUM_Tracker/resources/sheet.css
+[2m2026-10-22T09:09:19.137902Z[0m [32m INFO[0m Reconciliation: 747 files out of sync with the index (0 deleted) — syncing
+[2m2026-10-22T09:09:19.139056Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 747 files. Upgrade your plan for more capacity.
+[2m2026-10-22T09:09:19.142573Z[0m [32m INFO[0m Reconciliation (WebriQ-Central-Hub): 747 files brought back in sync
+[2m2026-10-22T09:14:19.137089Z[0m [32m INFO[0m index skip (3876 KB > max_file_size_kb 512): /Users/brandondwite/Desktop/Projects/Internal/WebriQ-Central-Hub/_WebriQ_Central_Hub_SCRUM_Tracker/resources/sheet.css
+[2m2026-10-22T09:14:19.142900Z[0m [32m INFO[0m Reconciliation: 747 files out of sync with the index (0 deleted) — syncing
+[2m2026-10-22T09:14:19.147165Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 747 files. Upgrade your plan for more capacity.
+[2m2026-10-22T09:14:19.150364Z[0m [32m INFO[0m Reconciliation (WebriQ-Central-Hub): 747 files brought back in sync
+[2m2026-10-22T09:19:19.158806Z[0m [32m INFO[0m index skip (3876 KB > max_file_size_kb 512): /Users/brandondwite/Desktop/Projects/Internal/WebriQ-Central-Hub/_WebriQ_Central_Hub_SCRUM_Tracker/resources/sheet.css
+[2m2026-10-22T09:19:19.161492Z[0m [32m INFO[0m Reconciliation: 747 files out of sync with the index (0 deleted) — syncing
+[2m2026-10-22T09:19:19.162225Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 747 files. Upgrade your plan for more capacity.
+[2m2026-10-22T09:19:19.165054Z[0m [32m INFO[0m Reconciliation (WebriQ-Central-Hub): 747 files brought back in sync
+[2m2026-10-22T09:24:19.156680Z[0m [32m INFO[0m index skip (3876 KB > max_file_size_kb 512): /Users/brandondwite/Desktop/Projects/Internal/WebriQ-Central-Hub/_WebriQ_Central_Hub_SCRUM_Tracker/resources/sheet.css
+[2m2026-10-22T09:24:19.159527Z[0m [32m INFO[0m Reconciliation: 747 files out of sync with the index (0 deleted) — syncing
+[2m2026-10-22T09:24:19.160745Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 747 files. Upgrade your plan for more capacity.
+[2m2026-10-22T09:24:19.163418Z[0m [32m INFO[0m Reconciliation (WebriQ-Central-Hub): 747 files brought back in sync
+[2m2026-10-22T09:29:19.156120Z[0m [32m INFO[0m index skip (3876 KB > max_file_size_kb 512): /Users/brandondwite/Desktop/Projects/Internal/WebriQ-Central-Hub/_WebriQ_Central_Hub_SCRUM_Tracker/resources/sheet.css
+[2m2026-10-22T09:29:19.158841Z[0m [32m INFO[0m Reconciliation: 747 files out of sync with the index (0 deleted) — syncing
+[2m2026-10-22T09:29:19.160199Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 747 files. Upgrade your plan for more capacity.
+[2m2026-10-22T09:29:19.162761Z[0m [32m INFO[0m Reconciliation (WebriQ-Central-Hub): 747 files brought back in sync
+[2m2026-10-22T09:34:19.140634Z[0m [32m INFO[0m index skip (3876 KB > max_file_size_kb 512): /Users/brandondwite/Desktop/Projects/Internal/WebriQ-Central-Hub/_WebriQ_Central_Hub_SCRUM_Tracker/resources/sheet.css
+[2m2026-10-22T09:34:19.143296Z[0m [32m INFO[0m Reconciliation: 747 files out of sync with the index (0 deleted) — syncing
+[2m2026-10-22T09:34:19.144133Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 747 files. Upgrade your plan for more capacity.
+[2m2026-10-22T09:34:19.146449Z[0m [32m INFO[0m Reconciliation (WebriQ-Central-Hub): 747 files brought back in sync
+[2m2026-10-22T09:39:19.145674Z[0m [32m INFO[0m index skip (3876 KB > max_file_size_kb 512): /Users/brandondwite/Desktop/Projects/Internal/WebriQ-Central-Hub/_WebriQ_Central_Hub_SCRUM_Tracker/resources/sheet.css
+[2m2026-10-22T09:39:19.148911Z[0m [32m INFO[0m Reconciliation: 747 files out of sync with the index (0 deleted) — syncing
+[2m2026-10-22T09:39:19.149870Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 747 files. Upgrade your plan for more capacity.
+[2m2026-10-22T09:39:19.152957Z[0m [32m INFO[0m Reconciliation (WebriQ-Central-Hub): 747 files brought back in sync
+[2m2026-10-22T09:42:22.331855Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 2 files. Upgrade your plan for more capacity.
+[2m2026-10-22T09:42:31.720826Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 2 files. Upgrade your plan for more capacity.
+[2m2026-10-22T09:42:35.072412Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 2 files. Upgrade your plan for more capacity.
+[2m2026-10-22T09:42:42.020820Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 2 files. Upgrade your plan for more capacity.
+[2m2026-10-22T09:42:46.276851Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 2 files. Upgrade your plan for more capacity.
+[2m2026-10-22T09:42:49.223448Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 2 files. Upgrade your plan for more capacity.
+[2m2026-10-22T09:42:52.376566Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 2 files. Upgrade your plan for more capacity.
+[2m2026-10-22T09:42:58.079783Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 2 files. Upgrade your plan for more capacity.
+[2m2026-10-22T09:43:02.770390Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 2 files. Upgrade your plan for more capacity.
+[2m2026-10-22T09:43:06.169561Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 2 files. Upgrade your plan for more capacity.
+[2m2026-10-22T09:43:10.069699Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 2 files. Upgrade your plan for more capacity.
+[2m2026-10-22T09:43:12.873834Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 2 files. Upgrade your plan for more capacity.
+[2m2026-10-22T09:43:18.421790Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 2 files. Upgrade your plan for more capacity.
+[2m2026-10-22T09:43:21.625391Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 2 files. Upgrade your plan for more capacity.
+[2m2026-10-22T09:43:25.821183Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 2 files. Upgrade your plan for more capacity.
+[2m2026-10-22T09:43:32.672189Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 2 files. Upgrade your plan for more capacity.
+[2m2026-10-22T09:43:35.671919Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 4 files. Upgrade your plan for more capacity.
+[2m2026-10-22T09:43:39.572355Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 2 files. Upgrade your plan for more capacity.
+[2m2026-10-22T09:43:43.375827Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 2 files. Upgrade your plan for more capacity.
+[2m2026-10-22T09:43:47.220401Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 2 files. Upgrade your plan for more capacity.
+[2m2026-10-22T09:43:51.269581Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 8 files. Upgrade your plan for more capacity.
+[2m2026-10-22T09:44:19.142602Z[0m [32m INFO[0m index skip (3876 KB > max_file_size_kb 512): /Users/brandondwite/Desktop/Projects/Internal/WebriQ-Central-Hub/_WebriQ_Central_Hub_SCRUM_Tracker/resources/sheet.css
+[2m2026-10-22T09:44:19.148272Z[0m [32m INFO[0m Reconciliation: 755 files out of sync with the index (0 deleted) — syncing
+[2m2026-10-22T09:44:19.149744Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 755 files. Upgrade your plan for more capacity.
+[2m2026-10-22T09:44:19.152108Z[0m [32m INFO[0m Reconciliation (WebriQ-Central-Hub): 755 files brought back in sync
+[2m2026-10-22T09:44:22.824155Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 2 files. Upgrade your plan for more capacity.
+[2m2026-10-22T09:44:27.522849Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 2 files. Upgrade your plan for more capacity.
+[2m2026-10-22T09:44:35.071906Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 2 files. Upgrade your plan for more capacity.
+[2m2026-10-22T09:44:35.575151Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 2 files. Upgrade your plan for more capacity.
+[2m2026-10-22T09:44:42.121688Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 2 files. Upgrade your plan for more capacity.
+[2m2026-10-22T09:44:49.721478Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 2 files. Upgrade your plan for more capacity.
+[2m2026-10-22T09:45:00.668766Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 2 files. Upgrade your plan for more capacity.
+[2m2026-10-22T09:49:19.099618Z[0m [32m INFO[0m index skip (3876 KB > max_file_size_kb 512): /Users/brandondwite/Desktop/Projects/Internal/WebriQ-Central-Hub/_WebriQ_Central_Hub_SCRUM_Tracker/resources/sheet.css
+[2m2026-10-22T09:49:19.102916Z[0m [32m INFO[0m Reconciliation: 756 files out of sync with the index (0 deleted) — syncing
+[2m2026-10-22T09:49:19.103778Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 756 files. Upgrade your plan for more capacity.
+[2m2026-10-22T09:49:19.106625Z[0m [32m INFO[0m Reconciliation (WebriQ-Central-Hub): 756 files brought back in sync
+[2m2026-10-22T09:54:19.100845Z[0m [32m INFO[0m index skip (3876 KB > max_file_size_kb 512): /Users/brandondwite/Desktop/Projects/Internal/WebriQ-Central-Hub/_WebriQ_Central_Hub_SCRUM_Tracker/resources/sheet.css
+[2m2026-10-22T09:54:19.103958Z[0m [32m INFO[0m Reconciliation: 756 files out of sync with the index (0 deleted) — syncing
+[2m2026-10-22T09:54:19.104839Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 756 files. Upgrade your plan for more capacity.
+[2m2026-10-22T09:54:19.107248Z[0m [32m INFO[0m Reconciliation (WebriQ-Central-Hub): 756 files brought back in sync
+[2m2026-10-22T09:59:19.099736Z[0m [32m INFO[0m index skip (3876 KB > max_file_size_kb 512): /Users/brandondwite/Desktop/Projects/Internal/WebriQ-Central-Hub/_WebriQ_Central_Hub_SCRUM_Tracker/resources/sheet.css
+[2m2026-10-22T09:59:19.103115Z[0m [32m INFO[0m Reconciliation: 756 files out of sync with the index (0 deleted) — syncing
+[2m2026-10-22T09:59:19.104155Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 756 files. Upgrade your plan for more capacity.
+[2m2026-10-22T09:59:19.106521Z[0m [32m INFO[0m Reconciliation (WebriQ-Central-Hub): 756 files brought back in sync
+[2m2026-10-22T10:04:19.066617Z[0m [32m INFO[0m index skip (3876 KB > max_file_size_kb 512): /Users/brandondwite/Desktop/Projects/Internal/WebriQ-Central-Hub/_WebriQ_Central_Hub_SCRUM_Tracker/resources/sheet.css
+[2m2026-10-22T10:04:19.070545Z[0m [32m INFO[0m Reconciliation: 756 files out of sync with the index (0 deleted) — syncing
+[2m2026-10-22T10:04:19.072819Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 756 files. Upgrade your plan for more capacity.
+[2m2026-10-22T10:04:19.076596Z[0m [32m INFO[0m Reconciliation (WebriQ-Central-Hub): 756 files brought back in sync
+[2m2026-10-22T10:09:19.067800Z[0m [32m INFO[0m index skip (3876 KB > max_file_size_kb 512): /Users/brandondwite/Desktop/Projects/Internal/WebriQ-Central-Hub/_WebriQ_Central_Hub_SCRUM_Tracker/resources/sheet.css
+[2m2026-10-22T10:09:19.071020Z[0m [32m INFO[0m Reconciliation: 756 files out of sync with the index (0 deleted) — syncing
+[2m2026-10-22T10:09:19.071754Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 756 files. Upgrade your plan for more capacity.
+[2m2026-10-22T10:09:19.074194Z[0m [32m INFO[0m Reconciliation (WebriQ-Central-Hub): 756 files brought back in sync
+[2m2026-10-22T10:14:19.062949Z[0m [32m INFO[0m index skip (3876 KB > max_file_size_kb 512): /Users/brandondwite/Desktop/Projects/Internal/WebriQ-Central-Hub/_WebriQ_Central_Hub_SCRUM_Tracker/resources/sheet.css
+[2m2026-10-22T10:14:19.066069Z[0m [32m INFO[0m Reconciliation: 756 files out of sync with the index (0 deleted) — syncing
+[2m2026-10-22T10:14:19.067011Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 756 files. Upgrade your plan for more capacity.
+[2m2026-10-22T10:14:19.072352Z[0m [32m INFO[0m Reconciliation (WebriQ-Central-Hub): 756 files brought back in sync
+[2m2026-10-22T10:19:19.091907Z[0m [32m INFO[0m index skip (3876 KB > max_file_size_kb 512): /Users/brandondwite/Desktop/Projects/Internal/WebriQ-Central-Hub/_WebriQ_Central_Hub_SCRUM_Tracker/resources/sheet.css
+[2m2026-10-22T10:19:19.095718Z[0m [32m INFO[0m Reconciliation: 756 files out of sync with the index (0 deleted) — syncing
+[2m2026-10-22T10:19:19.097921Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 756 files. Upgrade your plan for more capacity.
+[2m2026-10-22T10:19:19.100641Z[0m [32m INFO[0m Reconciliation (WebriQ-Central-Hub): 756 files brought back in sync
+[2m2026-10-22T10:24:19.101242Z[0m [32m INFO[0m index skip (3876 KB > max_file_size_kb 512): /Users/brandondwite/Desktop/Projects/Internal/WebriQ-Central-Hub/_WebriQ_Central_Hub_SCRUM_Tracker/resources/sheet.css
+[2m2026-10-22T10:24:19.104627Z[0m [32m INFO[0m Reconciliation: 756 files out of sync with the index (0 deleted) — syncing
+[2m2026-10-22T10:24:19.105440Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 756 files. Upgrade your plan for more capacity.
+[2m2026-10-22T10:24:19.108348Z[0m [32m INFO[0m Reconciliation (WebriQ-Central-Hub): 756 files brought back in sync
+[2m2026-10-22T10:29:19.102125Z[0m [32m INFO[0m index skip (3876 KB > max_file_size_kb 512): /Users/brandondwite/Desktop/Projects/Internal/WebriQ-Central-Hub/_WebriQ_Central_Hub_SCRUM_Tracker/resources/sheet.css
+[2m2026-10-22T10:29:19.105450Z[0m [32m INFO[0m Reconciliation: 756 files out of sync with the index (0 deleted) — syncing
+[2m2026-10-22T10:29:19.106290Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 756 files. Upgrade your plan for more capacity.
+[2m2026-10-22T10:29:19.109342Z[0m [32m INFO[0m Reconciliation (WebriQ-Central-Hub): 756 files brought back in sync
+[2m2026-10-22T10:34:19.109450Z[0m [32m INFO[0m index skip (3876 KB > max_file_size_kb 512): /Users/brandondwite/Desktop/Projects/Internal/WebriQ-Central-Hub/_WebriQ_Central_Hub_SCRUM_Tracker/resources/sheet.css
+[2m2026-10-22T10:34:19.113221Z[0m [32m INFO[0m Reconciliation: 756 files out of sync with the index (0 deleted) — syncing
+[2m2026-10-22T10:34:19.114096Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 756 files. Upgrade your plan for more capacity.
+[2m2026-10-22T10:34:19.117735Z[0m [32m INFO[0m Reconciliation (WebriQ-Central-Hub): 756 files brought back in sync
+[2m2026-10-22T10:39:19.092748Z[0m [32m INFO[0m index skip (3876 KB > max_file_size_kb 512): /Users/brandondwite/Desktop/Projects/Internal/WebriQ-Central-Hub/_WebriQ_Central_Hub_SCRUM_Tracker/resources/sheet.css
+[2m2026-10-22T10:39:19.095747Z[0m [32m INFO[0m Reconciliation: 756 files out of sync with the index (0 deleted) — syncing
+[2m2026-10-22T10:39:19.096654Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 756 files. Upgrade your plan for more capacity.
+[2m2026-10-22T10:39:19.099418Z[0m [32m INFO[0m Reconciliation (WebriQ-Central-Hub): 756 files brought back in sync
+[2m2026-10-22T10:44:19.096319Z[0m [32m INFO[0m index skip (3876 KB > max_file_size_kb 512): /Users/brandondwite/Desktop/Projects/Internal/WebriQ-Central-Hub/_WebriQ_Central_Hub_SCRUM_Tracker/resources/sheet.css
+[2m2026-10-22T10:44:19.100415Z[0m [32m INFO[0m Reconciliation: 756 files out of sync with the index (0 deleted) — syncing
+[2m2026-10-22T10:44:19.101351Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 756 files. Upgrade your plan for more capacity.
+[2m2026-10-22T10:44:19.104343Z[0m [32m INFO[0m Reconciliation (WebriQ-Central-Hub): 756 files brought back in sync
+[2m2026-10-22T10:49:19.142143Z[0m [32m INFO[0m index skip (3876 KB > max_file_size_kb 512): /Users/brandondwite/Desktop/Projects/Internal/WebriQ-Central-Hub/_WebriQ_Central_Hub_SCRUM_Tracker/resources/sheet.css
+[2m2026-10-22T10:49:19.145457Z[0m [32m INFO[0m Reconciliation: 756 files out of sync with the index (0 deleted) — syncing
+[2m2026-10-22T10:49:19.146197Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 756 files. Upgrade your plan for more capacity.
+[2m2026-10-22T10:49:19.149562Z[0m [32m INFO[0m Reconciliation (WebriQ-Central-Hub): 756 files brought back in sync
+[2m2026-10-22T10:54:19.119069Z[0m [32m INFO[0m index skip (3876 KB > max_file_size_kb 512): /Users/brandondwite/Desktop/Projects/Internal/WebriQ-Central-Hub/_WebriQ_Central_Hub_SCRUM_Tracker/resources/sheet.css
+[2m2026-10-22T10:54:19.122552Z[0m [32m INFO[0m Reconciliation: 756 files out of sync with the index (0 deleted) — syncing
+[2m2026-10-22T10:54:19.123540Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 756 files. Upgrade your plan for more capacity.
+[2m2026-10-22T10:54:19.127024Z[0m [32m INFO[0m Reconciliation (WebriQ-Central-Hub): 756 files brought back in sync
+[2m2026-10-22T10:59:19.119530Z[0m [32m INFO[0m index skip (3876 KB > max_file_size_kb 512): /Users/brandondwite/Desktop/Projects/Internal/WebriQ-Central-Hub/_WebriQ_Central_Hub_SCRUM_Tracker/resources/sheet.css
+[2m2026-10-22T10:59:19.123032Z[0m [32m INFO[0m Reconciliation: 756 files out of sync with the index (0 deleted) — syncing
+[2m2026-10-22T10:59:19.123906Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 756 files. Upgrade your plan for more capacity.
+[2m2026-10-22T10:59:19.126467Z[0m [32m INFO[0m Reconciliation (WebriQ-Central-Hub): 756 files brought back in sync
+[2m2026-10-22T11:04:19.112316Z[0m [32m INFO[0m index skip (3876 KB > max_file_size_kb 512): /Users/brandondwite/Desktop/Projects/Internal/WebriQ-Central-Hub/_WebriQ_Central_Hub_SCRUM_Tracker/resources/sheet.css
+[2m2026-10-22T11:04:19.117428Z[0m [32m INFO[0m Reconciliation: 756 files out of sync with the index (0 deleted) — syncing
+[2m2026-10-22T11:04:19.118206Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 756 files. Upgrade your plan for more capacity.
+[2m2026-10-22T11:04:19.123306Z[0m [32m INFO[0m Reconciliation (WebriQ-Central-Hub): 756 files brought back in sync
+[2m2026-10-22T11:09:19.122286Z[0m [32m INFO[0m index skip (3876 KB > max_file_size_kb 512): /Users/brandondwite/Desktop/Projects/Internal/WebriQ-Central-Hub/_WebriQ_Central_Hub_SCRUM_Tracker/resources/sheet.css
+[2m2026-10-22T11:09:19.125357Z[0m [32m INFO[0m Reconciliation: 756 files out of sync with the index (0 deleted) — syncing
+[2m2026-10-22T11:09:19.126233Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 756 files. Upgrade your plan for more capacity.
+[2m2026-10-22T11:09:19.128403Z[0m [32m INFO[0m Reconciliation (WebriQ-Central-Hub): 756 files brought back in sync
+[2m2026-10-22T11:14:19.127957Z[0m [32m INFO[0m index skip (3876 KB > max_file_size_kb 512): /Users/brandondwite/Desktop/Projects/Internal/WebriQ-Central-Hub/_WebriQ_Central_Hub_SCRUM_Tracker/resources/sheet.css
+[2m2026-10-22T11:14:19.131017Z[0m [32m INFO[0m Reconciliation: 756 files out of sync with the index (0 deleted) — syncing
+[2m2026-10-22T11:14:19.131971Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 756 files. Upgrade your plan for more capacity.
+[2m2026-10-22T11:14:19.134203Z[0m [32m INFO[0m Reconciliation (WebriQ-Central-Hub): 756 files brought back in sync
+[2m2026-10-22T11:19:19.109522Z[0m [32m INFO[0m index skip (3876 KB > max_file_size_kb 512): /Users/brandondwite/Desktop/Projects/Internal/WebriQ-Central-Hub/_WebriQ_Central_Hub_SCRUM_Tracker/resources/sheet.css
+[2m2026-10-22T11:19:19.112518Z[0m [32m INFO[0m Reconciliation: 756 files out of sync with the index (0 deleted) — syncing
+[2m2026-10-22T11:19:19.113385Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 756 files. Upgrade your plan for more capacity.
+[2m2026-10-22T11:19:19.118737Z[0m [32m INFO[0m Reconciliation (WebriQ-Central-Hub): 756 files brought back in sync
+[2m2026-10-22T11:24:19.146681Z[0m [32m INFO[0m index skip (3876 KB > max_file_size_kb 512): /Users/brandondwite/Desktop/Projects/Internal/WebriQ-Central-Hub/_WebriQ_Central_Hub_SCRUM_Tracker/resources/sheet.css
+[2m2026-10-22T11:24:19.151091Z[0m [32m INFO[0m Reconciliation: 756 files out of sync with the index (0 deleted) — syncing
+[2m2026-10-22T11:24:19.153438Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 756 files. Upgrade your plan for more capacity.
+[2m2026-10-22T11:24:19.157518Z[0m [32m INFO[0m Reconciliation (WebriQ-Central-Hub): 756 files brought back in sync
+[2m2026-10-22T11:29:19.126146Z[0m [32m INFO[0m index skip (3876 KB > max_file_size_kb 512): /Users/brandondwite/Desktop/Projects/Internal/WebriQ-Central-Hub/_WebriQ_Central_Hub_SCRUM_Tracker/resources/sheet.css
+[2m2026-10-22T11:29:19.129079Z[0m [32m INFO[0m Reconciliation: 756 files out of sync with the index (0 deleted) — syncing
+[2m2026-10-22T11:29:19.130015Z[0m [33m WARN[0m Node limit reached (2000/2000). Skipping the remaining 756 files. Upgrade your plan for more capacity.
+[2m2026-10-22T11:29:19.132420Z[0m [32m INFO[0m Reconciliation (WebriQ-Central-Hub): 756 files brought back in sync

@@ -23,7 +23,7 @@ const MENU_HEIGHT = 280;
 // `onClick={(e) => e.preventDefault()}` tags-row pattern) and `stopPropagation`.
 export function ProjectCardMenu({
   projectId, projectDbId, projectName, canDelete, canManageCollaborators, canSetOwner,
-  hasProduct, currentClassification, onRename,
+  hasProduct, currentClassifications, onRename,
 }: {
   projectId: string | null;
   projectDbId: string;
@@ -32,7 +32,7 @@ export function ProjectCardMenu({
   canManageCollaborators: boolean;
   canSetOwner: boolean;
   hasProduct: boolean;
-  currentClassification: string | null;
+  currentClassifications: string[];
   onRename: () => void;
 }) {
   const router = useRouter();
@@ -224,7 +224,7 @@ export function ProjectCardMenu({
           onClose={() => setClassificationOpen(false)}
           projectId={projectId}
           projectName={projectName}
-          currentClassification={currentClassification}
+          currentClassifications={currentClassifications}
           onUpdated={() => router.refresh()}
         />
       )}

@@ -24,6 +24,8 @@ export type OnboardingProjectListItem = {
   company_name: string;
   customer_id: string;
   classification: string | null;
+  // Raw multi-select array — the classification modal edits this, not the primary column.
+  classifications: string[];
   hasProduct: boolean;
   current_phase_number: number | null;
   current_phase_name: string | null;

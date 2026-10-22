@@ -149,7 +149,7 @@ export function ProjectCard({
             canManageCollaborators={canManageCollaborators}
             canSetOwner={canSetOwner}
             hasProduct={item.hasProduct}
-            currentClassification={item.classification}
+            currentClassifications={item.classifications}
             onDeleted={onDeleted}
             onRename={() => titleRef.current?.startEditing()}
           />

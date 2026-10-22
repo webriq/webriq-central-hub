@@ -36,6 +36,8 @@ export type ProjectListItem = {
   // Task 268 — the real StackShift/PipelineForge/etc. classification (customer_products.
   // classification, joined via customer_product_id).
   productClassification: string | null;
+  // Raw multi-select array — the classification modal edits this.
+  productClassifications: string[];
   hasProduct: boolean;
   members: { id: string; full_name: string | null; avatar_url: string | null }[];
   canManageCollaborators: boolean;

@@ -28,7 +28,7 @@ const MENU_HEIGHT = 280;
 // card's own onClick regardless.
 export function PortfolioCardMenu({
   projectId, projectDbId, projectName, canDelete, canManageCollaborators, canSetOwner,
-  hasProduct, currentClassification, onDeleted, onRename,
+  hasProduct, currentClassifications, onDeleted, onRename,
 }: {
   projectId: string | null;
   projectDbId: string;
@@ -37,7 +37,7 @@ export function PortfolioCardMenu({
   canManageCollaborators: boolean;
   canSetOwner: boolean;
   hasProduct: boolean;
-  currentClassification: string | null;
+  currentClassifications: string[];
   onDeleted: () => void;
   onRename: () => void;
 }) {
@@ -217,7 +217,7 @@ export function PortfolioCardMenu({
           onClose={() => setClassificationOpen(false)}
           projectId={projectId}
           projectName={projectName}
-          currentClassification={currentClassification}
+          currentClassifications={currentClassifications}
           onUpdated={() => router.refresh()}
         />
       )}

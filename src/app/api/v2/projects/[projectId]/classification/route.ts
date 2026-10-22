@@ -2,7 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { canManageProjectMembers } from "@/lib/programme/membership-rules";
-import { CLASSIFICATIONS, mergeClassificationUpdate, type Classification } from "@/config/customer-phases";
+import {
+  CLASSIFICATIONS,
+  derivePrimaryClassification,
+  isValidClassificationCombo,
+  mergeClassificationUpdate,
+  type Classification,
+} from "@/config/customer-phases";
 
 // PATCH /api/v2/projects/[projectId]/classification — task 268. Updates the classification on
 // the project's linked customer_products row (customer_products.classification), keyed via
@@ -46,19 +52,34 @@ export async function PATCH(
     return NextResponse.json({ error: "This project has no linked product to classify" }, { status: 400 });
   }
 
-  const classification = typeof body.classification === "string" ? body.classification : "";
-  if (!(CLASSIFICATIONS as readonly string[]).includes(classification)) {
-    return NextResponse.json({ error: "Invalid classification" }, { status: 400 });
-  }
-
-  // Task 361 — keep the multi-select `classifications` array in sync with the primary column.
-  // This route used to write `classification` alone, leaving the array holding the pre-edit
-  // value; the projects listing's classification tabs match on the union of the two, so a stale
-  // array would leave an edited project showing under both its old and its new tab.
-  // mergeClassificationUpdate() is the inverse of the intake-time primary-derivation rule
-  // (see its own doc comment in customer-phases.ts).
+  // Multi-select callers send the whole array; legacy single-select callers still send one value.
+  const requested = Array.isArray(body.classifications) ? (body.classifications as unknown[]) : null;
   const existing = (project.customer_products as { classifications: Classification[] } | null)?.classifications ?? [];
-  const nextClassifications = mergeClassificationUpdate(existing, classification as Classification);
+
+  let classification: Classification;
+  let nextClassifications: Classification[];
+
+  if (requested) {
+    if (requested.length === 0 || requested.some((c) => typeof c !== "string" || !(CLASSIFICATIONS as readonly string[]).includes(c))) {
+      return NextResponse.json({ error: "Invalid classifications" }, { status: 400 });
+    }
+    // Canonical order (catalog index), so the derived primary matches the wizard's rule.
+    nextClassifications = CLASSIFICATIONS.filter((c) => requested.includes(c));
+    if (!isValidClassificationCombo(nextClassifications)) {
+      return NextResponse.json({ error: "Only one StackShift variant can be selected" }, { status: 400 });
+    }
+    classification = derivePrimaryClassification(nextClassifications)!;
+  } else {
+    const value = typeof body.classification === "string" ? body.classification : "";
+    if (!(CLASSIFICATIONS as readonly string[]).includes(value)) {
+      return NextResponse.json({ error: "Invalid classification" }, { status: 400 });
+    }
+    classification = value as Classification;
+    // Task 361 — keep the multi-select `classifications` array in sync with the primary column.
+    // The listing tabs match on the union of the two, so a stale array would leave an edited
+    // project showing under both its old and its new tab.
+    nextClassifications = mergeClassificationUpdate(existing, classification);
+  }
 
   // customer_products' write RLS (customer_products_pm_write) only allows admin/super_admin/pm —
   // narrower than canManageProjectMembers's creator exception above, so a non-listed-role

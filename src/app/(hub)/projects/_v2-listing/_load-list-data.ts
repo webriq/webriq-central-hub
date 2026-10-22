@@ -90,7 +90,7 @@ export async function loadOnboardingProjectsList(
       onboarding_status,
       target_handover_at,
       customers(company_name),
-      customer_products!inner(classification)
+      customer_products!inner(classification, classifications)
     `,
       { count: "exact" }
     )
@@ -104,10 +104,9 @@ export async function loadOnboardingProjectsList(
     // this task, but rows edited before it still exist). `!inner` makes this a join filter, so a
     // row with neither value set — legacy/Zoho import noise, task 272 — drops out by construction.
     // That replaces an unbounded `.is("classification", null)` exclusion lookup that had the
-    // >1000-row truncation shape CLAUDE.md flags. `classifications` is filtered here but not
-    // selected above — only the primary `classification` is read downstream (map below), and the
-    // referencedTable filter operates on the underlying column regardless of the select list
-    // (verified against the live DB), so there's no reason to transfer the array on every row.
+    // >1000-row truncation shape CLAUDE.md flags. Both columns are selected: the classification
+    // modal edits the array, and the referencedTable filter works regardless of the select list
+    // (verified against the live DB).
     .or(
       `classification.eq."${params.classification}",classifications.cs.{"${params.classification}"}`,
       { referencedTable: "customer_products" }
@@ -208,7 +207,15 @@ export async function loadOnboardingProjectsList(
 
   const projects: OnboardingProjectListItem[] = projectRows.map((p) => {
     const companyName = (p.customers as unknown as { company_name: string } | null)?.company_name ?? "Unknown";
-    const classification = (p.customer_products as unknown as { classification: string | null } | null)?.classification ?? null;
+    const product = p.customer_products as unknown as { classification: string | null; classifications: string[] | null } | null;
+    const classification = product?.classification ?? null;
+    // Pre-task-157 rows have an empty array and only the primary column — fall back to it so the
+    // classification modal opens with something checked.
+    const classifications = product?.classifications?.length
+      ? product.classifications
+      : classification
+        ? [classification]
+        : [];
     const activePhaseNumber = activePhaseByProject.get(p.id) ?? null;
     const durationDays = p.programme_duration_days ?? DEFAULT_PROGRAMME_DAYS;
     const currentDay = p.programme_started_at ? currentDisplayDay(p.programme_started_at, durationDays) : null;
@@ -220,6 +227,7 @@ export async function loadOnboardingProjectsList(
       company_name: companyName,
       customer_id: p.customer_id,
       classification,
+      classifications,
       hasProduct: !!p.customer_product_id,
       current_phase_number: activePhaseNumber,
       current_phase_name: activePhaseNumber ? (activePhaseNameByProject.get(p.id) ?? null) : null,

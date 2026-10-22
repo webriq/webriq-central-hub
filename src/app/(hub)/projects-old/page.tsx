@@ -69,7 +69,7 @@ export default async function ProjectsPage({
   // Build filtered projects query — count: "exact" on the filtered query returns filtered total.
   let projectsQuery = supabase
     .from("projects")
-    .select("id,project_id,name,project_type,status,customer_id,end_date,tags,owner_name,updated_at,external_project_id,customer_product_id,created_by,customer_products(classification)", { count: "exact" })
+    .select("id,project_id,name,project_type,status,customer_id,end_date,tags,owner_name,updated_at,external_project_id,customer_product_id,created_by,customer_products(classification, classifications)", { count: "exact" })
     // Soft-deleted projects (task 231) never appear here, regardless of the status filter —
     // "Deleted" isn't a browsable status, so this is unconditional, not folded into statusValues.
     .neq("status", "deleted")
@@ -174,28 +174,36 @@ export default async function ProjectsPage({
     }
   }
 
-  const projects: ProjectListItem[] = (projectsRes.data ?? []).map((p) => ({
-    id: p.id,
-    project_id: p.project_id,
-    name: p.name,
-    project_type: p.project_type,
-    status: p.status,
-    customer_id: p.customer_id,
-    company_name: nameMap.get(p.customer_id) ?? p.customer_id,
-    end_date: p.end_date ?? null,
-    tags: p.tags ?? [],
-    owner_name: p.owner_name ?? null,
-    task_total: counts.get(p.id)?.total ?? 0,
-    task_done: counts.get(p.id)?.done ?? 0,
-    issue_total: issueCounts.get(p.id)?.total ?? 0,
-    issue_done: issueCounts.get(p.id)?.done ?? 0,
-    classification: p.external_project_id ? "legacy" : "version2",
-    productClassification: (p.customer_products as unknown as { classification: string | null } | null)?.classification ?? null,
-    hasProduct: !!p.customer_product_id,
-    members: (memberIdsByProject.get(p.id) ?? []).map((id) => ({ id, full_name: fullNameMap.get(id) ?? null })),
-    canManageCollaborators: canManageProjectMembers(role ?? null, !!user && p.created_by === user.id),
-    canSetOwner: canSetProjectOwner(role ?? null, !!user && p.created_by === user.id),
-  }));
+  const projects: ProjectListItem[] = (projectsRes.data ?? []).map((p) => {
+    // Pre-task-157 rows have an empty array and only the primary column — fall back to it so the
+    // classification modal opens with something checked.
+    const product = p.customer_products as unknown as { classification: string | null; classifications: string[] | null } | null;
+    const productClassifications =
+      product?.classifications?.length ? product.classifications : product?.classification ? [product.classification] : [];
+    return {
+      id: p.id,
+      project_id: p.project_id,
+      name: p.name,
+      project_type: p.project_type,
+      status: p.status,
+      customer_id: p.customer_id,
+      company_name: nameMap.get(p.customer_id) ?? p.customer_id,
+      end_date: p.end_date ?? null,
+      tags: p.tags ?? [],
+      owner_name: p.owner_name ?? null,
+      task_total: counts.get(p.id)?.total ?? 0,
+      task_done: counts.get(p.id)?.done ?? 0,
+      issue_total: issueCounts.get(p.id)?.total ?? 0,
+      issue_done: issueCounts.get(p.id)?.done ?? 0,
+      classification: p.external_project_id ? "legacy" : "version2",
+      productClassification: product?.classification ?? null,
+      productClassifications,
+      hasProduct: !!p.customer_product_id,
+      members: (memberIdsByProject.get(p.id) ?? []).map((id) => ({ id, full_name: fullNameMap.get(id) ?? null })),
+      canManageCollaborators: canManageProjectMembers(role ?? null, !!user && p.created_by === user.id),
+      canSetOwner: canSetProjectOwner(role ?? null, !!user && p.created_by === user.id),
+    };
+  });
 
   const customerOptions: CustomerOption[] = customers.map((c) => ({
     customer_id: c.customer_id,
