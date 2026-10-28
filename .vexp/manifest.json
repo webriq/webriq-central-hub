@@ -129,8 +129,10 @@
     "src/app/(hub)/hr/_components/empty-state.tsx": "b8723317754901eb01aca4d1d6d8305232e97341a5e46b639c405385af76d711",
     "src/app/(hub)/hr/_components/field.tsx": "e54ac34bfcb11a83e3c5f1b5f2a7f605eff7ea55ae0b4106becc59f100032e0e",
     "src/app/(hub)/hr/_components/page-shell.tsx": "73aa24d8279c43bcc65931122a0dc77ee7ffc933f09463913c94cd22f761038d",
+    "src/app/(hub)/hr/_components/person-avatar.tsx": "d5ee585113d6b3205c32c90af5343ed04ff4aafefa30f8d2f01facef89e7e9bb",
     "src/app/(hub)/hr/_components/setup-needed.tsx": "7bb8850b05a60de5bd90a23820009e7fabff924807ca499e1877cfe42f0237e0",
     "src/app/(hub)/hr/_components/stat-strip.tsx": "41a3614c09a3dc8d5f654e7b8b778009b44c929d60122069bcc52030162cbe88",
+    "src/app/(hub)/hr/_components/upcoming-holidays.tsx": "ca2339706651136ee6c8581b8fa1777d867b76c339b8191d90f4c885963082c2",
     "src/app/(hub)/hr/_components/use-hr-mutation.ts": "6bc135f95a51dab263766e7719cb3b0b0f978d20c7d943745d291d1ae1e236d7",
     "src/app/(hub)/hr/calendar/_calendar-range.ts": "bc2e65ea2d440567c85f84e71ea542f1e6bc0c496baf8a232f95b86dbf4d18ba",
     "src/app/(hub)/hr/calendar/_calendar-toolbar.tsx": "a96f1a8d11b504e75759353fb4f51fc3835d43cd5eedafc8bb10e545f423dfb4",
@@ -649,8 +651,8 @@
     "supabase/rollbacks/167_user_drive_select_returning_fix_down.sql": "3c86aac6dbef9dfd4b7ce7b8ae6ec9f1499c0c8e66f6212391cd5ee6b74a1673",
     "worker/index.ts": "83350712449db3ec76c4015cedb2bad5dfd0d0ccd91509ee9a6f09ee4f66f9cc"
   },
-  "indexed_at_commit": "547d6626bfd0400496bbe15def89c5c723eeff4e",
-  "indexed_at_timestamp": "2026-10-22T08:32:35.950944+00:00",
+  "indexed_at_commit": "8b7a7353a58aad1774ddc6be6705e2d56709c305",
+  "indexed_at_timestamp": "2026-10-28T11:04:02.246694+00:00",
   "languages": {
     "markdown": {
       "calls": 0,
@@ -661,16 +663,16 @@
       "nodes": 358
     },
     "typescript": {
-      "calls": 647,
-      "nodes": 1551
+      "calls": 648,
+      "nodes": 1553
     }
   },
   "parser_version": "3.3.2",
   "schema_version": 3,
   "stats": {
-    "total_edges": 1984,
-    "total_files": 648,
-    "total_nodes": 1998
+    "total_edges": 1987,
+    "total_files": 650,
+    "total_nodes": 2000
   },
   "vexp_version": "3.3.7"
 }

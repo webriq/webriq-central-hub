@@ -1,0 +1,387 @@
+{
+  "dryRun": false,
+  "slice": {
+    "from": 0,
+    "to": "25",
+    "project": null
+  },
+  "counts": {
+    "projectsWithoutDocuments": 9,
+    "projectsLegacy": 16,
+    "foldersReused": 3,
+    "filesImportable": 181,
+    "filesAlreadyImported": 6,
+    "foldersCreated": 47,
+    "filesImported": 175,
+    "filesNative": 15,
+    "localSaved": 29,
+    "filesUnsupportedType": 9,
+    "filesTooLarge": 5
+  },
+  "projects": [
+    {
+      "zohoId": "1512955000020040039",
+      "zohoName": "RCB & Associates",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "d8cc5ff3-39d0-400c-834c-1907a9d2e667",
+      "folders": 3,
+      "files": 6
+    },
+    {
+      "zohoId": "1512955000019966065",
+      "zohoName": "Grey Dog Security Discrete App",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "59ee9b4b-c36a-4c1d-a32c-1087586f849e",
+      "folders": 3,
+      "files": 4
+    },
+    {
+      "zohoId": "1512955000019353080",
+      "zohoName": "Elodi Speech Therapy App",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "75f493ba-8921-4634-9f8e-0ed29e5054fe",
+      "folders": 5,
+      "files": 28
+    },
+    {
+      "zohoId": "1512955000019353048",
+      "zohoName": "Elodi Speech Therapy Content Site",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "59411488-a29f-4bfe-a4cd-f520078600f6",
+      "folders": 3,
+      "files": 5
+    },
+    {
+      "zohoId": "1512955000019351026",
+      "zohoName": "Alaga Au Pair App",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "40d31c70-b260-4410-b98b-3ca1a99c0631",
+      "folders": 2,
+      "files": 2
+    },
+    {
+      "zohoId": "1512955000019077011",
+      "zohoName": "Black Barn Dumpsters",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "be757fbf-425c-4e47-83e2-1c21c6b9b49d",
+      "folders": 2,
+      "files": 2
+    },
+    {
+      "zohoId": "1512955000019048136",
+      "zohoName": "Saginaw CFC Application",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "5c1af5be-5957-4239-9b4b-2beb21bf2ab9",
+      "folders": 2,
+      "files": 2
+    },
+    {
+      "zohoId": "1512955000019048105",
+      "zohoName": "Saginaw CFC Website",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "799b326d-9366-494b-a66e-6e1d1af81f8f",
+      "folders": 3,
+      "files": 7
+    },
+    {
+      "zohoId": "1512955000019012003",
+      "zohoName": "Retail Sign Systems",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "524a4b41-f7f2-49d3-b5cb-e5f6dd81eaf1",
+      "folders": 3,
+      "files": 14
+    },
+    {
+      "zohoId": "1512955000018988088",
+      "zohoName": "AI Visibility",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "d88841cf-090d-4133-a5d6-0fc0f177ec2b",
+      "folders": 2,
+      "files": 4
+    },
+    {
+      "zohoId": "1512955000018956090",
+      "zohoName": "Alaga Au Pair Content Site",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "4da18172-b50f-4e50-91b7-cbf8e9f1ba34",
+      "folders": 2,
+      "files": 5
+    },
+    {
+      "zohoId": "1512955000018931007",
+      "zohoName": "Sophie Concept Studio",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "29f910b5-abfe-414e-863c-fe81ab3ba23b",
+      "folders": 4,
+      "files": 12
+    },
+    {
+      "zohoId": "1512955000018871047",
+      "zohoName": "WMI Home Solutions",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "b9f718b1-0a04-43f8-a360-3bccfad3f56f",
+      "folders": 2,
+      "files": 5
+    },
+    {
+      "zohoId": "1512955000018343107",
+      "zohoName": "Tops Booking App",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "964e0797-85e4-4849-9b07-431eba490f85",
+      "folders": 2,
+      "files": 1
+    },
+    {
+      "zohoId": "1512955000018342049",
+      "zohoName": "Casa Kalma",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "dee39aec-4293-4b9c-bdbf-f15743fd7c1d",
+      "folders": 9,
+      "files": 53
+    },
+    {
+      "zohoId": "1512955000018218284",
+      "zohoName": "Always Love (FLUO)",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "e84a7011-6f49-4385-8c97-8c648323c4f9",
+      "folders": 3,
+      "files": 60
+    }
+  ],
+  "renamedFolders": [],
+  "skippedFiles": [
+    {
+      "project": "Elodi Speech Therapy App (1512955000019353080)",
+      "file": "Elodi App Post-Live Feedback",
+      "folder": "Elodi Speech Therapy App-Documents",
+      "local": "Elodi Speech Therapy App (1512955000019353080)/Elodi Speech Therapy App-Documents/Elodi App Post-Live Feedback.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Elodi Speech Therapy App (1512955000019353080)",
+      "file": "Elodi_Complete_International_Compliance_UPDATED_USA_Singapore_PH.pages",
+      "folder": "Elodi Speech Therapy App-Documents",
+      "local": "Elodi Speech Therapy App (1512955000019353080)/Elodi Speech Therapy App-Documents/Elodi_Complete_International_Compliance_UPDATED_USA_Singapore_PH.pages",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Elodi Speech Therapy App (1512955000019353080)",
+      "file": "89045da6-e447-4f12-8cf2-e6d8e9a61b69.mp4",
+      "folder": "Elodi Speech Therapy App-Attachments",
+      "local": "Elodi Speech Therapy App (1512955000019353080)/Elodi Speech Therapy App-Attachments/89045da6-e447-4f12-8cf2-e6d8e9a61b69.mp4",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Elodi Speech Therapy Content Site (1512955000019353048)",
+      "file": "QA/QC - Elodi Speech Therapy Content Site",
+      "folder": "Elodi Speech Therapy Content Site-Documents",
+      "local": "Elodi Speech Therapy Content Site (1512955000019353048)/Elodi Speech Therapy Content Site-Documents/QA_QC - Elodi Speech Therapy Content Site.pptx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Black Barn Dumpsters (1512955000019077011)",
+      "file": "Feedback File",
+      "folder": "Black Barn Dumpsters-Documents",
+      "local": "Black Barn Dumpsters (1512955000019077011)/Black Barn Dumpsters-Documents/Feedback File.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Black Barn Dumpsters (1512955000019077011)",
+      "file": "Onboarding Details",
+      "folder": "Black Barn Dumpsters-Documents",
+      "local": "Black Barn Dumpsters (1512955000019077011)/Black Barn Dumpsters-Documents/Onboarding Details.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Saginaw CFC Website (1512955000019048105)",
+      "file": "Saginaw community food club",
+      "folder": "Saginaw CFC Website-Documents",
+      "local": "Saginaw CFC Website (1512955000019048105)/Saginaw CFC Website-Documents/Saginaw community food club.pptx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Retail Sign Systems (1512955000019012003)",
+      "file": "RSS Feedback",
+      "folder": "Retail Sign Systems-Documents",
+      "local": "Retail Sign Systems (1512955000019012003)/Retail Sign Systems-Documents/RSS Feedback.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Retail Sign Systems (1512955000019012003)",
+      "file": "Onboarding Details",
+      "folder": "Retail Sign Systems-Documents",
+      "local": "Retail Sign Systems (1512955000019012003)/Retail Sign Systems-Documents/Onboarding Details.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Alaga Au Pair Content Site (1512955000018956090)",
+      "file": "Alaga aupair content site",
+      "folder": "Alaga Au Pair Content Site-Documents",
+      "local": "Alaga Au Pair Content Site (1512955000018956090)/Alaga Au Pair Content Site-Documents/Alaga aupair content site.pptx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Sophie Concept Studio (1512955000018931007)",
+      "file": "Feedback File",
+      "folder": "Sophie Concept Studio-Documents",
+      "local": "Sophie Concept Studio (1512955000018931007)/Sophie Concept Studio-Documents/Feedback File.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Sophie Concept Studio (1512955000018931007)",
+      "file": "Testimonials",
+      "folder": "Sophie Concept Studio-Documents",
+      "local": "Sophie Concept Studio (1512955000018931007)/Sophie Concept Studio-Documents/Testimonials.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "WMI Home Solutions (1512955000018871047)",
+      "file": "WMI Home Solutions Pre-live SEO Audit",
+      "folder": "WMI Home Solutions-Documents",
+      "local": "WMI Home Solutions (1512955000018871047)/WMI Home Solutions-Documents/WMI Home Solutions Pre-live SEO Audit.xlsx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "WMI Home Solutions (1512955000018871047)",
+      "file": "WMI Home Solutions Brief",
+      "folder": "WMI Home Solutions-Documents",
+      "local": "WMI Home Solutions (1512955000018871047)/WMI Home Solutions-Documents/WMI Home Solutions Brief.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Tops Booking App (1512955000018343107)",
+      "file": "TOPS Booking App Feedback",
+      "folder": "Tops Booking App-Documents",
+      "local": "Tops Booking App (1512955000018343107)/Tops Booking App-Documents/TOPS Booking App Feedback.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Casa Kalma (1512955000018342049)",
+      "file": "Casa Kalma-Feedback",
+      "folder": "Casa Kalma-Documents",
+      "local": "Casa Kalma (1512955000018342049)/Casa Kalma-Documents/Casa Kalma-Feedback.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Casa Kalma (1512955000018342049)",
+      "file": "Legal and Payment Info",
+      "folder": "Casa Kalma-Documents",
+      "local": "Casa Kalma (1512955000018342049)/Casa Kalma-Documents/Legal and Payment Info.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Casa Kalma (1512955000018342049)",
+      "file": "CasaKalma_Presentation_juni_26.pdf",
+      "folder": "Casa Kalma-Documents/presentation",
+      "local": "Casa Kalma (1512955000018342049)/Casa Kalma-Documents/presentation/CasaKalma_Presentation_juni_26.pdf",
+      "reason": "too-large",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Casa Kalma (1512955000018342049)",
+      "file": "CasaKalma_factsheet_juni_26.pdf",
+      "folder": "Casa Kalma-Documents/factsheet",
+      "local": "Casa Kalma (1512955000018342049)/Casa Kalma-Documents/factsheet/CasaKalma_factsheet_juni_26.pdf",
+      "reason": "too-large",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Casa Kalma (1512955000018342049)",
+      "file": "CasaKalma_factsheet_Type_2s.pdf",
+      "folder": "Casa Kalma-Documents/factsheet per type/incl plattegronden",
+      "local": "Casa Kalma (1512955000018342049)/Casa Kalma-Documents/factsheet per type/incl plattegronden/CasaKalma_factsheet_Type_2s.pdf",
+      "reason": "too-large",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Casa Kalma (1512955000018342049)",
+      "file": "CasaKalma_factsheet_Type_3s.pdf",
+      "folder": "Casa Kalma-Documents/factsheet per type/incl plattegronden",
+      "local": "Casa Kalma (1512955000018342049)/Casa Kalma-Documents/factsheet per type/incl plattegronden/CasaKalma_factsheet_Type_3s.pdf",
+      "reason": "too-large",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Casa Kalma (1512955000018342049)",
+      "file": "CasaKalma_factsheet_Type_1s.pdf",
+      "folder": "Casa Kalma-Documents/factsheet per type/incl plattegronden",
+      "local": "Casa Kalma (1512955000018342049)/Casa Kalma-Documents/factsheet per type/incl plattegronden/CasaKalma_factsheet_Type_1s.pdf",
+      "reason": "too-large",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Always Love (FLUO) (1512955000018218284)",
+      "file": "CleanShot 2026-08-01 at 13.04.09.mp4",
+      "folder": "Always Love (FLUO)-Documents",
+      "local": "Always Love (FLUO) (1512955000018218284)/Always Love (FLUO)-Documents/CleanShot 2026-08-01 at 13.04.09.mp4",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Always Love (FLUO) (1512955000018218284)",
+      "file": "CleanShot 2026-06-14 at 13.01.49.mp4",
+      "folder": "Always Love (FLUO)-Documents",
+      "local": "Always Love (FLUO) (1512955000018218284)/Always Love (FLUO)-Documents/CleanShot 2026-06-14 at 13.01.49.mp4",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Always Love (FLUO) (1512955000018218284)",
+      "file": "CleanShot 2026-04-25 at 16.53.10.mp4",
+      "folder": "Always Love (FLUO)-Attachments",
+      "local": "Always Love (FLUO) (1512955000018218284)/Always Love (FLUO)-Attachments/CleanShot 2026-04-25 at 16.53.10.mp4",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Always Love (FLUO) (1512955000018218284)",
+      "file": "Screen Recording 2026-03-12 at 5.26.01 PM.mov",
+      "folder": "Always Love (FLUO)-Attachments",
+      "local": "Always Love (FLUO) (1512955000018218284)/Always Love (FLUO)-Attachments/Screen Recording 2026-03-12 at 5.26.01 PM.mov",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Always Love (FLUO) (1512955000018218284)",
+      "file": "CleanShot 2026-02-28 at 10.04.26.mp4",
+      "folder": "Always Love (FLUO)-Attachments",
+      "local": "Always Love (FLUO) (1512955000018218284)/Always Love (FLUO)-Attachments/CleanShot 2026-02-28 at 10.04.26.mp4",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Always Love (FLUO) (1512955000018218284)",
+      "file": "CleanShot 2026-02-04 at 19.47.45.mp4",
+      "folder": "Always Love (FLUO)-Attachments",
+      "local": "Always Love (FLUO) (1512955000018218284)/Always Love (FLUO)-Attachments/CleanShot 2026-02-04 at 19.47.45.mp4",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Always Love (FLUO) (1512955000018218284)",
+      "file": "ScreenRecording_01-28-2026 07-49-37_1.mov",
+      "folder": "Always Love (FLUO)-Attachments",
+      "local": "Always Love (FLUO) (1512955000018218284)/Always Love (FLUO)-Attachments/ScreenRecording_01-28-2026 07-49-37_1.mov",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    }
+  ],
+  "errors": []
+}

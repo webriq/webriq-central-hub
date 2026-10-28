@@ -5,6 +5,8 @@ import { SectionCard } from "@/app/(hub)/dashboard/_components/dashboard-shared"
 import { AlertTriangle, Download, Upload } from "lucide-react";
 import { ImportResult, CardState, CardStatus, ResultChip, StateIcon } from "./_shared";
 import { GeneralTimelogsExportRow, GeneralTimelogsImportRow } from "./_general-timelogs-card";
+import { DocumentsExportRow } from "./_documents-card";
+import { DocumentsImportRow } from "./_documents-import-card";
 
 interface TasksExportState {
   from: string;
@@ -126,6 +128,7 @@ const EXPORT_LEVELS = [
   { key: "timelogs", label: "Time Logs", desc: "All time log entries per project" },
   { key: "issue-timelogs", label: "Issue Time Logs", desc: "All time logged against issues (paginated per issue, all 1049 queried — no pre-filter available) — requires Issues exported first" },
   { key: "general-timelogs", label: "General Time Logs", desc: "All project-level time logs with no task/bug reference (queried per project — no pre-filter) — requires projects.json" },
+  { key: "documents", label: "Project Documents", desc: "Documents/files per project (metadata + download URLs) — pick one project or all; requires projects.json" },
   { key: "attachment-meta", label: "Attachment Metadata", desc: "Attachment list per task — requires tasks.json exported first" },
   { key: "issue-attachment-meta", label: "Issue Attachment Metadata", desc: "Attachment list per issue (entity_type: bug) — requires issues-*.json exported first" },
   { key: "comment-attachment-meta", label: "Comment Attachment Metadata", desc: "Attachment list per task comment (entity_type: task_comment) — requires comments.json exported first" },
@@ -147,6 +150,7 @@ const IMPORT_LEVELS = [
   { key: "general-timelogs", label: "General Time Logs", desc: "Imports project-level time log entries from general-timelogs-*.json — requires Projects imported first" },
   { key: "attachments", label: "Attachments", desc: "Select the files you manually downloaded from each attachment's download_url (not the attachment-meta-*.json files) — matches by filename and uploads to Supabase Storage" },
   { key: "issue-attachments", label: "Issue Attachments", desc: "Select the files you manually downloaded from each issue attachment's download_url — matches by filename+size and uploads to Supabase Storage" },
+  { key: "documents", label: "Project Documents (Files tab)", desc: "Imports the task-463 documents export into each project's Files tab with the exact folder tree — Legacy project first, then v2 by customer + name; a same-name folder gets \" (From Zoho)\". Files the bucket can't take are saved locally under _docs/task/464-…/out/. Needs migration 179 for a live run; dry run first" },
 ] as const;
 
 // Task 426 — import levels frozen with the Zoho decommission (they write into tables the unified
@@ -2102,6 +2106,20 @@ export default function ZohoProjectsTab() {
               );
             }
 
+            if (key === "documents") {
+              return (
+                <DocumentsExportRow
+                  key="documents"
+                  label={label}
+                  desc={desc}
+                  state={exportStates["documents"] ?? "idle"}
+                  setState={(v) => setExportStates((s) => ({ ...s, documents: v }))}
+                  anyRunning={anyRunning}
+                  setAnyRunning={setAnyRunning}
+                />
+              );
+            }
+
             if (key === "general-timelogs") {
               return (
                 <GeneralTimelogsExportRow
@@ -2542,6 +2560,20 @@ export default function ZohoProjectsTab() {
                     <div className="mt-1 text-[11px] text-red-600">{issueAttachmentsImport.error}</div>
                   ) : null}
                 </div>
+              );
+            }
+
+            if (key === "documents") {
+              return (
+                <DocumentsImportRow
+                  key="documents"
+                  label={label}
+                  desc={desc}
+                  state={importStates["documents"]?.state ?? "idle"}
+                  setState={(v) => setImportStates((s) => ({ ...s, documents: { state: v } }))}
+                  anyRunning={anyRunning}
+                  setAnyRunning={setAnyRunning}
+                />
               );
             }
 

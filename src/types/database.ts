@@ -3148,6 +3148,7 @@ export interface Database {
           folder_id: string | null;
           source_asset_id: string | null;
           uploaded_by: string | null;
+          external_id: string | null;
           created_at: string;
         };
         Insert: {
@@ -3169,6 +3170,7 @@ export interface Database {
           folder_id?: string | null;
           source_asset_id?: string | null;
           uploaded_by?: string | null;
+          external_id?: string | null;
           created_at?: string;
         };
         Update: {
@@ -3190,6 +3192,7 @@ export interface Database {
           folder_id?: string | null;
           source_asset_id?: string | null;
           uploaded_by?: string | null;
+          external_id?: string | null;
         };
         Relationships: [
           {
@@ -3240,6 +3243,7 @@ export interface Database {
           is_system: boolean;
           allowed_roles: string[] | null;
           allowed_user_ids: string[] | null;
+          external_id: string | null;
           created_at: string;
         };
         Insert: {
@@ -3252,6 +3256,7 @@ export interface Database {
           is_system?: boolean;
           allowed_roles?: string[] | null;
           allowed_user_ids?: string[] | null;
+          external_id?: string | null;
           created_at?: string;
         };
         Update: {
@@ -3264,6 +3269,7 @@ export interface Database {
           is_system?: boolean;
           allowed_roles?: string[] | null;
           allowed_user_ids?: string[] | null;
+          external_id?: string | null;
         };
         Relationships: [
           {
