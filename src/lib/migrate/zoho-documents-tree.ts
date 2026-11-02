@@ -109,7 +109,7 @@ const fileExt = (f: { name: string; extn: string }) => (f.extn || f.name.split("
 export const mimeForExt = (ext: string): string | null => extensionMimeForName(`x.${ext}`) ?? own(EXT_MIME, ext) ?? null;
 
 export type FileClass =
-  | { kind: "import"; mime: string }
+  | { kind: "import"; mime: string; fileName: string }
   | { kind: "native"; exportExt: string }
   | { kind: "unsupported-type" }
   | { kind: "too-large" };
@@ -124,11 +124,19 @@ export function classifyFile(
 ): FileClass {
   const ext = fileExt(f);
   const exportExt = own(NATIVE_EXPORT_EXT, ext);
-  if (exportExt) return { kind: "native", exportExt };
+  if (exportExt) {
+    // A native doc downloads as its Office type; import it when the bucket accepts that type (task 465).
+    const mime = mimeForExt(exportExt);
+    if (mime && allowedMimes.includes(mime)) {
+      const fileName = f.name.toLowerCase().endsWith(`.${exportExt}`) ? f.name : `${f.name}.${exportExt}`;
+      return { kind: "import", mime, fileName };
+    }
+    return { kind: "native", exportExt }; // fallback; still saved locally
+  }
   const mime = mimeForExt(ext);
   if (!mime || !allowedMimes.includes(mime)) return { kind: "unsupported-type" };
   if (f.declaredBytes > maxBytes) return { kind: "too-large" };
-  return { kind: "import", mime };
+  return { kind: "import", mime, fileName: f.name };
 }
 
 // ── Local copies of files the Files tab can't take ───────────────────────────

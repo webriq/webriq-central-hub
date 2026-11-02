@@ -1,0 +1,1725 @@
+{
+  "dryRun": false,
+  "slice": {
+    "from": 150,
+    "to": "175",
+    "project": null
+  },
+  "counts": {
+    "projectsLegacy": 22,
+    "projectsWithoutDocuments": 3,
+    "foldersCreated": 67,
+    "filesImportable": 2009,
+    "filesImported": 2006,
+    "filesNative": 34,
+    "localSaved": 190,
+    "filesUnsupportedType": 156,
+    "filesFailed": 3
+  },
+  "projects": [
+    {
+      "zohoId": "1512955000001450375",
+      "zohoName": "Tyger Cold Brew",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "026b4655-55dc-4428-8267-81d3e4a69c1d",
+      "folders": 1,
+      "files": 1
+    },
+    {
+      "zohoId": "1512955000001409259",
+      "zohoName": "Extreme Motus",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "1f448fea-f584-44a5-b327-88bd8631fe45",
+      "folders": 3,
+      "files": 62
+    },
+    {
+      "zohoId": "1512955000001387009",
+      "zohoName": "Prizm Lighting",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "caf743a4-de0d-4553-8532-b2ff81eb20ae",
+      "folders": 3,
+      "files": 29
+    },
+    {
+      "zohoId": "1512955000001240003",
+      "zohoName": "Bay Street Capital Holdings",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "f9fd02fe-a43c-481b-b779-04c95af19a08",
+      "folders": 4,
+      "files": 576
+    },
+    {
+      "zohoId": "1512955000001209161",
+      "zohoName": "Skyway Analytics LLC",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "f67517e0-ed94-4e32-b2cc-e30be30eeb76",
+      "folders": 1,
+      "files": 7
+    },
+    {
+      "zohoId": "1512955000001212003",
+      "zohoName": "Tuscany Homes, LLC",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "dbbde91c-47d0-47c6-9220-c4055f43f669",
+      "folders": 2,
+      "files": 1
+    },
+    {
+      "zohoId": "1512955000001174218",
+      "zohoName": "Zenith Chiropractic",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "9f1d258f-7e6f-4d9e-b448-132064b9e098",
+      "folders": 3,
+      "files": 51
+    },
+    {
+      "zohoId": "1512955000001112023",
+      "zohoName": "National Partners",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "fd5c1c1a-40d6-4c83-9fc1-604e5f0f232e",
+      "folders": 2,
+      "files": 1
+    },
+    {
+      "zohoId": "1512955000001112003",
+      "zohoName": "NEWtritionIQ, Inc",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "63474ead-ec88-4fdf-aad9-cf7416963a84",
+      "folders": 3,
+      "files": 46
+    },
+    {
+      "zohoId": "1512955000001038003",
+      "zohoName": "Global View Foundation",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "086e380f-5a52-4d39-ab31-ee352f9ac264",
+      "folders": 3,
+      "files": 2
+    },
+    {
+      "zohoId": "1512955000000936163",
+      "zohoName": "Race Point Seltzer",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "5784b2f6-ae48-4a46-99f1-39249f4649fc",
+      "folders": 3,
+      "files": 72
+    },
+    {
+      "zohoId": "1512955000000872289",
+      "zohoName": "WSC Group",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "b0e3318a-94fa-4a14-9962-d3bb52c25d06",
+      "folders": 3,
+      "files": 634
+    },
+    {
+      "zohoId": "1512955000000697493",
+      "zohoName": "Cloud303 Inc",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "90b91b4b-da3c-4d4f-be5e-09b9ca7e262a",
+      "folders": 3,
+      "files": 6
+    },
+    {
+      "zohoId": "1512955000000697473",
+      "zohoName": "Welcome Tattoo",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "277efca2-53a9-4a3a-83d8-db9db6d96cf2",
+      "folders": 3,
+      "files": 386
+    },
+    {
+      "zohoId": "1512955000000697453",
+      "zohoName": "Montclair Upper Cervical Chiropractic LLC",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "13d9ed58-baeb-400c-b235-3de1d943df5e",
+      "folders": 3,
+      "files": 29
+    },
+    {
+      "zohoId": "1512955000000599639",
+      "zohoName": "Legal Marketing & Staffing",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "f08bb079-8916-46d4-b7f9-367af4c63a3f",
+      "folders": 3,
+      "files": 53
+    },
+    {
+      "zohoId": "1512955000000557681",
+      "zohoName": "Kimball Productions",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "520a56f3-e165-4b76-aaaa-0b83fab0de6b",
+      "folders": 1,
+      "files": 3
+    },
+    {
+      "zohoId": "1512955000000557291",
+      "zohoName": "PCS Partners Real Estate and The Farnon Home Team",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "ce3e2c95-2697-47a5-b904-5929c3be7931",
+      "folders": 14,
+      "files": 54
+    },
+    {
+      "zohoId": "1512955000000563211",
+      "zohoName": "Parking Revenue Recovery Services",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "c7490bbc-b5a7-41e9-a92e-69d6ac3f6f8f",
+      "folders": 1,
+      "files": 18
+    },
+    {
+      "zohoId": "1512955000000471341",
+      "zohoName": "Journey Financial Services",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "b0bf4a3b-ac68-46de-8a2b-93aaa25186b6",
+      "folders": 3,
+      "files": 17
+    },
+    {
+      "zohoId": "1512955000000475632",
+      "zohoName": "Genna Rae Wings & More",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "62d09450-4189-44a1-9105-bf709f95e9fd",
+      "folders": 2,
+      "files": 2
+    },
+    {
+      "zohoId": "1512955000000427355",
+      "zohoName": "PeerSource",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "3fd2de2f-49b0-410f-aaff-5fe94c7a4e60",
+      "folders": 3,
+      "files": 149
+    }
+  ],
+  "renamedFolders": [],
+  "skippedFiles": [
+    {
+      "project": "Extreme Motus (1512955000001409259)",
+      "file": "Admin accounts",
+      "folder": "Extreme Motus-Documents",
+      "local": "Extreme Motus (1512955000001409259)/Extreme Motus-Documents/Admin accounts.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Extreme Motus (1512955000001409259)",
+      "file": "Photos",
+      "folder": "Extreme Motus-Documents",
+      "local": "Extreme Motus (1512955000001409259)/Extreme Motus-Documents/Photos.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Extreme Motus (1512955000001409259)",
+      "file": "screen-capture (6).webm",
+      "folder": "Extreme Motus-Attachments",
+      "local": "Extreme Motus (1512955000001409259)/Extreme Motus-Attachments/screen-capture (6).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Extreme Motus (1512955000001409259)",
+      "file": "screen-capture (7).webm",
+      "folder": "Extreme Motus-Attachments",
+      "local": "Extreme Motus (1512955000001409259)/Extreme Motus-Attachments/screen-capture (7).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Extreme Motus (1512955000001409259)",
+      "file": "produc clicks datalayer-EM",
+      "folder": "Extreme Motus-Attachments",
+      "local": "Extreme Motus (1512955000001409259)/Extreme Motus-Attachments/produc clicks datalayer-EM",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Extreme Motus (1512955000001409259)",
+      "file": "purchase-data layer_EM",
+      "folder": "Extreme Motus-Attachments",
+      "local": "Extreme Motus (1512955000001409259)/Extreme Motus-Attachments/purchase-data layer_EM",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Extreme Motus (1512955000001409259)",
+      "file": "checkout datalayer EM",
+      "folder": "Extreme Motus-Attachments",
+      "local": "Extreme Motus (1512955000001409259)/Extreme Motus-Attachments/checkout datalayer EM",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Extreme Motus (1512955000001409259)",
+      "file": "screen-capture (93).webm",
+      "folder": "Extreme Motus-Attachments",
+      "local": "Extreme Motus (1512955000001409259)/Extreme Motus-Attachments/screen-capture (93).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Extreme Motus (1512955000001409259)",
+      "file": "screen-capture - 2022-11-28T122219.860.webm",
+      "folder": "Extreme Motus-Attachments",
+      "local": "Extreme Motus (1512955000001409259)/Extreme Motus-Attachments/screen-capture - 2022-11-28T122219.860.webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Extreme Motus (1512955000001409259)",
+      "file": "screen-capture - 2022-11-28T122148.840.webm",
+      "folder": "Extreme Motus-Attachments",
+      "local": "Extreme Motus (1512955000001409259)/Extreme Motus-Attachments/screen-capture - 2022-11-28T122148.840.webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Extreme Motus (1512955000001409259)",
+      "file": "screen-capture - 2022-11-28T122302.755.webm",
+      "folder": "Extreme Motus-Attachments",
+      "local": "Extreme Motus (1512955000001409259)/Extreme Motus-Attachments/screen-capture - 2022-11-28T122302.755.webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Extreme Motus (1512955000001409259)",
+      "file": "screen-capture (60).webm",
+      "folder": "Extreme Motus-Attachments",
+      "local": "Extreme Motus (1512955000001409259)/Extreme Motus-Attachments/screen-capture (60).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Extreme Motus (1512955000001409259)",
+      "file": "screen-capture (62).webm",
+      "folder": "Extreme Motus-Attachments",
+      "local": "Extreme Motus (1512955000001409259)/Extreme Motus-Attachments/screen-capture (62).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Extreme Motus (1512955000001409259)",
+      "file": "screen-capture (21).webm",
+      "folder": "Extreme Motus-Attachments",
+      "local": "Extreme Motus (1512955000001409259)/Extreme Motus-Attachments/screen-capture (21).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Prizm Lighting (1512955000001387009)",
+      "file": "Ordering info table - updates",
+      "folder": "Prizm Lighting-Documents",
+      "local": "Prizm Lighting (1512955000001387009)/Prizm Lighting-Documents/Ordering info table - updates.xlsx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Bay Street Capital Holdings (1512955000001240003)",
+      "file": "Standard Blog Image Size",
+      "folder": "Bay Street Capital Holdings-Documents",
+      "local": "Bay Street Capital Holdings (1512955000001240003)/Bay Street Capital Holdings-Documents/Standard Blog Image Size.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Bay Street Capital Holdings (1512955000001240003)",
+      "file": "Admin accounts",
+      "folder": "Bay Street Capital Holdings-Documents",
+      "local": "Bay Street Capital Holdings (1512955000001240003)/Bay Street Capital Holdings-Documents/Admin accounts.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Bay Street Capital Holdings (1512955000001240003)",
+      "file": "Content migration",
+      "folder": "Bay Street Capital Holdings-Documents",
+      "local": "Bay Street Capital Holdings (1512955000001240003)/Bay Street Capital Holdings-Documents/Content migration.xlsx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Bay Street Capital Holdings (1512955000001240003)",
+      "file": "Assets Link for Bay Street",
+      "folder": "Bay Street Capital Holdings-Documents",
+      "local": "Bay Street Capital Holdings (1512955000001240003)/Bay Street Capital Holdings-Documents/Assets Link for Bay Street.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Bay Street Capital Holdings (1512955000001240003)",
+      "file": "Briefing document",
+      "folder": "Bay Street Capital Holdings-Documents",
+      "local": "Bay Street Capital Holdings (1512955000001240003)/Bay Street Capital Holdings-Documents/Briefing document.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Bay Street Capital Holdings (1512955000001240003)",
+      "file": "screen-capture (37).webm",
+      "folder": "Bay Street Capital Holdings-Attachments",
+      "local": "Bay Street Capital Holdings (1512955000001240003)/Bay Street Capital Holdings-Attachments/screen-capture (37).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Bay Street Capital Holdings (1512955000001240003)",
+      "file": "WhatsApp Video 2024-03-25 at 08.40.49_7d126a54.mp4",
+      "folder": "Bay Street Capital Holdings-Attachments",
+      "local": "Bay Street Capital Holdings (1512955000001240003)/Bay Street Capital Holdings-Attachments/WhatsApp Video 2024-03-25 at 08.40.49_7d126a54.mp4",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Bay Street Capital Holdings (1512955000001240003)",
+      "file": "screen-capture (8).webm",
+      "folder": "Bay Street Capital Holdings-Attachments",
+      "local": "Bay Street Capital Holdings (1512955000001240003)/Bay Street Capital Holdings-Attachments/screen-capture (8).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Bay Street Capital Holdings (1512955000001240003)",
+      "file": "screen-capture (20).webm",
+      "folder": "Bay Street Capital Holdings-Attachments",
+      "local": "Bay Street Capital Holdings (1512955000001240003)/Bay Street Capital Holdings-Attachments/screen-capture (20).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Bay Street Capital Holdings (1512955000001240003)",
+      "file": "screen-capture (22).webm",
+      "folder": "Bay Street Capital Holdings-Attachments",
+      "local": "Bay Street Capital Holdings (1512955000001240003)/Bay Street Capital Holdings-Attachments/screen-capture (22).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Bay Street Capital Holdings (1512955000001240003)",
+      "file": "screen-capture (21).webm",
+      "folder": "Bay Street Capital Holdings-Attachments",
+      "local": "Bay Street Capital Holdings (1512955000001240003)/Bay Street Capital Holdings-Attachments/screen-capture (21).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Bay Street Capital Holdings (1512955000001240003)",
+      "file": "screen-capture (11).webm",
+      "folder": "Bay Street Capital Holdings-Attachments",
+      "local": "Bay Street Capital Holdings (1512955000001240003)/Bay Street Capital Holdings-Attachments/screen-capture (11).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Bay Street Capital Holdings (1512955000001240003)",
+      "file": "screen-capture (41).webm",
+      "folder": "Bay Street Capital Holdings-Attachments",
+      "local": "Bay Street Capital Holdings (1512955000001240003)/Bay Street Capital Holdings-Attachments/screen-capture (41).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Bay Street Capital Holdings (1512955000001240003)",
+      "file": "screen-capture (31).webm",
+      "folder": "Bay Street Capital Holdings-Attachments",
+      "local": "Bay Street Capital Holdings (1512955000001240003)/Bay Street Capital Holdings-Attachments/screen-capture (31).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Bay Street Capital Holdings (1512955000001240003)",
+      "file": "screen-capture (3).webm",
+      "folder": "Bay Street Capital Holdings-Attachments",
+      "local": "Bay Street Capital Holdings (1512955000001240003)/Bay Street Capital Holdings-Attachments/screen-capture (3).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Bay Street Capital Holdings (1512955000001240003)",
+      "file": "screen-capture (14).webm",
+      "folder": "Bay Street Capital Holdings-Attachments",
+      "local": "Bay Street Capital Holdings (1512955000001240003)/Bay Street Capital Holdings-Attachments/screen-capture (14).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Bay Street Capital Holdings (1512955000001240003)",
+      "file": "Screen Shot 2023-02-13 at 6.31.11 PM",
+      "folder": "Bay Street Capital Holdings-Attachments",
+      "local": "Bay Street Capital Holdings (1512955000001240003)/Bay Street Capital Holdings-Attachments/Screen Shot 2023-02-13 at 6.31.11 PM",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Bay Street Capital Holdings (1512955000001240003)",
+      "file": "screen-capture (8).webm",
+      "folder": "Bay Street Capital Holdings-Attachments",
+      "local": "Bay Street Capital Holdings (1512955000001240003)/Bay Street Capital Holdings-Attachments/screen-capture (8) (df5a3d).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Bay Street Capital Holdings (1512955000001240003)",
+      "file": "screen-capture (3).webm",
+      "folder": "Bay Street Capital Holdings-Attachments",
+      "local": "Bay Street Capital Holdings (1512955000001240003)/Bay Street Capital Holdings-Attachments/screen-capture (3) (a0daa9).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Bay Street Capital Holdings (1512955000001240003)",
+      "file": "screen-capture (3).webm",
+      "folder": "Bay Street Capital Holdings-Attachments",
+      "local": "Bay Street Capital Holdings (1512955000001240003)/Bay Street Capital Holdings-Attachments/screen-capture (3) (1955ad).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Bay Street Capital Holdings (1512955000001240003)",
+      "file": "attachment1",
+      "folder": "Bay Street Capital Holdings-Attachments",
+      "local": "Bay Street Capital Holdings (1512955000001240003)/Bay Street Capital Holdings-Attachments/attachment1",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Skyway Analytics LLC (1512955000001209161)",
+      "file": "screen-capture (41).webm",
+      "folder": "Skyway Analytics LLC-Attachments",
+      "local": "Skyway Analytics LLC (1512955000001209161)/Skyway Analytics LLC-Attachments/screen-capture (41).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Skyway Analytics LLC (1512955000001209161)",
+      "file": "Skyway Analytics_Seed Analysis Webpage Banner Video (1).mp4",
+      "folder": "Skyway Analytics LLC-Attachments",
+      "local": "Skyway Analytics LLC (1512955000001209161)/Skyway Analytics LLC-Attachments/Skyway Analytics_Seed Analysis Webpage Banner Video (1).mp4",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Skyway Analytics LLC (1512955000001209161)",
+      "file": "Skyway Analyatics_Feed Analytics Webpage Banner Video (1).mp4",
+      "folder": "Skyway Analytics LLC-Attachments",
+      "local": "Skyway Analytics LLC (1512955000001209161)/Skyway Analytics LLC-Attachments/Skyway Analyatics_Feed Analytics Webpage Banner Video (1).mp4",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "NEWtritionIQ, Inc (1512955000001112003)",
+      "file": "Admin accounts",
+      "folder": "NEWtritionIQ, Inc-Documents",
+      "local": "NEWtritionIQ, Inc (1512955000001112003)/NEWtritionIQ, Inc-Documents/Admin accounts.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "NEWtritionIQ, Inc (1512955000001112003)",
+      "file": "NEWtritionIQ - UI vs5.xd",
+      "folder": "NEWtritionIQ, Inc-Documents",
+      "local": "NEWtritionIQ, Inc (1512955000001112003)/NEWtritionIQ, Inc-Documents/NEWtritionIQ - UI vs5.xd",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "NEWtritionIQ, Inc (1512955000001112003)",
+      "file": "screen-capture.webm",
+      "folder": "NEWtritionIQ, Inc-Attachments",
+      "local": "NEWtritionIQ, Inc (1512955000001112003)/NEWtritionIQ, Inc-Attachments/screen-capture.webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "NEWtritionIQ, Inc (1512955000001112003)",
+      "file": "nuq-index.webm",
+      "folder": "NEWtritionIQ, Inc-Attachments",
+      "local": "NEWtritionIQ, Inc (1512955000001112003)/NEWtritionIQ, Inc-Attachments/nuq-index.webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "NEWtritionIQ, Inc (1512955000001112003)",
+      "file": "nuq-factors.webm",
+      "folder": "NEWtritionIQ, Inc-Attachments",
+      "local": "NEWtritionIQ, Inc (1512955000001112003)/NEWtritionIQ, Inc-Attachments/nuq-factors.webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "NEWtritionIQ, Inc (1512955000001112003)",
+      "file": "NEWtritionIQ update May20",
+      "folder": "NEWtritionIQ, Inc-Attachments",
+      "local": "NEWtritionIQ, Inc (1512955000001112003)/NEWtritionIQ, Inc-Attachments/NEWtritionIQ update May20",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Global View Foundation (1512955000001038003)",
+      "file": "Admin accounts",
+      "folder": "Global View Foundation-Documents",
+      "local": "Global View Foundation (1512955000001038003)/Global View Foundation-Documents/Admin accounts.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Race Point Seltzer (1512955000000936163)",
+      "file": "Admin accounts",
+      "folder": "Race Point Seltzer-Documents",
+      "local": "Race Point Seltzer (1512955000000936163)/Race Point Seltzer-Documents/Admin accounts.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Race Point Seltzer (1512955000000936163)",
+      "file": "Briefing",
+      "folder": "Race Point Seltzer-Documents",
+      "local": "Race Point Seltzer (1512955000000936163)/Race Point Seltzer-Documents/Briefing.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Race Point Seltzer (1512955000000936163)",
+      "file": "screen-capture (35).webm",
+      "folder": "Race Point Seltzer-Attachments",
+      "local": "Race Point Seltzer (1512955000000936163)/Race Point Seltzer-Attachments/screen-capture (35).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Race Point Seltzer (1512955000000936163)",
+      "file": "screen-capture (2).webm",
+      "folder": "Race Point Seltzer-Attachments",
+      "local": "Race Point Seltzer (1512955000000936163)/Race Point Seltzer-Attachments/screen-capture (2).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Race Point Seltzer (1512955000000936163)",
+      "file": "screen-capture (1).webm",
+      "folder": "Race Point Seltzer-Attachments",
+      "local": "Race Point Seltzer (1512955000000936163)/Race Point Seltzer-Attachments/screen-capture (1).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Race Point Seltzer (1512955000000936163)",
+      "file": "screen-capture (4).webm",
+      "folder": "Race Point Seltzer-Attachments",
+      "local": "Race Point Seltzer (1512955000000936163)/Race Point Seltzer-Attachments/screen-capture (4).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Race Point Seltzer (1512955000000936163)",
+      "file": "screen-capture (3).webm",
+      "folder": "Race Point Seltzer-Attachments",
+      "local": "Race Point Seltzer (1512955000000936163)/Race Point Seltzer-Attachments/screen-capture (3).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Race Point Seltzer (1512955000000936163)",
+      "file": "pinterest_product_from_ecwid.numbers",
+      "folder": "Race Point Seltzer-Attachments",
+      "local": "Race Point Seltzer (1512955000000936163)/Race Point Seltzer-Attachments/pinterest_product_from_ecwid.numbers",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "WSC Group (1512955000000872289)",
+      "file": "WSC Redesign 2026",
+      "folder": "WSC Group-Documents",
+      "local": "WSC Group (1512955000000872289)/WSC Group-Documents/WSC Redesign 2026.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "WSC Group (1512955000000872289)",
+      "file": "Your publication on wscgroup.com.au.msg",
+      "folder": "WSC Group-Attachments",
+      "local": "WSC Group (1512955000000872289)/WSC Group-Attachments/Your publication on wscgroup.com.au.msg",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "WSC Group (1512955000000872289)",
+      "file": "screen-capture (19).webm",
+      "folder": "WSC Group-Attachments",
+      "local": "WSC Group (1512955000000872289)/WSC Group-Attachments/screen-capture (19).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "WSC Group (1512955000000872289)",
+      "file": "screen-capture (13).webm",
+      "folder": "WSC Group-Attachments",
+      "local": "WSC Group (1512955000000872289)/WSC Group-Attachments/screen-capture (13).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "WSC Group (1512955000000872289)",
+      "file": "screen-capture (12).webm",
+      "folder": "WSC Group-Attachments",
+      "local": "WSC Group (1512955000000872289)/WSC Group-Attachments/screen-capture (12).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "WSC Group (1512955000000872289)",
+      "file": "screen-capture (49).webm",
+      "folder": "WSC Group-Attachments",
+      "local": "WSC Group (1512955000000872289)/WSC Group-Attachments/screen-capture (49).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "WSC Group (1512955000000872289)",
+      "file": "screen-capture (38).webm",
+      "folder": "WSC Group-Attachments",
+      "local": "WSC Group (1512955000000872289)/WSC Group-Attachments/screen-capture (38).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "WSC Group (1512955000000872289)",
+      "file": "screen-capture (16).webm",
+      "folder": "WSC Group-Attachments",
+      "local": "WSC Group (1512955000000872289)/WSC Group-Attachments/screen-capture (16).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "WSC Group (1512955000000872289)",
+      "file": "screen-capture (9).webm",
+      "folder": "WSC Group-Attachments",
+      "local": "WSC Group (1512955000000872289)/WSC Group-Attachments/screen-capture (9).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "WSC Group (1512955000000872289)",
+      "file": "screen-capture (7).webm",
+      "folder": "WSC Group-Attachments",
+      "local": "WSC Group (1512955000000872289)/WSC Group-Attachments/screen-capture (7).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "WSC Group (1512955000000872289)",
+      "file": "screen-capture (5).webm",
+      "folder": "WSC Group-Attachments",
+      "local": "WSC Group (1512955000000872289)/WSC Group-Attachments/screen-capture (5).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "WSC Group (1512955000000872289)",
+      "file": "screen-capture (1).webm",
+      "folder": "WSC Group-Attachments",
+      "local": "WSC Group (1512955000000872289)/WSC Group-Attachments/screen-capture (1).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "WSC Group (1512955000000872289)",
+      "file": "screen-capture (33).webm",
+      "folder": "WSC Group-Attachments",
+      "local": "WSC Group (1512955000000872289)/WSC Group-Attachments/screen-capture (33).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "WSC Group (1512955000000872289)",
+      "file": "screen-capture (23).webm",
+      "folder": "WSC Group-Attachments",
+      "local": "WSC Group (1512955000000872289)/WSC Group-Attachments/screen-capture (23).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "WSC Group (1512955000000872289)",
+      "file": "screen-capture (17).webm",
+      "folder": "WSC Group-Attachments",
+      "local": "WSC Group (1512955000000872289)/WSC Group-Attachments/screen-capture (17).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "WSC Group (1512955000000872289)",
+      "file": "screen-capture (6).webm",
+      "folder": "WSC Group-Attachments",
+      "local": "WSC Group (1512955000000872289)/WSC Group-Attachments/screen-capture (6).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "WSC Group (1512955000000872289)",
+      "file": "screen-capture (6).webm",
+      "folder": "WSC Group-Attachments",
+      "local": "WSC Group (1512955000000872289)/WSC Group-Attachments/screen-capture (6) (5d5e3c).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "WSC Group (1512955000000872289)",
+      "file": "downsizer image (2).avif",
+      "folder": "WSC Group-Attachments",
+      "local": "WSC Group (1512955000000872289)/WSC Group-Attachments/downsizer image (2).avif",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "WSC Group (1512955000000872289)",
+      "file": "July image (2).avif",
+      "folder": "WSC Group-Attachments",
+      "local": "WSC Group (1512955000000872289)/WSC Group-Attachments/July image (2).avif",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "WSC Group (1512955000000872289)",
+      "file": "downsizer image.avif",
+      "folder": "WSC Group-Attachments",
+      "local": "WSC Group (1512955000000872289)/WSC Group-Attachments/downsizer image.avif",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "WSC Group (1512955000000872289)",
+      "file": "July image.avif",
+      "folder": "WSC Group-Attachments",
+      "local": "WSC Group (1512955000000872289)/WSC Group-Attachments/July image.avif",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Cloud303 Inc (1512955000000697493)",
+      "file": "Sitemap",
+      "folder": "Cloud303 Inc-Documents",
+      "local": "Cloud303 Inc (1512955000000697493)/Cloud303 Inc-Documents/Sitemap.xlsx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Cloud303 Inc (1512955000000697493)",
+      "file": "Admin accounts",
+      "folder": "Cloud303 Inc-Documents",
+      "local": "Cloud303 Inc (1512955000000697493)/Cloud303 Inc-Documents/Admin accounts.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Cloud303 Inc (1512955000000697493)",
+      "file": "Briefing document",
+      "folder": "Cloud303 Inc-Documents",
+      "local": "Cloud303 Inc (1512955000000697493)/Cloud303 Inc-Documents/Briefing document.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "Form Submissions",
+      "folder": "Welcome Tattoo-Documents",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Documents/Form Submissions.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "Briefing document",
+      "folder": "Welcome Tattoo-Documents",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Documents/Briefing document.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "WildRose&amp;DrBronners.pages",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/WildRose&amp;DrBronners.pages",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "IMG_7171.heic",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/IMG_7171.heic",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "IMG_9906.HEIC",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/IMG_9906.HEIC",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "IMG_5537.heic",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/IMG_5537.heic",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "IMG_4600.heic",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/IMG_4600.heic",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "IMG_9065.heic",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/IMG_9065.heic",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "IMG_4006.HEIC",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/IMG_4006.HEIC",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "IMG_5489.heic",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/IMG_5489.heic",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "IMG_5531.heic",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/IMG_5531.heic",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "IMG_4598.heic",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/IMG_4598.heic",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "IMG_3191.heic",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/IMG_3191.heic",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "IMG_3808.heic",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/IMG_3808.heic",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "IMG_3299.heic",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/IMG_3299.heic",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "IMG_2873.heic",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/IMG_2873.heic",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "IMG_0974.HEIC",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/IMG_0974.HEIC",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "IMG_0915.heic",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/IMG_0915.heic",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "IMG_2049.heic",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/IMG_2049.heic",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "IMG_1378.heic",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/IMG_1378.heic",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "IMG_1586.heic",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/IMG_1586.heic",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "IMG_2680.heic",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/IMG_2680.heic",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "IMG_9275.heic",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/IMG_9275.heic",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "IMG_3370.heic",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/IMG_3370.heic",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "IMG_9821.heic",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/IMG_9821.heic",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "IMG_9122.heic",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/IMG_9122.heic",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "IMG_5857.heic",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/IMG_5857.heic",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "IMG_8969.heic",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/IMG_8969.heic",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "IMG_8264.heic",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/IMG_8264.heic",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "IMG_6094.heic",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/IMG_6094.heic",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "IMG_8914.heic",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/IMG_8914.heic",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "IMG_1282.heic",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/IMG_1282.heic",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "IMG_7708.heic",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/IMG_7708.heic",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "IMG_1262.heic",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/IMG_1262.heic",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "KohenMeyersDurham.heic",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/KohenMeyersDurham.heic",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "MeganDurhamTattooArtist.heic",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/MeganDurhamTattooArtist.heic",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "IMG_2802.heic",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/IMG_2802.heic",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "E696FC6D-DA9B-487D-B90F-0A24C532E06D.heic",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/E696FC6D-DA9B-487D-B90F-0A24C532E06D.heic",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "IMG_2806.heic",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/IMG_2806.heic",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "IMG_2807.heic",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/IMG_2807.heic",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "IMG_2798.heic",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/IMG_2798.heic",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "IMG_2801.heic",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/IMG_2801.heic",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "IMG_2805.heic",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/IMG_2805.heic",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "IMG_2800.heic",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/IMG_2800.heic",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "IMG_3249.heic",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/IMG_3249.heic",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "IMG_3536.heic",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/IMG_3536.heic",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "IMG_4245.heic",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/IMG_4245.heic",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "IMG_3194.heic",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/IMG_3194.heic",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "Untitled_Artwork.heic",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/Untitled_Artwork.heic",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "Northcarolinatattooer.heic",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/Northcarolinatattooer.heic",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "IMG_2808.heic",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/IMG_2808.heic",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "AbbyBenjaminWelcomeTattoo.heic",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/AbbyBenjaminWelcomeTattoo.heic",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "Northcarolinatattooer.heic",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/Northcarolinatattooer (ffc427).heic",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "DowntownDurhamTattoo.heic",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/DowntownDurhamTattoo.heic",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "DurhamNCTattooer.heic",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/DurhamNCTattooer.heic",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "AbbyBenjaminNorthCarolina.heic",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/AbbyBenjaminNorthCarolina.heic",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "BlackandGrayTattooDurham.heic",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/BlackandGrayTattooDurham.heic",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "screen-capture (38).webm",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/screen-capture (38).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "screen-capture (36).webm",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/screen-capture (36).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "screen-capture (35).webm",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/screen-capture (35).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "screen-capture (37).webm",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/screen-capture (37).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "screen-capture (25).webm",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/screen-capture (25).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "screen-capture (28).webm",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/screen-capture (28).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "screen-capture (27).webm",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/screen-capture (27).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "screen-capture (6).webm",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/screen-capture (6).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "certificate.pem",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/certificate.pem",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "screen-capture (9).webm",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/screen-capture (9).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "screen-capture (5).webm",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/screen-capture (5).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "screen-capture (8).webm",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/screen-capture (8).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "screen-capture (5).webm",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/screen-capture (5) (f33c6c).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "screen-capture (6).webm",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/screen-capture (6) (92cc6c).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "screen-capture (5).webm",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/screen-capture (5) (f9fd21).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "screen-capture (1).webm",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/screen-capture (1).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "screen-capture (11).webm",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/screen-capture (11).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Welcome Tattoo (1512955000000697473)",
+      "file": "Kohen Meyers Tattoo Durham North Carolina .m4v",
+      "folder": "Welcome Tattoo-Attachments",
+      "local": "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/Kohen Meyers Tattoo Durham North Carolina .m4v",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Montclair Upper Cervical Chiropractic LLC (1512955000000697453)",
+      "file": "Admin accounts",
+      "folder": "Montclair Upper Cervical Chiropractic LLC-Documents",
+      "local": "Montclair Upper Cervical Chiropractic LLC (1512955000000697453)/Montclair Upper Cervical Chiropractic LLC-Documents/Admin accounts.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Montclair Upper Cervical Chiropractic LLC (1512955000000697453)",
+      "file": "Sitemap",
+      "folder": "Montclair Upper Cervical Chiropractic LLC-Documents",
+      "local": "Montclair Upper Cervical Chiropractic LLC (1512955000000697453)/Montclair Upper Cervical Chiropractic LLC-Documents/Sitemap.xlsx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Montclair Upper Cervical Chiropractic LLC (1512955000000697453)",
+      "file": "Briefing document",
+      "folder": "Montclair Upper Cervical Chiropractic LLC-Documents",
+      "local": "Montclair Upper Cervical Chiropractic LLC (1512955000000697453)/Montclair Upper Cervical Chiropractic LLC-Documents/Briefing document.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Montclair Upper Cervical Chiropractic LLC (1512955000000697453)",
+      "file": "screen-capture (59).webm",
+      "folder": "Montclair Upper Cervical Chiropractic LLC-Attachments",
+      "local": "Montclair Upper Cervical Chiropractic LLC (1512955000000697453)/Montclair Upper Cervical Chiropractic LLC-Attachments/screen-capture (59).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Montclair Upper Cervical Chiropractic LLC (1512955000000697453)",
+      "file": "screen-capture (61).webm",
+      "folder": "Montclair Upper Cervical Chiropractic LLC-Attachments",
+      "local": "Montclair Upper Cervical Chiropractic LLC (1512955000000697453)/Montclair Upper Cervical Chiropractic LLC-Attachments/screen-capture (61).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Montclair Upper Cervical Chiropractic LLC (1512955000000697453)",
+      "file": "screen-capture (60).webm",
+      "folder": "Montclair Upper Cervical Chiropractic LLC-Attachments",
+      "local": "Montclair Upper Cervical Chiropractic LLC (1512955000000697453)/Montclair Upper Cervical Chiropractic LLC-Attachments/screen-capture (60).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Montclair Upper Cervical Chiropractic LLC (1512955000000697453)",
+      "file": "screen-capture (4).webm",
+      "folder": "Montclair Upper Cervical Chiropractic LLC-Attachments",
+      "local": "Montclair Upper Cervical Chiropractic LLC (1512955000000697453)/Montclair Upper Cervical Chiropractic LLC-Attachments/screen-capture (4).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Montclair Upper Cervical Chiropractic LLC (1512955000000697453)",
+      "file": "screen-capture (20).webm",
+      "folder": "Montclair Upper Cervical Chiropractic LLC-Attachments",
+      "local": "Montclair Upper Cervical Chiropractic LLC (1512955000000697453)/Montclair Upper Cervical Chiropractic LLC-Attachments/screen-capture (20).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Montclair Upper Cervical Chiropractic LLC (1512955000000697453)",
+      "file": "screen-capture (19).webm",
+      "folder": "Montclair Upper Cervical Chiropractic LLC-Attachments",
+      "local": "Montclair Upper Cervical Chiropractic LLC (1512955000000697453)/Montclair Upper Cervical Chiropractic LLC-Attachments/screen-capture (19).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Montclair Upper Cervical Chiropractic LLC (1512955000000697453)",
+      "file": "screen-capture (4).webm",
+      "folder": "Montclair Upper Cervical Chiropractic LLC-Attachments",
+      "local": "Montclair Upper Cervical Chiropractic LLC (1512955000000697453)/Montclair Upper Cervical Chiropractic LLC-Attachments/screen-capture (4) (b5183e).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Legal Marketing & Staffing (1512955000000599639)",
+      "file": "Admin accounts",
+      "folder": "Legal Marketing & Staffing-Documents",
+      "local": "Legal Marketing & Staffing (1512955000000599639)/Legal Marketing & Staffing-Documents/Admin accounts.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Legal Marketing & Staffing (1512955000000599639)",
+      "file": "screen-capture (47).webm",
+      "folder": "Legal Marketing & Staffing-Attachments",
+      "local": "Legal Marketing & Staffing (1512955000000599639)/Legal Marketing & Staffing-Attachments/screen-capture (47).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Legal Marketing & Staffing (1512955000000599639)",
+      "file": "screen-capture (45).webm",
+      "folder": "Legal Marketing & Staffing-Attachments",
+      "local": "Legal Marketing & Staffing (1512955000000599639)/Legal Marketing & Staffing-Attachments/screen-capture (45).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Legal Marketing & Staffing (1512955000000599639)",
+      "file": "Our Team _ Legal Marketing and Staffing LLC and 8 more pages - Personal - Microsoft​ Edge 2022-08-26 07-24-57.mp4",
+      "folder": "Legal Marketing & Staffing-Attachments",
+      "local": "Legal Marketing & Staffing (1512955000000599639)/Legal Marketing & Staffing-Attachments/Our Team _ Legal Marketing and Staffing LLC and 8 more pages - Personal - Microsoft​ Edge 2022-08-26 07-24-57.mp4",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Legal Marketing & Staffing (1512955000000599639)",
+      "file": "screen-capture (35).webm",
+      "folder": "Legal Marketing & Staffing-Attachments",
+      "local": "Legal Marketing & Staffing (1512955000000599639)/Legal Marketing & Staffing-Attachments/screen-capture (35).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Legal Marketing & Staffing (1512955000000599639)",
+      "file": "lm-logo-orange.bmp",
+      "folder": "Legal Marketing & Staffing-Attachments",
+      "local": "Legal Marketing & Staffing (1512955000000599639)/Legal Marketing & Staffing-Attachments/lm-logo-orange.bmp",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "PCS Partners Real Estate and The Farnon Home Team (1512955000000557291)",
+      "file": "Admin accounts",
+      "folder": "PCS Partners Real Estate and The Farnon Home Team-Documents",
+      "local": "PCS Partners Real Estate and The Farnon Home Team (1512955000000557291)/PCS Partners Real Estate and The Farnon Home Team-Documents/Admin accounts.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "PCS Partners Real Estate and The Farnon Home Team (1512955000000557291)",
+      "file": "screen-capture.webm",
+      "folder": "PCS Partners Real Estate and The Farnon Home Team-Attachments",
+      "local": "PCS Partners Real Estate and The Farnon Home Team (1512955000000557291)/PCS Partners Real Estate and The Farnon Home Team-Attachments/screen-capture.webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "PCS Partners Real Estate and The Farnon Home Team (1512955000000557291)",
+      "file": "screen-capture (15).webm",
+      "folder": "PCS Partners Real Estate and The Farnon Home Team-Attachments",
+      "local": "PCS Partners Real Estate and The Farnon Home Team (1512955000000557291)/PCS Partners Real Estate and The Farnon Home Team-Attachments/screen-capture (15).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Parking Revenue Recovery Services (1512955000000563211)",
+      "file": "screen-capture (8).webm",
+      "folder": "Parking Revenue Recovery Services-Attachments",
+      "local": "Parking Revenue Recovery Services (1512955000000563211)/Parking Revenue Recovery Services-Attachments/screen-capture (8).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Parking Revenue Recovery Services (1512955000000563211)",
+      "file": "screen-capture (3).webm",
+      "folder": "Parking Revenue Recovery Services-Attachments",
+      "local": "Parking Revenue Recovery Services (1512955000000563211)/Parking Revenue Recovery Services-Attachments/screen-capture (3).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Journey Financial Services (1512955000000471341)",
+      "file": "Journey Financial Migration - QA",
+      "folder": "Journey Financial Services-Documents",
+      "local": "Journey Financial Services (1512955000000471341)/Journey Financial Services-Documents/Journey Financial Migration - QA.pptx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Genna Rae Wings & More (1512955000000475632)",
+      "file": "Admin accounts",
+      "folder": "Genna Rae Wings & More-Documents",
+      "local": "Genna Rae Wings & More (1512955000000475632)/Genna Rae Wings & More-Documents/Admin accounts.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "PeerSource (1512955000000427355)",
+      "file": "MyPeersource_QA",
+      "folder": "PeerSource-Documents",
+      "local": "PeerSource (1512955000000427355)/PeerSource-Documents/MyPeersource_QA.pptx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "PeerSource (1512955000000427355)",
+      "file": "Backend access",
+      "folder": "PeerSource-Documents",
+      "local": "PeerSource (1512955000000427355)/PeerSource-Documents/Backend access.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "PeerSource (1512955000000427355)",
+      "file": "Admin accounts",
+      "folder": "PeerSource-Documents",
+      "local": "PeerSource (1512955000000427355)/PeerSource-Documents/Admin accounts.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "PeerSource (1512955000000427355)",
+      "file": "Cloudinary",
+      "folder": "PeerSource-Documents",
+      "local": "PeerSource (1512955000000427355)/PeerSource-Documents/Cloudinary.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "PeerSource (1512955000000427355)",
+      "file": "Sitemap",
+      "folder": "PeerSource-Documents",
+      "local": "PeerSource (1512955000000427355)/PeerSource-Documents/Sitemap.xlsx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "PeerSource (1512955000000427355)",
+      "file": "Development Roadmap",
+      "folder": "PeerSource-Documents",
+      "local": "PeerSource (1512955000000427355)/PeerSource-Documents/Development Roadmap.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "PeerSource (1512955000000427355)",
+      "file": "Share folders from customer",
+      "folder": "PeerSource-Documents",
+      "local": "PeerSource (1512955000000427355)/PeerSource-Documents/Share folders from customer.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "PeerSource (1512955000000427355)",
+      "file": "WebriQ WSaaS with API and Job Alert Build",
+      "folder": "PeerSource-Documents",
+      "local": "PeerSource (1512955000000427355)/PeerSource-Documents/WebriQ WSaaS with API and Job Alert Build.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "PeerSource (1512955000000427355)",
+      "file": "Briefing document",
+      "folder": "PeerSource-Documents",
+      "local": "PeerSource (1512955000000427355)/PeerSource-Documents/Briefing document.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "PeerSource (1512955000000427355)",
+      "file": "screen-capture (4).webm",
+      "folder": "PeerSource-Attachments",
+      "local": "PeerSource (1512955000000427355)/PeerSource-Attachments/screen-capture (4).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "PeerSource (1512955000000427355)",
+      "file": "AdobeStock_198938431.mov",
+      "folder": "PeerSource-Attachments",
+      "local": "PeerSource (1512955000000427355)/PeerSource-Attachments/AdobeStock_198938431.mov",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "PeerSource (1512955000000427355)",
+      "file": "screen-capture (10).webm",
+      "folder": "PeerSource-Attachments",
+      "local": "PeerSource (1512955000000427355)/PeerSource-Attachments/screen-capture (10).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "PeerSource (1512955000000427355)",
+      "file": "screen-capture (2).webm",
+      "folder": "PeerSource-Attachments",
+      "local": "PeerSource (1512955000000427355)/PeerSource-Attachments/screen-capture (2).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "PeerSource (1512955000000427355)",
+      "file": "attachment1.eml",
+      "folder": "PeerSource-Attachments",
+      "local": "PeerSource (1512955000000427355)/PeerSource-Attachments/attachment1.eml",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    }
+  ],
+  "errors": [
+    "WSC Group (1512955000000872289)/WSC Group-Attachments/Image 1.png: storage upload failed: <none>",
+    "WSC Group (1512955000000872289)/WSC Group-Attachments/6. June Wage increase special S3 E5.png: storage upload failed: <none>",
+    "Welcome Tattoo (1512955000000697473)/Welcome Tattoo-Attachments/Still Not Asking For It Flash Sheet.jpg: storage upload failed: <none>"
+  ]
+}

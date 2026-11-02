@@ -1,0 +1,1323 @@
+{
+  "dryRun": false,
+  "slice": {
+    "from": 125,
+    "to": "150",
+    "project": null
+  },
+  "counts": {
+    "projectsLegacy": 21,
+    "projectsWithoutDocuments": 4,
+    "foldersCreated": 65,
+    "filesNative": 38,
+    "localSaved": 141,
+    "filesImportable": 1049,
+    "filesImported": 1048,
+    "filesUnsupportedType": 103,
+    "filesFailed": 1
+  },
+  "projects": [
+    {
+      "zohoId": "1512955000003182067",
+      "zohoName": "Empire Title",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "d29aec2d-c54a-46b2-8a3d-8ece4476aa59",
+      "folders": 3,
+      "files": 48
+    },
+    {
+      "zohoId": "1512955000003023054",
+      "zohoName": "ChrisfromBoulder",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "44510577-a3ce-4961-9f84-921ec571c449",
+      "folders": 3,
+      "files": 20
+    },
+    {
+      "zohoId": "1512955000002967175",
+      "zohoName": "[DEV] Beelwith Keeler",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "ddd51e31-ea2d-4896-8c12-2f3c865a278f",
+      "folders": 1,
+      "files": 1
+    },
+    {
+      "zohoId": "1512955000002969047",
+      "zohoName": "WebriQ StackShift",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "045b78c2-7961-4da6-981c-8d94917ef541",
+      "folders": 3,
+      "files": 108
+    },
+    {
+      "zohoId": "1512955000002954205",
+      "zohoName": "Knox Wealth Management",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "51688e18-ffb6-4f0b-82ca-604f84bbc1ff",
+      "folders": 2,
+      "files": 6
+    },
+    {
+      "zohoId": "1512955000002917463",
+      "zohoName": "[DEV] Auction Systems",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "8d024c07-16f5-4c3d-9ee2-67525831350b",
+      "folders": 2,
+      "files": 1
+    },
+    {
+      "zohoId": "1512955000002906003",
+      "zohoName": "BP Portal",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "e533dcff-6760-4cba-a5a4-e74b986faca1",
+      "folders": 4,
+      "files": 328
+    },
+    {
+      "zohoId": "1512955000002788009",
+      "zohoName": "Quattro Key Realty, LLC",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "07e98c65-09c1-4c63-94f6-aa63c49c9821",
+      "folders": 3,
+      "files": 19
+    },
+    {
+      "zohoId": "1512955000002645769",
+      "zohoName": "Auction Systems",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "fc6550cb-72ff-4221-befa-70fde99057a4",
+      "folders": 3,
+      "files": 27
+    },
+    {
+      "zohoId": "1512955000002303190",
+      "zohoName": "Last Line Solutions Inc",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "a7a0864d-3fdb-4e71-9126-aa9e24769a5c",
+      "folders": 3,
+      "files": 3
+    },
+    {
+      "zohoId": "1512955000002130337",
+      "zohoName": "Jamplast Distribution",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "2998f08a-af3a-4635-9040-198bca88a320",
+      "folders": 7,
+      "files": 101
+    },
+    {
+      "zohoId": "1512955000002069637",
+      "zohoName": "Evil Beagle Games",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "a005fec2-89a7-44b6-b392-592375f48925",
+      "folders": 3,
+      "files": 20
+    },
+    {
+      "zohoId": "1512955000002069605",
+      "zohoName": "Genesis Engineered Solutions, LLC",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "a7a7561b-5024-4192-ad90-a4c84a56f5c7",
+      "folders": 3,
+      "files": 2
+    },
+    {
+      "zohoId": "1512955000001835535",
+      "zohoName": "DiverterPlus, LLC",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "af9c19fb-c45d-46bc-a661-387a44a9c84a",
+      "folders": 4,
+      "files": 108
+    },
+    {
+      "zohoId": "1512955000001746049",
+      "zohoName": "Summit Maintenance Inc.",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "0b6cbfc7-87e6-4a02-8092-b7fff2fc1195",
+      "folders": 3,
+      "files": 26
+    },
+    {
+      "zohoId": "1512955000001673098",
+      "zohoName": "FLUO Foundation",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "8adb9fe7-61f9-4f7f-b3d1-84b61c00402d",
+      "folders": 3,
+      "files": 25
+    },
+    {
+      "zohoId": "1512955000001673078",
+      "zohoName": "FLUO",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "9aeb19d8-c279-4419-a84b-0df74b4624de",
+      "folders": 5,
+      "files": 263
+    },
+    {
+      "zohoId": "1512955000001629367",
+      "zohoName": "Bona Fides Laboratory Inc",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "b0c9a9b4-33c3-4a9f-ab5e-2a9ff5f998d6",
+      "folders": 3,
+      "files": 17
+    },
+    {
+      "zohoId": "1512955000001629347",
+      "zohoName": "Origins Laboratory",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "52a36a2b-ff5d-40aa-8d1a-dadd9a24ae4d",
+      "folders": 3,
+      "files": 53
+    },
+    {
+      "zohoId": "1512955000001502311",
+      "zohoName": "Natural Earth Healing Center",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "5d7941e3-3e7e-49c6-8158-a286798e485d",
+      "folders": 1,
+      "files": 1
+    },
+    {
+      "zohoId": "1512955000001498306",
+      "zohoName": "Business Optimized",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "e897ee28-5612-4bc5-b508-f81d9e28b530",
+      "folders": 3,
+      "files": 13
+    }
+  ],
+  "renamedFolders": [],
+  "skippedFiles": [
+    {
+      "project": "Empire Title (1512955000003182067)",
+      "file": "Content migration",
+      "folder": "Empire Title-Documents",
+      "local": "Empire Title (1512955000003182067)/Empire Title-Documents/Content migration.xlsx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Empire Title (1512955000003182067)",
+      "file": "screen-capture (43).webm",
+      "folder": "Empire Title-Attachments",
+      "local": "Empire Title (1512955000003182067)/Empire Title-Attachments/screen-capture (43).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Empire Title (1512955000003182067)",
+      "file": "screen-capture (53).webm",
+      "folder": "Empire Title-Attachments",
+      "local": "Empire Title (1512955000003182067)/Empire Title-Attachments/screen-capture (53).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Empire Title (1512955000003182067)",
+      "file": "screen-capture - 2022-12-07T140714.657.webm",
+      "folder": "Empire Title-Attachments",
+      "local": "Empire Title (1512955000003182067)/Empire Title-Attachments/screen-capture - 2022-12-07T140714.657.webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Empire Title (1512955000003182067)",
+      "file": "screen-capture (1).webm",
+      "folder": "Empire Title-Attachments",
+      "local": "Empire Title (1512955000003182067)/Empire Title-Attachments/screen-capture (1).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Empire Title (1512955000003182067)",
+      "file": "screen-capture (4).webm",
+      "folder": "Empire Title-Attachments",
+      "local": "Empire Title (1512955000003182067)/Empire Title-Attachments/screen-capture (4).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "ChrisfromBoulder (1512955000003023054)",
+      "file": "Admin accounts",
+      "folder": "ChrisfromBoulder-Documents",
+      "local": "ChrisfromBoulder (1512955000003023054)/ChrisfromBoulder-Documents/Admin accounts.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "WebriQ StackShift (1512955000002969047)",
+      "file": "Admin Credentials",
+      "folder": "WebriQ StackShift-Documents",
+      "local": "WebriQ StackShift (1512955000002969047)/WebriQ StackShift-Documents/Admin Credentials.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "WebriQ StackShift (1512955000002969047)",
+      "file": "crash_issue_mobile.MP4",
+      "folder": "WebriQ StackShift-Documents",
+      "local": "WebriQ StackShift (1512955000002969047)/WebriQ StackShift-Documents/crash_issue_mobile.MP4",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "WebriQ StackShift (1512955000002969047)",
+      "file": "self_client(July 2, 2024).json",
+      "folder": "WebriQ StackShift-Documents",
+      "local": "WebriQ StackShift (1512955000002969047)/WebriQ StackShift-Documents/self_client(July 2, 2024).json",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "WebriQ StackShift (1512955000002969047)",
+      "file": "sendReply 27-10-2026 23:22:30:327.json",
+      "folder": "WebriQ StackShift-Documents",
+      "local": "WebriQ StackShift (1512955000002969047)/WebriQ StackShift-Documents/sendReply 27-10-2026 23_22_30_327.json",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "WebriQ StackShift (1512955000002969047)",
+      "file": "sendReply 27-10-2026 23:22:30:244.json",
+      "folder": "WebriQ StackShift-Documents",
+      "local": "WebriQ StackShift (1512955000002969047)/WebriQ StackShift-Documents/sendReply 27-10-2026 23_22_30_244.json",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "WebriQ StackShift (1512955000002969047)",
+      "file": "sendReply.json",
+      "folder": "WebriQ StackShift-Documents",
+      "local": "WebriQ StackShift (1512955000002969047)/WebriQ StackShift-Documents/sendReply.json",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "WebriQ StackShift (1512955000002969047)",
+      "file": "submit-ticket.json",
+      "folder": "WebriQ StackShift-Documents",
+      "local": "WebriQ StackShift (1512955000002969047)/WebriQ StackShift-Documents/submit-ticket.json",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "WebriQ StackShift (1512955000002969047)",
+      "file": "all-tickets.json",
+      "folder": "WebriQ StackShift-Documents",
+      "local": "WebriQ StackShift (1512955000002969047)/WebriQ StackShift-Documents/all-tickets.json",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "WebriQ StackShift (1512955000002969047)",
+      "file": "ticketById-thread.json",
+      "folder": "WebriQ StackShift-Documents",
+      "local": "WebriQ StackShift (1512955000002969047)/WebriQ StackShift-Documents/ticketById-thread.json",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "WebriQ StackShift (1512955000002969047)",
+      "file": "ticketById-latestThread.json",
+      "folder": "WebriQ StackShift-Documents",
+      "local": "WebriQ StackShift (1512955000002969047)/WebriQ StackShift-Documents/ticketById-latestThread.json",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "WebriQ StackShift (1512955000002969047)",
+      "file": "ticketById-conversation.json",
+      "folder": "WebriQ StackShift-Documents",
+      "local": "WebriQ StackShift (1512955000002969047)/WebriQ StackShift-Documents/ticketById-conversation.json",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "WebriQ StackShift (1512955000002969047)",
+      "file": "ticket-by-id.json",
+      "folder": "WebriQ StackShift-Documents",
+      "local": "WebriQ StackShift (1512955000002969047)/WebriQ StackShift-Documents/ticket-by-id.json",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "WebriQ StackShift (1512955000002969047)",
+      "file": "ticket-assignee.json",
+      "folder": "WebriQ StackShift-Documents",
+      "local": "WebriQ StackShift (1512955000002969047)/WebriQ StackShift-Documents/ticket-assignee.json",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "WebriQ StackShift (1512955000002969047)",
+      "file": "all-forms.json",
+      "folder": "WebriQ StackShift-Documents",
+      "local": "WebriQ StackShift (1512955000002969047)/WebriQ StackShift-Documents/all-forms.json",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "WebriQ StackShift (1512955000002969047)",
+      "file": "submission-body.json",
+      "folder": "WebriQ StackShift-Documents",
+      "local": "WebriQ StackShift (1512955000002969047)/WebriQ StackShift-Documents/submission-body.json",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "WebriQ StackShift (1512955000002969047)",
+      "file": "latest-deployments.json",
+      "folder": "WebriQ StackShift-Documents",
+      "local": "WebriQ StackShift (1512955000002969047)/WebriQ StackShift-Documents/latest-deployments.json",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "WebriQ StackShift (1512955000002969047)",
+      "file": "deployments-endpoint.json",
+      "folder": "WebriQ StackShift-Documents",
+      "local": "WebriQ StackShift (1512955000002969047)/WebriQ StackShift-Documents/deployments-endpoint.json",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "WebriQ StackShift (1512955000002969047)",
+      "file": "build-logs.json",
+      "folder": "WebriQ StackShift-Documents",
+      "local": "WebriQ StackShift (1512955000002969047)/WebriQ StackShift-Documents/build-logs.json",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "WebriQ StackShift (1512955000002969047)",
+      "file": "bandwidth.json",
+      "folder": "WebriQ StackShift-Documents",
+      "local": "WebriQ StackShift (1512955000002969047)/WebriQ StackShift-Documents/bandwidth.json",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "WebriQ StackShift (1512955000002969047)",
+      "file": "StackShift App v2",
+      "folder": "WebriQ StackShift-Documents",
+      "local": "WebriQ StackShift (1512955000002969047)/WebriQ StackShift-Documents/StackShift App v2.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "WebriQ StackShift (1512955000002969047)",
+      "file": "January 8 - Meeting",
+      "folder": "WebriQ StackShift-Documents",
+      "local": "WebriQ StackShift (1512955000002969047)/WebriQ StackShift-Documents/January 8 - Meeting.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "WebriQ StackShift (1512955000002969047)",
+      "file": "WebriQ Studio - Releases",
+      "folder": "WebriQ StackShift-Documents",
+      "local": "WebriQ StackShift (1512955000002969047)/WebriQ StackShift-Documents/WebriQ Studio - Releases.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "WebriQ StackShift (1512955000002969047)",
+      "file": "Admin accounts",
+      "folder": "WebriQ StackShift-Documents",
+      "local": "WebriQ StackShift (1512955000002969047)/WebriQ StackShift-Documents/Admin accounts.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "WebriQ StackShift (1512955000002969047)",
+      "file": "Documentation",
+      "folder": "WebriQ StackShift-Documents",
+      "local": "WebriQ StackShift (1512955000002969047)/WebriQ StackShift-Documents/Documentation.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "WebriQ StackShift (1512955000002969047)",
+      "file": "scheduled-publishing-test.mov",
+      "folder": "WebriQ StackShift-Attachments",
+      "local": "WebriQ StackShift (1512955000002969047)/WebriQ StackShift-Attachments/scheduled-publishing-test.mov",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "WebriQ StackShift (1512955000002969047)",
+      "file": "plopfile.mjs",
+      "folder": "WebriQ StackShift-Attachments",
+      "local": "WebriQ StackShift (1512955000002969047)/WebriQ StackShift-Attachments/plopfile.mjs",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "WebriQ StackShift (1512955000002969047)",
+      "file": "account-endpoint.json",
+      "folder": "WebriQ StackShift-Attachments",
+      "local": "WebriQ StackShift (1512955000002969047)/WebriQ StackShift-Attachments/account-endpoint.json",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "WebriQ StackShift (1512955000002969047)",
+      "file": "deploy-endpoint.json",
+      "folder": "WebriQ StackShift-Attachments",
+      "local": "WebriQ StackShift (1512955000002969047)/WebriQ StackShift-Attachments/deploy-endpoint.json",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "WebriQ StackShift (1512955000002969047)",
+      "file": "build-endpoint.json",
+      "folder": "WebriQ StackShift-Attachments",
+      "local": "WebriQ StackShift (1512955000002969047)/WebriQ StackShift-Attachments/build-endpoint.json",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "WebriQ StackShift (1512955000002969047)",
+      "file": "site-endpoint.json",
+      "folder": "WebriQ StackShift-Attachments",
+      "local": "WebriQ StackShift (1512955000002969047)/WebriQ StackShift-Attachments/site-endpoint.json",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "WebriQ StackShift (1512955000002969047)",
+      "file": "screen-capture (3).webm",
+      "folder": "WebriQ StackShift-Attachments",
+      "local": "WebriQ StackShift (1512955000002969047)/WebriQ StackShift-Attachments/screen-capture (3).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "WebriQ StackShift (1512955000002969047)",
+      "file": "may8-9-progress.webm",
+      "folder": "WebriQ StackShift-Attachments",
+      "local": "WebriQ StackShift (1512955000002969047)/WebriQ StackShift-Attachments/may8-9-progress.webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "WebriQ StackShift (1512955000002969047)",
+      "file": "screen-capture (50).webm",
+      "folder": "WebriQ StackShift-Attachments",
+      "local": "WebriQ StackShift (1512955000002969047)/WebriQ StackShift-Attachments/screen-capture (50).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Knox Wealth Management (1512955000002954205)",
+      "file": "Admin accounts",
+      "folder": "Knox Wealth Management-Documents",
+      "local": "Knox Wealth Management (1512955000002954205)/Knox Wealth Management-Documents/Admin accounts.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Knox Wealth Management (1512955000002954205)",
+      "file": "KnoxWealth_logo_RGB_Large.heic",
+      "folder": "Knox Wealth Management-Documents",
+      "local": "Knox Wealth Management (1512955000002954205)/Knox Wealth Management-Documents/KnoxWealth_logo_RGB_Large.heic",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "[DEV] Auction Systems (1512955000002917463)",
+      "file": "Admin accounts",
+      "folder": "[DEV] Auction Systems-Documents",
+      "local": "[DEV] Auction Systems (1512955000002917463)/[DEV] Auction Systems-Documents/Admin accounts.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "BP Portal (1512955000002906003)",
+      "file": "API Documentation",
+      "folder": "BP Portal-Documents",
+      "local": "BP Portal (1512955000002906003)/BP Portal-Documents/API Documentation.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "BP Portal (1512955000002906003)",
+      "file": "Admin accounts",
+      "folder": "BP Portal-Documents",
+      "local": "BP Portal (1512955000002906003)/BP Portal-Documents/Admin accounts.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "BP Portal (1512955000002906003)",
+      "file": "screen-capture - 2023-05-12T175757.923.webm",
+      "folder": "BP Portal-Documents",
+      "local": "BP Portal (1512955000002906003)/BP Portal-Documents/screen-capture - 2023-05-12T175757.923.webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "BP Portal (1512955000002906003)",
+      "file": "screen-capture - 2023-05-12T174034.800.webm",
+      "folder": "BP Portal-Documents",
+      "local": "BP Portal (1512955000002906003)/BP Portal-Documents/screen-capture - 2023-05-12T174034.800.webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "BP Portal (1512955000002906003)",
+      "file": "Additional-Testing (1).mov",
+      "folder": "BP Portal-Documents",
+      "local": "BP Portal (1512955000002906003)/BP Portal-Documents/Additional-Testing (1).mov",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "BP Portal (1512955000002906003)",
+      "file": "20230420_AV-Testing.mp4",
+      "folder": "BP Portal-Documents",
+      "local": "BP Portal (1512955000002906003)/BP Portal-Documents/20230420_AV-Testing.mp4",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "BP Portal (1512955000002906003)",
+      "file": "Live Chat Widgets Scripts",
+      "folder": "BP Portal-Documents",
+      "local": "BP Portal (1512955000002906003)/BP Portal-Documents/Live Chat Widgets Scripts.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "BP Portal (1512955000002906003)",
+      "file": "Js-Test_Brown-Leather_Satin-Bronze.mov",
+      "folder": "BP Portal-Documents",
+      "local": "BP Portal (1512955000002906003)/BP Portal-Documents/Js-Test_Brown-Leather_Satin-Bronze.mov",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "BP Portal (1512955000002906003)",
+      "file": "Js-Test_Satin-Nickel.mov",
+      "folder": "BP Portal-Documents",
+      "local": "BP Portal (1512955000002906003)/BP Portal-Documents/Js-Test_Satin-Nickel.mov",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "BP Portal (1512955000002906003)",
+      "file": "Js-Test_Unlacquered-Polished-Brass.mov",
+      "folder": "BP Portal-Documents",
+      "local": "BP Portal (1512955000002906003)/BP Portal-Documents/Js-Test_Unlacquered-Polished-Brass.mov",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "BP Portal (1512955000002906003)",
+      "file": "Js-Test_Oil-Rubbed-Bronze.mov",
+      "folder": "BP Portal-Documents",
+      "local": "BP Portal (1512955000002906003)/BP Portal-Documents/Js-Test_Oil-Rubbed-Bronze.mov",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "BP Portal (1512955000002906003)",
+      "file": "Keyshot-Walkthrough_David-20230412.mp4",
+      "folder": "BP Portal-Documents",
+      "local": "BP Portal (1512955000002906003)/BP Portal-Documents/Keyshot-Walkthrough_David-20230412.mp4",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "BP Portal (1512955000002906003)",
+      "file": "Contact Paragraph.mov",
+      "folder": "BP Portal-Documents",
+      "local": "BP Portal (1512955000002906003)/BP Portal-Documents/Contact Paragraph.mov",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "BP Portal (1512955000002906003)",
+      "file": "Meeting records",
+      "folder": "BP Portal-Documents",
+      "local": "BP Portal (1512955000002906003)/BP Portal-Documents/Meeting records.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "BP Portal (1512955000002906003)",
+      "file": "Screen Recording 2022-10-27 at 1.26.32 PM.mov",
+      "folder": "BP Portal-Documents",
+      "local": "BP Portal (1512955000002906003)/BP Portal-Documents/Screen Recording 2022-10-27 at 1.26.32 PM.mov",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "BP Portal (1512955000002906003)",
+      "file": "Portal Testing Notes",
+      "folder": "BP Portal-Documents",
+      "local": "BP Portal (1512955000002906003)/BP Portal-Documents/Portal Testing Notes.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "BP Portal (1512955000002906003)",
+      "file": "update-price-060125-6PM-1748772120886.json",
+      "folder": "BP Portal-Attachments",
+      "local": "BP Portal (1512955000002906003)/BP Portal-Attachments/update-price-060125-6PM-1748772120886.json",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "BP Portal (1512955000002906003)",
+      "file": "attachment7.eml",
+      "folder": "BP Portal-Attachments",
+      "local": "BP Portal (1512955000002906003)/BP Portal-Attachments/attachment7.eml",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "BP Portal (1512955000002906003)",
+      "file": "attachment1.eml",
+      "folder": "BP Portal-Attachments",
+      "local": "BP Portal (1512955000002906003)/BP Portal-Attachments/attachment1.eml",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "BP Portal (1512955000002906003)",
+      "file": "..eml",
+      "folder": "BP Portal-Attachments",
+      "local": "BP Portal (1512955000002906003)/BP Portal-Attachments/..eml",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Quattro Key Realty, LLC (1512955000002788009)",
+      "file": "Admin accounts",
+      "folder": "Quattro Key Realty, LLC-Documents",
+      "local": "Quattro Key Realty, LLC (1512955000002788009)/Quattro Key Realty, LLC-Documents/Admin accounts.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Quattro Key Realty, LLC (1512955000002788009)",
+      "file": "Very Nice Review",
+      "folder": "Quattro Key Realty, LLC-Documents",
+      "local": "Quattro Key Realty, LLC (1512955000002788009)/Quattro Key Realty, LLC-Documents/Very Nice Review.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Auction Systems (1512955000002645769)",
+      "file": "Admin accounts",
+      "folder": "Auction Systems-Documents",
+      "local": "Auction Systems (1512955000002645769)/Auction Systems-Documents/Admin accounts.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Auction Systems (1512955000002645769)",
+      "file": "screen-capture (7).webm",
+      "folder": "Auction Systems-Attachments",
+      "local": "Auction Systems (1512955000002645769)/Auction Systems-Attachments/screen-capture (7).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Auction Systems (1512955000002645769)",
+      "file": "screen-capture (8).webm",
+      "folder": "Auction Systems-Attachments",
+      "local": "Auction Systems (1512955000002645769)/Auction Systems-Attachments/screen-capture (8).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Last Line Solutions Inc (1512955000002303190)",
+      "file": "Admin accounts",
+      "folder": "Last Line Solutions Inc-Documents",
+      "local": "Last Line Solutions Inc (1512955000002303190)/Last Line Solutions Inc-Documents/Admin accounts.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Jamplast Distribution (1512955000002130337)",
+      "file": "Admin accounts",
+      "folder": "Jamplast Distribution-Documents",
+      "local": "Jamplast Distribution (1512955000002130337)/Jamplast Distribution-Documents/Admin accounts.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Jamplast Distribution (1512955000002130337)",
+      "file": "Testimonials",
+      "folder": "Jamplast Distribution-Documents",
+      "local": "Jamplast Distribution (1512955000002130337)/Jamplast Distribution-Documents/Testimonials.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Jamplast Distribution (1512955000002130337)",
+      "file": "75079200539__08A75D2D-728D-4B05-8A0D-008130B1222C.MOV",
+      "folder": "Jamplast Distribution-Attachments",
+      "local": "Jamplast Distribution (1512955000002130337)/Jamplast Distribution-Attachments/75079200539__08A75D2D-728D-4B05-8A0D-008130B1222C.MOV",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Jamplast Distribution (1512955000002130337)",
+      "file": "ScreenRecording_09-06-2024 12-06-35_1.mov",
+      "folder": "Jamplast Distribution-Attachments",
+      "local": "Jamplast Distribution (1512955000002130337)/Jamplast Distribution-Attachments/ScreenRecording_09-06-2024 12-06-35_1.mov",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Jamplast Distribution (1512955000002130337)",
+      "file": "Screen Recording 2023-11-06 at 3.20.01 PM.mov",
+      "folder": "Jamplast Distribution-Attachments",
+      "local": "Jamplast Distribution (1512955000002130337)/Jamplast Distribution-Attachments/Screen Recording 2023-11-06 at 3.20.01 PM.mov",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Jamplast Distribution (1512955000002130337)",
+      "file": "screen-capture (20).webm",
+      "folder": "Jamplast Distribution-Attachments",
+      "local": "Jamplast Distribution (1512955000002130337)/Jamplast Distribution-Attachments/screen-capture (20).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Jamplast Distribution (1512955000002130337)",
+      "file": "screen-capture.webm",
+      "folder": "Jamplast Distribution-Attachments",
+      "local": "Jamplast Distribution (1512955000002130337)/Jamplast Distribution-Attachments/screen-capture.webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Jamplast Distribution (1512955000002130337)",
+      "file": "screen-capture (13).webm",
+      "folder": "Jamplast Distribution-Attachments",
+      "local": "Jamplast Distribution (1512955000002130337)/Jamplast Distribution-Attachments/screen-capture (13).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Jamplast Distribution (1512955000002130337)",
+      "file": "Content",
+      "folder": "Jamplast Distribution-Documents/Leadership Section",
+      "local": "Jamplast Distribution (1512955000002130337)/Jamplast Distribution-Documents/Leadership Section/Content.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Evil Beagle Games (1512955000002069637)",
+      "file": "Admin accounts",
+      "folder": "Evil Beagle Games-Documents",
+      "local": "Evil Beagle Games (1512955000002069637)/Evil Beagle Games-Documents/Admin accounts.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Evil Beagle Games (1512955000002069637)",
+      "file": "other-cool-stuff-page.webm",
+      "folder": "Evil Beagle Games-Attachments",
+      "local": "Evil Beagle Games (1512955000002069637)/Evil Beagle Games-Attachments/other-cool-stuff-page.webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Evil Beagle Games (1512955000002069637)",
+      "file": "news.webm",
+      "folder": "Evil Beagle Games-Attachments",
+      "local": "Evil Beagle Games (1512955000002069637)/Evil Beagle Games-Attachments/news.webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Evil Beagle Games (1512955000002069637)",
+      "file": "evilbeagles.mp4",
+      "folder": "Evil Beagle Games-Attachments",
+      "local": "Evil Beagle Games (1512955000002069637)/Evil Beagle Games-Attachments/evilbeagles.mp4",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "DiverterPlus, LLC (1512955000001835535)",
+      "file": "Admin accounts",
+      "folder": "DiverterPlus, LLC-Documents",
+      "local": "DiverterPlus, LLC (1512955000001835535)/DiverterPlus, LLC-Documents/Admin accounts.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "DiverterPlus, LLC (1512955000001835535)",
+      "file": "screen-capture (12).webm",
+      "folder": "DiverterPlus, LLC-Attachments",
+      "local": "DiverterPlus, LLC (1512955000001835535)/DiverterPlus, LLC-Attachments/screen-capture (12).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "DiverterPlus, LLC (1512955000001835535)",
+      "file": "screen-capture (9).webm",
+      "folder": "DiverterPlus, LLC-Attachments",
+      "local": "DiverterPlus, LLC (1512955000001835535)/DiverterPlus, LLC-Attachments/screen-capture (9).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "DiverterPlus, LLC (1512955000001835535)",
+      "file": "screen-capture (50).webm",
+      "folder": "DiverterPlus, LLC-Attachments",
+      "local": "DiverterPlus, LLC (1512955000001835535)/DiverterPlus, LLC-Attachments/screen-capture (50).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "DiverterPlus, LLC (1512955000001835535)",
+      "file": "Screen_Recording_20230116_125300_Chrome.mp4",
+      "folder": "DiverterPlus, LLC-Attachments",
+      "local": "DiverterPlus, LLC (1512955000001835535)/DiverterPlus, LLC-Attachments/Screen_Recording_20230116_125300_Chrome.mp4",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "DiverterPlus, LLC (1512955000001835535)",
+      "file": "screen-capture - 2022-12-07T171427.941.webm",
+      "folder": "DiverterPlus, LLC-Attachments",
+      "local": "DiverterPlus, LLC (1512955000001835535)/DiverterPlus, LLC-Attachments/screen-capture - 2022-12-07T171427.941.webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "DiverterPlus, LLC (1512955000001835535)",
+      "file": "screen-capture (19).webm",
+      "folder": "DiverterPlus, LLC-Attachments",
+      "local": "DiverterPlus, LLC (1512955000001835535)/DiverterPlus, LLC-Attachments/screen-capture (19).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "DiverterPlus, LLC (1512955000001835535)",
+      "file": "screen-capture.webm",
+      "folder": "DiverterPlus, LLC-Attachments",
+      "local": "DiverterPlus, LLC (1512955000001835535)/DiverterPlus, LLC-Attachments/screen-capture.webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "DiverterPlus, LLC (1512955000001835535)",
+      "file": "screen-capture (7).webm",
+      "folder": "DiverterPlus, LLC-Attachments",
+      "local": "DiverterPlus, LLC (1512955000001835535)/DiverterPlus, LLC-Attachments/screen-capture (7).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "DiverterPlus, LLC (1512955000001835535)",
+      "file": "Tammy Varner.heic",
+      "folder": "DiverterPlus, LLC-Attachments",
+      "local": "DiverterPlus, LLC (1512955000001835535)/DiverterPlus, LLC-Attachments/Tammy Varner.heic",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "DiverterPlus, LLC (1512955000001835535)",
+      "file": "Erica Timmons.heic",
+      "folder": "DiverterPlus, LLC-Attachments",
+      "local": "DiverterPlus, LLC (1512955000001835535)/DiverterPlus, LLC-Attachments/Erica Timmons.heic",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "DiverterPlus, LLC (1512955000001835535)",
+      "file": "Mike Mankin.heic",
+      "folder": "DiverterPlus, LLC-Attachments",
+      "local": "DiverterPlus, LLC (1512955000001835535)/DiverterPlus, LLC-Attachments/Mike Mankin.heic",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "DiverterPlus, LLC (1512955000001835535)",
+      "file": "4_Refrac_varriant2_w_dual_logos.tif",
+      "folder": "DiverterPlus, LLC-Documents/Sharedassets",
+      "local": "DiverterPlus, LLC (1512955000001835535)/DiverterPlus, LLC-Documents/Sharedassets/4_Refrac_varriant2_w_dual_logos.tif",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "DiverterPlus, LLC (1512955000001835535)",
+      "file": "7_Conformance_Improvement_w_dual_logos.tif",
+      "folder": "DiverterPlus, LLC-Documents/Sharedassets",
+      "local": "DiverterPlus, LLC (1512955000001835535)/DiverterPlus, LLC-Documents/Sharedassets/7_Conformance_Improvement_w_dual_logos.tif",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "DiverterPlus, LLC (1512955000001835535)",
+      "file": "8_Offshore_Gravel_Pack_w_dual_logos.tif",
+      "folder": "DiverterPlus, LLC-Documents/Sharedassets",
+      "local": "DiverterPlus, LLC (1512955000001835535)/DiverterPlus, LLC-Documents/Sharedassets/8_Offshore_Gravel_Pack_w_dual_logos.tif",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "DiverterPlus, LLC (1512955000001835535)",
+      "file": "6_Drilling_LCM_side_by_side_w_dual_logos.tif",
+      "folder": "DiverterPlus, LLC-Documents/Sharedassets",
+      "local": "DiverterPlus, LLC (1512955000001835535)/DiverterPlus, LLC-Documents/Sharedassets/6_Drilling_LCM_side_by_side_w_dual_logos.tif",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "DiverterPlus, LLC (1512955000001835535)",
+      "file": "5_Acid_Chem_w_dual_logos.tif",
+      "folder": "DiverterPlus, LLC-Documents/Sharedassets",
+      "local": "DiverterPlus, LLC (1512955000001835535)/DiverterPlus, LLC-Documents/Sharedassets/5_Acid_Chem_w_dual_logos.tif",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "DiverterPlus, LLC (1512955000001835535)",
+      "file": "4_Original_Completion_Final_varriant2_w_dual_logos.tif",
+      "folder": "DiverterPlus, LLC-Documents/Sharedassets",
+      "local": "DiverterPlus, LLC (1512955000001835535)/DiverterPlus, LLC-Documents/Sharedassets/4_Original_Completion_Final_varriant2_w_dual_logos.tif",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "DiverterPlus, LLC (1512955000001835535)",
+      "file": "4_Refrac_w_dual_logos.tif",
+      "folder": "DiverterPlus, LLC-Documents/Sharedassets",
+      "local": "DiverterPlus, LLC (1512955000001835535)/DiverterPlus, LLC-Documents/Sharedassets/4_Refrac_w_dual_logos.tif",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "DiverterPlus, LLC (1512955000001835535)",
+      "file": "3_Drillouts_Cleanouts_w_dual_logos1.tif",
+      "folder": "DiverterPlus, LLC-Documents/Sharedassets",
+      "local": "DiverterPlus, LLC (1512955000001835535)/DiverterPlus, LLC-Documents/Sharedassets/3_Drillouts_Cleanouts_w_dual_logos1.tif",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "DiverterPlus, LLC (1512955000001835535)",
+      "file": "4_Post_Refracture_w_dual_logos.tif",
+      "folder": "DiverterPlus, LLC-Documents/Sharedassets",
+      "local": "DiverterPlus, LLC (1512955000001835535)/DiverterPlus, LLC-Documents/Sharedassets/4_Post_Refracture_w_dual_logos.tif",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "DiverterPlus, LLC (1512955000001835535)",
+      "file": "4_Original_Completion_w_dual_logos.tif",
+      "folder": "DiverterPlus, LLC-Documents/Sharedassets",
+      "local": "DiverterPlus, LLC (1512955000001835535)/DiverterPlus, LLC-Documents/Sharedassets/4_Original_Completion_w_dual_logos.tif",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "DiverterPlus, LLC (1512955000001835535)",
+      "file": "4_Post_Refracture_Final_varriant2_w_dual_logos.tif",
+      "folder": "DiverterPlus, LLC-Documents/Sharedassets",
+      "local": "DiverterPlus, LLC (1512955000001835535)/DiverterPlus, LLC-Documents/Sharedassets/4_Post_Refracture_Final_varriant2_w_dual_logos.tif",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "DiverterPlus, LLC (1512955000001835535)",
+      "file": "1_Diverter_Seating_detail_varriant2_w_dual_logos.tif",
+      "folder": "DiverterPlus, LLC-Documents/Sharedassets",
+      "local": "DiverterPlus, LLC (1512955000001835535)/DiverterPlus, LLC-Documents/Sharedassets/1_Diverter_Seating_detail_varriant2_w_dual_logos.tif",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "DiverterPlus, LLC (1512955000001835535)",
+      "file": "1_Diverter_Seating_w_dual_logos.tif",
+      "folder": "DiverterPlus, LLC-Documents/Sharedassets",
+      "local": "DiverterPlus, LLC (1512955000001835535)/DiverterPlus, LLC-Documents/Sharedassets/1_Diverter_Seating_w_dual_logos.tif",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "DiverterPlus, LLC (1512955000001835535)",
+      "file": "2_Far_Field_detail_w_dual_logos.tif",
+      "folder": "DiverterPlus, LLC-Documents/Sharedassets",
+      "local": "DiverterPlus, LLC (1512955000001835535)/DiverterPlus, LLC-Documents/Sharedassets/2_Far_Field_detail_w_dual_logos.tif",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Summit Maintenance Inc. (1512955000001746049)",
+      "file": "task component migration progress",
+      "folder": "Summit Maintenance Inc.-Documents",
+      "local": "Summit Maintenance Inc. (1512955000001746049)/Summit Maintenance Inc.-Documents/task component migration progress.xlsx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Summit Maintenance Inc. (1512955000001746049)",
+      "file": "attachment1",
+      "folder": "Summit Maintenance Inc.-Attachments",
+      "local": "Summit Maintenance Inc. (1512955000001746049)/Summit Maintenance Inc.-Attachments/attachment1",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Summit Maintenance Inc. (1512955000001746049)",
+      "file": "screen-capture (78).webm",
+      "folder": "Summit Maintenance Inc.-Attachments",
+      "local": "Summit Maintenance Inc. (1512955000001746049)/Summit Maintenance Inc.-Attachments/screen-capture (78).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "FLUO Foundation (1512955000001673098)",
+      "file": "Admin accounts",
+      "folder": "FLUO Foundation-Documents",
+      "local": "FLUO Foundation (1512955000001673098)/FLUO Foundation-Documents/Admin accounts.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "FLUO Foundation (1512955000001673098)",
+      "file": "apple-developer-merchantid-domain-association",
+      "folder": "FLUO Foundation-Attachments",
+      "local": "FLUO Foundation (1512955000001673098)/FLUO Foundation-Attachments/apple-developer-merchantid-domain-association",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "FLUO Foundation (1512955000001673098)",
+      "file": "Screen Recording 2021-11-22 at 2.10.35 PM.mov",
+      "folder": "FLUO Foundation-Attachments",
+      "local": "FLUO Foundation (1512955000001673098)/FLUO Foundation-Attachments/Screen Recording 2021-11-22 at 2.10.35 PM.mov",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "FLUO (1512955000001673078)",
+      "file": "Always Love Credentials",
+      "folder": "FLUO-Documents",
+      "local": "FLUO (1512955000001673078)/FLUO-Documents/Always Love Credentials.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "FLUO (1512955000001673078)",
+      "file": "Always Love Feedback",
+      "folder": "FLUO-Documents",
+      "local": "FLUO (1512955000001673078)/FLUO-Documents/Always Love Feedback.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "FLUO (1512955000001673078)",
+      "file": "Always Love Clover Keys",
+      "folder": "FLUO-Documents",
+      "local": "FLUO (1512955000001673078)/FLUO-Documents/Always Love Clover Keys.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "FLUO (1512955000001673078)",
+      "file": "Always Love Design Guide",
+      "folder": "FLUO-Documents",
+      "local": "FLUO (1512955000001673078)/FLUO-Documents/Always Love Design Guide.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "FLUO (1512955000001673078)",
+      "file": "Always Love - Logic",
+      "folder": "FLUO-Documents",
+      "local": "FLUO (1512955000001673078)/FLUO-Documents/Always Love - Logic.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "FLUO (1512955000001673078)",
+      "file": "Admins",
+      "folder": "FLUO-Documents",
+      "local": "FLUO (1512955000001673078)/FLUO-Documents/Admins.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "FLUO (1512955000001673078)",
+      "file": "NOTES",
+      "folder": "FLUO-Documents",
+      "local": "FLUO (1512955000001673078)/FLUO-Documents/NOTES.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "FLUO (1512955000001673078)",
+      "file": "SKUs",
+      "folder": "FLUO-Documents",
+      "local": "FLUO (1512955000001673078)/FLUO-Documents/SKUs.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "FLUO (1512955000001673078)",
+      "file": "Roadblocks",
+      "folder": "FLUO-Documents",
+      "local": "FLUO (1512955000001673078)/FLUO-Documents/Roadblocks.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "FLUO (1512955000001673078)",
+      "file": "Share assets",
+      "folder": "FLUO-Documents",
+      "local": "FLUO (1512955000001673078)/FLUO-Documents/Share assets.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "FLUO (1512955000001673078)",
+      "file": "screen-capture (8).webm",
+      "folder": "FLUO-Attachments",
+      "local": "FLUO (1512955000001673078)/FLUO-Attachments/screen-capture (8).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "FLUO (1512955000001673078)",
+      "file": "screen-capture (7).webm",
+      "folder": "FLUO-Attachments",
+      "local": "FLUO (1512955000001673078)/FLUO-Attachments/screen-capture (7).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "FLUO (1512955000001673078)",
+      "file": "screen-capture (6).webm",
+      "folder": "FLUO-Attachments",
+      "local": "FLUO (1512955000001673078)/FLUO-Attachments/screen-capture (6).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "FLUO (1512955000001673078)",
+      "file": "screen-capture (5).webm",
+      "folder": "FLUO-Attachments",
+      "local": "FLUO (1512955000001673078)/FLUO-Attachments/screen-capture (5).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "FLUO (1512955000001673078)",
+      "file": "screen-capture.webm",
+      "folder": "FLUO-Attachments",
+      "local": "FLUO (1512955000001673078)/FLUO-Attachments/screen-capture.webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "FLUO (1512955000001673078)",
+      "file": "Reference from Apple moving with fingers.MP4",
+      "folder": "FLUO-Attachments",
+      "local": "FLUO (1512955000001673078)/FLUO-Attachments/Reference from Apple moving with fingers.MP4",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "FLUO (1512955000001673078)",
+      "file": "RPReplay_Final1647554468.MP4",
+      "folder": "FLUO-Attachments",
+      "local": "FLUO (1512955000001673078)/FLUO-Attachments/RPReplay_Final1647554468.MP4",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "FLUO (1512955000001673078)",
+      "file": "Screen Recording 2022-03-17 at 3.19.03 PM.mov",
+      "folder": "FLUO-Attachments",
+      "local": "FLUO (1512955000001673078)/FLUO-Attachments/Screen Recording 2022-03-17 at 3.19.03 PM.mov",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "FLUO (1512955000001673078)",
+      "file": "Screen Recording 2022-03-03 at 1.01.51 PM.mov",
+      "folder": "FLUO-Attachments",
+      "local": "FLUO (1512955000001673078)/FLUO-Attachments/Screen Recording 2022-03-03 at 1.01.51 PM.mov",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "FLUO (1512955000001673078)",
+      "file": "RPReplay_Final1645469345.mov",
+      "folder": "FLUO-Attachments",
+      "local": "FLUO (1512955000001673078)/FLUO-Attachments/RPReplay_Final1645469345.mov",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "FLUO (1512955000001673078)",
+      "file": "Flou Water Bottles_Clip.mp4",
+      "folder": "FLUO-Attachments",
+      "local": "FLUO (1512955000001673078)/FLUO-Attachments/Flou Water Bottles_Clip.mp4",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "FLUO (1512955000001673078)",
+      "file": "apple-developer-merchantid-domain-association",
+      "folder": "FLUO-Attachments",
+      "local": "FLUO (1512955000001673078)/FLUO-Attachments/apple-developer-merchantid-domain-association",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "FLUO (1512955000001673078)",
+      "file": "FLUO PreLaunch Mobile.xd",
+      "folder": "FLUO-Attachments",
+      "local": "FLUO (1512955000001673078)/FLUO-Attachments/FLUO PreLaunch Mobile.xd",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "FLUO (1512955000001673078)",
+      "file": "Above & Beyond - Flow.mp3",
+      "folder": "FLUO-Documents/Sonic Logos",
+      "local": "FLUO (1512955000001673078)/FLUO-Documents/Sonic Logos/Above & Beyond - Flow.mp3",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "FLUO (1512955000001673078)",
+      "file": "FLUO Outgoing Voicemail - 07JAN2020.mp3",
+      "folder": "FLUO-Documents/Sonic Logos",
+      "local": "FLUO (1512955000001673078)/FLUO-Documents/Sonic Logos/FLUO Outgoing Voicemail - 07JAN2020.mp3",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Bona Fides Laboratory Inc (1512955000001629367)",
+      "file": "Credentials",
+      "folder": "Bona Fides Laboratory Inc-Documents",
+      "local": "Bona Fides Laboratory Inc (1512955000001629367)/Bona Fides Laboratory Inc-Documents/Credentials.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Origins Laboratory (1512955000001629347)",
+      "file": "Assets",
+      "folder": "Origins Laboratory-Documents",
+      "local": "Origins Laboratory (1512955000001629347)/Origins Laboratory-Documents/Assets.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    }
+  ],
+  "errors": [
+    "BP Portal (1512955000002906003)/BP Portal-Documents/Stock Level Update.csv: empty download"
+  ]
+}

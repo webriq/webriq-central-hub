@@ -46,22 +46,25 @@ assert.equal(resolveFolderName(taken("A", "A (From Zoho)", "A (From Zoho 2)"), "
 // ── classification ────────────────────────────────────────────────────────────
 const AI = mimeForExt("ai")!;
 assert.ok(AI, "design types resolve through the shared extension resolver");
-const allowed = [mimeForExt("png")!, mimeForExt("pdf")!, mimeForExt("docx")!, mimeForExt("pptx")!, AI];
+const allowed = [mimeForExt("png")!, mimeForExt("pdf")!, mimeForExt("docx")!, mimeForExt("xlsx")!, mimeForExt("pptx")!, AI];
 const cls = (name: string, extn: string, declaredBytes = 10) => classifyFile({ name, extn, declaredBytes }, allowed, 200);
-assert.deepEqual(cls("a.png", "png"), { kind: "import", mime: "image/png" });
-assert.deepEqual(cls("a.PNG", "PNG"), { kind: "import", mime: "image/png" }, "extension case");
-assert.deepEqual(cls("deck.pptx", "pptx"), { kind: "import", mime: mimeForExt("pptx")! });
-assert.deepEqual(cls("logo.ai", "ai"), { kind: "import", mime: AI });
+assert.deepEqual(cls("a.png", "png"), { kind: "import", mime: "image/png", fileName: "a.png" });
+assert.deepEqual(cls("a.PNG", "PNG"), { kind: "import", mime: "image/png", fileName: "a.PNG" }, "extension case");
+assert.deepEqual(cls("deck.pptx", "pptx"), { kind: "import", mime: mimeForExt("pptx")!, fileName: "deck.pptx" });
+assert.deepEqual(cls("logo.ai", "ai"), { kind: "import", mime: AI, fileName: "logo.ai" });
 assert.deepEqual(cls("clip.webm", "webm"), { kind: "unsupported-type" });
 assert.deepEqual(cls("photo.heic", "heic"), { kind: "unsupported-type" });
-assert.deepEqual(cls("sheet.xlsx", "xlsx"), { kind: "unsupported-type" }, "known MIME but not in the allowlist passed in");
+assert.deepEqual(cls("data.csv", "csv"), { kind: "unsupported-type" }, "known MIME but not in the allowlist passed in");
 assert.deepEqual(cls("big.png", "png", 201), { kind: "too-large" });
-assert.deepEqual(cls("Doc", "zwriter", 0), { kind: "native", exportExt: "docx" });
-assert.deepEqual(cls("Sheet", "zsheet", 0), { kind: "native", exportExt: "xlsx" });
-assert.deepEqual(cls("Slides", "zslides", 0), { kind: "native", exportExt: "pptx" });
+assert.deepEqual(cls("Doc", "zwriter", 0), { kind: "import", mime: mimeForExt("docx")!, fileName: "Doc.docx" }, "native Writer file gains the downloaded extension");
+assert.deepEqual(cls("Sheet", "zsheet", 0), { kind: "import", mime: mimeForExt("xlsx")!, fileName: "Sheet.xlsx" });
+assert.deepEqual(cls("Slides", "zslides", 0), { kind: "import", mime: mimeForExt("pptx")!, fileName: "Slides.pptx" });
+assert.deepEqual(cls("Already.docx", "zwriter", 0), { kind: "import", mime: mimeForExt("docx")!, fileName: "Already.docx" }, "no double extension");
+const noXlsx = allowed.filter((m) => m !== mimeForExt("xlsx"));
+assert.deepEqual(classifyFile({ name: "Sheet", extn: "zsheet", declaredBytes: 0 }, noXlsx, 200), { kind: "native", exportExt: "xlsx" }, "native fallback when the Office MIME is not allowed");
 assert.deepEqual(cls("noext", ""), { kind: "unsupported-type" });
 assert.deepEqual(cls("constructor", "constructor"), { kind: "unsupported-type" }, "own-property lookups only");
-assert.deepEqual(cls("zero.png", "png", 0), { kind: "import", mime: "image/png" }, "declared 0 bytes is not a reason to skip");
+assert.deepEqual(cls("zero.png", "png", 0), { kind: "import", mime: "image/png", fileName: "zero.png" }, "declared 0 bytes is not a reason to skip");
 
 // ── local paths ───────────────────────────────────────────────────────────────
 const file = (id: string, name: string, extn: string, path: string[]) => ({ id, name, extn, folderId: "x", path, declaredBytes: 0, createdMs: null });

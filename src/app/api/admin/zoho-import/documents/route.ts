@@ -3,8 +3,8 @@
 //   ?from=&to=   slice of projects.json's project list (same convention as zoho-export/documents)
 //   ?project=    one Zoho project id
 //   ?dryRun=1    plan only — no downloads, no writes
-// Files the Files tab can't take (bucket-rejected types, native Zoho docs, >200 MB) are saved under
-// _docs/task/464-…/out/skipped-files/ (git-ignored) and listed in the report instead of being dropped.
+// Files the Files tab can't take (bucket-rejected types, a native Zoho doc whose Office type the bucket
+// rejects, >200 MB) are saved under _docs/task/464-…/out/skipped-files/ (git-ignored) and reported.
 import fs from "fs/promises";
 import path from "path";
 import { NextResponse } from "next/server";
@@ -132,7 +132,11 @@ export async function POST(request: Request) {
           const { res, token: next, throttleExhausted } = await fetchZohoWithRetry(`${DOWNLOAD}/${id}`, token, { label: "documents-import" });
           token = next;
           if (throttleExhausted) return { ok: false, detail: "Zoho rolling throttle exhausted" };
-          if (!res.ok) return { ok: false, detail: `HTTP ${res.status}` };
+          if (!res.ok) {
+            // Keep the body: WorkDrive puts its error code/title there (e.g. F7003 "Invalid OAuth token").
+            const body = (await res.text().catch(() => "")).replace(/\s+/g, " ").slice(0, 200);
+            return { ok: false, detail: body ? `HTTP ${res.status} ${body}` : `HTTP ${res.status}` };
+          }
           return { ok: true, buf: Buffer.from(await res.arrayBuffer()) };
         } catch (e) {
           return { ok: false, detail: e instanceof Error ? e.message : String(e) };
@@ -167,17 +171,17 @@ export async function POST(request: Request) {
         inc("localSaved");
       }
 
-      async function importFile(f: TreeFile, mime: string, customerId: string, projectId: string, folderId: string, where: string, entry: Omit<SkippedFile, "reason" | "localStatus" | "detail">) {
+      async function importFile(f: TreeFile, mime: string, fileName: string, customerId: string, projectId: string, folderId: string, where: string, entry: Omit<SkippedFile, "reason" | "localStatus" | "detail">) {
         const dl = await download(f.id);
         if (!dl.ok) { inc("filesFailed"); errors.push(`${where}: download failed (${dl.detail})`); return; }
         const bytes = dl.buf.byteLength;
         if (bytes === 0) { inc("filesFailed"); errors.push(`${where}: empty download`); return; }
         if (bytes > MAX_FILE_SIZE) { inc("filesImportable", -1); inc("filesTooLarge"); await skipToLocal(f.id, { ...entry, reason: "too-large" }, dl.buf); return; } // the export's declared size was wrong
-        const storagePath = `${customerId}/${projectId}/zoho-wd/${f.id}_${f.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-150)}`;
+        const storagePath = `${customerId}/${projectId}/zoho-wd/${f.id}_${fileName.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-150)}`;
         const { error: upErr } = await adminClient.storage.from(BUCKET).upload(storagePath, dl.buf, { contentType: mime, upsert: true });
         if (upErr) { inc("filesFailed"); errors.push(`${where}: storage upload failed: ${upErr.message}`); return; }
         const { error: dbErr } = await adminClient.from("customer_assets").insert({
-          customer_id: customerId, type: "file", label: f.name, file_path: storagePath, file_name: f.name, file_size: bytes,
+          customer_id: customerId, type: "file", label: fileName, file_path: storagePath, file_name: fileName, file_size: bytes,
           file_mime_type: mime, phase_number: PHASE, project_id: projectId, folder_id: folderId, uploaded_by: null, external_id: f.id,
           ...(f.createdMs ? { created_at: new Date(f.createdMs).toISOString() } : {}),
         });
@@ -258,8 +262,8 @@ export async function POST(request: Request) {
 
           for (const f of tree.files) {
             send({ type: "progress", current: ++processed, total: totalFiles, project: zoho.name });
-            const where = `${label}/${[...f.path, f.name].join("/")}`;
             const cls = classifyFile(f, ALLOWED_MIME_TYPES, MAX_FILE_SIZE);
+            const where = `${label}/${[...f.path, cls.kind === "import" ? cls.fileName : f.name].join("/")}`;
             const entry = { project: label, file: f.name, folder: f.path.join("/"), local: localPaths.get(f.id)! };
 
             if (cls.kind !== "import") {
@@ -272,7 +276,7 @@ export async function POST(request: Request) {
             const folderId = uuidByWd.get(f.folderId);
             if (!folderId) { inc("filesFailed"); errors.push(`${where}: parent folder was not created`); continue; }
             if (dryRun) continue;
-            await importFile(f, cls.mime, customerId, hub.id, folderId, where, entry);
+            await importFile(f, cls.mime, cls.fileName, customerId, hub.id, folderId, where, entry);
           }
         };
         for (const w of work) {

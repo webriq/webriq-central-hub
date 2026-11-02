@@ -1,0 +1,544 @@
+{
+  "dryRun": false,
+  "slice": {
+    "from": 75,
+    "to": "100",
+    "project": null
+  },
+  "counts": {
+    "projectsLegacy": 18,
+    "projectsWithoutDocuments": 7,
+    "foldersCreated": 45,
+    "filesImportable": 304,
+    "filesImported": 304,
+    "filesNative": 20,
+    "localSaved": 47,
+    "filesUnsupportedType": 27
+  },
+  "projects": [
+    {
+      "zohoId": "1512955000012114620",
+      "zohoName": "TEST",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "7e7c7744-9ac9-4f01-a806-3caee80be5f2",
+      "folders": 1,
+      "files": 1
+    },
+    {
+      "zohoId": "1512955000012007190",
+      "zohoName": "Truman Law (La Fleur 2)",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "05c2eb9c-36bb-4715-b8e6-f22ddd15e98a",
+      "folders": 2,
+      "files": 1
+    },
+    {
+      "zohoId": "1512955000011839035",
+      "zohoName": "Greydog Security",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "93cfce5e-f677-4a1b-ab6b-0bba8b5f5c8b",
+      "folders": 6,
+      "files": 83
+    },
+    {
+      "zohoId": "1512955000011731099",
+      "zohoName": "CBH Attorneys (La Fleur 1)",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "5b11ab8f-a146-42ec-b304-dce62f1f4849",
+      "folders": 3,
+      "files": 4
+    },
+    {
+      "zohoId": "1512955000011620065",
+      "zohoName": "The Lobby Offices",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "6c5c5da4-5c1f-414f-afa0-5b2d6d16b08d",
+      "folders": 3,
+      "files": 9
+    },
+    {
+      "zohoId": "1512955000010858551",
+      "zohoName": "NB Hospitality",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "bf8a4dbf-acdb-452f-bed5-46cb6c29fb9f",
+      "folders": 3,
+      "files": 18
+    },
+    {
+      "zohoId": "1512955000010399026",
+      "zohoName": "Gordon Waters",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "64170cf4-01a8-473e-9a0b-31344e6cebbd",
+      "folders": 3,
+      "files": 54
+    },
+    {
+      "zohoId": "1512955000010385345",
+      "zohoName": "Destination U",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "7b424165-3aa3-4d2d-a99b-34c043d7aa2d",
+      "folders": 3,
+      "files": 7
+    },
+    {
+      "zohoId": "1512955000009927225",
+      "zohoName": "Spine of Life Upper Cervical Chiropractor",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "e64b386c-2af4-40d8-baf5-cb18b9439229",
+      "folders": 1,
+      "files": 3
+    },
+    {
+      "zohoId": "1512955000009559073",
+      "zohoName": "Autosearch USA",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "201a7988-d8c4-4e39-9e46-529ee6163918",
+      "folders": 1,
+      "files": 6
+    },
+    {
+      "zohoId": "1512955000009122172",
+      "zohoName": "Medallion Financial Resources",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "edb8cd81-7ba8-4063-b0e6-6ce570f1050b",
+      "folders": 3,
+      "files": 11
+    },
+    {
+      "zohoId": "1512955000008826469",
+      "zohoName": "Pathway Experience",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "feb4937d-77af-4be8-bec3-9e9b24b949aa",
+      "folders": 1,
+      "files": 11
+    },
+    {
+      "zohoId": "1512955000008348114",
+      "zohoName": "JVPC",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "fc333d08-e9c1-4eb2-94cb-21d050edef63",
+      "folders": 4,
+      "files": 44
+    },
+    {
+      "zohoId": "1512955000007777520",
+      "zohoName": "Hitech Lighting World Corporation",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "7ffaa7aa-398a-45af-8a2e-36684149a687",
+      "folders": 1,
+      "files": 12
+    },
+    {
+      "zohoId": "1512955000007644065",
+      "zohoName": "The Hustead Law Firm THLF",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "25f81b11-424e-4bb7-bd75-9eb488eb9e2f",
+      "folders": 3,
+      "files": 8
+    },
+    {
+      "zohoId": "1512955000007146104",
+      "zohoName": "Grand Rapids Dental Team (BurdoDDS)",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "6dc5ce94-18b9-498a-960a-79d5c79a5d64",
+      "folders": 3,
+      "files": 6
+    },
+    {
+      "zohoId": "1512955000006678041",
+      "zohoName": "Rest Haven Properties",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "5a646430-bf79-4325-bef1-901432eb200c",
+      "folders": 3,
+      "files": 56
+    },
+    {
+      "zohoId": "1512955000006662111",
+      "zohoName": "Western Peaks Plumbing",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "8b4199e9-3ed0-41bf-8071-103b7d693140",
+      "folders": 1,
+      "files": 17
+    }
+  ],
+  "renamedFolders": [],
+  "skippedFiles": [
+    {
+      "project": "Greydog Security (1512955000011839035)",
+      "file": "CitationGrader Recommendations",
+      "folder": "Greydog Security-Documents",
+      "local": "Greydog Security (1512955000011839035)/Greydog Security-Documents/CitationGrader Recommendations.xlsx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Greydog Security (1512955000011839035)",
+      "file": "Grey Dog Security FAQ",
+      "folder": "Greydog Security-Documents",
+      "local": "Greydog Security (1512955000011839035)/Greydog Security-Documents/Grey Dog Security FAQ.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Greydog Security (1512955000011839035)",
+      "file": "1000001774.heic",
+      "folder": "Greydog Security-Attachments",
+      "local": "Greydog Security (1512955000011839035)/Greydog Security-Attachments/1000001774.heic",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Greydog Security (1512955000011839035)",
+      "file": "Month Optimization.pages",
+      "folder": "Greydog Security-Attachments",
+      "local": "Greydog Security (1512955000011839035)/Greydog Security-Attachments/Month Optimization.pages",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Greydog Security (1512955000011839035)",
+      "file": "generate.py",
+      "folder": "Greydog Security-Documents/Discussion/Zoho WorkDrive",
+      "local": "Greydog Security (1512955000011839035)/Greydog Security-Documents/Discussion/Zoho WorkDrive/generate.py",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Greydog Security (1512955000011839035)",
+      "file": "pages.py",
+      "folder": "Greydog Security-Documents/Discussion/Zoho WorkDrive",
+      "local": "Greydog Security (1512955000011839035)/Greydog Security-Documents/Discussion/Zoho WorkDrive/pages.py",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "The Lobby Offices (1512955000011620065)",
+      "file": "CitationGrader Actionable Items",
+      "folder": "The Lobby Offices-Documents",
+      "local": "The Lobby Offices (1512955000011620065)/The Lobby Offices-Documents/CitationGrader Actionable Items.xlsx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "The Lobby Offices (1512955000011620065)",
+      "file": "The Lobby - Careers Page",
+      "folder": "The Lobby Offices-Documents",
+      "local": "The Lobby Offices (1512955000011620065)/The Lobby Offices-Documents/The Lobby - Careers Page.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "The Lobby Offices (1512955000011620065)",
+      "file": "The Lobby Offices | Post-Live Audit",
+      "folder": "The Lobby Offices-Documents",
+      "local": "The Lobby Offices (1512955000011620065)/The Lobby Offices-Documents/The Lobby Offices | Post-Live Audit.xlsx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "NB Hospitality (1512955000010858551)",
+      "file": "CitationGrader Actionable Items",
+      "folder": "NB Hospitality-Documents",
+      "local": "NB Hospitality (1512955000010858551)/NB Hospitality-Documents/CitationGrader Actionable Items.xlsx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Gordon Waters (1512955000010399026)",
+      "file": "Thank You Pages",
+      "folder": "Gordon Waters-Documents",
+      "local": "Gordon Waters (1512955000010399026)/Gordon Waters-Documents/Thank You Pages.xlsx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Gordon Waters (1512955000010399026)",
+      "file": "Gordon Water Tickets",
+      "folder": "Gordon Waters-Documents",
+      "local": "Gordon Waters (1512955000010399026)/Gordon Waters-Documents/Gordon Water Tickets.xlsx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Gordon Waters (1512955000010399026)",
+      "file": "Website Analysis - 5-23",
+      "folder": "Gordon Waters-Documents",
+      "local": "Gordon Waters (1512955000010399026)/Gordon Waters-Documents/Website Analysis - 5-23.xlsx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Gordon Waters (1512955000010399026)",
+      "file": "Phone Number Pages",
+      "folder": "Gordon Waters-Documents",
+      "local": "Gordon Waters (1512955000010399026)/Gordon Waters-Documents/Phone Number Pages.xlsx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Gordon Waters (1512955000010399026)",
+      "file": "Admin Credentials",
+      "folder": "Gordon Waters-Documents",
+      "local": "Gordon Waters (1512955000010399026)/Gordon Waters-Documents/Admin Credentials.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Gordon Waters (1512955000010399026)",
+      "file": "Contact Us - lqCHJJKzlNVPOUaJygQdQe.eml",
+      "folder": "Gordon Waters-Attachments",
+      "local": "Gordon Waters (1512955000010399026)/Gordon Waters-Attachments/Contact Us - lqCHJJKzlNVPOUaJygQdQe.eml",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Destination U (1512955000010385345)",
+      "file": "Accounts ",
+      "folder": "Destination U-Documents",
+      "local": "Destination U (1512955000010385345)/Destination U-Documents/Accounts .docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Medallion Financial Resources (1512955000009122172)",
+      "file": "screen-capture (5).webm",
+      "folder": "Medallion Financial Resources -Attachments",
+      "local": "Medallion Financial Resources (1512955000009122172)/Medallion Financial Resources -Attachments/screen-capture (5).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Pathway Experience (1512955000008826469)",
+      "file": "screen-capture (43).webm",
+      "folder": "Pathway Experience-Attachments",
+      "local": "Pathway Experience (1512955000008826469)/Pathway Experience-Attachments/screen-capture (43).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Pathway Experience (1512955000008826469)",
+      "file": "screen-capture (73).webm",
+      "folder": "Pathway Experience-Attachments",
+      "local": "Pathway Experience (1512955000008826469)/Pathway Experience-Attachments/screen-capture (73).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "JVPC (1512955000008348114)",
+      "file": "Admin Credentials",
+      "folder": "JVPC-Documents",
+      "local": "JVPC (1512955000008348114)/JVPC-Documents/Admin Credentials.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Hitech Lighting World Corporation (1512955000007777520)",
+      "file": "New inteliLIGHT movie.mp4",
+      "folder": "Hitech Lighting World Corporation-Attachments",
+      "local": "Hitech Lighting World Corporation (1512955000007777520)/Hitech Lighting World Corporation-Attachments/New inteliLIGHT movie.mp4",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "The Hustead Law Firm THLF (1512955000007644065)",
+      "file": "Admin accounts",
+      "folder": "The Hustead Law Firm THLF-Documents",
+      "local": "The Hustead Law Firm THLF (1512955000007644065)/The Hustead Law Firm THLF-Documents/Admin accounts.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "The Hustead Law Firm THLF (1512955000007644065)",
+      "file": "Restoration Depo - Share by client",
+      "folder": "The Hustead Law Firm THLF-Documents",
+      "local": "The Hustead Law Firm THLF (1512955000007644065)/The Hustead Law Firm THLF-Documents/Restoration Depo - Share by client.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "The Hustead Law Firm THLF (1512955000007644065)",
+      "file": "Briefing document",
+      "folder": "The Hustead Law Firm THLF-Documents",
+      "local": "The Hustead Law Firm THLF (1512955000007644065)/The Hustead Law Firm THLF-Documents/Briefing document.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Grand Rapids Dental Team (BurdoDDS) (1512955000007146104)",
+      "file": "Burdo DDS 2025 - Feedback",
+      "folder": "Grand Rapids Dental Team (BurdoDDS)-Documents",
+      "local": "Grand Rapids Dental Team (BurdoDDS) (1512955000007146104)/Grand Rapids Dental Team (BurdoDDS)-Documents/Burdo DDS 2025 - Feedback.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Grand Rapids Dental Team (BurdoDDS) (1512955000007146104)",
+      "file": "Burdo DDS 2025 - QA",
+      "folder": "Grand Rapids Dental Team (BurdoDDS)-Documents",
+      "local": "Grand Rapids Dental Team (BurdoDDS) (1512955000007146104)/Grand Rapids Dental Team (BurdoDDS)-Documents/Burdo DDS 2025 - QA.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Grand Rapids Dental Team (BurdoDDS) (1512955000007146104)",
+      "file": "Admin accounts",
+      "folder": "Grand Rapids Dental Team (BurdoDDS)-Documents",
+      "local": "Grand Rapids Dental Team (BurdoDDS) (1512955000007146104)/Grand Rapids Dental Team (BurdoDDS)-Documents/Admin accounts.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Rest Haven Properties (1512955000006678041)",
+      "file": "Credentials",
+      "folder": "Rest Haven Properties-Documents",
+      "local": "Rest Haven Properties (1512955000006678041)/Rest Haven Properties-Documents/Credentials.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Rest Haven Properties (1512955000006678041)",
+      "file": "styles.css",
+      "folder": "Rest Haven Properties-Attachments",
+      "local": "Rest Haven Properties (1512955000006678041)/Rest Haven Properties-Attachments/styles.css",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Rest Haven Properties (1512955000006678041)",
+      "file": "resthaven-gtm-script (1).rtf",
+      "folder": "Rest Haven Properties-Attachments",
+      "local": "Rest Haven Properties (1512955000006678041)/Rest Haven Properties-Attachments/resthaven-gtm-script (1).rtf",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Rest Haven Properties (1512955000006678041)",
+      "file": "screen-capture (47).webm",
+      "folder": "Rest Haven Properties-Attachments",
+      "local": "Rest Haven Properties (1512955000006678041)/Rest Haven Properties-Attachments/screen-capture (47).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Rest Haven Properties (1512955000006678041)",
+      "file": "screen-capture (42).webm",
+      "folder": "Rest Haven Properties-Attachments",
+      "local": "Rest Haven Properties (1512955000006678041)/Rest Haven Properties-Attachments/screen-capture (42).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Rest Haven Properties (1512955000006678041)",
+      "file": "screen-capture (20).webm",
+      "folder": "Rest Haven Properties-Attachments",
+      "local": "Rest Haven Properties (1512955000006678041)/Rest Haven Properties-Attachments/screen-capture (20).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Rest Haven Properties (1512955000006678041)",
+      "file": "screen-capture (37).webm",
+      "folder": "Rest Haven Properties-Attachments",
+      "local": "Rest Haven Properties (1512955000006678041)/Rest Haven Properties-Attachments/screen-capture (37).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Rest Haven Properties (1512955000006678041)",
+      "file": "screen-capture (81).webm",
+      "folder": "Rest Haven Properties-Attachments",
+      "local": "Rest Haven Properties (1512955000006678041)/Rest Haven Properties-Attachments/screen-capture (81).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Rest Haven Properties (1512955000006678041)",
+      "file": "Screen Shot 2023-02-13 at 10.02.56 AM",
+      "folder": "Rest Haven Properties-Attachments",
+      "local": "Rest Haven Properties (1512955000006678041)/Rest Haven Properties-Attachments/Screen Shot 2023-02-13 at 10.02.56 AM",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Rest Haven Properties (1512955000006678041)",
+      "file": "screen-capture (31).webm",
+      "folder": "Rest Haven Properties-Attachments",
+      "local": "Rest Haven Properties (1512955000006678041)/Rest Haven Properties-Attachments/screen-capture (31).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Rest Haven Properties (1512955000006678041)",
+      "file": "screen-capture (1).webm",
+      "folder": "Rest Haven Properties-Attachments",
+      "local": "Rest Haven Properties (1512955000006678041)/Rest Haven Properties-Attachments/screen-capture (1).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Rest Haven Properties (1512955000006678041)",
+      "file": "screen-capture (57).webm",
+      "folder": "Rest Haven Properties-Attachments",
+      "local": "Rest Haven Properties (1512955000006678041)/Rest Haven Properties-Attachments/screen-capture (57).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Western Peaks Plumbing (1512955000006662111)",
+      "file": "screen-capture (4).webm",
+      "folder": "Western Peaks Plumbing-Attachments",
+      "local": "Western Peaks Plumbing (1512955000006662111)/Western Peaks Plumbing-Attachments/screen-capture (4).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Western Peaks Plumbing (1512955000006662111)",
+      "file": "screen-capture (5).webm",
+      "folder": "Western Peaks Plumbing-Attachments",
+      "local": "Western Peaks Plumbing (1512955000006662111)/Western Peaks Plumbing-Attachments/screen-capture (5).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Western Peaks Plumbing (1512955000006662111)",
+      "file": "screen-capture (3).webm",
+      "folder": "Western Peaks Plumbing-Attachments",
+      "local": "Western Peaks Plumbing (1512955000006662111)/Western Peaks Plumbing-Attachments/screen-capture (3).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Western Peaks Plumbing (1512955000006662111)",
+      "file": "screen-capture (5).webm",
+      "folder": "Western Peaks Plumbing-Attachments",
+      "local": "Western Peaks Plumbing (1512955000006662111)/Western Peaks Plumbing-Attachments/screen-capture (5) (613324).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Western Peaks Plumbing (1512955000006662111)",
+      "file": "screen-capture (5).webm",
+      "folder": "Western Peaks Plumbing-Attachments",
+      "local": "Western Peaks Plumbing (1512955000006662111)/Western Peaks Plumbing-Attachments/screen-capture (5) (678319).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Western Peaks Plumbing (1512955000006662111)",
+      "file": "screen-capture - 2022-12-07T122618.763.webm",
+      "folder": "Western Peaks Plumbing-Attachments",
+      "local": "Western Peaks Plumbing (1512955000006662111)/Western Peaks Plumbing-Attachments/screen-capture - 2022-12-07T122618.763.webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Western Peaks Plumbing (1512955000006662111)",
+      "file": "screen-capture (99).webm",
+      "folder": "Western Peaks Plumbing-Attachments",
+      "local": "Western Peaks Plumbing (1512955000006662111)/Western Peaks Plumbing-Attachments/screen-capture (99).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    }
+  ],
+  "errors": []
+}

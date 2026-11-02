@@ -1,0 +1,192 @@
+{
+  "dryRun": false,
+  "slice": {
+    "from": 225,
+    "to": "250",
+    "project": null
+  },
+  "counts": {
+    "projectsLegacy": 2,
+    "projectsWithoutDocuments": 1,
+    "foldersCreated": 6,
+    "filesNative": 4,
+    "localSaved": 19,
+    "filesImportable": 131,
+    "filesImported": 131,
+    "filesUnsupportedType": 15
+  },
+  "projects": [
+    {
+      "zohoId": "1512955000000063407",
+      "zohoName": "JBL Sourcing",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "6db8bbf3-adcf-4de2-be13-3f1a851356a0",
+      "folders": 3,
+      "files": 11
+    },
+    {
+      "zohoId": "1512955000000056721",
+      "zohoName": "Peak Pro Financial",
+      "matchedBy": "external_project_id",
+      "hubProjectId": "ab35af5f-d6ca-42c7-992b-2d49253a97c8",
+      "folders": 3,
+      "files": 139
+    }
+  ],
+  "renamedFolders": [],
+  "skippedFiles": [
+    {
+      "project": "JBL Sourcing (1512955000000063407)",
+      "file": "JBL Sourcing Migration QA",
+      "folder": "JBL Sourcing-Documents",
+      "local": "JBL Sourcing (1512955000000063407)/JBL Sourcing-Documents/JBL Sourcing Migration QA.pptx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "JBL Sourcing (1512955000000063407)",
+      "file": "Admin accounts",
+      "folder": "JBL Sourcing-Documents",
+      "local": "JBL Sourcing (1512955000000063407)/JBL Sourcing-Documents/Admin accounts.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "JBL Sourcing (1512955000000063407)",
+      "file": "screen-capture (6).webm",
+      "folder": "JBL Sourcing-Attachments",
+      "local": "JBL Sourcing (1512955000000063407)/JBL Sourcing-Attachments/screen-capture (6).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "JBL Sourcing (1512955000000063407)",
+      "file": "screen-capture (28).webm",
+      "folder": "JBL Sourcing-Attachments",
+      "local": "JBL Sourcing (1512955000000063407)/JBL Sourcing-Attachments/screen-capture (28).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "JBL Sourcing (1512955000000063407)",
+      "file": "screen-capture (27).webm",
+      "folder": "JBL Sourcing-Attachments",
+      "local": "JBL Sourcing (1512955000000063407)/JBL Sourcing-Attachments/screen-capture (27).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Peak Pro Financial (1512955000000056721)",
+      "file": "Admin accounts",
+      "folder": "Peak Pro Financial-Documents",
+      "local": "Peak Pro Financial (1512955000000056721)/Peak Pro Financial-Documents/Admin accounts.docx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Peak Pro Financial (1512955000000056721)",
+      "file": "Content migration",
+      "folder": "Peak Pro Financial-Documents",
+      "local": "Peak Pro Financial (1512955000000056721)/Peak Pro Financial-Documents/Content migration.xlsx",
+      "reason": "native",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Peak Pro Financial (1512955000000056721)",
+      "file": "screen-capture (12).webm",
+      "folder": "Peak Pro Financial-Attachments",
+      "local": "Peak Pro Financial (1512955000000056721)/Peak Pro Financial-Attachments/screen-capture (12).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Peak Pro Financial (1512955000000056721)",
+      "file": "screen-capture (76).webm",
+      "folder": "Peak Pro Financial-Attachments",
+      "local": "Peak Pro Financial (1512955000000056721)/Peak Pro Financial-Attachments/screen-capture (76).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Peak Pro Financial (1512955000000056721)",
+      "file": "screen-capture (11).webm",
+      "folder": "Peak Pro Financial-Attachments",
+      "local": "Peak Pro Financial (1512955000000056721)/Peak Pro Financial-Attachments/screen-capture (11).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Peak Pro Financial (1512955000000056721)",
+      "file": "screen-capture - 2022-12-05T172011.725.webm",
+      "folder": "Peak Pro Financial-Attachments",
+      "local": "Peak Pro Financial (1512955000000056721)/Peak Pro Financial-Attachments/screen-capture - 2022-12-05T172011.725.webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Peak Pro Financial (1512955000000056721)",
+      "file": "screen-capture (4).webm",
+      "folder": "Peak Pro Financial-Attachments",
+      "local": "Peak Pro Financial (1512955000000056721)/Peak Pro Financial-Attachments/screen-capture (4).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Peak Pro Financial (1512955000000056721)",
+      "file": "screen-capture (1).webm",
+      "folder": "Peak Pro Financial-Attachments",
+      "local": "Peak Pro Financial (1512955000000056721)/Peak Pro Financial-Attachments/screen-capture (1).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Peak Pro Financial (1512955000000056721)",
+      "file": "screen-capture (3).webm",
+      "folder": "Peak Pro Financial-Attachments",
+      "local": "Peak Pro Financial (1512955000000056721)/Peak Pro Financial-Attachments/screen-capture (3).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Peak Pro Financial (1512955000000056721)",
+      "file": "screen-capture.webm",
+      "folder": "Peak Pro Financial-Attachments",
+      "local": "Peak Pro Financial (1512955000000056721)/Peak Pro Financial-Attachments/screen-capture.webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Peak Pro Financial (1512955000000056721)",
+      "file": "screen-capture (31).webm",
+      "folder": "Peak Pro Financial-Attachments",
+      "local": "Peak Pro Financial (1512955000000056721)/Peak Pro Financial-Attachments/screen-capture (31).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Peak Pro Financial (1512955000000056721)",
+      "file": "screen-capture (26).webm",
+      "folder": "Peak Pro Financial-Attachments",
+      "local": "Peak Pro Financial (1512955000000056721)/Peak Pro Financial-Attachments/screen-capture (26).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Peak Pro Financial (1512955000000056721)",
+      "file": "screen-capture (12).webm",
+      "folder": "Peak Pro Financial-Attachments",
+      "local": "Peak Pro Financial (1512955000000056721)/Peak Pro Financial-Attachments/screen-capture (12) (a7d9f7).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    },
+    {
+      "project": "Peak Pro Financial (1512955000000056721)",
+      "file": "screen-capture.webm",
+      "folder": "Peak Pro Financial-Attachments",
+      "local": "Peak Pro Financial (1512955000000056721)/Peak Pro Financial-Attachments/screen-capture (a11109).webm",
+      "reason": "unsupported-type",
+      "localStatus": "saved"
+    }
+  ],
+  "errors": []
+}

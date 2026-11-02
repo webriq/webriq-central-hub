@@ -10,9 +10,9 @@ const ZOHO_PROJECTSAPI_BASE = `https://projectsapi.zoho.com/api/v3/portal/${proc
 let _tokenCache: { value: string; expiresAt: number } | null = null;
 let _tokenRefreshPromise: Promise<string> | null = null;
 
-export async function getZohoAccessToken(): Promise<string> {
+export async function getZohoAccessToken(options?: { forceRefresh?: boolean }): Promise<string> {
   // Return cached token if still valid (60s buffer before expiry)
-  if (_tokenCache && Date.now() < _tokenCache.expiresAt - 60_000) {
+  if (!options?.forceRefresh && _tokenCache && Date.now() < _tokenCache.expiresAt - 60_000) {
     return _tokenCache.value;
   }
 
@@ -122,10 +122,14 @@ export async function fetchZohoWithRetry(
     res = await doFetch();
   }
 
-  // Token expired mid-export — refresh and retry once
-  if (res.status === 401) {
-    console.log(`[${label}] Token expired — refreshing`);
-    const fresh = await getZohoAccessToken();
+  // Token expired mid-export — refresh and retry once.
+  // WorkDrive download answers an expired token with 500 F7003 "Invalid OAuth token", not 401,
+  // so both statuses go through the same forced refresh.
+  const isExpiredToken500 = res.status === 500
+    && /Invalid OAuth token|F7003/i.test(await res.clone().text().catch(() => ""));
+  if (res.status === 401 || isExpiredToken500) {
+    console.log(`[${label}] Token expired (${res.status}) — refreshing`);
+    const fresh = await getZohoAccessToken({ forceRefresh: true });
     if (fresh) {
       currentToken = fresh;
       res = await doFetch();
