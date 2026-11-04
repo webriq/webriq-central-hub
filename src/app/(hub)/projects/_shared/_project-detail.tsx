@@ -258,6 +258,10 @@ export default function ProjectDetail({
     return true;
   }, [tasks]);
 
+  // Task 467 — "Add subtask" from a listing row opens the New Task modal in subtask mode.
+  const [subtaskParent, setSubtaskParent] = useState<Task | null>(null);
+  const [expandRequest, setExpandRequest] = useState<{ id: string; n: number } | null>(null);
+
   const addTask = useCallback((task: Task) => {
     setTasks((prev) => [...prev, task]);
   }, []);
@@ -565,6 +569,8 @@ export default function ProjectDetail({
                   getHref={(task) => `${basePath}/tasks/${task.display_id}`}
                   onUpdate={updateTask}
                   onBulkDelete={bulkDeleteTasks}
+                  onAddSubtask={(t) => setSubtaskParent(t)}
+                  expandRequest={expandRequest}
                   currentUserId={currentUserId}
                   currentUserRole={currentUserRole}
                   profilesById={profilesById}
@@ -785,6 +791,30 @@ export default function ProjectDetail({
           defaults={createDefaults}
           onClose={() => setCreateDefaults(null)}
           onCreated={(t) => { addTask(t); setCreateDefaults(null); }}
+          onTasklistCreated={addTasklist}
+        />
+      )}
+
+      {subtaskParent && (
+        <CreateTaskModal
+          projectId={project.project_id ?? project.id}
+          milestones={milestones}
+          tasklists={tasklists}
+          tasks={tasks}
+          allMembers={allMembers}
+          defaults={{ status: "open" }}
+          parent={subtaskParent}
+          onClose={() => setSubtaskParent(null)}
+          onCreated={(t) => {
+            const parentId = subtaskParent.id;
+            // The API also adds the subtask's assignees to the parent — mirror that locally (realtime would catch up anyway).
+            setTasks((prev) => {
+              const merged = prev.map((p) => (p.id === parentId ? { ...p, assignees: [...new Set([...(p.assignees ?? []), ...(t.assignees ?? [])])] } : p));
+              return merged.some((p) => p.id === t.id) ? merged : [...merged, t];
+            });
+            setExpandRequest((r) => ({ id: parentId, n: (r?.n ?? 0) + 1 }));
+            setSubtaskParent(null);
+          }}
           onTasklistCreated={addTasklist}
         />
       )}

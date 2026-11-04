@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Trash2, GitPullRequest, ExternalLink, Loader2 } from "lucide-react";
 import {
@@ -75,6 +76,7 @@ export default function TaskDetailClient({
   currentUserName,
   currentUserAvatarUrl,
   assigneeProfiles,
+  parentTask,
 }: {
   task: Task;
   project: { id: string; name: string; customer_id: string; project_id: string | null };
@@ -84,6 +86,7 @@ export default function TaskDetailClient({
   currentUserName: string | null;
   currentUserAvatarUrl: string | null;
   assigneeProfiles: { id: string; full_name: string | null; avatar_url: string | null }[];
+  parentTask: { display_id: string | null; title: string } | null;
 }) {
   const router = useRouter();
   const projectId = project.project_id ?? project.id;
@@ -181,6 +184,14 @@ export default function TaskDetailClient({
           <ArrowLeft size={14} /> {project.name}
         </button>
 
+        {parentTask?.display_id && (
+          <Link
+            href={`/projects/v2/${projectId}/tasks/${parentTask.display_id}`}
+            className="inline-block mb-2 text-[12px] text-[#5F6A88] hover:text-[#007BFF] transition-colors"
+          >
+            Subtask of {decodeHtmlEntities(parentTask.title)}
+          </Link>
+        )}
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-2 flex-wrap">
@@ -469,6 +480,9 @@ export default function TaskDetailClient({
               currentUserAvatarUrl={currentUserAvatarUrl}
               timeLogsRefreshKey={timeLogsRefreshKey}
               onAttachmentsCountChange={setAttachmentCount}
+              task={task}
+              milestones={milestones}
+              canAddSubtask={perm.canEditDetails}
             />
           </div>
 

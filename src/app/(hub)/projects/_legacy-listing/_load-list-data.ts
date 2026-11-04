@@ -85,6 +85,8 @@ export async function loadLegacyProjectsList(params: LegacyListParams): Promise<
     const statusFilter = (params.statusValues.length > 0 ? params.statusValues : ["__none__"]) as ("active" | "on_hold" | "completed" | "archived")[];
     projectsQuery = projectsQuery.in("status", statusFilter);
   }
+  // Task 468 — merged-away projects stay hidden unless the user explicitly filters to Archived (needs migration 180).
+  if (!params.statusValues?.includes("archived")) projectsQuery = projectsQuery.filter("merged_into_project_id", "is", null);
   if (params.search) {
     const customerIdFilter = searchCustomerIds && searchCustomerIds.length > 0
       ? `customer_id.in.(${searchCustomerIds.join(",")})`

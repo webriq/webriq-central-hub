@@ -112,6 +112,8 @@ export async function loadOnboardingProjectsList(
       { referencedTable: "customer_products" }
     );
 
+  // Task 468 — projects merged into another are archived and hidden from the v2 listing (needs migration 180).
+  query = query.filter("merged_into_project_id", "is", null);
   if (params.statusValues !== null) {
     const statusFilter = params.statusValues.length > 0 ? params.statusValues : ["__none__"];
     query = query.in("onboarding_status", statusFilter);

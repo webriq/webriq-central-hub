@@ -1,8 +1,9 @@
 "use client";
 
+import { MAX_SUBTASK_DEPTH } from "@/lib/tasks/subtask-tree";
 import { Fragment, useState, useMemo, useEffect, useRef } from "react";
 import Link from "next/link";
-import { ChevronDown, ChevronRight, Users, X, Clock, SearchX, Trash2, ClipboardList, Plus } from "lucide-react";
+import { ChevronDown, ChevronRight, Users, X, Clock, SearchX, Trash2, ClipboardList, Plus, ListTree } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
@@ -51,6 +52,8 @@ export default function ListView({
   getHref,
   onUpdate,
   onBulkDelete,
+  onAddSubtask,
+  expandRequest,
   currentUserId,
   currentUserRole,
   profilesById,
@@ -75,6 +78,9 @@ export default function ListView({
   getHref: (task: Task) => string;
   onUpdate: (id: string, patch: Partial<Task>) => Promise<boolean>;
   onBulkDelete: (ids: string[]) => Promise<void>;
+  // Task 467 — opens the New Subtask modal for this parent (owned by ProjectDetail).
+  onAddSubtask?: (parent: Task) => void;
+  expandRequest?: { id: string; n: number } | null;
   currentUserId: string;
   currentUserRole: string | null;
   profilesById: Record<string, { full_name: string; avatar_url: string | null }>;
@@ -240,6 +246,14 @@ export default function ListView({
     return map;
   }, [tasks]);
 
+  // Task 467 — inline "Add subtask" input under the row it was opened from.
+  // Expand a parent after a subtask was added to it ("derive state from props": a new request token re-expands).
+  const [seenExpandN, setSeenExpandN] = useState(0);
+  if (expandRequest && expandRequest.n !== seenExpandN) {
+    setSeenExpandN(expandRequest.n);
+    setExpandedRows((prev) => new Set(prev).add(expandRequest.id));
+  }
+
   function toggleExpand(id: string) {
     setExpandedRows((prev) => {
       const next = new Set(prev);
@@ -286,6 +300,17 @@ export default function ListView({
 
   const GRID = "grid-cols-[32px_1fr_148px_156px_108px_80px_64px_48px]";
 
+  // Task 467 — done/total over ALL descendants (closed = done), not just direct children.
+  function descendantRollup(id: string): { done: number; total: number } {
+    let done = 0, total = 0;
+    for (const c of childrenByParent.get(id) ?? []) {
+      const sub = descendantRollup(c.id);
+      total += 1 + sub.total;
+      done += (c.status === "closed" ? 1 : 0) + sub.done;
+    }
+    return { done, total };
+  }
+
   function renderRows(list: Task[], depth = 0): React.ReactNode {
     return list.map((t) => {
       const children = childrenByParent.get(t.id) ?? [];
@@ -296,6 +321,7 @@ export default function ListView({
             task={t}
             depth={depth}
             childrenCount={children.length}
+            rollup={children.length > 0 ? descendantRollup(t.id) : null}
             isExpanded={isExpanded}
             onToggleExpand={() => toggleExpand(t.id)}
             selected={selected.has(t.id)}
@@ -310,6 +336,7 @@ export default function ListView({
             attachmentCount={attachmentCountById[t.id]}
             onHoursLogged={onHoursLogged}
             gridClass={GRID}
+            onAddSubtask={onAddSubtask && depth < MAX_SUBTASK_DEPTH ? () => onAddSubtask(t) : undefined}
           />
           {isExpanded && children.length > 0 && renderRows(children, depth + 1)}
         </Fragment>
@@ -462,7 +489,7 @@ function SortHeader({
 function Row({
   task, selected, onToggle, href, onUpdate,
   currentUserId, currentUserRole, profilesById, allMembers, hoursById, attachmentCount, onHoursLogged, gridClass,
-  depth, childrenCount, isExpanded, onToggleExpand,
+  depth, childrenCount, isExpanded, onToggleExpand, onAddSubtask, rollup,
 }: {
   task: Task;
   selected: boolean;
@@ -481,6 +508,8 @@ function Row({
   childrenCount: number;
   isExpanded: boolean;
   onToggleExpand: () => void;
+  onAddSubtask?: () => void;
+  rollup: { done: number; total: number } | null;
 }) {
   const norm = normalizeStatus(task.status);
   const ss = STATUS_STYLE[norm] ?? STATUS_STYLE["open"];
@@ -550,9 +579,20 @@ function Row({
           size={13}
           className="opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100 p-1 rounded text-[#94A0BE] hover:text-[#007BFF] hover:bg-[#EDF0F7] transition-colors shrink-0 cursor-pointer"
         />
-        {childrenCount > 0 && !isExpanded && (
-          <span className="text-[10px] font-semibold text-[#5F6A88] bg-[#EDF0F7] rounded-full px-1.5 py-0.5 leading-none shrink-0 tabular-nums">
-            {childrenCount}
+        {onAddSubtask && perm.canEditDetails && (
+          <button
+            type="button"
+            onClick={onAddSubtask}
+            aria-label={`Add subtask under ${task.title}`}
+            title="Add subtask"
+            className="opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100 p-1 rounded text-[#94A0BE] hover:text-[#007BFF] hover:bg-[#EDF0F7] transition-colors shrink-0 cursor-pointer"
+          >
+            <ListTree size={13} />
+          </button>
+        )}
+        {rollup && (
+          <span title="Closed / total subtasks" className="text-[10px] font-semibold text-[#5F6A88] bg-[#EDF0F7] rounded-full px-1.5 py-0.5 leading-none shrink-0 tabular-nums">
+            {rollup.done}/{rollup.total}
           </span>
         )}
       </div>

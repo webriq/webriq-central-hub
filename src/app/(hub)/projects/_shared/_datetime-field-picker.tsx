@@ -128,11 +128,13 @@ function combine(date: Date, hour12: number, minute: number, ampm: "AM" | "PM"):
 }
 
 export function DateTimeFieldPicker({
-  value, onChange, disabled,
+  value, onChange, disabled, maxDate,
 }: {
   value: string;
   onChange: (v: string) => void;
   disabled?: boolean;
+  // Task 467 — "YYYY-MM-DD"; days after it are not selectable (subtask dates stop at the parent's due date).
+  maxDate?: string | null;
 }) {
   const [open, setOpen] = useState(false);
   const [month, setMonth] = useState<Date>(() => parseValue(value).date);
@@ -235,6 +237,7 @@ export function DateTimeFieldPicker({
               onSelect={(d) => d && pickDay(d)}
               month={month}
               onMonthChange={setMonth}
+              disabled={maxDate ? { after: parseValue(`${maxDate}T00:00`).date } : undefined}
               showOutsideDays
               navLayout="around"
               classNames={calendarClassNames}

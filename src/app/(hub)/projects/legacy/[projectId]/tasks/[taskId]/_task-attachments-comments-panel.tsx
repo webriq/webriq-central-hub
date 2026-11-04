@@ -1,10 +1,12 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import type { Milestone, Task } from "@/app/(hub)/projects-old/_pm-shared";
 import { cn } from "@/lib/utils";
 import { TaskAttachments } from "./_task-attachments";
 import { TaskComments } from "./_task-comments";
 import { TaskTimeLogs } from "./_task-time-logs";
+import { TaskSubtasks } from "@/app/(hub)/projects/_shared/_task-subtasks";
 import { useAttachmentDeepLink } from "@/app/(hub)/projects/_shared/_use-attachment-deeplink";
 
 // Attachments and Comments used to be two separate stacked Cards (task 206); task 211 merges
@@ -15,14 +17,15 @@ import { useAttachmentDeepLink } from "@/app/(hub)/projects/_shared/_use-attachm
 // Detail's `_issue-attachments-comments-panel.tsx` exactly (task 257, Requirement G) — the user
 // asked for the two pages' tab UI to match. Counts are lifted from each tab's own fetch via
 // `onCountChange` rather than a duplicate count-only query, same as the Issue-side pattern.
-type PanelTab = "comments" | "attachments" | "timelogs";
+type PanelTab = "comments" | "attachments" | "timelogs" | "subtasks";
 
-const TAB_ORDER: PanelTab[] = ["comments", "attachments", "timelogs"];
+const TAB_ORDER: PanelTab[] = ["comments", "attachments", "timelogs", "subtasks"];
 
 const TAB_LABEL: Record<PanelTab, string> = {
   comments: "Comments",
   attachments: "Attachments",
   timelogs: "Time Logs",
+  subtasks: "Subtasks",
 };
 
 export function TaskAttachmentsCommentsPanel({
@@ -34,6 +37,9 @@ export function TaskAttachmentsCommentsPanel({
   currentUserAvatarUrl,
   timeLogsRefreshKey,
   onAttachmentsCountChange,
+  task,
+  milestones,
+  canAddSubtask,
 }: {
   projectId: string;
   taskId: string;
@@ -45,17 +51,23 @@ export function TaskAttachmentsCommentsPanel({
   timeLogsRefreshKey?: number;
   // Task 459 — lets the detail header show the same count as this panel's Attachments tab.
   onAttachmentsCountChange?: (n: number) => void;
+  // Task 467 — Subtasks tab.
+  task: Task;
+  milestones: Milestone[];
+  canAddSubtask: boolean;
 }) {
   // Task 368, R8 — a `?attachment=<id>` deep link lands directly on the Attachments tab; the
   // `useState` initializer only reads it once, matching the Files tab's `?file=` one-shot pattern
   // (no re-forcing the tab back to Attachments if the viewer manually switches away afterward).
   const { deepLinkedAttachmentId, copyAttachmentUrl } = useAttachmentDeepLink();
   const [tab, setTab] = useState<PanelTab>(() => (deepLinkedAttachmentId ? "attachments" : "comments"));
-  const [counts, setCounts] = useState<{ comments: number | null; attachments: number | null }>({
+  const [counts, setCounts] = useState<{ comments: number | null; attachments: number | null; subtasks: number | null }>({
     comments: null,
     attachments: null,
+    subtasks: null,
   });
   const onCommentsCount = useCallback((n: number) => setCounts((c) => ({ ...c, comments: n })), []);
+  const onSubtasksCount = useCallback((n: number) => setCounts((c) => ({ ...c, subtasks: n })), []);
   const onAttachmentsCount = useCallback((n: number) => {
     setCounts((c) => ({ ...c, attachments: n }));
     onAttachmentsCountChange?.(n);
@@ -112,6 +124,16 @@ export function TaskAttachmentsCommentsPanel({
         </div>
         <div className={cn(tab !== "timelogs" && "hidden")}>
           <TaskTimeLogs taskId={taskId} refreshKey={timeLogsRefreshKey} />
+        </div>
+        <div className={cn(tab !== "subtasks" && "hidden")}>
+          <TaskSubtasks
+            projectId={projectId}
+            task={task}
+            milestones={milestones}
+            taskBasePath={`/projects/legacy/${projectId}/tasks`}
+            canAdd={canAddSubtask}
+            onCountChange={onSubtasksCount}
+          />
         </div>
       </div>
     </div>

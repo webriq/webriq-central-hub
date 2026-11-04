@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getProjectDetailData } from "../../../_shared/_get-project-detail-data";
 import { ProjectDetailHeader } from "../../../_shared/_project-detail-header";
+import { MergedProjectView } from "../../../_shared/_merged-project-view";
 
 export const dynamic = "force-dynamic";
 
@@ -30,9 +31,9 @@ export default async function LegacyProjectTabsLayout({
         basePath={`/projects/legacy/${projectId}`}
         variant="legacy"
       />
-      <div className="flex-1 min-h-0 flex flex-col">
+      <MergedProjectView mergedIntoId={(data.project as { merged_into_project_id?: string | null }).merged_into_project_id} variant="legacy">
         {children}
-      </div>
+      </MergedProjectView>
     </div>
   );
 }

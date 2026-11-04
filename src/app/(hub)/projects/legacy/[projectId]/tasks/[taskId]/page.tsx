@@ -55,6 +55,11 @@ export default async function TaskDetailPage({
 
   if (!task) notFound();
 
+  // Task 467 — breadcrumb target when this task is itself a subtask.
+  const { data: parentTask } = task.parent_task_id
+    ? await supabase.from("tasks").select("display_id, title").eq("id", task.parent_task_id).maybeSingle()
+    : { data: null };
+
   // profiles_read_own RLS only lets a non-admin caller read their own profiles row — adminClient
   // bypasses that for this read-only assignee-name display lookup (same pattern task 210 already
   // shipped for _get-project-detail-data.ts's profiles query).
@@ -74,6 +79,7 @@ export default async function TaskDetailPage({
       currentUserName={currentUserName}
       currentUserAvatarUrl={currentUserAvatarUrl}
       assigneeProfiles={assigneeProfiles ?? []}
+      parentTask={parentTask}
     />
   );
 }

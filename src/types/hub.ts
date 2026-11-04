@@ -9,7 +9,8 @@ export type OrchestrationLayer =
   | "ops_chat"
   | "mockup_spec"
   | "wiki_pdf_classify"
-  | "wiki_pdf_transcribe";
+  | "wiki_pdf_transcribe"
+  | "project_merge";
 
 export type AIProvider = "anthropic" | "openai";
 

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { type Milestone, type Tasklist, type Task, type TaskStatus, type TaskPriority } from "@/app/(hub)/projects-old/_pm-shared";
+import { type Milestone, type Tasklist, type Task, type TaskStatus, type TaskPriority, decodeHtmlEntities } from "@/app/(hub)/projects-old/_pm-shared";
 import { CollapsibleSection } from "./_collapsible-section";
 import { TaskDescriptionEditor } from "./_task-description-editor";
 import { TaskAttachmentPicker } from "./_task-attachment-picker";
@@ -55,6 +55,7 @@ export function CreateTaskModal({
   defaults,
   defaultTitle,
   defaultDescription,
+  parent,
   onClose,
   onCreated,
   onTasklistCreated,
@@ -69,6 +70,10 @@ export function CreateTaskModal({
   // (e.g. "Create Task" on a ticket thread message). Optional; blank for the normal flow.
   defaultTitle?: string;
   defaultDescription?: string;
+  // Task 467 — when set this is the "New Subtask" modal: same fields, pre-filled from the parent
+  // (priority, milestone, task list, due date), status Open, dates capped at the parent's due date, and the
+  // task is created through `/api/v2/tasks/{parent.id}/subtasks`.
+  parent?: Task;
   onClose: () => void;
   onCreated: (t: Task) => void;
   onTasklistCreated: (tl: Tasklist) => void;
@@ -76,12 +81,18 @@ export function CreateTaskModal({
   const [title, setTitle] = useState(defaultTitle ?? "");
   const [description, setDescription] = useState(defaultDescription ?? "");
   const [status, setStatus] = useState<TaskStatus>(defaults.status ?? "open");
-  const [priority, setPriority] = useState<TaskPriority>("normal");
-  const [assignMilestone, setAssignMilestone] = useState<boolean>(!!defaults.milestone_id);
-  const [milestoneId, setMilestoneId] = useState<string>(defaults.milestone_id ?? "");
-  const [startValue, setStartValue] = useState<string>(() => nowDateTimeValue());
-  const [dueValue, setDueValue] = useState<string>(() => dueDefaultValue(defaults.due_date));
-  const [tasklistId, setTasklistId] = useState<string>(() => tasklists.find((tl) => tl.is_default)?.id ?? "");
+  const [priority, setPriority] = useState<TaskPriority>(parent?.priority ?? "normal");
+  const parentMilestoneId = parent?.milestone_id ?? defaults.milestone_id ?? "";
+  const maxDate = parent?.due_date ?? null;
+  const [assignMilestone, setAssignMilestone] = useState<boolean>(!!parentMilestoneId);
+  const [milestoneId, setMilestoneId] = useState<string>(parentMilestoneId);
+  const [startValue, setStartValue] = useState<string>(() => {
+    const now = nowDateTimeValue();
+    return maxDate && now.slice(0, 10) > maxDate ? `${maxDate}T00:00` : now; // never start after the parent's due date
+  });
+  const [dueValue, setDueValue] = useState<string>(() =>
+    parent?.due_date ? `${parent.due_date}T${(parent.due_time ?? "19:00").slice(0, 5)}` : dueDefaultValue(defaults.due_date));
+  const [tasklistId, setTasklistId] = useState<string>(() => parent?.tasklist_id ?? tasklists.find((tl) => tl.is_default)?.id ?? "");
   const [creatingTasklist, setCreatingTasklist] = useState(false);
   const [newTasklistName, setNewTasklistName] = useState("");
   const [assignees, setAssignees] = useState<string[]>([]);
@@ -134,6 +145,10 @@ export function CreateTaskModal({
     const trimmedTitle = title.trim();
     if (!trimmedTitle) {
       errs.title = "Title is required";
+    } else if (parent) {
+      // Task 467 — subtasks are unique per parent task (the server re-checks).
+      const dupe = tasks.some((t) => t.parent_task_id === parent.id && t.title.trim().toLowerCase() === trimmedTitle.toLowerCase());
+      if (dupe) errs.title = "A subtask with this title already exists under this parent task.";
     } else {
       const dupe = tasks.some(
         (t) => (t.tasklist_id ?? "") === (tasklistId || "") && t.title.trim().toLowerCase() === trimmedTitle.toLowerCase()
@@ -161,6 +176,8 @@ export function CreateTaskModal({
       return;
     }
     setFieldErrors({});
+    if (startDate && dueDate && `${startDate}T${startTime}` > `${dueDate}T${dueTime}`) { setError("Start date cannot be after the due date"); return; }
+    if (maxDate && dueDate > maxDate) { setError(`Due date cannot be later than the parent task's due date (${maxDate})`); return; }
     // Defensive fallback — both pickers always default to a populated value and expose no way to
     // clear back to empty, so this can't currently trigger through normal UI use; kept as the
     // pre-existing generic bottom-of-form error rather than a field-level one (see task 286 doc).
@@ -168,7 +185,7 @@ export function CreateTaskModal({
     if (!dueDate) { setError("Due date is required"); return; }
     setSaving(true);
     setError(null);
-    const toastId = toast.loading("Creating task…");
+    const toastId = toast.loading(parent ? "Creating subtask…" : "Creating task…");
 
     let finalTasklistId = tasklistId;
     if (creatingTasklist && newTasklistName.trim()) {
@@ -190,7 +207,7 @@ export function CreateTaskModal({
       finalTasklistId = newTasklist.id;
     }
 
-    const res = await fetch(`/api/v2/projects/${projectId}/tasks`, {
+    const res = await fetch(parent ? `/api/v2/tasks/${parent.id}/subtasks` : `/api/v2/projects/${projectId}/tasks`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -218,7 +235,7 @@ export function CreateTaskModal({
     }
     const task: Task = await res.json();
     setSaving(false);
-    toast.success("Task created", { id: toastId });
+    toast.success(parent ? "Subtask created" : "Task created", { id: toastId });
 
     if (attachmentFiles.length > 0) {
       taskIdRef.current = task.id;
@@ -236,7 +253,7 @@ export function CreateTaskModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-[#EDF0F7] shrink-0">
-          <h2 className="text-[15px] font-semibold text-[#0B1533]">New Task</h2>
+          <h2 className="text-[15px] font-semibold text-[#0B1533]">{parent ? "New Subtask" : "New Task"}</h2>
           {!uploading && (
             <button onClick={onClose} className="p-1 rounded-md text-[#5F6A88] hover:text-[#0B1533] hover:bg-[#F4F6FB] cursor-pointer transition-colors">
               <X size={16} />
@@ -268,6 +285,12 @@ export function CreateTaskModal({
         ) : (
           <>
             <div className="p-5 flex flex-col gap-4 overflow-y-auto min-h-0">
+              {parent && (
+                <div className="flex flex-col gap-1.5">
+                  <span className={labelClass}>Parent task</span>
+                  <p className="px-3 py-2 rounded-[10px] bg-[#EDF0F7] text-[13px] font-medium text-[#0B1533] break-words">{decodeHtmlEntities(parent.title)}</p>
+                </div>
+              )}
               <label className="flex flex-col gap-1.5">
                 <span className={labelClass}>Title</span>
                 <input
@@ -385,11 +408,11 @@ export function CreateTaskModal({
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1.5">
                     <span className={labelClass}>Start date &amp; time</span>
-                    <DateTimeFieldPicker value={startValue} onChange={setStartValue} />
+                    <DateTimeFieldPicker value={startValue} onChange={setStartValue} maxDate={maxDate} />
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <span className={labelClass}>Due date &amp; time</span>
-                    <DateTimeFieldPicker value={dueValue} onChange={setDueValue} />
+                    <DateTimeFieldPicker value={dueValue} onChange={setDueValue} maxDate={maxDate} />
                   </div>
                 </div>
 
@@ -402,6 +425,7 @@ export function CreateTaskModal({
                     editable
                     onChange={setAssignees}
                   />
+                  {parent && <span className="text-[11px] text-[#5F6A88]">Anyone not already on the parent task is added to it.</span>}
                 </div>
 
                 <div className="flex flex-col gap-1.5">

@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getProjectDetailData } from "../../../_shared/_get-project-detail-data";
 import { ProjectDetailHeader } from "../../../_shared/_project-detail-header";
+import { MergedProjectView } from "../../../_shared/_merged-project-view";
 
 export const dynamic = "force-dynamic";
 
@@ -46,9 +47,9 @@ export default async function ProjectTabsLayout({
           regions with `overflow-hidden`; Timeline/Overview are `overflow-y-auto` with padding).
           Each page's own content keeps its own wrapper for that, matching what it had before
           this layout existed. */}
-      <div className="flex-1 min-h-0 flex flex-col">
+      <MergedProjectView mergedIntoId={(data.project as { merged_into_project_id?: string | null }).merged_into_project_id} variant="v2">
         {children}
-      </div>
+      </MergedProjectView>
     </div>
   );
 }

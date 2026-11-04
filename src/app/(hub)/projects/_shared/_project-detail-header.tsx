@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { ArrowLeft, CheckCircle2, Settings, Crown, Users } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Settings, Crown, Users, GitMerge } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { V2_ROUTES } from "@/config/constants";
 import { ProjectStatusBadge } from "@/app/(hub)/projects-old/_pm-shared";
@@ -14,6 +14,7 @@ import { CopyLinkButton } from "./_copy-link-button";
 import { ProjectDetailTabStrip, type DetailTabId } from "./_project-detail-tab-strip";
 import { DeleteProjectMenuItem, DELETE_PROJECT_ROLES } from "../v2/[projectId]/_delete-project-menu-item";
 import { useActivePhase } from "./_use-active-phase";
+import { MergeWizard } from "./_merge/_merge-wizard";
 
 // Task 277 — uniform page-level header (back link, title, badge, subtitle, action icons, tab
 // strip) shared by every V2 tab AND every Legacy tab.
@@ -60,6 +61,8 @@ export function ProjectDetailHeader({
   const router = useRouter();
   const pathname = usePathname();
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
+  // Task 468 — wizard state lives here (not in the dropdown item): the dropdown unmounts when it closes.
+  const [mergeOpen, setMergeOpen] = useState(false);
 
   const activeTab = (pathname.split("/").filter(Boolean).pop() ?? "overview") as DetailTabId;
   const listingHref = variant === "legacy" ? V2_ROUTES.PROJECTS_LEGACY : V2_ROUTES.PROJECTS_V2;
@@ -79,6 +82,7 @@ export function ProjectDetailHeader({
   const canManageProjMembers = canManageProjectMembers(currentUserRole, isCreator);
   const canSetOwner = canSetProjectOwner(currentUserRole, isCreator);
   const canDeleteProject = !!currentUserRole && DELETE_PROJECT_ROLES.includes(currentUserRole);
+  const canMergeProject = canDeleteProject; // same roles: admin | pm | super_admin
 
   let badge: React.ReactNode;
   if (variant === "v2" && phaseLoading) {
@@ -106,7 +110,7 @@ export function ProjectDetailHeader({
   // Timeline used to have its own OwnerPanel/CollaboratorsPanel for this, but those lived inside
   // page content, not the header, so a shared header can't reach into whichever page happens to
   // be mounted below it. Matches the pattern already used by the 8 previously-shared tabs.
-  const settingsMenu = (canManageProjMembers || canSetOwner || canDeleteProject) && (
+  const settingsMenu = (canManageProjMembers || canSetOwner || canDeleteProject || canMergeProject) && (
     <div className="relative">
       <button
         type="button"
@@ -138,6 +142,15 @@ export function ProjectDetailHeader({
               className="flex w-full cursor-pointer items-center gap-2 border-none bg-transparent px-3 py-2 text-left text-[12.5px] text-[#3A4565] transition-colors hover:bg-[#F4F6FB]"
             >
               <Users size={13} className="text-[#5F6A88]" /> Manage Collaborators
+            </button>
+          )}
+          {canMergeProject && (
+            <button
+              type="button"
+              onClick={() => { setSettingsMenuOpen(false); setMergeOpen(true); }}
+              className="flex w-full cursor-pointer items-center gap-2 border-none bg-transparent px-3 py-2 text-left text-[12.5px] text-[#3A4565] transition-colors hover:bg-[#F0F7FF]"
+            >
+              <GitMerge size={13} className="text-[#5F6A88]" /> Merge to…
             </button>
           )}
           {canDeleteProject && (
@@ -184,6 +197,9 @@ export function ProjectDetailHeader({
       </div>
 
       <ProjectDetailTabStrip basePath={basePath} activeTab={activeTab} variant={variant} role={currentUserRole} />
+      {mergeOpen && (
+        <MergeWizard projectKey={project.project_id ?? project.id} projectName={project.name} basePath={basePath} variant={variant} onClose={() => setMergeOpen(false)} />
+      )}
     </div>
   );
 }
