@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { touchProjectForTask } from "@/lib/projects/touch-project";
+import { scheduleCommentMentionNotifications } from "@/lib/comments/notify-mentions";
 
 // Comment thread for the task detail page (task 206). `task_comments` already exists (migration
 // 025/035) with RLS already scoping staff read/insert (migration 048) — no migration needed here.
@@ -125,6 +126,8 @@ export async function POST(
   }
 
   touchProjectForTask(taskId);
+  // Task 466 — in-app notification for each @mentioned colleague (post-response, best-effort).
+  scheduleCommentMentionNotifications({ kind: "task", actorId: user.id, entityId: taskId, body: text });
   const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
 
   return NextResponse.json(

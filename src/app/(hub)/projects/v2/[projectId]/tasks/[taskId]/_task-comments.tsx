@@ -13,6 +13,7 @@ import { TaskAttachmentViewerModal } from "./_task-attachment-viewer-modal";
 import { AttachmentAction } from "@/app/(hub)/projects/_shared/_attachment-actions-menu";
 import { AttachmentGridTile, AttachmentThumbnail, CommentAttachmentGrid, downloadAttachment } from "@/app/(hub)/projects/_shared/_attachment-grid-tile";
 import { POWERPOINT_MIME_TYPES } from "@/config/powerpoint-types";
+import { MENTION_CLASSES } from "@/app/(hub)/projects/_shared/_mention-extension";
 
 // Comment thread for the task detail page (task 206). Rich-text body + optional file
 // attachments (task 212) — built on the existing `task_comments` table (RLS: staff
@@ -316,7 +317,8 @@ export function TaskComments({
                     // margin rule mirroring `<p>`'s or every line renders flush against the next).
                     "[&_div]:my-1 [&_div:first-child]:mt-0 [&_div:last-child]:mb-0",
                     "[&_p]:my-1 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pl-5 [&_ol]:pl-5 [&_li]:my-0.5",
-                    "[&_a]:text-[#0063D6] [&_a]:underline [&_img]:max-w-full [&_img]:rounded-[8px] [&_img]:my-1.5"
+                    "[&_a]:text-[#0063D6] [&_a]:underline [&_img]:max-w-full [&_img]:rounded-[8px] [&_img]:my-1.5",
+                    MENTION_CLASSES
                   )}
                   // Staff-authored comment HTML — same trust boundary as the Description field's rendered content (task 206).
                   // normalizeZohoDescriptionHtml absolutizes Zoho's portal-relative inline image

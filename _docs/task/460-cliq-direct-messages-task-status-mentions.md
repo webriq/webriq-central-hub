@@ -6,6 +6,16 @@
 **Recommended Tier:** balanced
 **Status:** Planned
 
+> **Update (2026-11-03, task 466):** R5 (the `@` mention in the task comment editors) and the
+> mention-id extractor already exist. Task 466 added `CommentMention` in
+> `src/app/(hub)/projects/_shared/_mention-extension.tsx` (wired into the task **and** ticket
+> composers, v2 + legacy) and `extractMentionIds()` / `resolveMentionRecipients()` in
+> `src/lib/comments/mentions.ts`. The comment POST routes call
+> `scheduleCommentMentionNotifications()` (`src/lib/comments/notify-mentions.ts`) for in-app
+> notifications. 460 should import these instead of building its own (skip implementation
+> steps 7–9 and the `extractMentionIds` part of step 3) and add its Cliq DM alongside the
+> in-app notification.
+
 ---
 
 ## Overview

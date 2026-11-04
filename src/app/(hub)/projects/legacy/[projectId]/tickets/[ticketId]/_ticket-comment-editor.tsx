@@ -5,6 +5,7 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
 import { cn } from "@/lib/utils";
+import { CommentMention, MENTION_CLASSES } from "@/app/(hub)/projects/_shared/_mention-extension";
 
 // Rich-text comment composer for Ticket Detail (task 236) — copy-adapted from
 // ../../tasks/[taskId]/_comment-editor.tsx (kept separate, not shared/generalized, since the
@@ -55,6 +56,7 @@ export function TicketCommentEditor({
     extensions: [
       StarterKit.configure({ link: { openOnClick: false } }),
       Image,
+      CommentMention,
     ],
     content: initialHtml ?? "",
     autofocus: initialHtml !== undefined ? "end" : false,
@@ -66,6 +68,7 @@ export function TicketCommentEditor({
           "outline-none px-3 py-2 text-[13px] min-h-[70px] leading-relaxed",
           "[&_p]:my-1 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pl-5 [&_ol]:pl-5 [&_li]:my-0.5",
           "[&_a]:text-[#0063D6] [&_a]:underline [&_img]:max-w-full [&_img]:rounded-[8px] [&_img]:my-1.5",
+          MENTION_CLASSES,
           "text-[#3A4565]"
         ),
       },

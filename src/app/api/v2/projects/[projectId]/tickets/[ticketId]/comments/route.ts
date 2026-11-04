@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { touchProject } from "@/lib/projects/touch-project";
+import { scheduleCommentMentionNotifications } from "@/lib/comments/notify-mentions";
 
 // Live comment thread for Ticket Detail (task 236) — mirrors
 // .../tasks/[taskId]/comments/route.ts exactly, adjusted for the ticket-side routing shape
@@ -146,6 +147,8 @@ export async function POST(
   }
 
   touchProject(project.id);
+  // Task 466 — in-app notification for each @mentioned colleague (post-response, best-effort).
+  scheduleCommentMentionNotifications({ kind: "ticket", actorId: user.id, entityId: ticket.id, body: text });
   const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
 
   return NextResponse.json(
