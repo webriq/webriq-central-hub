@@ -132,6 +132,8 @@ export function TaskAttachmentsCommentsPanel({
             milestones={milestones}
             taskBasePath={`/projects/v2/${projectId}/tasks`}
             canAdd={canAddSubtask}
+            currentUserId={currentUserId}
+            currentUserRole={currentUserRole}
             onCountChange={onSubtasksCount}
           />
         </div>

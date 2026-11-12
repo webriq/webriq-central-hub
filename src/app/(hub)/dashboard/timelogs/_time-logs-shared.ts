@@ -18,6 +18,9 @@ export type TimeLogEntry = {
   project_is_legacy: boolean;
   task_title: string;
   task_display_id: string | null;
+  // Task 469 — set only when the task is a subtask.
+  parent_task_title: string | null;
+  parent_task_display_id: string | null;
   issue_display_id: string | null;
   log_title: string;
   date_logged: string;

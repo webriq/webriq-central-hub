@@ -133,11 +133,20 @@ export async function GET(req: NextRequest) {
   const taskIds = [...new Set(rows.map((r) => r.task_id).filter((id): id is string => !!id))];
   const taskTitles = new Map<string, string>();
   const taskDisplayIds = new Map<string, string>();
+  const taskParentIds = new Map<string, string>();
+  const parents = new Map<string, { title: string; display_id: string | null }>();
   if (taskIds.length > 0) {
-    const { data: tasks } = await supabase.from("tasks").select("id, title, display_id").in("id", taskIds);
+    const { data: tasks } = await supabase.from("tasks").select("id, title, display_id, parent_task_id").in("id", taskIds);
     for (const t of tasks ?? []) {
       taskTitles.set(t.id, t.title);
       if (t.display_id) taskDisplayIds.set(t.id, t.display_id);
+      if (t.parent_task_id) taskParentIds.set(t.id, t.parent_task_id);
+    }
+    // Task 469 — subtask logs show a "Parent task" link above the Log Title.
+    const parentIds = [...new Set(taskParentIds.values())];
+    if (parentIds.length > 0) {
+      const { data: parentRows } = await supabase.from("tasks").select("id, title, display_id").in("id", parentIds);
+      for (const p of parentRows ?? []) parents.set(p.id, { title: p.title, display_id: p.display_id });
     }
   }
 
@@ -163,6 +172,8 @@ export async function GET(req: NextRequest) {
             // column; `truncateNote(r.note)` is the fallback for rows created before that
             // column existed and never re-saved (migration 131 backfills most of them).
             r.log_title ?? truncateNote(r.note);
+    const parentId = r.task_id ? taskParentIds.get(r.task_id) : undefined;
+    const parent = parentId ? parents.get(parentId) : undefined;
 
     return {
       id: r.id,
@@ -176,6 +187,8 @@ export async function GET(req: NextRequest) {
       project_is_legacy: legacyProjectIds.has(r.project_id),
       task_title: r.task_id ? taskTitles.get(r.task_id) ?? "Untitled task" : "—",
       task_display_id: r.task_id ? taskDisplayIds.get(r.task_id) ?? null : null,
+      parent_task_title: parent?.title ?? null,
+      parent_task_display_id: parent?.display_id ?? null,
       issue_display_id: r.issue_id ? ticketDisplayIds.get(r.issue_id) ?? null : null,
       log_title: logTitle,
       date_logged: r.date_logged,

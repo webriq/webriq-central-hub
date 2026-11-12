@@ -7,9 +7,10 @@ import { excludingChecklist } from "@/lib/tasks/exclude-checklist";
 const VALID_STATUS = ["open", "in_progress", "ready_for_qa", "testing_completed", "for_client_approval", "ready_to_merge", "post_live_qa", "closed"] as const;
 const VALID_PRIORITY = ["low", "normal", "high", "critical"] as const;
 
-// GET /api/v2/projects/[projectId]/tasks  — top-level tasks (no subtasks)
+// GET /api/v2/projects/[projectId]/tasks  — top-level tasks (no subtasks);
+// `?include_subtasks=1` returns subtasks too (task 469 — Time Logs task picker).
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ projectId: string }> }
 ) {
   const { projectId } = await params;
@@ -20,18 +21,26 @@ export async function GET(
   const { data: project } = await supabase.from("projects").select("id").eq("project_id", projectId).single();
   if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 });
 
-  const { data, error } = await excludingChecklist((exclude) => {
-    const q = supabase
-      .from("tasks")
-      .select("*")
-      .eq("project_id", project.id)
-      .is("parent_task_id", null)
-      .order("position", { ascending: true, nullsFirst: false });
-    return exclude ? q.eq("kind", "task") : q;
-  });
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-  return NextResponse.json(data ?? []);
+  const includeSubtasks = req.nextUrl.searchParams.get("include_subtasks") === "1";
+  // Paged: with subtasks a large (Zoho-imported) project can exceed PostgREST's 1000-row cap.
+  const all: Record<string, unknown>[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await excludingChecklist((exclude) => {
+      let q = supabase
+        .from("tasks")
+        .select("*")
+        .eq("project_id", project.id)
+        .order("position", { ascending: true, nullsFirst: false })
+        .order("id")
+        .range(from, from + 999);
+      if (!includeSubtasks) q = q.is("parent_task_id", null);
+      return exclude ? q.eq("kind", "task") : q;
+    });
+    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+    all.push(...(data ?? []));
+    if (!data || data.length < 1000) break;
+  }
+  return NextResponse.json(all);
 }
 
 // POST /api/v2/projects/[projectId]/tasks  — create a task (PM/Admin via RLS)

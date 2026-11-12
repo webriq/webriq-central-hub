@@ -16,12 +16,15 @@ import { usePopoverPosition, POPOVER_ROOT_ATTR } from "./_use-popover-position";
 // list in one response — for 100+-item projects the fix is client-side windowed rendering
 // (mirrors `notification-bell.tsx`'s `visibleLimit`/scroll-reveal pattern), not new server
 // pagination (task doc Assumption 5).
+// Task 469 — set when the task is a subtask; drives the "Parent task" line on the logged entry.
+export type TaskParent = { title: string; displayId: string | null };
+
 export type TaskTicketValue =
-  | { kind: "task"; id: string; label: string; displayId: string | null }
+  | { kind: "task"; id: string; label: string; displayId: string | null; parent?: TaskParent | null }
   | { kind: "ticket"; id: string; label: string; displayId: string | null }
   | { kind: "general"; text: string };
 
-type PickerItem = { id: string; title: string; created_at: string; displayId: string | null };
+type PickerItem = { id: string; title: string; created_at: string; displayId: string | null; parent?: TaskParent | null };
 
 const INITIAL_VISIBLE = 30;
 const REVEAL_STEP = 30;
@@ -89,14 +92,18 @@ export function TaskTicketPicker({
       setLoading(true);
       try {
         const [taskData, ticketData]: [
-          { id: string; title: string; assignees: string[] | null; created_at: string; display_id: string | null }[],
+          { id: string; title: string; assignees: string[] | null; created_at: string; display_id: string | null; parent_task_id: string | null }[],
           { id: string; title: string; created_at: string; display_id: string | null }[],
         ] = await Promise.all([
-          fetch(`/api/v2/projects/${projectId}/tasks`, { signal: ctrl.signal }).then((r) => (r.ok ? r.json() : [])),
+          fetch(`/api/v2/projects/${projectId}/tasks?include_subtasks=1`, { signal: ctrl.signal }).then((r) => (r.ok ? r.json() : [])),
           fetch(`/api/v2/projects/${projectId}/tickets`, { signal: ctrl.signal }).then((r) => (r.ok ? r.json() : [])),
         ]);
         const scopedTasks = tasksAssignedOnly ? taskData.filter((t) => t.assignees?.includes(currentUserId)) : taskData;
-        setTasks(sortNewestFirst(scopedTasks.map((t) => ({ id: t.id, title: t.title, created_at: t.created_at, displayId: t.display_id }))));
+        const byId = new Map(taskData.map((t) => [t.id, t]));
+        setTasks(sortNewestFirst(scopedTasks.map((t) => {
+          const p = t.parent_task_id ? byId.get(t.parent_task_id) : undefined;
+          return { id: t.id, title: t.title, created_at: t.created_at, displayId: t.display_id, parent: p ? { title: p.title, displayId: p.display_id } : null };
+        })));
         setTickets(sortNewestFirst(ticketData.map((i) => ({ id: i.id, title: i.title, created_at: i.created_at, displayId: i.display_id }))));
       } catch {
         setTasks([]);
@@ -155,7 +162,9 @@ export function TaskTicketPicker({
   }
 
   function pick(kind: "task" | "ticket", item: PickerItem) {
-    onChange({ kind, id: item.id, label: item.title, displayId: item.displayId });
+    onChange(kind === "task"
+      ? { kind, id: item.id, label: item.title, displayId: item.displayId, parent: item.parent ?? null }
+      : { kind, id: item.id, label: item.title, displayId: item.displayId });
     close();
   }
 
@@ -271,10 +280,15 @@ export function TaskTicketPicker({
                     type="button"
                     onClick={() => pick(kind, item)}
                     className={cn(
-                      "flex w-full cursor-pointer items-center rounded-md px-2.5 py-2 text-left text-[13px] transition-colors hover:bg-[#F4F6FB]",
+                      "flex w-full cursor-pointer flex-col items-start rounded-md px-2.5 py-2 text-left text-[13px] transition-colors hover:bg-[#F4F6FB]",
                       isSelected ? "bg-[#F0F7FF] font-medium text-[#0B1533]" : "text-[#3A4565]"
                     )}
                   >
+                    {item.parent && (
+                      <span className="max-w-full truncate text-[10.5px] font-normal text-[#5F6A88]">
+                        Subtask of {item.parent.displayId ? `${item.parent.displayId} ` : ""}{decodeHtmlEntities(item.parent.title)}
+                      </span>
+                    )}
                     {decodeHtmlEntities(item.title)}
                   </button>
                 );

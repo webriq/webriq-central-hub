@@ -2,47 +2,18 @@
 
 import { MAX_SUBTASK_DEPTH } from "@/lib/tasks/subtask-tree";
 import { Fragment, useState, useMemo, useEffect, useRef } from "react";
-import Link from "next/link";
-import { ChevronDown, ChevronRight, Users, X, Clock, SearchX, Trash2, ClipboardList, Plus, ListTree } from "lucide-react";
-import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { ChevronDown, ChevronRight, SearchX, ClipboardList, Plus } from "lucide-react";
 import {
-  type Task, type Tasklist, type TaskStatus,
-  STATUS_LABEL, STATUS_STYLE, PRIORITY_STYLE,
-  formatDueDate, normalizeStatus, decodeHtmlEntities,
+  type Task, type Tasklist,
+  normalizeStatus, decodeHtmlEntities,
 } from "@/app/(hub)/projects-old/_pm-shared";
 import { getTaskEditPermission } from "@/lib/tasks/permissions";
-import { TaskTimerButton } from "./_task-timer-button";
-import { AttachmentIndicator } from "./_attachment-indicator";
-import { CopyLinkButton } from "./_copy-link-button";
-import { AssigneeMultiSelect } from "./_assignee-multi-select";
-import { formatHoursAsHHMM, formatHoursInWords } from "@/lib/timer/format";
+import { sortTasks as sortTaskList, type SortKey, type SortDir } from "@/lib/tasks/task-sort";
+import { TaskRow, type MemberProfile } from "./_task-row";
+import { TASK_GRID, TaskTableHeader, BulkDeleteBar } from "./_task-table-parts";
 
-export type SortKey = "title" | "status" | "priority" | "due_date";
-export type SortDir = "asc" | "desc";
-
-const PRIORITY_ORDER: Record<string, number> = { critical: 0, high: 1, normal: 2, low: 3, none: 4 };
-const STATUS_ORDER: Record<string, number> = {
-  open: 0, in_progress: 1, ready_for_qa: 2, testing_completed: 3,
-  for_client_approval: 4, ready_to_merge: 5, post_live_qa: 6, closed: 7,
-};
-
-const STATUS_OPTS: TaskStatus[] = [
-  "open", "in_progress", "ready_for_qa", "testing_completed",
-  "for_client_approval", "ready_to_merge", "post_live_qa", "closed",
-];
-
-const DEPTH_INDENT = ["pl-0", "pl-4", "pl-8", "pl-12", "pl-16", "pl-20", "pl-24"] as const;
-
-type MemberProfile = { id: string; full_name: string | null; avatar_url: string | null };
-
-function getDueColor(due: string | null): string {
-  if (!due) return "text-[#5F6A88]";
-  const days = Math.ceil((new Date(due).getTime() - Date.now()) / 86400000);
-  if (days < 0) return "text-[#C0392B]";
-  if (days <= 7) return "text-[#8A5A00]";
-  return "text-[#3A4565]";
-}
+// Task 470 — sort types/helpers, the row and the table chrome now live in shared modules.
+export type { SortKey, SortDir } from "@/lib/tasks/task-sort";
 
 // ─── ListView ─────────────────────────────────────────────────────────────────
 
@@ -101,7 +72,6 @@ export default function ListView({
   scrollToTasklistId?: string;
 }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
   // Task 285 — a developer may only bulk-delete tasks they created (mirrors the single-task
@@ -171,24 +141,14 @@ export default function ListView({
   }
 
   async function handleBulkTrash() {
-    setConfirmOpen(false);
     setDeleting(true);
     await onBulkDelete(Array.from(selected));
     setDeleting(false);
     setSelected(new Set());
   }
 
-  function sortTasks(list: Task[]): Task[] {
-    const dir = sortDir === "asc" ? 1 : -1;
-    return [...list].sort((a, b) => {
-      let cmp = 0;
-      if (sortKey === "title")         cmp = a.title.localeCompare(b.title);
-      else if (sortKey === "status")   cmp = (STATUS_ORDER[normalizeStatus(a.status)] ?? 0) - (STATUS_ORDER[normalizeStatus(b.status)] ?? 0);
-      else if (sortKey === "priority") cmp = (PRIORITY_ORDER[a.priority] ?? 4) - (PRIORITY_ORDER[b.priority] ?? 4);
-      else if (sortKey === "due_date") cmp = (a.due_date ?? "9999").localeCompare(b.due_date ?? "9999");
-      return cmp * dir;
-    });
-  }
+  const sortTasks = (list: Task[]) => sortTaskList(list, sortKey, sortDir, normalizeStatus);
+
 
   const groups = useMemo(() => {
     const tasklistIds = new Set(tasklists.map((tl) => tl.id));
@@ -298,8 +258,6 @@ export default function ListView({
     );
   }
 
-  const GRID = "grid-cols-[32px_1fr_148px_156px_108px_80px_64px_48px]";
-
   // Task 467 — done/total over ALL descendants (closed = done), not just direct children.
   function descendantRollup(id: string): { done: number; total: number } {
     let done = 0, total = 0;
@@ -317,7 +275,7 @@ export default function ListView({
       const isExpanded = expandedRows.has(t.id);
       return (
         <Fragment key={t.id}>
-          <Row
+          <TaskRow
             task={t}
             depth={depth}
             childrenCount={children.length}
@@ -335,7 +293,7 @@ export default function ListView({
             hoursById={hoursById}
             attachmentCount={attachmentCountById[t.id]}
             onHoursLogged={onHoursLogged}
-            gridClass={GRID}
+            gridClass={TASK_GRID}
             onAddSubtask={onAddSubtask && depth < MAX_SUBTASK_DEPTH ? () => onAddSubtask(t) : undefined}
           />
           {isExpanded && children.length > 0 && renderRows(children, depth + 1)}
@@ -346,40 +304,12 @@ export default function ListView({
 
   return (
     <div className="h-full flex flex-col min-h-0">
-      {selected.size > 0 && (
-        <div className="flex items-center gap-2 px-8 py-2 bg-[#FFF3D6] border-b border-[#F5DFA0] shrink-0">
-          <button
-            onClick={() => setSelected(new Set())}
-            className="flex items-center justify-center w-5 h-5 rounded hover:bg-[#F5DFA0] text-[#8A5A00] cursor-pointer transition-colors"
-          >
-            <X size={12} />
-          </button>
-          <span className="text-[12px] font-semibold text-[#8A5A00]">{selected.size}</span>
-          <div className="w-px h-4 bg-[#F5DFA0] mx-1" />
-          <Tooltip>
-            <TooltipTrigger render={
-              <button
-                onClick={() => setConfirmOpen(true)}
-                disabled={deleting}
-                aria-label="Trash"
-                className="flex items-center justify-center w-6 h-6 rounded-full border border-[#C0392B]/40 bg-white text-[#C0392B] hover:bg-[#FDE8E6] cursor-pointer transition-colors disabled:opacity-45"
-              >
-                <Trash2 size={13} />
-              </button>
-            } />
-            <TooltipContent side="top">Trash</TooltipContent>
-          </Tooltip>
-        </div>
-      )}
-
-      <ConfirmDialog
-        open={confirmOpen}
-        title={`Delete ${selected.size} task${selected.size === 1 ? "" : "s"}?`}
-        body="This action is irreversible."
-        confirmLabel={deleting ? "Deleting…" : "Delete"}
-        confirmDisabled={deleting}
+      <BulkDeleteBar
+        count={selected.size}
+        deleting={deleting}
+        onClear={() => setSelected(new Set())}
         onConfirm={() => void handleBulkTrash()}
-        onCancel={() => setConfirmOpen(false)}
+        className="px-8"
       />
 
       <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto scrollbar-light px-8 pb-5">
@@ -396,20 +326,12 @@ export default function ListView({
           <div ref={stickySentinelRef} className="h-0" />
 
           {/* Column headers */}
-          <div className={`sticky top-0 z-10 grid ${GRID} items-center gap-3 px-4 py-2.5 border-b border-[#EDF0F7] bg-[#FAFBFE] ${headerStuck ? "rounded-t-none" : "rounded-t-[14px]"}`}>
-            <div /> {/* checkbox spacer */}
-            <SortHeader label="Task Name" active={sortKey === "title"} dir={sortDir} onClick={() => onToggleSort("title")} />
-            <SortHeader label="Status" active={sortKey === "status"} dir={sortDir} onClick={() => onToggleSort("status")} />
-            <span className="flex items-center gap-1 text-[11px] font-semibold text-[#5F6A88] uppercase tracking-wide">
-              <Users size={11} /> Assignee
-            </span>
-            <SortHeader label="Due Date" active={sortKey === "due_date"} dir={sortDir} onClick={() => onToggleSort("due_date")} />
-            <SortHeader label="Priority" active={sortKey === "priority"} dir={sortDir} onClick={() => onToggleSort("priority")} />
-            <span className="flex items-center gap-1 text-[11px] font-semibold text-[#5F6A88] uppercase tracking-wide">
-              <Clock size={11} />
-            </span>
-            <div /> {/* timer spacer */}
-          </div>
+          <TaskTableHeader
+            sortKey={sortKey}
+            sortDir={sortDir}
+            onToggleSort={onToggleSort}
+            className={`sticky top-0 z-10 ${headerStuck ? "rounded-t-none" : "rounded-t-[14px]"}`}
+          />
 
           <div className="overflow-hidden rounded-b-[14px]">
           {groups.map((g) => {
@@ -461,197 +383,6 @@ export default function ListView({
           })}
           </div>
         </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── SortHeader ───────────────────────────────────────────────────────────────
-
-function SortHeader({
-  label, active, dir, onClick,
-}: {
-  label: string; active: boolean; dir: SortDir; onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className="flex items-center gap-1 text-[11px] font-semibold text-[#5F6A88] uppercase tracking-wide hover:text-[#0B1533] cursor-pointer transition-colors"
-    >
-      {label}
-      {active && <span className="text-[9px]">{dir === "asc" ? "▲" : "▼"}</span>}
-    </button>
-  );
-}
-
-// ─── Row ──────────────────────────────────────────────────────────────────────
-
-function Row({
-  task, selected, onToggle, href, onUpdate,
-  currentUserId, currentUserRole, profilesById, allMembers, hoursById, attachmentCount, onHoursLogged, gridClass,
-  depth, childrenCount, isExpanded, onToggleExpand, onAddSubtask, rollup,
-}: {
-  task: Task;
-  selected: boolean;
-  onToggle: () => void;
-  href: string;
-  onUpdate: (id: string, patch: Partial<Task>) => Promise<boolean>;
-  currentUserId: string;
-  currentUserRole: string | null;
-  profilesById: Record<string, { full_name: string; avatar_url: string | null }>;
-  allMembers: MemberProfile[];
-  hoursById: Record<string, number>;
-  attachmentCount: number | undefined;
-  onHoursLogged: (taskId: string, hours: number) => void;
-  gridClass: string;
-  depth: number;
-  childrenCount: number;
-  isExpanded: boolean;
-  onToggleExpand: () => void;
-  onAddSubtask?: () => void;
-  rollup: { done: number; total: number } | null;
-}) {
-  const norm = normalizeStatus(task.status);
-  const ss = STATUS_STYLE[norm] ?? STATUS_STYLE["open"];
-  const ps = PRIORITY_STYLE[task.priority] ?? PRIORITY_STYLE["normal"];
-  const due = formatDueDate(task.due_date);
-  const dueColor = getDueColor(task.due_date);
-  const totalHours = hoursById[task.id] ?? 0;
-  const isAssignedToMe = task.assignees?.includes(currentUserId) ?? false;
-
-  // Task 209 — creator: full edit. Assignee-only: status limited to in_progress/ready_for_qa.
-  // Neither: fully read-only.
-  const perm = getTaskEditPermission(currentUserRole, currentUserId, task);
-  const statusOptions = perm.allowedStatusValues === "all"
-    ? STATUS_OPTS
-    : Array.from(new Set([norm as TaskStatus, ...perm.allowedStatusValues]));
-
-  return (
-    <div className={`grid ${gridClass} items-center gap-3 pl-4 pr-3 py-2.5 border-b border-[#EDF0F7] last:border-0 transition-colors group/row ${
-      selected ? "bg-[#F0F7FF]" : "hover:bg-[#F0F7FF]/60"
-    }`}>
-      {/* Checkbox — Task 285: only the creator (or admin/pm/super_admin) may select a task for
-          bulk delete. Disabled inputs don't reliably fire hover/mouse events in Chromium, so the
-          tooltip/restricted-cursor lives on a non-disabled <span> wrapper around the input. */}
-      {perm.canEditDetails ? (
-        <input
-          type="checkbox"
-          checked={selected}
-          onChange={onToggle}
-          className="w-3.5 h-3.5 rounded border-[#E2E7F2] cursor-pointer accent-[#007BFF]"
-        />
-      ) : (
-        <Tooltip>
-          <TooltipTrigger render={
-            <span className="inline-flex cursor-not-allowed">
-              <input
-                type="checkbox"
-                disabled
-                className="w-3.5 h-3.5 rounded border-[#E2E7F2] opacity-40 pointer-events-none"
-              />
-            </span>
-          } />
-          <TooltipContent side="top">You&apos;re restricted from taking action on this task</TooltipContent>
-        </Tooltip>
-      )}
-
-      {/* Task name */}
-      <div className={`flex items-center min-w-0 gap-1 ${DEPTH_INDENT[Math.min(depth, 6)] ?? "pl-0"}`}>
-        {childrenCount > 0 ? (
-          <button
-            onClick={onToggleExpand}
-            title={isExpanded ? "Collapse" : `Expand ${childrenCount} subtask${childrenCount === 1 ? "" : "s"}`}
-            className="flex items-center justify-center w-5 h-5 rounded text-[#5F6A88] hover:bg-[#EDF0F7] hover:text-[#0B1533] transition-colors cursor-pointer shrink-0"
-          >
-            {isExpanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
-          </button>
-        ) : (
-          <span className="w-5 h-5 shrink-0" />
-        )}
-        <Link href={href} className="text-left min-w-0 cursor-pointer group flex-1">
-          <span className="text-[13px] text-[#3A4565] truncate block group-hover:text-[#007BFF] transition-colors font-medium">
-            {decodeHtmlEntities(task.title)}
-          </span>
-        </Link>
-        <AttachmentIndicator count={attachmentCount} variant="row" />
-        <CopyLinkButton
-          url={href}
-          size={13}
-          className="opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100 p-1 rounded text-[#94A0BE] hover:text-[#007BFF] hover:bg-[#EDF0F7] transition-colors shrink-0 cursor-pointer"
-        />
-        {onAddSubtask && perm.canEditDetails && (
-          <button
-            type="button"
-            onClick={onAddSubtask}
-            aria-label={`Add subtask under ${task.title}`}
-            title="Add subtask"
-            className="opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100 p-1 rounded text-[#94A0BE] hover:text-[#007BFF] hover:bg-[#EDF0F7] transition-colors shrink-0 cursor-pointer"
-          >
-            <ListTree size={13} />
-          </button>
-        )}
-        {rollup && (
-          <span title="Closed / total subtasks" className="text-[10px] font-semibold text-[#5F6A88] bg-[#EDF0F7] rounded-full px-1.5 py-0.5 leading-none shrink-0 tabular-nums">
-            {rollup.done}/{rollup.total}
-          </span>
-        )}
-      </div>
-
-      {/* Status */}
-      <select
-        value={norm}
-        onChange={(e) => void onUpdate(task.id, { status: e.target.value as TaskStatus })}
-        disabled={!perm.canChangeStatus}
-        className="text-[11px] font-semibold rounded-full border px-2.5 py-0.5 outline-none cursor-pointer appearance-none w-full truncate disabled:cursor-not-allowed disabled:opacity-60"
-        style={{ color: ss.text, background: ss.bg, borderColor: ss.border }}
-      >
-        {statusOptions.map((s) => (
-          <option key={s} value={s} className="bg-white text-[#3A4565]">{STATUS_LABEL[s]}</option>
-        ))}
-      </select>
-
-      {/* Assignee picker */}
-      <AssigneeMultiSelect
-        value={task.assignees ?? []}
-        members={allMembers}
-        nameById={profilesById}
-        editable={perm.canEditDetails}
-        onChange={(ids) => void onUpdate(task.id, { assignees: ids })}
-      />
-
-      {/* Due date */}
-      <span className={`text-[12px] font-medium tabular-nums ${dueColor}`}>{due ?? "—"}</span>
-
-      {/* Priority */}
-      <span className="inline-flex items-center gap-1.5 text-[12px] font-medium" style={{ color: ps.text }}>
-        <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: ps.dot }} />
-        {ps.label}
-      </span>
-
-      {/* Hours logged */}
-      {totalHours > 0 ? (
-        <Tooltip>
-          <TooltipTrigger render={
-            <span className="text-[12px] font-medium text-[#5F6A88] tabular-nums cursor-default">
-              {formatHoursAsHHMM(totalHours)}
-            </span>
-          } />
-          <TooltipContent side="top">{formatHoursInWords(totalHours)}</TooltipContent>
-        </Tooltip>
-      ) : (
-        <span className="text-[12px] font-medium text-[#5F6A88] tabular-nums">—</span>
-      )}
-
-      {/* Timer */}
-      <div className="flex items-center justify-center">
-        {isAssignedToMe && (
-          <TaskTimerButton
-            taskId={task.id}
-            projectId={task.project_id}
-            onHoursLogged={(hours) => onHoursLogged(task.id, hours)}
-            prominent
-          />
-        )}
       </div>
     </div>
   );

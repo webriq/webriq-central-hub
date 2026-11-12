@@ -42,7 +42,8 @@ type TouchedField = "project" | "picker" | "date" | "startTime" | "endTime" | "d
 function initialPickerValue(initial: TimeLogEntry | undefined): TaskTicketValue | null {
   if (!initial) return null;
   if (initial.entry_kind === "task" && initial.task_id) {
-    return { kind: "task", id: initial.task_id, label: initial.task_title, displayId: initial.task_display_id };
+    const parent = initial.parent_task_title ? { title: initial.parent_task_title, displayId: initial.parent_task_display_id } : null;
+    return { kind: "task", id: initial.task_id, label: initial.task_title, displayId: initial.task_display_id, parent };
   }
   if (initial.entry_kind === "ticket" && initial.issue_id) {
     return { kind: "ticket", id: initial.issue_id, label: initial.log_title, displayId: initial.issue_display_id };
@@ -235,6 +236,8 @@ export function TimeLogEntryModal({
         project_is_legacy: initial?.project_is_legacy ?? !!selectedProject?.external_project_id,
         task_title: entryKind === "task" ? pickerValue.label : "—",
         task_display_id: entryKind === "task" ? pickerValue.displayId : null,
+        parent_task_title: pickerValue.kind === "task" ? pickerValue.parent?.title ?? null : null,
+        parent_task_display_id: pickerValue.kind === "task" ? pickerValue.parent?.displayId ?? null : null,
         issue_display_id: entryKind === "ticket" ? pickerValue.displayId : null,
         log_title: logTitle,
         date_logged: saved.date_logged,

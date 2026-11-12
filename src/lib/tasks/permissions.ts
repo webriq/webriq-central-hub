@@ -15,6 +15,8 @@ export type TaskEditPermission = {
   // non-developer role, so the client should never show a button that would fail. Mirrors
   // getTicketEditPermission's `canStartTimer` (src/lib/tickets/permissions.ts).
   canStartTimer: boolean;
+  // Task 469 — assignees may break a task into subtasks even though its details are read-only to them.
+  canAddSubtask: boolean;
 };
 
 const FULL_EDIT: TaskEditPermission = {
@@ -22,6 +24,7 @@ const FULL_EDIT: TaskEditPermission = {
   canChangeStatus: true,
   allowedStatusValues: "all",
   canStartTimer: false,
+  canAddSubtask: true,
 };
 
 const READ_ONLY: TaskEditPermission = {
@@ -29,6 +32,7 @@ const READ_ONLY: TaskEditPermission = {
   canChangeStatus: false,
   allowedStatusValues: [],
   canStartTimer: false,
+  canAddSubtask: false,
 };
 
 const ASSIGNEE_STATUS_ONLY: TaskEditPermission = {
@@ -36,6 +40,7 @@ const ASSIGNEE_STATUS_ONLY: TaskEditPermission = {
   canChangeStatus: true,
   allowedStatusValues: DEVELOPER_ASSIGNEE_STATUS_OPTIONS,
   canStartTimer: true,
+  canAddSubtask: true,
 };
 
 /**

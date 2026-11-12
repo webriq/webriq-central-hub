@@ -79,11 +79,16 @@ function basePatchBody(entry: TimeLogEntry) {
   };
 }
 
-function detailHref(entry: TimeLogEntry): string | null {
+// Task 410 — detail routes live under /projects/v2 or /projects/legacy (Zoho-imported); a bare
+// /projects/{id}/... path does not exist and 404s.
+function projectBase(entry: TimeLogEntry): string | null {
   if (!entry.project_public_id) return null;
-  // Task 410 — detail routes live under /projects/v2 or /projects/legacy (Zoho-imported); a bare
-  // /projects/{id}/... path does not exist and 404s.
-  const base = `${entry.project_is_legacy ? V2_ROUTES.PROJECTS_LEGACY : V2_ROUTES.PROJECTS_V2}/${entry.project_public_id}`;
+  return `${entry.project_is_legacy ? V2_ROUTES.PROJECTS_LEGACY : V2_ROUTES.PROJECTS_V2}/${entry.project_public_id}`;
+}
+
+function detailHref(entry: TimeLogEntry): string | null {
+  const base = projectBase(entry);
+  if (!base) return null;
   if (entry.entry_kind === "task" && entry.task_display_id) return `${base}/tasks/${entry.task_display_id}`;
   if (entry.entry_kind === "ticket" && entry.issue_display_id) return `${base}/tickets/${entry.issue_display_id}`;
   return null;
@@ -136,7 +141,8 @@ function TimePeriodCell({ entry }: { entry: TimeLogEntry }) {
 
 function pickerValueFromEntry(entry: TimeLogEntry): TaskTicketValue {
   if (entry.entry_kind === "task" && entry.task_id) {
-    return { kind: "task", id: entry.task_id, label: entry.task_title, displayId: entry.task_display_id };
+    const parent = entry.parent_task_title ? { title: entry.parent_task_title, displayId: entry.parent_task_display_id } : null;
+    return { kind: "task", id: entry.task_id, label: entry.task_title, displayId: entry.task_display_id, parent };
   }
   if (entry.entry_kind === "ticket" && entry.issue_id) {
     return { kind: "ticket", id: entry.issue_id, label: entry.log_title, displayId: entry.issue_display_id };
@@ -177,6 +183,8 @@ function LogTitleEditor({
         entry_kind: value.kind,
         task_title: value.kind === "task" ? value.label : "—",
         task_display_id: value.kind === "task" ? value.displayId : null,
+        parent_task_title: value.kind === "task" ? value.parent?.title ?? null : null,
+        parent_task_display_id: value.kind === "task" ? value.parent?.displayId ?? null : null,
         issue_display_id: value.kind === "ticket" ? value.displayId : null,
         log_title: value.kind === "general" ? value.text.trim() || "General log" : value.label,
         note: result.data.note,
@@ -269,6 +277,11 @@ function EntryRow({
   onDelete: () => void;
 }) {
   const href = detailHref(entry);
+  const base = projectBase(entry);
+  const parentHref = base && entry.parent_task_display_id ? `${base}/tasks/${entry.parent_task_display_id}` : null;
+  const parentLabel = entry.parent_task_title
+    ? `Parent task · ${entry.parent_task_display_id ? `${entry.parent_task_display_id} ` : ""}${decodeHtmlEntities(entry.parent_task_title)}`
+    : null;
 
   async function saveDate(nextDate: string) {
     const result = await patchEntry(entry.id, {
@@ -302,17 +315,31 @@ function EntryRow({
           <LogTitleEditor entry={entry} currentUserId={currentUserId} onSaved={(updated) => { onInlineSave(updated); onStopEdit(); }} onCancel={onStopEdit} />
         ) : (
           <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => entry.can_edit && onStartEdit("title")}
-              disabled={!entry.can_edit}
-              className={cn(
-                "text-left text-[13px] font-medium text-[#0B1533] min-w-0",
-                entry.can_edit ? "cursor-pointer hover:text-[#007BFF]" : "cursor-default"
-              )}
-            >
-              <span className="truncate max-w-[220px] block">{decodeHtmlEntities(entry.log_title)}</span>
-            </button>
+            <div className="flex min-w-0 flex-col">
+              {parentLabel && (parentHref ? (
+                <Link
+                  href={parentHref}
+                  title={parentLabel}
+                  aria-label={`Open ${parentLabel}`}
+                  className="truncate max-w-[220px] text-[10.5px] text-[#5F6A88] hover:text-[#007BFF] transition-colors"
+                >
+                  {parentLabel}
+                </Link>
+              ) : (
+                <span title={parentLabel} className="truncate max-w-[220px] text-[10.5px] text-[#5F6A88]">{parentLabel}</span>
+              ))}
+              <button
+                type="button"
+                onClick={() => entry.can_edit && onStartEdit("title")}
+                disabled={!entry.can_edit}
+                className={cn(
+                  "text-left text-[13px] font-medium text-[#0B1533] min-w-0",
+                  entry.can_edit ? "cursor-pointer hover:text-[#007BFF]" : "cursor-default"
+                )}
+              >
+                <span className="truncate max-w-[220px] block">{decodeHtmlEntities(entry.log_title)}</span>
+              </button>
+            </div>
             {href && (
               // Siblings to the edit trigger, not nested inside it — a `<button>` cannot contain
               // interactive content like an `<a>` (invalid HTML / hydration risk).

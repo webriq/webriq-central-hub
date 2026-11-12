@@ -177,21 +177,27 @@ export default function TaskDetailClient({
     <div className="flex flex-col h-full min-h-0">
       {/* Header */}
       <div className="px-8 pt-6 pb-5 bg-white border-b border-[#E2E7F2] shrink-0">
-        <button
-          onClick={() => project.project_id && router.push(`/projects/v2/${project.project_id}/tasks`)}
-          className="inline-flex items-center gap-1.5 text-[12px] text-[#5F6A88] hover:text-[#0B1533] mb-3 cursor-pointer transition-colors"
-        >
-          <ArrowLeft size={14} /> {project.name}
-        </button>
-
-        {parentTask?.display_id && (
-          <Link
-            href={`/projects/v2/${projectId}/tasks/${parentTask.display_id}`}
-            className="inline-block mb-2 text-[12px] text-[#5F6A88] hover:text-[#007BFF] transition-colors"
+        {/* Back link + (for a subtask) parent link, one breadcrumb row. */}
+        <div className="flex items-center gap-2 mb-3 min-w-0 text-[12px] text-[#5F6A88]">
+          <button
+            onClick={() => project.project_id && router.push(`/projects/v2/${project.project_id}/tasks`)}
+            className="inline-flex shrink-0 items-center gap-1.5 hover:text-[#0B1533] cursor-pointer transition-colors"
           >
-            Subtask of {decodeHtmlEntities(parentTask.title)}
-          </Link>
-        )}
+            <ArrowLeft size={14} /> {project.name}
+          </button>
+          {parentTask?.display_id && (
+            <>
+              <span aria-hidden className="text-[#C7CEDD]">/</span>
+              <Link
+                href={`/projects/v2/${projectId}/tasks/${parentTask.display_id}`}
+                title={decodeHtmlEntities(parentTask.title)}
+                className="min-w-0 truncate hover:text-[#007BFF] transition-colors"
+              >
+                Subtask of <span className="font-medium text-[#3A4565]">{decodeHtmlEntities(parentTask.title)}</span>
+              </Link>
+            </>
+          )}
+        </div>
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-2 flex-wrap">
@@ -482,7 +488,7 @@ export default function TaskDetailClient({
               onAttachmentsCountChange={setAttachmentCount}
               task={task}
               milestones={milestones}
-              canAddSubtask={perm.canEditDetails}
+              canAddSubtask={perm.canAddSubtask}
             />
           </div>
 

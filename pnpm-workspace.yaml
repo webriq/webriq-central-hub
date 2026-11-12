@@ -4,14 +4,8 @@ overrides:
   js-yaml: ">=4.3.0"
   fast-uri: ">=3.1.4"
 
-onlyBuiltDependencies:
-  - sharp
-  - unrs-resolver
-  - supabase
-  - core-js
-
 allowBuilds:
   core-js: true
-  esbuild: set this to true or false
+  esbuild: true
   sharp: true
   unrs-resolver: true

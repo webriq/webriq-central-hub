@@ -4,6 +4,7 @@ import { addProjectMember } from "@/lib/programme/phase-membership";
 import { touchProject } from "@/lib/projects/touch-project";
 import { getAssignableMembers } from "@/lib/members/assignable";
 import { MAX_SUBTASK_DEPTH } from "@/lib/tasks/subtask-tree";
+import { getTaskEditPermission } from "@/lib/tasks/permissions";
 
 // GET /api/v2/tasks/[taskId]/subtasks  — children of a task
 export async function GET(
@@ -17,7 +18,7 @@ export async function GET(
 
   // ?tree=1 — every descendant (flat), fetched level by level; the depth cap bounds the rounds.
   if (req.nextUrl.searchParams.get("tree") === "1") {
-    const all: unknown[] = [];
+    const all: { id: string }[] = [];
     let ids = [taskId];
     for (let level = 0; level < MAX_SUBTASK_DEPTH + 1 && ids.length > 0; level++) {
       const { data, error } = await supabase
@@ -29,7 +30,21 @@ export async function GET(
       all.push(...(data ?? []));
       ids = (data ?? []).map((t) => t.id);
     }
-    return NextResponse.json(all);
+    // Task 470 — hours logged per subtask for the Subtasks table. Paged: PostgREST caps a response at 1000 rows.
+    const hours = new Map<string, number>();
+    const taskIds = all.map((t) => t.id);
+    for (let from = 0; taskIds.length > 0; from += 1000) {
+      const { data, error } = await supabase
+        .from("time_logs")
+        .select("task_id, hours")
+        .in("task_id", taskIds)
+        .order("id")
+        .range(from, from + 999);
+      if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+      for (const l of data ?? []) if (l.task_id) hours.set(l.task_id, (hours.get(l.task_id) ?? 0) + Number(l.hours));
+      if (!data || data.length < 1000) break;
+    }
+    return NextResponse.json(all.map((t) => ({ ...t, logged_hours: hours.get(t.id) ?? 0 })));
   }
 
   const { data, error } = await supabase
@@ -68,13 +83,20 @@ export async function POST(
   }
 
   // Resolve the parent so the subtask stays consistent with it (project, phase, tasklist, depth).
-  const { data: parent, error: parentErr } = await supabase
-    .from("tasks")
-    .select("project_id,milestone_id,tasklist_id,priority,depth,kind,assignees,due_date")
-    .eq("id", taskId)
-    .single();
+  const [{ data: parent, error: parentErr }, { data: profile }] = await Promise.all([
+    supabase
+      .from("tasks")
+      .select("project_id,milestone_id,tasklist_id,priority,depth,kind,assignees,due_date,created_by")
+      .eq("id", taskId)
+      .single(),
+    supabase.from("profiles").select("role").eq("id", user.id).maybeSingle(),
+  ]);
   if (parentErr || !parent) {
     return NextResponse.json({ error: "Parent task not found" }, { status: 404 });
+  }
+  // Task 469 — the parent's creator, its assignees, and PM/Admin may add subtasks.
+  if (!getTaskEditPermission(profile?.role, user.id, parent).canAddSubtask) {
+    return NextResponse.json({ error: "You don't have permission to add subtasks to this task" }, { status: 403 });
   }
   if (parent.kind && parent.kind !== "task") {
     return NextResponse.json({ error: "Checklist items cannot have subtasks" }, { status: 400 });
@@ -106,6 +128,8 @@ export async function POST(
   }
 
   const assignees: string[] = Array.isArray(body.assignees) ? [...new Set<string>(body.assignees)] : [];
+  // Task 469 — time logging is assignee-only, so a developer's own subtask defaults to them.
+  if (assignees.length === 0 && profile?.role === "developer") assignees.push(user.id);
   if (assignees.length > 0) {
     const allowed = new Set((await getAssignableMembers()).map((m) => m.id));
     if (assignees.some((id) => !allowed.has(id))) {
