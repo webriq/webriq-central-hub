@@ -185,6 +185,14 @@ export function normalizeZohoDescriptionHtml(html: string): string {
   return absolutizeZohoInlineImages(collapseZohoLineBreaks(html));
 }
 
+// Read-only comment render (raw innerHTML, not Tiptap). A <br> ending a <p> draws no extra line in
+// plain HTML, but ProseMirror adds a "trailingBreak" there so the editor shows a blank line —
+// mirror that so posted comments keep the spacing the editor showed (task 471). Not for Description:
+// that HTML goes back into Tiptap, where doubling would add a real hard break on every load.
+export function normalizeCommentHtml(html: string): string {
+  return normalizeZohoDescriptionHtml(html).replace(/(<br\s*\/?>)(\s*<\/p>)/gi, "$1<br>$2");
+}
+
 // ─── Small presentational helpers ───────────────────────────────────────────
 export function StatusBadge({ status }: { status: TaskStatus }) {
   const norm = normalizeStatus(status);

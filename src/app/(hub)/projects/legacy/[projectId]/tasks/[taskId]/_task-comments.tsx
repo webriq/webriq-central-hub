@@ -5,7 +5,7 @@ import { MessageSquare, ExternalLink, Download, Link2, Loader2, Pencil, Trash2 }
 import { createClient } from "@/lib/supabase/client";
 import { formatRelativeTime, formatDate, cn } from "@/lib/utils";
 import { formatClockTime } from "@/lib/timer/format";
-import { OwnerChip, normalizeZohoDescriptionHtml } from "@/app/(hub)/projects-old/_pm-shared";
+import { OwnerChip, normalizeCommentHtml } from "@/app/(hub)/projects-old/_pm-shared";
 import { CommentEditor } from "./_comment-editor";
 import { CommentComposer } from "@/app/(hub)/projects/_shared/_comment-composer";
 import { CommentEditForm, isCommentEdited } from "@/app/(hub)/projects/_shared/_comment-edit-form";
@@ -316,7 +316,7 @@ export function TaskComments({
                     // this is a raw dangerouslySetInnerHTML render, so `<div>` needs its own
                     // margin rule mirroring `<p>`'s or every line renders flush against the next).
                     "[&_div]:my-1 [&_div:first-child]:mt-0 [&_div:last-child]:mb-0",
-                    "[&_p]:my-1 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pl-5 [&_ol]:pl-5 [&_li]:my-0.5",
+                    "[&_p]:my-1 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_p:empty]:min-h-lh [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pl-5 [&_ol]:pl-5 [&_li]:my-0.5",
                     "[&_a]:text-[#0063D6] [&_a]:underline [&_img]:max-w-full [&_img]:rounded-[8px] [&_img]:my-1.5",
                     MENTION_CLASSES
                   )}
@@ -324,7 +324,7 @@ export function TaskComments({
                   // normalizeZohoDescriptionHtml absolutizes Zoho's portal-relative inline image
                   // srcs and strips Zoho's own per-line trailing <br/> — same treatment Description
                   // gets, needed here for the same reason (task 257 follow-up).
-                  dangerouslySetInnerHTML={{ __html: normalizeZohoDescriptionHtml(c.body) }}
+                  dangerouslySetInnerHTML={{ __html: normalizeCommentHtml(c.body) }}
                 />
                 )}
                 {c.attachments.length > 0 && (
