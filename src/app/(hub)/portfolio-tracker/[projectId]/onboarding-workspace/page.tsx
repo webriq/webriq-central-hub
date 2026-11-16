@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { V2_ROUTES } from "@/config/constants";
+import { projectResolverHref } from "@/app/(hub)/projects/_classification-tabs";
 
 // Portfolio Tracker is retired (task 280) — this content now lives at
 // /projects/v2/[projectId]/onboarding-workspace (byte-identical port from task 276). Forwards every
@@ -20,5 +20,5 @@ export default async function PortfolioTrackerWorkspaceRedirect({ params, search
   }
   const query = qs.toString();
 
-  redirect(`${V2_ROUTES.PROJECTS_V2}/${projectId}/onboarding-workspace${query ? `?${query}` : ""}`);
+  redirect(`${projectResolverHref(projectId, "onboarding-workspace")}${query ? `?${query}` : ""}`);
 }

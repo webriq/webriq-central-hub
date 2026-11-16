@@ -39,7 +39,7 @@ import {
 // Task 276 — ported ONCE from the old `/projects/[projectId]/_project-detail.tsx` (now
 // `/projects-old`, originally 1078 lines, single file rendering both its own tab-strip nav AND
 // the tab body content) into `projects/_shared/` so it can be shared by BOTH
-// `/projects/legacy/[projectId]` (this task's scope) and `/projects/v2/[projectId]` (a later
+// `/projects/legacy/[projectId]` (this task's scope) and `/projects/[classification]/[projectId]` (a later
 // task) instead of duplicating it.
 // `basePath`/`variant` (new props, see bottom of the prop list below) replace every hardcoded
 // `/projects/${projectId}` route string the source file had — `variant="v2"` additionally
@@ -144,7 +144,7 @@ export default function ProjectDetail({
   // Task 241 — `?tasklist=<id>` deep-link from the StackShift Timeline's Phase 2-5 swimlane cards.
   initialScrollTasklistId?: string;
   // Task 276 — replaces every hardcoded `/projects/${projectId}` route string from the source
-  // file. Callers pass `/projects/legacy/${projectId}` or `/projects/v2/${projectId}`.
+  // file. Callers pass `/projects/legacy/${projectId}` or `/projects/<slug>/${projectId}`.
   basePath: string;
 }) {
   const router = useRouter();

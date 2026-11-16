@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { uploadViaSignedUrl } from "@/app/(hub)/projects/v2/[projectId]/onboarding-workspace/_upload-queue";
-import type { AssetRow, AssetFolder, StaffPerson } from "@/app/(hub)/projects/v2/[projectId]/onboarding-workspace/_wizard-v2-types";
+import { uploadViaSignedUrl } from "@/app/(hub)/projects/[classification]/[projectId]/onboarding-workspace/_upload-queue";
+import type { AssetRow, AssetFolder, StaffPerson } from "@/app/(hub)/projects/[classification]/[projectId]/onboarding-workspace/_wizard-v2-types";
 
 // Task 359 — the data half of _shared/_files-tab.tsx, extracted so that file stays a thin render
 // component (nextjs-file-length-best-practices.md). Behavior is unchanged from task 276.

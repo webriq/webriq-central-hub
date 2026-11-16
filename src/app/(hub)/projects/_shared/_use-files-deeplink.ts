@@ -4,7 +4,7 @@ import { useCallback, useMemo, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { copyLink } from "./_copy-link-button";
-import type { AssetRow, AssetFolder } from "@/app/(hub)/projects/v2/[projectId]/onboarding-workspace/_wizard-v2-types";
+import type { AssetRow, AssetFolder } from "@/app/(hub)/projects/[classification]/[projectId]/onboarding-workspace/_wizard-v2-types";
 
 // Task 359 — deep links for the project Files tab. Before this, the open folder was pure local
 // state, so `/projects/{v2,legacy}/{projectId}/files` was the only URL that ever existed and

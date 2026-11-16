@@ -15,6 +15,7 @@ import {
   Chip, PhaseChip, ProgrammeTrack, OnboardingStatusPill, SkeletonRow,
 } from "./dashboard-shared";
 import type { OnboardingProjectListItem } from "../../projects/_v2-listing/_onboarding-list";
+import { projectResolverHref } from "@/app/(hub)/projects/_classification-tabs";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -179,7 +180,7 @@ function ProgrammeBoard({ projects, loading }: { projects: OnboardingProjectList
       {projects.map((p, idx) => (
         <Link
           key={p.id}
-          href={p.project_id ? `${V2_ROUTES.PROJECTS_V2}/${p.project_id}` : V2_ROUTES.PROJECTS_V2}
+          href={p.project_id ? projectResolverHref(p.project_id) : V2_ROUTES.PROJECTS}
           className="grid items-center gap-4 px-[18px] py-2.5 hover:bg-[#F0F7FF] transition-colors"
           style={{ gridTemplateColumns: "210px 1fr auto" }}
         >
@@ -230,7 +231,7 @@ function ClientsTable({ projects, loading }: { projects: OnboardingProjectListIt
             projects.map((p, idx) => (
               <tr key={p.id} className="hover:bg-[#F0F7FF] transition-colors">
                 <td className="pl-[18px] px-3 py-2.5 border-b border-[#EDF0F7]">
-                  <Link href={p.project_id ? `${V2_ROUTES.PROJECTS_V2}/${p.project_id}` : V2_ROUTES.PROJECTS_V2} className="flex items-center gap-2.5 min-w-0">
+                  <Link href={p.project_id ? projectResolverHref(p.project_id) : V2_ROUTES.PROJECTS} className="flex items-center gap-2.5 min-w-0">
                     <span className="w-[22px] h-[22px] rounded-full flex items-center justify-center text-[9px] font-bold text-white shrink-0" style={{ background: AVATAR_COLORS[idx % AVATAR_COLORS.length] }}>
                       {initialsFor(p.company_name)}
                     </span>
@@ -571,7 +572,7 @@ export default function PMDashboard({ displayName = null, role = null }: Props) 
       </div>
 
       {/* 120-Day Programme board (signature element) */}
-      <SectionPanel title="120-Day Programme" hint="Each client plotted at their current day · phase widths to scale" link="Open programme view" linkHref={V2_ROUTES.PROJECTS_V2} noPad>
+      <SectionPanel title="120-Day Programme" hint="Each client plotted at their current day · phase widths to scale" link="Open programme view" linkHref={V2_ROUTES.PROJECTS} noPad>
         <ProgrammeBoard projects={inProgress} loading={loading} />
       </SectionPanel>
 

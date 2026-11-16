@@ -7,5 +7,5 @@ import { V2_ROUTES } from "@/config/constants";
 // item. Sub-routes ([projectId], onboarding-workspace, status-report, import) keep their own
 // param-preserving redirects.
 export default function PortfolioTrackerRedirect() {
-  redirect(V2_ROUTES.PROJECTS_V2);
+  redirect(V2_ROUTES.PROJECTS);
 }

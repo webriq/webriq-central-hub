@@ -193,7 +193,7 @@ export default function ProjectsIndex({
                       letting them wrap together as one line of text. */}
                   <span>
                     New projects are now created in{" "}
-                    <Link href={V2_ROUTES.PROJECTS_V2_NEW} className="underline hover:no-underline">
+                    <Link href={V2_ROUTES.PROJECTS_NEW} className="underline hover:no-underline">
                       V2 Projects
                     </Link>.
                   </span>

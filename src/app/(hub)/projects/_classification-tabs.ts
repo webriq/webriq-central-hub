@@ -5,12 +5,12 @@ import { V2_ROUTES } from "@/config/constants";
 // replacing task 279's two-tab (V2 / Legacy) badge + switch-link header and the V2 toolbar's
 // Classification filter (the tab now *is* the classification selection).
 //
-// The active classification lives in `?tab=<slug>` on /projects/v2, NOT in a path segment:
-// /projects/v2/[projectId] already owns that segment (and holds a display project_id there, per
-// CLAUDE.md's `projects` bullet), so /projects/v2/stackshift-i would resolve as a project lookup.
+// Task 473 — the active classification is the path segment of /projects/[classification] (and
+// /projects/[classification]/status-report). Static siblings `legacy` and `v2` win over the dynamic
+// segment, so no slug may ever be "legacy", "v2" or "new". Old `/projects/v2?tab=<slug>` links
+// redirect here (v2/page.tsx).
 //
-// Plain module, no "use client" — imported by both the server page (v2/page.tsx) and the client
-// shell (_listing-shell.tsx).
+// Plain module, no "use client" — imported by server pages and client components alike.
 
 export type ClassificationTabId =
   | "stackshift-i"
@@ -63,7 +63,7 @@ export function isProjectsTabId(raw: unknown): raw is ProjectsTabId {
   return raw === "legacy" || isClassificationTabId(raw);
 }
 
-// An absent or unrecognized `?tab=` resolves to the default tab rather than 404ing — a stale
+// An absent or unrecognized legacy `?tab=` resolves to the default tab rather than 404ing — a stale
 // bookmark or a hand-edited URL should land somewhere useful, not on an empty list.
 export function parseClassificationTab(raw: string | null | undefined): ClassificationTabId {
   return isClassificationTabId(raw) ? raw : DEFAULT_CLASSIFICATION_TAB;
@@ -79,11 +79,29 @@ export function labelForTab(id: ClassificationTabId): string {
 }
 
 export function classificationTabHref(id: ClassificationTabId): string {
-  return `${V2_ROUTES.PROJECTS_V2}?tab=${id}`;
+  return `${V2_ROUTES.PROJECTS}/${id}`;
+}
+
+export function classificationStatusReportHref(id: ClassificationTabId): string {
+  return `${classificationTabHref(id)}/status-report`;
 }
 
 // Task 414 — classification value -> tab id, for callers that hold a project's classification
 // strings (not a `?tab=` slug). Returns null for a value outside CLASSIFICATIONS.
 export function tabIdForClassification(value: string): ClassificationTabId | null {
   return Object.hasOwn(TAB_ID_BY_CLASSIFICATION, value) ? TAB_ID_BY_CLASSIFICATION[value as Classification] : null;
+}
+
+// Task 474 — project detail pages live at /projects/<slug>/<projectId>/…, where <slug> is one of the
+// project's own classification tabs, or "unclassified" for a project with none.
+export type ProjectSlug = ClassificationTabId | "unclassified";
+
+export function projectHref(slug: ProjectSlug, projectId: string, sub = ""): string {
+  return `${V2_ROUTES.PROJECTS}/${slug}/${projectId}${sub ? `/${sub}` : ""}`;
+}
+
+// For callers that don't know the project's classification (dashboards, timer, notifications, …):
+// /projects/v2/<projectId>/… is a redirect-only route that looks it up (projects/v2/[[...rest]]).
+export function projectResolverHref(projectId: string, sub = ""): string {
+  return `${V2_ROUTES.PROJECTS_V2}/${projectId}${sub ? `/${sub}` : ""}`;
 }

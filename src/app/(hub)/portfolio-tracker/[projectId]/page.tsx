@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { V2_ROUTES } from "@/config/constants";
+import { projectResolverHref } from "@/app/(hub)/projects/_classification-tabs";
 
 // Portfolio Tracker is retired (task 280) — this content now lives at /projects/v2/[projectId]/timeline
 // (task 277 moved the swimlane/programme view there; the bare [projectId] page in /projects/v2 is now
@@ -19,5 +19,5 @@ export default async function PortfolioTrackerProjectRedirect({ params, searchPa
   if (deliverable !== undefined) qs.set("deliverable", deliverable);
   const query = qs.toString();
 
-  redirect(`${V2_ROUTES.PROJECTS_V2}/${projectId}/timeline${query ? `?${query}` : ""}`);
+  redirect(`${projectResolverHref(projectId, "timeline")}${query ? `?${query}` : ""}`);
 }

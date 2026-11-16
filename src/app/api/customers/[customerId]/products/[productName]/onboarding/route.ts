@@ -3,6 +3,7 @@ import { adminClient } from "@/lib/supabase/admin";
 import { notifyProjectMembers } from "@/lib/notifications";
 import type { ProductName } from "@/types/hub";
 import type { Database } from "@/types/database";
+import { projectResolverHref } from "@/app/(hub)/projects/_classification-tabs";
 
 type CustomerProductUpdate = Database["public"]["Tables"]["customer_products"]["Update"];
 
@@ -95,7 +96,7 @@ export async function PATCH(
                 type: "onboarding_complete",
                 title: "Onboarding complete",
                 body: `${customer?.company_name ?? customerId} has completed all onboarding forms${linkedProject.name ? ` · ${linkedProject.name}` : ""}.`,
-                url: linkedProject.project_id ? `/projects/v2/${linkedProject.project_id}` : undefined,
+                url: linkedProject.project_id ? projectResolverHref(linkedProject.project_id) : undefined,
               });
             }
           }

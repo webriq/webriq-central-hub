@@ -2,9 +2,9 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { ClipboardList } from "lucide-react";
-import StatusReportTable from "@/app/(hub)/projects/v2/status-report/_status-report-table";
-import type { DelayNoteValue, ProjectStatusReportItem, StatusReportResponse } from "@/app/(hub)/projects/v2/status-report/_status-report-types";
-import { withPhaseNote } from "@/app/(hub)/projects/v2/status-report/_status-report-note-cell";
+import StatusReportTable from "@/app/(hub)/projects/_status-report/_status-report-table";
+import type { DelayNoteValue, ProjectStatusReportItem, StatusReportResponse } from "@/app/(hub)/projects/_status-report/_status-report-types";
+import { withPhaseNote } from "@/app/(hub)/projects/_status-report/_status-report-note-cell";
 
 // Task 276 — Status Report tab, shared by both the legacy and v2 project-detail routes. Reuses
 // the existing `_status-report-table.tsx` (imported directly, not duplicated — it's a clean,

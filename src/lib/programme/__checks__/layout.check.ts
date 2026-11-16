@@ -1,4 +1,4 @@
-import { assignTracks, clampDragToPhase } from "@/app/(hub)/projects/v2/[projectId]/_gantt-shared";
+import { assignTracks, clampDragToPhase } from "@/app/(hub)/projects/[classification]/[projectId]/_gantt-shared";
 import { assert, type Check } from "./_harness";
 
 export const checks: Check[] = [

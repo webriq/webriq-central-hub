@@ -9,6 +9,7 @@ import { useGreeting } from "@/hooks/use-greeting";
 import { V2_ROUTES } from "@/config/constants";
 import { KpiCard, SectionCard, SkeletonRow, OnboardingStatusPill } from "./dashboard-shared";
 import type { OnboardingProjectListItem } from "../../projects/_v2-listing/_onboarding-list";
+import { projectResolverHref } from "@/app/(hub)/projects/_classification-tabs";
 
 function WorkspaceCard({ customersCount, projectsCount, loading }: {
   customersCount: number;
@@ -130,7 +131,7 @@ export default function MarketingDashboard({ displayName }: Props) {
                 {needsAttention.map(item => (
                   <Link
                     key={item.id}
-                    href={item.project_id ? `${V2_ROUTES.PROJECTS_V2}/${item.project_id}` : V2_ROUTES.PROJECTS_V2}
+                    href={item.project_id ? projectResolverHref(item.project_id) : V2_ROUTES.PROJECTS}
                     className="group flex items-center gap-3 px-5 py-3.5 hover:bg-(--c-track) transition-colors"
                   >
                     <div className="flex-1 min-w-0">

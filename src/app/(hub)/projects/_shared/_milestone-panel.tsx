@@ -42,7 +42,7 @@ export default function MilestonePanel({
   projectId: string;
   // Task 276 — shared between the legacy and v2 project-detail routes (`_project-detail.tsx`),
   // so the milestone-detail link can't hardcode a single base path; caller passes its own
-  // `/projects/legacy/${projectId}` or `/projects/v2/${projectId}` (task 279).
+  // `/projects/legacy/${projectId}` or `/projects/<slug>/${projectId}` (task 279).
   basePath: string;
   milestones: Milestone[];
   tasks: Task[];

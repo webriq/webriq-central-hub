@@ -5,7 +5,7 @@ import { LayoutGrid } from "lucide-react";
 import { useLastTab } from "./_use-last-tab";
 import type { ProjectsTabId } from "./_classification-tabs";
 
-// Shared header for the /projects/v2 and /projects/legacy listing routes (task 279; simplified
+// Shared header for the /projects/<slug> (task 473) and /projects/legacy listing routes (task 279; simplified
 // again in a task 361 follow-up). Classification switching now happens via seven sidebar links
 // under the "Projects" nav group (v2-hub-sidebar.tsx) rather than an in-page tab strip — the two
 // tab-strip designs this file used to render (task 279's badge + switch-link, then task 361's

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getProgrammeDeliverable } from "@/lib/programme/store";
 import { notifyProjectMembers } from "@/lib/notifications";
+import { projectResolverHref } from "@/app/(hub)/projects/_classification-tabs";
 
 const WRITE_ROLES = ["admin", "super_admin", "marketing"];
 const STATUSES = ["pending", "in_progress", "done"];
@@ -58,7 +59,7 @@ export async function PATCH(
         type: "deliverable_complete",
         title: "Deliverable complete",
         body: `${actorName} marked "${previous.name}" done — Phase ${phaseNumber}${project?.name ? ` · ${project.name}` : ""}.`,
-        url: project?.project_id ? `/projects/v2/${project.project_id}` : undefined,
+        url: project?.project_id ? projectResolverHref(project.project_id) : undefined,
         actorId: user.id,
       });
     }

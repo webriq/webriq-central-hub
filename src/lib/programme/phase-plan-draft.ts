@@ -9,7 +9,7 @@ import {
 // a client-only `id` (for React keys + in-place editing) alongside each name/title — stripped by
 // `phasePlanDraftToInput` before the field is sent to the API.
 //
-// Task 357: extracted out of `src/app/(hub)/projects/v2/new/_new-project-types.ts` (which keeps
+// Task 357: extracted out of `src/app/(hub)/projects/new/_new-project-types.ts` (which keeps
 // re-exporting everything here) so the same `PhaseBuilder` UI + draft helpers can also drive the
 // StackShift Orders convert flow's "set the phases now" dialog. Pure — no React, no server
 // clients — so it's safe to import from both a client component and `createFromOrder` server-side.

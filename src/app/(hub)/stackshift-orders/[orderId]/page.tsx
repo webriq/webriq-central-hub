@@ -6,6 +6,7 @@ import { mapServicesToClassifications } from "@/lib/stackshift-orders/service-ma
 import { matchCustomer } from "@/lib/stackshift-orders/match-customer";
 import { PROGRAMME_PHASES } from "@/config/customer-phases";
 import OrderReview, { type LinkedProject, type OrderDetail } from "./_components/order-review";
+import { projectResolverHref } from "@/app/(hub)/projects/_classification-tabs";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "StackShift Order" };
@@ -89,7 +90,7 @@ export default async function StackShiftOrderDetailPage({
       const current = phases.find((p) => p.status === "active") ?? phases.find((p) => p.status === "planned");
       linkedProject = {
         name: pr.name,
-        href: `${V2_ROUTES.PROJECTS_V2}/${pr.project_id ?? pr.id}`,
+        href: projectResolverHref(pr.project_id ?? pr.id),
         status: pr.status,
         usesEngine: pr.uses_customer_phases_engine,
         programmeStarted: !!pr.programme_started_at || phases.length > 0,

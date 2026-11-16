@@ -57,7 +57,8 @@ export async function GET(request: Request) {
       // Soft-deleted projects (task 231) are excluded from the status report.
       .neq("status", "deleted")
       .order("programme_started_at", { ascending: true });
-    if (projectId) projectsQuery = projectsQuery.eq("id", projectId);
+    // Task 472 — archived projects (incl. task 468 merge sources) are hidden from the portfolio list only; their own detail page still loads them.
+    projectsQuery = projectId ? projectsQuery.eq("id", projectId) : projectsQuery.neq("status", "archived");
 
     const { data: rawProjects, error } = await projectsQuery;
 

@@ -8,7 +8,7 @@ import { Bold, Italic, Underline as UnderlineIcon, List, ListOrdered, Link2 } fr
 import { cn } from "@/lib/utils";
 
 // Shared Note/Reply rich-text composer (task 320) — same minimal Tiptap shape as
-// src/app/(hub)/projects/v2/[projectId]/tasks/[taskId]/_comment-editor.tsx, but without the
+// src/app/(hub)/projects/[classification]/[projectId]/tasks/[taskId]/_comment-editor.tsx, but without the
 // Image extension/paste-upload handlers (no attachment-upload endpoint for ticket notes/replies
 // — out of scope). StarterKit v3 already bundles Underline + Link (see
 // _onboarding-wizard.tsx:3316's precedent) — do not add @tiptap/extension-underline separately,

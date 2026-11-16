@@ -5,7 +5,7 @@ import { Paperclip, ExternalLink, Download, Link2 } from "lucide-react";
 import type { MessageItem } from "./_conversation-thread";
 import { AttachmentAction } from "@/app/(hub)/projects/_shared/_attachment-actions-menu";
 import { AttachmentGridTile, AttachmentThumbnail, downloadAttachment } from "@/app/(hub)/projects/_shared/_attachment-grid-tile";
-import { TaskAttachmentViewerModal } from "@/app/(hub)/projects/v2/[projectId]/tasks/[taskId]/_task-attachment-viewer-modal";
+import { TaskAttachmentViewerModal } from "@/app/(hub)/projects/[classification]/[projectId]/tasks/[taskId]/_task-attachment-viewer-modal";
 
 // Ticket-wide Attachments tab (task 320) — aggregates attachments across every message on the
 // ticket rather than showing them per-message (that's what the Conversations/Threads/Comments

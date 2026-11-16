@@ -5,6 +5,7 @@ import { notifyProjectMembers } from "@/lib/notifications";
 import { getProgrammeDeliverable } from "@/lib/programme/store";
 import { deriveSubPhaseStatus, type ChecklistStatus } from "@/lib/programme/checklist-tasks";
 import { syncChecklistTask } from "@/lib/programme/checklist-store";
+import { projectResolverHref } from "@/app/(hub)/projects/_classification-tabs";
 
 const WRITE_ROLES = ["admin", "super_admin", "marketing"];
 const STATUSES = ["pending", "in_progress", "done"];
@@ -94,7 +95,7 @@ export async function PATCH(
             type: "deliverable_complete",
             title: "Deliverable complete",
             body: `${actorName} marked "${deliverableConfig?.name ?? internalConfig.subPhaseKey}" done — Phase 1${project?.name ? ` · ${project.name}` : ""}.`,
-            url: project?.project_id ? `/projects/v2/${project.project_id}` : undefined,
+            url: project?.project_id ? projectResolverHref(project.project_id) : undefined,
             actorId: user.id,
           });
         }

@@ -72,6 +72,7 @@ export function buildMentionNotification({
     type: mentionEventType(kind),
     title: "Mentioned in a comment",
     body: `${actor} mentioned you in a comment on ${subject}`,
+    // Task 474 — /projects/v2/… is the redirect-only resolver (projectResolverHref); kept literal so this file stays import-free.
     url: displayId && projectDisplayId ? `/projects/v2/${projectDisplayId}/${segment}/${displayId}` : undefined,
   };
 }

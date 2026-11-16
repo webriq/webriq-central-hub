@@ -14,7 +14,7 @@ import {
   CommentAttachmentGrid,
   downloadAttachment,
 } from "@/app/(hub)/projects/_shared/_attachment-grid-tile";
-import { TaskAttachmentViewerModal } from "@/app/(hub)/projects/v2/[projectId]/tasks/[taskId]/_task-attachment-viewer-modal";
+import { TaskAttachmentViewerModal } from "@/app/(hub)/projects/[classification]/[projectId]/tasks/[taskId]/_task-attachment-viewer-modal";
 
 export type MessageAttachment = { id: string; filename: string; size: number | null };
 

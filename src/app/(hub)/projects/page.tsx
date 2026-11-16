@@ -8,7 +8,7 @@ import { classificationTabHref } from "./_classification-tabs";
 
 // Task 279 — bare `/projects` has no content of its own; it redirects to whichever tab the user
 // last visited (`_use-last-tab.ts`). Task 361 — that is now one of the six classification tabs
-// (`/projects/v2?tab=<slug>`) or `/projects/legacy`, defaulting to StackShift I on first visit /
+// (`/projects/<slug>`, task 473) or `/projects/legacy`, defaulting to StackShift I on first visit /
 // no saved preference / a stale pre-361 `"v2"` value.
 export default function ProjectsRedirectPage() {
   const router = useRouter();

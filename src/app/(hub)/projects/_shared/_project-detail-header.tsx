@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname, useParams } from "next/navigation";
 import { ArrowLeft, CheckCircle2, Settings, Crown, Users, GitMerge } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { V2_ROUTES } from "@/config/constants";
@@ -12,9 +12,10 @@ import { canManageProjectMembers, canSetProjectOwner } from "@/lib/programme/mem
 import { OwnerCollaboratorsRow } from "./_owner-collaborators-row";
 import { CopyLinkButton } from "./_copy-link-button";
 import { ProjectDetailTabStrip, type DetailTabId } from "./_project-detail-tab-strip";
-import { DeleteProjectMenuItem, DELETE_PROJECT_ROLES } from "../v2/[projectId]/_delete-project-menu-item";
+import { DeleteProjectMenuItem, DELETE_PROJECT_ROLES } from "../[classification]/[projectId]/_delete-project-menu-item";
 import { useActivePhase } from "./_use-active-phase";
 import { MergeWizard } from "./_merge/_merge-wizard";
+import { classificationTabHref, isClassificationTabId } from "@/app/(hub)/projects/_classification-tabs";
 
 // Task 277 — uniform page-level header (back link, title, badge, subtitle, action icons, tab
 // strip) shared by every V2 tab AND every Legacy tab.
@@ -65,7 +66,10 @@ export function ProjectDetailHeader({
   const [mergeOpen, setMergeOpen] = useState(false);
 
   const activeTab = (pathname.split("/").filter(Boolean).pop() ?? "overview") as DetailTabId;
-  const listingHref = variant === "legacy" ? V2_ROUTES.PROJECTS_LEGACY : V2_ROUTES.PROJECTS_V2;
+  const { classification: slug } = useParams<{ classification?: string }>();
+  // Task 474 — back to the classification you're in; an unclassified project has no listing, so bare
+  // /projects (last-visited tab) instead.
+  const listingHref = variant === "legacy" ? V2_ROUTES.PROJECTS_LEGACY : isClassificationTabId(slug) ? classificationTabHref(slug) : V2_ROUTES.PROJECTS;
   const typeLabel = variant === "v2" ? (classification ?? project.project_type) : project.project_type;
 
   const { activePhaseNumber, activePhaseName, isComplete, loading: phaseLoading } = useActivePhase(

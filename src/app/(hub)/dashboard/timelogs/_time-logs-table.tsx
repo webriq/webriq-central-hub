@@ -16,6 +16,7 @@ import { TimePeriodInlineEditor } from "./_time-period-inline-editor";
 import { TaskTicketPicker, type TaskTicketValue } from "./_task-ticket-picker";
 import { TimerActivityTrigger } from "@/app/(hub)/projects/_shared/_timer-activity-trigger";
 import { POPOVER_ROOT_ATTR } from "./_use-popover-position";
+import { projectResolverHref } from "@/app/(hub)/projects/_classification-tabs";
 
 // Table body for the dedicated Time Logs page (task 226). View-all roles (admin/super_admin/pm/
 // hr) get a collapsible per-user grouping with a period subtotal, matching the reference
@@ -83,7 +84,7 @@ function basePatchBody(entry: TimeLogEntry) {
 // /projects/{id}/... path does not exist and 404s.
 function projectBase(entry: TimeLogEntry): string | null {
   if (!entry.project_public_id) return null;
-  return `${entry.project_is_legacy ? V2_ROUTES.PROJECTS_LEGACY : V2_ROUTES.PROJECTS_V2}/${entry.project_public_id}`;
+  return entry.project_is_legacy ? `${V2_ROUTES.PROJECTS_LEGACY}/${entry.project_public_id}` : projectResolverHref(entry.project_public_id);
 }
 
 function detailHref(entry: TimeLogEntry): string | null {

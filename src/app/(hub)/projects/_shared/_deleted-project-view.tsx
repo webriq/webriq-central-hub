@@ -4,7 +4,7 @@ import { V2_ROUTES } from "@/config/constants";
 import { formatDate } from "@/lib/utils";
 import type { DeletedProjectSummary } from "./_get-deleted-project-summary";
 
-// Task 415 — shown by /projects/v2/[projectId]/layout.tsx in place of the bare 404 when the
+// Task 415 — shown by /projects/[classification]/[projectId]/layout.tsx in place of the bare 404 when the
 // project exists but was soft-deleted (reached, e.g., from a converted StackShift order). Static
 // server component: no client JS, no motion. Read-only — there is deliberately no restore action
 // (no backend for it). Uses the fixed light v2.0 tokens like the neighbouring project-detail pages.

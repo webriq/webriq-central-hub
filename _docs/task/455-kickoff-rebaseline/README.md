@@ -21,9 +21,8 @@ Run `out/rollback.sql` from the **same** dry run that produced the `apply.sql` y
 
 ## Operator actions the script cannot do
 
-- **Maxton Manufacturing** (`BD64C367-PROJ-01`, kickoff 2026-10-08): set its StackShift I classification and start the programme from the project page. Then either re-run the dry run, or set the kickoff in the Timeline's **Kickoff** editor.
 - **Grand River Realty** (kickoff 2026-10-12): no customer exists yet. Create it via New Project intake and start the programme. Then set the kickoff in the Timeline's **Kickoff** editor, or add it to `MAPPINGS` and re-run.
-- **Greydog Security `82ACEB0F-PROJ-03`:** a duplicate live programme. It is not touched (D1); the PM decides whether to close it.
+- **Greydog Security `82ACEB0F-PROJ-02` (Website):** merged into `82ACEB0F-PROJ-03` and archived (tasks 468/472). It is not touched; task 475 re-baselines PROJ-03 instead. Maxton's live programme is `BD64C367-PROJ-02`, which is now in `MAPPINGS` (task 475).
 
 ## Future corrections
 

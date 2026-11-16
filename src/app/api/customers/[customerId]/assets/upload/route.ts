@@ -6,7 +6,7 @@ import { ALLOWED_MIME_TYPES, MAX_FILE_SIZE, buildCustomerAssetPath } from "@/lib
 // PREFER `POST ./sign` (task 350): it mints a signed upload URL so the browser PUTs the bytes
 // straight to Storage, avoiding Vercel's ~4.5 MB Route Handler body cap that 413s this multipart
 // route in production. This handler is kept for the legacy v2 onboarding wizard
-// (`src/app/(hub)/projects/v2/[projectId]/_onboarding-wizard.tsx`), which still posts multipart
+// (`src/app/(hub)/projects/[classification]/[projectId]/_onboarding-wizard.tsx`), which still posts multipart
 // from its own inline helper — migrating it is a documented follow-up.
 export async function POST(
   request: NextRequest,

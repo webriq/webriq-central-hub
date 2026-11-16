@@ -34,7 +34,7 @@ export default function MilestoneSwimlane({
   tasklists: Tasklist[];
   tasks: Task[];
   // Task 276 — shared between the legacy and v2 project-detail routes; caller passes its own
-  // `/projects/legacy/${projectId}` or `/projects/v2/${projectId}` (replaces the old
+  // `/projects/legacy/${projectId}` or `/projects/<slug>/${projectId}` (replaces the old
   // `projectUrlKey` + hardcoded `V2_ROUTES.PROJECTS` combination).
   basePath: string;
 }) {

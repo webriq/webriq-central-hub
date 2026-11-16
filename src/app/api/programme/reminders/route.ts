@@ -6,6 +6,7 @@ import { notifyProjectMembers } from "@/lib/notifications";
 import { PROGRAMME_PHASES } from "@/config/customer-phases";
 import { loadProgrammeSummaries } from "@/lib/programme/store";
 import { asReferenceDay, createProgrammeCalendar, currentDisplayDay } from "@/lib/programme/calendar";
+import { projectResolverHref } from "@/app/(hub)/projects/_classification-tabs";
 
 const PAGE = 1000; // Supabase/PostgREST default response cap — see CLAUDE.md's pagination convention.
 
@@ -41,7 +42,7 @@ async function notifyOnce(
     type: `programme_reminder_${key}`,
     title: "Programme update",
     body: projectName ? `${message} · ${projectName}` : message,
-    url: publicProjectId ? `/projects/v2/${publicProjectId}` : undefined,
+    url: publicProjectId ? projectResolverHref(publicProjectId) : undefined,
   });
   return true;
 }

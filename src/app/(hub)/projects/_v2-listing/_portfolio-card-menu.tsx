@@ -8,8 +8,8 @@ import { ManageCollaboratorsModal } from "@/components/projects/manage-collabora
 import { SetProjectOwnerModal } from "@/components/projects/set-project-owner-modal";
 import { UpdateClassificationModal } from "@/components/projects/update-classification-modal";
 import { useDeleteProject } from "@/hooks/use-delete-project";
-import { V2_ROUTES } from "@/config/constants";
 import { CopyLinkMenuItem } from "@/app/(hub)/projects/_shared/_copy-link-menu-item";
+import { useProjectsBase } from "@/app/(hub)/projects/[classification]/[projectId]/_use-projects-base";
 
 const MENU_WIDTH = 192;
 const MENU_HEIGHT = 280;
@@ -41,6 +41,7 @@ export function PortfolioCardMenu({
   onDeleted: () => void;
   onRename: () => void;
 }) {
+  const projectsBase = useProjectsBase();
   const router = useRouter();
   const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -63,7 +64,7 @@ export function PortfolioCardMenu({
   function openView() {
     setMenuPos(null);
     // Task 282 (item E) — V2's default landing tab is now Timeline, not Overview.
-    if (projectId) router.push(`${V2_ROUTES.PROJECTS_V2}/${projectId}/timeline`);
+    if (projectId) router.push(`${projectsBase}/${projectId}/timeline`);
   }
 
   function handleRename() {
@@ -134,7 +135,7 @@ export function PortfolioCardMenu({
             )}
             {projectId && (
               <CopyLinkMenuItem
-                url={`${V2_ROUTES.PROJECTS_V2}/${projectId}/timeline`}
+                url={`${projectsBase}/${projectId}/timeline`}
                 onDone={() => setMenuPos(null)}
               />
             )}

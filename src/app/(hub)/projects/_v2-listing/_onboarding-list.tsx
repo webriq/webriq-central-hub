@@ -10,7 +10,7 @@ import {
 import { cn } from "@/lib/utils";
 import { V2_ROUTES } from "@/config/constants";
 import { isRoleGatedByMembership } from "@/lib/programme/membership-rules";
-import { classificationTabHref, labelForTab, type ClassificationTabId } from "../_classification-tabs";
+import { classificationStatusReportHref, classificationTabHref, labelForTab, type ClassificationTabId } from "../_classification-tabs";
 import { FilterMultiSelect, parseMultiParam } from "./_filter-multi-select";
 import { SortSelect } from "./_sort-select";
 import { ProjectCard } from "./_project-card";
@@ -98,8 +98,7 @@ export default function V2ProjectsListing({
   // Derived from activeTabId rather than taken as a separate prop — the label is fully
   // determined by the tab id, so a second prop would just be state that could drift from it.
   const classificationLabel = labelForTab(activeTabId);
-  // Clearing filters must land back on the *current* tab, not bare /projects/v2 (which would
-  // bounce the user to StackShift I).
+  // Clearing filters must land back on the *current* classification's page.
   const clearFiltersHref = classificationTabHref(activeTabId);
 
   const [scrolled, setScrolled] = useState(false);
@@ -116,7 +115,8 @@ export default function V2ProjectsListing({
     for (const [k, v] of Object.entries(overrides)) {
       if (v === null) { p.delete(k); } else { p.set(k, String(v)); }
     }
-    return `${V2_ROUTES.PROJECTS_V2}?${p.toString()}`;
+    const query = p.toString();
+    return `${clearFiltersHref}${query ? `?${query}` : ""}`;
   }
 
   // Every navigation below is wrapped in startTransition — isPending then drives the skeleton
@@ -188,7 +188,7 @@ export default function V2ProjectsListing({
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <Link
-                href={V2_ROUTES.PROJECTS_V2_STATUS_REPORT}
+                href={classificationStatusReportHref(activeTabId)}
                 className="inline-flex items-center gap-2 px-[15px] py-2 rounded-full border text-[12px] font-semibold transition-colors cursor-pointer border-[#E2E7F2] bg-white text-[#3A4565] hover:border-[#A8C6F5] hover:text-[#0B1533]"
               >
                 <ClipboardList size={14} /> Status Report
@@ -196,13 +196,13 @@ export default function V2ProjectsListing({
               {canCreate && (
                 <>
                   <Link
-                    href={V2_ROUTES.PROJECTS_V2_IMPORT}
+                    href={V2_ROUTES.PROJECTS_IMPORT}
                     className="inline-flex items-center gap-2 px-[15px] py-2 rounded-full border text-[12px] font-semibold transition-colors cursor-pointer border-[#E2E7F2] bg-white text-[#3A4565] hover:border-[#A8C6F5] hover:text-[#0B1533]"
                   >
                     <Upload size={14} /> Import Project
                   </Link>
                   <Link
-                    href={V2_ROUTES.PROJECTS_V2_NEW}
+                    href={V2_ROUTES.PROJECTS_NEW}
                     className="inline-flex items-center gap-2 px-[15px] py-2 rounded-full text-[12px] font-semibold transition-colors cursor-pointer bg-[#FB914E] text-[#471F02] hover:bg-[#E2762F] hover:text-white"
                   >
                     <Plus size={14} /> New Project

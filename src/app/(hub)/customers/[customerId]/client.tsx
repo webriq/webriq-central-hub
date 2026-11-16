@@ -11,7 +11,7 @@ import type { CustomerRow, CustomerProductRow, ProjectRow, Database } from "@/ty
 import type { ProductName } from "@/types/hub";
 import { getIncompleteSections, getOnboardingSchema, computeCompletionPercentage } from "@/config/onboarding-schemas";
 import { V2_ROUTES } from "@/config/constants";
-import { uploadViaSignedUrl } from "@/app/(hub)/projects/v2/[projectId]/onboarding-workspace/_upload-queue";
+import { uploadViaSignedUrl } from "@/app/(hub)/projects/[classification]/[projectId]/onboarding-workspace/_upload-queue";
 import ProgrammeTab from "./_programme-tab";
 
 type ClassificationRow = Database["public"]["Tables"]["classification_records"]["Row"];

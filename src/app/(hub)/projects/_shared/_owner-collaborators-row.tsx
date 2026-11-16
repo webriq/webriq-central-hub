@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Users } from "lucide-react";
 import { mapMembers, type MemberRow, type RawMemberRow } from "@/components/projects/member-types";
-import { AvatarCircle, CollaboratorAvatars } from "@/app/(hub)/projects/v2/[projectId]/_onboarding-detail";
+import { AvatarCircle, CollaboratorAvatars } from "@/app/(hub)/projects/[classification]/[projectId]/_onboarding-detail";
 
 // Task 282 (item C) — the header's Owner/Collaborators secondary row, shared by every V2/Legacy
 // tab (`_project-detail.tsx`'s 8 shared tabs, `_coming-soon-overview.tsx`, the new Legacy

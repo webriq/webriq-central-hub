@@ -10,7 +10,7 @@ import { BREAK_LABELS, BREAK_ICONS, BREAK_DURATIONS_MIN } from "@/lib/timer/cons
 import { TimerBreakPanel } from "./_timer-break-panel";
 import { TimerLiveActivity } from "./_timer-live-activity";
 import { decodeHtmlEntities } from "@/app/(hub)/projects-old/_pm-shared";
-import { V2_ROUTES } from "@/config/constants";
+import { projectResolverHref } from "@/app/(hub)/projects/_classification-tabs";
 
 // Task 209 — hub-wide timer widget (developer role only, widened to every role by task 293) so a
 // running timer can be seen and paused from anywhere. Task 300 moved this from a fixed
@@ -54,12 +54,12 @@ export default function TimerHeaderWidget() {
   // display id actually came back — otherwise these fall back to plain, non-clickable text.
   const entityHref =
     timer?.project_display_id && timer.task_id && timer.task_display_id
-      ? `${V2_ROUTES.PROJECTS_V2}/${timer.project_display_id}/tasks/${timer.task_display_id}`
+      ? projectResolverHref(timer.project_display_id, `tasks/${timer.task_display_id}`)
       : timer?.project_display_id && timer.issue_id && timer.issue_display_id
-      ? `${V2_ROUTES.PROJECTS_V2}/${timer.project_display_id}/tickets/${timer.issue_display_id}`
+      ? projectResolverHref(timer.project_display_id, `tickets/${timer.issue_display_id}`)
       : null;
   const projectHref = timer?.project_display_id
-    ? `${V2_ROUTES.PROJECTS_V2}/${timer.project_display_id}/timeline`
+    ? projectResolverHref(timer.project_display_id, "timeline")
     : null;
 
   async function handleStop() {

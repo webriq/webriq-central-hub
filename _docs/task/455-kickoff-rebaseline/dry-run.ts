@@ -28,20 +28,20 @@ const MAPPINGS: Mapping[] = [
   { tracker: "05", account: "WMI Home Solutions", projectId: "09A80681-PROJ-02", kickoff: "2026-08-17" },
   { tracker: "06", account: "Veteran Roofing & Exteriors", projectId: "C74DEA31-PROJ-02", kickoff: "2026-06-22" },
   { tracker: "07", account: "Black Barn Dumpsters", projectId: "2CDA5C64-PROJ-02", kickoff: "2026-08-14" },
-  { tracker: "08", account: "Greydog Security (Website — D1)", projectId: "82ACEB0F-PROJ-02", kickoff: "2026-06-29" },
+  { tracker: "08", account: "Greydog Security (StackShift I Upgrade — task 475 D1)", projectId: "82ACEB0F-PROJ-03", kickoff: "2026-06-29" },
   { tracker: "09", account: "Studio Belmont", projectId: "8978E416-PROJ-02", kickoff: "2026-07-23" },
   { tracker: "10", account: "RCB & Associates LLC", projectId: "5EBACF20-PROJ-01", kickoff: "2026-07-08" },
   { tracker: "12", account: "M&I Interiors", projectId: "D0A5D523-PROJ-04", kickoff: "2026-07-14" },
   { tracker: "13", account: "Royal Thumper", projectId: "FC6D83AB-PROJ-01", kickoff: "2026-08-06" },
   { tracker: "14", account: "Hello Homes GR", projectId: "D45CA759-PROJ-01", kickoff: "2026-07-28" },
   { tracker: "15", account: "AB Lekdetectie", projectId: "82159826-PROJ-01", kickoff: "2026-09-30" },
-  { tracker: "16", account: "Maxton Manufacturing", projectId: "BD64C367-PROJ-01", kickoff: "2026-10-08" },
+  { tracker: "16", account: "Maxton Manufacturing", projectId: "BD64C367-PROJ-02", kickoff: "2026-10-08" },
 ];
 
 // Not plannable by this script — listed in plan.md for the operator.
 const STATIC_OPERATOR_ACTIONS = [
   "**#17 Grand River Realty (kickoff 2026-10-12)** — no customer exists in the Hub. Create it via New Project intake (StackShift I), start the programme, then add its `project_id` to `MAPPINGS` and re-run.",
-  "**#08 Greydog Security — `82ACEB0F-PROJ-03` (StackShift I Upgrade)** — a second live programme for the same account. Decision D1 re-baselines only the Website project (`82ACEB0F-PROJ-02`); PROJ-03 is NOT touched. The PM should decide whether to close it.",
+  "**#08 Greydog Security — `82ACEB0F-PROJ-02` (Website)** — merged into `82ACEB0F-PROJ-03` and archived (tasks 468/472). Task 475 D1 re-baselines PROJ-03 instead; PROJ-02 is NOT touched.",
 ];
 
 const lit = (v: string | null) => (v === null ? "null" : `'${v.replace(/'/g, "''")}'`);

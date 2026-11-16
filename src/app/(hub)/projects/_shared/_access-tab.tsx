@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
-import { AccessTab as AccessTabPresentational } from "@/app/(hub)/projects/v2/[projectId]/onboarding-workspace/_access-tab";
-import type { AssetRow, StaffPerson } from "@/app/(hub)/projects/v2/[projectId]/onboarding-workspace/_wizard-v2-types";
+import { AccessTab as AccessTabPresentational } from "@/app/(hub)/projects/[classification]/[projectId]/onboarding-workspace/_access-tab";
+import type { AssetRow, StaffPerson } from "@/app/(hub)/projects/[classification]/[projectId]/onboarding-workspace/_wizard-v2-types";
 
 // Task 276 — Access tab (credentials/links/repos), shared by both the legacy and v2
 // project-detail routes. Thin data-wrapping component around the existing, pure presentational

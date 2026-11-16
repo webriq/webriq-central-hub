@@ -6,7 +6,6 @@ import V2HubHeader from "./v2-hub-header";
 import OpsChat from "./ops-chat";
 import PushPermissionPrompt from "@/components/hub/push-permission-prompt";
 import { TimerProvider } from "./timer-context";
-import { SidebarProjectProvider } from "./sidebar-project-context";
 
 interface V2HubShellProps {
   userRole: string | null;
@@ -72,7 +71,7 @@ export default function V2HubShell({ userRole, departmentName, displayName, avat
   // deep) needs useTimer() for the header-docked timer widget (task 300).
   return (
     <TimerProvider>
-      <SidebarProjectProvider>{shell}</SidebarProjectProvider>
+      {shell}
     </TimerProvider>
   );
 }

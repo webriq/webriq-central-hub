@@ -32,7 +32,7 @@ export function TaskSubtasks({
   projectId: string;
   task: Task; // the task being viewed — parent of the top-level subtasks
   milestones: Milestone[];
-  taskBasePath: string; // e.g. /projects/v2/{projectId}/tasks — rows link to `${taskBasePath}/${display_id}`
+  taskBasePath: string; // e.g. /projects/<slug>/{projectId}/tasks — rows link to `${taskBasePath}/${display_id}`
   canAdd: boolean; // may add a subtask directly under the viewed task (row-level adds use each row's own permission)
   currentUserId: string;
   currentUserRole: string | null;

@@ -1,7 +1,7 @@
 "use client";
 
 import { Loader2 } from "lucide-react";
-import { FilesTab as FilesTabPresentational } from "@/app/(hub)/projects/v2/[projectId]/onboarding-workspace/_files-tab";
+import { FilesTab as FilesTabPresentational } from "@/app/(hub)/projects/[classification]/[projectId]/onboarding-workspace/_files-tab";
 import { useCustomerAssets } from "./_use-customer-assets";
 import { useFilesDeepLink } from "./_use-files-deeplink";
 

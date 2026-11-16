@@ -8,7 +8,7 @@ import { ManageCollaboratorsModal } from "@/components/projects/manage-collabora
 import { mapMembers, type MemberRow, type RawMemberRow } from "@/components/projects/member-types";
 
 // Task 276 — persistent Members tab, shared by both `/projects/legacy/[projectId]` and
-// `/projects/v2/[projectId]`. Wraps the existing `GET/POST/PATCH/DELETE
+// `/projects/[classification]/[projectId]`. Wraps the existing `GET/POST/PATCH/DELETE
 // /api/projects/[projectId]/members` endpoint (no API changes) and promotes
 // `_manage-collaborators-action.tsx`'s modal (already generic — `@/components/projects/
 // manage-collaborators-modal`) from a header icon-button trigger into a full tab view: the modal

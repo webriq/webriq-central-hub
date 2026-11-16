@@ -14,6 +14,7 @@ import {
   phaseHasMembers,
 } from "@/lib/programme/phase-membership";
 import { createNotification } from "@/lib/notifications";
+import { projectResolverHref } from "@/app/(hub)/projects/_classification-tabs";
 
 // Task 153 — project-level membership (requirement 6). Gates visibility on the Onboarding
 // list for marketing/pm (GET /api/onboarding/projects); admin/super_admin always see
@@ -102,7 +103,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       ]);
       const actorName = actorProfile?.full_name ?? "Someone";
       const projectName = project?.name ?? "this project";
-      const url = project?.project_id ? `/projects/v2/${project.project_id}` : undefined;
+      const url = project?.project_id ? projectResolverHref(project.project_id) : undefined;
       const addedNames = addedIds.map((id) => addedProfiles?.find((p) => p.id === id)?.full_name ?? "Unnamed");
 
       await Promise.all(addedIds.map((id) => createNotification(id, {
@@ -199,7 +200,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       const actorName = actorProfile?.full_name ?? "Someone";
       const newOwnerName = targetProfile?.full_name ?? "Unnamed";
       const projectName = project?.name ?? "this project";
-      const url = project?.project_id ? `/projects/v2/${project.project_id}` : undefined;
+      const url = project?.project_id ? projectResolverHref(project.project_id) : undefined;
 
       if (targetUserId !== user.id) {
         await createNotification(targetUserId, {

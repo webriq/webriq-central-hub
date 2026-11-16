@@ -4,12 +4,12 @@ import { useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Building2, CalendarClock, Clock3 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { V2_ROUTES } from "@/config/constants";
 import { Chip, PhaseChip, OnboardingStatusPill } from "../../dashboard/_components/dashboard-shared";
 import { AvatarStack } from "./_avatar-stack";
 import { PortfolioCardMenu } from "./_portfolio-card-menu";
 import { EditableProjectTitle, type EditableProjectTitleHandle } from "@/components/projects/editable-project-title";
 import type { OnboardingProjectListItem } from "./_onboarding-list";
+import { useProjectsBase } from "@/app/(hub)/projects/[classification]/[projectId]/_use-projects-base";
 
 function formatDate(iso: string | null): string {
   if (!iso) return "—";
@@ -30,6 +30,7 @@ export function ProjectCard({
   onDeleted: () => void;
   onSearchName: (name: string) => void;
 }) {
+  const projectsBase = useProjectsBase();
   const router = useRouter();
   const showMenu = (canDelete && !!item.project_id) || canManageCollaborators || canSetOwner;
   const titleRef = useRef<EditableProjectTitleHandle>(null);
@@ -128,9 +129,9 @@ export function ProjectCard({
           role="button"
           tabIndex={0}
           // Task 282 (item E) — V2's default landing tab is now Timeline, not Overview.
-          onClick={() => router.push(`${V2_ROUTES.PROJECTS_V2}/${item.project_id ?? item.id}/timeline`)}
+          onClick={() => router.push(`${projectsBase}/${item.project_id ?? item.id}/timeline`)}
           onKeyDown={(e) => {
-            if (e.key === "Enter") router.push(`${V2_ROUTES.PROJECTS_V2}/${item.project_id ?? item.id}/timeline`);
+            if (e.key === "Enter") router.push(`${projectsBase}/${item.project_id ?? item.id}/timeline`);
           }}
           className="h-full text-left w-full bg-transparent border-none p-0 cursor-pointer"
         >
