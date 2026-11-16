@@ -1,4 +1,5 @@
 import { redirect, notFound } from "next/navigation";
+import { projectRoleFor } from "@/lib/test-data";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { V2_ROUTES } from "@/config/constants";
@@ -42,6 +43,8 @@ export async function loadOnboardingDetailData(projectId: string) {
   }
 
   const companyName = (project.customers as unknown as { company_name: string } | null)?.company_name ?? "Customer";
+  // Task 476 — a Test User acts as pm on a test project (D4); RLS has already let them read it.
+  const effectiveRole = await projectRoleFor(userId, project.id);
 
   // Task 247: a project not on the specialized customer_phases engine (StackShift Access/Access
   // Plus/Discrete Development, or StackShift II without the engine opt-in) never gets
@@ -174,7 +177,7 @@ export async function loadOnboardingDetailData(projectId: string) {
       draft_skip_phase_numbers: project.draft_skip_phase_numbers,
       draft_custom_phases: project.draft_custom_phases as CustomPhaseSeed[],
     },
-    role,
+    role: effectiveRole,
     userId,
     phase1Members,
     projectMembers,

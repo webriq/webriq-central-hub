@@ -1,3 +1,4 @@
+import { asTestRole } from "@/lib/test-data";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { touchProjectForTask } from "@/lib/projects/touch-project";
@@ -82,7 +83,9 @@ export async function DELETE(_req: NextRequest, { params }: RouteParams) {
   if ("error" in ctx) return ctx.error;
   const { supabase, user, comment } = ctx;
 
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+  const { data: profileRow } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle()
+
+  const profile = await asTestRole(profileRow, user.id, { taskId }); // task 476
   const isAdmin = profile?.role === "admin" || profile?.role === "super_admin";
   if (comment.author_id !== user.id && !isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 

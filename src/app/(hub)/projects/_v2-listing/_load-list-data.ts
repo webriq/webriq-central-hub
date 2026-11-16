@@ -6,6 +6,7 @@ import { DEFAULT_PROGRAMME_DAYS, type Classification } from "@/config/customer-p
 import { currentDisplayDay } from "@/lib/programme/calendar";
 import { RECENT_SORT, RECENT_FETCH_PAGE, loadViewStats, sortByRecentAccess } from "../_shared/_recent-sort";
 import type { OnboardingProjectListItem } from "./_onboarding-list";
+import { effectiveProjectRole, getSettingsViewer, loadTestScope } from "@/lib/test-data";
 
 // Server-only paginated/filtered/sorted query for the Portfolio Tracker list page (task 263).
 // Mirrors src/app/(hub)/projects/page.tsx's searchParams -> Supabase query pattern. Deliberately
@@ -56,12 +57,18 @@ export async function loadOnboardingProjectsList(
   // the tasks/issues tables this task's fixes target, so an unscoped read here isn't the kind of
   // full-table fetch this task eliminates elsewhere — the untouched GET route has this same
   // characteristic today.
+  // Task 476 — a Test User has full access to every test project (D4): test projects bypass the
+  // membership gates below, and row permissions use the effective role. RLS already hides test
+  // projects from everyone else.
+  const viewer = await getSettingsViewer(userId);
+  const testProjectIds = new Set(viewer.isTestUser ? (await loadTestScope()).projectIds : []);
+
   let excludedProjectIds: string[] = [];
   if (isRoleGatedByMembership(role)) {
     const { data: memberRows } = await supabase.from("project_members").select("project_id, user_id");
     const projectsWithMembers = new Set((memberRows ?? []).map((r) => r.project_id));
     const myMemberProjectIds = new Set((memberRows ?? []).filter((r) => r.user_id === userId).map((r) => r.project_id));
-    excludedProjectIds = [...projectsWithMembers].filter((id) => !myMemberProjectIds.has(id));
+    excludedProjectIds = [...projectsWithMembers].filter((id) => !myMemberProjectIds.has(id) && !testProjectIds.has(id));
   }
 
   // Task 284 — developer: strict allow-list (member OR assigned task), not an exclusion list.
@@ -70,7 +77,7 @@ export async function loadOnboardingProjectsList(
   // mirrors isProjectVisibleToCurrentUser()'s per-project gate at the detail route.
   let allowedProjectIds: string[] | null = null;
   if (role === "developer") {
-    allowedProjectIds = await getDeveloperAccessibleProjectIds(userId);
+    allowedProjectIds = [...(await getDeveloperAccessibleProjectIds(userId)), ...testProjectIds];
   }
 
   let query = supabase
@@ -218,6 +225,8 @@ export async function loadOnboardingProjectsList(
       : classification
         ? [classification]
         : [];
+    const isTest = testProjectIds.has(p.id);
+    const rowRole = effectiveProjectRole(viewer, isTest);
     const activePhaseNumber = activePhaseByProject.get(p.id) ?? null;
     const durationDays = p.programme_duration_days ?? DEFAULT_PROGRAMME_DAYS;
     const currentDay = p.programme_started_at ? currentDisplayDay(p.programme_started_at, durationDays) : null;
@@ -242,8 +251,9 @@ export async function loadOnboardingProjectsList(
       created_at: p.created_at,
       status: (p.onboarding_status ?? "draft") as OnboardingProjectListItem["status"],
       members: [...(memberIdsByProject.get(p.id) ?? [])].map((id) => ({ id, full_name: memberFullNameById.get(id) ?? null, avatar_url: memberAvatarUrlById.get(id) ?? null })),
-      canManageCollaborators: canManageProjectMembers(role, p.created_by === userId),
-      canSetOwner: canSetProjectOwner(role, p.created_by === userId),
+      canManageCollaborators: canManageProjectMembers(rowRole, p.created_by === userId),
+      canSetOwner: canSetProjectOwner(rowRole, p.created_by === userId),
+      is_test: isTest,
     };
   });
 

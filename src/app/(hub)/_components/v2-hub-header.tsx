@@ -18,7 +18,7 @@ const BREADCRUMB_MAP: Record<string, { section: string; page: string }> = {
   [V2_ROUTES.ORCHESTRATION_SIMULATE]: { section: "Work",    page: "Orchestration · Simulate" },
   [V2_ROUTES.ORCHESTRATION]:       { section: "Work",      page: "Orchestration" },
   [V2_ROUTES.DASHBOARD_TIMELOGS]:  { section: "Work",      page: "Time Logs" },
-  [V2_ROUTES.DASHBOARD_SETTINGS]:  { section: "Admin",     page: "Settings" },
+  [V2_ROUTES.SETTINGS]:            { section: "Admin",     page: "Settings" },
   [V2_ROUTES.DASHBOARD_USERS]:     { section: "Admin",     page: "Users" },
   [V2_ROUTES.WIKI]:                  { section: "Knowledge", page: "Wiki" },
 };

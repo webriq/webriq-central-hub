@@ -1,3 +1,4 @@
+import { asTestRole } from "@/lib/test-data";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
@@ -28,12 +29,14 @@ export async function PATCH(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const [{ data: existingTask }, { data: profile }] = await Promise.all([
+  const [{ data: existingTask }, { data: profileRow }] = await Promise.all([
     supabase.from("tasks").select("created_by, assignees, project_id").eq("id", taskId).maybeSingle(),
     supabase.from("profiles").select("role").eq("id", user.id).maybeSingle(),
   ]);
   if (!existingTask) return NextResponse.json({ error: "Task not found" }, { status: 404 });
 
+  // Task 476 — a Test User acts as pm on a test project (D4).
+  const profile = await asTestRole(profileRow, user.id, { projectId: existingTask.project_id });
   const perm = getTaskEditPermission(profile?.role, user.id, existingTask);
   if (!perm.canChangeStatus && !perm.canEditDetails) {
     return NextResponse.json({ error: "You don't have permission to edit this task" }, { status: 403 });

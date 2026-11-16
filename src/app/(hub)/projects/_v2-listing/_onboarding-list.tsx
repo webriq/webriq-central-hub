@@ -42,6 +42,7 @@ export type OnboardingProjectListItem = {
   members: { id: string; full_name: string | null; avatar_url: string | null }[];
   canManageCollaborators: boolean;
   canSetOwner: boolean;
+  is_test: boolean; // task 476 — only ever true for Test Users (RLS hides test projects from others)
 };
 
 // ─── Search / status filter / pagination — server-driven, URL-synced (task 263). Mirrors

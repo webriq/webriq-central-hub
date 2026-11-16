@@ -742,6 +742,7 @@ export interface Database {
           onboarding_status: Json;
           daily_token_budget: number | null;
           automation_paused: boolean;
+          is_test: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -758,6 +759,7 @@ export interface Database {
           onboarding_status?: Json;
           daily_token_budget?: number | null;
           automation_paused?: boolean;
+          is_test?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -774,6 +776,7 @@ export interface Database {
           onboarding_status?: Json;
           daily_token_budget?: number | null;
           automation_paused?: boolean;
+          is_test?: boolean;
           updated_at?: string;
         };
         Relationships: [];
@@ -838,6 +841,7 @@ export interface Database {
           avatar_url: string | null;
           customer_id: string | null;
           department_id: string | null;
+          is_test_user: boolean;
           otp_failed_attempts: number;
           otp_locked_until: string | null;
           created_at: string;
@@ -850,6 +854,7 @@ export interface Database {
           avatar_url?: string | null;
           customer_id?: string | null;
           department_id?: string | null;
+          is_test_user?: boolean;
           otp_failed_attempts?: number;
           otp_locked_until?: string | null;
           created_at?: string;
@@ -862,6 +867,7 @@ export interface Database {
           avatar_url?: string | null;
           customer_id?: string | null;
           department_id?: string | null;
+          is_test_user?: boolean;
           otp_failed_attempts?: number;
           otp_locked_until?: string | null;
           updated_at?: string;
@@ -1103,6 +1109,7 @@ export interface Database {
           sanity_project_id: string | null;
           github_repo: string | null;
           dedicated_developers: string[];
+          is_test: boolean;
           dataset: string | null;
           vercel_project_id: string | null;
           start_date: string | null;
@@ -1145,6 +1152,7 @@ export interface Database {
           sanity_project_id?: string | null;
           github_repo?: string | null;
           dedicated_developers?: string[];
+          is_test?: boolean;
           dataset?: string | null;
           vercel_project_id?: string | null;
           start_date?: string | null;
@@ -1187,6 +1195,7 @@ export interface Database {
           sanity_project_id?: string | null;
           github_repo?: string | null;
           dedicated_developers?: string[];
+          is_test?: boolean;
           dataset?: string | null;
           vercel_project_id?: string | null;
           start_date?: string | null;

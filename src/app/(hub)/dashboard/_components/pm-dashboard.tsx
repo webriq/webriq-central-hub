@@ -393,9 +393,11 @@ interface Props {
   // redirect anyone but admin/super_admin/pm away, and Time Logs redirects client. Optional/null
   // renders no Quick Links row at all, rather than guessing a permissive default.
   role?: string | null;
+  // Task 476 — true for a Test User: their counts must skip test rows RLS lets them see (D8).
+  excludeTest?: boolean;
 }
 
-export default function PMDashboard({ displayName = null, role = null }: Props) {
+export default function PMDashboard({ displayName = null, role = null, excludeTest = false }: Props) {
   const { visible, text, dateLabel, dismiss } = useGreeting(displayName);
   const canSeeTasksTickets = role === "admin" || role === "super_admin" || role === "pm";
   const canSeeTimeLogs = role !== null && role !== "client" && role !== "marketing";
@@ -415,9 +417,10 @@ export default function PMDashboard({ displayName = null, role = null }: Props) 
   // Base data: tracker projects, customers count, reminders.
   useEffect(() => {
     const supabase = createClient();
+    const customers = supabase.from("customers").select("customer_id", { count: "exact", head: true });
     Promise.all([
       fetch("/api/onboarding/projects").then((r) => r.json()).catch(() => ({ projects: [] })),
-      supabase.from("customers").select("customer_id", { count: "exact", head: true }),
+      excludeTest ? customers.eq("is_test", false) : customers,
       fetch("/api/notifications?limit=5").then((r) => r.json()).catch(() => ({ notifications: [] })),
     ]).then(([trackerResult, customersResult, notifResult]) => {
       setTrackerProjects((trackerResult.projects ?? []) as OnboardingProjectListItem[]);
@@ -425,7 +428,7 @@ export default function PMDashboard({ displayName = null, role = null }: Props) 
       setNotifications((notifResult.notifications ?? []) as NotificationItem[]);
       setLoading(false);
     });
-  }, []);
+  }, [excludeTest]);
 
   // Phase-scoped data: Developer queue (Phase 2), intake checklist (soonest Phase-1 gate),
   // publish progress (Phase 3) — depends on the tracker project list above.

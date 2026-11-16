@@ -1,3 +1,4 @@
+import { asTestRole } from "@/lib/test-data";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
@@ -20,7 +21,8 @@ export async function GET(
     // developer set PLUS marketing (this route's own adminClient comment above already
     // documents marketing as a legitimate caller — the New Project intake's existing-company
     // pre-fill — despite not being in that RLS; excluding it here would break that flow).
-    const { data: callerProfile } = await adminClient.from("profiles").select("role").eq("id", user.id).maybeSingle();
+    const { data: callerProfileRow } = await adminClient.from("profiles").select("role").eq("id", user.id).maybeSingle()
+    const callerProfile = await asTestRole(callerProfileRow, user.id, { customerId: (await params).customerId }); // task 476
     if (!["admin", "super_admin", "pm", "developer", "marketing"].includes(callerProfile?.role ?? "")) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }

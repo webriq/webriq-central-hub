@@ -40,7 +40,7 @@ export const V2_ROUTES = {
   DASHBOARD_PIPELINE: "/dashboard/pipeline",
   DASHBOARD_CHAT: "/dashboard/chat",
   DASHBOARD_TIMELOGS: "/dashboard/timelogs",
-  DASHBOARD_SETTINGS: "/dashboard/settings",
+  SETTINGS: "/settings",
   DASHBOARD_USERS: "/dashboard/users",
   CUSTOMERS_ONBOARD: "/customers/onboard",
   STACKSHIFT_ORDERS: "/stackshift-orders",

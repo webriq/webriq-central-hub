@@ -1,3 +1,4 @@
+import { loadTestScope, notInList } from "@/lib/test-data";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
@@ -56,6 +57,8 @@ export async function GET(request: Request) {
       .not("programme_started_at", "is", null)
       // Soft-deleted projects (task 231) are excluded from the status report.
       .neq("status", "deleted")
+      // Task 476 — test projects never appear in a status report, even for Test Users (D8).
+      .not("id", "in", notInList((await loadTestScope()).projectIds))
       .order("programme_started_at", { ascending: true });
     // Task 472 — archived projects (incl. task 468 merge sources) are hidden from the portfolio list only; their own detail page still loads them.
     projectsQuery = projectId ? projectsQuery.eq("id", projectId) : projectsQuery.neq("status", "archived");

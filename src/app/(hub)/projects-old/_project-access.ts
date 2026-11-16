@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getSettingsViewer, loadTestScope, projectRoleFor } from "@/lib/test-data";
 
 // Task 208 — developer-only project visibility. A developer can see/open a project if either
 // they have a project_members row for it, or they're assigned to at least one task in it
@@ -18,6 +19,8 @@ export async function getDeveloperAccessibleProjectIds(userId: string): Promise<
   const ids = new Set<string>();
   for (const row of memberRows ?? []) ids.add(row.project_id);
   for (const row of taskRows ?? []) ids.add(row.project_id);
+  // Task 476 — a Test User reaches every test project (D4).
+  if ((await getSettingsViewer(userId)).isTestUser) for (const id of (await loadTestScope()).projectIds) ids.add(id);
   return [...ids];
 }
 
@@ -30,6 +33,8 @@ export async function isProjectVisibleToCurrentUser(projectRowId: string): Promi
 
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", userId).maybeSingle();
   if (profile?.role !== "developer") return true;
+  // Task 476 — a Test User acts as pm on a test project (D4).
+  if ((await projectRoleFor(userId, projectRowId)) === "pm") return true;
 
   const [{ data: membership }, { data: assignedTask }] = await Promise.all([
     supabase.from("project_members").select("id").eq("project_id", projectRowId).eq("user_id", userId).maybeSingle(),

@@ -6,6 +6,7 @@ interface DashboardViewProps {
   role: string | null;
   displayName: string | null;
   userId: string;
+  excludeTest: boolean;
 }
 
 /**
@@ -20,12 +21,12 @@ interface DashboardViewProps {
  *   pm                 → PM dashboard
  *   hr/client          → PM dashboard (fallback; HR dashboard ships in Sprint 6)
  */
-export default function DashboardView({ role, displayName, userId }: DashboardViewProps) {
+export default function DashboardView({ role, displayName, userId, excludeTest }: DashboardViewProps) {
   if (role === "admin" || role === "super_admin") {
-    return <AdminDashboard userId={userId} displayName={displayName} role={role} />;
+    return <AdminDashboard userId={userId} displayName={displayName} role={role} excludeTest={excludeTest} />;
   }
   if (role === "marketing") {
-    return <MarketingDashboard userId={userId} displayName={displayName} />;
+    return <MarketingDashboard userId={userId} displayName={displayName} excludeTest={excludeTest} />;
   }
-  return <PMDashboard displayName={displayName} role={role} />;
+  return <PMDashboard displayName={displayName} role={role} excludeTest={excludeTest} />;
 }

@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getSettingsViewer } from "@/lib/test-data";
 import DashboardView from "./_components/dashboard-view";
 import DevDashboardLoader from "./_dev/_dev-dashboard-loader";
 import DevDashboardSkeleton from "./_dev/_skeleton";
@@ -42,5 +43,7 @@ export default async function DashboardPage() {
     );
   }
 
-  return <DashboardView role={role} displayName={displayName} userId={userId} />;
+  // Task 476 — RLS shows test rows to Test Users only, so only their counts need the explicit filter (D8).
+  const excludeTest = (await getSettingsViewer(userId)).isTestUser;
+  return <DashboardView role={role} displayName={displayName} userId={userId} excludeTest={excludeTest} />;
 }

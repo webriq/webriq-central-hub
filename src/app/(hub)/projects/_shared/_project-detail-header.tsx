@@ -10,6 +10,7 @@ import type { Project } from "@/app/(hub)/projects-old/_pm-shared";
 import { Chip } from "@/app/(hub)/dashboard/_components/dashboard-shared";
 import { canManageProjectMembers, canSetProjectOwner } from "@/lib/programme/membership-rules";
 import { OwnerCollaboratorsRow } from "./_owner-collaborators-row";
+import { TestPill } from "@/components/test-pill";
 import { CopyLinkButton } from "./_copy-link-button";
 import { ProjectDetailTabStrip, type DetailTabId } from "./_project-detail-tab-strip";
 import { DeleteProjectMenuItem, DELETE_PROJECT_ROLES } from "../[classification]/[projectId]/_delete-project-menu-item";
@@ -188,6 +189,7 @@ export function ProjectDetailHeader({
           </div>
           <div className="flex items-center gap-1.5 mt-1">
             <span className="text-[13px] text-[#5F6A88]">{companyName}</span>
+            {(project as { is_test?: boolean }).is_test === true && <TestPill />}
             <Chip tone="neutral">{typeLabel}</Chip>
           </div>
           <div className="mt-1.5">

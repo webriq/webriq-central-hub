@@ -43,9 +43,10 @@ function WorkspaceCard({ customersCount, projectsCount, loading }: {
 interface Props {
   userId: string;
   displayName: string | null;
+  excludeTest: boolean; // task 476 — see pm-dashboard.tsx
 }
 
-export default function MarketingDashboard({ displayName }: Props) {
+export default function MarketingDashboard({ displayName, excludeTest }: Props) {
   const { visible, text, dateLabel, dismiss } = useGreeting(displayName);
 
   const [trackerProjects, setTrackerProjects] = useState<OnboardingProjectListItem[]>([]);
@@ -55,17 +56,19 @@ export default function MarketingDashboard({ displayName }: Props) {
 
   useEffect(() => {
     const supabase = createClient();
+    const customers = supabase.from("customers").select("customer_id", { count: "exact", head: true });
+    const projects = supabase.from("projects").select("id", { count: "exact", head: true });
     Promise.all([
       fetch("/api/onboarding/projects").then(r => r.json()).catch(() => ({ projects: [] })),
-      supabase.from("customers").select("customer_id", { count: "exact", head: true }),
-      supabase.from("projects").select("id", { count: "exact", head: true }),
+      excludeTest ? customers.eq("is_test", false) : customers,
+      excludeTest ? projects.eq("is_test", false) : projects,
     ]).then(([trackerResult, customersResult, projectsResult]) => {
       setTrackerProjects((trackerResult.projects ?? []) as OnboardingProjectListItem[]);
       setCustomersCount(customersResult.count ?? 0);
       setProjectsCount(projectsResult.count ?? 0);
       setLoading(false);
     });
-  }, []);
+  }, [excludeTest]);
 
   const inProgressCount = trackerProjects.filter(p => p.status === "in_progress").length;
   const scheduledCount  = trackerProjects.filter(p => p.status === "scheduled").length;

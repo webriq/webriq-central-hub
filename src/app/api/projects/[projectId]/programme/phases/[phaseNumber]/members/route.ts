@@ -1,3 +1,4 @@
+import { asTestRole } from "@/lib/test-data";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
@@ -76,7 +77,9 @@ export async function POST(
     const phaseNumber = parsePhaseNumber(phaseNumberRaw);
     if (!phaseNumber) return NextResponse.json({ error: "phaseNumber must be a positive integer" }, { status: 400 });
 
-    const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+    const { data: profileRow } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle()
+
+    const profile = await asTestRole(profileRow, user.id, { projectId: (await params).projectId }); // task 476
     const myMembership = await getPhaseMembership(supabase, projectId, phaseNumber, user.id);
     if (!canManagePhase1Membership(profile?.role ?? null, myMembership)) {
       return NextResponse.json({ error: "Not permitted to manage this phase's members" }, { status: 403 });
@@ -119,7 +122,9 @@ export async function PATCH(
     const phaseNumber = parsePhaseNumber(phaseNumberRaw);
     if (!phaseNumber) return NextResponse.json({ error: "phaseNumber must be a positive integer" }, { status: 400 });
 
-    const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+    const { data: profileRow } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle()
+
+    const profile = await asTestRole(profileRow, user.id, { projectId: (await params).projectId }); // task 476
     const myMembership = await getPhaseMembership(supabase, projectId, phaseNumber, user.id);
     if (!canManagePhase1Membership(profile?.role ?? null, myMembership)) {
       return NextResponse.json({ error: "Not permitted to manage this phase's members" }, { status: 403 });
@@ -160,7 +165,9 @@ export async function DELETE(
     const phaseNumber = parsePhaseNumber(phaseNumberRaw);
     if (!phaseNumber) return NextResponse.json({ error: "phaseNumber must be a positive integer" }, { status: 400 });
 
-    const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+    const { data: profileRow } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle()
+
+    const profile = await asTestRole(profileRow, user.id, { projectId: (await params).projectId }); // task 476
     const myMembership = await getPhaseMembership(supabase, projectId, phaseNumber, user.id);
     if (!canManagePhase1Membership(profile?.role ?? null, myMembership)) {
       return NextResponse.json({ error: "Not permitted to manage this phase's members" }, { status: 403 });

@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { loadTestScope } from "@/lib/test-data";
 import {
   buildItemHref,
   buildProjectHref,
@@ -116,7 +117,7 @@ export async function loadDevDashboard(userId: string, fullName: string | null):
   // `activityLogs` covers the last 30 days (`ACTIVITY_WINDOW_DAYS`), which already includes
   // today — so it also supplies every "Logged today" figure below, rather than running a second,
   // overlapping `time_logs` query just for today's rows.
-  const [tasksRes, issuesByArrayRes, issuesByIdRes, issuesByNameRes, activityLogs] =
+  const [tasksRes, issuesByArrayRes, issuesByIdRes, issuesByNameRes, allActivityLogs, testScope] =
     await Promise.all([
       supabase
         .from("tasks")
@@ -159,16 +160,21 @@ export async function loadDevDashboard(userId: string, fullName: string | null):
           .order("created_at", { ascending: false })
           .range(from, to)
       ),
+      loadTestScope(),
     ]);
 
-  const allTaskRows = tasksRes.data ?? [];
+  // Task 476 — test projects never count on a dashboard (D8), and their hours never count in
+  // hours metrics (D9), for everyone. time_logs RLS doesn't hide them, so filter here.
+  const testProjectIds = new Set(testScope.projectIds);
+  const activityLogs = allActivityLogs.filter((l) => !testProjectIds.has(l.project_id));
+  const allTaskRows = (tasksRes.data ?? []).filter((t) => !testProjectIds.has(t.project_id));
 
   // De-duplicate the three issue result sets by id — a row can match more than one predicate.
   const issueById = new Map<string, NonNullable<typeof issuesByArrayRes.data>[number]>();
   for (const res of [issuesByArrayRes, issuesByIdRes, issuesByNameRes]) {
     for (const row of res.data ?? []) issueById.set(row.id, row);
   }
-  const allIssueRows = [...issueById.values()];
+  const allIssueRows = [...issueById.values()].filter((i) => !testProjectIds.has(i.project_id));
 
   // ─── Project + customer lookup maps (js-index-maps: build once, then O(1)) ───
   const projectIds = new Set<string>();

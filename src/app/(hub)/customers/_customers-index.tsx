@@ -1,5 +1,6 @@
 "use client";
 
+import { TestPill } from "@/components/test-pill";
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Building2, Search, FolderKanban, Mail, Plus, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, CalendarClock, Check, X } from "lucide-react";
@@ -21,6 +22,7 @@ export type CustomerListItem = {
   contact_name: string | null;
   contact_email: string | null;
   status: string;
+  is_test: boolean;
   project_count: number;
   customer_products: CustomerProductProgress[];
   desk_contact_count: number;
@@ -331,7 +333,7 @@ export default function CustomersIndex({
                   onClick={() => router.push(`${V2_ROUTES.CUSTOMERS}/${c.customer_id}`)}
                   className="text-left min-w-0 cursor-pointer"
                 >
-                  <div className="text-[13px] font-medium text-[#0B1533] truncate group-hover:text-[#007BFF]">{c.company_name}</div>
+                  <div className="flex min-w-0 items-center gap-1.5"><span className="text-[13px] font-medium text-[#0B1533] truncate group-hover:text-[#007BFF]">{c.company_name}</span>{c.is_test && <TestPill />}</div>
                   <div className="text-[11px] font-mono text-[#5F6A88] truncate">{c.customer_id}</div>
                   {c.programme_started_at && (
                     <ProgrammeBadge programmeStartedAt={c.programme_started_at} durationDays={c.programme_duration_days} activePhaseNumber={c.programme_active_phase_number} />

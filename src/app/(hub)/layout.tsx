@@ -55,6 +55,14 @@ export default async function HubLayout({ children }: { children: React.ReactNod
     hasDirectReports = data === true;
   }
 
+  // Task 476 — Test Users see Settings. Separate query so a missing column (migration 181 not
+  // applied) only means "not a test user" instead of failing the profile load above.
+  let isTestUser = false;
+  if (userId) {
+    const { data, error } = await supabase.from("profiles").select("is_test_user").eq("id", userId).maybeSingle();
+    isTestUser = !error && data?.is_test_user === true;
+  }
+
   if (!isPathAllowedForDepartment(pathname, departmentName)) {
     redirect(getDepartmentHome(departmentName));
   }
@@ -67,6 +75,7 @@ export default async function HubLayout({ children }: { children: React.ReactNod
         displayName={userDisplayName}
         avatarUrl={userAvatarUrl}
         hasDirectReports={hasDirectReports}
+        isTestUser={isTestUser}
       >
         {children}
       </V2HubShell>

@@ -40,13 +40,14 @@ type NavGroup = {
   items: NavItem[];
 };
 
-function getNavGroups(role: string | null, departmentName: string | null, hasDirectReports: boolean): NavGroup[] {
+function getNavGroups(role: string | null, departmentName: string | null, hasDirectReports: boolean, isTestUser: boolean): NavGroup[] {
   const isAdmin = role === "admin" || role === "super_admin";
   const isDev   = role === "developer";
 
   const workItems: NavItem[] = [
     { label: "Dashboard",     icon: <LayoutDashboard size={18} />, href: V2_ROUTES.DASHBOARD, exact: true },
-    ...(!isDev ? [
+    // Task 476 — a developer Test User needs Customers to reach test companies.
+    ...(!isDev || isTestUser ? [
       { label: "Customers",   icon: <Building2 size={18} />,       href: V2_ROUTES.CUSTOMERS },
     ] : []),
     {
@@ -116,8 +117,9 @@ function getNavGroups(role: string | null, departmentName: string | null, hasDir
     ] : []),
   ];
 
-  const adminItems: NavItem[] = isAdmin ? [
-    { label: "Settings",      icon: <Settings size={18} />,        href: V2_ROUTES.DASHBOARD_SETTINGS },
+  // Task 476 — Test Users get Settings for its Test Data section.
+  const adminItems: NavItem[] = isAdmin || isTestUser ? [
+    { label: "Settings",      icon: <Settings size={18} />,        href: V2_ROUTES.SETTINGS },
   ] : [];
 
   // Task 385 — a dedicated bottom-of-sidebar "Quick Links" group (Tasks / Tickets / Time Logs),
@@ -174,9 +176,10 @@ interface V2HubSidebarProps {
   displayName: string | null;
   avatarUrl: string | null;
   hasDirectReports?: boolean;
+  isTestUser?: boolean;
 }
 
-export default function V2HubSidebar({ userRole, departmentName, displayName, avatarUrl, hasDirectReports = false }: V2HubSidebarProps) {
+export default function V2HubSidebar({ userRole, departmentName, displayName, avatarUrl, hasDirectReports = false, isTestUser = false }: V2HubSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
@@ -184,7 +187,7 @@ export default function V2HubSidebar({ userRole, departmentName, displayName, av
   // Absent = not yet manually toggled this session, so expand state follows the current route.
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const shouldReduceMotion = useReducedMotion();
-  const navGroups = getNavGroups(userRole, departmentName, hasDirectReports);
+  const navGroups = getNavGroups(userRole, departmentName, hasDirectReports, isTestUser);
   const initials = getInitials(displayName);
 
   return (

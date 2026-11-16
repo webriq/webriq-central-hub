@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
+import { testFlagsApplied } from "@/lib/test-data";
 import CustomersIndex, { type CustomerListItem, type PaginationMeta } from "./_customers-index";
 
 export const dynamic = "force-dynamic";
@@ -72,7 +73,13 @@ export default async function CustomersPage({
 
   let customersQuery = supabase
     .from("customers")
-    .select("customer_id,company_name,contact_name,contact_email,status", { count: "exact" })
+    // is_test only exists once migration 181 is applied (task 476); RLS shows test rows to Test Users only.
+    .select(
+      ((await testFlagsApplied())
+        ? "customer_id,company_name,contact_name,contact_email,status,is_test"
+        : "customer_id,company_name,contact_name,contact_email,status") as "customer_id,company_name,contact_name,contact_email,status,is_test",
+      { count: "exact" }
+    )
     .order("company_name");
 
   if (statusParam) {
@@ -157,6 +164,7 @@ export default async function CustomersPage({
     contact_name: c.contact_name,
     contact_email: c.contact_email,
     status: c.status,
+    is_test: c.is_test === true, // undefined before migration 181
     project_count: visibleProjectCount.get(c.customer_id) ?? 0,
     customer_products: productsByCustomer.get(c.customer_id) ?? [],
     desk_contact_count: contactCountByCustomer.get(c.customer_id) ?? 0,

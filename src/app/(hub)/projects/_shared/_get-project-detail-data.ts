@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getSettingsViewer } from "@/lib/test-data";
 import { adminClient } from "@/lib/supabase/admin";
 import { isProjectVisibleToCurrentUser } from "@/app/(hub)/projects-old/_project-access";
 import { getAssignableMembers } from "@/lib/members/assignable";
@@ -113,7 +114,9 @@ export async function getProjectDetailData(projectId: string): Promise<ProjectDe
   for (const r of attachmentCountsRes.data ?? []) attachmentCountById[r.entity_id] = Number(r.attachment_count);
 
   // Task 209 — derived from allMembers (already fetched above), no extra query.
-  const currentUserRole = (profilesRes.data ?? []).find((p) => p.id === currentUserId)?.role ?? null;
+  const realRole = (profilesRes.data ?? []).find((p) => p.id === currentUserId)?.role ?? null;
+  // Task 476 — a Test User acts as pm on a test project (D4). is_test is undefined before migration 181.
+  const currentUserRole = project.is_test === true && currentUserId && (await getSettingsViewer(currentUserId)).isTestUser ? "pm" : realRole;
 
   return {
     project,

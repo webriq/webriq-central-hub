@@ -1,3 +1,4 @@
+import { loadTestScope, notInList } from "@/lib/test-data";
 import { generateObject } from "ai";
 import { z } from "zod";
 import { adminClient } from "@/lib/supabase/admin";
@@ -43,6 +44,8 @@ export async function generateDigest(type: DigestType): Promise<DigestLogRow | n
   let unassignedCount = 0;
 
   if (type === "pm") {
+    // Task 476 — test companies never count in the digest's status totals (D8).
+    const notTestCustomers = notInList((await loadTestScope()).customerIds);
     const [
       activeCustomersResult,
       completedOnboardingResult,
@@ -53,11 +56,13 @@ export async function generateDigest(type: DigestType): Promise<DigestLogRow | n
       adminClient
         .from("customers")
         .select("*", { count: "exact", head: true })
-        .eq("status", "active"),
+        .eq("status", "active")
+        .not("customer_id", "in", notTestCustomers),
       adminClient
         .from("customers")
         .select("*", { count: "exact", head: true })
-        .eq("status", "completed_onboarding"),
+        .eq("status", "completed_onboarding")
+        .not("customer_id", "in", notTestCustomers),
       adminClient
         .from("classification_records")
         .select("id, title, customer_id, priority, task_type, created_at")

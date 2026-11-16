@@ -1,11 +1,7 @@
-import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { V2_ROUTES } from "@/config/constants";
 
-export const metadata: Metadata = { title: "Settings" };
-
-export default function SettingsPage() {
-  return (
-    <div className="py-6.5 px-8">
-      <p className="text-sm text-muted-foreground">v2 · Settings · Sprint 1A</p>
-    </div>
-  );
+// Task 476 — Settings moved to /settings; old links and bookmarks keep working.
+export default function OldSettingsRedirect() {
+  redirect(V2_ROUTES.SETTINGS);
 }

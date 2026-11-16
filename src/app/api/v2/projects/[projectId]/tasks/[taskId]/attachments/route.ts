@@ -1,3 +1,4 @@
+import { asTestRole } from "@/lib/test-data";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { extensionInfoFor, isHardBlockedFilename, MAX_FILES } from "@/config/attachment-types";
@@ -106,7 +107,9 @@ export async function POST(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+  const { data: profileRow } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle()
+
+  const profile = await asTestRole(profileRow, user.id, { projectId }); // task 476
 
   const { data: project } = await supabase.from("projects").select("id").eq("project_id", projectId).single();
   if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 });

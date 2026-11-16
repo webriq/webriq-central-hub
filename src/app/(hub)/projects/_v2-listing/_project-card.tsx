@@ -1,5 +1,6 @@
 "use client";
 
+import { TestPill } from "@/components/test-pill";
 import { useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Building2, CalendarClock, Clock3 } from "lucide-react";
@@ -56,6 +57,7 @@ export function ProjectCard({
           />
           <div className="inline-flex items-center gap-1 text-[12px] text-[#5F6A88] truncate">
             <Building2 size={11} /> {item.company_name}
+            {item.is_test && <TestPill />}
           </div>
         </div>
         <div className="flex items-center gap-1 shrink-0">

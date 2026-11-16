@@ -1,3 +1,4 @@
+import { loadTestScope, notInList } from "@/lib/test-data";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
@@ -68,6 +69,8 @@ export async function GET() {
   .gte("created_at", "2026-07-06T00:00:00Z")
   // Soft-deleted projects (task 231) never appear on the Portfolio Tracker list.
   .neq("status", "deleted")
+  // Task 476 — GET feeds only the dashboards (PM/marketing); test projects never count there (D8).
+  .not("id", "in", notInList((await loadTestScope()).projectIds))
   .order("created_at", { ascending: false });
 
     if (error) {
