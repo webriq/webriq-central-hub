@@ -36,6 +36,37 @@ export function CardSkeletonGrid({ count = 9 }: { count?: number }) {
   );
 }
 
+// Task 480 — List view counterpart of CardSkeleton, mirroring _project-row.tsx's layout.
+function RowSkeleton() {
+  return (
+    <div className="flex flex-wrap md:flex-nowrap items-center gap-x-4 gap-y-2 rounded-[14px] border border-[#EDF0F7] bg-white px-4 py-3">
+      <div className="flex flex-col gap-1.5 flex-1 basis-48">
+        <Bone className="h-4 w-40" />
+        <Bone className="h-3 w-28" />
+      </div>
+      <div className="shrink-0 md:order-last md:w-24 md:flex md:justify-end"><Bone className="h-5 w-20 rounded-full" /></div>
+      <div className="basis-full h-0 md:hidden" />
+      <div className="shrink-0 md:w-52"><Bone className="h-5 w-24 rounded-full" /></div>
+      <div className="flex-1 md:flex-none md:w-72 flex items-center gap-2">
+        <Bone className="h-1.5 flex-1 rounded-full" />
+        <Bone className="h-3 w-16 md:w-36" />
+      </div>
+      <div className="hidden lg:block shrink-0 w-28"><Bone className="h-5 w-20 rounded-full" /></div>
+      <div className="shrink-0 md:w-36 flex md:justify-end"><Bone className="h-6 w-24 rounded-full" /></div>
+    </div>
+  );
+}
+
+export function RowSkeletonList({ count = 15 }: { count?: number }) {
+  return (
+    <div className="flex flex-col gap-2">
+      {Array.from({ length: count }).map((_, i) => (
+        <RowSkeleton key={i} />
+      ))}
+    </div>
+  );
+}
+
 export function ToolbarSkeleton() {
   return (
     <div className="flex items-center gap-3 flex-wrap">

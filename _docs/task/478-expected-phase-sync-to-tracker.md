@@ -17,9 +17,9 @@ Hub active phase matched "Now", so 9 projects sit behind their Expected phase.
 ### Decisions (user, 2026-11-17)
 
 - **Moved projects:** move each to its Expected phase. Every earlier phase becomes **Completed**, never Skipped/Bypassed.
-- **Past Day 120:** programmes past Day 120 follow the tracker as is: they keep the tracker's "Now" phase, which already matches the Hub, and may run past 120 days. Not moved: Trident Website (On Hold, M&R), Veteran, Retail Sign, Greydog (Publish), RCB, M&I (M&R).
+- **Past Day 120** ("Programme ended <date>"): batch 1 left these alone. The user then decided to set them to **Optimize for now** (batch 2). They may run past 120 days.
 - **Included special cases:**
-  - Trident (On Hold): past Day 120, so it keeps M&R.
+  - Trident (On Hold): moved to Optimize in batch 2, and stays On Hold.
   - Glorias: the tracker says "TBC"; the Hub is on Day 80, so it moves to AI Visibility.
 - **Scope:**
   - StackShift I only.
@@ -75,7 +75,7 @@ deliverable banners on the Timeline remain until the deliverables are marked don
 
 ## Rollback
 
-Run the saved `rollback.sql` from the same dry run that produced the applied `apply.sql`.
+Run the saved `rollback.sql` from the same dry run that produced the applied `apply.sql`. Batch 2's is `out/ended/rollback.sql`. To undo both, roll back batch 2 first, then batch 1 (`out/rollback.sql`).
 
 ## Post-Apply Verification (2026-11-17, operator-applied on LIVE)
 
@@ -94,7 +94,7 @@ Checked through the Status Report API (read-only). The dry run was deliberately 
 | Maxton | Publish (in progress) | all completed | 11/30d | On track |
 
 - All 9 are on their tracker Expected phase, and none is overdue any more.
-- Programmes past Day 120 are unchanged: Trident Website (M&R, On Hold), Veteran / Retail Sign / Greydog (Publish), RCB / M&I (M&R). Their earlier phases are still Skipped; they were out of scope.
+- Batch 1 left the programmes past Day 120 unchanged; batch 2 (below) later moved them to Optimize.
 - Saginaw and Studio Belmont read "At risk": they are 28 of 30 days into Optimize, and their deliverables are not marked done.
 
 ## Batch 2: programmes past Day 120 → Optimize (2026-11-17)

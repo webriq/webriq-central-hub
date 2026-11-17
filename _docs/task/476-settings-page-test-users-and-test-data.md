@@ -58,6 +58,9 @@ Creating users, customers and projects stays on their own pages (`/dashboard/use
 - **D8 (rev 3) Dashboards and metrics exclude test data for everyone**, Test Users included: dashboard
   overview (admin/PM/marketing/developer), `/api/metrics` (`vw_hub_metrics`), KPI counts, status reports,
   charts, digest.
+  **Amended 2026-11-17 (user request):** the status report (`/api/onboarding/projects/status-report`) now
+  *includes* test projects for Test Users (also exempting them from the pm/marketing membership gate on
+  test projects); non-test users still never see them.
 - **D9 (rev 3) Time logs on test projects:** excluded from hours metrics (weekly-hours chart, dashboard
   totals, cost reports). The Test User still sees their own entries on the Time Logs page.
 - **D3 (rev 2) Who flags companies and projects:** admins and Test Users. Only admins flag *users*.

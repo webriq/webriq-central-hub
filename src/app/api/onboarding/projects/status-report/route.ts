@@ -1,4 +1,4 @@
-import { loadTestScope, notInList } from "@/lib/test-data";
+import { getSettingsViewer, loadTestScope, notInList } from "@/lib/test-data";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
@@ -43,6 +43,12 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Not permitted to view the status report" }, { status: 403 });
     }
 
+    // Task 476 follow-up — a Test User (Settings) sees test projects in the status report alongside
+    // real ones; everyone else never does. RLS already hides test rows from non-test users; the
+    // explicit filter is kept as the belt-and-braces exclusion for them.
+    const [viewer, testScope] = await Promise.all([getSettingsViewer(user.id), loadTestScope()]);
+    const testProjectIds = new Set(testScope.projectIds);
+
     let projectsQuery = supabase
       .from("projects")
       .select(`
@@ -59,9 +65,8 @@ export async function GET(request: Request) {
       .not("programme_started_at", "is", null)
       // Soft-deleted projects (task 231) are excluded from the status report.
       .neq("status", "deleted")
-      // Task 476 — test projects never appear in a status report, even for Test Users (D8).
-      .not("id", "in", notInList((await loadTestScope()).projectIds))
       .order("programme_started_at", { ascending: true });
+    if (!viewer.isTestUser) projectsQuery = projectsQuery.not("id", "in", notInList(testScope.projectIds));
     // Task 472 — archived projects (incl. task 468 merge sources) are hidden from the portfolio list only; their own detail page still loads them.
     projectsQuery = projectId ? projectsQuery.eq("id", projectId) : projectsQuery.neq("status", "archived");
 
@@ -83,7 +88,10 @@ export async function GET(request: Request) {
         .in("project_id", allProjectIds.length > 0 ? allProjectIds : ["00000000-0000-0000-0000-000000000000"]);
       const projectsWithMembers = new Set((memberRows ?? []).map((r) => r.project_id));
       const myMemberProjectIds = new Set((memberRows ?? []).filter((r) => r.user_id === user.id).map((r) => r.project_id));
-      projects = projects.filter((p) => !projectsWithMembers.has(p.id) || myMemberProjectIds.has(p.id));
+      // A Test User has full access to test data (task 476), so membership never hides a test project from them.
+      projects = projects.filter(
+        (p) => !projectsWithMembers.has(p.id) || myMemberProjectIds.has(p.id) || (viewer.isTestUser && testProjectIds.has(p.id))
+      );
     }
 
     const projectIds = projects.map((p) => p.id);

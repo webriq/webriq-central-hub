@@ -5,16 +5,18 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   ChartGantt, Plus, Upload, Search, X,
-  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ClipboardList,
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ClipboardList, LayoutGrid, List,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { V2_ROUTES } from "@/config/constants";
 import { isRoleGatedByMembership } from "@/lib/programme/membership-rules";
 import { classificationStatusReportHref, classificationTabHref, labelForTab, type ClassificationTabId } from "../_classification-tabs";
 import { FilterMultiSelect, parseMultiParam } from "./_filter-multi-select";
 import { SortSelect } from "./_sort-select";
 import { ProjectCard } from "./_project-card";
-import { CardSkeletonGrid } from "./_list-skeleton";
+import { ProjectRow } from "./_project-row";
+import { CardSkeletonGrid, RowSkeletonList } from "./_list-skeleton";
 import type { OnboardingPaginationMeta } from "./_load-list-data";
 
 export type OnboardingProjectListItem = {
@@ -79,6 +81,12 @@ const SORT_OPTIONS = [
   { value: "due_soonest", label: "Handover date (soonest)" },
 ] as const;
 const PAGE_SIZES = [15, 45, 90] as const;
+// Task 480 — Grid (default, no URL param) or List (`?view=list`).
+const VIEW_OPTIONS = [
+  { value: "grid", label: "Grid view", Icon: LayoutGrid },
+  { value: "list", label: "List view", Icon: List },
+] as const;
+type ListingView = (typeof VIEW_OPTIONS)[number]["value"];
 
 // Task 276 (Phase 1) — renamed from the source's `OnboardingList` to `V2ProjectsListing` since
 // this is the entry component for the "V2 Projects" tab (now `/projects/v2`, task 279); props
@@ -104,8 +112,12 @@ export default function V2ProjectsListing({
   // Derived from activeTabId rather than taken as a separate prop — the label is fully
   // determined by the tab id, so a second prop would just be state that could drift from it.
   const classificationLabel = labelForTab(activeTabId);
-  // Clearing filters must land back on the *current* classification's page.
-  const clearFiltersHref = classificationTabHref(activeTabId);
+  // Task 480 — the URL is the single source of truth for the view, so back/forward just work.
+  const view: ListingView = searchParams.get("view") === "list" ? "list" : "grid";
+  const ProjectEntry = view === "list" ? ProjectRow : ProjectCard;
+  // Clearing filters must land back on the *current* classification's page, keeping the view.
+  const classificationHref = classificationTabHref(activeTabId);
+  const clearFiltersHref = view === "list" ? `${classificationHref}?view=list` : classificationHref;
 
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
@@ -122,7 +134,12 @@ export default function V2ProjectsListing({
       if (v === null) { p.delete(k); } else { p.set(k, String(v)); }
     }
     const query = p.toString();
-    return `${clearFiltersHref}${query ? `?${query}` : ""}`;
+    return `${classificationHref}${query ? `?${query}` : ""}`;
+  }
+
+  function handleViewChange(next: ListingView) {
+    if (next === view) return;
+    navigate(buildUrl({ view: next === "list" ? "list" : null, page: 1 }));
   }
 
   // Every navigation below is wrapped in startTransition — isPending then drives the skeleton
@@ -254,6 +271,29 @@ export default function V2ProjectsListing({
               options={SORT_OPTIONS}
             />
 
+            {/* Task 480 — Grid / List toggle, styled like the legacy listing's toggle. */}
+            <div role="group" aria-label="Layout" className="flex items-center gap-0.5 border border-[#E2E7F2] rounded-full p-1 bg-white shrink-0">
+              {VIEW_OPTIONS.map(({ value, label, Icon }) => (
+                <Tooltip key={value}>
+                  <TooltipTrigger render={
+                    <button
+                      type="button"
+                      onClick={() => handleViewChange(value)}
+                      aria-label={label}
+                      aria-pressed={view === value}
+                      className={cn(
+                        "p-1.5 rounded-full transition-colors cursor-pointer outline-none focus-visible:ring-[3px] focus-visible:ring-[#007BFF]/30",
+                        view === value ? "bg-[#071133] text-white" : "text-[#5F6A88] hover:text-[#0B1533]"
+                      )}
+                    >
+                      <Icon size={15} />
+                    </button>
+                  } />
+                  <TooltipContent side="top">{label}</TooltipContent>
+                </Tooltip>
+              ))}
+            </div>
+
             {isFiltered && (
               <button
                 onClick={() => { setSearchInput(""); navigate(clearFiltersHref); }}
@@ -301,7 +341,7 @@ export default function V2ProjectsListing({
       {/* ── Scrollable content ───────────────────────────────────────────────── */}
       <div className="max-w-350 mx-auto px-8 py-5">
       {isPending ? (
-        <CardSkeletonGrid count={pageSize} />
+        view === "list" ? <RowSkeletonList count={pageSize} /> : <CardSkeletonGrid count={pageSize} />
       ) : projects.length === 0 && !isFiltered ? (
         <div className="flex flex-col items-center justify-center py-20 gap-3 rounded-[14px] border border-[#E2E7F2] bg-white">
           <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-[#F0F7FF]">
@@ -331,9 +371,9 @@ export default function V2ProjectsListing({
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 items-stretch">
+        <div className={view === "list" ? "flex flex-col gap-2" : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 items-stretch"}>
           {projects.map((p) => (
-            <ProjectCard
+            <ProjectEntry
               key={p.id}
               item={p}
               editable={canOpenProject(p)}

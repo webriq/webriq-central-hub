@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ClipboardList, Search, X, ArrowLeft } from "lucide-react";
+import { NewTaskHeaderButton, StatusReportTasksProvider } from "./_status-report-tasks-context";
 import { PROGRAMME_PHASES } from "@/config/customer-phases";
 import { classificationForTab, classificationTabHref, type ClassificationTabId } from "@/app/(hub)/projects/_classification-tabs";
 import type { DelayNoteValue, ProjectStatusReportItem, StatusReportResponse } from "./_status-report-types";
@@ -126,12 +127,20 @@ export default function StatusReportClient({ role, tabId }: { role: string | nul
     return sorted;
   }, [projects, classification, search, healthSelected, phaseSelected, includeCompleted, sortBy]);
 
+  // Task 479 — the header "New task" picker offers every project in this classification that has a
+  // project code (the tasks API resolves by code), not just the filtered view.
+  const pickable = useMemo(
+    () => projects.filter((p) => p.classification === classification && p.projectId).sort((a, b) => a.projectName.localeCompare(b.projectName)),
+    [projects, classification]
+  );
+
   const isFiltered = !!search.trim()
     || healthSelected.length !== HEALTH_OPTIONS.length
     || phaseSelected.length !== PHASE_OPTIONS.length
     || includeCompleted;
 
   return (
+    <StatusReportTasksProvider pickable={pickable}>
     <div>
       <div className="sticky top-0 z-20 bg-[#F4F6FB]">
         <div className="max-w-350 mx-auto px-8 pt-6 pb-4">
@@ -147,6 +156,7 @@ export default function StatusReportClient({ role, tabId }: { role: string | nul
                 {filtered.length} {classification} project{filtered.length === 1 ? "" : "s"} currently in the 120-day programme — current phase, health, and overdue reasons at a glance.
               </p>
             </div>
+            <NewTaskHeaderButton disabled={loading} />
           </div>
 
           <div className="flex items-center gap-3 flex-wrap">
@@ -229,5 +239,6 @@ export default function StatusReportClient({ role, tabId }: { role: string | nul
         />
       </div>
     </div>
+    </StatusReportTasksProvider>
   );
 }

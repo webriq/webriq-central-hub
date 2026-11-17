@@ -6,6 +6,7 @@ import type { DelayNoteValue, HealthTone, PhaseStatus, ProjectStatusReportItem }
 import { HEALTH_LABEL, STATUS_LABEL, formatUsedAlloted } from "./_status-report-types";
 import { AssigneeCell } from "./_status-report-assignee-cell";
 import { NoteCell, ProjectNoteCell } from "./_status-report-note-cell";
+import { StatusReportTasksPanel } from "./_status-report-tasks-panel";
 
 const STATUS_TONE: Record<PhaseStatus, "neutral" | "ok" | "late"> = {
   pending: "neutral",
@@ -92,6 +93,8 @@ export default function StatusReportRowDetail({
           </tbody>
         </table>
       </div>
+      {/* Task 479 — renders only inside the classification report's StatusReportTasksProvider. */}
+      <StatusReportTasksPanel project={project} />
     </div>
   );
 }
