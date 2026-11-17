@@ -11,6 +11,17 @@ import { AssigneeCell } from "./_status-report-assignee-cell";
 import StatusReportRowDetail from "./_status-report-row-detail";
 import { useProjectsBase } from "@/app/(hub)/projects/[classification]/[projectId]/_use-projects-base";
 
+// Kickoff = programme_started_at, which is also Onboard's start date (kickoff route keeps them in sync).
+function formatKickoff(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+// YYYY-MM-DD as a local calendar date (no UTC shift).
+function formatYmdShort(ymd: string): string {
+  const [y, m, d] = ymd.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
 const STATUS_TONE: Record<PhaseStatus, "neutral" | "ok" | "late"> = {
   pending: "neutral",
   in_progress: "ok",
@@ -118,11 +129,12 @@ export default function StatusReportTable({ projects, loading, canEditNotes, onN
 
   return (
     <div className="relative rounded-[14px] border border-[#E2E7F2] bg-white shadow-[0_1px_2px_rgba(7,17,51,0.05)] overflow-x-auto">
-      <table className="w-full text-left border-collapse min-w-[1080px]">
+      <table className="w-full text-left border-collapse min-w-[1180px]">
         <thead>
           <tr className="bg-[#FAFBFE] border-b border-[#EDF0F7]">
             <th className="w-8" />
             <th className="px-[18px] py-2.5 text-[9.5px] font-bold uppercase tracking-[0.09em] text-[#5F6A88]">Project</th>
+            <th className="px-3 py-2.5 text-[9.5px] font-bold uppercase tracking-[0.09em] text-[#5F6A88]">Kickoff</th>
             <th className="px-3 py-2.5 text-[9.5px] font-bold uppercase tracking-[0.09em] text-[#5F6A88]">Phases</th>
             <th className="px-3 py-2.5 text-[9.5px] font-bold uppercase tracking-[0.09em] text-[#5F6A88]">Current phase</th>
             <th className="px-3 py-2.5 text-[9.5px] font-bold uppercase tracking-[0.09em] text-[#5F6A88]">Used/Alloted</th>
@@ -165,6 +177,16 @@ export default function StatusReportTable({ projects, loading, canEditNotes, onN
                     </div>
                     <CollapsedNoteHint project={project} />
                   </td>
+                  <td className="px-3 py-3 whitespace-nowrap">
+                    <div className="text-[12px] text-[#0B1533]">{formatKickoff(project.programmeStartedAt)}</div>
+                    {project.actualProgrammeDay > project.totalProgrammeDays ? (
+                      <div className="font-mono text-[10.5px] text-[#C0392B]">
+                        Day {project.actualProgrammeDay} · ended {formatYmdShort(project.programmeEndDate)}
+                      </div>
+                    ) : (
+                      <div className="font-mono text-[10.5px] text-[#5F6A88]">Day {project.actualProgrammeDay}</div>
+                    )}
+                  </td>
                   <td className="px-3 py-3"><PhaseMiniStrip project={project} /></td>
                   <td className="px-3 py-3">
                     <div className="flex items-center gap-1.5 flex-wrap">
@@ -182,7 +204,9 @@ export default function StatusReportTable({ projects, loading, canEditNotes, onN
                   </td>
                   <td className="px-3 py-3"><AssigneeCell members={cp.assigneeMembers} placeholder={cp.assigneePlaceholder} /></td>
                   <td className="px-3 py-3">
-                    {project.health ? (
+                    {project.onHold ? (
+                      <Chip tone="warn" dot>On Hold</Chip>
+                    ) : project.health ? (
                       <Chip tone={HEALTH_TONE[project.health]} dot>{HEALTH_LABEL[project.health]}</Chip>
                     ) : (
                       <span className="text-[12px] text-[#5F6A88]">—</span>
@@ -191,7 +215,7 @@ export default function StatusReportTable({ projects, loading, canEditNotes, onN
                 </tr>
                 {isOpen && (
                   <tr key={`${project.id}-detail`} className="border-b border-[#EDF0F7] last:border-b-0">
-                    <td colSpan={8} className="bg-[#FAFBFE] px-[18px] py-4">
+                    <td colSpan={9} className="bg-[#FAFBFE] px-[18px] py-4">
                       <StatusReportRowDetail project={project} canEditNotes={canEditNotes} onNoteSaved={onNoteSaved} onProjectNoteSaved={onProjectNoteSaved} />
                     </td>
                   </tr>

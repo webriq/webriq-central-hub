@@ -144,11 +144,15 @@ export function StatusSummaryDrawer({
                 <div className="text-[12px] text-[#5F6A88] mb-1">{project.companyName}</div>
                 <div className="flex items-center justify-between gap-2 flex-wrap">
                   <span className="text-[14px] font-bold text-[#0B1533]">{project.projectName}</span>
-                  {project.health && <Chip tone={HEALTH_TONE[project.health]} dot>{HEALTH_LABEL[project.health]}</Chip>}
+                  {project.onHold ? <Chip tone="warn" dot>On Hold</Chip> : project.health && <Chip tone={HEALTH_TONE[project.health]} dot>{HEALTH_LABEL[project.health]}</Chip>}
                 </div>
                 <div className="flex items-center gap-2 flex-wrap mt-2">
                   <PhaseChip phaseNumber={project.currentPhase.phaseNumber} phaseName={project.currentPhase.name} />
-                  <span className="text-[11px] text-[#5F6A88]">Day {project.currentProgrammeDay} / 120</span>
+                  {project.actualProgrammeDay > project.totalProgrammeDays ? (
+                    <span className="text-[11px] text-[#C0392B]">Day {project.actualProgrammeDay} · ended {new Date(`${project.programmeEndDate}T00:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+                  ) : (
+                    <span className="text-[11px] text-[#5F6A88]">Day {project.currentProgrammeDay} / {project.totalProgrammeDays}</span>
+                  )}
                   <span className="text-[11px] text-[#5F6A88]">{project.programmeDaysLeft} days left</span>
                 </div>
               </div>

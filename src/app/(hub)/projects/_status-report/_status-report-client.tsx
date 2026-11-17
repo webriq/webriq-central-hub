@@ -7,7 +7,7 @@ import { PROGRAMME_PHASES } from "@/config/customer-phases";
 import { classificationForTab, classificationTabHref, type ClassificationTabId } from "@/app/(hub)/projects/_classification-tabs";
 import type { DelayNoteValue, ProjectStatusReportItem, StatusReportResponse } from "./_status-report-types";
 import { withPhaseNote } from "./_status-report-note-cell";
-import { HEALTH_LABEL } from "./_status-report-types";
+import { HEALTH_LABEL, reportHealthKey } from "./_status-report-types";
 import StatusReportTable from "./_status-report-table";
 import { FilterMultiSelect } from "@/app/(hub)/projects/_v2-listing/_filter-multi-select";
 import { SortSelect } from "@/app/(hub)/projects/_v2-listing/_sort-select";
@@ -16,10 +16,10 @@ import { SortSelect } from "@/app/(hub)/projects/_v2-listing/_sort-select";
 // "All" selected means unfiltered (not an exact .in() match), so rows with health === null
 // (no active/overdue phase to roll up) still show up when nothing has been deliberately
 // narrowed — see task 224's Key Design Decision on this.
-const HEALTH_OPTIONS = (["needs_attention", "at_risk", "on_track", "ahead_of_schedule"] as const).map((h) => ({
-  value: h,
-  label: HEALTH_LABEL[h],
-}));
+const HEALTH_OPTIONS = [
+  ...(["needs_attention", "at_risk", "on_track", "ahead_of_schedule"] as const).map((h) => ({ value: h as string, label: HEALTH_LABEL[h] })),
+  { value: "on_hold", label: "On Hold" },
+];
 // Phase filter — checkbox multi-select (task 224 follow-up amendment), same pattern as Health
 // above. Task 473 — no Classification filter: the report is scoped to the URL's classification.
 const PHASE_OPTIONS = PROGRAMME_PHASES.map((p) => ({ value: String(p.number), label: p.name }));
@@ -84,7 +84,10 @@ export default function StatusReportClient({ role, tabId }: { role: string | nul
     // "All" selected (full selection) means unfiltered — a null-health row (no active/overdue
     // phase) still passes through untouched unless the user has deliberately narrowed the set.
     if (healthSelected.length !== HEALTH_OPTIONS.length) {
-      list = list.filter((p) => p.health !== null && healthSelected.includes(p.health));
+      list = list.filter((p) => {
+        const key = reportHealthKey(p);
+        return key !== null && healthSelected.includes(key);
+      });
     }
     if (phaseSelected.length !== PHASE_OPTIONS.length) {
       // Task 246: PHASE_OPTIONS only lists the 5 defaults — a project currently active in a
@@ -101,7 +104,8 @@ export default function StatusReportClient({ role, tabId }: { role: string | nul
     const sorted = [...list];
     switch (sortBy) {
       case "overdue":
-        sorted.sort((a, b) => b.currentPhase.daysOverdue - a.currentPhase.daysOverdue);
+        // On-hold projects aren't slipping — they sink below every active project.
+        sorted.sort((a, b) => Number(a.onHold) - Number(b.onHold) || b.currentPhase.daysOverdue - a.currentPhase.daysOverdue);
         break;
       case "name_asc":
         sorted.sort((a, b) => a.projectName.localeCompare(b.projectName));

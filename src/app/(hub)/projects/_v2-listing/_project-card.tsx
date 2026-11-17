@@ -12,6 +12,12 @@ import { EditableProjectTitle, type EditableProjectTitleHandle } from "@/compone
 import type { OnboardingProjectListItem } from "./_onboarding-list";
 import { useProjectsBase } from "@/app/(hub)/projects/[classification]/[projectId]/_use-projects-base";
 
+// YYYY-MM-DD as a local calendar date (no UTC shift).
+function formatYmdShort(ymd: string): string {
+  const [y, m, d] = ymd.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
 function formatDate(iso: string | null): string {
   if (!iso) return "—";
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
@@ -74,9 +80,15 @@ export function ProjectCard({
         <div className="flex-1 h-1.5 rounded-full overflow-hidden bg-[#EDF0F7]">
           <div className="h-full rounded-full bg-[#007BFF] transition-[width] duration-300" style={{ width: `${item.current_day ? item.progress_pct : 0}%` }} />
         </div>
-        <span className="text-[11px] font-mono shrink-0 text-[#5F6A88]">
-          {item.current_day ? `Day ${item.current_day}/${item.programme_duration_days}` : `Day —/${item.programme_duration_days}`}
-        </span>
+        {item.actual_day && item.programme_end_date && item.actual_day > item.programme_duration_days ? (
+          <span className="text-[11px] font-mono shrink-0 text-[#C0392B]">
+            Day {item.actual_day} · ended {formatYmdShort(item.programme_end_date)}
+          </span>
+        ) : (
+          <span className="text-[11px] font-mono shrink-0 text-[#5F6A88]">
+            {item.current_day ? `Day ${item.current_day}/${item.programme_duration_days}` : `Day —/${item.programme_duration_days}`}
+          </span>
+        )}
       </div>
 
       {/* Phase / status line — always present, one line */}

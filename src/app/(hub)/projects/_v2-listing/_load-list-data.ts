@@ -3,7 +3,7 @@ import { adminClient } from "@/lib/supabase/admin";
 import { isRoleGatedByMembership, canManageProjectMembers, canSetProjectOwner } from "@/lib/programme/membership-rules";
 import { getDeveloperAccessibleProjectIds } from "../../projects-old/_project-access";
 import { DEFAULT_PROGRAMME_DAYS, type Classification } from "@/config/customer-phases";
-import { currentDisplayDay } from "@/lib/programme/calendar";
+import { asDisplayDay, currentDisplayDay, displayDayToYmd } from "@/lib/programme/calendar";
 import { RECENT_SORT, RECENT_FETCH_PAGE, loadViewStats, sortByRecentAccess } from "../_shared/_recent-sort";
 import type { OnboardingProjectListItem } from "./_onboarding-list";
 import { effectiveProjectRole, getSettingsViewer, loadTestScope } from "@/lib/test-data";
@@ -14,6 +14,9 @@ import { effectiveProjectRole, getSettingsViewer, loadTestScope } from "@/lib/te
 // marketing-dashboard.tsx for unrelated summary widgets, see the task doc's Out of Scope).
 
 const CREATE_ROLES = ["admin", "super_admin", "marketing", "pm"];
+
+// projects.onboarding_status values the Status filter can select (plus "on_hold", from projects.status).
+const PROGRAMME_STATUSES = ["draft", "scheduled", "in_progress", "completed"] as const;
 
 export type OnboardingListParams = {
   search: string;
@@ -123,8 +126,17 @@ export async function loadOnboardingProjectsList(
   // Task 468 — projects merged into another are archived and hidden from the v2 listing (needs migration 180).
   query = query.filter("merged_into_project_id", "is", null);
   if (params.statusValues !== null) {
-    const statusFilter = params.statusValues.length > 0 ? params.statusValues : ["__none__"];
-    query = query.in("onboarding_status", statusFilter);
+    // Mirrors the card's display status: an on-hold project (projects.status) is "on_hold" and never
+    // matches its onboarding_status. Values are whitelisted — they're interpolated into .or() below.
+    const wantsOnHold = params.statusValues.includes("on_hold");
+    const programmeStatuses = params.statusValues.filter((v) => (PROGRAMME_STATUSES as readonly string[]).includes(v));
+    if (!wantsOnHold) {
+      query = query.neq("status", "on_hold").in("onboarding_status", programmeStatuses.length > 0 ? programmeStatuses : ["__none__"]);
+    } else if (programmeStatuses.length === 0) {
+      query = query.eq("status", "on_hold");
+    } else {
+      query = query.or(`status.eq.on_hold,onboarding_status.in.(${programmeStatuses.join(",")})`);
+    }
   }
   if (params.search) {
     const { data: matchedCustomers } = await supabase
@@ -244,6 +256,9 @@ export async function loadOnboardingProjectsList(
       current_phase_number: activePhaseNumber,
       current_phase_name: activePhaseNumber ? (activePhaseNameByProject.get(p.id) ?? null) : null,
       current_day: currentDay,
+      // Uncapped day + last-day date — the card shows "Day 154 · ended Oct 14" past the programme's end.
+      actual_day: p.programme_started_at ? (currentDisplayDay(p.programme_started_at) as number) : null,
+      programme_end_date: p.programme_started_at ? displayDayToYmd(p.programme_started_at, asDisplayDay(durationDays)) : null,
       programme_duration_days: durationDays,
       progress_pct: currentDay ? Math.min(100, Math.round((currentDay / durationDays) * 100)) : 0,
       programme_started_at: p.programme_started_at,

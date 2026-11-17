@@ -7,7 +7,8 @@ import { canEditKickoff, kickoffTimestamp, parseKickoffDate } from "@/lib/progra
 
 // Task 455 — set a running programme's kickoff (projects.programme_started_at) to the PM-confirmed
 // date. admin/super_admin/pm. Only the kickoff and the derived phase/deliverable start/due dates
-// change (rematerialiseProgrammeDates); phase status and actual dates are untouched. adminClient after
+// change (rematerialiseProgrammeDates), plus Onboard's (phase 1) actual_start_date, which always equals
+// the kickoff. Phase status and every other actual date are untouched. adminClient after
 // the role check: programme project_phases rows are RLS-writable by admin/super_admin/marketing only,
 // and pm needs to re-materialise them here (same pattern as the phase-tagging route).
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ projectId: string }> }) {
@@ -54,6 +55,18 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       // The kickoff itself is saved; the derived dates are recomputed again by the next save.
       console.error("PATCH .../programme/kickoff rematerialise error:", err);
       return NextResponse.json({ error: "Kickoff saved, but phase dates failed to update — save again to retry" }, { status: 500 });
+    }
+    // The kickoff IS Onboard's start date (PM rule) — keep phase 1's actual_start_date in lockstep so
+    // the Status Report's "Started" column and Onboard's used/overdue days count from the kickoff.
+    const { error: onboardError } = await adminClient
+      .from("project_phases")
+      .update({ actual_start_date: parsed.ymd })
+      .eq("project_id", projectId)
+      .eq("source", "programme")
+      .eq("phase_number", 1);
+    if (onboardError) {
+      console.error("PATCH .../programme/kickoff onboard start update error:", onboardError);
+      return NextResponse.json({ error: "Kickoff saved, but the Onboard start date failed to update — save again to retry" }, { status: 500 });
     }
 
     return NextResponse.json({ ok: true, programme_started_at: startedAt });

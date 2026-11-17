@@ -29,7 +29,9 @@ export type OnboardingProjectListItem = {
   hasProduct: boolean;
   current_phase_number: number | null;
   current_phase_name: string | null;
-  current_day: number | null;
+  current_day: number | null; // capped at programme_duration_days
+  actual_day: number | null; // uncapped — keeps counting past the programme's last day
+  programme_end_date: string | null; // YYYY-MM-DD of the programme's last day
   programme_duration_days: number;
   progress_pct: number;
   programme_started_at: string | null;
@@ -59,6 +61,8 @@ const STATUS_OPTIONS = [
   { value: "scheduled", label: "Scheduled" },
   { value: "in_progress", label: "In Progress" },
   { value: "completed", label: "Completed" },
+  // projects.status = on_hold — overrides the programme-derived status (see _load-list-data.ts).
+  { value: "on_hold", label: "On Hold" },
 ] as const;
 // Task 361 — the Classification multi-select filter that used to sit next to Status is gone; the
 // shell's tab strip is the classification selection now, and the active tab arrives as props

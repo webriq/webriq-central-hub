@@ -10,6 +10,7 @@ import {
   type PhaseAssigneeMember,
 } from "@/lib/programme/status-report";
 import { loadProgrammeSummaries } from "@/lib/programme/store";
+import { asDisplayDay, currentDisplayDay, displayDayToYmd } from "@/lib/programme/calendar";
 import { isRoleGatedByMembership } from "@/lib/programme/phase-membership";
 import { canEditKickoff, canWriteDelayNotes } from "@/lib/programme/note-rules";
 import { loadProjectDelayNotes, resolveUserNames } from "@/lib/programme/delay-notes";
@@ -51,6 +52,7 @@ export async function GET(request: Request) {
         customer_id,
         programme_started_at,
         customer_product_id,
+        status,
         customers(company_name),
         customer_products(classification)
       `)
@@ -179,9 +181,15 @@ export async function GET(request: Request) {
           classification,
           programmeStartedAt: p.programme_started_at as string,
           currentProgrammeDay,
+          // Uncapped (currentProgrammeDay stops at the programme length) — the PM tracker counts past Day 120.
+          actualProgrammeDay: currentDisplayDay(p.programme_started_at as string) as number,
+          totalProgrammeDays,
+          programmeEndDate: displayDayToYmd(p.programme_started_at as string, asDisplayDay(totalProgrammeDays)),
           programmeDaysLeft: programmeDaysLeft(currentProgrammeDay, totalProgrammeDays),
           currentPhase: currentPhaseOf(phases),
           health: rollupHealth(phases.map((ph) => ph.health)),
+          // projects.status = on_hold — a PM pause; the report shows it instead of the derived health.
+          onHold: p.status === "on_hold",
           phases,
           // Last phase by sort_order (buildPhaseBreakdown already returns `phases` in that order)
           // — was hardcoded phases[4] (phase 5) before task 246.

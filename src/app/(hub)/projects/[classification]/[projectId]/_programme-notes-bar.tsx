@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { CalendarClock, Check, Loader2, Pencil, X } from "lucide-react";
 import { canEditKickoff, canWriteDelayNotes } from "@/lib/programme/note-rules";
-import { currentDisplayDay } from "@/lib/programme/calendar";
+import { asDisplayDay, currentDisplayDay, displayDayToDate } from "@/lib/programme/calendar";
 import type { DelayNoteValue, ProjectStatusReportItem, StatusReportResponse } from "@/app/(hub)/projects/_status-report/_status-report-types";
 import { NoteCell, ProjectNoteCell, withPhaseNote } from "@/app/(hub)/projects/_status-report/_status-report-note-cell";
 
@@ -75,6 +75,9 @@ export function ProgrammeNotesBar({
   }
 
   const day = currentDisplayDay(programmeStartedAt, durationDays);
+  // Uncapped — past the last programme day show the real day + when it ended (matches the PM tracker).
+  const actualDay: number = currentDisplayDay(programmeStartedAt);
+  const endedOn = displayDayToDate(programmeStartedAt, asDisplayDay(durationDays)).toLocaleDateString("en-US", { month: "short", day: "numeric" });
   const activePhase = report?.phases.find((ph) => ph.phaseNumber === activePhaseNumber) ?? null;
   const today = localYmd(new Date());
 
@@ -123,9 +126,15 @@ export function ProgrammeNotesBar({
                   <CalendarClock size={13} className="text-[#5F6A88]" aria-hidden="true" />
                   {formatKickoff(programmeStartedAt)}
                 </div>
-                <div className="text-[11px] font-mono text-[#5F6A88] mt-0.5">
-                  Day {day}/{durationDays} · {Math.max(0, durationDays - day)}d left
-                </div>
+                {actualDay > durationDays ? (
+                  <div className="text-[11px] font-mono text-[#C0392B] mt-0.5">
+                    Day {actualDay} · ended {endedOn}
+                  </div>
+                ) : (
+                  <div className="text-[11px] font-mono text-[#5F6A88] mt-0.5">
+                    Day {day}/{durationDays} · {Math.max(0, durationDays - day)}d left
+                  </div>
+                )}
               </div>
               {canKickoff && (
                 <button

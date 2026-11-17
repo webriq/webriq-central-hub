@@ -13,10 +13,14 @@ export type ProjectStatusReportItem = {
   customerId: string;
   classification: string | null;
   programmeStartedAt: string;
-  currentProgrammeDay: number;
+  currentProgrammeDay: number; // capped at totalProgrammeDays
+  actualProgrammeDay: number; // uncapped — keeps counting past the programme's last day
+  totalProgrammeDays: number;
+  programmeEndDate: string; // YYYY-MM-DD of the programme's last day
   programmeDaysLeft: number; // days remaining in the 120-day programme overall
   currentPhase: PhaseDerived;
   health: HealthTone; // worst health across all phases
+  onHold: boolean; // projects.status = on_hold — overrides `health` for display, filter and sort
   phases: PhaseDerived[]; // all 5, in order
   isFullyCompleted: boolean; // Phase 5 (Optimize) status === "completed"
   projectNote: DelayNoteValue | null; // task 455 — project-level "why delayed" note
@@ -37,6 +41,12 @@ export const HEALTH_LABEL: Record<Exclude<HealthTone, null>, string> = {
   needs_attention: "Needs attention",
   ahead_of_schedule: "Ahead of schedule",
 };
+
+// Health filter/display key: an on-hold project reads as "on_hold" instead of its derived health.
+export type ReportHealthKey = Exclude<HealthTone, null> | "on_hold";
+export function reportHealthKey(p: Pick<ProjectStatusReportItem, "health" | "onHold">): ReportHealthKey | null {
+  return p.onHold ? "on_hold" : p.health;
+}
 
 export const STATUS_LABEL: Record<PhaseStatus, string> = {
   pending: "Pending",
