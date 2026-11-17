@@ -37,7 +37,8 @@ export type OnboardingProjectListItem = {
   target_handover_date: string | null;
   created_at: string;
   // "completed" (task 168 follow-up) = Phase 5 (Optimize) status is `completed` in `customer_phases`.
-  status: "draft" | "scheduled" | "in_progress" | "completed";
+  // "on_hold" mirrors projects.status = on_hold (overrides onboarding_status).
+  status: "draft" | "scheduled" | "in_progress" | "completed" | "on_hold";
   // Task 154: deduped union of project_members + Phase 1 phase_members (task 153).
   members: { id: string; full_name: string | null; avatar_url: string | null }[];
   canManageCollaborators: boolean;

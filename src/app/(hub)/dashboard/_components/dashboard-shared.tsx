@@ -265,6 +265,7 @@ const ONBOARDING_STATUS_STYLE: Record<
   scheduled: { label: "Scheduled", tone: "warn", dot: true, darkBg: "bg-amber-500/15", darkText: "text-amber-400" },
   in_progress: { label: "In progress", tone: "ok", dot: true, darkBg: "bg-blue-500/15", darkText: "text-blue-400" },
   completed: { label: "Completed", tone: "ok", dot: false, darkBg: "bg-green-500/15", darkText: "text-green-400" },
+  on_hold: { label: "On Hold", tone: "warn", dot: true, darkBg: "bg-amber-500/15", darkText: "text-amber-400" },
 };
 
 export function OnboardingStatusPill({ status, isDark = false }: { status: string; isDark?: boolean }) {

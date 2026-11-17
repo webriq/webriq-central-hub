@@ -95,6 +95,7 @@ export async function loadOnboardingProjectsList(
       created_at,
       created_by,
       onboarding_status,
+      status,
       target_handover_at,
       customers(company_name),
       customer_products!inner(classification, classifications)
@@ -249,7 +250,8 @@ export async function loadOnboardingProjectsList(
       scheduled_onboarding_start_at: p.scheduled_onboarding_start_at,
       target_handover_date: p.target_handover_at,
       created_at: p.created_at,
-      status: (p.onboarding_status ?? "draft") as OnboardingProjectListItem["status"],
+      // projects.status `on_hold` (a PM pause) overrides the programme-derived onboarding_status.
+      status: (p.status === "on_hold" ? "on_hold" : (p.onboarding_status ?? "draft")) as OnboardingProjectListItem["status"],
       members: [...(memberIdsByProject.get(p.id) ?? [])].map((id) => ({ id, full_name: memberFullNameById.get(id) ?? null, avatar_url: memberAvatarUrlById.get(id) ?? null })),
       canManageCollaborators: canManageProjectMembers(rowRole, p.created_by === userId),
       canSetOwner: canSetProjectOwner(rowRole, p.created_by === userId),
