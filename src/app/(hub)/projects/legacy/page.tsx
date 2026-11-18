@@ -23,7 +23,6 @@ type SearchParams = {
   page?: string;
   pageSize?: string;
   customer?: string;
-  view?: string;
 };
 
 export default async function ProjectsLegacyListingPage({
@@ -63,7 +62,6 @@ export default async function ProjectsLegacyListingPage({
         projects={projects}
         customers={customers}
         paginationMeta={paginationMeta}
-        initialView={(params.view === "list" ? "list" : "grid") as "grid" | "list"}
         canManageTags={canManageTags}
         canDeleteProjects={canDeleteProjects}
         canCreateProject={canCreateProject}

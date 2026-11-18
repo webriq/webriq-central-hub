@@ -114,7 +114,11 @@ export function ProjectOpenWrapper({ item, editable, menu, menuClassName, classN
   const projectsBase = useProjectsBase();
   const router = useRouter();
   // Task 282 (item E) — V2's default landing tab is now Timeline, not Overview.
-  const open = () => router.push(`${projectsBase}/${item.project_id ?? item.id}/timeline`);
+  const href = `${projectsBase}/${item.project_id ?? item.id}/timeline`;
+  const open = () => router.push(href);
+  // Task 484 — stays a div (see above), so prefetch by hand: the click then renders the
+  // project's loading.tsx without waiting for the server.
+  const prefetch = () => router.prefetch(href);
 
   return (
     <div className={cn("relative", className)}>
@@ -123,6 +127,8 @@ export function ProjectOpenWrapper({ item, editable, menu, menuClassName, classN
           role="button"
           tabIndex={0}
           onClick={open}
+          onMouseEnter={prefetch}
+          onFocus={prefetch}
           onKeyDown={(e) => { if (e.key === "Enter") open(); }}
           className="h-full text-left w-full bg-transparent border-none p-0 cursor-pointer rounded-[14px] outline-none focus-visible:ring-[3px] focus-visible:ring-[#007BFF]/30"
         >

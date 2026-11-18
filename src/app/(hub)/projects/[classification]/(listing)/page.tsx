@@ -2,11 +2,11 @@ import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { V2_ROUTES } from "@/config/constants";
-import { loadOnboardingProjectsList } from "../_v2-listing/_load-list-data";
-import { RECENT_SORT } from "../_shared/_recent-sort";
-import V2ProjectsListing from "../_v2-listing/_onboarding-list";
-import ListingShell from "../_listing-shell";
-import { classificationForTab, isClassificationTabId } from "../_classification-tabs";
+import { loadOnboardingProjectsList } from "../../_v2-listing/_load-list-data";
+import { RECENT_SORT } from "../../_shared/_recent-sort";
+import V2ProjectsListing from "../../_v2-listing/_onboarding-list";
+import ListingShell from "../../_listing-shell";
+import { classificationForTab, isClassificationTabId } from "../../_classification-tabs";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Projects" };

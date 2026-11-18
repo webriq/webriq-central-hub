@@ -13,6 +13,7 @@ import { DRIVE_LABEL, V2_ROUTES } from "@/config/constants";
 import { isPathAllowedForDepartment } from "@/lib/auth/department-map";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
+import Link from "next/link";
 import { signOut } from "@/app/(auth)/actions";
 import { CLASSIFICATION_TABS, classificationTabHref } from "@/app/(hub)/projects/_classification-tabs";
 import { hrNavChildren } from "./hr-nav";
@@ -289,6 +290,7 @@ export default function V2HubSidebar({ userRole, departmentName, displayName, av
                         color: active ? "#F1F5F9" : "#94A3B8",
                       }}
                       onMouseEnter={e => {
+                        if (collapsed) router.prefetch(item.href);
                         if (!active) {
                           e.currentTarget.style.background = "#1E293B";
                           e.currentTarget.style.color = "#F1F5F9";
@@ -324,9 +326,11 @@ export default function V2HubSidebar({ userRole, departmentName, displayName, av
                           {item.children!.map(child => {
                             const childIsActive = isChildActive(pathname, child.href);
                             return (
-                              <button
+                              // Task 484 — <Link> so the target route's loading shell is prefetched.
+                              <Link
                                 key={child.label}
-                                onClick={() => router.push(child.href)}
+                                href={child.href}
+                                aria-current={childIsActive ? "page" : undefined}
                                 className="w-full flex items-center gap-2.5 border-l-[3px] text-[13px] pl-11.5 pr-6 py-2 transition-all duration-150 cursor-pointer"
                                 style={{
                                   borderColor: childIsActive ? "#2563EB" : "transparent",
@@ -348,7 +352,7 @@ export default function V2HubSidebar({ userRole, departmentName, displayName, av
                                 }}
                               >
                                 <span className="flex-1 text-left">{child.label}</span>
-                              </button>
+                              </Link>
                             );
                           })}
                         </motion.div>
@@ -359,9 +363,13 @@ export default function V2HubSidebar({ userRole, departmentName, displayName, av
               }
 
               return (
-                <button
+                <Link
                   key={item.label}
-                  onClick={() => !item.stub && router.push(item.href)}
+                  href={item.href}
+                  prefetch={item.stub ? false : undefined}
+                  onClick={(e) => { if (item.stub) e.preventDefault(); }}
+                  aria-disabled={item.stub || undefined}
+                  aria-current={active && !item.stub ? "page" : undefined}
                   title={collapsed ? item.label : undefined}
                   className={cn(
                     "w-full flex items-center gap-2.5 border-l-[3px] text-[14px] transition-all duration-150 cursor-pointer",
@@ -399,7 +407,7 @@ export default function V2HubSidebar({ userRole, departmentName, displayName, av
                       )}
                     </span>
                   )}
-                </button>
+                </Link>
               );
             })}
           </div>

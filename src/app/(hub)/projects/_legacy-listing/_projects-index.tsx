@@ -55,8 +55,14 @@ const STATUS_OPTIONS = [
   { value: "completed", label: "Completed" },
   { value: "archived", label: "Archived" },
 ] as const;
-const GRID_PAGE_SIZES = [15, 45, 90] as const;
-const LIST_PAGE_SIZES = [20, 50, 100] as const;
+// Task 485 — one set for both views, so switching view never needs a server round trip.
+const PAGE_SIZES = [15, 45, 90] as const;
+// Task 485 — List (default, no URL param) or Grid (`?view=grid`); any other value = list.
+const VIEW_OPTIONS = [
+  { value: "list", label: "List view", Icon: List },
+  { value: "grid", label: "Grid view", Icon: LayoutGrid },
+] as const;
+type ListingView = (typeof VIEW_OPTIONS)[number]["value"];
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
@@ -64,7 +70,6 @@ export default function ProjectsIndex({
   projects,
   customers,
   paginationMeta,
-  initialView = "grid",
   canManageTags = false,
   canCreateProject = false,
   canDeleteProjects = false,
@@ -72,7 +77,6 @@ export default function ProjectsIndex({
   projects: ProjectListItem[];
   customers: CustomerOption[];
   paginationMeta: PaginationMeta;
-  initialView?: "grid" | "list";
   canManageTags?: boolean;
   canCreateProject?: boolean;
   canDeleteProjects?: boolean;
@@ -88,7 +92,7 @@ export default function ProjectsIndex({
   const sortValue = searchParams.get("sort") ?? "recent";
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const [view, setView] = useState<"grid" | "list">(initialView);
+  const view: ListingView = searchParams.get("view") === "grid" ? "grid" : "list";
   const [tagOverrides, setTagOverrides] = useState<Record<string, string[]>>({});
   const [scrolled, setScrolled] = useState(false);
 
@@ -143,9 +147,11 @@ export default function ProjectsIndex({
     startTransition(() => router.push(url));
   }
 
-  function handleViewChange(next: "grid" | "list") {
-    setView(next);
-    navigate(buildUrl({ view: next, pageSize: next === "grid" ? 15 : 20, page: 1 }));
+  // Task 485 — view is client-only (the server never reads it): update the URL without a router
+  // navigation, so no RSC refetch and no skeleton. pushState keeps useSearchParams in sync.
+  function handleViewChange(next: ListingView) {
+    if (next === view) return;
+    window.history.pushState(null, "", buildUrl({ view: next === "grid" ? "grid" : null }));
   }
 
   // Encodes a checkbox-group selection back into the URL: a full selection clears the
@@ -156,7 +162,6 @@ export default function ProjectsIndex({
     navigate(buildUrl({ [key]: value, page: 1 }));
   }
 
-  const pageSizes = view === "grid" ? GRID_PAGE_SIZES : LIST_PAGE_SIZES;
   const hasNext = from + pageSize < total;
   const hasPrev = page > 1;
   const showPagination = total > 0;
@@ -233,39 +238,32 @@ export default function ProjectsIndex({
             {/* Sort */}
             <SortSelect value={sortValue} onChange={(v) => navigate(buildUrl({ sort: v === "recent" ? null : v, page: 1 }))} />
 
-            {/* View toggle — active state is a filled navy pill + white icon (matches the
-                filter/selection color language elsewhere in this toolbar), real tooltips
-                instead of a bare title="" attribute. */}
-            <div className="flex items-center gap-0.5 border border-[#E2E7F2] rounded-full p-1 bg-white shrink-0">
-              <Tooltip>
-                <TooltipTrigger render={
-                  <button
-                    onClick={() => handleViewChange("grid")}
-                    aria-label="Grid view"
-                    className={cn("p-1.5 rounded-full transition-colors cursor-pointer", view === "grid" ? "bg-[#071133] text-white" : "text-[#5F6A88] hover:text-[#0B1533]")}
-                  >
-                    <LayoutGrid size={15} />
-                  </button>
-                } />
-                <TooltipContent side="top">Grid view</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger render={
-                  <button
-                    onClick={() => handleViewChange("list")}
-                    aria-label="List view"
-                    className={cn("p-1.5 rounded-full transition-colors cursor-pointer", view === "list" ? "bg-[#071133] text-white" : "text-[#5F6A88] hover:text-[#0B1533]")}
-                  >
-                    <List size={15} />
-                  </button>
-                } />
-                <TooltipContent side="top">List view</TooltipContent>
-              </Tooltip>
+            {/* View toggle — List first (task 485). Active = filled navy pill + white icon. */}
+            <div role="group" aria-label="Layout" className="flex items-center gap-0.5 border border-[#E2E7F2] rounded-full p-1 bg-white shrink-0">
+              {VIEW_OPTIONS.map(({ value, label, Icon }) => (
+                <Tooltip key={value}>
+                  <TooltipTrigger render={
+                    <button
+                      type="button"
+                      onClick={() => handleViewChange(value)}
+                      aria-label={label}
+                      aria-pressed={view === value}
+                      className={cn(
+                        "p-1.5 rounded-full transition-colors cursor-pointer outline-none focus-visible:ring-[3px] focus-visible:ring-[#007BFF]/30",
+                        view === value ? "bg-[#071133] text-white" : "text-[#5F6A88] hover:text-[#0B1533]"
+                      )}
+                    >
+                      <Icon size={15} />
+                    </button>
+                  } />
+                  <TooltipContent side="top">{label}</TooltipContent>
+                </Tooltip>
+              ))}
             </div>
 
             {isFiltered && (
               <button
-                onClick={() => { setSearchInput(""); navigate(V2_ROUTES.PROJECTS_LEGACY); }}
+                onClick={() => { setSearchInput(""); navigate(view === "grid" ? `${V2_ROUTES.PROJECTS_LEGACY}?view=grid` : V2_ROUTES.PROJECTS_LEGACY); }}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#E2E7F2] bg-white text-[12px] text-[#3A4565] hover:bg-[#F0F7FF] cursor-pointer shrink-0 transition-colors"
               >
                 <X size={13} /> Clear filters
@@ -284,7 +282,7 @@ export default function ProjectsIndex({
                   className="h-8 px-2.5 pr-7 rounded-full border border-[#E2E7F2] bg-white text-[12px] text-[#3A4565] outline-none focus:border-[#007BFF] focus:ring-[3px] focus:ring-[#007BFF]/[0.14] cursor-pointer appearance-none"
                   style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%235F6A88'/%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center" }}
                 >
-                  {pageSizes.map((n) => (
+                  {PAGE_SIZES.map((n) => (
                     <option key={n} value={n}>{n} per page</option>
                   ))}
                 </select>
@@ -334,13 +332,13 @@ export default function ProjectsIndex({
       {/* ── Scrollable content ───────────────────────────────────────────────── */}
       <div className="max-w-[1400px] mx-auto px-8 py-5">
         {isPending ? (
-          view === "grid" ? <CardSkeletonGrid count={pageSize} /> : <ListRowSkeleton />
+          view === "grid" ? <CardSkeletonGrid count={pageSize} /> : <ListRowSkeleton count={pageSize} />
         ) : projects.length === 0 ? (
           <EmptyState isFiltered={isFiltered} />
         ) : view === "grid" ? (
           <GridView projects={projects} canManageTags={canManageTags} canDeleteProjects={canDeleteProjects} getTagsFor={getTagsFor} removeTag={removeTag} onSearchName={handleSearchName} />
         ) : (
-          <ListView projects={projects} canManageTags={canManageTags} getTagsFor={getTagsFor} removeTag={removeTag} />
+          <ListView projects={projects} canManageTags={canManageTags} canDeleteProjects={canDeleteProjects} getTagsFor={getTagsFor} removeTag={removeTag} onSearchName={handleSearchName} />
         )}
       </div>
     </div>

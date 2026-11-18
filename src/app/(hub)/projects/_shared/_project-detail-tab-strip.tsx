@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 // Task 276 (Phase 3) — tab-strip chrome extracted out of `_project-detail.tsx`'s inline
@@ -54,7 +54,6 @@ export function ProjectDetailTabStrip({
   // Task 282 — Status Report is hidden from `developer` (no role gate existed here before).
   role: string | null;
 }) {
-  const router = useRouter();
   const tabs = [OVERVIEW_TAB, ...(variant === "v2" ? [TIMELINE_TAB] : []), ...BASE_TABS]
     .filter((tab) => tab.id !== "status_report" || role !== "developer")
     // Task 311 — Notes is a staff-only tool (admin/super_admin/pm/developer, per migration
@@ -69,9 +68,11 @@ export function ProjectDetailTabStrip({
     <div className="flex items-center mt-4 overflow-x-auto">
       <div className="flex items-center gap-1 bg-[#F4F6FB] rounded-full p-1 shrink-0">
         {tabs.map((tab) => (
-          <button
+          // Task 484 — <Link> so Next prefetches each tab's loading shell (instant skeleton on click).
+          <Link
             key={tab.id}
-            onClick={() => router.push(`${basePath}/${tab.id}`)}
+            href={`${basePath}/${tab.id}`}
+            aria-current={activeTab === tab.id ? "page" : undefined}
             className={cn(
               "px-3 py-1.5 rounded-full text-[12px] font-medium transition-colors cursor-pointer whitespace-nowrap",
               activeTab === tab.id
@@ -80,7 +81,7 @@ export function ProjectDetailTabStrip({
             )}
           >
             {tab.label}
-          </button>
+          </Link>
         ))}
       </div>
     </div>

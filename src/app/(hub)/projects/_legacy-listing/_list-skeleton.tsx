@@ -43,25 +43,30 @@ export function CardSkeletonGrid({ count = 9 }: { count?: number }) {
   );
 }
 
-export function ListRowSkeleton() {
+// Task 485 — mirrors _project-list-view.tsx's row card.
+function RowSkeleton() {
   return (
-    <div className="rounded-[14px] border border-[#E2E7F2] bg-white overflow-hidden">
-      <div className="divide-y divide-[#EDF0F7]">
-        {Array.from({ length: 8 }).map((_, i) => (
-          <div key={i} className="flex items-center gap-4 px-[18px] py-3.5">
-            <div className="flex flex-col gap-1.5 flex-1 min-w-[200px]">
-              <Bone className="h-4 w-40" />
-              <Bone className="h-3 w-24" />
-            </div>
-            <Bone className="h-4 w-10" />
-            <Bone className="h-5 w-20 rounded-full" />
-            <Bone className="h-4 w-28" />
-            <Bone className="h-4 w-28" />
-            <Bone className="h-5 w-16 rounded-full" />
-            <Bone className="h-6 w-6 rounded-full" />
-          </div>
-        ))}
+    <div className="flex flex-wrap md:flex-nowrap items-center gap-x-4 gap-y-2 rounded-[14px] border border-[#EDF0F7] bg-white px-4 py-3">
+      <div className="flex flex-col gap-1.5 flex-1 basis-48">
+        <Bone className="h-4 w-40" />
+        <Bone className="h-3 w-28" />
       </div>
+      <div className="shrink-0 md:order-last md:w-32 flex justify-end"><Bone className="h-5 w-20 rounded-full" /></div>
+      <div className="basis-full h-0 md:hidden" />
+      <div className="shrink-0 md:w-44"><Bone className="h-5 w-24 rounded-full" /></div>
+      <div className="md:w-48"><Bone className="h-5 w-20 rounded-full" /></div>
+      <div className="shrink-0 md:w-40"><Bone className="h-4 w-32" /></div>
+      <div className="shrink-0 md:w-28 flex md:justify-end"><Bone className="h-6 w-16 rounded-full" /></div>
+    </div>
+  );
+}
+
+export function ListRowSkeleton({ count = 15 }: { count?: number }) {
+  return (
+    <div className="flex flex-col gap-2">
+      {Array.from({ length: count }).map((_, i) => (
+        <RowSkeleton key={i} />
+      ))}
     </div>
   );
 }
