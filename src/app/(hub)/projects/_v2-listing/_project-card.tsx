@@ -5,7 +5,7 @@ import { useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Chip, OnboardingStatusPill } from "../../dashboard/_components/dashboard-shared";
+import { OnboardingStatusPill } from "../../dashboard/_components/dashboard-shared";
 import { AvatarStack } from "./_avatar-stack";
 import { PortfolioCardMenu } from "./_portfolio-card-menu";
 import { EditableProjectTitle, type EditableProjectTitleHandle } from "@/components/projects/editable-project-title";
@@ -82,8 +82,8 @@ export function ProjectCard(props: ProjectListEntryProps) {
         <ProjectPhaseLine item={item} className="mb-3" />
 
         {/* Footer — always present */}
-        <div className="mt-auto pt-2.5 border-t border-[#EDF0F7] flex items-center justify-between gap-2">
-          {item.classification ? <Chip tone="neutral">{item.classification}</Chip> : <span className="text-[11px] text-[#5F6A88]">Unclassified</span>}
+        {/* Task 481 — no classification chip: the active tab already is the classification. */}
+        <div className="mt-auto pt-2.5 border-t border-[#EDF0F7] flex items-center justify-end gap-2">
           <AvatarStack members={item.members} />
         </div>
       </div>

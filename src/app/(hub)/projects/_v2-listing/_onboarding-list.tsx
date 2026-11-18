@@ -81,10 +81,10 @@ const SORT_OPTIONS = [
   { value: "due_soonest", label: "Handover date (soonest)" },
 ] as const;
 const PAGE_SIZES = [15, 45, 90] as const;
-// Task 480 — Grid (default, no URL param) or List (`?view=list`).
+// Task 481 — List (default, no URL param) or Grid (`?view=grid`); task 480 had grid default.
 const VIEW_OPTIONS = [
-  { value: "grid", label: "Grid view", Icon: LayoutGrid },
   { value: "list", label: "List view", Icon: List },
+  { value: "grid", label: "Grid view", Icon: LayoutGrid },
 ] as const;
 type ListingView = (typeof VIEW_OPTIONS)[number]["value"];
 
@@ -92,7 +92,7 @@ type ListingView = (typeof VIEW_OPTIONS)[number]["value"];
 // this is the entry component for the "V2 Projects" tab (now `/projects/v2`, task 279); props
 // are unchanged from the original.
 export default function V2ProjectsListing({
-  role, currentUserId, projects, paginationMeta, canCreate, activeTabId,
+  role, currentUserId, projects, paginationMeta, canCreate, activeTabId, savedView,
 }: {
   role: string | null;
   currentUserId: string | null;
@@ -100,6 +100,7 @@ export default function V2ProjectsListing({
   paginationMeta: OnboardingPaginationMeta;
   canCreate: boolean;
   activeTabId: ClassificationTabId;
+  savedView: ListingView;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -113,11 +114,13 @@ export default function V2ProjectsListing({
   // determined by the tab id, so a second prop would just be state that could drift from it.
   const classificationLabel = labelForTab(activeTabId);
   // Task 480 — the URL is the single source of truth for the view, so back/forward just work.
-  const view: ListingView = searchParams.get("view") === "list" ? "list" : "grid";
+  // Task 482 — an explicit ?view= wins (links, back/forward); otherwise the user's saved view.
+  const viewParam = searchParams.get("view");
+  const view: ListingView = viewParam === "grid" || viewParam === "list" ? viewParam : savedView;
   const ProjectEntry = view === "list" ? ProjectRow : ProjectCard;
   // Clearing filters must land back on the *current* classification's page, keeping the view.
   const classificationHref = classificationTabHref(activeTabId);
-  const clearFiltersHref = view === "list" ? `${classificationHref}?view=list` : classificationHref;
+  const clearFiltersHref = `${classificationHref}?view=${view}`;
 
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
@@ -139,7 +142,16 @@ export default function V2ProjectsListing({
 
   function handleViewChange(next: ListingView) {
     if (next === view) return;
-    navigate(buildUrl({ view: next === "list" ? "list" : null, page: 1 }));
+    // Task 481 — view is client-only (the server never reads it), so update the URL without a
+    // router navigation: no RSC refetch, no skeleton, same page. pushState syncs useSearchParams.
+    // Always explicit, so a List click also overrides a saved Grid for this URL.
+    window.history.pushState(null, "", buildUrl({ view: next }));
+    // Task 482 — save per account, non-blocking: a failed save never undoes the switch.
+    void fetch("/api/v2/me/preferences", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ projects_view: next }),
+    }).catch((e) => console.warn("Projects view preference not saved", e));
   }
 
   // Every navigation below is wrapped in startTransition — isPending then drives the skeleton

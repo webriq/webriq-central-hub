@@ -50,14 +50,21 @@ export default async function ProjectsClassificationListingPage({
   const page = Math.max(1, parseInt(params.page ?? "1", 10) || 1);
   const pageSize = Math.max(1, parseInt(params.pageSize ?? "15", 10) || 15);
 
-  const { projects, paginationMeta, canCreate } = await loadOnboardingProjectsList(userId, role, {
-    search: params.search?.trim() ?? "",
-    statusValues,
-    classification: classificationForTab(tabId),
-    sort: params.sort ?? RECENT_SORT,
-    page,
-    pageSize,
-  });
+  const [{ projects, paginationMeta, canCreate }, { data: pref }] = await Promise.all([
+    loadOnboardingProjectsList(userId, role, {
+      search: params.search?.trim() ?? "",
+      statusValues,
+      classification: classificationForTab(tabId),
+      sort: params.sort ?? RECENT_SORT,
+      page,
+      pageSize,
+    }),
+    // Task 482 — saved Grid/List view. Any error (incl. migration 182 not applied) → List default.
+    // user_preferences isn't in the generated Database types until `supabase gen types` re-runs.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (supabase as any).from("user_preferences").select("projects_view").eq("user_id", userId).maybeSingle() as Promise<{ data: { projects_view: string } | null }>,
+  ]);
+  const savedView = pref?.projects_view === "grid" ? "grid" : "list";
 
   return (
     <ListingShell activeTab={tabId}>
@@ -68,6 +75,7 @@ export default async function ProjectsClassificationListingPage({
         paginationMeta={paginationMeta}
         canCreate={canCreate}
         activeTabId={tabId}
+        savedView={savedView}
       />
     </ListingShell>
   );

@@ -1,4 +1,4 @@
-import { CardSkeletonGrid, HeaderSkeleton, ToolbarSkeleton } from "./_list-skeleton";
+import { HeaderSkeleton, RowSkeletonList, ToolbarSkeleton } from "./_list-skeleton";
 
 export default function PortfolioTrackerLoading() {
   return (
@@ -6,7 +6,8 @@ export default function PortfolioTrackerLoading() {
       <HeaderSkeleton />
       <ToolbarSkeleton />
       <div className="mt-5">
-        <CardSkeletonGrid count={9} />
+        {/* Task 481 — List is the default view, so first load shows row skeletons. */}
+        <RowSkeletonList count={9} />
       </div>
     </div>
   );

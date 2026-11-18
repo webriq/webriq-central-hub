@@ -18,8 +18,7 @@ function CardSkeleton() {
       </div>
       <Bone className="h-1.5 w-full rounded-full mb-1.5" />
       <Bone className="h-3 w-28 mb-3" />
-      <div className="mt-auto pt-2.5 border-t border-[#EDF0F7] flex items-center justify-between gap-2">
-        <Bone className="h-5 w-20 rounded-full" />
+      <div className="mt-auto pt-2.5 border-t border-[#EDF0F7] flex items-center justify-end gap-2">
         <Bone className="h-6 w-6 rounded-full" />
       </div>
     </div>
@@ -51,7 +50,6 @@ function RowSkeleton() {
         <Bone className="h-1.5 flex-1 rounded-full" />
         <Bone className="h-3 w-16 md:w-36" />
       </div>
-      <div className="hidden lg:block shrink-0 w-28"><Bone className="h-5 w-20 rounded-full" /></div>
       <div className="shrink-0 md:w-36 flex md:justify-end"><Bone className="h-6 w-24 rounded-full" /></div>
     </div>
   );

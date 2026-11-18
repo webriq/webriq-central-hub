@@ -5,7 +5,7 @@ import { useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Chip, OnboardingStatusPill } from "../../dashboard/_components/dashboard-shared";
+import { OnboardingStatusPill } from "../../dashboard/_components/dashboard-shared";
 import { AvatarStack } from "./_avatar-stack";
 import { PortfolioCardMenu } from "./_portfolio-card-menu";
 import { EditableProjectTitle, type EditableProjectTitleHandle } from "@/components/projects/editable-project-title";
@@ -26,7 +26,8 @@ export function ProjectRow(props: ProjectListEntryProps) {
     <ProjectOpenWrapper
       item={item}
       editable={editable}
-      menuClassName="top-3 right-3 md:top-1/2 md:-translate-y-1/2"
+      // No transform for centring: a transformed ancestor re-anchors the menu's position:fixed dropdown (task 481).
+      menuClassName="top-3 right-3 md:top-0 md:bottom-0 md:flex md:items-center"
       menu={showMenu ? (
         <PortfolioCardMenu
           projectId={item.project_id}
@@ -82,10 +83,6 @@ export function ProjectRow(props: ProjectListEntryProps) {
 
         {/* Fixed-width Day label → every bar is the same length. */}
         <ProjectProgress item={item} className="flex-1 md:flex-none md:w-72 min-w-0" barClassName="flex-1" labelClassName="md:w-36" />
-
-        <div className="hidden lg:block shrink-0 w-28">
-          {item.classification ? <Chip tone="neutral">{item.classification}</Chip> : <span className="text-[11px] text-[#5F6A88]">Unclassified</span>}
-        </div>
 
         <div className="shrink-0 md:w-36 flex md:justify-end">
           <AvatarStack members={item.members} />
