@@ -374,7 +374,7 @@ export function CreateTaskModal({
                     value={tasklistId}
                     onChange={setTasklistId}
                     options={tasklists.map((tl) => ({ value: tl.id, label: tl.name }))}
-                    placeholder="No task list"
+                    placeholder="General"
                     searchPlaceholder="Search task lists…"
                     footerAction={{ label: "+ Create new list…", onClick: () => setCreatingTasklist(true) }}
                   />

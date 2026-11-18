@@ -15,7 +15,7 @@ import {
   STATUS_LABEL, PRIORITY_STYLE, SEVERITY_STYLE, normalizeStatus, normalizeSeverity,
 } from "@/app/(hub)/projects-old/_pm-shared";
 import BoardView from "./_board-view";
-import ListView, { type SortKey, type SortDir } from "./_list-view";
+import ListView, { generalTasklistId, type SortKey, type SortDir } from "./_list-view";
 import CalendarView from "./_calendar-view";
 import TicketListView, { type TicketSortKey, type TicketSortDir } from "./_ticket-list-view";
 import TicketBoardView from "./_ticket-board-view";
@@ -453,7 +453,8 @@ export default function ProjectDetail({
   const allGroupIds = useMemo(() => {
     const ids = tasklists.map((tl) => tl.id);
     const tasklistIds = new Set(ids);
-    const hasUnassigned = tasks.some(
+    // Task 486 — the "__none" group only renders when there's no General list to fold orphans into.
+    const hasUnassigned = !generalTasklistId(tasklists) && tasks.some(
       (t) => !t.parent_task_id && t.depth === 0 && (!t.tasklist_id || !tasklistIds.has(t.tasklist_id))
     );
     return hasUnassigned ? [...ids, "__none"] : ids;

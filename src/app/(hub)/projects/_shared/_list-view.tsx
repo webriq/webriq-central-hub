@@ -15,6 +15,13 @@ import { TASK_GRID, TaskTableHeader, BulkDeleteBar } from "./_task-table-parts";
 // Task 470 — sort types/helpers, the row and the table chrome now live in shared modules.
 export type { SortKey, SortDir } from "@/lib/tasks/task-sort";
 
+/** Task 486 — the project's "General" list (name match as migration 183's is_general_tasklist; with or without a
+ *  phase, no-phase preferred like its keeper order), if visible. */
+export function generalTasklistId(tasklists: Tasklist[]): string | undefined {
+  const generals = tasklists.filter((tl) => tl.name.trim().toLowerCase() === "general");
+  return (generals.find((tl) => !tl.milestone_id) ?? generals[0])?.id;
+}
+
 // ─── ListView ─────────────────────────────────────────────────────────────────
 
 export default function ListView({
@@ -153,24 +160,23 @@ export default function ListView({
   const groups = useMemo(() => {
     const tasklistIds = new Set(tasklists.map((tl) => tl.id));
     const buckets = new Map<string, Task[]>();
-    const unassigned: Task[] = [];
+    // Task 486 — tasks with no (visible) list belong to "General"; migration 183 moves them there in the data.
+    const fallbackId = generalTasklistId(tasklists) ?? "__none";
 
     for (const t of tasks.filter((t) => !t.parent_task_id && t.depth === 0)) {
-      if (t.tasklist_id && tasklistIds.has(t.tasklist_id)) {
-        const bucket = buckets.get(t.tasklist_id) ?? [];
-        bucket.push(t);
-        buckets.set(t.tasklist_id, bucket);
-      } else {
-        unassigned.push(t);
-      }
+      const key = t.tasklist_id && tasklistIds.has(t.tasklist_id) ? t.tasklist_id : fallbackId;
+      const bucket = buckets.get(key) ?? [];
+      bucket.push(t);
+      buckets.set(key, bucket);
     }
 
     const out: { id: string; name: string; tasks: Task[] }[] = [];
     for (const tl of tasklists) {
       out.push({ id: tl.id, name: tl.name, tasks: sortTasks(buckets.get(tl.id) ?? []) });
     }
-    if (unassigned.length) {
-      out.push({ id: "__none", name: "No Tasklist", tasks: sortTasks(unassigned) });
+    const unassigned = buckets.get("__none");
+    if (unassigned?.length) {
+      out.push({ id: "__none", name: "General", tasks: sortTasks(unassigned) });
     }
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
