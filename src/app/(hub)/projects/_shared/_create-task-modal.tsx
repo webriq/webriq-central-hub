@@ -92,7 +92,7 @@ export function CreateTaskModal({
   });
   const [dueValue, setDueValue] = useState<string>(() =>
     parent?.due_date ? `${parent.due_date}T${(parent.due_time ?? "19:00").slice(0, 5)}` : dueDefaultValue(defaults.due_date));
-  const [tasklistId, setTasklistId] = useState<string>(() => parent?.tasklist_id ?? tasklists.find((tl) => tl.is_default)?.id ?? "");
+  const [tasklistId, setTasklistId] = useState<string>(() => parent?.tasklist_id ?? defaults.tasklist_id ?? tasklists.find((tl) => tl.is_default)?.id ?? "");
   const [creatingTasklist, setCreatingTasklist] = useState(false);
   const [newTasklistName, setNewTasklistName] = useState("");
   const [assignees, setAssignees] = useState<string[]>([]);

@@ -3,19 +3,15 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import {
-  LayoutGrid, List as ListIcon, Calendar as CalendarIcon,
-  Plus, X, Search, ChevronsUpDown,
-} from "lucide-react";
+import { Plus, X, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import {
   type Project, type Milestone, type Tasklist, type Task, type Ticket,
-  type TaskStatus, type TaskPriority, type TicketSeverity,
-  STATUS_LABEL, PRIORITY_STYLE, SEVERITY_STYLE, normalizeStatus, normalizeSeverity,
+  type TaskStatus, type TicketSeverity,
+  STATUS_LABEL, SEVERITY_STYLE, normalizeStatus, normalizeSeverity,
 } from "@/app/(hub)/projects-old/_pm-shared";
 import BoardView from "./_board-view";
-import ListView, { generalTasklistId, type SortKey, type SortDir } from "./_list-view";
+import ListView from "./_list-view";
 import CalendarView from "./_calendar-view";
 import TicketListView, { type TicketSortKey, type TicketSortDir } from "./_ticket-list-view";
 import TicketBoardView from "./_ticket-board-view";
@@ -31,10 +27,12 @@ import { FilesTab } from "./_files-tab";
 import { NotesTab } from "./_notes-tab";
 import { AccessTab } from "./_access-tab";
 import { FilterMultiSelect, SortSelect } from "./_list-toolbar-controls";
-import {
-  buildAssigneeFilterOptions, buildMemberIdByName,
-  taskMatchesAssigneeFilter, ticketMatchesAssigneeFilter,
-} from "./_assignee-filter";
+import { buildAssigneeFilterOptions, buildMemberIdByName, ticketMatchesAssigneeFilter } from "./_assignee-filter";
+import { STATUS_OPTS } from "./_tasks/_task-options";
+import { useTaskFilters } from "./_tasks/_use-task-filters";
+import { useTaskMoves } from "./_tasks/_use-task-moves";
+import { TasksToolbar, ViewToggle, type ViewId, type Density } from "./_tasks/_tasks-toolbar";
+import { TasksProgressStrip } from "./_tasks/_tasks-progress-strip";
 
 // Task 276 — ported ONCE from the old `/projects/[projectId]/_project-detail.tsx` (now
 // `/projects-old`, originally 1078 lines, single file rendering both its own tab-strip nav AND
@@ -46,16 +44,7 @@ import {
 // renders an Overview tab that a later task owns; this file only guarantees `variant` is
 // accepted and doesn't break the `"legacy"` case, which has no Overview tab.
 
-type ViewId = "board" | "list" | "calendar";
 type PrimaryTab = "tasks" | "tickets" | "milestones" | "files" | "notes" | "access" | "members" | "status_report" | "time_logs";
-
-const VIEW_LABELS: Record<ViewId, string> = { list: "List", board: "Board", calendar: "Calendar" };
-const VIEW_ICONS: Record<ViewId, React.ReactNode> = {
-  list:     <ListIcon size={15} />,
-  board:    <LayoutGrid size={15} />,
-  calendar: <CalendarIcon size={15} />,
-};
-const VIEW_ORDER: ViewId[] = ["list", "board", "calendar"];
 
 // Task 276 — 5 new tabs (Files/Access/Members/Status Report/Time Logs) alongside the ported
 // Tasks/Tickets/Milestones. Each new tab's actual body lives in its own `_shared/_*-tab.tsx` file
@@ -63,29 +52,10 @@ const VIEW_ORDER: ViewId[] = ["list", "board", "calendar"];
 // file-length guidance. The tab-strip's own entry list now lives in
 // `_project-detail-tab-strip.tsx` (Phase 3 extraction — see `ProjectDetailTabStrip` usage below).
 
-// Exported (task 274) — `_create-task-modal.tsx` (extracted out of this file) reuses these
-// same Status/Priority option lists rather than duplicating them.
-export const STATUS_OPTS: TaskStatus[] = [
-  "open", "in_progress", "ready_for_qa", "testing_completed",
-  "for_client_approval", "ready_to_merge", "post_live_qa", "closed",
-];
-export const PRIORITY_OPTS: TaskPriority[] = ["low", "normal", "high", "critical"];
+// Task 487 — moved to `_tasks/_task-options.ts`; re-exported for `_create-task-modal.tsx`.
+export { STATUS_OPTS, PRIORITY_OPTS } from "./_tasks/_task-options";
 
 const STATUS_FILTER_OPTIONS = STATUS_OPTS.map((s) => ({ value: s, label: STATUS_LABEL[s] }));
-const PRIORITY_FILTER_OPTIONS = PRIORITY_OPTS.map((p) => ({ value: p, label: PRIORITY_STYLE[p].label }));
-
-type SortValue = "status_asc" | "status_desc" | "name_asc" | "name_desc" | "due_soonest" | "due_latest" | "priority_high" | "priority_low";
-
-const SORT_OPTIONS: { value: SortValue; label: string; key: SortKey; dir: SortDir }[] = [
-  { value: "status_asc",    label: "Status (pipeline order)",  key: "status",   dir: "asc" },
-  { value: "status_desc",   label: "Status (reverse order)",   key: "status",   dir: "desc" },
-  { value: "name_asc",      label: "Task name (A–Z)",          key: "title",    dir: "asc" },
-  { value: "name_desc",     label: "Task name (Z–A)",          key: "title",    dir: "desc" },
-  { value: "due_soonest",   label: "Due date (soonest)",       key: "due_date", dir: "asc" },
-  { value: "due_latest",    label: "Due date (latest)",        key: "due_date", dir: "desc" },
-  { value: "priority_high", label: "Priority (highest first)", key: "priority", dir: "asc" },
-  { value: "priority_low",  label: "Priority (lowest first)",  key: "priority", dir: "desc" },
-];
 
 // ─── Tickets tab — status pipeline is shared with tasks (see task 192 doc); severity
 // is a separate 5-value Zoho vocabulary, not the task priority enum. ────────────────
@@ -109,6 +79,8 @@ const TICKET_SORT_OPTIONS: { value: TicketSortValue; label: string; key: TicketS
 
 export type TaskDefaults = {
   status?: TaskStatus;
+  // Task 487 — group "+ Add task" preselects its task list.
+  tasklist_id?: string;
   milestone_id?: string | null;
   due_date?: string | null;
 };
@@ -125,6 +97,8 @@ export default function ProjectDetail({
   allMembers,
   initialHoursById,
   attachmentCountById,
+  commentCountById = {},
+  tasksDensity = "comfortable",
   activeTab,
   initialScrollTasklistId,
   basePath,
@@ -140,6 +114,8 @@ export default function ProjectDetail({
   allMembers: { id: string; full_name: string | null; avatar_url: string | null; role: string }[];
   initialHoursById: Record<string, number>;
   attachmentCountById: Record<string, number>;
+  commentCountById?: Record<string, number>;
+  tasksDensity?: Density;
   activeTab: PrimaryTab;
   // Task 241 — `?tasklist=<id>` deep-link from the StackShift Timeline's Phase 2-5 swimlane cards.
   initialScrollTasklistId?: string;
@@ -158,13 +134,7 @@ export default function ProjectDetail({
   const [createDefaults, setCreateDefaults] = useState<TaskDefaults | null>(null);
   const [hoursById, setHoursById] = useState<Record<string, number>>(initialHoursById);
 
-  // ─── Task toolbar state (search / status / priority / sort / collapse-all) ─
-  const [taskSearch, setTaskSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string[]>(() => STATUS_OPTS.map((s) => s as string));
-  const [priorityFilter, setPriorityFilter] = useState<string[]>(() => PRIORITY_OPTS.map((p) => p as string));
-  const [sortKey, setSortKey] = useState<SortKey>("status");
-  const [sortDir, setSortDir] = useState<SortDir>("asc");
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  const [density, setDensity] = useState<Density>(tasksDensity);
 
   // ─── Ticket state (own view/toolbar state — independent of the Tasks tab) ───
   const [tickets, setTickets] = useState<Ticket[]>(initialTickets);
@@ -182,8 +152,18 @@ export default function ProjectDetail({
     [allMembers, currentUserId, profilesById],
   );
   const memberIdByName = useMemo(() => buildMemberIdByName(allMembers), [allMembers]);
-  const [assigneeFilter, setAssigneeFilter] = useState<string[]>(() => assigneeOptions.map((o) => o.value));
   const [ticketAssigneeFilter, setTicketAssigneeFilter] = useState<string[]>(() => assigneeOptions.map((o) => o.value));
+  const assigneeValues = useMemo(() => assigneeOptions.map((o) => o.value), [assigneeOptions]);
+  const f = useTaskFilters(tasks, tasklists, milestones, assigneeValues);
+  const moves = useTaskMoves({ tasks, setTasks, tasklists, setTasklists, milestones, setMilestones });
+
+  // Task 487 D7 — saved per account; a failed save keeps the choice for this session, silently.
+  function changeDensity(d: Density) {
+    setDensity(d);
+    void fetch("/api/v2/me/preferences", {
+      method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tasks_density: d }),
+    }).catch(() => {});
+  }
 
   // ─── Realtime sync ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -332,79 +312,6 @@ export default function ProjectDetail({
     setHoursById((prev) => ({ ...prev, [taskId]: (prev[taskId] ?? 0) + hours }));
   }, []);
 
-  // ─── Search / filter — root-task match, whole subtree follows ────────────
-  // Filtering is evaluated against root tasks (no parent, depth 0). If a root
-  // matches, its entire subtree is included unconditionally — a subtask's own
-  // status/priority is not independently filterable. Deliberate simplification:
-  // per-row filtering would let a matching subtask "orphan" under a non-matching
-  // parent that never renders, silently hiding it.
-  const filteredTasks = useMemo(() => {
-    const tasklistNameById = new Map(tasklists.map((tl) => [tl.id, tl.name]));
-    const childrenByParent = new Map<string, Task[]>();
-    for (const t of tasks) {
-      if (!t.parent_task_id) continue;
-      const list = childrenByParent.get(t.parent_task_id) ?? [];
-      list.push(t);
-      childrenByParent.set(t.parent_task_id, list);
-    }
-
-    const q = taskSearch.trim().toLowerCase();
-    const statusSet = new Set(statusFilter);
-    const prioritySet = new Set(priorityFilter);
-    const assigneeSet = new Set(assigneeFilter);
-    const assigneeAll = assigneeFilter.length >= assigneeOptions.length;
-
-    function rootMatches(t: Task): boolean {
-      if (!statusSet.has(normalizeStatus(t.status))) return false;
-      if (!prioritySet.has(t.priority)) return false;
-      if (!taskMatchesAssigneeFilter(t, assigneeSet, assigneeAll)) return false;
-      if (!q) return true;
-      const tlName = t.tasklist_id ? tasklistNameById.get(t.tasklist_id) : null;
-      return t.title.toLowerCase().includes(q) || (tlName?.toLowerCase().includes(q) ?? false);
-    }
-
-    function collectSubtree(root: Task, out: Task[]) {
-      out.push(root);
-      for (const child of childrenByParent.get(root.id) ?? []) collectSubtree(child, out);
-    }
-
-    const out: Task[] = [];
-    for (const t of tasks) {
-      if (t.parent_task_id || t.depth !== 0) continue;
-      if (rootMatches(t)) collectSubtree(t, out);
-    }
-    return out;
-  }, [tasks, tasklists, taskSearch, statusFilter, priorityFilter, assigneeFilter, assigneeOptions.length]);
-
-  const hasActiveFilters =
-    taskSearch.trim().length > 0 ||
-    statusFilter.length < STATUS_OPTS.length ||
-    priorityFilter.length < PRIORITY_OPTS.length ||
-    assigneeFilter.length < assigneeOptions.length;
-
-  function clearFilters() {
-    setTaskSearch("");
-    setStatusFilter(STATUS_OPTS.map((s) => s as string));
-    setPriorityFilter(PRIORITY_OPTS.map((p) => p as string));
-    setAssigneeFilter(assigneeOptions.map((o) => o.value));
-  }
-
-  // ─── Sort (drives ListView only — Board/Calendar keep their own ordering) ──
-  const sortValue: SortValue =
-    SORT_OPTIONS.find((o) => o.key === sortKey && o.dir === sortDir)?.value ?? "status_asc";
-
-  function handleSortChange(value: string) {
-    const opt = SORT_OPTIONS.find((o) => o.value === value);
-    if (!opt) return;
-    setSortKey(opt.key);
-    setSortDir(opt.dir);
-  }
-
-  function toggleSort(key: SortKey) {
-    if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    else { setSortKey(key); setSortDir("asc"); }
-  }
-
   // ─── Ticket search / filter ────────────────────────────────────────────────
   const filteredTickets = useMemo(() => {
     const q = ticketSearch.trim().toLowerCase();
@@ -449,31 +356,6 @@ export default function ProjectDetail({
     else { setTicketSortKey(key); setTicketSortDir("asc"); }
   }
 
-  // ─── Collapse / expand all tasklist groups ───────────────────────────────
-  const allGroupIds = useMemo(() => {
-    const ids = tasklists.map((tl) => tl.id);
-    const tasklistIds = new Set(ids);
-    // Task 486 — the "__none" group only renders when there's no General list to fold orphans into.
-    const hasUnassigned = !generalTasklistId(tasklists) && tasks.some(
-      (t) => !t.parent_task_id && t.depth === 0 && (!t.tasklist_id || !tasklistIds.has(t.tasklist_id))
-    );
-    return hasUnassigned ? [...ids, "__none"] : ids;
-  }, [tasks, tasklists]);
-
-  const anyCollapsed = collapsedGroups.size > 0;
-
-  function toggleCollapseAll() {
-    setCollapsedGroups(anyCollapsed ? new Set() : new Set(allGroupIds));
-  }
-
-  function toggleGroupCollapse(groupId: string) {
-    setCollapsedGroups((prev) => {
-      const next = new Set(prev);
-      if (next.has(groupId)) next.delete(groupId); else next.add(groupId);
-      return next;
-    });
-  }
-
   return (
     <>
       {/* Content area — the header (title/badge/subtitle/secondary row/settings gear/tab
@@ -483,78 +365,20 @@ export default function ProjectDetail({
         {/* ── Tasks tab ── */}
         {primaryTab === "tasks" && (
           <>
-            <div className="flex flex-wrap items-center justify-between gap-2 px-8 py-2.5 bg-white border-b border-[#E2E7F2] shrink-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="relative">
-                  <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#5F6A88] pointer-events-none" />
-                  <input
-                    value={taskSearch}
-                    onChange={(e) => setTaskSearch(e.target.value)}
-                    placeholder="Search tasks or tasklists…"
-                    className="w-56 pl-8 pr-3 py-[6.5px] rounded-[10px] border text-[12px] outline-none transition-colors border-[#E2E7F2] bg-[#F4F6FB] text-[#3A4565] focus:border-[#007BFF] focus:bg-white focus:ring-[3px] focus:ring-[#007BFF]/[0.14] placeholder:text-[#5F6A88]"
-                  />
-                </div>
-
-                <FilterMultiSelect label="Status" options={STATUS_FILTER_OPTIONS} selected={statusFilter} onChange={setStatusFilter} />
-                <FilterMultiSelect label="Priority" options={PRIORITY_FILTER_OPTIONS} selected={priorityFilter} onChange={setPriorityFilter} />
-                <FilterMultiSelect label="Assignee" options={assigneeOptions} selected={assigneeFilter} onChange={setAssigneeFilter} />
-                <SortSelect value={sortValue} onChange={handleSortChange} options={SORT_OPTIONS} />
-
-                {view === "list" && (
-                  <button
-                    onClick={toggleCollapseAll}
-                    className="inline-flex items-center gap-1.5 px-3 py-[6.5px] rounded-full border border-[#E2E7F2] bg-white text-[11px] font-semibold text-[#5F6A88] hover:border-[#A8C6F5] hover:text-[#0B1533] transition-colors cursor-pointer shrink-0"
-                  >
-                    <ChevronsUpDown size={12} />
-                    {anyCollapsed ? "Expand all" : "Collapse all"}
-                  </button>
-                )}
-
-                {hasActiveFilters && (
-                  <button
-                    onClick={clearFilters}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#E2E7F2] bg-white text-[12px] text-[#3A4565] hover:bg-[#F0F7FF] cursor-pointer shrink-0 transition-colors"
-                  >
-                    <X size={13} /> Clear filters
-                  </button>
-                )}
-              </div>
-
-              <div className="flex items-center gap-2 shrink-0">
-                {/* Straight-line List/Board/Calendar toggle — matches /projects's Grid/List toggle */}
-                <div className="flex items-center gap-0.5 border border-[#E2E7F2] rounded-full p-1 bg-white shrink-0">
-                  {VIEW_ORDER.map((v) => (
-                    <Tooltip key={v}>
-                      <TooltipTrigger render={
-                        <button
-                          onClick={() => setView(v)}
-                          aria-label={`${VIEW_LABELS[v]} view`}
-                          className={cn(
-                            "p-1.5 rounded-full transition-colors cursor-pointer",
-                            view === v ? "bg-[#071133] text-white" : "text-[#5F6A88] hover:text-[#0B1533]"
-                          )}
-                        >
-                          {VIEW_ICONS[v]}
-                        </button>
-                      } />
-                      <TooltipContent side="top">{VIEW_LABELS[v]} view</TooltipContent>
-                    </Tooltip>
-                  ))}
-                </div>
-                {/* Task 282 (item F) — moved here from the page header, vertically centered
-                    with the view toggle. */}
-                <button
-                  onClick={() => setCreateDefaults({})}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#FB914E] text-[#471F02] text-[12.5px] font-medium hover:bg-[#E2762F] hover:text-white transition-colors cursor-pointer shrink-0"
-                >
-                  <Plus size={15} /> New Task
-                </button>
-              </div>
-            </div>
+            <TasksToolbar
+              f={f}
+              assigneeOptions={assigneeOptions}
+              view={view}
+              onView={setView}
+              density={density}
+              onDensity={changeDensity}
+              onNewTask={() => setCreateDefaults({})}
+            />
+            {view === "list" && <TasksProgressStrip tasks={tasks} milestones={milestones} projectEndDate={project.end_date ?? null} />}
             <div className="flex-1 min-h-0 overflow-hidden">
               {view === "board" && (
                 <BoardView
-                  tasks={filteredTasks}
+                  tasks={f.filteredTasks}
                   onMove={async (id, status, position) => { await updateTask(id, { status, position }); }}
                   onOpen={(task) => router.push(`${basePath}/tasks/${task.display_id}`)}
                   onAddInColumn={(status) => setCreateDefaults({ status })}
@@ -565,12 +389,14 @@ export default function ProjectDetail({
               )}
               {view === "list" && (
                 <ListView
-                  tasks={filteredTasks}
+                  tasks={f.filteredTasks}
                   tasklists={tasklists}
+                  milestones={milestones}
                   getHref={(task) => `${basePath}/tasks/${task.display_id}`}
                   onUpdate={updateTask}
                   onBulkDelete={bulkDeleteTasks}
                   onAddSubtask={(t) => setSubtaskParent(t)}
+                  onAddTask={(tasklist_id) => setCreateDefaults({ tasklist_id, milestone_id: tasklists.find((l) => l.id === tasklist_id)?.milestone_id ?? null })}
                   expandRequest={expandRequest}
                   currentUserId={currentUserId}
                   currentUserRole={currentUserRole}
@@ -578,21 +404,25 @@ export default function ProjectDetail({
                   allMembers={allMembers}
                   hoursById={hoursById}
                   attachmentCountById={attachmentCountById}
+                  commentCountById={commentCountById}
                   onHoursLogged={handleHoursLogged}
-                  sortKey={sortKey}
-                  sortDir={sortDir}
-                  onToggleSort={toggleSort}
-                  collapsed={collapsedGroups}
-                  onToggleCollapseGroup={toggleGroupCollapse}
+                  sortKey={f.sortKey}
+                  sortDir={f.sortDir}
+                  onToggleSort={f.toggleSort}
+                  onManualSort={() => { f.setSortKey("position"); f.setSortDir("asc"); }}
+                  collapsed={f.collapsed}
+                  onToggleCollapse={f.toggleCollapse}
                   onCreateNew={() => setCreateDefaults({})}
-                  hasActiveFilters={hasActiveFilters}
-                  onClearFilters={clearFilters}
+                  hasActiveFilters={f.hasActiveFilters}
+                  onClearFilters={f.clearFilters}
                   scrollToTasklistId={initialScrollTasklistId}
+                  compact={density === "compact"}
+                  moves={moves}
                 />
               )}
               {view === "calendar" && (
                 <CalendarView
-                  tasks={filteredTasks}
+                  tasks={f.filteredTasks}
                   onOpen={(task) => router.push(`${basePath}/tasks/${task.display_id}`)}
                   onAddOnDay={(due_date) => setCreateDefaults({ due_date })}
                 />
@@ -632,25 +462,7 @@ export default function ProjectDetail({
               </div>
 
               <div className="flex items-center gap-2 shrink-0">
-                <div className="flex items-center gap-0.5 border border-[#E2E7F2] rounded-full p-1 bg-white shrink-0">
-                  {VIEW_ORDER.map((v) => (
-                    <Tooltip key={v}>
-                      <TooltipTrigger render={
-                        <button
-                          onClick={() => setTicketView(v)}
-                          aria-label={`${VIEW_LABELS[v]} view`}
-                          className={cn(
-                            "p-1.5 rounded-full transition-colors cursor-pointer",
-                            ticketView === v ? "bg-[#071133] text-white" : "text-[#5F6A88] hover:text-[#0B1533]"
-                          )}
-                        >
-                          {VIEW_ICONS[v]}
-                        </button>
-                      } />
-                      <TooltipContent side="top">{VIEW_LABELS[v]} view</TooltipContent>
-                    </Tooltip>
-                  ))}
-                </div>
+                <ViewToggle value={ticketView} onChange={setTicketView} />
                 {/* Task 282 (item F) — moved here from the page header, vertically centered
                     with the view toggle. */}
                 <button

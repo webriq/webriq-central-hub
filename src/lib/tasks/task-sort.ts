@@ -1,8 +1,9 @@
 // Task 470 — pure sort + selection helpers shared by the Tasks listing and the Subtasks tab.
-export type SortKey = "title" | "status" | "priority" | "due_date";
+// Task 487 — "position" = Manual order (drag-and-drop order), nulls last.
+export type SortKey = "title" | "status" | "priority" | "due_date" | "position";
 export type SortDir = "asc" | "desc";
 
-type SortableTask = { title: string; status: string; priority: string; due_date: string | null };
+type SortableTask = { title: string; status: string; priority: string; due_date: string | null; position?: number | null };
 
 const PRIORITY_ORDER: Record<string, number> = { critical: 0, high: 1, normal: 2, low: 3, none: 4 };
 const STATUS_ORDER: Record<string, number> = {
@@ -19,6 +20,7 @@ export function sortTasks<T extends SortableTask>(list: T[], key: SortKey, dir: 
     else if (key === "status")   cmp = (STATUS_ORDER[normalize(a.status)] ?? 0) - (STATUS_ORDER[normalize(b.status)] ?? 0);
     else if (key === "priority") cmp = (PRIORITY_ORDER[a.priority] ?? 4) - (PRIORITY_ORDER[b.priority] ?? 4);
     else if (key === "due_date") cmp = (a.due_date ?? "9999").localeCompare(b.due_date ?? "9999");
+    else if (key === "position") cmp = (a.position ?? Infinity) - (b.position ?? Infinity) || 0;
     return cmp * sign;
   });
 }

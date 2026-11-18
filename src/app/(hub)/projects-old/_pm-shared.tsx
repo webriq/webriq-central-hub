@@ -48,11 +48,11 @@ export const STATUS_LABEL: Record<TaskStatus, string> = {
 // equal to bg here to satisfy this type's shape without introducing an unspecified hex.
 export const STATUS_STYLE: Record<TaskStatus, { text: string; bg: string; border: string }> = {
   open:                { text: "#5F6A88", bg: "#EDF0F7", border: "#EDF0F7" }, // not started — neutral
-  in_progress:         { text: "#007BFF", bg: "#E5F1FF", border: "#E5F1FF" }, // active — blue
+  in_progress:         { text: "#0063D6", bg: "#E5F1FF", border: "#E5F1FF" }, // active — blue
   ready_for_qa:        { text: "#8A5A00", bg: "#FFF3D6", border: "#FFF3D6" }, // pending review — warn
-  testing_completed:   { text: "#007BFF", bg: "#E5F1FF", border: "#E5F1FF" }, // active — blue
+  testing_completed:   { text: "#0063D6", bg: "#E5F1FF", border: "#E5F1FF" }, // active — blue
   for_client_approval: { text: "#8A5A00", bg: "#FFF3D6", border: "#FFF3D6" }, // awaiting decision — warn
-  ready_to_merge:      { text: "#007BFF", bg: "#E5F1FF", border: "#E5F1FF" }, // active — blue
+  ready_to_merge:      { text: "#0063D6", bg: "#E5F1FF", border: "#E5F1FF" }, // active — blue
   post_live_qa:        { text: "#8A5A00", bg: "#FFF3D6", border: "#FFF3D6" }, // verification pending — warn
   closed:              { text: "#177E48", bg: "#E3F5EA", border: "#E3F5EA" }, // done — ok
 };
@@ -60,7 +60,7 @@ export const STATUS_STYLE: Record<TaskStatus, { text: string; bg: string; border
 export const PRIORITY_STYLE: Record<string, { label: string; text: string; dot: string }> = {
   critical: { label: "Critical", text: "#C0392B", dot: "#C0392B" },
   high:     { label: "High",     text: "#8A5A00", dot: "#8A5A00" },
-  normal:   { label: "Normal",   text: "#007BFF", dot: "#007BFF" },
+  normal:   { label: "Normal",   text: "#0063D6", dot: "#007BFF" },
   low:      { label: "Low",      text: "#5F6A88", dot: "#5F6A88" },
   none:     { label: "—",        text: "#5F6A88", dot: "#E2E7F2" },
 };

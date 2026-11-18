@@ -12,7 +12,8 @@ import type { SortKey, SortDir } from "@/lib/tasks/task-sort";
 // checkbox · name · status · assignee · due · priority · hours · timer
 export const TASK_GRID = "grid-cols-[32px_1fr_148px_156px_108px_80px_64px_48px]";
 
-const HEADER_LABEL = "flex items-center gap-1 text-[11px] font-semibold text-[#5F6A88] uppercase tracking-wide";
+// Task 487 — 10.5px/700 (the guide's 9.5px is too small for a dense daily table).
+const HEADER_LABEL = "flex items-center gap-1 text-[10.5px] font-bold text-[#5F6A88] uppercase tracking-[0.08em]";
 
 function SortHeader({ label, active, dir, onClick }: { label: string; active: boolean; dir: SortDir; onClick: () => void }) {
   return (

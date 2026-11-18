@@ -25,6 +25,9 @@ export type ProjectDetailData = {
   initialHoursById: Record<string, number>;
   // Task 459 — own + comment attachment count per task/ticket id; only ids with files are present.
   attachmentCountById: Record<string, number>;
+  // Task 487 — comments per task (migration 184; empty until applied) and the caller's saved row density.
+  commentCountById: Record<string, number>;
+  tasksDensity: "comfortable" | "compact";
 };
 
 export async function getProjectDetailData(projectId: string): Promise<ProjectDetailData | null> {
@@ -63,7 +66,7 @@ export async function getProjectDetailData(projectId: string): Promise<ProjectDe
     classification = product?.classification ?? null;
   }
 
-  const [milestonesRes, tasklistsRes, tasksRes, issuesRes, customerRes, profilesRes, timeLogsRes, assignableMembers, attachmentCountsRes] = await Promise.all([
+  const [milestonesRes, tasklistsRes, tasksRes, issuesRes, customerRes, profilesRes, timeLogsRes, assignableMembers, attachmentCountsRes, commentCountsRes, prefRes] = await Promise.all([
     supabase
       .from("milestones")
       .select("*")
@@ -73,6 +76,7 @@ export async function getProjectDetailData(projectId: string): Promise<ProjectDe
       .from("tasklists")
       .select("*")
       .eq("project_id", project.id)
+      .order("position", { ascending: true, nullsFirst: false })
       .order("created_at", { ascending: true }),
     excludingChecklist((exclude) => {
       const q = supabase.from("tasks").select("*").eq("project_id", project.id).order("position", { ascending: true, nullsFirst: false });
@@ -96,6 +100,12 @@ export async function getProjectDetailData(projectId: string): Promise<ProjectDe
     // Session client on purpose: attachments_staff_read RLS decides what the caller may count.
     // shortcut: one row per item with files, unpaged — page with .range() past 1000 such items.
     supabase.rpc("project_attachment_counts", { p_project_id: project.id }),
+    // Task 487 — neither is in the generated Database types until `supabase gen types` re-runs.
+    // shortcut: one row per task with comments, unpaged — page with .range() past 1000 such tasks.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (supabase as any).rpc("project_task_comment_counts", { p_project_id: project.id }) as Promise<{ data: { task_id: string; comment_count: number }[] | null; error: { message: string } | null }>,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (supabase as any).from("user_preferences").select("tasks_density").eq("user_id", currentUserId).maybeSingle() as Promise<{ data: { tasks_density: string } | null }>,
   ]);
 
   const profilesById: Record<string, { full_name: string; avatar_url: string | null }> = {};
@@ -112,6 +122,12 @@ export async function getProjectDetailData(projectId: string): Promise<ProjectDe
   if (attachmentCountsRes.error) console.warn("[project-detail] attachment counts unavailable:", attachmentCountsRes.error.message);
   const attachmentCountById: Record<string, number> = {};
   for (const r of attachmentCountsRes.data ?? []) attachmentCountById[r.entity_id] = Number(r.attachment_count);
+
+  // Degrades to no comment counters until migration 184 is applied; density falls back to comfortable (182/184 missing).
+  if (commentCountsRes.error) console.warn("[project-detail] comment counts unavailable:", commentCountsRes.error.message);
+  const commentCountById: Record<string, number> = {};
+  for (const r of commentCountsRes.data ?? []) commentCountById[r.task_id] = Number(r.comment_count);
+  const tasksDensity = prefRes.data?.tasks_density === "compact" ? "compact" : "comfortable";
 
   // Task 209 — derived from allMembers (already fetched above), no extra query.
   const realRole = (profilesRes.data ?? []).find((p) => p.id === currentUserId)?.role ?? null;
@@ -132,5 +148,7 @@ export async function getProjectDetailData(projectId: string): Promise<ProjectDe
     allMembers: assignableMembers,
     initialHoursById: hoursById,
     attachmentCountById,
+    commentCountById,
+    tasksDensity,
   };
 }
