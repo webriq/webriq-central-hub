@@ -4,7 +4,9 @@ import { createClient } from "@/lib/supabase/server";
 import { V2_ROUTES } from "@/config/constants";
 import { buildProjectHref, buildItemHref } from "@/lib/projects/deep-links";
 import InboxIndex, { type PaginationMeta, type TicketListItem } from "./_inbox-index";
-import { parseStatusFilterParam, STATUS_FILTER_OPTIONS, ARCHIVED_FILTER_VALUE } from "./_status-filter";
+import { parseStatusFilterParam, STATUS_FILTER_OPTIONS, ARCHIVED_FILTER_VALUE, DELETED_FILTER_VALUE, VIEW_FILTER_VALUES } from "./_status-filter";
+import { excludingDeleted } from "@/lib/desk/inbox-deleted";
+import { countUnreadThreads, isMissingUnreadColumn, NOT_ARCHIVED_OR } from "@/lib/desk/inbox-unread";
 import { resolveContactName, type ContactRow } from "./_resolve";
 import { parseDuplicateOf } from "./_duplicate";
 
@@ -50,6 +52,7 @@ type TicketRow = {
   created_at: string;
   customers: { company_name: string } | null;
   duplicate_of: unknown; // task 443 — aliased `source_meta->duplicateOf` JSON path, not the whole source_meta
+  unread_count?: number; // task 490 — absent until migration 186 is applied
 };
 
 type LinkedIssueRow = {
@@ -78,14 +81,14 @@ function buildStatusOrClause(selected: string[]): string {
 // A row is "not archived" when source_meta.isArchived is absent (NULL — every Hub-native
 // email-poll ticket, which is inserted with no source_meta) or explicitly "false" (live Zoho
 // imports). Only "true" (task 325's archive import) is archived. Expressed NULL-safely so the
-// exclusion doesn't silently drop Hub-native tickets.
-const NOT_ARCHIVED_OR = "source_meta->>isArchived.is.null,source_meta->>isArchived.neq.true";
+// exclusion doesn't silently drop Hub-native tickets. `NOT_ARCHIVED_OR` lives in inbox-unread.ts
+// (task 490) so the unread counter applies the exact same exclusion.
 const IS_ARCHIVED = "source_meta->>isArchived.eq.true";
 
 export default async function DeskInboxPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; pageSize?: string; search?: string; status?: string; retired?: string }>;
+  searchParams: Promise<{ page?: string; pageSize?: string; search?: string; status?: string; retired?: string; unread?: string }>;
 }) {
   const supabase = await createClient();
   const { data: claims } = await supabase.auth.getClaims();
@@ -106,49 +109,72 @@ export default async function DeskInboxPage({
   const searchQ = params.search?.trim() ?? "";
   const statusSelected = parseStatusFilterParam(params.status ?? null);
   const archivedChecked = statusSelected.includes(ARCHIVED_FILTER_VALUE);
-  const realStatuses = statusSelected.filter((s) => s !== ARCHIVED_FILTER_VALUE);
-
-  let ticketsQuery = supabase
-    .from("inbox")
-    .select(
-      "id, subject, requester_email, external_contact_id, status, created_at, duplicate_of:source_meta->duplicateOf, customers(company_name)",
-      { count: "exact" }
-    )
-    .order("created_at", { ascending: false });
-
+  // Task 489 — "Deleted" is its own view: only soft-deleted threads, status/archive filters ignored.
+  const deletedChecked = statusSelected.includes(DELETED_FILTER_VALUE);
+  const realStatuses = statusSelected.filter((s) => !VIEW_FILTER_VALUES.includes(s));
   const statusClause = buildStatusOrClause(realStatuses);
+  const NO_ROW_ID = "00000000-0000-0000-0000-000000000000";
+  // Task 490 — `?unread=1` (the header's "N new" toggle) narrows to threads with new customer messages.
+  const unreadOnly = params.unread === "1";
 
-  if (statusSelected.length === 0) {
-    // Explicit zero-selection ("uncheck everything") — guaranteed to match no row rather than
-    // silently falling back to "all", matching the checkbox's literal state.
-    ticketsQuery = ticketsQuery.eq("id", "00000000-0000-0000-0000-000000000000");
-  } else if (statusSelected.length === STATUS_FILTER_OPTIONS.length) {
-    // Every option checked (incl. "Archived") — no status/archive filter at all.
-  } else if (archivedChecked) {
-    // "Archived" is checked: OR the archived rows in alongside whatever real statuses are
-    // selected ("Closed" + "Archived" → all closed; "Archived" alone → every archived ticket).
-    ticketsQuery = ticketsQuery.or(statusClause ? `${statusClause},${IS_ARCHIVED}` : IS_ARCHIVED);
-  } else {
-    // "Archived" is unchecked (the default): apply the status union AND exclude archived rows,
-    // so e.g. checking "Closed" shows live closed tickets only, not the imported Zoho archive.
-    if (statusClause) ticketsQuery = ticketsQuery.or(statusClause);
-    ticketsQuery = ticketsQuery.or(NOT_ARCHIVED_OR);
-  }
-  // Task 450 — hide Desk copies the duplicate cleanup retired (source_meta.retiredInto set); `?retired=1` shows
-  // them. A row without the key has a NULL json path, so this is a no-op until the cleanup has run.
-  if (params.retired !== "1") ticketsQuery = ticketsQuery.is("source_meta->retiredInto", null);
-  if (searchQ) {
-    // Strip characters that would break PostgREST's `.or()` filter-list syntax.
-    const esc = searchQ.replace(/[%,()]/g, "");
-    ticketsQuery = ticketsQuery.or(
-      `subject.ilike.%${esc}%,requester_email.ilike.%${esc}%,external_id.ilike.%${esc}%`
-    );
+  // `exclude` is false only when migration 185 isn't applied yet (excludingDeleted re-runs on 42703) — then nothing
+  // can be deleted, so the normal view needs no filter and the "Deleted" view is empty. `withUnread` is false only
+  // when migration 186 isn't applied yet — then no column to select and nothing is unread.
+  function buildTicketsQuery(exclude: boolean, withUnread: boolean) {
+    let ticketsQuery = supabase
+      .from("inbox")
+      .select(
+        `id, subject, requester_email, external_contact_id, status, created_at, duplicate_of:source_meta->duplicateOf, customers(company_name)${withUnread ? ", unread_count" : ""}`,
+        { count: "exact" }
+      )
+      .order("created_at", { ascending: false });
+    if (unreadOnly) ticketsQuery = withUnread ? ticketsQuery.gt("unread_count", 0) : ticketsQuery.eq("id", NO_ROW_ID);
+
+    if (deletedChecked) {
+      ticketsQuery = exclude ? ticketsQuery.not("deleted_at", "is", null) : ticketsQuery.eq("id", NO_ROW_ID);
+    } else {
+      if (statusSelected.length === 0) {
+        // Explicit zero-selection ("uncheck everything") — guaranteed to match no row rather than
+        // silently falling back to "all", matching the checkbox's literal state.
+        ticketsQuery = ticketsQuery.eq("id", NO_ROW_ID);
+      } else if (statusSelected.length === STATUS_FILTER_OPTIONS.length - 1) {
+        // Every option checked except "Deleted" (incl. "Archived") — no status/archive filter at all.
+      } else if (archivedChecked) {
+        // "Archived" is checked: OR the archived rows in alongside whatever real statuses are
+        // selected ("Closed" + "Archived" → all closed; "Archived" alone → every archived ticket).
+        ticketsQuery = ticketsQuery.or(statusClause ? `${statusClause},${IS_ARCHIVED}` : IS_ARCHIVED);
+      } else {
+        // "Archived" is unchecked (the default): apply the status union AND exclude archived rows,
+        // so e.g. checking "Closed" shows live closed tickets only, not the imported Zoho archive.
+        if (statusClause) ticketsQuery = ticketsQuery.or(statusClause);
+        ticketsQuery = ticketsQuery.or(NOT_ARCHIVED_OR);
+      }
+      if (exclude) ticketsQuery = ticketsQuery.is("deleted_at", null);
+    }
+    // Task 450 — hide Desk copies the duplicate cleanup retired (source_meta.retiredInto set); `?retired=1` shows
+    // them. A row without the key has a NULL json path, so this is a no-op until the cleanup has run.
+    if (params.retired !== "1") ticketsQuery = ticketsQuery.is("source_meta->retiredInto", null);
+    if (searchQ) {
+      // Strip characters that would break PostgREST's `.or()` filter-list syntax.
+      const esc = searchQ.replace(/[%,()]/g, "");
+      ticketsQuery = ticketsQuery.or(
+        `subject.ilike.%${esc}%,requester_email.ilike.%${esc}%,external_id.ilike.%${esc}%`
+      );
+    }
+    return ticketsQuery.range(from, to);
   }
 
-  const ticketsRes = await ticketsQuery.range(from, to);
+  const runList = (withUnread: boolean) => excludingDeleted((exclude) => buildTicketsQuery(exclude, withUnread));
+  let ticketsRes = await runList(true);
+  const unreadSupported = !isMissingUnreadColumn(ticketsRes.error);
+  if (!unreadSupported) ticketsRes = await runList(false);
   // Task 443 — this page used to swallow query errors (a bad select showed an empty list with no trace).
   if (ticketsRes.error) console.error("[desk/inbox] ticket list query failed:", ticketsRes.error.message);
-  const ticketRows = (ticketsRes.data ?? []) as TicketRow[];
+  const ticketRows = (ticketsRes.data ?? []) as unknown as TicketRow[];
+  // Task 490 — initial header counter; the client's live hook takes over once it has loaded.
+  const initialUnread = unreadSupported
+    ? await countUnreadThreads(supabase).catch(() => ({ count: 0, supported: false }))
+    : { count: 0, supported: false };
 
   // Contact Name has no declared FK to `tickets` (migration 114 added a plain text column, not
   // a foreign key) — resolve it with a scoped lookup Map, same discipline `customers/page.tsx`
@@ -204,6 +230,7 @@ export default async function DeskInboxPage({
     linkedIssue: linkedIssueByTicketId.get(t.id) ?? null,
     hasRequesterEmail: !!t.requester_email,
     duplicateOf: parseDuplicateOf(t.duplicate_of, t.id),
+    unreadCount: t.unread_count ?? 0,
   }));
 
   const paginationMeta: PaginationMeta = {
@@ -212,5 +239,12 @@ export default async function DeskInboxPage({
     total: ticketsRes.count ?? 0,
   };
 
-  return <InboxIndex tickets={tickets} paginationMeta={paginationMeta} />;
+  return (
+    <InboxIndex
+      tickets={tickets}
+      paginationMeta={paginationMeta}
+      deletedSupported={ticketsRes.deletedSupported}
+      initialUnread={initialUnread}
+    />
+  );
 }

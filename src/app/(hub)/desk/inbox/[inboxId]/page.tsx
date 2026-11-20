@@ -1,6 +1,8 @@
 import { redirect, notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
+import { isMissingDeletedColumn } from "@/lib/desk/inbox-deleted";
+import { isMissingUnreadColumn } from "@/lib/desk/inbox-unread";
 import { V2_ROUTES } from "@/config/constants";
 import TicketDetail, { type TicketDetailData } from "./_ticket-detail";
 import type { MessageItem } from "./_conversation-thread";
@@ -110,6 +112,29 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
 
   if (error || !ticketData) notFound();
   const t = ticketData as TicketDetailRow;
+
+  // Task 489 — soft-delete state, read separately so the main select above keeps working before migration 185.
+  const { data: deletedRow, error: deletedError } = await supabase
+    .from("inbox")
+    .select("deleted_at, deleted_by")
+    .eq("id", inboxId)
+    .maybeSingle();
+  const deletedSupported = !isMissingDeletedColumn(deletedError);
+  // Task 490 — new customer messages since the thread was last opened; the client marks it read on mount.
+  // Read separately so the page keeps working before migration 186 (42703 → treated as 0).
+  const { data: unreadRow, error: unreadError } = await supabase
+    .from("inbox")
+    .select("unread_count")
+    .eq("id", inboxId)
+    .maybeSingle();
+  if (unreadError && !isMissingUnreadColumn(unreadError)) {
+    console.error("[desk/inbox/[inboxId]] unread lookup failed:", unreadError.message);
+  }
+  let deletedByName: string | null = null;
+  if (deletedRow?.deleted_by) {
+    const { data } = await supabase.from("profiles").select("full_name").eq("id", deletedRow.deleted_by).maybeSingle();
+    deletedByName = data?.full_name ?? null;
+  }
 
   let contactRow: (ContactRow & { phone: string | null }) | null = null;
   if (t.external_contact_id) {
@@ -252,6 +277,10 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
     whiteLabel,
     stackShiftSite,
     duplicateOf,
+    deletedSupported,
+    deletedAt: deletedRow?.deleted_at ?? null,
+    deletedByName,
+    unreadCount: unreadRow?.unread_count ?? 0,
   };
 
   const messages: MessageItem[] = messageRows.map((m, idx) => {

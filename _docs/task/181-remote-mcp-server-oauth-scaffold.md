@@ -304,3 +304,8 @@ Found during the user's real end-to-end connector test against the deployed inst
 - `pnpm build` (after `rm -rf .next`) — PASS, all 6 new routes present in the route manifest: `/api/mcp`, `/api/oauth/register`, `/api/oauth/token`, `/oauth/authorize`, `/.well-known/oauth-authorization-server`, `/.well-known/oauth-protected-resource`
 - `pnpm dev` / full OAuth handshake / Claude custom-connector test — SKIPPED (requires the migration to actually be applied to a real Supabase instance first, which is explicitly gated on a separate approval per Out of Scope; also requires deploying or tunneling a public URL for Claude to reach). See Manual Testing section above for the exact steps once the migration is applied.
 - Migration **not run** — `supabase/migrations/087_mcp_oauth_schema.sql` exists on disk only. Applying it (and regenerating real Supabase types afterward, to replace the hand-authored provisional ones in `src/types/database.ts`) is the next explicit approval needed before any end-to-end testing can happen.
+
+## Follow-up (task 488)
+Two assumptions above no longer hold:
+- "proxy.ts needed no changes" stopped being true after task 255's proxy rewrite. `/.well-known/*` was being gated as a hub route, and task 488 excluded it.
+- Consent stored the browser session's own Supabase refresh token, so the hub and MCP spent each other's tokens. Since task 488, each consent mints a separate session (`src/lib/mcp/mint-session.ts`), and the consent Server Actions re-validate client, redirect URI, PKCE challenge and role-capped scopes server-side. See `_docs/task/488-mcp-auth-hardening-discovery-session-consent.md`.

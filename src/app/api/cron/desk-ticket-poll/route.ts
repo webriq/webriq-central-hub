@@ -29,6 +29,7 @@ import { syncTicketMessages } from "@/lib/desk/stackshift-message-sync";
 // Task 441 — overlap window, incremental cursor and time budget (pure helpers).
 import { POLL_OVERLAP_MS, selectCandidates, selectUncheckedByCreated, advanceCursor, budgetExhausted } from "@/lib/desk/poll-cursor";
 import { subjectsMatch } from "@/lib/email/subject";
+import { restoreDeletedThread } from "@/lib/desk/inbox-deleted";
 
 // Without this the platform default applies and a long run dies before the cursor moves.
 export const maxDuration = 300;
@@ -383,6 +384,8 @@ async function processTicket(
   // contentType (repairExistingContentType omitted, defaults to false); that repair is the new
   // backfill-stackshift-messages admin route's job, run manually against dormant tickets.
   const sync = await syncTicketMessages(token, externalId, inboxId);
+  // Task 489 (D4) — a new customer message brings a soft-deleted thread back into the Inbox.
+  if (sync.clientMessagesInserted > 0) await restoreDeletedThread(adminClient, inboxId);
   // Task 457 (D2) — the upsert above rewrote source_meta without the stamp, so a clean sync has
   // already cleared it; re-stamp only when files still failed, for runAttachmentRetries().
   if (sync.attachmentsFailed > 0) await setAttachmentFailStamp(inboxId, externalId, true);

@@ -45,6 +45,17 @@ function formatDateTime(iso: string): string {
   }).format(new Date(iso));
 }
 
+// Task 491 (D1) — the ticket's own due date. Built from the raw local parts (never
+// `new Date("YYYY-MM-DD")`, which parses as UTC midnight and can land on the previous day).
+function formatDue(date: string, time: string | null): string {
+  const [y, m, d] = date.split("-").map(Number);
+  if (!time) {
+    return new Intl.DateTimeFormat("en-US", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(y, m - 1, d));
+  }
+  const [hh, mm] = time.split(":").map(Number);
+  return formatDateTime(new Date(y, m - 1, d, hh || 0, mm || 0).toISOString());
+}
+
 export function FiledIssuesTable({
   issues,
   allMembers,
@@ -242,14 +253,15 @@ export function FiledIssuesTable({
                 {issue.ticketRespondedAt ? formatDateTime(issue.ticketRespondedAt) : "—"}
               </span>
 
-              {/* Due date — the origin ticket's SLA due time, read-only, overdue in red with a
-                  trailing "(ND)" days-overdue badge (task 383). */}
+              {/* Due date — the ticket's own due date (+ time when set), read-only, overdue in red
+                  with a trailing "(ND)" days-overdue badge (task 383; source switched from the
+                  Inbox SLA due time by task 491 D1 to match the Due date filter). */}
               <span
-                className={`text-[11px] font-mono truncate ${issue.ticketOverdue ? "text-[#C0392B] font-semibold" : "text-[#5F6A88]"}`}
-                title={issue.ticketDueAt ? formatDateTime(issue.ticketDueAt) : undefined}
+                className={`text-[11px] font-mono truncate ${issue.overdue ? "text-[#C0392B] font-semibold" : "text-[#5F6A88]"}`}
+                title={issue.dueDate ? formatDue(issue.dueDate, issue.dueTime) : undefined}
               >
-                {issue.ticketDueAt ? formatDateTime(issue.ticketDueAt) : "—"}
-                {issue.ticketOverdue && issue.ticketOverdueDays != null && ` (${issue.ticketOverdueDays}D)`}
+                {issue.dueDate ? formatDue(issue.dueDate, issue.dueTime) : "—"}
+                {issue.overdue && issue.overdueDays != null && ` (${issue.overdueDays}D)`}
               </span>
 
               {/* Created date + time — always full, mono (design-system "Data" type role) */}

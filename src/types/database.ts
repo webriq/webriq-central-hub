@@ -2809,6 +2809,12 @@ export interface Database {
           customer_view_failed_attempts: number;
           customer_view_locked_until: string | null;
           customer_notified_at: string | null;
+          deleted_at: string | null; // task 489 (migration 185)
+          deleted_by: string | null;
+          unread_count: number; // task 490 (migration 186)
+          last_client_message_at: string | null;
+          seen_at: string | null;
+          seen_by: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -2843,6 +2849,12 @@ export interface Database {
           customer_view_failed_attempts?: number;
           customer_view_locked_until?: string | null;
           customer_notified_at?: string | null;
+          deleted_at?: string | null;
+          deleted_by?: string | null;
+          unread_count?: number;
+          last_client_message_at?: string | null;
+          seen_at?: string | null;
+          seen_by?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -2877,6 +2889,12 @@ export interface Database {
           customer_view_failed_attempts?: number;
           customer_view_locked_until?: string | null;
           customer_notified_at?: string | null;
+          deleted_at?: string | null;
+          deleted_by?: string | null;
+          unread_count?: number;
+          last_client_message_at?: string | null;
+          seen_at?: string | null;
+          seen_by?: string | null;
           updated_at?: string;
         };
         Relationships: [

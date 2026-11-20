@@ -15,6 +15,14 @@
 // `ARCHIVED_FILTER_VALUE` and `buildStatusOrClause` in `page.tsx`.
 export const ARCHIVED_FILTER_VALUE = "archived";
 
+// "Deleted" (task 489) — soft-deleted threads (`inbox.deleted_at` set, migration 185). Like "Archived" it is a
+// separate, exclusive, opt-in view: when selected the list shows ONLY deleted threads (status/archive filters are
+// ignored); otherwise deleted threads are always excluded. Never part of "All". Hidden until migration 185 is applied.
+export const DELETED_FILTER_VALUE = "deleted";
+
+// Options that are views rather than combinable statuses (mutually exclusive with everything else, kept out of "All").
+export const VIEW_FILTER_VALUES: readonly string[] = [ARCHIVED_FILTER_VALUE, DELETED_FILTER_VALUE];
+
 export const STATUS_FILTER_OPTIONS = [
   { value: "open", label: "Open" },
   { value: "on_hold", label: "On Hold" },
@@ -22,14 +30,15 @@ export const STATUS_FILTER_OPTIONS = [
   { value: "closed", label: "Closed" },
   { value: "overdue", label: "Overdue" },
   { value: ARCHIVED_FILTER_VALUE, label: "Archived" },
+  { value: DELETED_FILTER_VALUE, label: "Deleted" },
 ] as const;
 
-// What the dropdown's "All" row toggles and reflects — every status EXCEPT "Archived", so the
+// What the dropdown's "All" row toggles and reflects — every status EXCEPT "Archived" (and "Deleted"), so the
 // archive stays opt-in even from the "All" shortcut. Checking "Archived" therefore un-checks
 // "All" (the selection is no longer exactly this set), and clicking "All" clears "Archived".
 export const ALL_STATUS_VALUES = STATUS_FILTER_OPTIONS
   .map((o) => o.value)
-  .filter((v) => v !== ARCHIVED_FILTER_VALUE);
+  .filter((v) => !VIEW_FILTER_VALUES.includes(v));
 
 // Absent `status` param (first-ever visit to the page) defaults to "Open" only — distinct from
 // an explicit `?status=all` (the "All" row: every status EXCEPT "Archived", written by

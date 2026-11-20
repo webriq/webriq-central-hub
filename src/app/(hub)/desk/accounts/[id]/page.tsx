@@ -1,6 +1,7 @@
 import { redirect, notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
+import { excludingDeleted } from "@/lib/desk/inbox-deleted";
 import { V2_ROUTES } from "@/config/constants";
 import { ExternalLink } from "lucide-react";
 import {
@@ -93,12 +94,16 @@ export default async function DeskAccountDetailPage({ params }: { params: Promis
     phone: c.phone ?? c.mobile,
   }));
 
-  const { data: ticketRows } = await supabase
-    .from("inbox")
-    .select("id, ticket_number, subject, status, created_at")
-    .eq("external_account_id", a.external_id)
-    .order("created_at", { ascending: false })
-    .limit(50);
+  // Task 489 — soft-deleted threads are hidden here (Desk Inbox "Deleted" view only).
+  const { data: ticketRows } = await excludingDeleted((exclude) => {
+    const q = supabase
+      .from("inbox")
+      .select("id, ticket_number, subject, status, created_at")
+      .eq("external_account_id", a.external_id)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    return exclude ? q.is("deleted_at", null) : q;
+  });
   // Task 382 — ticketId carries the row's UUID (the detail-page routing key), not the old
   // "TKT-<n>" display string.
   const tickets: RelatedTicket[] = (ticketRows ?? []).map((t) => ({

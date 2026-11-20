@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import { runScopedTool } from "@/lib/mcp/run-tool";
+import { excludingDeleted } from "@/lib/desk/inbox-deleted";
 
 const TICKET_STATUS = ["open", "on_hold", "escalated", "closed"] as const;
 const TICKET_PRIORITY = ["low", "normal", "high", "critical"] as const;
@@ -20,15 +21,17 @@ export async function listTickets(
   authInfo: AuthInfo | undefined
 ) {
   return runScopedTool("list_tickets", "tickets:read", authInfo, async (client) => {
-    let q = client
-      .from("inbox")
-      .select("id,ticket_number,subject,status,priority,customer_id,requester_email,sla_due_at,created_at")
-      .order("created_at", { ascending: false })
-      .limit(limit);
-    if (status) q = q.eq("status", status);
-    if (priority) q = q.eq("priority", priority);
-
-    const { data, error } = await q;
+    // Task 489 — soft-deleted Desk threads are never listed.
+    const { data, error } = await excludingDeleted((exclude) => {
+      let q = client
+        .from("inbox")
+        .select("id,ticket_number,subject,status,priority,customer_id,requester_email,sla_due_at,created_at")
+        .order("created_at", { ascending: false })
+        .limit(limit);
+      if (status) q = q.eq("status", status);
+      if (priority) q = q.eq("priority", priority);
+      return exclude ? q.is("deleted_at", null) : q;
+    });
     if (error) throw new Error(error.message);
 
     return {

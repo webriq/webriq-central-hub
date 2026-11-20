@@ -7,7 +7,6 @@ import type { Database } from "@/types/database";
 // token captured at OAuth consent time, then hand the caller a client authenticated
 // as that user via the Authorization header (not cookies — there's no browser here).
 export async function withUserScopedClient<T>(
-  mcpTokenRecordId: string,
   supabaseRefreshToken: string,
   handler: (client: SupabaseClient<Database>, userId: string) => Promise<T>
 ): Promise<T> {
@@ -27,11 +26,19 @@ export async function withUserScopedClient<T>(
 
   // Supabase rotates the refresh token on every use — the one we were just given
   // is already spent. Persist the new one immediately so the *next* tool call
-  // (which reads this same row) doesn't get rejected with a consumed token.
-  await adminClient
+  // doesn't get rejected with a consumed token.
+  //
+  // Task 488 — written to every row holding the old value, not just the row this
+  // call came in on: an MCP refresh grant may have rotated this row into a new one
+  // mid-call, and that new row must not keep the spent token. Since each consent
+  // now mints its own Supabase session, the token value identifies the lineage.
+  const { error: rotateErr } = await adminClient
     .from("mcp_oauth_tokens")
     .update({ supabase_refresh_token: data.session.refresh_token })
-    .eq("id", mcpTokenRecordId);
+    .eq("supabase_refresh_token", supabaseRefreshToken);
+  if (rotateErr) {
+    console.error("[mcp-user-scoped-client] failed to persist rotated refresh token:", rotateErr.message);
+  }
 
   const scopedClient = createClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

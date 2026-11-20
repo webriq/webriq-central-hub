@@ -21,7 +21,7 @@ Scope catalog (`MCP_SCOPES`, `MCP_SCOPE_DESCRIPTIONS`, `ROLE_SCOPE_GRANTS`) live
 | `delete_task` | `tasks:delete` | admin, super_admin, pm | Permanently delete a task — irreversible, requires `confirm: true` |
 | `list_classifications` | `classifications:read` | admin, super_admin, pm | List AI pipeline classification records |
 | `update_classification_status` | `classifications:write` | admin, super_admin, pm | Update a classification record's pipeline status |
-| `list_tickets` | `tickets:read` | admin, super_admin, pm | List client support tickets |
+| `list_tickets` | `tickets:read` | admin, super_admin, pm | List client support tickets (Desk Inbox threads; soft-deleted threads are never listed — task 489) |
 | `run_orchestration` | `orchestration:run` | admin, super_admin, pm | Run the automation pipeline on a task (classify → sub-tasks → lane routing → Sanity execution) |
 
 `developer` gets only `projects:read`/`tasks:read` (`get_project_status`/`list_open_tasks`) — no write/manage scopes are granted to `developer` via MCP. `hr`, `marketing`, and `client` are granted no scopes and cannot use any tool on this server.

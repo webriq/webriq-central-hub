@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Inbox, Search, X } from "lucide-react";
 import { toast } from "sonner";
@@ -9,7 +9,16 @@ import { V2_ROUTES } from "@/config/constants";
 import { InboxTable } from "./_inbox-table";
 import type { DuplicateOf } from "./_duplicate";
 import { FilterMultiSelect } from "./_filter-multi-select";
-import { parseStatusFilterParam, STATUS_FILTER_OPTIONS, ARCHIVED_FILTER_VALUE, ALL_STATUS_VALUES } from "./_status-filter";
+import { useInboxUnreadCount } from "@/components/desk/use-inbox-unread";
+import type { UnreadCount } from "@/lib/desk/inbox-unread";
+import {
+  parseStatusFilterParam,
+  STATUS_FILTER_OPTIONS,
+  ARCHIVED_FILTER_VALUE,
+  DELETED_FILTER_VALUE,
+  VIEW_FILTER_VALUES,
+  ALL_STATUS_VALUES,
+} from "./_status-filter";
 
 // Ticket ID/Owner/Responded/Due Date moved to the Tickets tab (still task 363's follow-up) — this
 // list only needs what it still displays, plus the reverse "Linked Ticket" lookup. "Status" moved
@@ -28,6 +37,8 @@ export type TicketListItem = {
   hasRequesterEmail: boolean;
   // Task 443 — set when this row is the same conversation as another Hub ticket.
   duplicateOf: DuplicateOf | null;
+  // Task 490 — new customer messages since anyone last opened the thread (0 until migration 186).
+  unreadCount: number;
 };
 
 export type PaginationMeta = { page: number; pageSize: number; total: number };
@@ -37,12 +48,31 @@ const PAGE_SIZES = [20, 50, 100] as const;
 export default function InboxIndex({
   tickets: initialTickets,
   paginationMeta,
+  deletedSupported,
+  initialUnread,
 }: {
   tickets: TicketListItem[];
   paginationMeta: PaginationMeta;
+  // Task 489 — false until migration 185 is applied; the "Deleted" filter option is hidden then.
+  deletedSupported: boolean;
+  // Task 490 — server-rendered unread thread count; the live hook replaces it once loaded.
+  initialUnread: UnreadCount;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  // Task 490 — live "N new" counter. When it changes (a customer wrote in, or someone opened a thread), re-render the
+  // server list so the per-row indicators follow. Skips the first value so mounting doesn't trigger a refresh.
+  const liveUnread = useInboxUnreadCount(true);
+  const unread = liveUnread.supported ? liveUnread : initialUnread;
+  const prevLiveCountRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (!liveUnread.supported) return;
+    const prev = prevLiveCountRef.current;
+    prevLiveCountRef.current = liveUnread.count;
+    if (prev !== null && prev !== liveUnread.count) router.refresh();
+  }, [liveUnread.supported, liveUnread.count, router]);
+  const unreadOnly = searchParams.get("unread") === "1";
 
   // Re-sync local state when the server hands us a new page/filter result — same
   // compare-during-render pattern `_filed-issues-index.tsx` uses (not an effect, so it doesn't
@@ -120,7 +150,11 @@ export default function InboxIndex({
   // exactly "All" (every status except Archived). The "no results" empty state keys off this.
   const isAllStatusView =
     statusSelected.length === ALL_STATUS_VALUES.length && ALL_STATUS_VALUES.every((v) => statusSelected.includes(v));
-  const isFiltered = (searchParams.get("search")?.trim().length ?? 0) > 0 || !isAllStatusView;
+  const isFiltered = (searchParams.get("search")?.trim().length ?? 0) > 0 || !isAllStatusView || unreadOnly;
+  const isDeletedView = statusSelected.includes(DELETED_FILTER_VALUE);
+  const statusOptions = deletedSupported
+    ? STATUS_FILTER_OPTIONS
+    : STATUS_FILTER_OPTIONS.filter((o) => o.value !== DELETED_FILTER_VALUE);
 
   return (
     <div onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)} className="h-full overflow-y-auto scrollbar-light">
@@ -131,7 +165,32 @@ export default function InboxIndex({
           <div className="flex items-center justify-between gap-4 mb-4">
             <div>
               <h1 className="font-heading text-[22px] font-bold tracking-[-0.02em] text-[#0B1533]">Inbox</h1>
-              <p className="text-[13px] text-[#5F6A88] mt-0.5">{total} ticket{total === 1 ? "" : "s"}</p>
+              <div className="flex items-center gap-2 mt-0.5 text-[13px] text-[#5F6A88]">
+                <span>{total} ticket{total === 1 ? "" : "s"}</span>
+                {/* Task 490 — threads with new customer messages; toggles `?unread=1` across every status. */}
+                {unread.supported && (unread.count > 0 || unreadOnly) && (
+                  <>
+                    <span aria-hidden="true">·</span>
+                    <button
+                      type="button"
+                      aria-pressed={unreadOnly}
+                      onClick={() =>
+                        router.push(buildUrl(unreadOnly ? { unread: null, page: 1 } : { unread: "1", status: "all", page: 1 }))
+                      }
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#007BFF]/20",
+                        unreadOnly
+                          ? "bg-[#007BFF] text-white hover:bg-[#0063D6]"
+                          : "bg-[#E5F1FF] text-[#0063D6] hover:bg-[#D4E7FF]"
+                      )}
+                    >
+                      <span className={cn("h-1.5 w-1.5 rounded-full", unreadOnly ? "bg-white" : "bg-[#007BFF]")} aria-hidden="true" />
+                      {unread.count} new
+                      {unreadOnly && <X size={11} aria-hidden="true" />}
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
           </div>
 
@@ -159,12 +218,12 @@ export default function InboxIndex({
                 FilterMultiSelect design (task 309 follow-up). */}
             <FilterMultiSelect
               label="Status"
-              options={STATUS_FILTER_OPTIONS}
+              options={statusOptions}
               selected={statusSelected}
               onChange={handleStatusChange}
               dividerBeforeValue={ARCHIVED_FILTER_VALUE}
               allToggleValues={ALL_STATUS_VALUES}
-              exclusiveValue={ARCHIVED_FILTER_VALUE}
+              exclusiveValues={VIEW_FILTER_VALUES}
             />
 
             {/* Task 450 — Desk copies retired by the duplicate cleanup are hidden by default; this reveals them. */}
@@ -249,8 +308,16 @@ export default function InboxIndex({
                 <Search size={24} className="text-[#8A5A00]" />
               </div>
               <div className="text-center">
-                <div className="text-[15px] font-semibold text-[#0B1533]">No tickets match your filters</div>
-                <p className="text-[13px] text-[#5F6A88] mt-1">Try a different search term or clear the status filter.</p>
+                <div className="text-[15px] font-semibold text-[#0B1533]">
+                  {isDeletedView ? "No deleted threads" : unreadOnly ? "No new messages" : "No tickets match your filters"}
+                </div>
+                <p className="text-[13px] text-[#5F6A88] mt-1">
+                  {isDeletedView
+                    ? "Threads deleted from the Inbox appear here and can be restored."
+                    : unreadOnly
+                      ? "Every customer message has been seen."
+                      : "Try a different search term or clear the status filter."}
+                </p>
               </div>
               <button
                 onClick={() => { setSearchInput(""); router.push(`${V2_ROUTES.DESK_INBOX}?status=all`); }}

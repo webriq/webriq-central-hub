@@ -43,7 +43,7 @@ export async function runScopedTool<T>(
   }
 
   try {
-    const result = await withUserScopedClient(extra.tokenRecordId, extra.supabaseRefreshToken, handler);
+    const result = await withUserScopedClient(extra.supabaseRefreshToken, handler);
     await invokeMCPTool({
       userId: extra.supabaseUserId,
       clientId: authInfo.clientId,

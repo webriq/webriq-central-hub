@@ -60,7 +60,9 @@ export async function proxy(request: NextRequest) {
   // /v2/ prefix to distinguish them), so this gate excludes the known non-hub prefixes
   // instead of matching a hub-specific one.
   const pathname = request.nextUrl.pathname;
-  const nonHubPrefixes = ["/auth/", "/api/", "/callback", "/onboarding"];
+  // "/.well-known/" (task 488): MCP OAuth discovery documents must be reachable with no
+  // session — gating them redirected every new connector setup to /auth/login.
+  const nonHubPrefixes = ["/auth/", "/api/", "/callback", "/onboarding", "/.well-known/"];
   const isHubRoute = pathname !== "/" && !nonHubPrefixes.some((prefix) => pathname.startsWith(prefix));
 
   // A directly-invoked Server Action (e.g. signOut()) POSTs to the current hub page's own URL.

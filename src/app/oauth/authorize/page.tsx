@@ -1,8 +1,13 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { adminClient } from "@/lib/supabase/admin";
 import { AuthSplitShell } from "@/components/auth/auth-split-shell";
-import { MCP_SCOPE_DESCRIPTIONS, allowedScopesForRole, type McpScope } from "@/lib/mcp/scopes";
+import { MCP_SCOPE_DESCRIPTIONS } from "@/lib/mcp/scopes";
+import {
+  grantableScopes,
+  isValidCodeChallenge,
+  loadRegisteredClient,
+  splitScopes,
+} from "@/lib/mcp/authorize-request";
 import { approveConsent, denyConsent } from "./actions";
 
 interface PageProps {
@@ -24,7 +29,9 @@ export default async function OAuthAuthorizePage({ searchParams }: PageProps) {
   const codeChallengeMethod = asString(params.code_challenge_method) ?? "S256";
   const requestedScope = asString(params.scope) ?? "";
 
-  if (responseType !== "code" || !clientId || !redirectUri || !codeChallenge) {
+  // Same challenge-format check approveConsent applies (task 488), so a malformed
+  // request fails here instead of after the user clicks Approve.
+  if (responseType !== "code" || !clientId || !redirectUri || !isValidCodeChallenge(codeChallenge)) {
     return (
       <AuthSplitShell
         title="Invalid Request"
@@ -61,13 +68,9 @@ export default async function OAuthAuthorizePage({ searchParams }: PageProps) {
 
   const userId = claims.claims.sub as string;
 
-  const { data: client } = await adminClient
-    .from("mcp_oauth_clients")
-    .select("client_id, client_name, redirect_uris")
-    .eq("client_id", clientId)
-    .maybeSingle();
+  const client = await loadRegisteredClient(clientId, redirectUri);
 
-  if (!client || !client.redirect_uris.includes(redirectUri)) {
+  if (!client) {
     return (
       <AuthSplitShell
         title="Unknown Connector"
@@ -82,10 +85,9 @@ export default async function OAuthAuthorizePage({ searchParams }: PageProps) {
 
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", userId).single();
 
-  const grantedScopes = allowedScopesForRole(profile?.role ?? "client");
-  const requestedScopes = requestedScope.split(" ").filter(Boolean) as McpScope[];
-  const scopesToGrant = requestedScopes.filter((scope) => grantedScopes.includes(scope));
-  const deniedScopes = requestedScopes.filter((scope) => !grantedScopes.includes(scope));
+  const requestedScopes = splitScopes(requestedScope);
+  const scopesToGrant = grantableScopes(requestedScopes, profile?.role ?? "client");
+  const deniedScopes = requestedScopes.filter((scope) => !(scopesToGrant as string[]).includes(scope));
 
   return (
     <AuthSplitShell
@@ -134,6 +136,7 @@ export default async function OAuthAuthorizePage({ searchParams }: PageProps) {
           </form>
 
           <form action={denyConsent}>
+            <input type="hidden" name="client_id" value={clientId} />
             <input type="hidden" name="redirect_uri" value={redirectUri} />
             <input type="hidden" name="state" value={state ?? ""} />
             <button

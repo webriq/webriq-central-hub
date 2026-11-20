@@ -5,6 +5,7 @@ import { V2_ROUTES } from "@/config/constants";
 import { buildProjectHref, buildItemHref } from "@/lib/projects/deep-links";
 import AllTasksIndex, { type AllTasksPaginationMeta, type AllTaskListItem } from "./_all-tasks-index";
 import { excludingChecklist } from "@/lib/tasks/exclude-checklist";
+import { applyListFilters, hasListFilters, parseListFilters, toDateKey } from "@/lib/list-filters/params";
 
 // Task 385 — cross-project Tasks table (all tasks from all projects, sorted by created_at DESC).
 // Replaces the Sprint 1A stub. Mirrors `src/app/(hub)/desk/tickets/page.tsx`'s exact shape
@@ -29,7 +30,7 @@ type TaskRow = {
 export default async function TasksPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; pageSize?: string; search?: string }>;
+  searchParams: Promise<{ page?: string; pageSize?: string; search?: string; due?: string; assignee?: string; project?: string }>;
 }) {
   const supabase = await createClient();
   const { data: claims } = await supabase.auth.getClaims();
@@ -50,8 +51,12 @@ export default async function TasksPage({
   const to = from + pageSize - 1;
 
   const searchQ = params.search?.trim() ?? "";
+  // Task 491 — Due date / Assignee / Project filters (URL-backed, see `@/lib/list-filters/params`).
+  // "today" is the server's local calendar date, same as the Dev Dashboard's `localDateKey`.
+  const listFilters = parseListFilters(params);
+  const today = toDateKey(new Date());
 
-  const { data, count } = await excludingChecklist((exclude) => {
+  const { data, count, error } = await excludingChecklist((exclude) => {
     let query = supabase
       .from("tasks")
       .select(
@@ -63,8 +68,11 @@ export default async function TasksPage({
       const esc = searchQ.replace(/[%,()]/g, "");
       query = query.or(`title.ilike.%${esc}%,display_id.ilike.%${esc}%`);
     }
+    query = applyListFilters(query, listFilters, { today });
     return query.order("created_at", { ascending: false }).range(from, to);
   });
+  // A failed query used to render as "0 tasks / No tasks yet" — log it and show an error state.
+  if (error) console.error("[dashboard/tasks] listing query failed:", error.code, error.message);
   const rows = (data ?? []) as unknown as TaskRow[];
 
   const tasks: AllTaskListItem[] = rows.map((t) => {
@@ -89,5 +97,13 @@ export default async function TasksPage({
 
   const paginationMeta: AllTasksPaginationMeta = { page, pageSize, total: count ?? 0 };
 
-  return <AllTasksIndex tasks={tasks} paginationMeta={paginationMeta} />;
+  return (
+    <AllTasksIndex
+      tasks={tasks}
+      paginationMeta={paginationMeta}
+      currentUserId={userId}
+      loadError={error ? error.message : null}
+      isFiltered={searchQ.length > 0 || hasListFilters(listFilters)}
+    />
+  );
 }

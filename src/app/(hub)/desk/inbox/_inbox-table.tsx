@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 import { Mail, Loader2, Copy } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import type { TicketListItem } from "./_inbox-index";
@@ -69,13 +70,32 @@ export function InboxTable({
           key={t.id}
           className={`grid ${GRID_COLS} items-center gap-3 px-5 py-3 border-b border-[#EDF0F7] last:border-0 hover:bg-[#F0F7FF] transition-colors`}
         >
-          <Link href={`/desk/inbox/${t.ticketId}`} className="min-w-0">
-            <span className="text-[13px] text-[#3A4565] truncate block">{t.contactName}</span>
+          {/* Task 490 — unread: dot before the contact (sr-only text, so color isn't the only signal), bold subject,
+              and an "N new" pill. */}
+          <Link href={`/desk/inbox/${t.ticketId}`} className="flex min-w-0 items-center gap-2">
+            {t.unreadCount > 0 && (
+              <span className="h-2 w-2 shrink-0 rounded-full bg-[#007BFF]">
+                <span className="sr-only">Unread</span>
+              </span>
+            )}
+            <span className={cn("text-[13px] truncate block", t.unreadCount > 0 ? "font-semibold text-[#0B1533]" : "text-[#3A4565]")}>
+              {t.contactName}
+            </span>
           </Link>
           <div className="flex min-w-0 items-center gap-2">
             <Link href={`/desk/inbox/${t.ticketId}`} className="min-w-0">
-              <span className="text-[13px] text-[#0B1533] truncate block" title={t.subject}>{t.subject}</span>
+              <span
+                className={cn("text-[13px] text-[#0B1533] truncate block", t.unreadCount > 0 && "font-semibold")}
+                title={t.subject}
+              >
+                {t.subject}
+              </span>
             </Link>
+            {t.unreadCount > 0 && (
+              <span className="shrink-0 rounded-full bg-[#E5F1FF] px-2 py-0.5 text-[10.5px] font-semibold text-[#0063D6] tabular-nums">
+                {t.unreadCount} new
+              </span>
+            )}
             {t.duplicateOf && (
               <Link
                 href={`/desk/inbox/${t.duplicateOf.inboxId}`}

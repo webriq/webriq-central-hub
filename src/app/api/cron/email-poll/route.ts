@@ -8,6 +8,7 @@ import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
+import { restoreDeletedThread } from "@/lib/desk/inbox-deleted";
 import { listNewMessages, type ZohoMailMessageSummary } from "@/lib/zoho/mail";
 import { toParsedInboundEmail } from "@/lib/email/inbound";
 import { applyInlineImages } from "@/lib/email/inline-images";
@@ -268,6 +269,8 @@ async function processMessage(summary: ZohoMailMessageSummary): Promise<ProcessO
   if (matchedTicketStatus === "closed") {
     await adminClient.from("inbox").update({ status: "open" }).eq("id", ticketId);
   }
+  // Task 489 (D4) — a customer reply brings a soft-deleted thread back into the Inbox.
+  if (matchedTicketStatus !== null) await restoreDeletedThread(adminClient, ticketId);
 
   // A parsed support-form body (task 352) is plain text we assembled ourselves — the raw HTML
   // (banner image, field markup) is discarded and there are no cid: inline images to resolve.

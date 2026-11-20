@@ -3,6 +3,7 @@
 // the caller has no Supabase session, and RLS is bypassed on purpose behind the password gate.
 import { NextRequest, NextResponse } from "next/server";
 import { adminClient } from "@/lib/supabase/admin";
+import { excludingDeleted } from "@/lib/desk/inbox-deleted";
 import { verifyCustomerViewPassword } from "@/lib/desk/customer-view-access";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -52,11 +53,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tic
     );
   }
 
-  const { data: ticket } = await adminClient
-    .from("inbox")
-    .select("ticket_number, subject, status, created_at")
-    .eq("id", ticketId)
-    .maybeSingle();
+  // Task 489 — a soft-deleted thread reads as not found to the customer.
+  const { data: ticket } = await excludingDeleted((exclude) => {
+    const q = adminClient.from("inbox").select("ticket_number, subject, status, created_at").eq("id", ticketId);
+    return (exclude ? q.is("deleted_at", null) : q).maybeSingle();
+  });
 
   if (!ticket) {
     return NextResponse.json({ error: "Ticket not found." }, { status: 404 });

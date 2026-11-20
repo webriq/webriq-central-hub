@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { ListFilterBar } from "@/components/list-filters/list-filter-bar";
+import { useListFilters } from "@/components/list-filters/use-list-filters";
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Bug, Search, X, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { V2_ROUTES } from "@/config/constants";
@@ -35,10 +37,13 @@ export type FiledIssueListItem = {
   // follow-up), distinct from this issue's own `status`/`createdAt` above. `ticketStatus` itself
   // moved back to the Inbox table (task 370), now editable there.
   ticketRespondedAt: string | null;
-  ticketDueAt: string | null;
-  ticketOverdue: boolean;
-  // Whole days past the SLA due date — only meaningful when `ticketOverdue` is true (task 383).
-  ticketOverdueDays: number | null;
+  // Task 491 (D1) — the ticket's *own* due date (`tickets.due_date`, `YYYY-MM-DD`) + optional
+  // `due_time` (`HH:mm[:ss]`), replacing the origin Inbox thread's SLA due time in this listing.
+  dueDate: string | null;
+  dueTime: string | null;
+  overdue: boolean;
+  // Whole days past the due date — only meaningful when `overdue` is true (task 383).
+  overdueDays: number | null;
   totalHours: number;
 };
 
@@ -51,14 +56,23 @@ export default function FiledIssuesIndex({
   paginationMeta,
   inboxFiledCount,
   manualCreatedCount,
+  currentUserId,
+  hasListFilters,
 }: {
   issues: FiledIssueListItem[];
   paginationMeta: PaginationMeta;
   inboxFiledCount: number;
   manualCreatedCount: number;
+  currentUserId: string;
+  // Server-computed: a due / assignee / project filter is applied (task 491).
+  hasListFilters: boolean;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  // Task 491 — search, status, filters and pagination all navigate through one transition, so
+  // the table dims while the server re-queries instead of the page freezing.
+  const filters = useListFilters(V2_ROUTES.DESK_TICKETS);
+  const { navigate, isPending } = filters;
   const [newTicketOpen, setNewTicketOpen] = useState(false);
 
   // Task 383 follow-up — the table's own column-header row sticks just below this sticky page
@@ -124,18 +138,10 @@ export default function FiledIssuesIndex({
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [scrolled, setScrolled] = useState(false);
 
-  function buildUrl(overrides: Record<string, string | number | null>) {
-    const p = new URLSearchParams(searchParams.toString());
-    for (const [k, v] of Object.entries(overrides)) {
-      if (v === null) { p.delete(k); } else { p.set(k, String(v)); }
-    }
-    return `${V2_ROUTES.DESK_TICKETS}?${p.toString()}`;
-  }
-
   function handleStatusChange(next: string[]) {
     const isAllStatuses = next.length === ALL_STATUS_VALUES.length && ALL_STATUS_VALUES.every((v) => next.includes(v));
     const value = next.length === 0 ? "" : isAllStatuses ? "all" : next.join(",");
-    router.push(buildUrl({ status: value, page: 1 }));
+    navigate({ status: value, page: 1 });
   }
 
   const { page, pageSize, total } = paginationMeta;
@@ -144,7 +150,12 @@ export default function FiledIssuesIndex({
   const hasPrev = page > 1;
   const showPagination = total > 0;
   const isAllStatusView = statusSelected.length === ALL_STATUS_VALUES.length && ALL_STATUS_VALUES.every((v) => statusSelected.includes(v));
-  const isFiltered = (searchParams.get("search")?.trim().length ?? 0) > 0 || !isAllStatusView;
+  const isFiltered = (searchParams.get("search")?.trim().length ?? 0) > 0 || !isAllStatusView || hasListFilters;
+
+  function resetSearchInput() {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    setSearchInput("");
+  }
 
   return (
     <div onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)} className="h-full overflow-y-auto scrollbar-light">
@@ -182,10 +193,11 @@ export default function FiledIssuesIndex({
                   setSearchInput(q);
                   if (debounceRef.current) clearTimeout(debounceRef.current);
                   debounceRef.current = setTimeout(() => {
-                    router.push(buildUrl({ search: q || null, page: 1 }));
+                    navigate({ search: q || null, page: 1 });
                   }, 300);
                 }}
                 placeholder="Search title or issue ID…"
+                aria-label="Search tickets"
                 className="w-full pl-9 pr-3 py-2 rounded-[10px] border text-[13px] outline-none transition-colors border-[#E2E7F2] bg-[#F4F6FB] text-[#3A4565] focus:border-[#007BFF] focus:bg-white focus:ring-[3px] focus:ring-[#007BFF]/[0.14] placeholder:text-[#5F6A88]"
               />
             </div>
@@ -197,13 +209,15 @@ export default function FiledIssuesIndex({
               onChange={handleStatusChange}
             />
 
+            <ListFilterBar filters={filters} members={members} currentUserId={currentUserId} onClear={resetSearchInput} />
+
             <div className="flex-1 min-w-0" />
 
             {showPagination && (
               <div className="flex items-center gap-2 shrink-0">
                 <select
                   value={pageSize}
-                  onChange={(e) => router.push(buildUrl({ pageSize: Number(e.target.value), page: 1 }))}
+                  onChange={(e) => navigate({ pageSize: Number(e.target.value), page: 1 })}
                   className="h-8 px-2.5 pr-7 rounded-[10px] border border-[#E2E7F2] bg-white text-[12px] text-[#3A4565] outline-none focus:border-[#007BFF] focus:ring-[3px] focus:ring-[#007BFF]/[0.14] cursor-pointer appearance-none"
                   style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%235F6A88'/%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 8px center" }}
                 >
@@ -216,7 +230,7 @@ export default function FiledIssuesIndex({
                 </span>
                 <div className="flex items-center gap-1 text-[#5F6A88]">
                   <button
-                    onClick={() => router.push(buildUrl({ page: 1 }))}
+                    onClick={() => navigate({ page: 1 })}
                     disabled={!hasPrev}
                     className="flex items-center justify-center w-7 h-7 rounded-full border border-[#E2E7F2] bg-white hover:bg-[#F0F7FF] disabled:opacity-30 disabled:cursor-default cursor-pointer transition-colors"
                     title="First page"
@@ -224,7 +238,7 @@ export default function FiledIssuesIndex({
                     <ChevronsLeft size={14} strokeWidth={2} />
                   </button>
                   <button
-                    onClick={() => router.push(buildUrl({ page: page - 1 }))}
+                    onClick={() => navigate({ page: page - 1 })}
                     disabled={!hasPrev}
                     className="flex items-center justify-center w-7 h-7 rounded-full border border-[#E2E7F2] bg-white hover:bg-[#F0F7FF] disabled:opacity-30 disabled:cursor-default cursor-pointer transition-colors"
                     title="Previous page"
@@ -232,7 +246,7 @@ export default function FiledIssuesIndex({
                     <ChevronLeft size={14} strokeWidth={2} />
                   </button>
                   <button
-                    onClick={() => router.push(buildUrl({ page: page + 1 }))}
+                    onClick={() => navigate({ page: page + 1 })}
                     disabled={!hasNext}
                     className="flex items-center justify-center w-7 h-7 rounded-full border border-[#E2E7F2] bg-white hover:bg-[#F0F7FF] disabled:opacity-30 disabled:cursor-default cursor-pointer transition-colors"
                     title="Next page"
@@ -240,7 +254,7 @@ export default function FiledIssuesIndex({
                     <ChevronRight size={14} strokeWidth={2} />
                   </button>
                   <button
-                    onClick={() => router.push(buildUrl({ page: Math.ceil(total / pageSize) }))}
+                    onClick={() => navigate({ page: Math.ceil(total / pageSize) })}
                     disabled={!hasNext}
                     className="flex items-center justify-center w-7 h-7 rounded-full border border-[#E2E7F2] bg-white hover:bg-[#F0F7FF] disabled:opacity-30 disabled:cursor-default cursor-pointer transition-colors"
                     title="Last page"
@@ -255,7 +269,10 @@ export default function FiledIssuesIndex({
       </div>
 
       {/* ── Scrollable content ───────────────────────────────────────────────── */}
-      <div className="max-w-[1400px] mx-auto px-8 py-5">
+      <div
+        aria-busy={isPending}
+        className={cn("max-w-[1400px] mx-auto px-8 py-5 transition-opacity duration-150", isPending && "opacity-60")}
+      >
         {issues.length === 0 ? (
           isFiltered ? (
             <div className="flex flex-col items-center justify-center py-20 gap-3 rounded-[14px] border border-[#E2E7F2] bg-white">
@@ -264,10 +281,13 @@ export default function FiledIssuesIndex({
               </div>
               <div className="text-center">
                 <div className="text-[15px] font-semibold text-[#0B1533]">No tickets match your filters</div>
-                <p className="text-[13px] text-[#5F6A88] mt-1">Try a different search term or clear the status filter.</p>
+                <p className="text-[13px] text-[#5F6A88] mt-1">Try a different search term or loosen the filters.</p>
               </div>
               <button
-                onClick={() => { setSearchInput(""); router.push(`${V2_ROUTES.DESK_TICKETS}?status=all`); }}
+                onClick={() => {
+                  resetSearchInput();
+                  navigate({ search: null, due: null, assignee: null, project: null, page: null, status: "all" });
+                }}
                 className="inline-flex items-center gap-1.5 mt-1 px-3 py-1.5 rounded-full border border-[#E2E7F2] bg-white text-[12px] text-[#3A4565] hover:bg-[#F0F7FF] cursor-pointer transition-colors"
               >
                 <X size={13} /> Clear filters

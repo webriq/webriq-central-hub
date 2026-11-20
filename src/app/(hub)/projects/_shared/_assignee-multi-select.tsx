@@ -48,7 +48,8 @@ const AVATAR_SIZE = {
   sm: "w-4 h-4 text-[8px]",
 } as const;
 
-function Avatar({
+// Exported for task 491's list-filter panel (same avatar, no behaviour change here).
+export function Avatar({
   name,
   avatarUrl,
   size = "md",

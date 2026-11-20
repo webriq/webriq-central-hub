@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ChevronDown, MessageSquare, Reply } from "lucide-react";
+import { ArrowLeft, ChevronDown, Loader2, MessageSquare, Reply, RotateCcw, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { Chip } from "../../../dashboard/_components/dashboard-shared";
 import { V2_ROUTES } from "@/config/constants";
 import { cn } from "@/lib/utils";
@@ -65,6 +66,11 @@ export type TicketDetailData = {
   whiteLabel: string | null; // Zoho cf_white_label — shown in the UI as "Business Name"
   stackShiftSite: string | null;
   duplicateOf: DuplicateOf | null; // task 441/443
+  // Task 489 — soft delete. `deletedSupported` is false until migration 185 is applied (Delete is hidden then).
+  deletedSupported: boolean;
+  deletedAt: string | null;
+  deletedByName: string | null;
+  unreadCount: number; // task 490
 };
 
 const STATUS_OPTIONS: TicketDetailData["status"][] = ["open", "on_hold", "escalated", "closed"];
@@ -212,6 +218,23 @@ export default function TicketDetail({
   const [statusSaving, setStatusSaving] = useState(false);
   const [statusError, setStatusError] = useState<string | null>(null);
 
+  // Task 489 — soft delete / restore. StackShift-direct threads can't be deleted (close them instead).
+  const canDelete = ticket.deletedSupported && ticket.channel !== "stackshift";
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  // Task 490 — opening a thread marks it read for the whole team (D1). Fire-and-forget: a 503 (migration 186 not
+  // applied) or any failure is ignored; the refresh updates the sidebar badge and Inbox counters.
+  useEffect(() => {
+    if (ticket.unreadCount <= 0) return;
+    fetch(`/api/desk/tickets/${ticket.inboxId}/read`, { method: "POST" })
+      .then((res) => {
+        if (res.ok) router.refresh();
+      })
+      .catch(() => {});
+  }, [ticket.inboxId, ticket.unreadCount, router]);
+
   const [convView, setConvView] = useState<ConvView>("conversations");
   const [attachmentsOpen, setAttachmentsOpen] = useState(false);
   // Task 393 — a `?attachment=<id>` deep link auto-switches to the Attachments tab and opens
@@ -300,6 +323,58 @@ export default function TicketDetail({
       setStatusError(e instanceof Error ? e.message : "Failed to update status");
     } finally {
       setStatusSaving(false);
+    }
+  }
+
+  // Shared by the Restore button and the "Thread deleted" toast's Undo.
+  async function restoreThread(): Promise<void> {
+    const res = await fetch(`/api/desk/tickets/${ticket.inboxId}/restore`, { method: "POST" });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error ?? `HTTP ${res.status}`);
+    }
+  }
+
+  async function handleDelete() {
+    setDeleteBusy(true);
+    setDeleteError(null);
+    try {
+      const res = await fetch(`/api/desk/tickets/${ticket.inboxId}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? `HTTP ${res.status}`);
+      }
+      toast.success("Thread deleted", {
+        action: {
+          label: "Undo",
+          onClick: () => {
+            restoreThread()
+              .then(() => {
+                toast.success("Thread restored");
+                router.refresh();
+              })
+              .catch((e) => toast.error(e instanceof Error ? e.message : "Failed to restore thread"));
+          },
+        },
+      });
+      router.push(V2_ROUTES.DESK_INBOX);
+    } catch (e) {
+      setDeleteError(e instanceof Error ? e.message : "Failed to delete thread");
+      setDeleteBusy(false);
+    }
+  }
+
+  async function handleRestore() {
+    setDeleteBusy(true);
+    setDeleteError(null);
+    try {
+      await restoreThread();
+      toast.success("Thread restored");
+      router.refresh();
+    } catch (e) {
+      setDeleteError(e instanceof Error ? e.message : "Failed to restore thread");
+    } finally {
+      setDeleteBusy(false);
     }
   }
 
@@ -465,10 +540,83 @@ export default function TicketDetail({
                 )}
               </div>
             </div>
+
+            {/* Task 489 — soft delete. Hidden for deleted threads (the banner's Restore replaces it); StackShift-direct
+                threads mirror a ticket in the StackShift app and must be closed instead. */}
+            {ticket.deletedSupported && !ticket.deletedAt && (
+              <div className="rounded-[14px] border border-[#E2E7F2] bg-white p-4">
+                {!canDelete ? (
+                  <p className="text-[12px] text-[#5F6A88]">
+                    StackShift tickets can&apos;t be deleted. Set the status to Closed instead.
+                  </p>
+                ) : confirmingDelete ? (
+                  <div className="space-y-2.5">
+                    <p className="text-[12px] text-[#3A4565]">
+                      Delete this thread? It disappears from the Inbox and can be restored from the{" "}
+                      <span className="font-semibold">Deleted</span> filter. Linked tickets and tasks are kept.
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleDelete}
+                        disabled={deleteBusy}
+                        className="inline-flex items-center gap-1.5 h-8 px-3 rounded-[8px] bg-[#C0392B] text-[12px] font-semibold text-white transition-colors hover:bg-[#A93226] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#C0392B]/30 disabled:opacity-60"
+                      >
+                        {deleteBusy ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+                        Delete
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setConfirmingDelete(false);
+                          setDeleteError(null);
+                        }}
+                        disabled={deleteBusy}
+                        className="h-8 px-3 rounded-[8px] border border-[#E2E7F2] bg-white text-[12px] text-[#3A4565] transition-colors hover:bg-[#F4F6FB] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#007BFF]/20 disabled:opacity-60"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmingDelete(true)}
+                    className="inline-flex items-center gap-1.5 rounded-[6px] text-[12px] font-medium text-[#C0392B] transition-colors hover:text-[#A93226] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#C0392B]/30"
+                  >
+                    <Trash2 size={13} /> Delete thread
+                  </button>
+                )}
+                {deleteError && <div className="text-[11px] text-[#C0392B] mt-2">{deleteError}</div>}
+              </div>
+            )}
           </div>
 
           {/* Right: Subject + Conversation */}
           <div className="space-y-4 min-w-0">
+            {ticket.deletedAt && (
+              <div className="flex items-center justify-between gap-3 flex-wrap rounded-[14px] border border-[#F5C6C0] bg-[#FDF1EF] px-4 py-3">
+                <div className="flex items-center gap-2 text-[13px] text-[#8A2A1F]">
+                  <Trash2 size={14} className="shrink-0" />
+                  <span>
+                    Deleted on {formatDateTime(ticket.deletedAt)}
+                    {ticket.deletedByName ? ` by ${ticket.deletedByName}` : ""}. Hidden from the Inbox.
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {deleteError && <span className="text-[11px] text-[#C0392B]">{deleteError}</span>}
+                  <button
+                    type="button"
+                    onClick={handleRestore}
+                    disabled={deleteBusy}
+                    className="inline-flex items-center gap-1.5 h-8 px-3 rounded-[8px] border border-[#E2E7F2] bg-white text-[12px] font-semibold text-[#0B1533] transition-colors hover:bg-[#F0F7FF] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#007BFF]/20 disabled:opacity-60"
+                  >
+                    {deleteBusy ? <Loader2 size={13} className="animate-spin" /> : <RotateCcw size={13} />}
+                    Restore
+                  </button>
+                </div>
+              </div>
+            )}
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-[11px] font-mono text-[#5F6A88]">{ticket.displayId}</span>

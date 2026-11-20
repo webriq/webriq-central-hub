@@ -53,6 +53,8 @@ export type DeskComment = {
 export type SyncTicketMessagesResult = {
   token: string;
   messagesInserted: number;
+  // Task 489 — new customer (author_type "client") messages this run; the poll restores a soft-deleted thread on > 0.
+  clientMessagesInserted: number;
   contentTypeRepaired: number;
   attachmentsAdded: number;
   // Task 457 (D2) — downloads/uploads that failed this run; the poll stamps the ticket for retry.
@@ -92,6 +94,7 @@ export async function syncTicketMessages(
 ): Promise<SyncTicketMessagesResult> {
   let currentToken = token;
   let messagesInserted = 0;
+  let clientMessagesInserted = 0;
   let contentTypeRepaired = 0;
   let attachmentsAdded = 0;
   let attachmentsFailed = 0;
@@ -156,6 +159,7 @@ export async function syncTicketMessages(
     );
     if (upserted) {
       if (upserted.inserted) messagesInserted++;
+      if (upserted.inserted && !isAgent) clientMessagesInserted++;
       if (upserted.repaired) contentTypeRepaired++;
       openingThreadMessageId = upserted.id;
       const attachResult = await syncMessageAttachments(currentToken, upserted.id, openingThread.attachments ?? []);
@@ -194,6 +198,7 @@ export async function syncTicketMessages(
     const ownerId = upserted?.id ?? (body ? null : openingThreadMessageId);
     if (upserted) {
       if (upserted.inserted) messagesInserted++;
+      if (upserted.inserted && !isAgent) clientMessagesInserted++;
       if (upserted.repaired) contentTypeRepaired++;
     } else if (body) {
       attachmentsFailed += raw.attachments?.length ?? 0;
@@ -237,7 +242,7 @@ export async function syncTicketMessages(
     }
   }
 
-  return { token: currentToken, messagesInserted, contentTypeRepaired, attachmentsAdded, attachmentsFailed };
+  return { token: currentToken, messagesInserted, clientMessagesInserted, contentTypeRepaired, attachmentsAdded, attachmentsFailed };
 }
 
 function toIso(value: string | null | undefined): string | undefined {

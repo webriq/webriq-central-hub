@@ -4,6 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database";
 import { adminClient } from "@/lib/supabase/admin";
 import { excludingChecklist } from "@/lib/tasks/exclude-checklist";
+import { excludingDeleted } from "@/lib/desk/inbox-deleted";
 import { runOrchestration, type OrchestrationProject } from "@/lib/pipeline/orchestrate";
 
 type Supabase = SupabaseClient<Database>;
@@ -330,14 +331,17 @@ export function buildOpsChatTools(ctx: {
         if (!staff) {
           return { error: "Access denied — ticket visibility is restricted to staff roles" };
         }
-        let q = supabase
-          .from("inbox")
-          .select("id,ticket_number,subject,status,priority,customer_id,requester_email,sla_due_at,created_at")
-          .order("created_at", { ascending: false })
-          .limit(limit);
-        if (status) q = q.eq("status", status);
-        if (priority) q = q.eq("priority", priority);
-        const { data, error } = await q;
+        // Task 489 — soft-deleted Desk threads are never listed.
+        const { data, error } = await excludingDeleted((exclude) => {
+          let q = supabase
+            .from("inbox")
+            .select("id,ticket_number,subject,status,priority,customer_id,requester_email,sla_due_at,created_at")
+            .order("created_at", { ascending: false })
+            .limit(limit);
+          if (status) q = q.eq("status", status);
+          if (priority) q = q.eq("priority", priority);
+          return exclude ? q.is("deleted_at", null) : q;
+        });
         if (error) return { error: error.message };
         return { tickets: data ?? [], count: (data ?? []).length };
       },

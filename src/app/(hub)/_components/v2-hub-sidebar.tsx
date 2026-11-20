@@ -17,6 +17,7 @@ import Link from "next/link";
 import { signOut } from "@/app/(auth)/actions";
 import { CLASSIFICATION_TABS, classificationTabHref } from "@/app/(hub)/projects/_classification-tabs";
 import { hrNavChildren } from "./hr-nav";
+import { useInboxUnreadCount } from "@/components/desk/use-inbox-unread";
 
 // A child is active when the pathname is its href or below it. Since task 474 every project page
 // lives under /projects/<slug>/…, so a classification link stays lit on its listing, status report
@@ -190,6 +191,10 @@ export default function V2HubSidebar({ userRole, departmentName, displayName, av
   const shouldReduceMotion = useReducedMotion();
   const navGroups = getNavGroups(userRole, departmentName, hasDirectReports, isTestUser);
   const initials = getInitials(displayName);
+  // Task 490 — live count of Desk Inbox threads with new customer messages, for the roles that can open the Inbox.
+  const inboxUnread = useInboxUnreadCount(["admin", "super_admin", "pm"].includes(userRole ?? ""));
+  const badgeFor = (href: string) => (href === V2_ROUTES.DESK_INBOX ? inboxUnread.count : 0);
+  const formatBadge = (n: number) => (n > 99 ? "99+" : String(n));
 
   return (
     <aside
@@ -269,6 +274,8 @@ export default function V2HubSidebar({ userRole, departmentName, displayName, av
                 const isExpanded = collapsed
                   ? false
                   : (expanded[item.label] ?? (pathname.startsWith(item.href) || childActive));
+                // Task 490 — a child's badge is hidden while its group is folded, so flag the parent with a dot.
+                const hiddenBadges = isExpanded ? 0 : item.children!.reduce((sum, c) => sum + badgeFor(c.href), 0);
                 return (
                   <div key={item.label}>
                     <button
@@ -303,7 +310,14 @@ export default function V2HubSidebar({ userRole, departmentName, displayName, av
                         }
                       }}
                     >
-                      <span className="shrink-0">{item.icon}</span>
+                      <span className="relative shrink-0">
+                        {item.icon}
+                        {hiddenBadges > 0 && (
+                          <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-blue-500 ring-2 ring-slate-900">
+                            <span className="sr-only">{hiddenBadges} new in {item.label}</span>
+                          </span>
+                        )}
+                      </span>
                       {!collapsed && (
                         <>
                           <span className="flex-1 text-left">{item.label}</span>
@@ -352,6 +366,14 @@ export default function V2HubSidebar({ userRole, departmentName, displayName, av
                                 }}
                               >
                                 <span className="flex-1 text-left">{child.label}</span>
+                                {badgeFor(child.href) > 0 && (
+                                  <span
+                                    aria-label={`${badgeFor(child.href)} threads with new messages`}
+                                    className="min-w-5 rounded-full bg-blue-600 px-1.5 py-0.5 text-center text-[10px] font-semibold leading-none text-white tabular-nums"
+                                  >
+                                    {formatBadge(badgeFor(child.href))}
+                                  </span>
+                                )}
                               </Link>
                             );
                           })}

@@ -32,7 +32,7 @@ function FilterCheckRow({ label, checked, onClick }: { label: string; checked: b
 }
 
 export function FilterMultiSelect({
-  label, options, selected, onChange, dividerBeforeValue, allToggleValues, exclusiveValue,
+  label, options, selected, onChange, dividerBeforeValue, allToggleValues, exclusiveValues = [],
 }: {
   label: string;
   options: readonly { value: string; label: string }[];
@@ -45,10 +45,10 @@ export function FilterMultiSelect({
   // to keep an option (e.g. "Archived") out of "All" — checking that option then un-checks
   // "All", and clicking "All" clears it (task 331).
   allToggleValues?: readonly string[];
-  // A "mode" option that is mutually exclusive with every other option: checking it clears the
-  // rest (selection becomes just `[exclusiveValue]`); checking any other option clears it.
-  // Used for "Archived", which is a distinct view, not a status you combine (task 331).
-  exclusiveValue?: string;
+  // "Mode" options that are mutually exclusive with every other option: checking one clears the
+  // rest (selection becomes just `[thatValue]`); checking any other option clears it.
+  // Used for "Archived" (task 331) and "Deleted" (task 489) — distinct views, not statuses you combine.
+  exclusiveValues?: readonly string[];
 }) {
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState<{ top: number; left: number; width: number } | null>(null);
@@ -95,14 +95,14 @@ export function FilterMultiSelect({
         : `${selected.length} selected`;
 
   function toggleOption(value: string) {
-    if (value === exclusiveValue) {
+    if (exclusiveValues.includes(value)) {
       // The exclusive "mode" option: turning it on replaces the whole selection with just it;
       // turning it off clears the selection (same as unchecking the last normal option).
       onChange(selected.includes(value) ? [] : [value]);
       return;
     }
-    // A normal option — drop the exclusive value if it was set, then toggle this one.
-    const base = selected.filter((v) => v !== exclusiveValue);
+    // A normal option — drop any exclusive value that was set, then toggle this one.
+    const base = selected.filter((v) => !exclusiveValues.includes(v));
     onChange(base.includes(value) ? base.filter((v) => v !== value) : [...base, value]);
   }
   function toggleAll() {

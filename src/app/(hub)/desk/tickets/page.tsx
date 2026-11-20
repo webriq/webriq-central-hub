@@ -5,6 +5,7 @@ import { V2_ROUTES } from "@/config/constants";
 import { buildProjectHref, buildItemHref } from "@/lib/projects/deep-links";
 import FiledIssuesIndex, { type PaginationMeta, type FiledIssueListItem } from "./_filed-issues-index";
 import { parseStatusFilterParam, ALL_STATUS_VALUES } from "./_status-filter";
+import { applyListFilters, hasListFilters, parseListFilters, toDateKey, type ListFilterQuery } from "@/lib/list-filters/params";
 
 // Desk > Tickets (task 363) — a cross-project listing of `tickets` rows, either filed from an
 // Inbox (Desk) message via the "File a Ticket" action (task 333, linked by the
@@ -31,6 +32,8 @@ type FiledIssueRow = {
   severity: string | null;
   assignees: string[] | null;
   assignee_id: string | null;
+  due_date: string | null;
+  due_time: string | null;
   created_at: string;
   source_inbox_id: string | null;
   projects: { project_id: string; external_project_id: string | null; name: string } | null;
@@ -41,14 +44,26 @@ type FiledIssueRow = {
     id: string;
     ticket_id: string;
     subject: string;
-    status: string;
     first_response_at: string | null;
-    sla_due_at: string | null;
   } | null;
 };
 
+// Task 491 (D1) — the Due date column now shows the ticket's *own* `due_date` (+ `due_time`), not
+// the origin Inbox thread's SLA due time, so the column matches the Due date filter. A date-only
+// due date counts as due at the end of that (server-local) day; the ticket's own status decides
+// "closed". Display formatting happens client-side from the raw date/time parts.
+function ticketDueAt(dueDate: string | null, dueTime: string | null): string | null {
+  if (!dueDate) return null;
+  const [y, m, d] = dueDate.split("-").map(Number);
+  if (dueTime) {
+    const [hh, mm] = dueTime.split(":").map(Number);
+    return new Date(y, m - 1, d, hh || 0, mm || 0).toISOString();
+  }
+  return new Date(y, m - 1, d, 23, 59, 59).toISOString();
+}
+
 function isTicketOverdue(status: string, dueAt: string | null): boolean {
-  if (!dueAt || status === "closed") return false;
+  if (!dueAt || status === "closed" || status === "Closed") return false;
   return new Date(dueAt).getTime() < Date.now();
 }
 
@@ -64,7 +79,7 @@ function overdueDays(dueAt: string | null): number | null {
 export default async function DeskFiledIssuesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; pageSize?: string; search?: string; status?: string }>;
+  searchParams: Promise<{ page?: string; pageSize?: string; search?: string; status?: string; due?: string; assignee?: string; project?: string }>;
 }) {
   const supabase = await createClient();
   const { data: claims } = await supabase.auth.getClaims();
@@ -84,12 +99,16 @@ export default async function DeskFiledIssuesPage({
 
   const searchQ = params.search?.trim() ?? "";
   const statusSelected = parseStatusFilterParam(params.status ?? null);
+  // Task 491 — Due date / Assignee / Project filters. Assignee matching mirrors
+  // `ticketAssigneeIds()`: the `assignees` array, falling back to the legacy `assignee_id`.
+  const listFilters = parseListFilters(params);
+  const today = toDateKey(new Date());
 
   // Task 383 — the same status/search predicates apply to the main listing and both origin
   // counts below; reapplying them via this helper (structural-typed over `.eq`/`.in`/`.or`) keeps
   // the three query builders in sync instead of hand-rolling the filter logic three times.
   function applyTicketFilters<
-    Q extends { eq: (col: string, val: string) => Q; in: (col: string, vals: string[]) => Q; or: (str: string) => Q },
+    Q extends { eq: (col: string, val: string) => Q } & ListFilterQuery<Q>,
   >(query: Q): Q {
     let q = query;
     if (statusSelected.length === 0) {
@@ -102,7 +121,7 @@ export default async function DeskFiledIssuesPage({
       const esc = searchQ.replace(/[%,()]/g, "");
       q = q.or(`title.ilike.%${esc}%,display_id.ilike.%${esc}%`);
     }
-    return q;
+    return applyListFilters(q, listFilters, { today, scalarAssigneeColumn: "assignee_id" });
   }
 
   // Task 383 — no longer Inbox-only; manually-created tickets (`source_inbox_id IS NULL`) now
@@ -111,7 +130,7 @@ export default async function DeskFiledIssuesPage({
     supabase
       .from("tickets")
       .select(
-        "id, title, display_id, status, severity, assignees, assignee_id, created_at, source_inbox_id, projects(project_id, external_project_id, name), inbox(id, ticket_id, subject, status, first_response_at, sla_due_at)",
+        "id, title, display_id, status, severity, assignees, assignee_id, due_date, due_time, created_at, source_inbox_id, projects(project_id, external_project_id, name), inbox(id, ticket_id, subject, first_response_at)",
         { count: "exact" }
       )
   ).order("created_at", { ascending: false });
@@ -146,6 +165,7 @@ export default async function DeskFiledIssuesPage({
   }
 
   const issues: FiledIssueListItem[] = issueRows.map((i) => {
+    const dueAt = ticketDueAt(i.due_date, i.due_time);
     const projectHref = buildProjectHref({
       projectDisplayId: i.projects?.project_id ?? null,
       isLegacy: !!i.projects?.external_project_id,
@@ -167,9 +187,10 @@ export default async function DeskFiledIssuesPage({
       ticketId: i.inbox?.ticket_id ?? "",
       ticketSubject: i.inbox?.subject ?? "",
       ticketRespondedAt: i.inbox?.first_response_at ?? null,
-      ticketDueAt: i.inbox?.sla_due_at ?? null,
-      ticketOverdue: i.inbox ? isTicketOverdue(i.inbox.status, i.inbox.sla_due_at) : false,
-      ticketOverdueDays: i.inbox ? overdueDays(i.inbox.sla_due_at) : null,
+      dueDate: i.due_date,
+      dueTime: i.due_time,
+      overdue: isTicketOverdue(i.status, dueAt),
+      overdueDays: overdueDays(dueAt),
       totalHours: hoursByIssueId.get(i.id) ?? 0,
     };
   });
@@ -186,6 +207,8 @@ export default async function DeskFiledIssuesPage({
       paginationMeta={paginationMeta}
       inboxFiledCount={inboxFiledCount}
       manualCreatedCount={manualCreatedCount}
+      currentUserId={userId}
+      hasListFilters={hasListFilters(listFilters)}
     />
   );
 }

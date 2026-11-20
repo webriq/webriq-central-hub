@@ -4,6 +4,7 @@
 // status, or any other ticket data pre-password; see client.tsx for the reveal.
 import { Metadata } from "next";
 import { adminClient } from "@/lib/supabase/admin";
+import { excludingDeleted } from "@/lib/desk/inbox-deleted";
 import TicketViewClient from "./client";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -21,7 +22,11 @@ export default async function TicketViewPage({ params }: TicketViewPageProps) {
 
   let exists = false;
   if (UUID_RE.test(ticketId)) {
-    const { data } = await adminClient.from("inbox").select("id").eq("id", ticketId).maybeSingle();
+    // Task 489 — a soft-deleted thread reads as not found to the customer.
+    const { data } = await excludingDeleted((exclude) => {
+      const q = adminClient.from("inbox").select("id").eq("id", ticketId);
+      return (exclude ? q.is("deleted_at", null) : q).maybeSingle();
+    });
     exists = data !== null;
   }
 
