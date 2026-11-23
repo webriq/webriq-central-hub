@@ -192,7 +192,11 @@ export default function OrderReview({ order, readOnly = false }: { order: OrderD
         {order.status === "converted" ? (
           <Section title="Outcome">
             <p className="col-span-2 text-[13px] text-[#3A4565]">
-              {order.is_new_customer ? "Created new customer" : "Linked existing customer"}
+              {order.link_method === "linked_existing"
+                ? "Linked to existing project"
+                : order.is_new_customer
+                  ? "Created new customer"
+                  : "Linked existing customer"}
               {order._linkedCustomerName && order.customer_id && (
                 <>
                   {" — "}

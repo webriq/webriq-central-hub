@@ -39,3 +39,4 @@ export async function restoreDeletedThread(client: SupabaseClient<Database>, inb
 }
 
 export const DELETE_UNAVAILABLE_MESSAGE = "Thread delete is not available yet (migration 185 not applied)";
+export const MESSAGE_DELETE_UNAVAILABLE_MESSAGE = "Message delete is not available yet (migration 190 not applied)";

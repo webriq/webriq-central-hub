@@ -112,8 +112,11 @@ export const convertSchema = z
 export type ConvertBody = z.infer<typeof convertSchema>;
 
 export const patchOrderSchema = z.object({
-  action: z.enum(["dismiss", "reopen"]),
+  action: z.enum(["dismiss", "reopen", "archive", "restore"]),
   dismissReason: z.string().max(1000).optional(),
   reviewNotes: z.string().max(2000).optional(),
 });
 export type PatchOrderBody = z.infer<typeof patchOrderSchema>;
+
+// Task 496 — mark a pending order converted against a project that already exists.
+export const linkProjectSchema = z.object({ projectId: z.string().uuid() });

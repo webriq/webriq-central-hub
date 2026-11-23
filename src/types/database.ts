@@ -1702,6 +1702,9 @@ export interface Database {
           dismiss_reason: string | null;
           converted_by: string | null;
           converted_at: string | null;
+          link_method: "created" | "linked_existing" | null;
+          archived_at: string | null;
+          deleted_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -1740,6 +1743,9 @@ export interface Database {
           dismiss_reason?: string | null;
           converted_by?: string | null;
           converted_at?: string | null;
+          link_method?: "created" | "linked_existing" | null;
+          archived_at?: string | null;
+          deleted_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -1778,6 +1784,9 @@ export interface Database {
           dismiss_reason?: string | null;
           converted_by?: string | null;
           converted_at?: string | null;
+          link_method?: "created" | "linked_existing" | null;
+          archived_at?: string | null;
+          deleted_at?: string | null;
           updated_at?: string;
         };
         Relationships: [
@@ -2938,6 +2947,8 @@ export interface Database {
           external_ref: string | null;
           source_meta: Record<string, unknown>;
           created_at: string;
+          deleted_at: string | null; // task 497 (migration 190)
+          deleted_by: string | null;
         };
         Insert: {
           id?: string;
@@ -2951,6 +2962,8 @@ export interface Database {
           external_ref?: string | null;
           source_meta?: Record<string, unknown>;
           created_at?: string;
+          deleted_at?: string | null;
+          deleted_by?: string | null;
         };
         Update: {
           id?: string;
@@ -2963,6 +2976,8 @@ export interface Database {
           external_id?: string | null;
           external_ref?: string | null;
           source_meta?: Record<string, unknown>;
+          deleted_at?: string | null;
+          deleted_by?: string | null;
         };
         Relationships: [
           {

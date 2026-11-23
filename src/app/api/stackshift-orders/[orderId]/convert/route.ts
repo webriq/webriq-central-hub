@@ -41,7 +41,7 @@ export async function POST(
     console.error("[stackshift-order] convert lookup error:", error);
     return NextResponse.json({ error: "Lookup failed" }, { status: 500 });
   }
-  if (!order) return NextResponse.json({ error: "Order not found" }, { status: 404 });
+  if (!order || order.deleted_at) return NextResponse.json({ error: "Order not found" }, { status: 404 });
 
   // Idempotent: an already-converted order returns its existing linkage.
   if (order.status === "converted" && order.customer_id && order.project_id) {

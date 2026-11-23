@@ -27,7 +27,7 @@ export async function POST(
     console.error("[stackshift-order] resend lookup error:", error);
     return NextResponse.json({ error: "Lookup failed" }, { status: 500 });
   }
-  if (!order) return NextResponse.json({ error: "Order not found" }, { status: 404 });
+  if (!order || order.deleted_at) return NextResponse.json({ error: "Order not found" }, { status: 404 });
 
   const mapped = mapServicesToClassifications(order.services);
   const recipients = await getOrderNotificationRecipients();

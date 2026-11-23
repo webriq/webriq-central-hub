@@ -43,7 +43,7 @@ export default async function StackShiftOrderDetailPage({
     .eq("id", orderId)
     .maybeSingle();
   if (error) console.error("[stackshift-orders] detail query error:", error);
-  if (!order) notFound();
+  if (!order || order.deleted_at) notFound(); // task 498 — soft-deleted orders are gone
 
   const mapped = mapServicesToClassifications(order.services);
 

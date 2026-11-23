@@ -66,8 +66,8 @@ export type TicketDetailData = {
   whiteLabel: string | null; // Zoho cf_white_label — shown in the UI as "Business Name"
   stackShiftSite: string | null;
   duplicateOf: DuplicateOf | null; // task 441/443
-  // Task 489 — soft delete. `deletedSupported` is false until migration 185 is applied (Delete is hidden then).
-  deletedSupported: boolean;
+  // Task 497 — per-message soft delete; false until migration 190 is applied (Delete is hidden then).
+  messageDeleteSupported: boolean;
   deletedAt: string | null;
   deletedByName: string | null;
   unreadCount: number; // task 490
@@ -218,9 +218,9 @@ export default function TicketDetail({
   const [statusSaving, setStatusSaving] = useState(false);
   const [statusError, setStatusError] = useState<string | null>(null);
 
-  // Task 489 — soft delete / restore. StackShift-direct threads can't be deleted (close them instead).
-  const canDelete = ticket.deletedSupported && ticket.channel !== "stackshift";
-  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  // Task 489 — restore of a deleted thread (banner). Task 497 replaced the thread Delete with per-message Delete;
+  // StackShift-direct threads mirror a ticket in the StackShift app, so their messages can't be deleted.
+  const canDeleteMessages = ticket.messageDeleteSupported && ticket.channel !== "stackshift";
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
@@ -332,35 +332,6 @@ export default function TicketDetail({
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
       throw new Error(data.error ?? `HTTP ${res.status}`);
-    }
-  }
-
-  async function handleDelete() {
-    setDeleteBusy(true);
-    setDeleteError(null);
-    try {
-      const res = await fetch(`/api/desk/tickets/${ticket.inboxId}`, { method: "DELETE" });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error ?? `HTTP ${res.status}`);
-      }
-      toast.success("Thread deleted", {
-        action: {
-          label: "Undo",
-          onClick: () => {
-            restoreThread()
-              .then(() => {
-                toast.success("Thread restored");
-                router.refresh();
-              })
-              .catch((e) => toast.error(e instanceof Error ? e.message : "Failed to restore thread"));
-          },
-        },
-      });
-      router.push(V2_ROUTES.DESK_INBOX);
-    } catch (e) {
-      setDeleteError(e instanceof Error ? e.message : "Failed to delete thread");
-      setDeleteBusy(false);
     }
   }
 
@@ -541,55 +512,6 @@ export default function TicketDetail({
               </div>
             </div>
 
-            {/* Task 489 — soft delete. Hidden for deleted threads (the banner's Restore replaces it); StackShift-direct
-                threads mirror a ticket in the StackShift app and must be closed instead. */}
-            {ticket.deletedSupported && !ticket.deletedAt && (
-              <div className="rounded-[14px] border border-[#E2E7F2] bg-white p-4">
-                {!canDelete ? (
-                  <p className="text-[12px] text-[#5F6A88]">
-                    StackShift tickets can&apos;t be deleted. Set the status to Closed instead.
-                  </p>
-                ) : confirmingDelete ? (
-                  <div className="space-y-2.5">
-                    <p className="text-[12px] text-[#3A4565]">
-                      Delete this thread? It disappears from the Inbox and can be restored from the{" "}
-                      <span className="font-semibold">Deleted</span> filter. Linked tickets and tasks are kept.
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={handleDelete}
-                        disabled={deleteBusy}
-                        className="inline-flex items-center gap-1.5 h-8 px-3 rounded-[8px] bg-[#C0392B] text-[12px] font-semibold text-white transition-colors hover:bg-[#A93226] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#C0392B]/30 disabled:opacity-60"
-                      >
-                        {deleteBusy ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
-                        Delete
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setConfirmingDelete(false);
-                          setDeleteError(null);
-                        }}
-                        disabled={deleteBusy}
-                        className="h-8 px-3 rounded-[8px] border border-[#E2E7F2] bg-white text-[12px] text-[#3A4565] transition-colors hover:bg-[#F4F6FB] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#007BFF]/20 disabled:opacity-60"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setConfirmingDelete(true)}
-                    className="inline-flex items-center gap-1.5 rounded-[6px] text-[12px] font-medium text-[#C0392B] transition-colors hover:text-[#A93226] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#C0392B]/30"
-                  >
-                    <Trash2 size={13} /> Delete thread
-                  </button>
-                )}
-                {deleteError && <div className="text-[11px] text-[#C0392B] mt-2">{deleteError}</div>}
-              </div>
-            )}
           </div>
 
           {/* Right: Subject + Conversation */}
@@ -792,6 +714,7 @@ export default function TicketDetail({
                     subject={ticket.subject}
                     messages={shownMessages}
                     copyAttachmentUrl={copyAttachmentUrl}
+                    canDeleteMessages={canDeleteMessages}
                   />
                 </>
               )}

@@ -20,10 +20,10 @@ export async function GET(
 
   const { data: order } = await adminClient
     .from("stackshift_orders")
-    .select("proposal_path, proposal_filename, flowforge_spec_path, flowforge_spec_filename")
+    .select("*")
     .eq("id", orderId)
     .maybeSingle();
-  if (!order) return NextResponse.json({ error: "Order not found" }, { status: 404 });
+  if (!order || order.deleted_at) return NextResponse.json({ error: "Order not found" }, { status: 404 });
 
   const path = which === "proposal" ? order.proposal_path : order.flowforge_spec_path;
   const filename = which === "proposal" ? order.proposal_filename : order.flowforge_spec_filename;

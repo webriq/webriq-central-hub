@@ -1,7 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, ExternalLink, Download, Link2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ChevronDown, ExternalLink, Download, Link2, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Chip } from "../../../dashboard/_components/dashboard-shared";
 import { cn } from "@/lib/utils";
 import { initialsFrom, colorForName } from "../_resolve";
@@ -157,6 +160,74 @@ function Avatar({ name, url }: { name: string; url: string | null }) {
   );
 }
 
+async function setMessageDeleted(inboxId: string, messageId: string, deleted: boolean): Promise<void> {
+  const url = `/api/desk/tickets/${inboxId}/messages/${messageId}${deleted ? "" : "/restore"}`;
+  const res = await fetch(url, { method: deleted ? "DELETE" : "POST" });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error ?? `HTTP ${res.status}`);
+  }
+}
+
+// Task 497 — soft delete of a single message (shared ConfirmDialog + Undo toast). The thread itself is untouched.
+function MessageDeleteControl({ inboxId, messageId }: { inboxId: string; messageId: string }) {
+  const router = useRouter();
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  async function handleDelete() {
+    setBusy(true);
+    try {
+      await setMessageDeleted(inboxId, messageId, true);
+      setConfirming(false);
+      toast.success("Message deleted", {
+        action: {
+          label: "Undo",
+          onClick: () => {
+            setMessageDeleted(inboxId, messageId, false)
+              .then(() => {
+                toast.success("Message restored");
+                router.refresh();
+              })
+              .catch((e) => toast.error(e instanceof Error ? e.message : "Failed to restore message"));
+          },
+        },
+      });
+      router.refresh();
+    } catch (e) {
+      // ConfirmDialog has no error slot; the dialog stays open so the user can retry or cancel.
+      toast.error(e instanceof Error ? e.message : "Failed to delete message");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setConfirming(true)}
+        aria-label="Delete message"
+        title="Delete message"
+        className="shrink-0 inline-flex items-center justify-center size-7 rounded-full text-[#5F6A88] transition-colors hover:bg-[#FDF1EF] hover:text-[#C0392B] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#C0392B]/30"
+      >
+        <Trash2 size={13} />
+      </button>
+      <ConfirmDialog
+        open={confirming}
+        title="Delete this message?"
+        body="Only this message is removed from the conversation; the rest of the thread stays. You can undo right after deleting."
+        confirmLabel={busy ? "Deleting…" : "Delete"}
+        confirmDisabled={busy}
+        onConfirm={handleDelete}
+        onCancel={() => {
+          if (!busy) setConfirming(false);
+        }}
+      />
+    </>
+  );
+}
+
 function MessageCard({
   inboxId,
   ticketDbId,
@@ -165,6 +236,7 @@ function MessageCard({
   open,
   onToggle,
   copyAttachmentUrl,
+  canDelete,
 }: {
   inboxId: string;
   ticketDbId: string;
@@ -173,6 +245,7 @@ function MessageCard({
   open: boolean;
   onToggle: () => void;
   copyAttachmentUrl: (attachmentId: string) => void;
+  canDelete: boolean;
 }) {
   const m = message;
   const tint = isOutboundReply(m)
@@ -215,6 +288,7 @@ function MessageCard({
         {m.authorType === "client" && (
           <ThreadMessageActions subject={subject} message={m} ticketDbId={ticketDbId} />
         )}
+        {canDelete && <MessageDeleteControl inboxId={inboxId} messageId={m.id} />}
       </div>
 
       {open && (
@@ -250,12 +324,14 @@ export default function ConversationThread({
   subject,
   messages,
   copyAttachmentUrl,
+  canDeleteMessages,
 }: {
   inboxId: string;
   ticketDbId: string;
   subject: string;
   messages: MessageItem[];
   copyAttachmentUrl: (attachmentId: string) => void;
+  canDeleteMessages: boolean;
 }) {
   // Collapsed by default like Zoho Desk (task 323) — only the newest message (index 0,
   // since the parent passes newest-first) starts expanded. The parent keys this component
@@ -303,6 +379,7 @@ export default function ConversationThread({
             open={expandedIds.has(m.id)}
             onToggle={() => toggle(m.id)}
             copyAttachmentUrl={copyAttachmentUrl}
+            canDelete={canDeleteMessages}
           />
         ))}
       </div>

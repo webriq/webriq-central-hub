@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Sparkles } from "lucide-react";
+import { FolderSearch, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { V2_ROUTES } from "@/config/constants";
 import {
@@ -15,6 +15,8 @@ import type { CustomerMatch } from "@/lib/stackshift-orders/match-customer";
 import { Section, ERROR_BOX_CLASS } from "./_order-ui";
 import PhaseSetupDialog, { type PhaseSetup } from "./_phase-setup-dialog";
 import type { OrderDetail } from "./order-review";
+import { CustomerSearch, TEXT_INPUT } from "../../_components/customer-search";
+import LinkProjectDialog from "../../_components/link-project-dialog";
 
 const MATCH_LABEL: Record<CustomerMatch["matchMethod"], string> = {
   company_name: "company name",
@@ -26,8 +28,6 @@ const PILL_BASE = "px-3 py-[5px] rounded-full border text-[11px] font-semibold t
 const PILL_ON = "bg-[#071133] border-[#071133] text-white";
 const PILL_OFF = "bg-white border-[#E2E7F2] text-[#5F6A88] hover:border-[#A8C6F5] hover:text-[#0B1533]";
 const FIELD_LABEL = "text-[11px] font-semibold uppercase tracking-[0.08em] text-[#5F6A88] mb-1.5";
-const TEXT_INPUT =
-  "w-full px-3 py-2 rounded-[10px] border text-[13px] outline-none border-[#E2E7F2] bg-white text-[#3A4565] focus:border-[#007BFF] focus:ring-[3px] focus:ring-[#007BFF]/[0.14]";
 
 export default function ConvertPanel({ order }: { order: OrderDetail }) {
   const router = useRouter();
@@ -41,10 +41,10 @@ export default function ConvertPanel({ order }: { order: OrderDetail }) {
     order._match ? "existing_customer" : "new_customer"
   );
   const [existingCustomerId, setExistingCustomerId] = useState(order._match?.customerId ?? "");
-  const [customerQuery, setCustomerQuery] = useState(order._match?.companyName ?? "");
-  const [customerResults, setCustomerResults] = useState<{ customer_id: string; company_name: string }[]>([]);
   const [projectName, setProjectName] = useState("");
   const [busy, setBusy] = useState<null | "convert" | "dismiss">(null);
+  // Task 496/498 — Link existing project lives in the shared LinkProjectDialog.
+  const [linkOpen, setLinkOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [phaseDialogOpen, setPhaseDialogOpen] = useState(false);
 
@@ -56,25 +56,6 @@ export default function ConvertPanel({ order }: { order: OrderDetail }) {
 
   function toggleClassification(c: Classification) {
     setClassifications((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]));
-  }
-
-  async function searchCustomers(q: string) {
-    setCustomerQuery(q);
-    if (q.trim().length < 2) { setCustomerResults([]); return; }
-    try {
-      const res = await fetch(`/api/customers?search=${encodeURIComponent(q.trim())}&limit=8`);
-      const json = await res.json();
-      if (Array.isArray(json)) {
-        setCustomerResults(
-          json.map((c: { customer_id: string; company_name: string }) => ({
-            customer_id: c.customer_id,
-            company_name: c.company_name,
-          }))
-        );
-      }
-    } catch {
-      setCustomerResults([]);
-    }
   }
 
   function validate(): string | null {
@@ -179,35 +160,11 @@ export default function ConvertPanel({ order }: { order: OrderDetail }) {
           ))}
         </div>
         {mode === "existing_customer" && (
-          <div className="relative">
-            <input
-              value={customerQuery}
-              onChange={(e) => searchCustomers(e.target.value)}
-              placeholder="Search customers…"
-              className={TEXT_INPUT}
-            />
-            {customerResults.length > 0 && (
-              <div className="absolute z-10 mt-1 w-full rounded-[10px] border border-[#E2E7F2] bg-white shadow-lg overflow-hidden">
-                {customerResults.map((c) => (
-                  <button
-                    key={c.customer_id}
-                    onClick={() => {
-                      setExistingCustomerId(c.customer_id);
-                      setCustomerQuery(c.company_name);
-                      setCustomerResults([]);
-                    }}
-                    className="w-full text-left px-3 py-2 text-[12px] hover:bg-[#F0F7FF] transition-colors"
-                  >
-                    <span className="text-[#0B1533]">{c.company_name}</span>{" "}
-                    <span className="font-mono text-[#5F6A88]">{c.customer_id}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-            {existingCustomerId && (
-              <p className="text-[11px] text-[#5F6A88] mt-1 font-mono">Selected: {existingCustomerId}</p>
-            )}
-          </div>
+          <CustomerSearch
+            initialQuery={order._match?.companyName ?? ""}
+            selectedId={existingCustomerId}
+            onSelect={(c) => setExistingCustomerId(c.customer_id)}
+          />
         )}
       </div>
 
@@ -236,7 +193,24 @@ export default function ConvertPanel({ order }: { order: OrderDetail }) {
         >
           {busy === "dismiss" ? "Dismissing…" : "Dismiss"}
         </button>
+        <button
+          onClick={() => setLinkOpen(true)}
+          disabled={busy !== null || phaseDialogOpen}
+          className="ml-auto inline-flex items-center gap-2 px-4 py-2 rounded-full text-[12px] font-semibold border border-[#E2E7F2] bg-white text-[#3A4565] hover:border-[#A8C6F5] disabled:opacity-50 cursor-pointer transition-colors"
+        >
+          <FolderSearch size={13} /> Link existing project
+        </button>
       </div>
+
+      {linkOpen && (
+        <LinkProjectDialog
+          orderId={order.id}
+          companyName={order.company_name}
+          initialCustomer={order._match ? { customer_id: order._match.customerId, company_name: order._match.companyName } : null}
+          onClose={() => setLinkOpen(false)}
+          onLinked={() => router.refresh()}
+        />
+      )}
 
       {phaseDialogOpen && (
         <PhaseSetupDialog

@@ -1,7 +1,7 @@
 import { redirect, notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
-import { isMissingDeletedColumn } from "@/lib/desk/inbox-deleted";
+import { excludingDeleted } from "@/lib/desk/inbox-deleted";
 import { isMissingUnreadColumn } from "@/lib/desk/inbox-unread";
 import { V2_ROUTES } from "@/config/constants";
 import TicketDetail, { type TicketDetailData } from "./_ticket-detail";
@@ -114,12 +114,12 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
   const t = ticketData as TicketDetailRow;
 
   // Task 489 — soft-delete state, read separately so the main select above keeps working before migration 185.
-  const { data: deletedRow, error: deletedError } = await supabase
+  // A 42703 (column missing) just leaves deletedRow null — the thread shows as not deleted.
+  const { data: deletedRow } = await supabase
     .from("inbox")
     .select("deleted_at, deleted_by")
     .eq("id", inboxId)
     .maybeSingle();
-  const deletedSupported = !isMissingDeletedColumn(deletedError);
   // Task 490 — new customer messages since the thread was last opened; the client marks it read on mount.
   // Read separately so the page keeps working before migration 186 (42703 → treated as 0).
   const { data: unreadRow, error: unreadError } = await supabase
@@ -157,11 +157,15 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
     agentRow = data;
   }
 
-  const { data: messagesData } = await supabase
-    .from("inbox_messages")
-    .select("id, author_type, author_id, body, visibility, source_meta, created_at, email_message_id")
-    .eq("inbox_id", t.id)
-    .order("created_at", { ascending: true });
+  // Task 497 — soft-deleted messages are hidden; `messageDeleteSupported` is false until migration 190 is applied.
+  const { data: messagesData, deletedSupported: messageDeleteSupported } = await excludingDeleted((exclude) => {
+    let q = supabase
+      .from("inbox_messages")
+      .select("id, author_type, author_id, body, visibility, source_meta, created_at, email_message_id")
+      .eq("inbox_id", t.id);
+    if (exclude) q = q.is("deleted_at", null);
+    return q.order("created_at", { ascending: true });
+  });
   const messageRows = (messagesData ?? []) as MessageRow[];
   const messageIds = messageRows.map((m) => m.id);
 
@@ -277,7 +281,7 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
     whiteLabel,
     stackShiftSite,
     duplicateOf,
-    deletedSupported,
+    messageDeleteSupported,
     deletedAt: deletedRow?.deleted_at ?? null,
     deletedByName,
     unreadCount: unreadRow?.unread_count ?? 0,

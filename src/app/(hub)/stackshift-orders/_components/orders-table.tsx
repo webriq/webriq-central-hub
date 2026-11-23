@@ -1,14 +1,19 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-  ClipboardList, Search, X, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, AlertTriangle,
+  Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, AlertTriangle,
 } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
 import { V2_ROUTES } from "@/config/constants";
+import OrderRowMenu from "./order-row-menu";
+import { OrdersTableSkeleton } from "./orders-skeleton";
+import OrdersEmpty from "./orders-empty";
 
 export type OrderStatus = "pending_review" | "converted" | "dismissed";
+// Task 498 — "archived" is a tab, not a status: archived orders keep their status.
+export type OrderTab = OrderStatus | "archived";
 
 export type OrderListItem = {
   id: string;
@@ -27,22 +32,29 @@ export type OrderListItem = {
 
 export type PaginationMeta = { page: number; pageSize: number; total: number };
 
-const STATUS_TABS: { value: OrderStatus; label: string }[] = [
+const STATUS_TABS: { value: OrderTab; label: string }[] = [
   { value: "pending_review", label: "Pending review" },
   { value: "converted", label: "Converted" },
   { value: "dismissed", label: "Dismissed" },
+  { value: "archived", label: "Archived" },
 ];
+
+const COLS = "grid-cols-[1.3fr_1.2fr_1.4fr_120px]";
 
 export default function OrdersTable({
   orders,
-  status,
+  tab,
   counts,
   searchQ,
   paginationMeta,
+  readOnly,
+  isSuperAdmin,
 }: {
   orders: OrderListItem[];
-  status: OrderStatus;
-  counts: Record<OrderStatus, number>;
+  tab: OrderTab;
+  counts: Record<OrderTab, number>;
+  readOnly: boolean;
+  isSuperAdmin: boolean;
   searchQ: string;
   paginationMeta: PaginationMeta;
 }) {
@@ -50,6 +62,17 @@ export default function OrdersTable({
   const searchParams = useSearchParams();
   const [searchInput, setSearchInput] = useState(searchQ);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Task 499 — loading.tsx only covers the first load; search-param navigations (tab, search,
+  // pager) go through a transition so isPending can swap the rows for the skeleton instantly.
+  const [isPending, startTransition] = useTransition();
+  const [pendingTab, setPendingTab] = useState<OrderTab | null>(null);
+  const activeTab = isPending && pendingTab ? pendingTab : tab;
+
+  function navigate(overrides: Record<string, string | number | null>) {
+    // Set on every navigation (null when the tab isn't changing) so a stale tab never flashes active.
+    setPendingTab((overrides.status as OrderTab | undefined) ?? null);
+    startTransition(() => router.push(buildUrl(overrides)));
+  }
 
   const { page, pageSize, total } = paginationMeta;
   const from = (page - 1) * pageSize;
@@ -86,7 +109,7 @@ export default function OrdersTable({
                   setSearchInput(q);
                   if (debounceRef.current) clearTimeout(debounceRef.current);
                   debounceRef.current = setTimeout(() => {
-                    router.push(buildUrl({ search: q || null, page: 1 }));
+                    navigate({ search: q || null, page: 1 });
                   }, 300);
                 }}
                 placeholder="Search company, contact, or email…"
@@ -98,17 +121,17 @@ export default function OrdersTable({
               {STATUS_TABS.map((t) => (
                 <button
                   key={t.value}
-                  onClick={() => router.push(buildUrl({ status: t.value, page: 1 }))}
-                  aria-pressed={status === t.value}
+                  onClick={() => navigate({ status: t.value, page: 1 })}
+                  aria-pressed={activeTab === t.value}
                   className={cn(
                     "px-3 py-[4.5px] rounded-full border text-[11px] font-semibold transition-colors cursor-pointer whitespace-nowrap",
-                    status === t.value
+                    activeTab === t.value
                       ? "bg-[#071133] border-[#071133] text-white"
                       : "bg-white border-[#E2E7F2] text-[#5F6A88] hover:border-[#A8C6F5] hover:text-[#0B1533]"
                   )}
                 >
                   {t.label}
-                  <span className={cn("ml-1.5 font-mono", status === t.value ? "text-white/70" : "text-[#5F6A88]/70")}>
+                  <span className={cn("ml-1.5 font-mono", activeTab === t.value ? "text-white/70" : "text-[#5F6A88]/70")}>
                     {counts[t.value]}
                   </span>
                 </button>
@@ -123,22 +146,17 @@ export default function OrdersTable({
                   {from + 1}–{Math.min(from + pageSize, total)} of {total}
                 </span>
                 <div className="flex items-center gap-1 text-[#5F6A88]">
-                  <button onClick={() => router.push(buildUrl({ page: 1 }))} disabled={!hasPrev} title="First page"
-                    className="flex items-center justify-center w-7 h-7 rounded-full border border-[#E2E7F2] bg-white hover:bg-[#F0F7FF] disabled:opacity-30 disabled:cursor-default cursor-pointer transition-colors">
-                    <ChevronsLeft size={14} />
-                  </button>
-                  <button onClick={() => router.push(buildUrl({ page: page - 1 }))} disabled={!hasPrev} title="Previous page"
-                    className="flex items-center justify-center w-7 h-7 rounded-full border border-[#E2E7F2] bg-white hover:bg-[#F0F7FF] disabled:opacity-30 disabled:cursor-default cursor-pointer transition-colors">
-                    <ChevronLeft size={14} />
-                  </button>
-                  <button onClick={() => router.push(buildUrl({ page: page + 1 }))} disabled={!hasNext} title="Next page"
-                    className="flex items-center justify-center w-7 h-7 rounded-full border border-[#E2E7F2] bg-white hover:bg-[#F0F7FF] disabled:opacity-30 disabled:cursor-default cursor-pointer transition-colors">
-                    <ChevronRight size={14} />
-                  </button>
-                  <button onClick={() => router.push(buildUrl({ page: Math.ceil(total / pageSize) }))} disabled={!hasNext} title="Last page"
-                    className="flex items-center justify-center w-7 h-7 rounded-full border border-[#E2E7F2] bg-white hover:bg-[#F0F7FF] disabled:opacity-30 disabled:cursor-default cursor-pointer transition-colors">
-                    <ChevronsRight size={14} />
-                  </button>
+                  {[
+                    { title: "First page", Icon: ChevronsLeft, to: 1, enabled: hasPrev },
+                    { title: "Previous page", Icon: ChevronLeft, to: page - 1, enabled: hasPrev },
+                    { title: "Next page", Icon: ChevronRight, to: page + 1, enabled: hasNext },
+                    { title: "Last page", Icon: ChevronsRight, to: Math.ceil(total / pageSize), enabled: hasNext },
+                  ].map(({ title, Icon, to, enabled }) => (
+                    <button key={title} onClick={() => navigate({ page: to })} disabled={!enabled} title={title} aria-label={title}
+                      className="flex items-center justify-center w-7 h-7 rounded-full border border-[#E2E7F2] bg-white hover:bg-[#F0F7FF] disabled:opacity-30 disabled:cursor-default cursor-pointer transition-colors">
+                      <Icon size={14} />
+                    </button>
+                  ))}
                 </div>
               </div>
             )}
@@ -146,81 +164,84 @@ export default function OrdersTable({
         </div>
       </div>
 
-      <div className="max-w-[1400px] mx-auto px-8 py-5">
-        {orders.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-3 rounded-[14px] border border-[#E2E7F2] bg-white">
-            <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-[#F0F7FF]">
-              {searchQ ? <Search size={24} className="text-[#007BFF]" /> : <ClipboardList size={26} className="text-[#007BFF]" />}
-            </div>
-            <div className="text-center">
-              <div className="text-[15px] font-semibold text-[#0B1533]">
-                {searchQ ? "No orders match your search" : `No ${STATUS_TABS.find((t) => t.value === status)?.label.toLowerCase()} orders`}
-              </div>
-              <p className="text-[13px] text-[#5F6A88] mt-1">
-                {searchQ ? "Try a different search term or clear the filter." : "New submissions from the StackShift Order Form will appear here."}
-              </p>
-            </div>
-            {searchQ && (
-              <button
-                onClick={() => { setSearchInput(""); router.push(buildUrl({ search: null, page: 1 })); }}
-                className="inline-flex items-center gap-1.5 mt-1 px-3 py-1.5 rounded-full border border-[#E2E7F2] bg-white text-[12px] text-[#3A4565] hover:bg-[#F0F7FF] cursor-pointer transition-colors"
-              >
-                <X size={13} /> Clear search
-              </button>
-            )}
-          </div>
+      <div className="max-w-[1400px] mx-auto px-8 py-5" aria-busy={isPending}>
+        {isPending ? (
+          <OrdersTableSkeleton rows={Math.min(pageSize, 20)} withMenu={!readOnly} />
+        ) : orders.length === 0 ? (
+          <OrdersEmpty
+            searchQ={searchQ}
+            tabLabel={STATUS_TABS.find((t) => t.value === tab)?.label ?? ""}
+            archived={tab === "archived"}
+            onClear={() => { setSearchInput(""); navigate({ search: null, page: 1 }); }}
+          />
         ) : (
           <div className="rounded-[14px] border border-[#E2E7F2] bg-white overflow-hidden">
-            <div className="grid grid-cols-[1.3fr_1.2fr_1.4fr_120px] items-center gap-3 px-5 py-2.5 border-b border-[#EDF0F7] bg-[#FAFBFE]">
-              <span className="text-[9.5px] font-bold uppercase tracking-[0.09em] text-[#5F6A88]">Company</span>
-              <span className="text-[9.5px] font-bold uppercase tracking-[0.09em] text-[#5F6A88]">Contact</span>
-              <span className="text-[9.5px] font-bold uppercase tracking-[0.09em] text-[#5F6A88]">Services</span>
-              <span className="text-[9.5px] font-bold uppercase tracking-[0.09em] text-[#5F6A88] text-right">Submitted</span>
+            <div className={cn("grid items-center border-b border-[#EDF0F7] bg-[#FAFBFE]", readOnly ? "grid-cols-1" : "grid-cols-[1fr_44px]")}>
+              <div className={cn("grid items-center gap-3 px-5 py-2.5", COLS)}>
+                <span className="text-[9.5px] font-bold uppercase tracking-[0.09em] text-[#5F6A88]">Company</span>
+                <span className="text-[9.5px] font-bold uppercase tracking-[0.09em] text-[#5F6A88]">Contact</span>
+                <span className="text-[9.5px] font-bold uppercase tracking-[0.09em] text-[#5F6A88]">Services</span>
+                <span className="text-[9.5px] font-bold uppercase tracking-[0.09em] text-[#5F6A88] text-right">Submitted</span>
+              </div>
+              {!readOnly && <span className="sr-only">Actions</span>}
             </div>
             {orders.map((o) => (
-              <button
+              // The menu can't nest inside the row <button>, so the row is a grid of [button, menu cell].
+              <div
                 key={o.id}
-                onClick={() => router.push(`${V2_ROUTES.STACKSHIFT_ORDERS}/${o.id}`)}
-                className="w-full text-left grid grid-cols-[1.3fr_1.2fr_1.4fr_120px] items-center gap-3 px-5 py-3 border-b border-[#EDF0F7] last:border-0 hover:bg-[#F0F7FF] transition-colors group cursor-pointer"
+                className={cn(
+                  "grid items-center border-b border-[#EDF0F7] last:border-0 hover:bg-[#F0F7FF] transition-colors",
+                  readOnly ? "grid-cols-1" : "grid-cols-[1fr_44px]"
+                )}
               >
-                <div className="min-w-0">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="text-[13px] font-medium text-[#0B1533] truncate group-hover:text-[#007BFF]">{o.company_name}</span>
-                    {(o.contact_risk === "medium" || o.contact_risk === "high") && (
-                      <span
-                        title={o.contact_risk === "high" ? "Contact email/phone flagged high risk" : "Contact email/phone flagged for review"}
-                        className={cn(
-                          "inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10.5px] font-semibold shrink-0",
-                          o.contact_risk === "high" ? "bg-[#FDECEC] text-[#9B2C2C]" : "bg-[#FFF3D6] text-[#8A5A00]"
-                        )}
-                      >
-                        <AlertTriangle size={10} /> Contact
-                      </span>
+                <button
+                  onClick={() => router.push(`${V2_ROUTES.STACKSHIFT_ORDERS}/${o.id}`)}
+                  className={cn("w-full text-left grid items-center gap-3 px-5 py-3 group cursor-pointer", COLS)}
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="text-[13px] font-medium text-[#0B1533] truncate group-hover:text-[#007BFF]">{o.company_name}</span>
+                      {(o.contact_risk === "medium" || o.contact_risk === "high") && (
+                        <span
+                          title={o.contact_risk === "high" ? "Contact email/phone flagged high risk" : "Contact email/phone flagged for review"}
+                          className={cn(
+                            "inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10.5px] font-semibold shrink-0",
+                            o.contact_risk === "high" ? "bg-[#FDECEC] text-[#9B2C2C]" : "bg-[#FFF3D6] text-[#8A5A00]"
+                          )}
+                        >
+                          <AlertTriangle size={10} /> Contact
+                        </span>
+                      )}
+                    </div>
+                    {o.mapped_classifications.length > 0 && (
+                      <div className="text-[11px] text-[#5F6A88] truncate">{o.mapped_classifications.join(", ")}</div>
                     )}
                   </div>
-                  {o.mapped_classifications.length > 0 && (
-                    <div className="text-[11px] text-[#5F6A88] truncate">{o.mapped_classifications.join(", ")}</div>
-                  )}
-                </div>
-                <div className="min-w-0">
-                  <div className="text-[13px] text-[#3A4565] truncate">{o.contact_name ?? "—"}</div>
-                  {o.business_email && <div className="text-[11px] text-[#5F6A88] truncate">{o.business_email}</div>}
-                </div>
-                <div className="min-w-0 flex flex-wrap gap-1">
-                  {o.services.length === 0 ? (
-                    <span className="text-[12px] text-[#5F6A88]/40">—</span>
-                  ) : (
-                    o.services.map((s) => (
-                      <span key={s} className="px-2 py-0.5 rounded-full bg-[#EEF3FF] text-[10.5px] font-medium text-[#2B4C86] whitespace-nowrap">
-                        {s}
-                      </span>
-                    ))
-                  )}
-                </div>
-                <div className="text-right text-[12px] text-[#5F6A88] font-mono tabular-nums">
-                  {formatDate(o.submitted_at ?? o.created_at)}
-                </div>
-              </button>
+                  <div className="min-w-0">
+                    <div className="text-[13px] text-[#3A4565] truncate">{o.contact_name ?? "—"}</div>
+                    {o.business_email && <div className="text-[11px] text-[#5F6A88] truncate">{o.business_email}</div>}
+                  </div>
+                  <div className="min-w-0 flex flex-wrap gap-1">
+                    {o.services.length === 0 ? (
+                      <span className="text-[12px] text-[#5F6A88]/40">—</span>
+                    ) : (
+                      o.services.map((s) => (
+                        <span key={s} className="px-2 py-0.5 rounded-full bg-[#EEF3FF] text-[10.5px] font-medium text-[#2B4C86] whitespace-nowrap">
+                          {s}
+                        </span>
+                      ))
+                    )}
+                  </div>
+                  <div className="text-right text-[12px] text-[#5F6A88] font-mono tabular-nums">
+                    {formatDate(o.submitted_at ?? o.created_at)}
+                  </div>
+                </button>
+                {!readOnly && (
+                  <div className="pr-3">
+                    <OrderRowMenu order={o} archived={tab === "archived"} isSuperAdmin={isSuperAdmin} />
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         )}

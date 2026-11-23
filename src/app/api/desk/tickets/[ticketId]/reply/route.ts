@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
+import { excludingDeleted } from "@/lib/desk/inbox-deleted";
 import { sendNewEmail, sendReply } from "@/lib/zoho/mail";
 import { replyOnDirectTicket } from "@/lib/stackshift-support/direct-reply";
 
@@ -169,14 +170,16 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       // email_message_id. Send a fresh "Re:" email that quotes the last public message so it
       // still reads as a reply in the customer's inbox. The Hub row below is the same staff
       // reply row either way (body without the quote), so the thread shows it as a normal reply.
-      const { data: lastPublic } = await adminClient
-        .from("inbox_messages")
-        .select("author_type, body, created_at, source_meta")
-        .eq("inbox_id", ticket.id)
-        .eq("visibility", "public")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      // Task 497 — quote the last *visible* public message (unfiltered until migration 190 is applied).
+      const { data: lastPublic } = await excludingDeleted((exclude) => {
+        let q = adminClient
+          .from("inbox_messages")
+          .select("author_type, body, created_at, source_meta")
+          .eq("inbox_id", ticket.id)
+          .eq("visibility", "public");
+        if (exclude) q = q.is("deleted_at", null);
+        return q.order("created_at", { ascending: false }).limit(1).maybeSingle();
+      });
       result = await sendNewEmail({
         from,
         to,

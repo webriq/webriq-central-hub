@@ -63,12 +63,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tic
     return NextResponse.json({ error: "Ticket not found." }, { status: 404 });
   }
 
-  const { data: messages } = await adminClient
-    .from("inbox_messages")
-    .select("id, author_type, body, source_meta, created_at")
-    .eq("inbox_id", ticketId)
-    .eq("visibility", "public")
-    .order("created_at", { ascending: true });
+  // Task 497 — soft-deleted messages never reach the customer (unfiltered until migration 190 is applied).
+  const { data: messages } = await excludingDeleted((exclude) => {
+    let q = adminClient
+      .from("inbox_messages")
+      .select("id, author_type, body, source_meta, created_at")
+      .eq("inbox_id", ticketId)
+      .eq("visibility", "public");
+    if (exclude) q = q.is("deleted_at", null);
+    return q.order("created_at", { ascending: true });
+  });
 
   return NextResponse.json({
     ticket: {
