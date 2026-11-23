@@ -1,7 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
-import { putToSignedUrl } from "@/lib/uploads/put-signed-url";
+import type { EditorView } from "@tiptap/pm/view";
+import { toast } from "sonner";
+import { uploadWikiImage } from "@/lib/wiki/upload-image";
 import StarterKit from "@tiptap/starter-kit";
 import { TaskList, TaskItem } from "@tiptap/extension-list";
 import Placeholder from "@tiptap/extension-placeholder";
@@ -10,7 +13,7 @@ import { Table, TableRow, TableHeader, TableCell } from "@tiptap/extension-table
 import {
   Bold, Italic, Underline, Strikethrough, List, ListOrdered,
   Heading2, Heading3, Quote, Code2, TableIcon,
-  Rows3, Columns3, TableRowsSplit, TableColumnsSplit, Trash2,
+  Rows3, Columns3, TableRowsSplit, TableColumnsSplit, Trash2, Loader2,
 } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -51,21 +54,33 @@ export function WikiRte({
   value: string;
   onChange: (html: string) => void;
 }) {
-  async function uploadAndInsertImage(file: File) {
-    // Browser-direct upload (Vercel 413s Route Handler bodies over ~4.5 MB): the sign route gates
-    // + mints a signed URL, the bytes go straight to Storage, `url` is the stored read URL.
-    try {
-      const res = await fetch(`/api/wiki/pages/${pageId}/description-images/sign`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ filename: file.name, size: file.size, type: file.type }),
-      });
-      if (!res.ok) return; // silently drop — a failed inline image paste isn't fatal to the page
-      const { signedUrl, url } = (await res.json()) as { signedUrl: string; url: string };
-      await putToSignedUrl({ signedUrl, file, mime: file.type });
-      editor?.chain().focus().setImage({ src: url }).run();
-    } catch {
-      // network/storage failure — same silent drop as above
+  const [uploadingCount, setUploadingCount] = useState(0);
+
+  // Task 500 — browser-direct upload of every image, in order, at the drop point (`pos`) or the
+  // cursor; failures toast. Inserts via the handler's `view`, not `editor`: editorProps close over
+  // the first render, where `editor` is still null (`immediatelyRender: false`).
+  async function uploadAndInsertImages(view: EditorView, files: File[], pos?: number) {
+    setUploadingCount((c) => c + files.length);
+    let at = pos;
+    for (const file of files) {
+      try {
+        const src = await uploadWikiImage(pageId, file);
+        if (view.isDestroyed) continue; // user left Edit mid-upload
+        const node = view.state.schema.nodes.image.create({ src });
+        let tr = view.state.tr;
+        if (at === undefined) {
+          tr = tr.replaceSelectionWith(node);
+        } else {
+          at = Math.min(at, tr.doc.content.size); // doc may have shrunk while uploading
+          tr = tr.replaceRangeWith(at, at, node);
+          at = tr.mapping.map(at); // next image lands after this one
+        }
+        view.dispatch(tr);
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Image upload failed");
+      } finally {
+        setUploadingCount((c) => c - 1);
+      }
     }
   }
 
@@ -114,20 +129,22 @@ export function WikiRte({
           "[&_.is-editor-empty:first-child::before]:content-[attr(data-placeholder)] [&_.is-editor-empty:first-child::before]:text-[#94A3B8] [&_.is-editor-empty:first-child::before]:float-left [&_.is-editor-empty:first-child::before]:h-0 [&_.is-editor-empty:first-child::before]:pointer-events-none"
         ),
       },
-      handlePaste(_view, event) {
-        const items = Array.from(event.clipboardData?.items ?? []);
-        const imageItem = items.find((i) => i.type.startsWith("image/"));
-        if (!imageItem) return false;
+      handlePaste(view, event) {
+        const files = Array.from(event.clipboardData?.items ?? [])
+          .filter((i) => i.type.startsWith("image/"))
+          .map((i) => i.getAsFile())
+          .filter((f): f is File => f !== null);
+        if (files.length === 0) return false;
         event.preventDefault();
-        const file = imageItem.getAsFile();
-        if (file) void uploadAndInsertImage(file);
+        void uploadAndInsertImages(view, files);
         return true;
       },
-      handleDrop(_view, event) {
-        const file = Array.from(event.dataTransfer?.files ?? []).find((f) => f.type.startsWith("image/"));
-        if (!file) return false;
+      handleDrop(view, event) {
+        const files = Array.from(event.dataTransfer?.files ?? []).filter((f) => f.type.startsWith("image/"));
+        if (files.length === 0) return false;
         event.preventDefault();
-        void uploadAndInsertImage(file);
+        const pos = view.posAtCoords({ left: event.clientX, top: event.clientY })?.pos;
+        void uploadAndInsertImages(view, files, pos);
         return true;
       },
     },
@@ -196,6 +213,14 @@ export function WikiRte({
             {tableControls.map((t) => <ToolbarButton key={t.title} {...t} />)}
           </>
         )}
+        <span aria-live="polite" className="ml-auto flex items-center gap-1.5 text-[11px] text-[#5F6A88]">
+          {uploadingCount > 0 && (
+            <>
+              <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+              {uploadingCount > 1 ? `Uploading ${uploadingCount} images…` : "Uploading image…"}
+            </>
+          )}
+        </span>
       </div>
       <EditorContent editor={editor} />
     </div>

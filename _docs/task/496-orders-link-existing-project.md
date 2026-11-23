@@ -4,7 +4,7 @@
 **Priority:** MEDIUM
 **Type:** feature (+ small migration, written-not-applied)
 **Recommended Tier:** balanced
-**Status:** Planned
+**Status:** Completed
 
 ---
 

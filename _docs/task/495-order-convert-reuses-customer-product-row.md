@@ -4,7 +4,7 @@
 **Priority:** HIGH
 **Type:** bugfix (+ one-off data repair)
 **Recommended Tier:** fast
-**Status:** Planned
+**Status:** Completed
 
 ---
 
@@ -192,3 +192,7 @@ PASS
 - Confirmed. `C74DEA31-PROJ-03` "Veteran Roofing & Exteriors App" (`43dae56b-1660-47af-aac0-b3148e237be6`, `Custom App`, order services `{FlowForge}`, `is_new_customer=false`) is on `customer_products` `6405099a-99e5-4cfe-b143-86388b4a1038` (`StackShift` / `StackShift I`), with `projects_on_row = 2`. The shared row still says `StackShift I`, so the modal was not used and the website project needs no restore.
 - It is the only converted order with `projects_on_row ≥ 2` (7 converted orders checked). The repair script's `targets` list needs no change.
 - Not this bug: `E4D31095-PROJ-01` Salas Ayala (services `{StackShift I}`, classified `StackShift II` on its own row). This is likely the reviewer's choice or a later modal edit.
+
+## Operator Step 3: done (2026-11-23, user)
+
+- The user reported that `supabase/manual/495_repair_order_converted_shared_product_rows.sql` has been run. AC 7 (the App project on `/projects/discrete-development` and not on `/projects/stackshift-i`; Veteran's website project still on StackShift I) has not been re-checked in this session.

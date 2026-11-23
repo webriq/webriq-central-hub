@@ -4,7 +4,7 @@
 **Priority:** MEDIUM
 **Type:** enhancement (UX + performance)
 **Recommended Tier:** fast
-**Status:** Planned
+**Status:** Completed
 
 ---
 

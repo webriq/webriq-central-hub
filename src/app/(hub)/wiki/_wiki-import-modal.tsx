@@ -5,6 +5,8 @@ import { parseEventLines, type PdfImportEvent } from "@/lib/wiki/pdf-import-even
 import { X, Loader2, Upload, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { putToSignedUrl } from "@/lib/uploads/put-signed-url";
+import { uploadWikiImage } from "@/lib/wiki/upload-image";
+import { toast } from "sonner";
 import { WIKI_PRODUCTS, type WikiPageSummary, type WikiProduct } from "@/types/wiki";
 
 // Task 396 — Import modal. `.docx`/`.md` are converted + sanitized entirely client-side
@@ -19,6 +21,8 @@ const inputClass = "w-full px-3 py-2 rounded-[10px] border text-[13px] outline-n
 const labelClass = "text-[11px] font-semibold text-[#0B1533]";
 const ACCEPTED_EXTENSIONS = [".docx", ".md", ".markdown", ".pdf"];
 const MAX_FILE_SIZE = 200 * 1024 * 1024; // 200MB — matches the server-side PDF route's own cap
+// Task 500 — the sign route's allow-list; Word's EMF/WMF/TIFF are skipped rather than uploaded.
+const UPLOADABLE_IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 
 function extensionOf(filename: string): string {
   const dot = filename.lastIndexOf(".");
@@ -59,6 +63,7 @@ const STAGE_LABELS = {
   analyzing: "Analyzing pages…",
   transcribing: "Transcribing content with AI…",
   converting: "Converting document…",
+  uploadingImages: "Uploading images…",
   cleaning: "Cleaning up formatting…",
   creating: "Creating the page…",
 } as const;
@@ -72,10 +77,16 @@ function stageLabel({ stage, done, total }: StageUpdate): string {
     const verb = stage === "analyzing" ? "Analyzing" : "Transcribing";
     return `${verb} page ${Math.min((done ?? 0) + 1, total)} of ${total}…`;
   }
+  if (stage === "uploadingImages" && done) return `Uploading images… ${done}`;
   return base;
 }
 
-async function convertToHtml(file: File, onStage: (update: StageUpdate) => void): Promise<string> {
+async function convertToHtml(
+  file: File,
+  onStage: (update: StageUpdate) => void,
+  pageId: string,
+  onImageSkipped: () => void,
+): Promise<string> {
   const ext = extensionOf(file.name);
   const { default: DOMPurify } = await import("dompurify");
 
@@ -140,8 +151,32 @@ async function convertToHtml(file: File, onStage: (update: StageUpdate) => void)
     onStage({ stage: "converting" });
     const { default: mammoth } = await import("mammoth");
     const arrayBuffer = await file.arrayBuffer();
-    const result = await mammoth.convertToHtml({ arrayBuffer });
-    return DOMPurify.sanitize(result.value, { USE_PROFILES: { html: true }, FORBID_ATTR: ["style", "class"], FORBID_TAGS: ["font"] });
+    // Task 500 — upload each embedded image to `wiki-assets/{pageId}/` instead of mammoth's
+    // default base64 data: URI (Tiptap's Image drops data: srcs on edit, and they 413 the POST).
+    // mammoth calls this in document order, one image at a time.
+    let uploaded = 0;
+    const convertImage = mammoth.images.imgElement(async (image) => {
+      if (!UPLOADABLE_IMAGE_TYPES.includes(image.contentType)) {
+        onImageSkipped();
+        return { src: "" };
+      }
+      try {
+        const bytes = await image.readAsArrayBuffer();
+        const n = uploaded + 1;
+        const imageFile = new File([bytes], `docx-image-${n}.${image.contentType.split("/")[1]}`, { type: image.contentType });
+        onStage({ stage: "uploadingImages", done: n });
+        const src = await uploadWikiImage(pageId, imageFile);
+        uploaded = n;
+        return { src };
+      } catch {
+        onImageSkipped();
+        return { src: "" };
+      }
+    });
+    const result = await mammoth.convertToHtml({ arrayBuffer }, { convertImage });
+    const doc = new DOMParser().parseFromString(`<body>${result.value}</body>`, "text/html");
+    doc.querySelectorAll('img:not([src]), img[src=""]').forEach((img) => img.remove());
+    return DOMPurify.sanitize(doc.body.innerHTML, { USE_PROFILES: { html: true }, FORBID_ATTR: ["style", "class"], FORBID_TAGS: ["font"] });
   }
 
   if (ext === ".md" || ext === ".markdown") {
@@ -203,12 +238,14 @@ export function WikiImportModal({
     setStage({ stage: "reading" });
     setError(null);
     try {
-      const contentHtml = await convertToHtml(file, setStage);
+      const pageId = crypto.randomUUID();
+      let skippedImages = 0;
+      const contentHtml = await convertToHtml(file, setStage, pageId, () => { skippedImages += 1; });
       setStage({ stage: "creating" });
       const res = await fetch("/api/wiki/pages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ product, title: title.trim(), parentId: parentId || null, contentHtml }),
+        body: JSON.stringify({ id: pageId, product, title: title.trim(), parentId: parentId || null, contentHtml }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => null);
@@ -216,6 +253,9 @@ export function WikiImportModal({
         return;
       }
       const page = (await res.json()) as WikiPageSummary;
+      if (skippedImages > 0) {
+        toast.warning(`${skippedImages} image(s) couldn't be imported (unsupported format or upload failed)`);
+      }
       onCreated(page);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to import this file");

@@ -4,7 +4,7 @@
 **Priority:** MEDIUM
 **Type:** enhancement (+ small migration, written-not-applied)
 **Recommended Tier:** balanced
-**Status:** Testing
+**Status:** Completed (2026-11-23, marked by user; checks 4–13 not run; migration 190 applied per user)
 
 ---
 
@@ -231,3 +231,6 @@ PASS
 - **On failure:** `ConfirmDialog` has no error slot, so the error goes to `toast.error` and the dialog stays open for a retry.
 - **On success:** the dialog closes and the "Message deleted" toast with Undo appears, as before.
 - `npx tsc --noEmit` and eslint on `_conversation-thread.tsx`: PASS. The browser check (AC4/AC5) is still pending migration 190.
+
+## Operator Status
+- 2026-11-23: the user reports migration 190 (`190_inbox_messages_soft_delete.sql`) is applied.

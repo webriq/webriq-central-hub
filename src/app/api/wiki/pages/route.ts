@@ -7,6 +7,8 @@ import { WIKI_PRODUCTS, type WikiPageSummary, type WikiProduct, type WikiStatus 
 // (migration 149) — this route never uses `adminClient`, matching the Project Notes routes'
 // "never bypass RLS for regular reads" convention.
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 type WikiPageRow = {
   id: string;
   product: WikiProduct;
@@ -65,7 +67,8 @@ export async function POST(request: NextRequest) {
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await request.json().catch(() => null);
-    const { product, title, parentId, contentHtml, tags } = (body ?? {}) as {
+    const { id, product, title, parentId, contentHtml, tags } = (body ?? {}) as {
+      id?: unknown;
       product?: WikiProduct;
       title?: string;
       parentId?: string | null;
@@ -79,6 +82,11 @@ export async function POST(request: NextRequest) {
     if (!WIKI_PRODUCTS.some((p) => p.name === product)) {
       return NextResponse.json({ error: "Unknown wiki space" }, { status: 400 });
     }
+    // Task 500 — Import pre-generates the id so .docx images can be uploaded under
+    // `wiki-assets/{id}/` before the row exists; every other caller omits it (DB default).
+    if (id !== undefined && (typeof id !== "string" || !UUID_RE.test(id))) {
+      return NextResponse.json({ error: "Invalid id" }, { status: 400 });
+    }
 
     // Task 396 — Import passes real content_html (already converted + sanitized client-side,
     // or escaped-paragraph HTML from the server-side PDF route); every other caller omits it
@@ -88,6 +96,7 @@ export async function POST(request: NextRequest) {
     const { data: page, error } = await supabase
       .from("wiki_pages")
       .insert({
+        ...(id ? { id } : {}),
         product,
         parent_id: parentId ?? null,
         title: title.trim(),
@@ -100,6 +109,9 @@ export async function POST(request: NextRequest) {
       .select("id, product, parent_id, title, status, sort_order, version, updated_at, tags")
       .single();
 
+    if (error?.code === "23505") {
+      return NextResponse.json({ error: "A page with this id already exists" }, { status: 409 });
+    }
     if (error || !page) {
       console.error("POST /api/wiki/pages error:", error);
       return NextResponse.json({ error: "Failed to create page" }, { status: 500 });
