@@ -74,37 +74,25 @@ export async function createFromOrder(input: ConvertInput): Promise<ConvertResul
   }
 
   // ── customer_products ──
-  // For an existing customer that already has this product, reuse its row (the products API
-  // has no DB unique constraint on (customer_id, product_name) — a blind insert would
-  // duplicate). New customers always get a fresh row.
-  let productId: string | null = null;
-  if (!isNewCustomer) {
-    const { data: existingProduct } = await adminClient
-      .from("customer_products")
-      .select("id")
-      .eq("customer_id", customerId)
-      .eq("product_name", shape.productNames[0])
-      .maybeSingle();
-    productId = existingProduct?.id ?? null;
-  }
-  if (!productId) {
-    const { data: product, error: productError } = await adminClient
-      .from("customer_products")
-      .insert({
-        customer_id: customerId,
-        product_name: shape.productNames[0],
-        classification: shape.primaryClassification,
-        classifications,
-        status: "active",
-        onboarding_complete: false,
-        onboarding_data: {},
-      })
-      .select("id")
-      .single();
-    if (productError || !product) {
-      throw new Error(`Failed to create customer_products row: ${productError?.message}`);
-    }
-    productId = product.id;
+  // Task 495 — always a fresh row, like the New Project intake. The listing tabs and the
+  // Classification modal read/write the project's linked row, so reusing an existing customer's
+  // same-name row (a Discrete-only order derives product_name "StackShift") dropped the reviewer's
+  // classification and shared one row between two projects.
+  const { data: product, error: productError } = await adminClient
+    .from("customer_products")
+    .insert({
+      customer_id: customerId,
+      product_name: shape.productNames[0],
+      classification: shape.primaryClassification,
+      classifications,
+      status: "active",
+      onboarding_complete: false,
+      onboarding_data: {},
+    })
+    .select("id")
+    .single();
+  if (productError || !product) {
+    throw new Error(`Failed to create customer_products row: ${productError?.message}`);
   }
 
   // ── draft project ──
@@ -117,7 +105,7 @@ export async function createFromOrder(input: ConvertInput): Promise<ConvertResul
       customer_id: customerId,
       name,
       project_type: shape.projectType,
-      customer_product_id: productId,
+      customer_product_id: product.id,
       created_by: input.actingUserId,
       // Task 357 — StackShift I: flip the 120-day customer_phases engine on and store an empty
       // default config, exactly like the New Project wizard's "save as draft" insert. The
