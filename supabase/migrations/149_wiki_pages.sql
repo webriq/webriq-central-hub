@@ -1,4 +1,7 @@
 -- Migration 149: Wiki pages (task 395; product catalog widened to all 6 mockup spaces by task 399)
+-- NOTE (task 494): this file was applied to production BEFORE task 399's in-place edit, so the
+-- live check kept the old 4-value list. The widening ships as migration 188 — never edit an
+-- applied migration in place; add a new one.
 --
 -- Activates the /kb "Wiki" tab (previously a stub) with a real, DB-backed product wiki:
 --   wiki_pages          one row per page, nested via parent_id, scoped to a `product` (the

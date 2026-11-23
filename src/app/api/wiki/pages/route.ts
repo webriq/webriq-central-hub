@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { normalizeWikiTags } from "@/lib/wiki/tags";
-import type { WikiPageSummary, WikiProduct, WikiStatus } from "@/types/wiki";
+import { WIKI_PRODUCTS, type WikiPageSummary, type WikiProduct, type WikiStatus } from "@/types/wiki";
 
 // Task 395 — Wiki page tree (list) + page creation. Permission is enforced entirely by RLS
 // (migration 149) — this route never uses `adminClient`, matching the Project Notes routes'
@@ -75,6 +75,9 @@ export async function POST(request: NextRequest) {
 
     if (!product || !title?.trim()) {
       return NextResponse.json({ error: "product and title are required" }, { status: 400 });
+    }
+    if (!WIKI_PRODUCTS.some((p) => p.name === product)) {
+      return NextResponse.json({ error: "Unknown wiki space" }, { status: 400 });
     }
 
     // Task 396 — Import passes real content_html (already converted + sanitized client-side,
