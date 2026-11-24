@@ -77,8 +77,19 @@ assert.ok(resolveTaskMove(dCtx, "r2", { kind: "task", id: "d4", zone: "nest" }, 
 // Into a group header → first root; into a phase → its first group; into NO_LIST is invalid.
 assert.deepEqual(resolveTaskMove(ctx, "r1", { kind: "group", id: "C", zone: "into" }, true),
   { taskId: "r1", tasklistId: "C", parentId: null, beforeId: null, afterId: "x1", depth: 0 });
-assert.equal(resolveTaskMove(ctx, "r1", { kind: "phase", id: "P1", zone: "into" }, true)?.tasklistId, "B");
+const tasklistOf = (m: ReturnType<typeof resolveTaskMove>) => (m && "tasklistId" in m ? m.tasklistId : undefined);
+assert.equal(tasklistOf(resolveTaskMove(ctx, "r1", { kind: "phase", id: "P1", zone: "into" }, true)), "B");
 assert.equal(resolveTaskMove(dCtx, "r1", { kind: "group", id: NO_LIST, zone: "into" }, true), null);
+
+// Task 502 — a phase with no task lists (P3): drop/dialog → a phase move (server creates the list);
+// needs `anywhere`; a phase that has lists still resolves to its first list (checked above).
+const ePhases = buildPhases(tasks, lists, [...milestones, ms("P3", 3)], (l) => l);
+const eCtx: TaskCtx<TreeTask> = { ...ctx, groups: ePhases.flatMap((p) => p.groups), phases: ePhases };
+assert.deepEqual(ePhases.find((p) => p.key === "P3")?.groups, []);
+assert.deepEqual(resolveTaskMove(eCtx, "r1", { kind: "phase", id: "P3", zone: "into" }, true), { taskId: "r1", milestoneId: "P3" });
+assert.equal(resolveTaskMove(eCtx, "r1", { kind: "phase", id: "P3", zone: "into" }, false), null);
+assert.equal(resolveTaskMove(eCtx, "c1", { kind: "phase", id: "P3", zone: "into" }, true)?.taskId, "c1"); // subtask → top level of the new list
+assert.equal(tasklistOf(resolveTaskMove(eCtx, "r1", { kind: "phase", id: "P2", zone: "into" }, true)), "C");
 
 // Groups + phases.
 assert.deepEqual(reorderIds(["a", "b", "c"], "c", "a", "before"), ["c", "a", "b"]);

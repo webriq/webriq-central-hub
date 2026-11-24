@@ -7,6 +7,10 @@ export type DragKind = "task" | "group" | "phase";
 export type Zone = "before" | "after" | "nest" | "into";
 export type DropTarget = { kind: DragKind; id: string; zone: Zone };
 export type TaskMove = { taskId: string; tasklistId: string; parentId: string | null; beforeId: string | null; afterId: string | null; depth: number };
+/** Task 502 — into a phase that has no task list yet: the server creates one named after the phase. */
+export type PhaseMove = { taskId: string; milestoneId: string };
+export type AnyTaskMove = TaskMove | PhaseMove;
+export const isPhaseMove = (m: AnyTaskMove): m is PhaseMove => "milestoneId" in m;
 
 /** Pointer position within the hovered row (0 = top edge, 1 = bottom) → drop zone for the dragged kind. */
 export function zoneFor(target: DragKind, dragged: DragKind, rel: number): Zone | null {
@@ -24,9 +28,15 @@ export type TaskCtx<T extends TreeTask> = {
 };
 
 /** `anywhere` = may change list/parent (editor, and migration 184 applied); otherwise siblings only. */
-export function resolveTaskMove<T extends TreeTask>(ctx: TaskCtx<T>, activeId: string, target: DropTarget, anywhere: boolean): TaskMove | null {
+export function resolveTaskMove<T extends TreeTask>(ctx: TaskCtx<T>, activeId: string, target: DropTarget, anywhere: boolean): AnyTaskMove | null {
   const active = ctx.byId.get(activeId);
   if (!active) return null;
+  // Task 502 — a phase with no lists: a list change by definition, so it needs `anywhere`. Depth is 0
+  // (top level of the new list), which never exceeds MAX_DEPTH on its own.
+  if (target.kind === "phase") {
+    const phase = ctx.phases.find((p) => p.key === target.id);
+    if (phase?.milestone && phase.groups.length === 0) return anywhere ? { taskId: activeId, milestoneId: phase.key } : null;
+  }
   const rootsOf = (gid: string) => ctx.groups.find((g) => g.id === gid)?.tasks ?? [];
 
   let groupId: string, parentId: string | null, list: T[], anchor: string | null, after = false;

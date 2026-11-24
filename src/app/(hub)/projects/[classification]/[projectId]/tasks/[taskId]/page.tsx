@@ -55,10 +55,16 @@ export default async function TaskDetailPage({
 
   if (!task) notFound();
 
-  // Task 467 — breadcrumb target when this task is itself a subtask.
-  const { data: parentTask } = task.parent_task_id
-    ? await supabase.from("tasks").select("display_id, title").eq("id", task.parent_task_id).maybeSingle()
-    : { data: null };
+  // Task 467 — breadcrumb target when this task is itself a subtask. Task 502 — the Milestone field shows
+  // the phase the Tasks tab shows, i.e. the task list's.
+  const [{ data: parentTask }, { data: list }] = await Promise.all([
+    task.parent_task_id
+      ? supabase.from("tasks").select("display_id, title").eq("id", task.parent_task_id).maybeSingle()
+      : Promise.resolve({ data: null }),
+    task.tasklist_id
+      ? supabase.from("tasklists").select("milestone_id").eq("id", task.tasklist_id).maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
 
   // profiles_read_own RLS only lets a non-admin caller read their own profiles row — adminClient
   // bypasses that for this read-only assignee-name display lookup (same pattern task 210 already
@@ -80,6 +86,7 @@ export default async function TaskDetailPage({
       currentUserAvatarUrl={currentUserAvatarUrl}
       assigneeProfiles={assigneeProfiles ?? []}
       parentTask={parentTask}
+      listMilestoneId={list ? list.milestone_id : undefined}
     />
   );
 }

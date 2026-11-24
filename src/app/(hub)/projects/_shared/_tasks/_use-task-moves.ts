@@ -3,7 +3,7 @@
 import { useState, type Dispatch, type SetStateAction } from "react";
 import { toast } from "sonner";
 import { type Task, type Tasklist, type Milestone, midpoint, decodeHtmlEntities } from "@/app/(hub)/projects-old/_pm-shared";
-import { positionsToWrite, type GroupMove, type TaskMove } from "./_move-rules";
+import { isPhaseMove, positionsToWrite, type AnyTaskMove, type GroupMove, type PhaseMove } from "./_move-rules";
 import { NO_PHASE, childrenMap, subtreeIds } from "./_task-tree";
 
 type Setter<T> = Dispatch<SetStateAction<T[]>>;
@@ -19,7 +19,29 @@ export function useTaskMoves({ tasks, setTasks, tasklists, setTasklists, milesto
   // Migration 184 not applied (503) → only same-slot reorder (PATCH position) for the rest of the session.
   const [crossDisabled, setCrossDisabled] = useState(false);
 
-  async function moveTask(m: TaskMove) {
+  // Task 502 — into a phase with no list yet. Not optimistic (the list doesn't exist until the server
+  // creates it), so a loading toast stands in; the response carries the moved rows and the new list.
+  async function moveToNewPhaseList(m: PhaseMove) {
+    const active = tasks.find((t) => t.id === m.taskId);
+    if (!active) return;
+    const title = decodeHtmlEntities(active.title);
+    const toastId = toast.loading(`Moving "${title}"…`);
+    const res = await fetch(`/api/v2/tasks/${m.taskId}/move`, { method: "POST", ...json({ milestone_id: m.milestoneId }) });
+    if (!res.ok) {
+      if (res.status === 503) setCrossDisabled(true);
+      toast.error(`Couldn't move "${title}". ${await errorOf(res)}`, { id: toastId });
+      return;
+    }
+    const body: { tasks: Task[]; tasklist: Tasklist | null } = await res.json();
+    const created = body.tasklist;
+    if (created) setTasklists((prev) => [...prev, created]);
+    const rows = new Map(body.tasks.map((t) => [t.id, t]));
+    setTasks((prev) => prev.map((t) => rows.get(t.id) ?? t));
+    toast.success(`Moved "${title}"`, { id: toastId });
+  }
+
+  async function moveTask(m: AnyTaskMove) {
+    if (isPhaseMove(m)) return moveToNewPhaseList(m);
     const snapshot = tasks;
     const byId = new Map(tasks.map((t) => [t.id, t]));
     const active = byId.get(m.taskId);

@@ -11,6 +11,17 @@ const VALID_STATUS = ["active", "on_hold", "completed", "archived"] as const;
 const DELETE_ROLES = ["admin", "pm", "super_admin"] as const;
 type ProjectUpdate = Database["public"]["Tables"]["projects"]["Update"];
 
+// Task 501 — current status + merged flag. select("*") so merged_into_project_id (migration 180)
+// is read when present without a 42703 when it isn't (same as stackshift-orders link-project).
+async function loadArchiveState(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  projectId: string
+): Promise<{ status: string; merged: boolean } | null> {
+  const { data } = await supabase.from("projects").select("*").eq("project_id", projectId).neq("status", "deleted").maybeSingle();
+  if (!data) return null;
+  return { status: data.status, merged: !!(data as { merged_into_project_id?: string | null }).merged_into_project_id };
+}
+
 // GET /api/v2/projects/[projectId]  — project + milestones + tasks
 export async function GET(
   _req: NextRequest,
@@ -68,6 +79,22 @@ export async function PATCH(
       return NextResponse.json({ error: "invalid status" }, { status: 400 });
     }
     patch.status = body.status as (typeof VALID_STATUS)[number];
+
+    // Task 501 — moving a project into or out of `archived` is gated like DELETE, and a merged
+    // project (archived by the task 468 merge flow) can't be restored.
+    const current = await loadArchiveState(supabase, projectId);
+    if (!current) return NextResponse.json({ error: "Project not found" }, { status: 404 });
+    const crossesArchive = (current.status === "archived") !== (patch.status === "archived");
+    if (crossesArchive) {
+      const { data: profileRow } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+      const profile = await asTestRole(profileRow, user.id, { projectId }); // task 476
+      if (!profile?.role || !(DELETE_ROLES as readonly string[]).includes(profile.role)) {
+        return NextResponse.json({ error: "Not permitted to archive projects" }, { status: 403 });
+      }
+      if (current.status === "archived" && current.merged) {
+        return NextResponse.json({ error: "Merged projects can't be restored" }, { status: 409 });
+      }
+    }
   }
 
   // Task 268 — card-title rename (hover-to-edit + kebab "Rename Project"): reject an empty name

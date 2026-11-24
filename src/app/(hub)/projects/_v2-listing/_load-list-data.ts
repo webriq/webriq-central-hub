@@ -15,7 +15,7 @@ import { effectiveProjectRole, getSettingsViewer, loadTestScope } from "@/lib/te
 
 const CREATE_ROLES = ["admin", "super_admin", "marketing", "pm"];
 
-// projects.onboarding_status values the Status filter can select (plus "on_hold", from projects.status).
+// projects.onboarding_status values the Status filter can select (plus "on_hold" / "archived", from projects.status).
 const PROGRAMME_STATUSES = ["draft", "scheduled", "in_progress", "completed"] as const;
 
 export type OnboardingListParams = {
@@ -125,18 +125,23 @@ export async function loadOnboardingProjectsList(
 
   // Task 468 — projects merged into another are archived and hidden from the v2 listing (needs migration 180).
   query = query.filter("merged_into_project_id", "is", null);
-  if (params.statusValues !== null) {
-    // Mirrors the card's display status: an on-hold project (projects.status) is "on_hold" and never
-    // matches its onboarding_status. Values are whitelisted — they're interpolated into .or() below.
-    const wantsOnHold = params.statusValues.includes("on_hold");
+  if (params.statusValues === null) {
+    // Task 501 — archived projects are out of the working set: hidden unless "Archived" is selected.
+    query = query.neq("status", "archived");
+  } else {
+    // Mirrors the card's display status: an on-hold or archived project (projects.status) shows that
+    // status and never matches its onboarding_status. Values are whitelisted — they're interpolated
+    // into .or() below (a second .or() call appends its own `or=` param, which PostgREST ANDs with
+    // the search one).
     const programmeStatuses = params.statusValues.filter((v) => (PROGRAMME_STATUSES as readonly string[]).includes(v));
-    if (!wantsOnHold) {
-      query = query.neq("status", "on_hold").in("onboarding_status", programmeStatuses.length > 0 ? programmeStatuses : ["__none__"]);
-    } else if (programmeStatuses.length === 0) {
-      query = query.eq("status", "on_hold");
-    } else {
-      query = query.or(`status.eq.on_hold,onboarding_status.in.(${programmeStatuses.join(",")})`);
-    }
+    const clauses = [
+      ...(params.statusValues.includes("on_hold") ? ["status.eq.on_hold"] : []),
+      ...(params.statusValues.includes("archived") ? ["status.eq.archived"] : []),
+      ...(programmeStatuses.length > 0
+        ? [`and(status.not.in.(on_hold,archived),onboarding_status.in.(${programmeStatuses.join(",")}))`]
+        : []),
+    ];
+    query = clauses.length > 0 ? query.or(clauses.join(",")) : query.eq("id", ZERO_ROWS_ID);
   }
   if (params.search) {
     const { data: matchedCustomers } = await supabase
@@ -265,8 +270,9 @@ export async function loadOnboardingProjectsList(
       scheduled_onboarding_start_at: p.scheduled_onboarding_start_at,
       target_handover_date: p.target_handover_at,
       created_at: p.created_at,
-      // projects.status `on_hold` (a PM pause) overrides the programme-derived onboarding_status.
-      status: (p.status === "on_hold" ? "on_hold" : (p.onboarding_status ?? "draft")) as OnboardingProjectListItem["status"],
+      // projects.status `archived` (task 501) / `on_hold` (a PM pause) override the programme-derived
+      // onboarding_status.
+      status: (p.status === "archived" || p.status === "on_hold" ? p.status : (p.onboarding_status ?? "draft")) as OnboardingProjectListItem["status"],
       members: [...(memberIdsByProject.get(p.id) ?? [])].map((id) => ({ id, full_name: memberFullNameById.get(id) ?? null, avatar_url: memberAvatarUrlById.get(id) ?? null })),
       canManageCollaborators: canManageProjectMembers(rowRole, p.created_by === userId),
       canSetOwner: canSetProjectOwner(rowRole, p.created_by === userId),

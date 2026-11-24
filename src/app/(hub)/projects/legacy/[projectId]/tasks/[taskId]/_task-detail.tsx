@@ -4,6 +4,7 @@ import { useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Trash2, GitPullRequest, ExternalLink, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import {
   type Task, type Milestone, type TaskStatus, type TaskPriority,
   STATUS_LABEL, PRIORITY_STYLE, StatusBadge, PriorityBadge, AssigneeChip,
@@ -77,6 +78,7 @@ export default function TaskDetailClient({
   currentUserAvatarUrl,
   assigneeProfiles,
   parentTask,
+  listMilestoneId,
 }: {
   task: Task;
   project: { id: string; name: string; customer_id: string; project_id: string | null };
@@ -87,6 +89,8 @@ export default function TaskDetailClient({
   currentUserAvatarUrl: string | null;
   assigneeProfiles: { id: string; full_name: string | null; avatar_url: string | null }[];
   parentTask: { display_id: string | null; title: string } | null;
+  // Task 502 — phase of the task's list (what the Tasks tab groups by); undefined = list not loaded.
+  listMilestoneId?: string | null;
 }) {
   const router = useRouter();
   const projectId = project.project_id ?? project.id;
@@ -113,7 +117,9 @@ export default function TaskDetailClient({
   // Sidebar fields — controlled for UI consistency
   const [status, setStatus] = useState<TaskStatus>(task.status as TaskStatus);
   const [priority, setPriority] = useState<TaskPriority>(task.priority);
-  const [milestoneId, setMilestoneId] = useState(task.milestone_id ?? "");
+  const [milestoneId, setMilestoneId] = useState((listMilestoneId !== undefined ? listMilestoneId : task.milestone_id) ?? "");
+  const [movingPhase, setMovingPhase] = useState(false);
+  const isSubtask = !!task.parent_task_id;
   const [dueDate, setDueDate] = useState(task.due_date ?? "");
   const [startDate, setStartDate] = useState(task.start_date ?? "");
   // Task 338 — the time halves of due/start (task 274's migration-110 columns) + notes are now
@@ -149,6 +155,33 @@ export default function TaskDetailClient({
     },
     [task.id]
   );
+
+  // Task 502 — a task's phase comes from its task list, so changing Milestone moves the task (and its
+  // subtasks) into that phase's first list, created on demand; "None" = the General list.
+  async function changePhase(next: string) {
+    const prev = milestoneId;
+    if (next === prev) return;
+    setMilestoneId(next);
+    setMovingPhase(true);
+    const res = await fetch(`/api/v2/tasks/${task.id}/move`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ milestone_id: next || null }),
+    });
+    setMovingPhase(false);
+    if (!res.ok) {
+      setMilestoneId(prev);
+      const error = (await res.json().catch(() => null))?.error ?? `HTTP ${res.status}`;
+      toast.error(`Couldn't change the milestone. ${error}`);
+      return;
+    }
+    // Show the phase the task actually landed in (its list's), e.g. a General list that sits under a phase.
+    const body: { tasks?: Task[] } | null = await res.json().catch(() => null);
+    const moved = body?.tasks?.find((t) => t.id === task.id);
+    if (moved) setMilestoneId(moved.milestone_id ?? "");
+    toast.success(next ? "Task moved to the milestone" : "Task moved to General");
+    router.refresh();
+  }
 
   const saveTitle = useCallback(() => {
     const trimmed = title.trim();
@@ -306,12 +339,9 @@ export default function TaskDetailClient({
                 <Meta label="Milestone">
                   <select
                     value={milestoneId}
-                    onChange={(e) => {
-                      const next = e.target.value;
-                      setMilestoneId(next);
-                      void saveField({ milestone_id: next || null });
-                    }}
-                    disabled={!perm.canEditDetails}
+                    onChange={(e) => void changePhase(e.target.value)}
+                    disabled={!perm.canEditDetails || isSubtask || movingPhase}
+                    aria-busy={movingPhase}
                     className={`${inputClass} bg-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-60`}
                   >
                     <option value="">None</option>
@@ -319,6 +349,12 @@ export default function TaskDetailClient({
                       <option key={m.id} value={m.id}>{m.name}</option>
                     ))}
                   </select>
+                  {isSubtask && <span className="text-[11px] text-[#5F6A88]">Follows the parent task</span>}
+                  {movingPhase && (
+                    <span className="inline-flex items-center gap-1 text-[11px] text-[#5F6A88]">
+                      <Loader2 size={11} className="animate-spin" /> Moving…
+                    </span>
+                  )}
                 </Meta>
 
                 <Meta label="Due date">

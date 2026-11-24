@@ -266,6 +266,7 @@ const ONBOARDING_STATUS_STYLE: Record<
   in_progress: { label: "In progress", tone: "ok", dot: true, darkBg: "bg-blue-500/15", darkText: "text-blue-400" },
   completed: { label: "Completed", tone: "ok", dot: false, darkBg: "bg-green-500/15", darkText: "text-green-400" },
   on_hold: { label: "On Hold", tone: "warn", dot: true, darkBg: "bg-amber-500/15", darkText: "text-amber-400" },
+  archived: { label: "Archived", tone: "neutral", dot: false, darkBg: "bg-white/[0.06]", darkText: "text-slate-400" }, // task 501
 };
 
 export function OnboardingStatusPill({ status, isDark = false }: { status: string; isDark?: boolean }) {

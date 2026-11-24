@@ -41,8 +41,8 @@ export type OnboardingProjectListItem = {
   target_handover_date: string | null;
   created_at: string;
   // "completed" (task 168 follow-up) = Phase 5 (Optimize) status is `completed` in `customer_phases`.
-  // "on_hold" mirrors projects.status = on_hold (overrides onboarding_status).
-  status: "draft" | "scheduled" | "in_progress" | "completed" | "on_hold";
+  // "on_hold" / "archived" (task 501) mirror projects.status (override onboarding_status).
+  status: "draft" | "scheduled" | "in_progress" | "completed" | "on_hold" | "archived";
   // Task 154: deduped union of project_members + Phase 1 phase_members (task 153).
   members: { id: string; full_name: string | null; avatar_url: string | null }[];
   canManageCollaborators: boolean;
@@ -65,6 +65,8 @@ const STATUS_OPTIONS = [
   { value: "completed", label: "Completed" },
   // projects.status = on_hold — overrides the programme-derived status (see _load-list-data.ts).
   { value: "on_hold", label: "On Hold" },
+  // Task 501 — projects.status = archived; hidden unless selected (see _load-list-data.ts).
+  { value: "archived", label: "Archived" },
 ] as const;
 // Task 361 — the Classification multi-select filter that used to sit next to Status is gone; the
 // shell's tab strip is the classification selection now, and the active tab arrives as props

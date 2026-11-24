@@ -2,17 +2,19 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { MoreVertical, Trash2, Users, Eye, Pencil, Crown, Tag } from "lucide-react";
+import { MoreVertical, Trash2, Users, Eye, Pencil, Crown, Tag, Archive, ArchiveRestore } from "lucide-react";
+import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ManageCollaboratorsModal } from "@/components/projects/manage-collaborators-modal";
 import { SetProjectOwnerModal } from "@/components/projects/set-project-owner-modal";
 import { UpdateClassificationModal } from "@/components/projects/update-classification-modal";
 import { useDeleteProject } from "@/hooks/use-delete-project";
+import { useArchiveProject } from "@/hooks/use-archive-project";
 import { CopyLinkMenuItem } from "@/app/(hub)/projects/_shared/_copy-link-menu-item";
 import { useProjectsBase } from "@/app/(hub)/projects/[classification]/[projectId]/_use-projects-base";
 
 const MENU_WIDTH = 192;
-const MENU_HEIGHT = 280;
+const MENU_HEIGHT = 308;
 
 // Listing-card kebab menu (task 233; extended by task 264 with Manage Collaborators, and task 268
 // with View Project / Rename Project / Set Project Owner / Update Classification) — soft-deletes
@@ -27,13 +29,15 @@ const MENU_HEIGHT = 280;
 // inside it — see _onboarding-list.tsx's ProjectCard), so its clicks structurally can't reach the
 // card's own onClick regardless.
 export function PortfolioCardMenu({
-  projectId, projectDbId, projectName, canDelete, canManageCollaborators, canSetOwner,
+  projectId, projectDbId, projectName, canDelete, isArchived, canManageCollaborators, canSetOwner,
   hasProduct, currentClassifications, onDeleted, onRename,
 }: {
   projectId: string | null;
   projectDbId: string;
   projectName: string;
+  // Also gates Archive / Restore (task 501) — same roles (admin | pm | super_admin).
   canDelete: boolean;
+  isArchived: boolean;
   canManageCollaborators: boolean;
   canSetOwner: boolean;
   hasProduct: boolean;
@@ -49,7 +53,10 @@ export function PortfolioCardMenu({
   const [ownerOpen, setOwnerOpen] = useState(false);
   const [classificationOpen, setClassificationOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const { deleteProject, deleting, error } = useDeleteProject();
+  const { deleteProject, deleting, error: deleteError } = useDeleteProject();
+  const [archiveConfirmOpen, setArchiveConfirmOpen] = useState(false);
+  const { setArchived, saving: archiving, error: archiveError } = useArchiveProject();
+  const error = deleteError ?? archiveError;
 
   function toggleMenu() {
     if (menuPos) { setMenuPos(null); return; }
@@ -90,6 +97,28 @@ export function PortfolioCardMenu({
   function openClassification() {
     setMenuPos(null);
     setClassificationOpen(true);
+  }
+
+  // Task 501 — Archive asks first; Restore (back to "active") doesn't. onDeleted() refreshes the
+  // server-rendered listing, which is all either action needs too.
+  async function handleArchiveToggle(archived: boolean) {
+    if (!projectId) return;
+    // Restore runs with the menu already closed, so its loading state is a toast; Archive's is the
+    // confirm button's "Archiving…".
+    const toastId = archived ? undefined : toast.loading("Restoring project…");
+    if (await setArchived(projectId, archived)) {
+      if (toastId !== undefined) toast.dismiss(toastId);
+      return; // error shown inline below the trigger
+    }
+    setArchiveConfirmOpen(false);
+    toast.success(archived ? "Project archived" : "Project restored", { id: toastId });
+    onDeleted();
+  }
+
+  function onArchiveItem() {
+    setMenuPos(null);
+    if (isArchived) void handleArchiveToggle(false);
+    else setArchiveConfirmOpen(true);
   }
 
   async function handleConfirm() {
@@ -177,6 +206,16 @@ export function PortfolioCardMenu({
             )}
             {canDelete && (
               <>
+                <button
+                  type="button"
+                  onClick={onArchiveItem}
+                  disabled={archiving}
+                  className="flex w-full items-center gap-2 border-none bg-transparent px-3 py-1.5 text-left text-[12px] text-[#3A4565] cursor-pointer transition-colors hover:bg-[#F4F6FB] disabled:cursor-wait disabled:opacity-60"
+                >
+                  {isArchived
+                    ? <><ArchiveRestore size={13} className="text-[#5F6A88]" /> Restore Project</>
+                    : <><Archive size={13} className="text-[#5F6A88]" /> Archive Project</>}
+                </button>
                 <div className="my-1 border-t border-[#EDF0F7]" />
                 <button
                   type="button"
@@ -199,6 +238,15 @@ export function PortfolioCardMenu({
         confirmDisabled={deleting}
         onConfirm={handleConfirm}
         onCancel={() => setConfirmOpen(false)}
+      />
+      <ConfirmDialog
+        open={archiveConfirmOpen}
+        title={`Archive "${projectName}"?`}
+        body="It will be hidden from the project list and dashboards. You can restore it any time from the Archived filter."
+        confirmLabel={archiving ? "Archiving…" : "Archive Project"}
+        confirmDisabled={archiving}
+        onConfirm={() => handleArchiveToggle(true)}
+        onCancel={() => setArchiveConfirmOpen(false)}
       />
       <ManageCollaboratorsModal
         open={collaboratorsOpen}

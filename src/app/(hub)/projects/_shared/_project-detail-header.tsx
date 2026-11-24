@@ -2,7 +2,10 @@
 
 import { useState } from "react";
 import { useRouter, usePathname, useParams } from "next/navigation";
-import { ArrowLeft, CheckCircle2, Settings, Crown, Users, GitMerge } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Settings, Crown, Users, GitMerge, Archive, ArchiveRestore } from "lucide-react";
+import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useArchiveProject } from "@/hooks/use-archive-project";
 import { cn } from "@/lib/utils";
 import { V2_ROUTES } from "@/config/constants";
 import { ProjectStatusBadge } from "@/app/(hub)/projects-old/_pm-shared";
@@ -65,6 +68,12 @@ export function ProjectDetailHeader({
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
   // Task 468 — wizard state lives here (not in the dropdown item): the dropdown unmounts when it closes.
   const [mergeOpen, setMergeOpen] = useState(false);
+  // Task 501 — Archive / Restore.
+  const [archiveConfirmOpen, setArchiveConfirmOpen] = useState(false);
+  const { setArchived, saving: archiving } = useArchiveProject();
+  const isArchived = project.status === "archived";
+  // A merged project (task 468) is archived but can't be restored — the API rejects it too.
+  const isMerged = !!(project as { merged_into_project_id?: string | null }).merged_into_project_id;
 
   const activeTab = (pathname.split("/").filter(Boolean).pop() ?? "overview") as DetailTabId;
   const { classification: slug } = useParams<{ classification?: string }>();
@@ -88,9 +97,26 @@ export function ProjectDetailHeader({
   const canSetOwner = canSetProjectOwner(currentUserRole, isCreator);
   const canDeleteProject = !!currentUserRole && DELETE_PROJECT_ROLES.includes(currentUserRole);
   const canMergeProject = canDeleteProject; // same roles: admin | pm | super_admin
+  const canArchiveProject = canDeleteProject && !(isArchived && isMerged);
+
+  async function handleArchiveToggle(archived: boolean) {
+    // Restore runs with the menu already closed, so its loading state is a toast; Archive's is the
+    // confirm button's "Archiving…".
+    const toastId = archived ? undefined : toast.loading("Restoring project…");
+    const err = await setArchived(project.project_id ?? project.id, archived);
+    if (err) {
+      toast.error(err, { id: toastId });
+      return;
+    }
+    setArchiveConfirmOpen(false);
+    toast.success(archived ? "Project archived" : "Project restored", { id: toastId });
+    router.refresh();
+  }
 
   let badge: React.ReactNode;
-  if (variant === "v2" && phaseLoading) {
+  if (isArchived) {
+    badge = <Chip tone="neutral">Archived</Chip>;
+  } else if (variant === "v2" && phaseLoading) {
     badge = <span className="inline-block h-[19px] w-[104px] animate-pulse rounded-full bg-[#EDF0F7]" />;
   } else if (variant === "v2" && isComplete) {
     badge = (
@@ -115,7 +141,7 @@ export function ProjectDetailHeader({
   // Timeline used to have its own OwnerPanel/CollaboratorsPanel for this, but those lived inside
   // page content, not the header, so a shared header can't reach into whichever page happens to
   // be mounted below it. Matches the pattern already used by the 8 previously-shared tabs.
-  const settingsMenu = (canManageProjMembers || canSetOwner || canDeleteProject || canMergeProject) && (
+  const settingsMenu = (canManageProjMembers || canSetOwner || canDeleteProject || canMergeProject || canArchiveProject) && (
     <div className="relative">
       <button
         type="button"
@@ -158,9 +184,25 @@ export function ProjectDetailHeader({
               <GitMerge size={13} className="text-[#5F6A88]" /> Merge to…
             </button>
           )}
+          {canArchiveProject && (
+            <button
+              type="button"
+              disabled={archiving}
+              onClick={() => {
+                setSettingsMenuOpen(false);
+                if (isArchived) void handleArchiveToggle(false);
+                else setArchiveConfirmOpen(true);
+              }}
+              className="flex w-full cursor-pointer items-center gap-2 border-none bg-transparent px-3 py-2 text-left text-[12.5px] text-[#3A4565] transition-colors hover:bg-[#F4F6FB] disabled:cursor-wait disabled:opacity-60"
+            >
+              {isArchived
+                ? <><ArchiveRestore size={13} className="text-[#5F6A88]" /> Restore Project</>
+                : <><Archive size={13} className="text-[#5F6A88]" /> Archive Project</>}
+            </button>
+          )}
           {canDeleteProject && (
             <>
-              {(canManageProjMembers || canSetOwner) && <div className="my-1 border-t border-[#EDF0F7]" />}
+              {(canManageProjMembers || canSetOwner || canArchiveProject) && <div className="my-1 border-t border-[#EDF0F7]" />}
               <DeleteProjectMenuItem projectUrlKey={project.project_id ?? project.id} projectName={project.name} variant={variant} />
             </>
           )}
@@ -206,6 +248,15 @@ export function ProjectDetailHeader({
       {mergeOpen && (
         <MergeWizard projectKey={project.project_id ?? project.id} projectName={project.name} basePath={basePath} variant={variant} onClose={() => setMergeOpen(false)} />
       )}
+      <ConfirmDialog
+        open={archiveConfirmOpen}
+        title={`Archive "${project.name}"?`}
+        body="It will be hidden from the project list and dashboards. You can restore it any time from the Archived filter."
+        confirmLabel={archiving ? "Archiving…" : "Archive Project"}
+        confirmDisabled={archiving}
+        onConfirm={() => handleArchiveToggle(true)}
+        onCancel={() => setArchiveConfirmOpen(false)}
+      />
     </div>
   );
 }

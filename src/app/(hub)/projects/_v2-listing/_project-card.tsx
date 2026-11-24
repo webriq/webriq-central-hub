@@ -35,6 +35,7 @@ export function ProjectCard(props: ProjectListEntryProps) {
           projectDbId={item.id}
           projectName={item.project_name}
           canDelete={canDelete && !!item.project_id}
+          isArchived={item.status === "archived"}
           canManageCollaborators={canManageCollaborators}
           canSetOwner={canSetOwner}
           hasProduct={item.hasProduct}
