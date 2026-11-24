@@ -43,7 +43,7 @@ export const V2_ROUTES = {
   SETTINGS: "/settings",
   DASHBOARD_USERS: "/dashboard/users",
   CUSTOMERS_ONBOARD: "/customers/onboard",
-  STACKSHIFT_ORDERS: "/stackshift-orders",
+  ORDERS: "/orders",
   ORCHESTRATION: "/orchestration",
   ORCHESTRATION_SIMULATE: "/orchestration/simulate",
   WIKI: "/wiki",

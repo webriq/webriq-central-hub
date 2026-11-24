@@ -9,11 +9,11 @@ import OrderReview, { type LinkedProject, type OrderDetail } from "./_components
 import { projectResolverHref } from "@/app/(hub)/projects/_classification-tabs";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "StackShift Order" };
+export const metadata: Metadata = { title: "Order" };
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export default async function StackShiftOrderDetailPage({
+export default async function OrderDetailPage({
   params,
 }: {
   params: Promise<{ orderId: string }>;

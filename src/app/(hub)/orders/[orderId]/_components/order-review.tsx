@@ -96,10 +96,10 @@ export default function OrderReview({ order, readOnly = false }: { order: OrderD
   return (
     <div className="max-w-[900px] mx-auto px-8 py-6">
       <Link
-        href={V2_ROUTES.STACKSHIFT_ORDERS}
+        href={V2_ROUTES.ORDERS}
         className="inline-flex items-center gap-1.5 text-[12px] text-[#5F6A88] hover:text-[#0B1533] transition-colors mb-4"
       >
-        <ArrowLeft size={14} /> Back to StackShift Orders
+        <ArrowLeft size={14} /> Back to Orders
       </Link>
 
       <div className="flex items-start justify-between gap-4 mb-5">

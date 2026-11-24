@@ -98,7 +98,7 @@ export default function OrderRowMenu({
   const canLink = order.status === "pending_review" && !archived;
   const canDelete = isSuperAdmin && order.status !== "converted";
   const items: { label: string; icon: LucideIcon; onSelect: () => void }[] = [
-    { label: "Open order", icon: ExternalLink, onSelect: () => router.push(`${V2_ROUTES.STACKSHIFT_ORDERS}/${order.id}`) },
+    { label: "Open order", icon: ExternalLink, onSelect: () => router.push(`${V2_ROUTES.ORDERS}/${order.id}`) },
     ...(canLink ? [{ label: "Link existing project", icon: FolderSearch, onSelect: () => setLinkOpen(true) }] : []),
     archived
       ? { label: "Restore", icon: ArchiveRestore, onSelect: () => setPending("restore") }

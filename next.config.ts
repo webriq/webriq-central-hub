@@ -43,6 +43,19 @@ const nextConfig: NextConfig = {
         permanent: true,
       },
       {
+        // Task 503 — the Orders queue is no longer StackShift-only; it moved from
+        // /stackshift-orders to /orders. Keep bookmarks and already-sent notification
+        // email links resolving (query preserved).
+        source: "/stackshift-orders",
+        destination: "/orders",
+        permanent: true,
+      },
+      {
+        source: "/stackshift-orders/:path*",
+        destination: "/orders/:path*",
+        permanent: true,
+      },
+      {
         // Final custom domain is hub.webriqs.com — permanently redirect the legacy
         // *.vercel.app URL straight there (was chained through centralhub.webriq.cloud,
         // now also legacy, before that domain was renamed again).

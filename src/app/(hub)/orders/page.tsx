@@ -5,7 +5,7 @@ import { V2_ROUTES } from "@/config/constants";
 import OrdersTable, { type OrderListItem, type OrderTab, type PaginationMeta } from "./_components/orders-table";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "StackShift Orders" };
+export const metadata: Metadata = { title: "Orders" };
 
 const TAB_VALUES: OrderTab[] = ["pending_review", "converted", "dismissed", "archived"];
 
@@ -22,7 +22,7 @@ function tabFilters(tab: OrderTab, withFlags: boolean): [string, "eq" | "is" | "
     : [["deleted_at", "is", null], ["status", "eq", tab], ["archived_at", "is", null]];
 }
 
-export default async function StackShiftOrdersPage({
+export default async function OrdersPage({
   searchParams,
 }: {
   searchParams: Promise<{ page?: string; pageSize?: string; search?: string; status?: string }>;

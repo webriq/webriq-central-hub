@@ -10,7 +10,7 @@ import { sendStackShiftOrderNotification } from "@/lib/email/stackshift-order-no
 
 // Task 347 — records a StackShift Order Form submission and notifies the review queue.
 // Does NOT create customers/projects — that's a deliberate human action from
-// /stackshift-orders (POST .../[orderId]/convert).
+// /orders (POST /api/stackshift-orders/[orderId]/convert).
 export async function POST(req: NextRequest) {
   const secretErr = assertOrderWebhookSecret(req);
   if (secretErr) return secretErr;

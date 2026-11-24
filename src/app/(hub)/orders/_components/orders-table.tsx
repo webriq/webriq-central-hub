@@ -85,7 +85,7 @@ export default function OrdersTable({
       if (v === null) p.delete(k);
       else p.set(k, String(v));
     }
-    return `${V2_ROUTES.STACKSHIFT_ORDERS}?${p.toString()}`;
+    return `${V2_ROUTES.ORDERS}?${p.toString()}`;
   }
 
   return (
@@ -93,7 +93,7 @@ export default function OrdersTable({
       <div className="sticky top-0 z-20 bg-[#F4F6FB]">
         <div className="max-w-[1400px] mx-auto px-8 pt-6 pb-4">
           <div className="mb-4">
-            <h1 className="font-heading text-[22px] font-bold tracking-[-0.02em] text-[#0B1533]">StackShift Orders</h1>
+            <h1 className="font-heading text-[22px] font-bold tracking-[-0.02em] text-[#0B1533]">Orders</h1>
             <p className="text-[13px] text-[#5F6A88] mt-0.5">
               Order Form submissions from webriq.com — review and convert to a customer &amp; project.
             </p>
@@ -195,7 +195,7 @@ export default function OrdersTable({
                 )}
               >
                 <button
-                  onClick={() => router.push(`${V2_ROUTES.STACKSHIFT_ORDERS}/${o.id}`)}
+                  onClick={() => router.push(`${V2_ROUTES.ORDERS}/${o.id}`)}
                   className={cn("w-full text-left grid items-center gap-3 px-5 py-3 group cursor-pointer", COLS)}
                 >
                   <div className="min-w-0">

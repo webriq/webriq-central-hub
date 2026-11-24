@@ -88,10 +88,10 @@ function getNavGroups(role: string | null, departmentName: string | null, hasDir
         ],
       },
     ] : []),
-    // StackShift Orders review queue (task 347) — matches the page + API guards: admin /
+    // Orders review queue (task 347; route /orders since task 503) — matches the page + API guards: admin /
     // super_admin only (task 375 removed pm).
     ...(isAdmin ? [
-      { label: "Orders", icon: <ClipboardList size={18} />,          href: V2_ROUTES.STACKSHIFT_ORDERS },
+      { label: "Orders", icon: <ClipboardList size={18} />,          href: V2_ROUTES.ORDERS },
     ] : []),
     // Orchestration (task 343) — matches the `/api/assessment|plan|execution|reply|zoho`
     // route guards and the page's own guard: admin / super_admin / pm only.

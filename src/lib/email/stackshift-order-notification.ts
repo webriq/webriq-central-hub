@@ -22,7 +22,7 @@ export type OrderNotificationData = {
 
 function reviewUrl(orderId: string): string {
   const base = process.env.NEXT_PUBLIC_APP_URL ?? "https://hub.webriq.com";
-  return `${base}/stackshift-orders/${orderId}`;
+  return `${base}/orders/${orderId}`;
 }
 
 const esc = (s: string) =>

@@ -48,7 +48,7 @@ export const DEPARTMENT_INVITE_ROLES: Record<DepartmentName, ValidRole[]> = {
 export const DEPARTMENT_NAV_RESTRICTION: Partial<Record<DepartmentName, string[]>> = {
   // Task 436 — the personal Drive is for every staff member, HR department included.
   HR: [V2_ROUTES.DASHBOARD_USERS, V2_ROUTES.HR, V2_ROUTES.WIKI, V2_ROUTES.DRIVE],
-  Finance: [V2_ROUTES.STACKSHIFT_ORDERS],
+  Finance: [V2_ROUTES.ORDERS],
 };
 
 // Each department's "home" — always reachable regardless of DEPARTMENT_NAV_RESTRICTION, and the
@@ -56,7 +56,7 @@ export const DEPARTMENT_NAV_RESTRICTION: Partial<Record<DepartmentName, string[]
 // user on. Defaults to the Dashboard for every department except Finance (task 376 — Dashboard is
 // hidden for Finance "for now", Orders is their home instead).
 export const DEPARTMENT_HOME: Partial<Record<DepartmentName, string>> = {
-  Finance: V2_ROUTES.STACKSHIFT_ORDERS,
+  Finance: V2_ROUTES.ORDERS,
 };
 
 export function getDepartmentHome(departmentName: string | null): string {

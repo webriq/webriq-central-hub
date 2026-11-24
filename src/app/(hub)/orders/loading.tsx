@@ -2,7 +2,7 @@ import { Bone, OrdersTableSkeleton } from "./_components/orders-skeleton";
 
 // First load only — Next.js doesn't re-show this for search-param-only navigations; orders-table.tsx
 // covers those with the same OrdersTableSkeleton (task 499).
-export default function StackShiftOrdersLoading() {
+export default function OrdersLoading() {
   return (
     <div>
       <div className="sticky top-0 z-20 bg-[#F4F6FB]">
