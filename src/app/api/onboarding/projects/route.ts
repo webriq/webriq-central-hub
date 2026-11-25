@@ -15,6 +15,7 @@ import {
   type PhasePlanInput,
   type CustomPhaseSeed,
   type DefaultPhaseOverride,
+  normalizeClassification,
 } from "@/config/customer-phases";
 import { currentDisplayDay } from "@/lib/programme/calendar";
 import { seedAndStartProgramme } from "@/lib/programme/seed";
@@ -23,6 +24,7 @@ import { isProgrammeComplete } from "@/lib/programme/programme-status";
 import { seedCustomPhases } from "@/lib/programme/seed-custom-phases";
 import { addProjectMember, isRoleGatedByMembership } from "@/lib/programme/phase-membership";
 import { scheduleProjectAutostart } from "@/lib/qstash";
+import { withClassificationFallback } from "@/lib/projects/classification-write";
 
 const STAFF_ROLES = ["admin", "super_admin", "marketing", "pm", "developer", "hr"];
 // Mirrors programme/phase/route.ts's WRITE_ROLES exactly — jumping straight to a later phase
@@ -145,7 +147,7 @@ export async function GET() {
 
     const items = (projects ?? []).map((p) => {
       const companyName = (p.customers as unknown as { company_name: string } | null)?.company_name ?? "Unknown";
-      const classification = (p.customer_products as unknown as { classification: string | null } | null)?.classification ?? null;
+      const classification = normalizeClassification((p.customer_products as unknown as { classification: string | null } | null)?.classification); // task 504
       const activePhaseNumber = activePhaseByProject.get(p.id) ?? null;
       const durationDays = p.programme_duration_days ?? DEFAULT_PROGRAMME_DAYS;
       const currentDay = p.programme_started_at ? currentDisplayDay(p.programme_started_at, durationDays) : null;
@@ -438,19 +440,22 @@ export async function POST(request: NextRequest) {
     // StackShift variant is selected (including combos with PipelineForge), else "PipelineForge".
     const productNames = deriveProductNamesMulti(body.classifications);
     const primaryClassification = body.classifications.find((c) => STACKSHIFT_VARIANTS.includes(c)) ?? body.classifications[0];
-    const { data: product, error: productError } = await supabase
-      .from("customer_products")
-      .insert({
-        customer_id: customerId,
-        product_name: productNames[0],
-        classification: primaryClassification,
-        classifications: body.classifications,
-        status: "active",
-        onboarding_complete: false,
-        onboarding_data: {},
-      })
-      .select("id")
-      .single();
+    // Task 504 — retries with the legacy scalar if migration 192 isn't applied yet.
+    const { data: product, error: productError } = await withClassificationFallback(primaryClassification, (classification) =>
+      supabase
+        .from("customer_products")
+        .insert({
+          customer_id: customerId,
+          product_name: productNames[0],
+          classification,
+          classifications: body.classifications,
+          status: "active",
+          onboarding_complete: false,
+          onboarding_data: {},
+        })
+        .select("id")
+        .single()
+    );
     if (productError || !product) {
       console.error("POST /api/onboarding/projects product create error:", productError);
       return NextResponse.json({ error: "Failed to create product" }, { status: 500 });

@@ -428,7 +428,7 @@ function PhaseSection({
       ) : (
         <>
           {/* Task 252: the day-range editor is no longer fixed-phases-only — a free-form phase
-              (Access/Access Plus/Discrete Development/StackShift II without the default-engine
+              (Access/Access Plus/FlowForge/StackShift II without the default-engine
               opt-in) now gets the same "Day X to Y" control, feeding the Portfolio Tracker
               Swimlane/Overview these project types previously had no calendar timeline for. */}
           <div className="mb-2 flex flex-col gap-1 pl-1">
@@ -511,7 +511,7 @@ function PhaseSection({
 // ─── Phase builder (top-level) ────────────────────────────────────────────────
 // mode="fixed-phases": StackShift I always, StackShift II when "generate default" is checked —
 // phasePlan.phases is pre-seeded with the 5 programme phases and never gains/loses a phase here,
-// only deliverables within each. mode="free-form": Access / Access Plus / Discrete Development,
+// only deliverables within each. mode="free-form": Access / Access Plus / FlowForge,
 // StackShift II when its checkbox is unchecked, and the StackShift Orders convert dialog's "set
 // the phases now" option (task 357) — phases themselves are addable/removable/reorderable, and
 // each deliverable also carries an editable, reorderable checklist.

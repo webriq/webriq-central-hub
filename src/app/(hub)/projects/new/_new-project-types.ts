@@ -182,4 +182,4 @@ export function initTypeCardState(classification: Classification): TypeCardState
   };
 }
 
-export const PRIMARY_TYPES: Classification[] = ["StackShift I", "StackShift II", "StackShift Access", "StackShift Access Plus", "Discrete Development"];
+export const PRIMARY_TYPES: Classification[] = ["StackShift I", "StackShift II", "StackShift Access", "StackShift Access Plus", "FlowForge"];

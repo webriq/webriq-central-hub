@@ -43,7 +43,7 @@ export async function POST(
       return NextResponse.json({ error: "Programme already started for this project" }, { status: 409 });
     }
 
-    // Task 251: a generic-engine project (StackShift Access/Access Plus/Discrete Development, or
+    // Task 251: a generic-engine project (StackShift Access/Access Plus/FlowForge, or
     // StackShift II without the customer_phases engine opt-in) has no customer_phases/
     // customer_deliverables concept — its milestones/tasklists/tasks are already seeded at intake
     // (see api/onboarding/projects/route.ts), regardless of mode. "Starting" it just means

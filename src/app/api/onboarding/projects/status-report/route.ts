@@ -1,4 +1,5 @@
 import { getSettingsViewer, loadTestScope, notInList } from "@/lib/test-data";
+import { normalizeClassification } from "@/config/customer-phases";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
@@ -148,7 +149,7 @@ export async function GET(request: Request) {
       .filter((p) => !!p.programme_started_at)
       .map((p) => {
         const companyName = (p.customers as unknown as { company_name: string } | null)?.company_name ?? "Unknown";
-        const classification = (p.customer_products as unknown as { classification: string | null } | null)?.classification ?? null;
+        const classification = normalizeClassification((p.customer_products as unknown as { classification: string | null } | null)?.classification); // task 504
 
         // Task 246: derive the phase-number set from this project's own rows (defaults + any
         // customs) instead of a hardcoded 1-5 loop — a custom phase's deliverables/assignees would

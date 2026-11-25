@@ -4,6 +4,7 @@ import { requireOrderMutator } from "../../_auth";
 import { getOrderNotificationRecipients } from "@/lib/stackshift-orders/recipients";
 import { sendStackShiftOrderNotification } from "@/lib/email/stackshift-order-notification";
 import { mapServicesToClassifications } from "@/lib/stackshift-orders/service-map";
+import { normalizeClassifications } from "@/config/customer-phases";
 
 // Task 375 — manual resend of the staff notification email for an existing order (e.g. the
 // original send failed silently, or a reviewer needs to loop someone back in). Unlike the
@@ -41,7 +42,7 @@ export async function POST(
       mobilePhone: order.mobile_phone,
       website: order.website,
       services: order.services,
-      mappedClassifications: order.mapped_classifications,
+      mappedClassifications: normalizeClassifications(order.mapped_classifications), // task 504 — legacy alias
       approvedBy: order.approved_by,
       submittedAt: order.submitted_at,
       proposalFilename: order.proposal_filename,

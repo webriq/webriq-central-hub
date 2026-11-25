@@ -28,7 +28,8 @@ export default async function OrderDetailPage({
   const userId = claims.claims.sub as string;
   const { data: profile } = await supabase.from("profiles").select("role, department_id").eq("id", userId).maybeSingle();
   const role = profile?.role ?? null;
-  if (role !== "admin" && role !== "super_admin") redirect(V2_ROUTES.DASHBOARD);
+  // Task 504 — pm restored (task 375 had removed it); matches requireOrderReviewer().
+  if (role !== "admin" && role !== "super_admin" && role !== "pm") redirect(V2_ROUTES.DASHBOARD);
 
   let departmentName: string | null = null;
   if (profile?.department_id) {

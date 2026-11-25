@@ -6,7 +6,7 @@ import { MAX_DELIVERABLE_NAME_LENGTH, hasDuplicateName, nextDeliverablePosition 
 
 // Task 433 follow-up — generic-engine counterpart to POST .../programme/deliverables (StackShift I): add a deliverable (a `tasklists` row,
 // i.e. a `project_deliverables` row with phase_id = the milestone) to a phase of a project on the milestones/tasklists Timeline (StackShift II,
-// Access, Access Plus, PipelineForge, Discrete Development). Those rows are `source = 'manual'`, which RLS only lets admin/super_admin/pm
+// Access, Access Plus, PipelineForge, FlowForge). Those rows are `source = 'manual'`, which RLS only lets admin/super_admin/pm
 // write — marketing is allowed here too, so after the session + role check the insert goes through adminClient (insert-only).
 // Days are in the phase's own day coordinates (the same ones seed-custom-phases writes); the Timeline shifts them by `tasklistOffset`.
 const WRITE_ROLES = ["admin", "super_admin", "marketing", "pm"];

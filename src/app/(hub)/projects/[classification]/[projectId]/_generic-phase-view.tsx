@@ -40,7 +40,7 @@ interface GenericPhaseViewProps {
 }
 
 // ─── Generic-model detail view (task 247) — every project not on the specialized customer_phases
-// engine (StackShift Access/Access Plus/Discrete Development, or StackShift II without the engine
+// engine (StackShift Access/Access Plus/FlowForge, or StackShift II without the engine
 // opt-in). Read + navigate only: milestone/tasklist/task CRUD stays on the Projects module's own
 // Milestones/Tasks tabs (task 242's scope decision) — this page's only write action is picking
 // which milestone is "active" (Jump to phase).

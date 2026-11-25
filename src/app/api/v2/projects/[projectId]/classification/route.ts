@@ -2,11 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { canManageProjectMembers } from "@/lib/programme/membership-rules";
+import { withClassificationFallback } from "@/lib/projects/classification-write";
 import {
   CLASSIFICATIONS,
   derivePrimaryClassification,
   isValidClassificationCombo,
   mergeClassificationUpdate,
+  normalizeClassification,
+  normalizeClassifications,
   type Classification,
 } from "@/config/customer-phases";
 
@@ -54,7 +57,8 @@ export async function PATCH(
 
   // Multi-select callers send the whole array; legacy single-select callers still send one value.
   const requested = Array.isArray(body.classifications) ? (body.classifications as unknown[]) : null;
-  const existing = (project.customer_products as { classifications: Classification[] } | null)?.classifications ?? [];
+  // Task 504 — normalized so a legacy "Discrete Development" entry merges with FlowForge, not beside it.
+  const existing = normalizeClassifications((project.customer_products as { classifications: Classification[] } | null)?.classifications);
 
   let classification: Classification;
   let nextClassifications: Classification[];
@@ -85,16 +89,20 @@ export async function PATCH(
   // narrower than canManageProjectMembers's creator exception above, so a non-listed-role
   // creator's update would silently no-op under RLS. adminClient bypasses that; the permission
   // check above is the real gate, same pattern phase-membership.ts's write helpers already use.
-  const { data, error } = await adminClient
-    .from("customer_products")
-    .update({ classification, classifications: nextClassifications })
-    .eq("id", project.customer_product_id)
-    .select("classification")
-    .single();
+  // Task 504 — retries with the legacy scalar if migration 192 isn't applied yet.
+  const customerProductId = project.customer_product_id;
+  const { data, error } = await withClassificationFallback(classification, (scalar) =>
+    adminClient
+      .from("customer_products")
+      .update({ classification: scalar, classifications: nextClassifications })
+      .eq("id", customerProductId)
+      .select("classification")
+      .single()
+  );
 
   if (error) {
     console.error("[api/v2/projects/[id]/classification] patch failed:", error.message);
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
-  return NextResponse.json(data);
+  return NextResponse.json({ ...data, classification: normalizeClassification(data.classification) });
 }

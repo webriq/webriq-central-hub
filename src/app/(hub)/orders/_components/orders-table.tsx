@@ -7,7 +7,9 @@ import {
 } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
 import { V2_ROUTES } from "@/config/constants";
+import { normalizeClassifications } from "@/config/customer-phases";
 import OrderRowMenu from "./order-row-menu";
+import OrderFormLink from "./order-form-link";
 import { OrdersTableSkeleton } from "./orders-skeleton";
 import OrdersEmpty from "./orders-empty";
 
@@ -92,11 +94,15 @@ export default function OrdersTable({
     <div>
       <div className="sticky top-0 z-20 bg-[#F4F6FB]">
         <div className="max-w-[1400px] mx-auto px-8 pt-6 pb-4">
-          <div className="mb-4">
-            <h1 className="font-heading text-[22px] font-bold tracking-[-0.02em] text-[#0B1533]">Orders</h1>
-            <p className="text-[13px] text-[#5F6A88] mt-0.5">
-              Order Form submissions from webriq.com — review and convert to a customer &amp; project.
-            </p>
+          <div className="mb-4 flex items-start justify-between gap-4">
+            <div>
+              <h1 className="font-heading text-[22px] font-bold tracking-[-0.02em] text-[#0B1533]">Orders</h1>
+              <p className="text-[13px] text-[#5F6A88] mt-0.5">
+                Order Form submissions from webriq.com — review and convert to a customer &amp; project.
+              </p>
+            </div>
+            {/* Task 504 — public Order Form link + Copy password, for every Orders viewer. */}
+            <OrderFormLink />
           </div>
 
           <div className="flex items-center gap-3 flex-wrap">
@@ -214,7 +220,7 @@ export default function OrdersTable({
                       )}
                     </div>
                     {o.mapped_classifications.length > 0 && (
-                      <div className="text-[11px] text-[#5F6A88] truncate">{o.mapped_classifications.join(", ")}</div>
+                      <div className="text-[11px] text-[#5F6A88] truncate">{normalizeClassifications(o.mapped_classifications).join(", ")}</div>
                     )}
                   </div>
                   <div className="min-w-0">

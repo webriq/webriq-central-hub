@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { isRoleGatedByMembership, canManageProjectMembers, canSetProjectOwner } from "@/lib/programme/membership-rules";
 import { getDeveloperAccessibleProjectIds } from "../../projects-old/_project-access";
-import { DEFAULT_PROGRAMME_DAYS, type Classification } from "@/config/customer-phases";
+import { DEFAULT_PROGRAMME_DAYS, legacyClassificationValues, normalizeClassification, normalizeClassifications, type Classification } from "@/config/customer-phases";
 import { asDisplayDay, currentDisplayDay, displayDayToYmd } from "@/lib/programme/calendar";
 import { RECENT_SORT, RECENT_FETCH_PAGE, loadViewStats, sortByRecentAccess } from "../_shared/_recent-sort";
 import type { OnboardingProjectListItem } from "./_onboarding-list";
@@ -118,8 +118,12 @@ export async function loadOnboardingProjectsList(
     // >1000-row truncation shape CLAUDE.md flags. Both columns are selected: the classification
     // modal edits the array, and the referencedTable filter works regardless of the select list
     // (verified against the live DB).
+    // Task 504 — also match the tab's legacy stored value(s) ("Discrete Development" for FlowForge)
+    // until migration 192 renames them.
     .or(
-      `classification.eq."${params.classification}",classifications.cs.{"${params.classification}"}`,
+      [params.classification, ...legacyClassificationValues(params.classification)]
+        .map((v) => `classification.eq."${v}",classifications.cs.{"${v}"}`)
+        .join(","),
       { referencedTable: "customer_products" }
     );
 
@@ -235,11 +239,12 @@ export async function loadOnboardingProjectsList(
   const projects: OnboardingProjectListItem[] = projectRows.map((p) => {
     const companyName = (p.customers as unknown as { company_name: string } | null)?.company_name ?? "Unknown";
     const product = p.customer_products as unknown as { classification: string | null; classifications: string[] | null } | null;
-    const classification = product?.classification ?? null;
+    // Task 504 — legacy "Discrete Development" values read as FlowForge.
+    const classification = normalizeClassification(product?.classification);
     // Pre-task-157 rows have an empty array and only the primary column — fall back to it so the
     // classification modal opens with something checked.
     const classifications = product?.classifications?.length
-      ? product.classifications
+      ? normalizeClassifications(product.classifications)
       : classification
         ? [classification]
         : [];

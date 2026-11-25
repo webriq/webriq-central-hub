@@ -4,6 +4,7 @@ import { upsertPrimaryContact } from "@/lib/customers/primary-contact";
 import { seedCustomPhases } from "@/lib/programme/seed-custom-phases";
 import { defaultPlanFromProgrammePhases } from "@/lib/programme/phase-plan-draft";
 import { deriveProjectShape } from "./service-map";
+import { withClassificationFallback } from "@/lib/projects/classification-write";
 import type { Classification, PhasePlanInput } from "@/config/customer-phases";
 import type { Database } from "@/types/database";
 
@@ -76,21 +77,24 @@ export async function createFromOrder(input: ConvertInput): Promise<ConvertResul
   // ── customer_products ──
   // Task 495 — always a fresh row, like the New Project intake. The listing tabs and the
   // Classification modal read/write the project's linked row, so reusing an existing customer's
-  // same-name row (a Discrete-only order derives product_name "StackShift") dropped the reviewer's
+  // same-name row (a FlowForge-only order derives product_name "StackShift") dropped the reviewer's
   // classification and shared one row between two projects.
-  const { data: product, error: productError } = await adminClient
-    .from("customer_products")
-    .insert({
-      customer_id: customerId,
-      product_name: shape.productNames[0],
-      classification: shape.primaryClassification,
-      classifications,
-      status: "active",
-      onboarding_complete: false,
-      onboarding_data: {},
-    })
-    .select("id")
-    .single();
+  // Task 504 — retries with the legacy scalar if migration 192 isn't applied yet.
+  const { data: product, error: productError } = await withClassificationFallback(shape.primaryClassification, (classification) =>
+    adminClient
+      .from("customer_products")
+      .insert({
+        customer_id: customerId,
+        product_name: shape.productNames[0],
+        classification,
+        classifications,
+        status: "active",
+        onboarding_complete: false,
+        onboarding_data: {},
+      })
+      .select("id")
+      .single()
+  );
   if (productError || !product) {
     throw new Error(`Failed to create customer_products row: ${productError?.message}`);
   }

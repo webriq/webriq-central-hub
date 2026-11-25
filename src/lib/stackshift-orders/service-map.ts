@@ -12,16 +12,15 @@ import {
 // axis the New Project intake already uses). Unknown values are dropped from the mapped set
 // but always kept verbatim in `stackshift_orders.services` for the reviewer.
 //
-// "FlowForge" -> "Discrete Development": the form describes FlowForge as "Purpose-built
-// application and workflow delivery", which is exactly what "Discrete Development" (Custom App)
-// covers in customer-phases.ts. Confirmed as a task-347 assumption.
+// "FlowForge" -> "FlowForge": the Custom App classification was called "Discrete Development"
+// until task 504 renamed it to match the form (task 347 originally mapped FlowForge onto it).
 const SERVICE_TO_CLASSIFICATION: Record<string, Classification> = {
   "StackShift Access": "StackShift Access",
   "StackShift Access Plus": "StackShift Access Plus",
   "StackShift I": "StackShift I",
   "StackShift II": "StackShift II",
   "PipelineForge": "PipelineForge",
-  "FlowForge": "Discrete Development",
+  "FlowForge": "FlowForge",
 };
 
 export type MappedServices = {

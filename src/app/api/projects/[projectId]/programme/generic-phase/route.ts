@@ -5,7 +5,7 @@ import { adminClient } from "@/lib/supabase/admin";
 
 const WRITE_ROLES = ["admin", "super_admin", "marketing", "pm"];
 
-// Task 252 — generic-engine (Access/Access Plus/Discrete Development/StackShift II without the
+// Task 252 — generic-engine (Access/Access Plus/FlowForge/StackShift II without the
 // customer_phases opt-in) counterpart to StackShift I's PATCH .../programme/phase: "Jump to
 // phase" for a project whose plan lives in milestones/tasklists instead of customer_phases. On a
 // not-yet-started programme it mirrors that route's backdate math (mirrors seedAndStartProgramme's own "land today on the target's

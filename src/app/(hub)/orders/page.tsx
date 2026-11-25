@@ -38,7 +38,8 @@ export default async function OrdersPage({
     searchParams,
   ]);
   const role = profile?.role ?? null;
-  if (role !== "admin" && role !== "super_admin") redirect(V2_ROUTES.DASHBOARD);
+  // Task 504 — pm restored (task 375 had removed it); matches requireOrderReviewer().
+  if (role !== "admin" && role !== "super_admin" && role !== "pm") redirect(V2_ROUTES.DASHBOARD);
 
   // Task 366 — Finance is read-only on Orders: no row menu.
   const readOnly = profile?.departments?.name === "Finance";

@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
 
     let started = 0;
     for (const project of dueProjects ?? []) {
-      // Task 251: a generic-engine project (StackShift Access/Access Plus/Discrete Development, or
+      // Task 251: a generic-engine project (StackShift Access/Access Plus/FlowForge, or
       // StackShift II without the engine opt-in) has no customer_phases concept — before this
       // check, this cron unconditionally called seedAndStartProgramme, which would wrongly write
       // StackShift-shaped customer_phases/customer_deliverables rows onto it. It only needs its

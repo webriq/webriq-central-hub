@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { V2_ROUTES } from "@/config/constants";
-import { CLASSIFICATIONS, type Classification, STACKSHIFT_VARIANTS, PROGRAMME_PHASES } from "@/config/customer-phases";
+import { CLASSIFICATIONS, findClassification, type Classification, STACKSHIFT_VARIANTS, PROGRAMME_PHASES } from "@/config/customer-phases";
 import { currentDisplayDay } from "@/lib/programme/calendar";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
@@ -91,7 +91,7 @@ function resolveClassifications(raw: string): Classification[] {
   const parts = raw.split(/[,/+&]/).map((p) => p.trim()).filter(Boolean);
   const resolved: Classification[] = [];
   for (const part of parts) {
-    const match = CLASSIFICATIONS.find((c) => c.toLowerCase() === part.toLowerCase());
+    const match = findClassification(part); // task 504 — legacy "Discrete Development" → FlowForge
     if (!match || resolved.includes(match)) continue;
     if (STACKSHIFT_VARIANTS.includes(match) && resolved.some((r) => STACKSHIFT_VARIANTS.includes(r))) continue;
     resolved.push(match);
@@ -197,8 +197,8 @@ function needsAttention(row: ImportRow): string | null {
 }
 
 // Mirrors the New Project wizard's toggleClassification exactly (../new/_content.tsx) — at
-// most one StackShift variant at a time (swap, not blocked); PipelineForge/Discrete
-// Development combine freely with it or each other.
+// most one StackShift variant at a time (swap, not blocked); PipelineForge/FlowForge
+// combine freely with it or each other.
 function toggleClassification(current: Classification[], c: Classification): Classification[] {
   if (current.includes(c)) return current.filter((x) => x !== c);
   if (STACKSHIFT_VARIANTS.includes(c)) {
@@ -262,8 +262,8 @@ function StepIndicator({ current }: { current: Step }) {
 // portal (position computed from the trigger's rect, mirroring ../new/_content.tsx's
 // DateTimePicker pattern) so it's never clipped by the review table's horizontal-scroll
 // container. Still enforces the New Project wizard's exact grouping rule via
-// toggleClassification: at most one StackShift variant at a time, PipelineForge/Discrete
-// Development combine freely with it or each other. ─────────────────────────────────────────
+// toggleClassification: at most one StackShift variant at a time, PipelineForge/FlowForge
+// combine freely with it or each other. ─────────────────────────────────────────
 
 function TypeMultiSelect({
   value,

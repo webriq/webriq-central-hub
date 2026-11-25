@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { V2_ROUTES } from "@/config/constants";
 import type { Database } from "@/types/database";
-import type { CustomPhaseSeed } from "@/config/customer-phases";
+import { normalizeClassification, type CustomPhaseSeed } from "@/config/customer-phases";
 
 // pm/developer can view the Timeline (task 146) — Wizard access within it is further split
 // by role inside OnboardingDetail/OnboardingWizard, not here.
@@ -47,7 +47,7 @@ export async function loadOnboardingDetailData(projectId: string) {
   const effectiveRole = await projectRoleFor(userId, project.id);
 
   // Task 247: a project not on the specialized customer_phases engine (StackShift Access/Access
-  // Plus/Discrete Development, or StackShift II without the engine opt-in) never gets
+  // Plus/FlowForge, or StackShift II without the engine opt-in) never gets
   // customer_phases/customer_deliverables rows — its detail page instead reads the generic
   // milestones/tasklists/tasks model (task 239's seedCustomPhases). Fetched here only when needed,
   // mirroring the Projects module's own _get-project-detail-data.ts query shape exactly.
@@ -75,7 +75,7 @@ export async function loadOnboardingDetailData(projectId: string) {
       .select("classification")
       .eq("id", project.customer_product_id)
       .maybeSingle();
-    classification = product?.classification ?? null;
+    classification = normalizeClassification(product?.classification); // task 504 — legacy alias
   }
 
   // adminClient: marketing is in DETAIL_ROLES (can view this page) but isn't covered by

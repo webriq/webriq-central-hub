@@ -77,7 +77,7 @@ const CLASSIFICATION_ICON: Record<Classification, React.ReactNode> = {
   "StackShift Access": <Shield size={20} />,
   "StackShift Access Plus": <ShieldCheck size={20} />,
   PipelineForge: <GitBranch size={20} />,
-  "Discrete Development": <Code2 size={20} />,
+  FlowForge: <Code2 size={20} />,
 };
 
 const CLASSIFICATION_DESC: Record<Classification, string> = {
@@ -86,7 +86,7 @@ const CLASSIFICATION_DESC: Record<Classification, string> = {
   "StackShift Access": "StackShift with ongoing managed access & support.",
   "StackShift Access Plus": "StackShift Access with an expanded scope of ongoing work.",
   PipelineForge: "Build automation & deployment pipeline engagement.",
-  "Discrete Development": "Custom app — scoped, one-off development work.",
+  FlowForge: "Custom app — scoped, one-off development work.",
 };
 
 // ─── Step indicator ───────────────────────────────────────────────────────────
@@ -1079,7 +1079,7 @@ export default function NewProjectWizard({ role }: { role: string | null }) {
                     <div className="mb-6">
                       <h2 className="font-heading mb-1 text-xl font-bold tracking-[-0.02em] text-[#0B1533]">Project setup</h2>
                       <p className="text-[13px] text-[#5F6A88]">
-                        Choose one or more engagement types — StackShift I/II, Access, Access Plus, and Discrete Development are
+                        Choose one or more engagement types — StackShift I/II, Access, Access Plus, and FlowForge are
                         distinct trackers, each created as its own project.
                       </p>
                     </div>

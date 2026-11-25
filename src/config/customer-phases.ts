@@ -379,25 +379,65 @@ export const CLASSIFICATIONS = [
   "StackShift Access",
   "StackShift Access Plus",
   "PipelineForge",
-  "Discrete Development",
+  "FlowForge",
 ] as const;
 export type Classification = (typeof CLASSIFICATIONS)[number];
+
+// Task 504 — "Discrete Development" was renamed to "FlowForge". Migration 192 renames the stored
+// values and swaps the customer_products CHECK, but it may not be applied yet, so every DB read
+// maps a legacy value through here (and the listing filter matches both). Keys are the old stored
+// strings; values are the current Classification.
+export const LEGACY_CLASSIFICATION_ALIASES: Readonly<Record<string, Classification>> = {
+  "Discrete Development": "FlowForge",
+};
+
+// Legacy stored value(s) for a current classification — the inverse of the alias map, used by the
+// listing filter and the pre-migration-192 write fallback.
+export function legacyClassificationValues(classification: Classification): string[] {
+  return Object.keys(LEGACY_CLASSIFICATION_ALIASES).filter((k) => LEGACY_CLASSIFICATION_ALIASES[k] === classification);
+}
+
+export function normalizeClassification(raw: string): string;
+export function normalizeClassification(raw: string | null | undefined): string | null;
+export function normalizeClassification(raw: string | null | undefined): string | null {
+  if (raw == null) return null;
+  return Object.hasOwn(LEGACY_CLASSIFICATION_ALIASES, raw) ? LEGACY_CLASSIFICATION_ALIASES[raw] : raw;
+}
+
+// Case-insensitive lookup of free text (CSV import "Type" cells) against the current values and the
+// legacy aliases, so older spreadsheets that still say "Discrete Development" keep importing.
+export function findClassification(raw: string): Classification | null {
+  const lower = raw.trim().toLowerCase();
+  const legacy = Object.keys(LEGACY_CLASSIFICATION_ALIASES).find((k) => k.toLowerCase() === lower);
+  if (legacy) return LEGACY_CLASSIFICATION_ALIASES[legacy];
+  return CLASSIFICATIONS.find((c) => c.toLowerCase() === lower) ?? null;
+}
+
+// Normalizes and dedupes (a row mid-rename could hold both the legacy and the new value).
+export function normalizeClassifications<T extends string>(raw: readonly T[] | null | undefined): T[] {
+  const out: T[] = [];
+  for (const v of raw ?? []) {
+    const n = normalizeClassification(v) as T;
+    if (!out.includes(n)) out.push(n);
+  }
+  return out;
+}
 
 export function deriveProductName(classification: Classification): "StackShift" | "PipelineForge" {
   return classification === "PipelineForge" ? "PipelineForge" : "StackShift";
 }
 
 export function deriveProjectSuffix(classification: Classification): "Website" | "App" {
-  return classification === "Discrete Development" ? "App" : "Website";
+  return classification === "FlowForge" ? "App" : "Website";
 }
 
 export function deriveProjectType(classification: Classification): "Content Site" | "Custom App" {
-  return classification === "Discrete Development" ? "Custom App" : "Content Site";
+  return classification === "FlowForge" ? "Custom App" : "Content Site";
 }
 
 // Task 157: multi-select classification support. At most one StackShift variant may be
-// selected at a time (swap, not blocked, on the picker's UI side); PipelineForge and Discrete
-// Development are free to combine with it or with each other. These *Multi functions generalize
+// selected at a time (swap, not blocked, on the picker's UI side); PipelineForge and FlowForge
+// are free to combine with it or with each other. These *Multi functions generalize
 // the single-value ones above to arrays — the single-value functions are kept for any other call
 // sites, not removed.
 export const STACKSHIFT_VARIANTS: Classification[] = ["StackShift I", "StackShift II", "StackShift Access", "StackShift Access Plus"];
@@ -419,7 +459,7 @@ export function derivePrimaryClassification(selected: Classification[]): Classif
 // modal now writes the whole array), returns the array the primary change implies, so a
 // single-column update never leaves `classifications` stale relative to `classification`.
 //   - new primary IS a StackShift variant  -> it replaces whichever variant was there, non-variant
-//     entries (PipelineForge, Discrete Development) survive
+//     entries (PipelineForge, FlowForge) survive
 //   - new primary is NOT a variant -> it is added; every existing entry, variant included, survives
 //     (a single-select call can't express removal, so dropping entries there silently lost them)
 // Duplicate-safe: the new primary never appears twice even if it was already present.
@@ -428,7 +468,7 @@ export function mergeClassificationUpdate(existing: Classification[], newPrimary
   return [newPrimary, ...existing.filter((c) => c !== newPrimary && !(isVariant && STACKSHIFT_VARIANTS.includes(c)))];
 }
 
-// Preserves today's single-value fallback (a Discrete-Development-only selection resolves to
+// Preserves today's single-value fallback (a FlowForge-only selection resolves to
 // "StackShift", same pre-existing quirk as deriveProductName) — confirmed with the user rather
 // than silently changed.
 export function deriveProductNamesMulti(selected: Classification[]): ("StackShift" | "PipelineForge")[] {
@@ -442,11 +482,11 @@ export function deriveProductNamesMulti(selected: Classification[]): ("StackShif
 }
 
 export function deriveProjectSuffixMulti(selected: Classification[]): "Website" | "App" {
-  return selected.includes("Discrete Development") ? "App" : "Website";
+  return selected.includes("FlowForge") ? "App" : "Website";
 }
 
 export function deriveProjectTypeMulti(selected: Classification[]): "Content Site" | "Custom App" {
-  return selected.includes("Discrete Development") ? "Custom App" : "Content Site";
+  return selected.includes("FlowForge") ? "Custom App" : "Content Site";
 }
 
 // ─── Generic phase plan (task 239) ───────────────────────────────────────────

@@ -1,4 +1,4 @@
-import { CLASSIFICATIONS, type Classification } from "@/config/customer-phases";
+import { CLASSIFICATIONS, normalizeClassification, type Classification } from "@/config/customer-phases";
 import { V2_ROUTES } from "@/config/constants";
 
 // Task 361 — the /projects listing's tab strip is one tab per classification plus Legacy,
@@ -18,7 +18,7 @@ export type ClassificationTabId =
   | "stackshift-access"
   | "stackshift-access-plus"
   | "pipelineforge"
-  | "discrete-development";
+  | "flowforge";
 
 export type ProjectsTabId = ClassificationTabId | "legacy";
 
@@ -36,7 +36,13 @@ const TAB_ID_BY_CLASSIFICATION: Record<Classification, ClassificationTabId> = {
   "StackShift Access": "stackshift-access",
   "StackShift Access Plus": "stackshift-access-plus",
   PipelineForge: "pipelineforge",
-  "Discrete Development": "discrete-development",
+  FlowForge: "flowforge",
+};
+
+// Task 504 — retired slugs. /projects/discrete-development… is 308'd to /projects/flowforge… in
+// next.config.ts; this covers the old `?tab=` form, which parseClassificationTab resolves.
+const LEGACY_TAB_IDS: Readonly<Record<string, ClassificationTabId>> = {
+  "discrete-development": "flowforge",
 };
 
 // Tab order follows CLASSIFICATIONS' own order. No separate `label` field — a Classification
@@ -66,7 +72,9 @@ export function isProjectsTabId(raw: unknown): raw is ProjectsTabId {
 // An absent or unrecognized legacy `?tab=` resolves to the default tab rather than 404ing — a stale
 // bookmark or a hand-edited URL should land somewhere useful, not on an empty list.
 export function parseClassificationTab(raw: string | null | undefined): ClassificationTabId {
-  return isClassificationTabId(raw) ? raw : DEFAULT_CLASSIFICATION_TAB;
+  if (isClassificationTabId(raw)) return raw;
+  if (raw && Object.hasOwn(LEGACY_TAB_IDS, raw)) return LEGACY_TAB_IDS[raw];
+  return DEFAULT_CLASSIFICATION_TAB;
 }
 
 export function classificationForTab(id: ClassificationTabId): Classification {
@@ -87,9 +95,11 @@ export function classificationStatusReportHref(id: ClassificationTabId): string 
 }
 
 // Task 414 — classification value -> tab id, for callers that hold a project's classification
-// strings (not a `?tab=` slug). Returns null for a value outside CLASSIFICATIONS.
+// strings (not a `?tab=` slug). Returns null for a value outside CLASSIFICATIONS. Task 504 — legacy
+// stored values (pre-migration-192 "Discrete Development") resolve through the alias map.
 export function tabIdForClassification(value: string): ClassificationTabId | null {
-  return Object.hasOwn(TAB_ID_BY_CLASSIFICATION, value) ? TAB_ID_BY_CLASSIFICATION[value as Classification] : null;
+  const normalized = normalizeClassification(value);
+  return Object.hasOwn(TAB_ID_BY_CLASSIFICATION, normalized) ? TAB_ID_BY_CLASSIFICATION[normalized as Classification] : null;
 }
 
 // Task 474 — project detail pages live at /projects/<slug>/<projectId>/…, where <slug> is one of the

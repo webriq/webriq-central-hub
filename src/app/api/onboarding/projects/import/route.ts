@@ -4,7 +4,7 @@ import { adminClient } from "@/lib/supabase/admin";
 import { generateCustomerId } from "@/lib/customers/generate-id";
 import { upsertPrimaryContact } from "@/lib/customers/primary-contact";
 import {
-  CLASSIFICATIONS,
+  findClassification,
   type Classification,
   STACKSHIFT_VARIANTS,
   isValidClassificationCombo,
@@ -15,6 +15,7 @@ import {
 } from "@/config/customer-phases";
 import { seedProgrammeAtPhase } from "@/lib/programme/seed";
 import { addProjectMember } from "@/lib/programme/phase-membership";
+import { withClassificationFallback } from "@/lib/projects/classification-write";
 
 // Task 153: pm can now also create projects — mirrors POST /api/onboarding/projects'
 // CREATE_ROLES exactly (that constant isn't exported, so this is a deliberate duplicate, same
@@ -43,7 +44,8 @@ function parseClassifications(raw: string): { classifications: Classification[] 
 
   const resolved: Classification[] = [];
   for (const part of parts) {
-    const match = CLASSIFICATIONS.find((c) => c.toLowerCase() === part.toLowerCase());
+    // Task 504 — also accepts the legacy "Discrete Development" (→ FlowForge).
+    const match = findClassification(part);
     if (!match) return { classifications: null, error: `Unrecognized Type value: "${part}"` };
     if (!resolved.includes(match)) resolved.push(match);
   }
@@ -156,19 +158,22 @@ export async function POST(request: NextRequest) {
 
         const productNames = deriveProductNamesMulti(classifications);
         const primaryClassification = classifications.find((c) => STACKSHIFT_VARIANTS.includes(c)) ?? classifications[0];
-        const { data: product, error: productError } = await adminClient
-          .from("customer_products")
-          .insert({
-            customer_id: customerId,
-            product_name: productNames[0],
-            classification: primaryClassification,
-            classifications,
-            status: "active",
-            onboarding_complete: false,
-            onboarding_data: {},
-          })
-          .select("id")
-          .single();
+        // Task 504 — retries with the legacy scalar if migration 192 isn't applied yet.
+        const { data: product, error: productError } = await withClassificationFallback(primaryClassification, (classification) =>
+          adminClient
+            .from("customer_products")
+            .insert({
+              customer_id: customerId,
+              product_name: productNames[0],
+              classification,
+              classifications,
+              status: "active",
+              onboarding_complete: false,
+              onboarding_data: {},
+            })
+            .select("id")
+            .single()
+        );
         if (productError || !product) {
           errors.push({ row: rowNumber, error: "Failed to create product" });
           continue;

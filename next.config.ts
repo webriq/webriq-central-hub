@@ -56,6 +56,19 @@ const nextConfig: NextConfig = {
         permanent: true,
       },
       {
+        // Task 504 — the "Discrete Development" classification was renamed to FlowForge, so its
+        // projects tab slug moved too. Keeps bookmarks, notification deep links and task/ticket
+        // URLs resolving (query preserved).
+        source: "/projects/discrete-development",
+        destination: "/projects/flowforge",
+        permanent: true,
+      },
+      {
+        source: "/projects/discrete-development/:path*",
+        destination: "/projects/flowforge/:path*",
+        permanent: true,
+      },
+      {
         // Final custom domain is hub.webriqs.com — permanently redirect the legacy
         // *.vercel.app URL straight there (was chained through centralhub.webriq.cloud,
         // now also legacy, before that domain was renamed again).

@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { normalizeClassification } from "@/config/customer-phases";
 import { getSettingsViewer } from "@/lib/test-data";
 import { adminClient } from "@/lib/supabase/admin";
 import { isProjectVisibleToCurrentUser } from "@/app/(hub)/projects-old/_project-access";
@@ -63,7 +64,7 @@ export async function getProjectDetailData(projectId: string): Promise<ProjectDe
       .select("classification")
       .eq("id", project.customer_product_id)
       .maybeSingle();
-    classification = product?.classification ?? null;
+    classification = normalizeClassification(product?.classification); // task 504 — legacy alias
   }
 
   const [milestonesRes, tasklistsRes, tasksRes, issuesRes, customerRes, profilesRes, timeLogsRes, assignableMembers, attachmentCountsRes, commentCountsRes, prefRes] = await Promise.all([

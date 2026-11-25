@@ -88,9 +88,9 @@ function getNavGroups(role: string | null, departmentName: string | null, hasDir
         ],
       },
     ] : []),
-    // Orders review queue (task 347; route /orders since task 503) — matches the page + API guards: admin /
-    // super_admin only (task 375 removed pm).
-    ...(isAdmin ? [
+    // Orders review queue (task 347; route /orders since task 503) — matches the page + API guards:
+    // admin / super_admin / pm (task 375 removed pm, task 504 restored it).
+    ...((isAdmin || role === "pm") ? [
       { label: "Orders", icon: <ClipboardList size={18} />,          href: V2_ROUTES.ORDERS },
     ] : []),
     // Orchestration (task 343) — matches the `/api/assessment|plan|execution|reply|zoho`
