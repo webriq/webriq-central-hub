@@ -127,7 +127,7 @@ export default function GenericPhaseView({
   }
 
   if (milestones.length === 0) {
-    return <GenericNoPhasesScreen name={project.name} companyName={project.company_name} projectUrlKey={projectUrlKey} />;
+    return <GenericNoPhasesScreen name={project.name} companyName={project.company_name} projectUrlKey={projectUrlKey} startedAt={programmeStartedAt} />;
   }
 
   // Task 252: routed through the dedicated generic-phase route (backdates programme_started_at

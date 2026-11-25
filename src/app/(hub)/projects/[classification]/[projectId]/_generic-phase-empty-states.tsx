@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Flag, CalendarClock, PlayCircle } from "lucide-react";
 import { useProjectsBase } from "@/app/(hub)/projects/[classification]/[projectId]/_use-projects-base";
+import { currentDisplayDay } from "@/lib/programme/calendar";
 
 // Task 420 — extracted verbatim from `_generic-phase-view.tsx` (file-length guidance); no behaviour
 // change. Both screens share the same centered-card shell.
@@ -78,11 +79,12 @@ export function GenericNotStartedScreen({
 }
 
 export function GenericNoPhasesScreen({
-  name, companyName, projectUrlKey,
+  name, companyName, projectUrlKey, startedAt,
 }: {
   name: string;
   companyName: string;
   projectUrlKey: string;
+  startedAt: string;
 }) {
   const projectsBase = useProjectsBase();
   return (
@@ -90,6 +92,10 @@ export function GenericNoPhasesScreen({
       <Flag size={32} className="mx-auto mb-4 text-[#5F6A88]" />
       <div className="text-lg font-bold text-[#0B1533]">{name}</div>
       <div className="mb-3 text-[13px] text-[#5F6A88]">{companyName}</div>
+      <div className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-[#EEF4FF] px-3 py-1 text-[12px] font-semibold text-[#0B1533]">
+        <CalendarClock size={13} /> Onboarding started{" "}
+        {new Date(startedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} · Day {currentDisplayDay(startedAt)}
+      </div>
       <p className="mx-auto mb-6 max-w-md text-[13px] text-[#5F6A88]">
         No phases have been set up for this project yet. Add phases and set their Start and Due dates
         from the project&apos;s Milestones tab to start tracking progress here.
