@@ -1,3 +1,4 @@
+import { resolveUploadMime } from "@/config/upload-mime";
 import type { DriveFileRow } from "@/lib/drive/types";
 
 async function errorMessage(res: Response, fallback: string): Promise<string> {
@@ -15,7 +16,7 @@ async function errorMessage(res: Response, fallback: string): Promise<string> {
 //   2. XHR PUT the bytes straight to Storage (raw XHR so the progress bar works)
 //   3. POST /api/drive/files to register the row (server verifies the object landed)
 export async function uploadToDrive(file: File, folderId: string | null, onProgress?: (pct: number) => void): Promise<DriveFileRow> {
-  const mimeType = file.type || "application/octet-stream";
+  const mimeType = resolveUploadMime(file) || "application/octet-stream";
 
   const signRes = await fetch("/api/drive/upload/sign", {
     method: "POST",

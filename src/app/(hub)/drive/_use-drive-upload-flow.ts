@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import type { DriveFolder } from "@/lib/drive/types";
 import { DRIVE_MAX_FILE_SIZE, DRIVE_MAX_SIZE_LABEL } from "@/lib/drive/constants";
 import { useUploadQueue, hasDirectoryEntry, readDataTransferEntries, countFiles, type FolderNode } from "./_reuse";
+import { resolveUploadMime } from "@/config/upload-mime";
 import { DRIVE_UPLOAD_TYPES, DRIVE_TYPES_LABEL, MAX_TREE_FILES, ROOT_KEY } from "./_drive-constants";
 
 type Rejected = { name: string; reason: string };
@@ -31,7 +32,7 @@ export function useDriveUploadFlow({
   const { items, enqueue, retry, dismiss } = useUploadQueue(runUpload);
 
   const validate = useCallback((file: File): string | null => {
-    if (!DRIVE_UPLOAD_TYPES.includes(file.type)) return `${file.type || "This file type"} isn't supported — allowed: ${DRIVE_TYPES_LABEL}.`;
+    if (!DRIVE_UPLOAD_TYPES.includes(resolveUploadMime(file))) return `${file.type || "This file type"} isn't supported — allowed: ${DRIVE_TYPES_LABEL}.`;
     if (file.size > DRIVE_MAX_FILE_SIZE) return `${(file.size / (1024 * 1024)).toFixed(1)} MB exceeds the ${DRIVE_MAX_SIZE_LABEL} limit — compress or split it, then try again.`;
     return null;
   }, []);

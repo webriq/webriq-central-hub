@@ -4,7 +4,8 @@
 import { FONT_EXTENSION_MIME } from "@/config/font-types";
 import { DESIGN_EXTENSION_MIME } from "@/config/design-file-types";
 
-const EXTENSION_MIME: Record<string, string> = { ...FONT_EXTENSION_MIME, ...DESIGN_EXTENSION_MIME };
+// json: browsers sometimes report an empty type for .json (task 505).
+const EXTENSION_MIME: Record<string, string> = { ...FONT_EXTENSION_MIME, ...DESIGN_EXTENSION_MIME, json: "application/json" };
 
 // Canonical MIME for a file name's extension, or null when it isn't one of the types above.
 // Own-property lookup so names like "constructor" can't hit Object.prototype.

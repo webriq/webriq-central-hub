@@ -46,6 +46,7 @@ export const ALLOWED_MIME_TYPES = [
   "text/markdown",
   "text/plain",
   "text/csv",
+  "application/json",
   "image/x-icon",
   "image/vnd.microsoft.icon",
   "application/zip",

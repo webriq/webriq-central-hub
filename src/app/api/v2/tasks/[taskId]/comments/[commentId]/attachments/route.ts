@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { POWERPOINT_MIME_TYPES } from "@/config/powerpoint-types";
+import { resolveUploadMime } from "@/config/upload-mime";
 
 // Discrete file attachments on a task comment (task 212) — reuses the existing generic
 // `attachments` table (entity_type: "comment", already a legal value per the
@@ -23,6 +24,7 @@ const ALLOWED_MIME_TYPES = [
   "text/html",
   "text/markdown",
   "text/plain",
+  "application/json",
   "video/mp4",
   ...POWERPOINT_MIME_TYPES,
 ];
@@ -69,9 +71,10 @@ export async function POST(
   const file = formData?.get("file") as File | null;
   if (!file) return NextResponse.json({ error: "No file provided" }, { status: 400 });
 
-  if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+  const mimeType = resolveUploadMime(file);
+  if (!ALLOWED_MIME_TYPES.includes(mimeType)) {
     return NextResponse.json(
-      { error: `Unsupported file type: ${file.type}. Supported types: images, PDF, Word docs, Excel spreadsheets, HTML, Markdown, plain text, MP4 video` },
+      { error: `Unsupported file type: ${mimeType}. Supported types: images, PDF, Word docs, Excel spreadsheets, HTML, Markdown, plain text, JSON, MP4 video` },
       { status: 400 }
     );
   }
@@ -88,7 +91,7 @@ export async function POST(
 
   const { error: uploadError } = await supabase.storage
     .from("project-assets")
-    .upload(storagePath, buffer, { contentType: file.type, upsert: false });
+    .upload(storagePath, buffer, { contentType: mimeType, upsert: false });
 
   if (uploadError) {
     console.error("[api/v2/tasks/[id]/comments/[id]/attachments] upload failed:", uploadError.message);

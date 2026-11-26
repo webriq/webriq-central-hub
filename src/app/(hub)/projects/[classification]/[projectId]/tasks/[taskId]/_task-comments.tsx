@@ -44,6 +44,7 @@ const COMMENT_ATTACHMENT_MIME_TYPES = [
   "text/html",
   "text/markdown",
   "text/plain",
+  "application/json",
   "video/mp4",
   ...POWERPOINT_MIME_TYPES,
 ];

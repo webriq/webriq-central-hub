@@ -1,5 +1,6 @@
 "use client";
 
+import { resolveUploadMime } from "@/config/upload-mime";
 import { FileText, Image as ImageIcon, Video, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AttachmentDropzone } from "./_attachment-dropzone";
@@ -41,7 +42,7 @@ export function TaskAttachmentPicker({
 }) {
   const overrideCheck = allowedMimeTypes
     ? async (file: File): Promise<ClientCheckResult> => {
-        if (!allowedMimeTypes.includes(file.type)) return { ok: false, reason: `${file.name}: unsupported file type` };
+        if (!allowedMimeTypes.includes(resolveUploadMime(file))) return { ok: false, reason: `${file.name}: unsupported file type` };
         if (file.size > COMMENT_OVERRIDE_MAX_FILE_SIZE) return { ok: false, reason: `${file.name}: exceeds 25MB limit` };
         return { ok: true };
       }
@@ -53,7 +54,7 @@ export function TaskAttachmentPicker({
         currentCount={files.length}
         onFiles={(accepted) => onFilesChange([...files, ...accepted])}
         checkFile={overrideCheck}
-        allowedTypesLabel={allowedMimeTypes ? "Images, PDF, Word, Excel, HTML, Markdown, plain text, MP4 video" : undefined}
+        allowedTypesLabel={allowedMimeTypes ? "Images, PDF, Word, Excel, HTML, Markdown, plain text, JSON, MP4 video" : undefined}
         maxSizeLabel={allowedMimeTypes ? "25 MB" : undefined}
         disabled={disabled}
       />

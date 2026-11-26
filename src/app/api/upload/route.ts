@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { resolveUploadMime } from "@/config/upload-mime";
 import { adminClient } from "@/lib/supabase/admin";
 import type { ProductName } from "@/types/hub";
 import { POWERPOINT_MIME_TYPES } from "@/config/powerpoint-types";
@@ -21,6 +22,7 @@ const ALLOWED_MIME_TYPES = [
   "text/markdown",
   "text/plain",
   "text/csv",
+  "application/json",
   "image/x-icon",
   "image/vnd.microsoft.icon",
   "application/zip",
@@ -75,10 +77,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate file type
-    if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+    const mimeType = resolveUploadMime(file);
+    if (!ALLOWED_MIME_TYPES.includes(mimeType)) {
       return NextResponse.json(
         {
-          error: `Unsupported file type: ${file.type}. Supported types: images (incl. ICO), PDF, Word docs, Excel spreadsheets, PowerPoint decks, HTML, Markdown, plain text, CSV, XML, JS/TS, ZIP/RAR`,
+          error: `Unsupported file type: ${mimeType}. Supported types: images (incl. ICO), PDF, Word docs, Excel spreadsheets, PowerPoint decks, HTML, Markdown, plain text, CSV, JSON, XML, JS/TS, ZIP/RAR`,
         },
         { status: 400 }
       );
@@ -104,7 +107,7 @@ export async function POST(request: NextRequest) {
     const { error: uploadError } = await adminClient.storage
       .from("onboarding-assets")
       .upload(storagePath, buffer, {
-        contentType: file.type,
+        contentType: mimeType,
         upsert: false,
       });
 
@@ -123,7 +126,7 @@ export async function POST(request: NextRequest) {
         url: publicUrl,
         filename: file.name,
         size: file.size,
-        mimeType: file.type,
+        mimeType,
         path: storagePath,
       },
       { status: 201 }

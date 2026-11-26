@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { useFileUpload } from "@/hooks/use-file-upload";
 import Image from "next/image";
 import { POWERPOINT_MIME_TYPES, POWERPOINT_ACCEPT } from "@/config/powerpoint-types";
+import { resolveUploadMime } from "@/config/upload-mime";
 
 interface FileUploadProps {
   fieldName: string;
@@ -35,6 +36,7 @@ const ALLOWED_MIME_TYPES = [
   "text/markdown",
   "text/plain",
   "text/csv",
+  "application/json",
   "image/x-icon",
   "image/vnd.microsoft.icon",
   "application/zip",
@@ -50,7 +52,7 @@ const ALLOWED_MIME_TYPES = [
 ];
 
 const ALLOWED_EXTENSIONS =
-  ".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.html,.md,.txt,.csv,.ico,.zip,.rar,.js,.ts,.xml," + POWERPOINT_ACCEPT;
+  ".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.html,.md,.txt,.csv,.json,.ico,.zip,.rar,.js,.ts,.xml," + POWERPOINT_ACCEPT;
 const MAX_FILE_SIZE = 200 * 1024 * 1024;
 
 export default function FileUpload({
@@ -68,8 +70,8 @@ export default function FileUpload({
   const uploadedFile = value as UploadedFile | null | undefined;
 
   const validateFile = (file: File): string | null => {
-    if (!ALLOWED_MIME_TYPES.includes(file.type)) {
-      return `Unsupported file type: ${file.type}. Supported: images (incl. ICO), PDF, Word, Excel, PowerPoint, HTML, Markdown, plain text, CSV, XML, JS/TS, ZIP/RAR.`;
+    if (!ALLOWED_MIME_TYPES.includes(resolveUploadMime(file))) {
+      return `Unsupported file type: ${file.type}. Supported: images (incl. ICO), PDF, Word, Excel, PowerPoint, HTML, Markdown, plain text, CSV, JSON, XML, JS/TS, ZIP/RAR.`;
     }
     if (file.size > MAX_FILE_SIZE) {
       return `File too large (${(file.size / (1024 * 1024)).toFixed(1)}MB). Max 200MB.`;
